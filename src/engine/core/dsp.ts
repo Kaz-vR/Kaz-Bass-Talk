@@ -156,6 +156,12 @@ export class Biquad {
     this.set((1 + c) / 2, -(1 + c), (1 + c) / 2, 1 + al, -2 * c, 1 - al);
   }
 
+  setLowpass(fc: number, q: number, fs: number): void {
+    const w = (TWO_PI * fc) / fs;
+    const c = Math.cos(w), al = Math.sin(w) / (2 * q);
+    this.set((1 - c) / 2, 1 - c, (1 - c) / 2, 1 + al, -2 * c, 1 - al);
+  }
+
   setLowShelf(fc: number, db: number, fs: number): void {
     const A = Math.pow(10, db / 40);
     const w = (TWO_PI * fc) / fs;
