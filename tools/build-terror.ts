@@ -36,6 +36,8 @@ interface Def {
   mods?: Mod[];
   /** Added to the shared movement kit (or to `mods`). */
   extra?: Mod[];
+  /** Texture bed: type, level, tone, tail (ms). */
+  texture?: [type: string, level: number, tone: number, tail: number];
 }
 
 const TERROR_BASE: Record<string, number | string | boolean> = {
@@ -108,6 +110,7 @@ function kit(overrides: Mod[], swaps: Record<string, Mod> = {}): Mod[] {
 const D: Def[] = [
   {
     id: 'wall', dir: 'lorn-tape-flutter', name: 'Terror Wall',
+    texture: ['dust', 0.62, 0.4, 600],
     description: 'A sustained wall of tube-saturated saws over a clean sub, crushed by compression and breathing with the beat.',
     tags: ['lorn', 'terror', 'wall', 'saturated', 'dark', 'pumping', 'cinematic'],
     set: {
@@ -117,6 +120,7 @@ const D: Def[] = [
   },
   {
     id: 'cavern', dir: 'lorn-tape-flutter', name: 'Cavern',
+    texture: ['air', 0.45, 0.3, 1600],
     description: 'A dark bass drowned in a huge, dark room: the mids bloom open over seconds and sink into a long tail.',
     tags: ['lorn', 'terror', 'reverb', 'cavern', 'dark', 'space', 'slow', 'cinematic'],
     set: {
@@ -129,6 +133,7 @@ const D: Def[] = [
   },
   {
     id: 'worn-tape', dir: 'lorn-tape-flutter', name: 'Worn Tape',
+    texture: ['crackle', 0.5, 0.35, 800],
     description: 'Bass from a tape that has been played to death: sick wow and flutter, crushed grain, hiss and a dull, warm top.',
     tags: ['lorn', 'terror', 'tape', 'lo-fi', 'worn', 'wonky', 'grain', 'haunted'],
     set: {
@@ -139,6 +144,7 @@ const D: Def[] = [
   },
   {
     id: 'slow-growl', dir: 'lorn-tape-flutter', name: 'Slow Growl',
+    texture: ['dust', 0.62, 0.3, 600],
     description: 'A throat that slowly changes its vowel: formant filter wandering over bars, chewed by tube distortion.',
     tags: ['lorn', 'terror', 'growl', 'formant', 'vowel', 'slow', 'dark', 'talking'],
     set: {
@@ -153,6 +159,7 @@ const D: Def[] = [
   },
   {
     id: 'dread', dir: 'lorn-tape-flutter', name: 'Dread',
+    texture: ['rumble', 0.45, 0.35, 1200],
     description: 'A heavy bass with a quiet tritone layer above it that beats and rubs: uneasy, like something is wrong.',
     tags: ['lorn', 'terror', 'dissonant', 'tritone', 'dread', 'horror', 'dark'],
     set: {
@@ -162,6 +169,7 @@ const D: Def[] = [
   },
   {
     id: 'reverse-swell', dir: 'lorn-tape-flutter', name: 'Reverse Swell',
+    texture: ['air', 0.3, 0.12, 1400],
     description: 'Notes that swell in backwards and rush to a saturated peak, then hang in a dark echo.',
     tags: ['lorn', 'terror', 'reverse', 'swell', 'backwards', 'cinematic', 'tension'],
     set: {
@@ -172,6 +180,7 @@ const D: Def[] = [
   },
   {
     id: 'metal-hull', dir: 'lorn-tape-flutter', name: 'Metal Hull',
+    texture: ['rumble', 0.5, 0.5, 1000],
     description: 'A bass that groans like a ship hull: a comb resonance drifting slowly through the distortion.',
     tags: ['lorn', 'terror', 'metallic', 'comb', 'groan', 'industrial', 'horror'],
     set: {
@@ -182,6 +191,7 @@ const D: Def[] = [
   },
   {
     id: 'crushed-808', dir: 'lorn-tape-flutter', name: 'Crushed 808',
+    texture: ['crackle', 0.45, 0.3, 900],
     description: 'A long, dark 808 through a wandering wavefolder, tape and a little crush: its grit never sits still as it rings out.',
     tags: ['lorn', 'terror', '808', 'crushed', 'distorted', 'long', 'dark'],
     set: {
@@ -201,12 +211,74 @@ const D: Def[] = [
   },
   {
     id: 'breather', dir: 'lorn-tape-flutter', name: 'Breather',
+    texture: ['air', 0.4, 0.4, 700],
     description: 'A wide, sustained bass that inhales and exhales with the beat under heavy sidechain-style pumping.',
     tags: ['lorn', 'terror', 'pump', 'sidechain', 'breathing', 'wide', 'dark'],
     set: {
       'osc1.unison_voices': 6, 'osc1.unison_detune': 20, 'osc1.unison_spread': 1, 'comp.amount': 0.6, 'comp.pump': 0.7,
       'chorus.mix': 0.24, 'chorus.mode': 'ensemble', 'filter.cutoff': 700,
     },
+  },
+  // ---------------------------------------------------- texture is the point
+  {
+    id: 'old-record', dir: 'lorn-tape-flutter', name: 'Old Record',
+    description: 'A round, warm bass lifted off a worn record: loud crackle and pops around it, narrow, dull and saturated.',
+    tags: ['lorn', 'terror', 'texture', 'crackle', 'vinyl', 'sampled', 'lo-fi', 'warm'],
+    texture: ['crackle', 1, 0.45, 1500],
+    set: {
+      'osc1.wave': 'triangle', 'osc1.unison_voices': 1, 'osc1.level': 0.7, 'osc2.wave': 'saw', 'osc2.level': 0.3, 'osc2.semi': 0, 'osc2.fine': 6,
+      'filter.cutoff': 380, 'filter.resonance': 0.15, 'drive.amount': 0.5, 'tape.drive': 0.6, 'tape.wow': 0.35, 'tape.age': 0.65,
+      'chorus.mix': 0.06, 'reverb.mix': 0.12, 'reverb.size': 0.5, 'delay.mix': 0.05, 'comp.pump': 0.15, 'eq.highcut': 6000,
+    },
+    mods: kit([], {
+      'lfo4>width': ['lfo4', 'width', -0.4],
+      'lfo4>chorus_depth': ['drift_slow', 'texture_level', 0.15],
+    }),
+  },
+  {
+    id: 'dust-ghost', dir: 'lorn-tape-flutter', name: 'Dust Ghost',
+    description: 'A soft, half-there bass that blooms out of a cloud of dust and fades back into it, with a dark echo behind.',
+    tags: ['lorn', 'terror', 'texture', 'dust', 'ghostly', 'soft', 'haunted', 'ambient'],
+    texture: ['dust', 1, 0.2, 2200],
+    set: {
+      'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'osc1.level': 0.7, 'osc2.wave': 'triangle', 'osc2.semi': 12, 'osc2.level': 0.25, 'osc2.fine': 5,
+      'drive.amount': 0.45, 'filter.cutoff': 600, 'amp_env.attack': 60, 'amp_env.release': 1500, 'env2.attack': 2200,
+      'reverb.mix': 0.3, 'reverb.size': 0.85, 'delay.mix': 0.16, 'delay.time': '1/2', 'delay.feedback': 0.5, 'comp.pump': 0.1, 'eq.highcut': 7500, 'tape.age': 0.25,
+    },
+    // A sine body barely reacts to the filter: move its drive and the octave layer instead, and let the dust breathe.
+    mods: kit([['drift_slow', 'dist_drive', 0.2]], {
+      'lfo1>filter_cutoff': ['lfo1', 'osc2_level', 0.2],
+      'lfo2>filter_cutoff': ['lfo2', 'dist_drive', 0.08],
+      'lfo3>unison_detune': ['lfo3', 'texture_level', 0.2],
+    }),
+  },
+  {
+    id: 'exhale', dir: 'lorn-tape-flutter', name: 'Exhale',
+    description: 'Every note is a breath: a wash of air swells with it and drains away, around a dark, slowly talking bass.',
+    tags: ['lorn', 'terror', 'texture', 'air', 'breath', 'vocal', 'dark', 'cinematic'],
+    texture: ['air', 0.85, 0.35, 2500],
+    set: {
+      'filter.type': 'formant', 'filter.cutoff': 1100, 'filter.resonance': 0.35, 'filter.vowel': 0.35, 'filter.keytrack': 0.3, 'eq.mid_gain': -3.5,
+      'amp_env.attack': 40, 'amp_env.release': 1200, 'reverb.mix': 0.24, 'eq.highcut': 6000,
+    },
+    mods: kit([], {
+      'lfo1>filter_cutoff': ['lfo1', 'filter_vowel', 0.25],
+      'env2>filter_cutoff': ['env2', 'texture_level', 0.15],
+      'lfo2>filter_cutoff': ['lfo2', 'filter_vowel', 0.05],
+    }),
+  },
+  {
+    id: 'undertow', dir: 'lorn-tape-flutter', name: 'Undertow',
+    description: 'A deep, detuned bass dragged along by a dark rumble that surges and pulls back underneath it.',
+    tags: ['lorn', 'terror', 'texture', 'rumble', 'deep', 'detuned', 'dark', 'heavy'],
+    texture: ['rumble', 0.9, 0.3, 1800],
+    set: {
+      'osc1.unison_voices': 5, 'osc1.unison_detune': 22, 'osc2.semi': -12, 'osc2.fine': -9, 'osc2.level': 0.4,
+      'filter.cutoff': 520, 'eq.mid_gain': -3.5, 'reverb.mix': 0.18, 'comp.pump': 0.3,
+    },
+    mods: kit([], {
+      'drift_slow>reverb_mix': ['drift_slow', 'texture_level', 0.2],
+    }),
   },
 ];
 
@@ -221,6 +293,10 @@ function build(def: Def): Record<string, unknown> {
     ...TERROR_BASE,
     ...def.set,
   };
+  if (def.texture) {
+    const [type, level, tone, tail] = def.texture;
+    Object.assign(raw, { 'texture.type': type, 'texture.level': level, 'texture.tone': tone, 'texture.tail': tail });
+  }
   mods.forEach(([src, dst, amt], i) => {
     raw[`mod${i + 1}.source`] = src;
     raw[`mod${i + 1}.dest`] = dst;

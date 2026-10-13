@@ -19,14 +19,14 @@
       "brightness": 0.26,
       "highEnergy": 0.558,
       "sub": 0.655,
-      "lowMid": 0.666,
-      "dirt": 0.546,
+      "lowMid": 0.667,
+      "dirt": 0.545,
       "width": 0.919,
       "attack": 0.36,
       "decay": 0.902,
       "sustain": 0.889,
       "release": 0.773,
-      "movement": 0.326
+      "movement": 0.327
     }
   },
   "voice.legato": false,
@@ -67,6 +67,10 @@
   "sub.octave": -1,
   "sub.level": 0.55,
   "noise.level": 0,
+  "texture.type": "rumble",
+  "texture.level": 0.45,
+  "texture.tone": 0.35,
+  "texture.tail": 1200,
   "click.type": "click",
   "click.level": 0,
   "click.decay": 15,
