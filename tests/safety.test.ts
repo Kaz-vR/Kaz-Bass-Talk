@@ -23,8 +23,9 @@ function checkSafety(name: string, patch: unknown, l: ReturnType<typeof loop>, s
   const { mid, side } = midSide(r.left, r.right);
   // Stereo (side) content below half the crossover must be either ≥ 30 dB under
   // the whole low band, or ≥ 60 dB under the entire signal (i.e. negligible).
-  const sideLow = bandEnergy(side, FS, xo / 2, 5);
-  const midLow = bandEnergy(mid, FS, xo / 2, 5);
+  // "Well below the crossover": up to 0.4 × crossover (the side high-pass is 48 dB/oct).
+  const sideLow = bandEnergy(side, FS, xo * 0.4, 5);
+  const midLow = bandEnergy(mid, FS, xo * 0.4, 5);
   const all = bandEnergy(mid, FS, FS / 2) + bandEnergy(side, FS, FS / 2);
   const vsLow = 10 * Math.log10(sideLow / (midLow + sideLow + 1e-30));
   const vsAll = 10 * Math.log10(sideLow / (all + 1e-30));

@@ -344,6 +344,11 @@ export class Synth {
   private readonly limiter: Limiter;
   private outGain = 1;
   private outGainStep = 0;
+  private postDcXL = 0;
+  private postDcYL = 0;
+  private postDcXR = 0;
+  private postDcYR = 0;
+  private readonly postDcR: number;
   private outTarget = 1;
   private lastOutDb = NaN;
   private lastTone = -1;
@@ -358,6 +363,7 @@ export class Synth {
     this.sampleRate = sampleRate;
     this.smoothCoef = 1 - Math.exp(-CONTROL_BLOCK / ((SMOOTH_MS / 1000) * sampleRate));
     this.duckStep = 1 / ((DUCK_MS / 1000) * sampleRate);
+    this.postDcR = 1 - (2 * Math.PI * 5) / sampleRate;
     params.forEach((p, i) => {
       this.isLog[i] = p.curve === 'log' ? 1 : 0;
       this.isDiscrete[i] = p.type === 'float' ? 0 : 1;
@@ -496,6 +502,7 @@ export class Synth {
     this.phaser.reset();
     this.reverb.reset();
     this.limiter.reset();
+    this.postDcXL = this.postDcYL = this.postDcXR = this.postDcYR = 0;
     for (let i = 0; i < 2; i++) {
       this.dcL[i].reset();
       this.dcR[i].reset();
@@ -729,7 +736,9 @@ export class Synth {
       const o = this.osc[n];
       const op = P.osc[n];
       const pitch = basePitch + cur[op.semi] + cur[op.fine] / 100 + 24 * dst[n === 0 ? D_OSC1_PITCH : D_OSC2_PITCH];
-      const center = this.toInc(pitch);
+      // Fold up by octaves below 20 Hz (e.g. during deep pitch dives): inaudible, only eats headroom.
+      let center = this.toInc(pitch);
+      while (center < 20 / fs) center *= 2;
       const voices = o.voices;
       const detune = clamp(cur[op.detune] + 100 * dst[D_DETUNE], 0, 100);
       const spread = cur[op.spread];
@@ -1402,8 +1411,22 @@ export class Synth {
       }
 
       this.limiter.process(l, r, out);
-      outL[n] = out[0];
-      outR[n] = out[1];
+      // Final DC filter (5 Hz one-pole): removes the near-DC intermodulation a
+      // limiter produces under heavy gain reduction. It shifts peaks by well
+      // under 0.1%; the clamp keeps the ceiling an absolute guarantee.
+      const c = this.limiter.ceiling;
+      let yl = out[0] - this.postDcXL + this.postDcR * this.postDcYL;
+      this.postDcXL = out[0];
+      this.postDcYL = yl;
+      let yr = out[1] - this.postDcXR + this.postDcR * this.postDcYR;
+      this.postDcXR = out[1];
+      this.postDcYR = yr;
+      yl = yl > c ? c : yl < -c ? -c : yl;
+      yr = yr > c ? c : yr < -c ? -c : yr;
+      out[0] = yl;
+      out[1] = yr;
+      outL[n] = yl;
+      outR[n] = yr;
       const a = Math.abs(out[0]) > Math.abs(out[1]) ? Math.abs(out[0]) : Math.abs(out[1]);
       if (a > peak) peak = a;
     }

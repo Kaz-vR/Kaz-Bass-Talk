@@ -201,10 +201,15 @@ export class Transient {
   private readonly rng = new Rng(0xc11c);
   private type = CLICK_CLICK;
   private g = 0.1;
+  // DC blocker: a decaying sine burst has net area, which would add up to DC on fast notes.
+  private dcX = 0;
+  private dcY = 0;
+  private dcR = 0.997;
 
   reset(): void {
     this.env = 0;
     this.svf.reset();
+    this.dcX = this.dcY = 0;
   }
 
   /**
@@ -214,6 +219,7 @@ export class Transient {
   trigger(type: number, decayMs: number, tone: number, noteHz: number, fs: number): void {
     this.type = type;
     this.env = 1;
+    this.dcR = 1 - (2 * Math.PI * 20) / fs;
     this.envCoef = Math.exp(-4.6 / Math.max(1, (decayMs / 1000) * fs));
     this.phase = 0;
     this.g = Math.tan((Math.PI * Math.min(tone, fs * 0.45)) / fs);
@@ -229,7 +235,13 @@ export class Transient {
   }
 
   process(): number {
-    if (this.env < 1e-5) return 0;
+    if (this.env < 1e-5) {
+      // Let the DC blocker settle back to zero after the burst.
+      const y0 = -this.dcX + this.dcR * this.dcY;
+      this.dcX = 0;
+      this.dcY = y0;
+      return y0;
+    }
     let y: number;
     switch (this.type) {
       case CLICK_NOISE:
@@ -251,6 +263,9 @@ export class Transient {
     }
     y *= this.env;
     this.env *= this.envCoef;
-    return y;
+    const out = y - this.dcX + this.dcR * this.dcY;
+    this.dcX = y;
+    this.dcY = out;
+    return out;
   }
 }
