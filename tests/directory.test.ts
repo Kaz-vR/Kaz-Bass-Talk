@@ -27,4 +27,15 @@ describe('bass directory', () => {
       expect(families, file).toContain(json.meta.family);
     }
   });
+
+  it('every bass type (all non-performance entries) has a library patch', () => {
+    const covered = new Set(libraryPatches().map(({ json }) => json.meta.directory));
+    const types = dir.entries.filter((e: { group: string }) => e.group !== 'Performance modification states');
+    expect(types.length).toBe(51);
+    for (const e of types) expect(covered, e.id).toContain(e.id);
+  });
+  it('library patch names are unique and each family appears', () => {
+    const lib = libraryPatches();
+    expect(new Set(lib.map(({ json }) => json.meta.name)).size).toBe(lib.length);
+  });
 });

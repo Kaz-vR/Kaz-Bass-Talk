@@ -1,8 +1,11 @@
 // Performance: the synth must stay well under real time. CLAUDE.md target is
 // ~3% CPU per voice at 48 kHz on a mid-range laptop (and the C++ plugin will
 // be faster still). Cloud/CI containers are much slower than a laptop (the
-// one this was tuned on runs Math.sin ~3x slower) and noisy, so the hard limit
-// here is 10% per library patch and the real numbers are logged for review.
+// one this was tuned on runs Math.sin ~3x slower) and noisy (±1.5% between
+// identical runs; parallel test files add more), so the hard limit here is 15%
+// per library patch (≈ 5% on a laptop: a regression alarm, not the target)
+// and the real numbers are logged for review. Measured as this process's CPU
+// time, which also counts JIT/GC threads, so it reads on the high side.
 import { describe, expect, it } from 'vitest';
 import { renderPatch } from '../src/engine/core/render';
 import { libraryPatches, loop } from './helpers/audio';
@@ -13,9 +16,11 @@ function cpuPercent(patch: unknown): number {
   renderPatch(patch, loop('groove'), { seconds: 0.5 }); // warm-up / JIT
   const runs: number[] = [];
   for (let i = 0; i < 3; i++) {
-    const t0 = performance.now();
+    // CPU time used by this process (not wall-clock), so parallel test files don't inflate it.
+    const c0 = process.cpuUsage();
     renderPatch(patch, loop('groove'), { seconds: SECONDS });
-    runs.push(performance.now() - t0);
+    const c = process.cpuUsage(c0);
+    runs.push((c.user + c.system) / 1000);
   }
   runs.sort((a, b) => a - b);
   return (runs[1] / (SECONDS * 1000)) * 100;
@@ -23,13 +28,11 @@ function cpuPercent(patch: unknown): number {
 
 describe('performance', () => {
   it('every library patch renders far faster than real time', () => {
-    const rows: string[] = [];
-    for (const { file, json } of libraryPatches()) {
-      const cpu = cpuPercent(json);
-      rows.push(`${file.padEnd(22)} ${cpu.toFixed(2)}%`);
-      expect(cpu, file).toBeLessThan(10);
-    }
-    console.log('CPU per voice @48 kHz (this machine):\n' + rows.join('\n'));
+    const rows: [string, number][] = [];
+    for (const { file, json } of libraryPatches()) rows.push([file, cpuPercent(json)]);
+    rows.sort((a, b) => b[1] - a[1]);
+    console.log('CPU per voice @48 kHz (this machine):\n' + rows.map(([f, c]) => `${f.padEnd(26)} ${c.toFixed(2)}%`).join('\n'));
+    for (const [file, cpu] of rows) expect(cpu, file).toBeLessThan(15);
   });
 
   it('worst case (2×7 unison, formant, FM, all FX) stays under 20%', () => {

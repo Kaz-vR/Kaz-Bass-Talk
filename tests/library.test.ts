@@ -5,8 +5,8 @@ import { libraryPatches, loops } from './helpers/audio';
 describe('patch library', () => {
   const lib = libraryPatches();
 
-  it('has the phase-1 starter set', () => {
-    expect(lib.length).toBeGreaterThanOrEqual(10);
+  it('has a patch for every bass type', () => {
+    expect(lib.length).toBeGreaterThanOrEqual(51);
   });
 
   it.each(lib.map((e) => [e.file, e.json]))('%s is complete and valid', (_file, json) => {

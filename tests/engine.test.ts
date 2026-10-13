@@ -51,7 +51,7 @@ describe('engine basics', () => {
   });
 
   it('renders deterministically', () => {
-    const p = libraryPatch('neuro-growl');
+    const p = libraryPatch('neuro');
     const a = renderPatch(p, loop('groove'), { seconds: 1 });
     const b = renderPatch(p, loop('groove'), { seconds: 1 });
     expect(Buffer.from(a.left.buffer).equals(Buffer.from(b.left.buffer))).toBe(true);
@@ -164,7 +164,7 @@ describe('loop player', () => {
   });
 
   it('loops seamlessly', () => {
-    const r = renderPatch(libraryPatch('acid-squelch'), loop('acid-16ths'), { seconds: 8 });
+    const r = renderPatch(libraryPatch('acid-303'), loop('acid-16ths'), { seconds: 8 });
     const half = r.left.length / 2; // one loop = 8 beats at 128 BPM = 3.75 s
     expect(rms(r.left, 0, half)).toBeGreaterThan(0.05);
     expect(rms(r.left, half, r.left.length)).toBeGreaterThan(0.05);
