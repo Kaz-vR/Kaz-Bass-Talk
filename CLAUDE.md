@@ -137,7 +137,7 @@ Plain code, deterministic, no ML.
 2. Longest-match phrase lookup (so "too much top" wins over "top").
 3. Attach amount words to the next or previous descriptor.
 4. Detect negation ("less", "not so", "without", "no", "remove").
-5. Detect commands and references to takes or history steps.
+5. Detect commands and references to Sound Tree options ("like B") or history steps.
 6. Output a structured intent:
 
 ```json
@@ -250,7 +250,7 @@ The synth's own replies must be one short line. The sound is the answer.
   /loops          audition MIDI riffs
 /src
   /engine         synth DSP + AudioWorklet
-  /language       parser, resolver, take generator
+  /language       parser, resolver
   /analysis       offline render + feature extraction
   /tree           Sound Tree (seed by listening) + reference-drop seeding
   /macros         family pools, impact ranking, per-patch range tuning
