@@ -467,6 +467,56 @@
       "exponent": 2
     },
     {
+      "id": "texture.type",
+      "label": "Texture type",
+      "type": "enum",
+      "options": [
+        "crackle",
+        "dust",
+        "rumble",
+        "air"
+      ],
+      "default": "crackle",
+      "group": "texture",
+      "describes": "Texture bed under the bass: crackle is vinyl pops, dust is fine grit, rumble is a low dark hum (kept above the sub), air is breathy noise."
+    },
+    {
+      "id": "texture.level",
+      "label": "Texture level",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "texture",
+      "describes": "How loud the texture bed is. It swells in with each note and lingers for the tail; silent between notes."
+    },
+    {
+      "id": "texture.tone",
+      "label": "Texture tone",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.4,
+      "curve": "linear",
+      "unit": "",
+      "group": "texture",
+      "describes": "Darker (0) to brighter (1); for crackle also sparser to busier."
+    },
+    {
+      "id": "texture.tail",
+      "label": "Texture tail",
+      "type": "float",
+      "min": 20,
+      "max": 6000,
+      "default": 700,
+      "curve": "log",
+      "unit": "ms",
+      "group": "texture",
+      "describes": "How long the texture lingers after a note ends."
+    },
+    {
       "id": "click.type",
       "label": "Transient type",
       "type": "enum",
@@ -1297,7 +1347,8 @@
         "reverb_mix",
         "width",
         "tape_wow",
-        "dist_tone"
+        "dist_tone",
+        "texture_level"
       ],
       "default": "none",
       "group": "mod",
@@ -1379,7 +1430,8 @@
         "reverb_mix",
         "width",
         "tape_wow",
-        "dist_tone"
+        "dist_tone",
+        "texture_level"
       ],
       "default": "none",
       "group": "mod",
@@ -1461,7 +1513,8 @@
         "reverb_mix",
         "width",
         "tape_wow",
-        "dist_tone"
+        "dist_tone",
+        "texture_level"
       ],
       "default": "none",
       "group": "mod",
@@ -1543,7 +1596,8 @@
         "reverb_mix",
         "width",
         "tape_wow",
-        "dist_tone"
+        "dist_tone",
+        "texture_level"
       ],
       "default": "none",
       "group": "mod",
@@ -1625,7 +1679,8 @@
         "reverb_mix",
         "width",
         "tape_wow",
-        "dist_tone"
+        "dist_tone",
+        "texture_level"
       ],
       "default": "none",
       "group": "mod",
@@ -1707,7 +1762,8 @@
         "reverb_mix",
         "width",
         "tape_wow",
-        "dist_tone"
+        "dist_tone",
+        "texture_level"
       ],
       "default": "none",
       "group": "mod",
@@ -1789,7 +1845,8 @@
         "reverb_mix",
         "width",
         "tape_wow",
-        "dist_tone"
+        "dist_tone",
+        "texture_level"
       ],
       "default": "none",
       "group": "mod",
@@ -1871,7 +1928,8 @@
         "reverb_mix",
         "width",
         "tape_wow",
-        "dist_tone"
+        "dist_tone",
+        "texture_level"
       ],
       "default": "none",
       "group": "mod",
@@ -1953,7 +2011,8 @@
         "reverb_mix",
         "width",
         "tape_wow",
-        "dist_tone"
+        "dist_tone",
+        "texture_level"
       ],
       "default": "none",
       "group": "mod",
@@ -2035,7 +2094,8 @@
         "reverb_mix",
         "width",
         "tape_wow",
-        "dist_tone"
+        "dist_tone",
+        "texture_level"
       ],
       "default": "none",
       "group": "mod",
@@ -2117,7 +2177,8 @@
         "reverb_mix",
         "width",
         "tape_wow",
-        "dist_tone"
+        "dist_tone",
+        "texture_level"
       ],
       "default": "none",
       "group": "mod",
@@ -2199,7 +2260,8 @@
         "reverb_mix",
         "width",
         "tape_wow",
-        "dist_tone"
+        "dist_tone",
+        "texture_level"
       ],
       "default": "none",
       "group": "mod",

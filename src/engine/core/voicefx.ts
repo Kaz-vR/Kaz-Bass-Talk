@@ -276,3 +276,99 @@ export class Transient {
     return out;
   }
 }
+
+export const TEX_CRACKLE = 0, TEX_DUST = 1, TEX_RUMBLE = 2, TEX_AIR = 3;
+
+/**
+ * Texture bed: crackle (vinyl pops over faint surface noise), dust (fine
+ * grit), rumble (a low, dark, slowly breathing hum kept above the sub) or air
+ * (breathy band of noise). Stereo except rumble, which is mono. Each type
+ * wanders slowly in level so it never sits still. Output gains put each
+ * type at a similar loudness at full level (crackle a little lower in
+ * energy, since its pops read louder than their energy). It has its own random
+ * generators, so switching it on doesn't change anything else in the patch.
+ */
+export class Texture {
+  private readonly rngL = new Rng(0x7e47c0);
+  private readonly rngR = new Rng(0x51de55);
+  private readonly rngW = new Rng(0x3a11ee);
+  private readonly svfL = new Svf();
+  private readonly svfR = new Svf();
+  private readonly svf2 = new Svf();
+  private lpL = 0;
+  private lpR = 0;
+  private wander = 0;
+  private wanderTarget = 0;
+  private wanderCount = 0;
+
+  reset(): void {
+    this.svfL.reset();
+    this.svfR.reset();
+    this.svf2.reset();
+    this.lpL = this.lpR = 0;
+  }
+
+  /** One stereo sample into out[0], out[1]. tone 0..1 (dark..bright). */
+  process(type: number, tone: number, fs: number, out: Float64Array): void {
+    // Slow level wander (new target every 0.4-1.6 s).
+    if (--this.wanderCount <= 0) {
+      this.wanderTarget = this.rngW.next();
+      this.wanderCount = Math.round((0.4 + 0.6 * (this.rngW.next() + 1)) * fs);
+    }
+    this.wander += (this.wanderTarget - this.wander) * (8 / fs);
+    const w = 1 + 0.45 * this.wander;
+    let l: number, r: number;
+    switch (type) {
+      case TEX_CRACKLE: {
+        // Sparse pops of random size (mostly small, a few big) ringing a resonant band, over faint surface hiss.
+        const p = (6 + 30 * tone) / fs;
+        const g = Math.tan((Math.PI * Math.min(1500 * Math.pow(4, tone), fs * 0.4)) / fs);
+        const el = 0.5 * (this.rngL.next() + 1) < p ? popSize(this.rngL) : 0;
+        const er = 0.5 * (this.rngR.next() + 1) < p ? popSize(this.rngR) : 0;
+        this.svfL.process(el, g, 1.1);
+        this.svfR.process(er, g, 1.1);
+        this.lpL += (this.rngL.next() - this.lpL) * 0.25;
+        this.lpR += (this.rngR.next() - this.lpR) * 0.25;
+        l = 24 * this.svfL.bp + 0.27 * this.lpL;
+        r = 24 * this.svfR.bp + 0.27 * this.lpR;
+        break;
+      }
+      case TEX_DUST: {
+        // Dense tiny ticks, high-passed: fine grit.
+        const p = (250 + 900 * tone) / fs;
+        const g = Math.tan((Math.PI * Math.min(2500 * Math.pow(2.5, tone), fs * 0.4)) / fs);
+        const el = 0.5 * (this.rngL.next() + 1) < p ? this.rngL.next() : 0;
+        const er = 0.5 * (this.rngR.next() + 1) < p ? this.rngR.next() : 0;
+        this.svfL.process(el, g, 0.9);
+        this.svfR.process(er, g, 0.9);
+        l = 4 * this.svfL.hp * w;
+        r = 4 * this.svfR.hp * w;
+        break;
+      }
+      case TEX_RUMBLE: {
+        // Low, dark hum: noise low-passed at 140-400 Hz, high-passed at ~110 Hz so it stays off the sub. Mono.
+        const g = Math.tan((Math.PI * (140 + 260 * tone)) / fs);
+        this.svfL.process(this.rngL.next(), g, 0.9);
+        this.svf2.process(this.svfL.lp, Math.tan((Math.PI * 110) / fs), 1.2);
+        l = r = 2.4 * this.svf2.hp * (0.6 + 0.4 * w);
+        break;
+      }
+      default: {
+        // Air: a broad band of breathy noise that swells and fades.
+        const g = Math.tan((Math.PI * Math.min(1000 * Math.pow(6, tone), fs * 0.4)) / fs);
+        this.svfL.process(this.rngL.next(), g, 1.5);
+        this.svfR.process(this.rngR.next(), g, 1.5);
+        l = 4 * this.svfL.bp * w * w;
+        r = 4 * this.svfR.bp * w * w;
+      }
+    }
+    out[0] = l;
+    out[1] = r;
+  }
+}
+
+/** Pop amplitude: mostly small, occasionally big, random polarity. */
+function popSize(rng: InstanceType<typeof Rng_>): number {
+  const u = 0.5 * (rng.next() + 1);
+  return (0.15 + 0.85 * u * u * u) * (rng.next() < 0 ? -1 : 1);
+}

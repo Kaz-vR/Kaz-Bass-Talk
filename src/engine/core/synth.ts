@@ -14,7 +14,7 @@
 //   osc1 (+FM) + osc2 + noise
 //   → [2× oversampled: drive → filter → distortion (optionally mids only)]
 //   → bitcrusher → tape (saturation, wow/flutter, age) → DC filter → amp
-//   + sub (clean, mono, phase-stable: bypasses everything above)
+//   + sub (clean, mono, phase-stable: bypasses everything above) + texture bed
 //   → compressor (+ tempo pump) → multiband OTT
 //   → FX above fx.lowcut only (chorus → flanger → phaser → delay → reverb)
 //   → EQ → high cut → subsonic/DC filter → mono below crossover
@@ -24,7 +24,7 @@ import { PARAM_COUNT, paramIndex, params } from '../../schema';
 import { Biquad, clamp, Envelope, fastTanh, Ladder, Rng, Svf, TWO_PI } from './dsp';
 import { Chorus, Compressor, Crusher, Delay, Flanger, Limiter, Ott, Phaser, Reverb, Tape } from './fx';
 import { Downsampler2x, OVERSAMPLE_LATENCY, Upsampler2x } from './oversample';
-import { Comb, DiodeLadder, KarplusString, Shepard, Transient } from './voicefx';
+import { Comb, DiodeLadder, KarplusString, Shepard, Texture, Transient } from './voicefx';
 import {
   FRAME_COUNT,
   FRAMES_PER_SEGMENT,
@@ -86,8 +86,9 @@ const D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_OSC2_WT 
   D_OSC1_LEVEL = 8, D_OSC2_LEVEL = 9, D_DETUNE = 10, D_FM = 11, D_SUB = 12, D_NOISE = 13, D_DRIVE = 14,
   D_CUTOFF = 15, D_RES = 16, D_VOWEL = 17, D_DIST_DRIVE = 18, D_DIST_MIX = 19, D_AMP = 20, D_LFO1_RATE = 21, D_LFO2_RATE = 22,
   D_FM2 = 23, D_CRUSH = 24, D_LFO3_RATE = 25, D_LFO4_RATE = 26, D_CHORUS_DEPTH = 27, D_PHASER_MIX = 28,
-  D_DELAY_TIME = 29, D_DELAY_MIX = 30, D_REVERB_MIX = 31, D_WIDTH = 32, D_TAPE_WOW = 33, D_DIST_TONE = 34;
-const DEST_COUNT = 35;
+  D_DELAY_TIME = 29, D_DELAY_MIX = 30, D_REVERB_MIX = 31, D_WIDTH = 32, D_TAPE_WOW = 33, D_DIST_TONE = 34, D_TEXTURE = 35;
+const DEST_COUNT = 36;
+const TEXTURE_GAIN = 0.5;
 const LFO_RATE_DEST = [D_LFO1_RATE, D_LFO2_RATE, D_LFO3_RATE, D_LFO4_RATE];
 
 // Formant table (Hz) for vowels A E I O U: F1, F2, F3.
@@ -122,6 +123,7 @@ const P = {
   clickType: ix('click.type'), clickLevel: ix('click.level'), clickDecay: ix('click.decay'), clickTone: ix('click.tone'),
   subWave: ix('sub.wave'), subOct: ix('sub.octave'), subLevel: ix('sub.level'),
   noise: ix('noise.level'), drive: ix('drive.amount'),
+  texType: ix('texture.type'), texLevel: ix('texture.level'), texTone: ix('texture.tone'), texTail: ix('texture.tail'),
   fType: ix('filter.type'), cutoff: ix('filter.cutoff'), res: ix('filter.resonance'), keytrack: ix('filter.keytrack'),
   envAmt: ix('filter.env_amount'), vowel: ix('filter.vowel'),
   dType: ix('dist.type'), dDrive: ix('dist.drive'), dMix: ix('dist.mix'), dTone: ix('dist.post_tone'), dSplit: ix('dist.clean_below'),
@@ -243,6 +245,16 @@ export class Synth {
   private shepRate = 0;
   // Attack transient layer.
   private readonly transient = new Transient();
+  // Texture bed: follows the gate with its own tail; added after the amp so it can outlast the note.
+  private readonly texture = new Texture();
+  private texEnv = 0;
+  private texGain = 0;
+  private texType = 0;
+  private texTone = 0.4;
+  private texAtk = 0.001;
+  private texRel = 0.999;
+  private texLpL = 0;
+  private texLpR = 0;
   private clickLevel = 0;
   // Slow random 'drift' modulation source.
   private driftVal = 0;
@@ -560,6 +572,8 @@ export class Synth {
     for (const st of this.strings) st.reset();
     for (const sh of this.shepards) sh.reset();
     this.transient.reset();
+    this.texture.reset();
+    this.texEnv = this.texLpL = this.texLpR = 0;
     this.hcL.reset();
     this.hcR.reset();
     this.crusher.reset();
@@ -888,6 +902,13 @@ export class Synth {
     this.subInc = subInc;
     this.subLevel = clamp(cur[P.subLevel] + dst[D_SUB], 0, 1) * SUB_GAIN;
     this.noiseLevel = clamp(cur[P.noise] + dst[D_NOISE], 0, 1) * 0.5;
+    const tex = clamp(cur[P.texLevel] + dst[D_TEXTURE], 0, 1);
+    this.texGain = tex * tex * TEXTURE_GAIN;
+    this.texType = cur[P.texType];
+    this.texTone = cur[P.texTone];
+    // The bed swells in with the note: never faster than ~a third of the amp attack.
+    this.texAtk = 1 - Math.exp(-1 / (Math.max(0.03, cur[P.amp[0]] / 3000) * fs));
+    this.texRel = Math.exp(-4.6 / ((cur[P.texTail] / 1000) * fs));
 
     // Pre-filter drive.
     const drive = clamp(cur[P.drive] + dst[D_DRIVE], 0, 1);
@@ -1408,6 +1429,25 @@ export class Synth {
         l += sub;
         r += sub;
         this.subDelayPos = (this.subDelayPos + 1) & 31;
+      }
+
+      // Texture bed (swells in with the gate, lingers for its tail, silent otherwise).
+      if (this.texGain > 0 && (this.gate || this.texEnv > 1e-5)) {
+        this.texEnv = this.gate ? this.texEnv + (1 - this.texEnv) * this.texAtk : this.texEnv * this.texRel;
+        this.texture.process(this.texType, this.texTone, this.sampleRate, out);
+        let tl = out[0], tr = out[1];
+        if (cur[P.tapeAge] > 0) {
+          // Worn tape dulls the texture the same way it dulls the voice.
+          this.texLpL += (tl - this.texLpL) * this.tapeLpCoef;
+          this.texLpR += (tr - this.texLpR) * this.tapeLpCoef;
+          tl = this.texLpL;
+          tr = this.texLpR;
+        }
+        const tg = this.texGain * this.texEnv * this.duckGain;
+        l += tl * tg;
+        r += tr * tg;
+      } else if (!this.gate) {
+        this.texEnv = 0;
       }
 
       // Dynamics (stereo-linked, so mono content stays mono).

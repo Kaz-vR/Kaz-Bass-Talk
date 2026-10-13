@@ -1,0 +1,63 @@
+// Texture bed: crackle, dust, rumble, air. Follows the notes with its own
+// tail, stays silent between notes, keeps off the sub, and leaves the rest of
+// the patch untouched.
+import { describe, expect, it } from 'vitest';
+import { renderPatch } from '../src/engine/core/render';
+import { bandPower, powerSpectrum } from '../src/analysis/spectrum';
+import { heldNote, rms } from './helpers/audio';
+
+const FS = 48000;
+const base = {
+  meta: { name: 't' }, 'voice.analog': 0, 'sub.level': 0.5, 'filter.cutoff': 800, 'amp_env.attack': 1, 'amp_env.sustain': 1, 'amp_env.release': 30,
+  'osc1.wave': 'saw', 'osc1.level': 0.7, 'texture.level': 0.8, 'texture.tail': 300,
+};
+const TYPES = ['crackle', 'dust', 'rumble', 'air'];
+/** Texture alone: the same render minus the render without texture. */
+function bed(p: object, seconds: number, tail = 0) {
+  const a = renderPatch(p, heldNote(45, 1), { seconds, tail });
+  const b = renderPatch({ ...p, 'texture.level': 0 }, heldNote(45, 1), { seconds, tail });
+  return {
+    left: Float32Array.from(a.left, (v, i) => v - b.left[i]),
+    right: Float32Array.from(a.right, (v, i) => v - b.right[i]),
+  };
+}
+
+describe('texture bed', () => {
+  it.each(TYPES)('%s is audible while a note plays', (type) => {
+    const x = bed({ ...base, 'texture.type': type }, 0.5);
+    expect(rms(x.left, 0.1 * FS, 0.45 * FS)).toBeGreaterThan(1e-3);
+  });
+
+  it.each(TYPES)('%s lingers for its tail, then goes silent', (type) => {
+    // Note: 0.5 s held, released; the loop then rests (heldNote(…, 1) is 1 beat on, 1 off at 120 BPM).
+    const x = bed({ ...base, 'texture.type': type, 'texture.tail': 400 }, 0.95);
+    const during = rms(x.left, 0.2 * FS, 0.45 * FS);
+    expect(rms(x.left, 0.52 * FS, 0.7 * FS)).toBeGreaterThan(during * 0.05);
+    expect(rms(x.left, 0.88 * FS, 0.95 * FS)).toBeLessThan(during * 0.05);
+  });
+
+  it('leaves the rest of the patch untouched when off', () => {
+    const a = renderPatch({ ...base, 'texture.level': 0 }, heldNote(45, 1), { seconds: 0.5 });
+    const b = renderPatch({ ...base, 'texture.level': 0, 'texture.type': 'air', 'texture.tone': 1 }, heldNote(45, 1), { seconds: 0.5 });
+    let d = 0;
+    for (let i = 0; i < a.left.length; i++) d = Math.max(d, Math.abs(a.left[i] - b.left[i]));
+    expect(d).toBe(0);
+  });
+
+  it('rumble is mono and stays off the sub', () => {
+    const x = bed({ ...base, 'texture.type': 'rumble', 'texture.level': 1 }, 1);
+    const side = Float64Array.from(x.left, (v, i) => 0.5 * (v - x.right[i]));
+    const mid = Float64Array.from(x.left, (v, i) => 0.5 * (v + x.right[i]));
+    expect(rms(Float32Array.from(side), 0.1 * FS, 0.45 * FS)).toBeLessThan(1e-6);
+    const s = powerSpectrum(mid, FS, Math.round(0.05 * FS), Math.round(0.45 * FS), 8192);
+    expect(bandPower(s, 20, 60)).toBeLessThan(bandPower(s, 120, 400) * 0.1);
+  });
+
+  it('crackle and air are stereo', () => {
+    for (const type of ['crackle', 'air']) {
+      const x = bed({ ...base, 'texture.type': type, 'texture.level': 1 }, 0.5);
+      const side = Float32Array.from(x.left, (v, i) => 0.5 * (v - x.right[i]));
+      expect(rms(side, 0.1 * FS, 0.45 * FS), type).toBeGreaterThan(1e-4);
+    }
+  });
+});
