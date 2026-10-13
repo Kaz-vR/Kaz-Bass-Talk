@@ -287,6 +287,7 @@ export class Synth {
   private readonly hcL = new Biquad();
   private readonly hcR = new Biquad();
   private highcutOn = false;
+  private readonly eqOn = new Uint8Array(3);
   private readonly hpL = new Biquad();
   private readonly hpR = new Biquad();
   private readonly chorus: Chorus;
@@ -797,6 +798,9 @@ export class Synth {
       this.hpR.setHighpass(lowcut, Math.SQRT1_2, fs);
       lf[0] = lowcut;
     }
+    this.eqOn[0] = Math.abs(cur[P.eqLow]) > 0.01 ? 1 : 0;
+    this.eqOn[1] = Math.abs(cur[P.eqMid]) > 0.01 ? 1 : 0;
+    this.eqOn[2] = Math.abs(cur[P.eqHigh]) > 0.01 ? 1 : 0;
     if (cur[P.eqLow] !== lf[1]) {
       this.eqL[0].setLowShelf(100, cur[P.eqLow], fs);
       this.eqR[0].setLowShelf(100, cur[P.eqLow], fs);
@@ -1190,10 +1194,12 @@ export class Synth {
       l = l - hl + xl;
       r = r - hr + xr;
 
-      // EQ and high cut.
+      // EQ (bands at 0 dB are skipped) and high cut.
       for (let b = 0; b < 3; b++) {
-        l = this.eqL[b].process(l);
-        r = this.eqR[b].process(r);
+        if (this.eqOn[b]) {
+          l = this.eqL[b].process(l);
+          r = this.eqR[b].process(r);
+        }
       }
       if (this.highcutOn) {
         l = this.hcL.process(l);
