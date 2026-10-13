@@ -1,0 +1,15 @@
+{
+  "id": "swell",
+  "name": "Long note",
+  "description": "One long held note (about 9 s at 80 BPM) then silence, for risers, falls, drones and textures.",
+  "bpm": 80,
+  "length_beats": 16,
+  "notes": [
+    {
+      "start": 0,
+      "dur": 12,
+      "note": 45,
+      "vel": 0.85
+    }
+  ]
+}

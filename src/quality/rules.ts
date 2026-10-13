@@ -42,6 +42,26 @@ function hasMovement(p: Patch): boolean {
   return false;
 }
 
+/** Why modulating `dst` does nothing in this patch, or null when it does something. */
+function deadRouting(p: Patch, dst: string): string | null {
+  const osc = (k: 1 | 2) => n(p, `osc${k}.level`) > 0.001;
+  const wave = (k: 1 | 2) => p[`osc${k}.wave`] as string;
+  switch (dst) {
+    case 'osc1_wt_pos': return wave(1) === 'wavetable' ? null : 'oscillator 1 is not a wavetable';
+    case 'osc2_wt_pos': return wave(2) === 'wavetable' && osc(2) ? null : 'oscillator 2 is not a sounding wavetable';
+    case 'osc1_pw': return ['pulse', 'pwm_saw'].includes(wave(1)) ? null : 'oscillator 1 has no pulse width';
+    case 'osc2_pw': return ['pulse', 'pwm_saw'].includes(wave(2)) && osc(2) ? null : 'oscillator 2 has no sounding pulse width';
+    case 'osc2_pitch': return osc(2) ? null : 'oscillator 2 is silent';
+    case 'unison_detune':
+      return n(p, 'osc1.unison_voices') > 1 || (osc(2) && n(p, 'osc2.unison_voices') > 1) ? null : 'no oscillator uses unison';
+    case 'filter_vowel': return p['filter.type'] === 'formant' ? null : 'the filter is not the formant type';
+    case 'dist_drive': case 'dist_tone': return n(p, 'dist.mix') > 0.01 ? null : 'distortion mix is 0';
+    case 'chorus_depth': return n(p, 'chorus.mix') > 0.01 ? null : 'chorus mix is 0';
+    case 'delay_time': return n(p, 'delay.mix') > 0.01 ? null : 'delay mix is 0';
+    default: return null;
+  }
+}
+
 /** Check a (validated) patch against the sound-design rules. */
 export function checkRules(p: Patch, family = (p.meta?.family as string | undefined) ?? ''): RuleIssue[] {
   const out: RuleIssue[] = [];
@@ -83,6 +103,19 @@ export function checkRules(p: Patch, family = (p.meta?.family as string | undefi
     p[`mod${i + 1}.dest`] === 'filter_cutoff' && MOVING_SOURCES.has(p[`mod${i + 1}.source`] as string) && Math.abs(n(p, `mod${i + 1}.amount`)) > 0.05);
   if (filterMoves && n(p, 'dist.drive') > 0.5 && n(p, 'dist.mix') > 0.6 && (p['dist.type'] === 'soft' || p['dist.type'] === 'tube')) {
     add('masked-filter', 'warn', 'Heavy saturation after a moving filter hides the movement; move some dirt to drive.amount (before the filter) and lower dist.drive.');
+  }
+
+  // Dead routings: modulating something the patch doesn't use does nothing.
+  for (let i = 1; i <= 12; i++) {
+    const dst = p[`mod${i}.dest`] as string;
+    if (dst === 'none' || p[`mod${i}.source`] === 'none' || Math.abs(n(p, `mod${i}.amount`)) < 0.0005) continue;
+    const dead = deadRouting(p, dst);
+    if (dead) add('dead-routing', 'error', `Mod ${i} → ${dst} does nothing: ${dead}.`);
+  }
+
+  // A light bitcrusher under a dark top is inaudible: its artifacts sit above the high cut.
+  if (n(p, 'crush.mix') > 0.01 && n(p, 'crush.rate') < 6 && n(p, 'crush.bits') > 6 && n(p, 'eq.highcut') < 8000) {
+    add('hidden-crush', 'warn', 'Bitcrusher artifacts sit above the high cut and will not be heard; downsample more (rate ≥ 6) or use fewer bits.');
   }
 
   // Movement: sustained patches shouldn't be static.

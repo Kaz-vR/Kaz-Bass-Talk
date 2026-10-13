@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { analyzePatch, measureLife, type RawMeasures } from '../src/analysis';
 import { renderPatch } from '../src/engine/core/render';
+import { analysisSetup } from '../src/quality/categories';
 import { judge, limitsFor } from '../src/quality/critic';
 import { libraryPatches, loop } from './helpers/audio';
 
@@ -33,7 +34,7 @@ describe('critic checks that need no render', () => {
   const ok: RawMeasures = {
     centroidHz: 200, highDb: -30, subShare: 0.4, lowMidShare: 0.3, harshDb: -20, mudDb: 0, flatness: 0.01, widthDb: -20, sideLowDb: -90,
     attackMs: 5, decayMs: 1000, sustainDb: -2, releaseMs: 100, movementDb: 1, fundamentalDb: { low: -1, mid: -1, high: -2 },
-    noteSpreadDb: 1, aliasDb: -80, whistleDb: 2, peak: 0.7, limiterDb: 0, dc: 0, textureDb: null,
+    noteSpreadDb: 1, aliasDb: -80, whistleDb: 2, peak: 0.7, limiterDb: 0, dc: 0, textureDb: null, brightOct: 1, airDb: -40, tailDb: -20,
   };
   it('passes a clean measurement', () => expect(judge(ok).pass).toBe(true));
   it('flags a stereo low end', () => expect(judge({ ...ok, sideLowDb: -6 }).issues[0].code).toBe('sideLowDb'));
@@ -52,7 +53,8 @@ describe('critic checks that need no render', () => {
 describe('every library patch passes the critic', () => {
   for (const { file, json } of libraryPatches()) {
     it(file, () => {
-      const v = judge(analyzePatch(json, groove).raw, json.meta.family);
+      const setup = analysisSetup(json.meta);
+      const v = judge(analyzePatch(json, loop(setup.loop), setup.opts).raw, json.meta.family, json.meta.category);
       expect(v.issues.map((i) => i.message)).toEqual([]);
     });
   }

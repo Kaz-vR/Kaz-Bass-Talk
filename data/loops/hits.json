@@ -1,0 +1,27 @@
+{
+  "id": "hits",
+  "name": "Hits",
+  "description": "90 BPM, three spaced impacts with room to ring out, for hits and impacts.",
+  "bpm": 90,
+  "length_beats": 12,
+  "notes": [
+    {
+      "start": 0,
+      "dur": 1,
+      "note": 33,
+      "vel": 1.0
+    },
+    {
+      "start": 4,
+      "dur": 1,
+      "note": 36,
+      "vel": 0.9
+    },
+    {
+      "start": 8,
+      "dur": 1,
+      "note": 31,
+      "vel": 1.0
+    }
+  ]
+}

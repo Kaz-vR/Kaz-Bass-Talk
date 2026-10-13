@@ -1,0 +1,201 @@
+{
+  "id": "arp-line",
+  "name": "Arp line",
+  "description": "110 BPM sixteenth-note broken minor chords around A3-E5, for plucks, arps, keys and bells.",
+  "bpm": 110,
+  "length_beats": 8,
+  "notes": [
+    {
+      "start": 0.0,
+      "dur": 0.2,
+      "note": 57,
+      "vel": 0.9
+    },
+    {
+      "start": 0.25,
+      "dur": 0.2,
+      "note": 60,
+      "vel": 0.7
+    },
+    {
+      "start": 0.5,
+      "dur": 0.2,
+      "note": 64,
+      "vel": 0.7
+    },
+    {
+      "start": 0.75,
+      "dur": 0.2,
+      "note": 69,
+      "vel": 0.7
+    },
+    {
+      "start": 1.0,
+      "dur": 0.2,
+      "note": 64,
+      "vel": 0.9
+    },
+    {
+      "start": 1.25,
+      "dur": 0.2,
+      "note": 60,
+      "vel": 0.7
+    },
+    {
+      "start": 1.5,
+      "dur": 0.2,
+      "note": 57,
+      "vel": 0.7
+    },
+    {
+      "start": 1.75,
+      "dur": 0.2,
+      "note": 60,
+      "vel": 0.7
+    },
+    {
+      "start": 2.0,
+      "dur": 0.2,
+      "note": 53,
+      "vel": 0.9
+    },
+    {
+      "start": 2.25,
+      "dur": 0.2,
+      "note": 57,
+      "vel": 0.7
+    },
+    {
+      "start": 2.5,
+      "dur": 0.2,
+      "note": 60,
+      "vel": 0.7
+    },
+    {
+      "start": 2.75,
+      "dur": 0.2,
+      "note": 65,
+      "vel": 0.7
+    },
+    {
+      "start": 3.0,
+      "dur": 0.2,
+      "note": 60,
+      "vel": 0.9
+    },
+    {
+      "start": 3.25,
+      "dur": 0.2,
+      "note": 57,
+      "vel": 0.7
+    },
+    {
+      "start": 3.5,
+      "dur": 0.2,
+      "note": 53,
+      "vel": 0.7
+    },
+    {
+      "start": 3.75,
+      "dur": 0.2,
+      "note": 57,
+      "vel": 0.7
+    },
+    {
+      "start": 4.0,
+      "dur": 0.2,
+      "note": 55,
+      "vel": 0.9
+    },
+    {
+      "start": 4.25,
+      "dur": 0.2,
+      "note": 59,
+      "vel": 0.7
+    },
+    {
+      "start": 4.5,
+      "dur": 0.2,
+      "note": 62,
+      "vel": 0.7
+    },
+    {
+      "start": 4.75,
+      "dur": 0.2,
+      "note": 67,
+      "vel": 0.7
+    },
+    {
+      "start": 5.0,
+      "dur": 0.2,
+      "note": 62,
+      "vel": 0.9
+    },
+    {
+      "start": 5.25,
+      "dur": 0.2,
+      "note": 59,
+      "vel": 0.7
+    },
+    {
+      "start": 5.5,
+      "dur": 0.2,
+      "note": 55,
+      "vel": 0.7
+    },
+    {
+      "start": 5.75,
+      "dur": 0.2,
+      "note": 59,
+      "vel": 0.7
+    },
+    {
+      "start": 6.0,
+      "dur": 0.2,
+      "note": 52,
+      "vel": 0.9
+    },
+    {
+      "start": 6.25,
+      "dur": 0.2,
+      "note": 55,
+      "vel": 0.7
+    },
+    {
+      "start": 6.5,
+      "dur": 0.2,
+      "note": 59,
+      "vel": 0.7
+    },
+    {
+      "start": 6.75,
+      "dur": 0.2,
+      "note": 64,
+      "vel": 0.7
+    },
+    {
+      "start": 7.0,
+      "dur": 0.2,
+      "note": 59,
+      "vel": 0.9
+    },
+    {
+      "start": 7.25,
+      "dur": 0.2,
+      "note": 55,
+      "vel": 0.7
+    },
+    {
+      "start": 7.5,
+      "dur": 0.2,
+      "note": 52,
+      "vel": 0.7
+    },
+    {
+      "start": 7.75,
+      "dur": 0.2,
+      "note": 55,
+      "vel": 0.7
+    }
+  ]
+}

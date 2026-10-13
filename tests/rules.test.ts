@@ -49,3 +49,21 @@ describe('safe regions', () => {
     expect(inRegion(p, regions[p.meta.family as string])).toBe(false);
   });
 });
+
+describe('dead routings and hidden effects', () => {
+  const base = validatePatch({ meta: { name: 'r' }, 'osc1.wave': 'saw', 'osc1.unison_voices': 1, 'amp_env.sustain': 1 }).patch;
+  const route = (dest: string) => ({ ...base, 'mod1.source': 'lfo1', 'mod1.dest': dest, 'mod1.amount': 0.3 });
+  it('flags modulating unison detune when nothing uses unison', () => {
+    expect(checkRules(route('unison_detune'), 'pad').map((r) => r.rule)).toContain('dead-routing');
+  });
+  it('flags vowel modulation without the formant filter', () => {
+    expect(checkRules(route('filter_vowel'), 'pad').map((r) => r.rule)).toContain('dead-routing');
+  });
+  it('accepts a routing that does something', () => {
+    expect(checkRules(route('filter_cutoff'), 'pad').map((r) => r.rule)).not.toContain('dead-routing');
+  });
+  it('warns about a light bitcrusher under a dark high cut', () => {
+    const p = { ...base, 'crush.mix': 0.2, 'crush.bits': 10, 'crush.rate': 2, 'eq.highcut': 5000 };
+    expect(checkRules(p, 'pad').map((r) => r.rule)).toContain('hidden-crush');
+  });
+});

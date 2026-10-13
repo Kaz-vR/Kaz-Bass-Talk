@@ -1,0 +1,75 @@
+{
+  "id": "lead-line",
+  "name": "Lead line",
+  "description": "80 BPM minor melody around A4: long notes with a few steps, for leads.",
+  "bpm": 80,
+  "length_beats": 16,
+  "notes": [
+    {
+      "start": 0,
+      "dur": 1.5,
+      "note": 69,
+      "vel": 0.85
+    },
+    {
+      "start": 1.5,
+      "dur": 0.5,
+      "note": 72,
+      "vel": 0.75
+    },
+    {
+      "start": 2,
+      "dur": 2,
+      "note": 71,
+      "vel": 0.8
+    },
+    {
+      "start": 4,
+      "dur": 1,
+      "note": 67,
+      "vel": 0.75
+    },
+    {
+      "start": 5,
+      "dur": 0.5,
+      "note": 69,
+      "vel": 0.7
+    },
+    {
+      "start": 5.5,
+      "dur": 2.3,
+      "note": 64,
+      "vel": 0.85
+    },
+    {
+      "start": 8,
+      "dur": 1.5,
+      "note": 76,
+      "vel": 0.9
+    },
+    {
+      "start": 9.5,
+      "dur": 0.5,
+      "note": 74,
+      "vel": 0.75
+    },
+    {
+      "start": 10,
+      "dur": 1.5,
+      "note": 72,
+      "vel": 0.8
+    },
+    {
+      "start": 11.5,
+      "dur": 0.5,
+      "note": 71,
+      "vel": 0.7
+    },
+    {
+      "start": 12,
+      "dur": 3.6,
+      "note": 69,
+      "vel": 0.85
+    }
+  ]
+}

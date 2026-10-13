@@ -20,7 +20,10 @@ import { validatePatch, type Patch } from '../schema';
 import { wantsLife } from '../quality/critic';
 import { bandPower, centroid, db, flatness, powerSpectrum, type PowerSpectrum } from './spectrum';
 
-export const PROBE_NOTES = { low: 33, mid: 45, high: 57 } as const; // A1, A2, A3
+/** Default probe notes: the bass register, A1, A2, A3 (categories set their own). */
+export const DEFAULT_PROBES = { low: 33, mid: 45, high: 57 } as const;
+/** Seconds rendered after the loop stops, to measure the tail (release + space). */
+const TAIL_SECONDS = 1.2;
 const PROBE_BPM = 120;
 
 export interface RawMeasures {
@@ -66,6 +69,12 @@ export interface RawMeasures {
   limiterDb: number;
   /** Blackman-windowed mean of the loop (true DC estimate). */
   dc: number;
+  /** Spectral centroid in octaves above the mid probe note's fundamental (register-independent darkness). */
+  brightOct: number;
+  /** Energy above 6 kHz relative to total, dB (air / top end). */
+  airDb: number;
+  /** Tail 0.3-1.2 s after the loop stops relative to the loop, dB (release + space). */
+  tailDb: number;
   /** How alive a long held note is (only measured when requested; see measureLife). */
   life?: Life;
   /** Texture bed relative to the bass on the held mid note, dB; null when the patch has no texture. */
@@ -147,6 +156,8 @@ export interface AnalyzeOptions {
   loopSeconds?: number;
   /** Held-note length, seconds. */
   holdSeconds?: number;
+  /** Probe notes (MIDI) for the low / mid / high tests; defaults to the bass register (A1, A2, A3). */
+  probes?: { low: number; mid: number; high: number };
 }
 
 // --------------------------------------------------------------- helpers
@@ -421,6 +432,7 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
   const fs = opts.sampleRate ?? 48000;
   const loopSeconds = opts.loopSeconds ?? 2;
   const hold = opts.holdSeconds ?? 1.2;
+  const PROBE_NOTES = opts.probes ?? DEFAULT_PROBES;
   const after = 0.6;
   let peak = 0, minGain = 1;
   const track = (r: { left: Float32Array; right: Float32Array; limiterMinGain: number }) => {
@@ -429,10 +441,14 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
   };
 
   // 1. Loop.
-  const lr = renderPatch(p, loop, { sampleRate: fs, seconds: loopSeconds });
+  const lr = renderPatch(p, loop, { sampleRate: fs, seconds: loopSeconds, tail: TAIL_SECONDS });
   track(lr);
-  const m = mono(lr.left, lr.right);
-  const sd = side(lr.left, lr.right);
+  const loopEnd = Math.round(loopSeconds * fs);
+  const mAll = mono(lr.left, lr.right);
+  const m = mAll.subarray(0, loopEnd);
+  const sd = side(lr.left, lr.right).subarray(0, loopEnd);
+  // Tail: what hangs in the air 0.3-1.2 s after the last notes stop (release + reverb + echo).
+  const tailDb = rmsDb(mAll, loopEnd + Math.round(0.3 * fs), mAll.length) - rmsDb(mAll, 0, loopEnd);
   const sp = powerSpectrum(m, fs);
   const ssp = powerSpectrum(sd, fs);
   const total = bandPower(sp, 20, 20000) + 1e-30;
@@ -512,6 +528,9 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
     limiterDb: -db(minGain * minGain),
     dc: blackmanMean(m),
     textureDb: null,
+    brightOct: Math.log2(Math.max(centroid(sp), 1) / f0(PROBE_NOTES.mid)),
+    airDb: db(bandPower(sp, 6000, 20000) / total),
+    tailDb,
   };
   if (hasTexture) {
     const r = renderPatch(noTex, heldLoop(PROBE_NOTES.mid, hold), { sampleRate: fs, seconds: hold + after });
@@ -523,7 +542,7 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
     }
     raw.textureDb = db(d / (e + 1e-30));
   }
-  if (opts.life ?? wantsLife(p.meta?.family as string | undefined)) {
+  if (opts.life ?? wantsLife(p.meta?.family as string | undefined, p.meta?.category as string | undefined)) {
     // Life is judged on the sound itself: a crackle bed must not make a static sound pass as alive.
     // Two held notes, averaged, so one lucky or unlucky random realization doesn't decide.
     const lives = [PROBE_NOTES.mid, PROBE_NOTES.mid - 5].map((note) => {

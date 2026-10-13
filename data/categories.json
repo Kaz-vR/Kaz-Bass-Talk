@@ -1,0 +1,777 @@
+{
+  "$comment": "The 14 categories of the preset bank. poly: default voices; audition: loop the UI plays; analysis/seconds/probes/hold: how the critic measures the category (its loop, its register as low/mid/high MIDI notes, held-note length); decaying: notes are meant to die away (life is judged more gently). limits: critic overrides for the category. zone: the LORN fingerprint (vibe measurements the category's presets must land in).",
+  "categories": [
+    {
+      "id": "bass",
+      "name": "Bass",
+      "description": "Dark, saturated low end: a clean mono sub under a worn, wide, moving mid layer.",
+      "recipe": "Clean sine sub; detuned/distorted mid layer with dirt before the filter; tape; slow wander + fast flutter; dark space above the low cut.",
+      "poly": 1,
+      "audition": "dread",
+      "analysis": {
+        "loop": "groove",
+        "seconds": 2,
+        "probes": {
+          "low": 33,
+          "mid": 45,
+          "high": 57
+        },
+        "hold": 1.2,
+        "decaying": false
+      },
+      "limits": {},
+      "zone": {
+        "vibeBright": {
+          "max": 2.3
+        },
+        "vibeAir": {
+          "max": -28
+        },
+        "vibeDirt": {
+          "min": 0.45,
+          "max": 1.4
+        },
+        "vibeWidth": {
+          "min": -20,
+          "max": -1
+        },
+        "vibeTail": {
+          "min": -35,
+          "max": -6
+        }
+      }
+    },
+    {
+      "id": "lead",
+      "name": "Lead",
+      "description": "Singing, broken mono lines: saturated, tape-wobbled, sitting in a dark echo.",
+      "recipe": "Detuned saw/pulse or formant body; glide; delayed vibrato and tape wow; drive before a moving filter; long dark delay and reverb.",
+      "poly": 1,
+      "audition": "lead-line",
+      "analysis": {
+        "loop": "lead-line",
+        "seconds": 4,
+        "probes": {
+          "low": 57,
+          "mid": 69,
+          "high": 81
+        },
+        "hold": 1.5,
+        "decaying": false
+      },
+      "limits": {
+        "lifeSlowDb": {
+          "min": 0.45,
+          "max": 4
+        },
+        "lifeFastDb": {
+          "min": 0.35,
+          "max": 2.8
+        },
+        "lifeRepeat": {
+          "max": 0.6
+        },
+        "harshDb": {
+          "max": -7
+        }
+      },
+      "zone": {
+        "vibeBright": {
+          "max": 2.6
+        },
+        "vibeAir": {
+          "max": -26
+        },
+        "vibeDirt": {
+          "min": 0.45,
+          "max": 1.4
+        },
+        "vibeWidth": {
+          "min": -20,
+          "max": -1
+        },
+        "vibeTail": {
+          "min": -35,
+          "max": -6
+        }
+      }
+    },
+    {
+      "id": "pad",
+      "name": "Pad",
+      "description": "Huge, slow, dark chords that bloom and drift: wide, worn and never still.",
+      "recipe": "Wide detuned stacks; slow attack and bloom; several unrelated wander LFOs on filter, detune and width; tape age; deep dark reverb; texture bed.",
+      "poly": 8,
+      "audition": "chords",
+      "analysis": {
+        "loop": "chords",
+        "seconds": 4,
+        "probes": {
+          "low": 45,
+          "mid": 57,
+          "high": 69
+        },
+        "hold": 2.5,
+        "decaying": false
+      },
+      "limits": {
+        "lifeSlowDb": {
+          "min": 0.45,
+          "max": 4
+        },
+        "lifeFastDb": {
+          "min": 0.35,
+          "max": 2.8
+        },
+        "lifeRepeat": {
+          "max": 0.6
+        },
+        "mudDb": {
+          "max": 5
+        },
+        "noteSpreadDb": {
+          "max": 5
+        }
+      },
+      "zone": {
+        "vibeBright": {
+          "max": 2.2
+        },
+        "vibeAir": {
+          "max": -28
+        },
+        "vibeDirt": {
+          "min": 0.35,
+          "max": 1.4
+        },
+        "vibeWidth": {
+          "min": -14,
+          "max": -1
+        },
+        "vibeTail": {
+          "min": -30,
+          "max": -3
+        }
+      }
+    },
+    {
+      "id": "keys",
+      "name": "Keys",
+      "description": "Worn electric and toy keys: soft tines and felt hammers through tape and a dark room.",
+      "recipe": "FM or triangle body with a soft attack transient; velocity to brightness; slow decay; tape wow and age; chorus; dark reverb.",
+      "poly": 8,
+      "audition": "chords",
+      "analysis": {
+        "loop": "chords",
+        "seconds": 4,
+        "probes": {
+          "low": 45,
+          "mid": 57,
+          "high": 72
+        },
+        "hold": 2.0,
+        "decaying": true
+      },
+      "limits": {
+        "lifeRepeat": {
+          "max": 0.6
+        },
+        "mudDb": {
+          "max": 5
+        },
+        "noteSpreadDb": {
+          "max": 5
+        }
+      },
+      "zone": {
+        "vibeBright": {
+          "max": 2.6
+        },
+        "vibeAir": {
+          "max": -26
+        },
+        "vibeDirt": {
+          "min": 0.3,
+          "max": 1.4
+        },
+        "vibeWidth": {
+          "min": -18,
+          "max": -1
+        },
+        "vibeTail": {
+          "min": -35,
+          "max": -3
+        }
+      }
+    },
+    {
+      "id": "pluck",
+      "name": "Pluck",
+      "description": "Short, dark plucks that leave space: every note a little different.",
+      "recipe": "Fast filter or string decay; per-note random on cutoff and drive; tape; ping-pong echo and small dark room.",
+      "poly": 8,
+      "audition": "arp-line",
+      "analysis": {
+        "loop": "arp-line",
+        "seconds": 3,
+        "probes": {
+          "low": 48,
+          "mid": 60,
+          "high": 72
+        },
+        "hold": 1.0,
+        "decaying": true
+      },
+      "limits": {
+        "lifeRepeat": {
+          "max": 0.6
+        },
+        "noteSpreadDb": {
+          "max": 5
+        }
+      },
+      "zone": {
+        "vibeBright": {
+          "max": 2.8
+        },
+        "vibeAir": {
+          "max": -24
+        },
+        "vibeDirt": {
+          "min": 0.35,
+          "max": 1.4
+        },
+        "vibeWidth": {
+          "min": -20,
+          "max": -1
+        },
+        "vibeTail": {
+          "min": -38,
+          "max": -3
+        }
+      }
+    },
+    {
+      "id": "arp",
+      "name": "Arp / Sequence",
+      "description": "Driving, breathing sequences: tight notes moving through a slowly changing filter and echo.",
+      "recipe": "Short gated notes; slow wander on cutoff across the pattern; pump; tempo echo with smeared time; tape.",
+      "poly": 4,
+      "audition": "arp-line",
+      "analysis": {
+        "loop": "arp-line",
+        "seconds": 3,
+        "probes": {
+          "low": 48,
+          "mid": 60,
+          "high": 72
+        },
+        "hold": 1.0,
+        "decaying": true
+      },
+      "limits": {
+        "lifeRepeat": {
+          "max": 0.6
+        },
+        "noteSpreadDb": {
+          "max": 5
+        }
+      },
+      "zone": {
+        "vibeBright": {
+          "max": 2.8
+        },
+        "vibeAir": {
+          "max": -24
+        },
+        "vibeDirt": {
+          "min": 0.35,
+          "max": 1.4
+        },
+        "vibeWidth": {
+          "min": -20,
+          "max": -1
+        },
+        "vibeTail": {
+          "min": -38,
+          "max": -3
+        }
+      }
+    },
+    {
+      "id": "strings",
+      "name": "Strings",
+      "description": "Dark string machines and ensembles: slow bows, wide ensemble chorus, worn tape.",
+      "recipe": "Saw/PWM ensemble with slow attack; delayed vibrato; bow chiff; ensemble chorus; high cut; dark hall.",
+      "poly": 8,
+      "audition": "chords",
+      "analysis": {
+        "loop": "chords",
+        "seconds": 4,
+        "probes": {
+          "low": 45,
+          "mid": 57,
+          "high": 69
+        },
+        "hold": 2.5,
+        "decaying": false
+      },
+      "limits": {
+        "lifeSlowDb": {
+          "min": 0.45,
+          "max": 4
+        },
+        "lifeFastDb": {
+          "min": 0.35,
+          "max": 2.8
+        },
+        "lifeRepeat": {
+          "max": 0.6
+        },
+        "mudDb": {
+          "max": 5
+        },
+        "noteSpreadDb": {
+          "max": 5
+        }
+      },
+      "zone": {
+        "vibeBright": {
+          "max": 2.4
+        },
+        "vibeAir": {
+          "max": -28
+        },
+        "vibeDirt": {
+          "min": 0.35,
+          "max": 1.4
+        },
+        "vibeWidth": {
+          "min": -14,
+          "max": -1
+        },
+        "vibeTail": {
+          "min": -30,
+          "max": -3
+        }
+      }
+    },
+    {
+      "id": "brass",
+      "name": "Brass / Horns",
+      "description": "Heavy, menacing synth brass: swelling filters, breath and saturation.",
+      "recipe": "Saw stack; filter envelope swell; breath chiff and sustained breath; small pitch scoop; delayed vibrato; tube saturation; big dark space.",
+      "poly": 6,
+      "audition": "chords",
+      "analysis": {
+        "loop": "chords",
+        "seconds": 4,
+        "probes": {
+          "low": 41,
+          "mid": 53,
+          "high": 65
+        },
+        "hold": 2.0,
+        "decaying": false
+      },
+      "limits": {
+        "lifeSlowDb": {
+          "min": 0.45,
+          "max": 4
+        },
+        "lifeFastDb": {
+          "min": 0.35,
+          "max": 2.8
+        },
+        "lifeRepeat": {
+          "max": 0.6
+        },
+        "mudDb": {
+          "max": 5
+        },
+        "noteSpreadDb": {
+          "max": 5
+        },
+        "harshDb": {
+          "max": -7
+        }
+      },
+      "zone": {
+        "vibeBright": {
+          "max": 2.4
+        },
+        "vibeAir": {
+          "max": -28
+        },
+        "vibeDirt": {
+          "min": 0.4,
+          "max": 1.4
+        },
+        "vibeWidth": {
+          "min": -18,
+          "max": -1
+        },
+        "vibeTail": {
+          "min": -32,
+          "max": -3
+        }
+      }
+    },
+    {
+      "id": "choir",
+      "name": "Choir / Vocal",
+      "description": "Ghostly voices: slowly shifting vowels, breath and a cathedral of dark reverb.",
+      "recipe": "Formant filter on detuned saws/pulses; slow vowel wander; breath; delayed vibrato per voice; ensemble; long dark reverb; air texture.",
+      "poly": 8,
+      "audition": "chords",
+      "analysis": {
+        "loop": "chords",
+        "seconds": 4,
+        "probes": {
+          "low": 50,
+          "mid": 57,
+          "high": 67
+        },
+        "hold": 2.5,
+        "decaying": false
+      },
+      "limits": {
+        "lifeSlowDb": {
+          "min": 0.45,
+          "max": 4
+        },
+        "lifeFastDb": {
+          "min": 0.35,
+          "max": 2.8
+        },
+        "lifeRepeat": {
+          "max": 0.6
+        },
+        "mudDb": {
+          "max": 5
+        },
+        "noteSpreadDb": {
+          "max": 5
+        },
+        "whistleDb": {
+          "max": 15
+        }
+      },
+      "zone": {
+        "vibeBright": {
+          "max": 2.6
+        },
+        "vibeAir": {
+          "max": -26
+        },
+        "vibeDirt": {
+          "min": 0.35,
+          "max": 1.4
+        },
+        "vibeWidth": {
+          "min": -14,
+          "max": -1
+        },
+        "vibeTail": {
+          "min": -30,
+          "max": -3
+        }
+      }
+    },
+    {
+      "id": "bells",
+      "name": "Bells / Mallets",
+      "description": "Detuned, broken bells and mallets: inharmonic shimmer decaying into a dark room.",
+      "recipe": "FM with inharmonic ratios; punch that decays faster than the body; slight detune; tape wow; dark reverb and echo.",
+      "poly": 8,
+      "audition": "arp-line",
+      "analysis": {
+        "loop": "arp-line",
+        "seconds": 3,
+        "probes": {
+          "low": 60,
+          "mid": 72,
+          "high": 84
+        },
+        "hold": 2.0,
+        "decaying": true
+      },
+      "limits": {
+        "lifeRepeat": {
+          "max": 0.6
+        },
+        "whistleDb": {
+          "max": 40
+        },
+        "fundamentalDb": {
+          "min": -25
+        },
+        "harshDb": {
+          "max": -6
+        },
+        "noteSpreadDb": {
+          "max": 6
+        }
+      },
+      "zone": {
+        "vibeBright": {
+          "max": 3.2
+        },
+        "vibeAir": {
+          "max": -22
+        },
+        "vibeDirt": {
+          "min": 0.3,
+          "max": 1.4
+        },
+        "vibeWidth": {
+          "min": -18,
+          "max": -1
+        },
+        "vibeTail": {
+          "min": -30,
+          "max": -3
+        }
+      }
+    },
+    {
+      "id": "hits",
+      "name": "Hits / Impacts",
+      "description": "Cinematic impacts: a heavy transient, a distorted body and a long dark tail.",
+      "recipe": "Kick/knock transient; pitch-dropped body; fold or tube dirt; crushed grit; huge dark reverb; rumble texture.",
+      "poly": 4,
+      "audition": "hits",
+      "analysis": {
+        "loop": "hits",
+        "seconds": 8,
+        "probes": {
+          "low": 31,
+          "mid": 38,
+          "high": 45
+        },
+        "hold": 3.0,
+        "decaying": true
+      },
+      "limits": {
+        "lifeRepeat": {
+          "max": 0.6
+        },
+        "fundamentalDb": {
+          "min": -25
+        },
+        "noteSpreadDb": {
+          "max": 6
+        },
+        "limiterDb": {
+          "max": 4
+        }
+      },
+      "zone": {
+        "vibeBright": {
+          "max": 2.8
+        },
+        "vibeAir": {
+          "max": -26
+        },
+        "vibeDirt": {
+          "min": 0.4,
+          "max": 1.6
+        },
+        "vibeWidth": {
+          "min": -22,
+          "max": -1
+        },
+        "vibeTail": {
+          "min": -30,
+          "max": -3
+        }
+      }
+    },
+    {
+      "id": "risers",
+      "name": "Risers & Falls",
+      "description": "Tension that builds or collapses over bars: pitch, filter, noise and space all moving.",
+      "recipe": "Long env 2 or pitch envelope on pitch and cutoff; noise and breath rising; reverb and width growing; texture.",
+      "poly": 2,
+      "audition": "swell",
+      "analysis": {
+        "loop": "swell",
+        "seconds": 9,
+        "probes": {
+          "low": 40,
+          "mid": 45,
+          "high": 52
+        },
+        "hold": 8.0,
+        "decaying": false
+      },
+      "limits": {
+        "lifeSlowDb": {
+          "min": 0.45,
+          "max": 12
+        },
+        "lifeFastDb": {
+          "min": 0.2,
+          "max": 3.5
+        },
+        "lifeRepeat": {
+          "max": 0.6
+        },
+        "fundamentalDb": {
+          "min": -40
+        },
+        "noteSpreadDb": {
+          "max": 8
+        },
+        "whistleDb": {
+          "max": 20
+        }
+      },
+      "zone": {
+        "vibeBright": {
+          "max": 3.0
+        },
+        "vibeAir": {
+          "max": -22
+        },
+        "vibeDirt": {
+          "min": 0.4,
+          "max": 1.6
+        },
+        "vibeWidth": {
+          "min": -18,
+          "max": -1
+        },
+        "vibeTail": {
+          "min": -30,
+          "max": 0
+        }
+      }
+    },
+    {
+      "id": "drone",
+      "name": "Drone / FX",
+      "description": "Endless dark beds and strange machines: slow, unstable, always evolving.",
+      "recipe": "Wide detuned or comb/formant body; many slow wanders and drift; tape; smeared delay; huge reverb; texture.",
+      "poly": 4,
+      "audition": "swell",
+      "analysis": {
+        "loop": "swell",
+        "seconds": 9,
+        "probes": {
+          "low": 33,
+          "mid": 40,
+          "high": 45
+        },
+        "hold": 6.0,
+        "decaying": false
+      },
+      "limits": {
+        "lifeSlowDb": {
+          "min": 0.45,
+          "max": 4
+        },
+        "lifeFastDb": {
+          "min": 0.35,
+          "max": 2.8
+        },
+        "lifeRepeat": {
+          "max": 0.6
+        },
+        "fundamentalDb": {
+          "min": -30
+        },
+        "whistleDb": {
+          "max": 15
+        },
+        "noteSpreadDb": {
+          "max": 6
+        }
+      },
+      "zone": {
+        "vibeBright": {
+          "max": 2.6
+        },
+        "vibeAir": {
+          "max": -26
+        },
+        "vibeDirt": {
+          "min": 0.4,
+          "max": 1.6
+        },
+        "vibeWidth": {
+          "min": -14,
+          "max": -1
+        },
+        "vibeTail": {
+          "min": -30,
+          "max": 0
+        }
+      }
+    },
+    {
+      "id": "texture",
+      "name": "Texture",
+      "description": "Noise, dust, air and hum shaped into playable beds: the grain under everything.",
+      "recipe": "Texture bed and breath noise as the main voice over a faint tonal body; slow movement; tape; dark space.",
+      "poly": 4,
+      "audition": "swell",
+      "analysis": {
+        "loop": "swell",
+        "seconds": 9,
+        "probes": {
+          "low": 45,
+          "mid": 57,
+          "high": 69
+        },
+        "hold": 6.0,
+        "decaying": false
+      },
+      "limits": {
+        "lifeSlowDb": {
+          "min": 0.45,
+          "max": 4
+        },
+        "lifeFastDb": {
+          "min": 0.35,
+          "max": 2.8
+        },
+        "lifeRepeat": {
+          "max": 0.6
+        },
+        "fundamentalDb": {
+          "min": -60
+        },
+        "textureDb": {
+          "max": 0
+        },
+        "whistleDb": {
+          "max": 20
+        },
+        "noteSpreadDb": {
+          "max": 8
+        }
+      },
+      "zone": {
+        "vibeBright": {
+          "max": 3.4
+        },
+        "vibeAir": {
+          "max": -18
+        },
+        "vibeDirt": {
+          "min": 0.6,
+          "max": 2.0
+        },
+        "vibeWidth": {
+          "min": -14,
+          "max": -1
+        },
+        "vibeTail": {
+          "min": -30,
+          "max": 0
+        }
+      }
+    }
+  ]
+}

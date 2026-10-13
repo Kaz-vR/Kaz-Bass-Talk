@@ -3,8 +3,8 @@
 
 import qualityJson from '../../data/quality.json';
 import type { RawMeasures } from '../analysis';
+import { categoryById, type Limit } from './categories';
 
-type Limit = { max?: number; min?: number; maxAbs?: number; label?: string };
 type Limits = Record<string, Limit>;
 
 interface QualityData {
@@ -16,7 +16,16 @@ const data = qualityJson as unknown as QualityData;
 
 export type CheckCode =
   | 'aliasDb' | 'harshDb' | 'mudDb' | 'fundamentalDb' | 'whistleDb' | 'noteSpreadDb' | 'sideLowDb' | 'limiterDb' | 'dc'
-  | 'lifeSlowDb' | 'lifeFastDb' | 'lifeRepeat' | 'textureDb';
+  | 'lifeSlowDb' | 'lifeFastDb' | 'lifeRepeat' | 'textureDb'
+  | 'vibeBright' | 'vibeAir' | 'vibeDirt' | 'vibeWidth' | 'vibeTail';
+
+const VIBE_LABELS: Record<string, string> = {
+  vibeBright: 'off-style brightness (octaves above the note)',
+  vibeAir: 'off-style air above 6 kHz',
+  vibeDirt: 'off-style dirt (too clean or too broken)',
+  vibeWidth: 'off-style stereo width',
+  vibeTail: 'off-style space (tail after the notes stop)',
+};
 
 const LIFE_CODES = ['lifeSlowDb', 'lifeFastDb', 'lifeRepeat'];
 
@@ -35,18 +44,26 @@ export interface Verdict {
   issues: Issue[];
 }
 
-/** True when the family's limits check life (the analysis then renders the long held note). */
-export function wantsLife(family?: string): boolean {
-  const fam = family ? data.families[family] : undefined;
-  return !!fam && LIFE_CODES.some((c) => c in fam);
+/** True when the family's or category's limits check life (the analysis then renders the long held notes). */
+export function wantsLife(family?: string, category?: string): boolean {
+  const lim = limitsFor(family, category);
+  return LIFE_CODES.some((c) => c in lim);
 }
 
-/** Effective limits for a family (defaults with the family's overrides merged in). */
-export function limitsFor(family?: string): Limits {
+/**
+ * Effective limits: defaults, then the family's overrides, then the
+ * category's critic overrides and its fingerprint zone (data/categories.json).
+ */
+export function limitsFor(family?: string, category?: string): Limits {
   const out: Limits = {};
-  for (const [k, v] of Object.entries(data.defaults)) out[k] = { ...v };
-  const fam = family ? data.families[family] : undefined;
-  if (fam) for (const [k, v] of Object.entries(fam)) out[k] = { ...out[k], ...v };
+  const merge = (src: Limits | undefined) => {
+    if (src) for (const [k, v] of Object.entries(src)) out[k] = { ...out[k], ...v };
+  };
+  merge(data.defaults);
+  merge(family ? data.families[family] : undefined);
+  const cat = categoryById(category);
+  merge(cat?.limits);
+  if (cat) for (const [k, v] of Object.entries(cat.zone)) out[k] = { label: VIBE_LABELS[k], ...out[k], ...v };
   return out;
 }
 
@@ -54,9 +71,9 @@ function fmt(v: number, unit: string): string {
   return unit === '' ? v.toFixed(4) : `${v.toFixed(1)} ${unit}`;
 }
 
-/** Judge a sound's measurements. `family` selects family-specific limits. */
-export function judge(raw: RawMeasures, family?: string): Verdict {
-  const lim = limitsFor(family);
+/** Judge a sound's measurements. `family` and `category` select their limits and fingerprint zone. */
+export function judge(raw: RawMeasures, family?: string, category?: string): Verdict {
+  const lim = limitsFor(family, category);
   const issues: Issue[] = [];
   const check = (code: CheckCode, value: number | null, unit = 'dB') => {
     const l = lim[code];
@@ -80,7 +97,12 @@ export function judge(raw: RawMeasures, family?: string): Verdict {
   check('limiterDb', raw.limiterDb);
   check('dc', raw.dc, '');
   check('textureDb', raw.textureDb);
-  if (wantsLife(family)) {
+  check('vibeBright', raw.brightOct, 'oct');
+  check('vibeAir', raw.airDb);
+  check('vibeDirt', 2 * Math.sqrt(raw.flatness), '');
+  check('vibeWidth', raw.widthDb);
+  check('vibeTail', raw.tailDb);
+  if (wantsLife(family, category)) {
     // A family that must sound alive fails outright when life wasn't measured.
     check('lifeSlowDb', raw.life ? raw.life.slowDb : -1);
     check('lifeFastDb', raw.life ? raw.life.fastDb : -1);
