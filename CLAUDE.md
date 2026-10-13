@@ -57,10 +57,16 @@ A monophonic-first bass synth (with optional legato/glide). Suggested signal pat
 - Distortion stage: soft clip, hard clip, wavefold, bitcrush; drive, mix, post-tone
 - 2 envelopes (amp, mod), 2 LFOs (tempo-syncable, multiple shapes, retrigger option)
 - Small mod matrix (8 slots)
-- FX: chorus, phaser, short reverb, EQ (with low-cut on FX returns), output limiter
+- Analog character: per-voice pitch drift, free unison phases, per-note filter variation
+- Quality: band-limited oscillators; drive, filter and distortion run 2× oversampled with anti-aliased (ADAA) waveshapers. Expensive-sounding, never "chiptune".
+- Distortion can be mids-only (clean below a split frequency) so the sub stays clean
+- FX, in a **fixed order** (no user re-ordering; the language layer relies on a known chain):
+  distortion → bitcrusher/downsampler → tape (saturation, wow/flutter, age) → amp → + sub → compressor (with tempo-synced pump) → multiband "OTT" → chorus → flanger → phaser → delay → reverb (these five only above the FX low cut) → EQ + high cut → subsonic/DC filter → mono below crossover → output limiter
 - Mono-below-crossover processing (default 120 Hz)
 
-Target around 80 parameters total. Every parameter must be defined in the patch schema.
+The FX that are part of the bass sound itself live inside the plugin, because the language layer can only change what is inside. Big creative space effects, mastering and real kick sidechain are left to other plugins.
+
+Around 115 parameters total (approved by the repo owner; grew from the original ~80 target to fit the FX). Every parameter must be defined in the patch schema.
 
 ### 2. Patch schema — `data/schema.json`
 The single source of truth shared by the engine, the language layer, and the UI. For each parameter:
@@ -87,7 +93,7 @@ Types: `float`, `int`, `enum`, `bool`. A patch is a flat JSON object `{ "<param 
 
 Coverage should span: Reese, sub-only, 808-style, acid, Moog-style, FM/metallic, neuro/growl, wobble, dub, pluck, synthwave, garage/organ, techno rumble, funk/slap-ish, distorted rock-style, and clean "utility" basses.
 
-Quality bar: every patch must sound good on the default audition loop. The human (repo owner) is the final judge; generate candidates, render them, and ask for review in batches.
+Quality bar: every patch must sound good on the default audition loop, and sound "expensive" (think Diva / Serum), not like a chiptune. Also cover dark, cinematic, heavily processed basses in the style of LORN (saturated, tape-worn, lo-fi, wide, with space), not only basic ones. The human (repo owner) is the final judge; generate candidates, render them, and ask for review in batches.
 
 ### 4. Sound dictionary — `data/dictionary/*.json`
 The core of the "intelligence". It maps words and phrases to parameter moves.
