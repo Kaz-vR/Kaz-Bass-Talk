@@ -1,0 +1,177 @@
+// Patch schema access, validation and conversion.
+// Pure TypeScript: no browser or Node APIs, so it can run in the UI, the
+// AudioWorklet, Node tests and (later) be ported to the plugin.
+
+import schemaJson from '../../data/schema.json';
+
+export type ParamType = 'float' | 'int' | 'enum' | 'bool';
+export type Curve = 'linear' | 'log' | 'pow';
+
+export interface ParamDef {
+  id: string;
+  label: string;
+  type: ParamType;
+  min?: number;
+  max?: number;
+  default: number | string | boolean;
+  curve?: Curve;
+  exponent?: number;
+  unit?: string;
+  options?: string[];
+  group: string;
+  describes: string;
+}
+
+export interface Schema {
+  version: number;
+  params: ParamDef[];
+}
+
+export type ParamValue = number | string | boolean;
+
+export interface PatchMeta {
+  name: string;
+  description?: string;
+  tags?: string[];
+  features?: Record<string, number>;
+  [key: string]: unknown;
+}
+
+/** A patch: flat `{ "<param id>": value }` plus `meta`. */
+export interface Patch {
+  meta: PatchMeta;
+  [paramId: string]: ParamValue | PatchMeta;
+}
+
+export const schema: Schema = schemaJson as unknown as Schema;
+export const params: readonly ParamDef[] = schema.params;
+export const PARAM_COUNT = params.length;
+
+const indexById = new Map<string, number>();
+params.forEach((p, i) => indexById.set(p.id, i));
+
+export function paramIndex(id: string): number {
+  const i = indexById.get(id);
+  if (i === undefined) throw new Error(`Unknown parameter: ${id}`);
+  return i;
+}
+
+export function getParam(id: string): ParamDef | undefined {
+  const i = indexById.get(id);
+  return i === undefined ? undefined : params[i];
+}
+
+/** True for params whose change can't be smoothed (switches at a duck). */
+export function isDiscrete(p: ParamDef): boolean {
+  return p.type !== 'float';
+}
+
+export interface ValidationIssue {
+  param: string;
+  message: string;
+}
+
+export interface ValidationResult {
+  patch: Patch;
+  issues: ValidationIssue[];
+}
+
+function clampValue(p: ParamDef, raw: unknown, issues: ValidationIssue[]): ParamValue {
+  switch (p.type) {
+    case 'bool':
+      if (typeof raw === 'boolean') return raw;
+      if (raw === 0 || raw === 1) return raw === 1;
+      issues.push({ param: p.id, message: `expected bool, got ${JSON.stringify(raw)}` });
+      return p.default as boolean;
+    case 'enum': {
+      const opts = p.options!;
+      if (typeof raw === 'string' && opts.includes(raw)) return raw;
+      if (typeof raw === 'number' && Number.isInteger(raw) && raw >= 0 && raw < opts.length) return opts[raw];
+      issues.push({ param: p.id, message: `invalid option ${JSON.stringify(raw)}` });
+      return p.default as string;
+    }
+    case 'int':
+    case 'float': {
+      if (typeof raw !== 'number' || !Number.isFinite(raw)) {
+        issues.push({ param: p.id, message: `expected number, got ${JSON.stringify(raw)}` });
+        return p.default as number;
+      }
+      let v = p.type === 'int' ? Math.round(raw) : raw;
+      if (p.type === 'int' && v !== raw) issues.push({ param: p.id, message: `rounded ${raw} to ${v}` });
+      if (v < p.min!) {
+        issues.push({ param: p.id, message: `${raw} below min ${p.min}` });
+        v = p.min!;
+      } else if (v > p.max!) {
+        issues.push({ param: p.id, message: `${raw} above max ${p.max}` });
+        v = p.max!;
+      }
+      return v;
+    }
+  }
+}
+
+/**
+ * Validate any patch-like object against the schema. Missing params get
+ * defaults; out-of-range values are clamped; unknown keys are dropped.
+ * Always returns a complete, safe patch plus a list of what was fixed.
+ */
+export function validatePatch(input: unknown): ValidationResult {
+  const issues: ValidationIssue[] = [];
+  const src = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
+  const rawMeta = src.meta && typeof src.meta === 'object' ? (src.meta as PatchMeta) : undefined;
+  const meta: PatchMeta = { ...(rawMeta ?? {}), name: typeof rawMeta?.name === 'string' ? rawMeta.name : 'Untitled' };
+  if (!rawMeta) issues.push({ param: 'meta', message: 'missing meta' });
+
+  const patch: Patch = { meta };
+  for (const p of params) {
+    patch[p.id] = p.id in src ? clampValue(p, src[p.id], issues) : (p.default as ParamValue);
+  }
+  for (const key of Object.keys(src)) {
+    if (key !== 'meta' && !indexById.has(key)) issues.push({ param: key, message: 'unknown parameter (dropped)' });
+  }
+  return { patch, issues };
+}
+
+export function defaultPatch(name = 'Init'): Patch {
+  return validatePatch({ meta: { name } }).patch;
+}
+
+/** Numeric engine value for one param: enums → option index, bools → 0/1. */
+export function toEngineValue(p: ParamDef, v: ParamValue): number {
+  if (p.type === 'enum') return Math.max(0, p.options!.indexOf(v as string));
+  if (p.type === 'bool') return v ? 1 : 0;
+  return v as number;
+}
+
+/** Flatten a (validated) patch into a Float64Array in schema order for the engine. */
+export function patchToArray(patch: Patch, out = new Float64Array(PARAM_COUNT)): Float64Array {
+  for (let i = 0; i < params.length; i++) {
+    const p = params[i];
+    out[i] = toEngineValue(p, (patch[p.id] ?? p.default) as ParamValue);
+  }
+  return out;
+}
+
+/** Map a param value to 0..1 knob position, honouring its curve. */
+export function toNormalized(p: ParamDef, v: number): number {
+  if (p.type === 'enum') return p.options!.length > 1 ? v / (p.options!.length - 1) : 0;
+  if (p.type === 'bool') return v ? 1 : 0;
+  const min = p.min!, max = p.max!;
+  const t = Math.min(1, Math.max(0, (v - min) / (max - min)));
+  if (p.curve === 'log') return Math.log(v / min) / Math.log(max / min);
+  if (p.curve === 'pow') return Math.pow(t, 1 / (p.exponent ?? 3));
+  return t;
+}
+
+/** Inverse of toNormalized. */
+export function fromNormalized(p: ParamDef, n: number): number {
+  const t = Math.min(1, Math.max(0, n));
+  if (p.type === 'enum') return Math.round(t * (p.options!.length - 1));
+  if (p.type === 'bool') return t >= 0.5 ? 1 : 0;
+  const min = p.min!, max = p.max!;
+  let v: number;
+  if (p.curve === 'log') v = min * Math.pow(max / min, t);
+  else if (p.curve === 'pow') v = min + (max - min) * Math.pow(t, p.exponent ?? 3);
+  else v = min + (max - min) * t;
+  return p.type === 'int' ? Math.round(v) : v;
+}
