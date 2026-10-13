@@ -10,176 +10,44 @@
 // over ~15 ms, discrete params (waves, unison count, filter type, ...) switch
 // inside a 3 ms fade-out/fade-in so they never click.
 //
-// Signal path (fixed order; one monophonic voice):
-//   osc1 (+FM) + osc2 + noise
-//   → [2× oversampled: drive → filter → distortion (optionally mids only)]
-//   → bitcrusher → tape (saturation, wow/flutter, age) → DC filter → amp
-//   + sub (clean, mono, phase-stable: bypasses everything above) + texture bed
+// Signal path (fixed order):
+//   up to 8 voices (see voice.ts: oscillators → drive → filter → distortion
+//   → bitcrusher → tape → amp, + transient + clean mono sub), summed
+//   + texture bed
 //   → compressor (+ tempo pump) → multiband OTT
 //   → FX above fx.lowcut only (chorus → flanger → phaser → delay → reverb)
 //   → EQ → high cut → subsonic/DC filter → mono below crossover
 //   → output gain → look-ahead limiter (always on) → side high-pass again (mono below crossover)
+//
+// voice.polyphony = 1 is monophonic (note stack, legato, glide: the bass
+// default); 2-8 plays chords, stealing the oldest note when all are busy.
+// LFOs, drift sources, the texture bed and the FX are shared by all voices;
+// the mod matrix runs per voice, and FX targets follow the newest voice.
 
-import { PARAM_COUNT, paramIndex, params } from '../../schema';
-import { Biquad, clamp, Envelope, fastTanh, Ladder, Rng, Svf, TWO_PI } from './dsp';
-import { Chorus, Compressor, Crusher, Delay, Flanger, Limiter, Ott, Phaser, Reverb, Tape } from './fx';
-import { Downsampler2x, OVERSAMPLE_LATENCY, Upsampler2x } from './oversample';
-import { Comb, DiodeLadder, KarplusString, Shepard, Texture, Transient } from './voicefx';
-import {
-  FRAME_COUNT,
-  FRAMES_PER_SEGMENT,
-  getWavetable,
-  MIP_LEVELS,
-  mipForIncrement,
-  TABLE_MASK,
-  TABLE_SIZE,
-} from './wavetable';
+import { PARAM_COUNT, params } from '../../schema';
+import { Biquad, clamp, Rng, TWO_PI } from './dsp';
+import { Chorus, Compressor, Delay, Flanger, Limiter, Ott, Phaser, Reverb } from './fx';
+import { OVERSAMPLE_LATENCY } from './oversample';
+import * as K from './params';
+import { Voice } from './voice';
+import { Texture } from './voicefx';
+import { getWavetable } from './wavetable';
 
-/** Samples per control-rate update (modulation, smoothing, coefficients). */
-export const CONTROL_BLOCK = 16;
-const MAX_UNISON = 7;
-const DUCK_MS = 3;
-const SMOOTH_MS = 15;
-const LIMITER_CEILING_DB = -1;
-const SUBSONIC_HZ = 15;
-const SUBSONIC_Q = [0.5412, 1.3066]; // 4th-order Butterworth
-const VOICE_DC_HZ = 8;
-const OS = 2; // oversampling factor of the nonlinear section
-// Section Qs of an 8th-order Butterworth filter.
-const XO_Q = [0.5098, 0.6013, 0.9000, 2.5629];
-const SAW_FRAME = 2 * FRAMES_PER_SEGMENT; // keyframe 2 of the morph table is a pure saw
-const KEYTRACK_CENTER = 48; // C3: filter.cutoff is the actual cutoff at this note
-
-// Gain staging.
-const PRE_FILTER_GAIN = 0.5;
-const POST_FILTER_GAIN = 1.6;
-const VOICE_GAIN = 0.55;
-const SUB_GAIN = 0.55;
-
-// Enum option indices (must match data/schema.json order).
-const WAVE_SINE = 0, WAVE_TRI = 1, WAVE_SAW = 2, WAVE_PULSE = 3, WAVE_PWMSAW = 5, WAVE_STRING = 6, WAVE_SHEPARD = 7; // 4 = wavetable
-const FILTER_LP = 0, FILTER_BP = 1, FILTER_DIODE = 3, FILTER_NOTCH = 4, FILTER_COMB = 5, FILTER_LPG = 6; // 2 = formant
-const DIST_SOFT = 0, DIST_HARD = 1, DIST_FOLD = 2; // 3 = tube
-const TUBE_BIAS = 0.4;
-const TUBE_OFFSET = Math.tanh(TUBE_BIAS);
-const HALF_PI = Math.PI / 2;
-
-/** Antiderivative of fastTanh: x²/18 + (4/3)·ln(x² + 3) inside ±3, linear outside. */
-const TANH_INT_3 = 9 / 18 + (4 / 3) * Math.log(12);
-function tanhIntegral(x: number): number {
-  if (x > 3) return TANH_INT_3 + (x - 3);
-  if (x < -3) return TANH_INT_3 + (-x - 3);
-  const x2 = x * x;
-  return x2 / 18 + (4 / 3) * Math.log(x2 + 3);
-}
-const LFO_SINE = 0, LFO_TRI = 1, LFO_SAW_UP = 2, LFO_SAW_DOWN = 3, LFO_SQUARE = 4, LFO_SH = 5, LFO_WANDER = 6;
-const LFO_COUNT = 4;
-const SLOT_COUNT = 12;
-const SYNC_BEATS = [0, 16, 8, 4, 2, 3, 1, 1.5, 2 / 3, 0.5, 0.75, 1 / 3, 0.25, 0.375, 1 / 6, 0.125];
-const DELAY_BEATS = [0.125, 1 / 6, 0.25, 0.375, 1 / 3, 0.5, 0.75, 2 / 3, 1, 1.5, 2, 3, 4];
-
-// Mod matrix sources / destinations (schema option order).
-const SRC_LFO1 = 1, SRC_LFO2 = 2, SRC_MOD_ENV = 3, SRC_AMP_ENV = 4, SRC_VEL = 5, SRC_KEY = 6, SRC_MODWHEEL = 7, SRC_RANDOM = 8,
-  SRC_DRIFT = 9, SRC_PRODUCT = 10, SRC_LFO3 = 11, SRC_LFO4 = 12, SRC_DRIFT_SLOW = 13, SRC_ENV2 = 14;
-const SRC_COUNT = 15;
-const D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_OSC2_WT = 5, D_OSC1_PW = 6, D_OSC2_PW = 7,
-  D_OSC1_LEVEL = 8, D_OSC2_LEVEL = 9, D_DETUNE = 10, D_FM = 11, D_SUB = 12, D_NOISE = 13, D_DRIVE = 14,
-  D_CUTOFF = 15, D_RES = 16, D_VOWEL = 17, D_DIST_DRIVE = 18, D_DIST_MIX = 19, D_AMP = 20, D_LFO1_RATE = 21, D_LFO2_RATE = 22,
-  D_FM2 = 23, D_CRUSH = 24, D_LFO3_RATE = 25, D_LFO4_RATE = 26, D_CHORUS_DEPTH = 27, D_PHASER_MIX = 28,
-  D_DELAY_TIME = 29, D_DELAY_MIX = 30, D_REVERB_MIX = 31, D_WIDTH = 32, D_TAPE_WOW = 33, D_DIST_TONE = 34, D_TEXTURE = 35;
-const DEST_COUNT = 36;
-const TEXTURE_GAIN = 0.5;
-const LFO_RATE_DEST = [D_LFO1_RATE, D_LFO2_RATE, D_LFO3_RATE, D_LFO4_RATE];
-
-// Formant table (Hz) for vowels A E I O U: F1, F2, F3.
-const VOWELS = [
-  [730, 1090, 2440],
-  [530, 1840, 2480],
-  [270, 2290, 3010],
-  [570, 840, 2410],
-  [300, 870, 2240],
-];
-const FORMANT_GAIN = [1, 0.5, 0.25];
+export const CONTROL_BLOCK = K.CONTROL_BLOCK;
+/** Most voices a patch can ask for. */
+export const MAX_VOICES = 8;
 
 // Module-local bindings: avoids live-binding getter overhead on hot paths in
 // some module transforms (tsx / vite-node).
+const P = K.P;
+const BLOCK = K.CONTROL_BLOCK;
 const N_PARAMS = PARAM_COUNT;
-const tanh = fastTanh;
-const TABLE_N = TABLE_SIZE;
-const TABLE_M = TABLE_MASK;
-
-const ix = paramIndex;
-const P = {
-  legato: ix('voice.legato'), glide: ix('voice.glide'), octave: ix('voice.octave'), velocity: ix('voice.velocity'), analog: ix('voice.analog'),
-  osc: [1, 2].map((n) => ({
-    wave: ix(`osc${n}.wave`), semi: ix(`osc${n}.semi`), fine: ix(`osc${n}.fine`), pw: ix(`osc${n}.pulse_width`),
-    wt: ix(`osc${n}.wt_pos`), voices: ix(`osc${n}.unison_voices`), detune: ix(`osc${n}.unison_detune`),
-    spread: ix(`osc${n}.unison_spread`), level: ix(`osc${n}.level`),
-  })),
-  fmAmount: ix('fm.amount'), fmRatio: ix('fm.ratio'), fmPunch: ix('fm.punch'), fmDecay: ix('fm.decay'), fmFb: ix('fm.feedback'),
-  fm2Amount: ix('fm2.amount'), fm2Ratio: ix('fm2.ratio'), fmAlgo: ix('fm.algorithm'),
-  strTone: ix('string.tone'), strDecay: ix('string.decay'), shepRate: ix('shepard.rate'),
-  accent: ix('filter.accent'), ampCurve: ix('amp_env.attack_curve'), chorusMode: ix('chorus.mode'),
-  clickType: ix('click.type'), clickLevel: ix('click.level'), clickDecay: ix('click.decay'), clickTone: ix('click.tone'),
-  subWave: ix('sub.wave'), subOct: ix('sub.octave'), subLevel: ix('sub.level'),
-  noise: ix('noise.level'), drive: ix('drive.amount'),
-  texType: ix('texture.type'), texLevel: ix('texture.level'), texTone: ix('texture.tone'), texTail: ix('texture.tail'),
-  fType: ix('filter.type'), cutoff: ix('filter.cutoff'), res: ix('filter.resonance'), keytrack: ix('filter.keytrack'),
-  envAmt: ix('filter.env_amount'), vowel: ix('filter.vowel'),
-  dType: ix('dist.type'), dDrive: ix('dist.drive'), dMix: ix('dist.mix'), dTone: ix('dist.post_tone'), dSplit: ix('dist.clean_below'),
-  crushMix: ix('crush.mix'), crushBits: ix('crush.bits'), crushRate: ix('crush.rate'),
-  tapeDrive: ix('tape.drive'), tapeWow: ix('tape.wow'), tapeAge: ix('tape.age'),
-  compAmount: ix('comp.amount'), compSpeed: ix('comp.speed'), compPump: ix('comp.pump'), ott: ix('ott.amount'),
-  flangerMix: ix('flanger.mix'), flangerRate: ix('flanger.rate'), flangerFb: ix('flanger.feedback'),
-  delayMix: ix('delay.mix'), delayTime: ix('delay.time'), delayFb: ix('delay.feedback'), delayTone: ix('delay.tone'),
-  reverbTone: ix('reverb.tone'), eqHighcut: ix('eq.highcut'),
-  amp: [ix('amp_env.attack'), ix('amp_env.decay'), ix('amp_env.sustain'), ix('amp_env.release')],
-  mod: [ix('mod_env.attack'), ix('mod_env.decay'), ix('mod_env.sustain'), ix('mod_env.release')],
-  peAmount: ix('pitch_env.amount'), peDecay: ix('pitch_env.decay'),
-  lfo: [1, 2, 3, 4].map((n) => ({
-    shape: ix(`lfo${n}.shape`), rate: ix(`lfo${n}.rate`), sync: ix(`lfo${n}.sync`), retrig: ix(`lfo${n}.retrigger`), fade: ix(`lfo${n}.fade`),
-  })),
-  env2: [ix('env2.attack'), ix('env2.decay'), ix('env2.sustain'), ix('env2.release')],
-  slots: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => ({ src: ix(`mod${n}.source`), dst: ix(`mod${n}.dest`), amt: ix(`mod${n}.amount`) })),
-  chorusMix: ix('chorus.mix'), chorusDepth: ix('chorus.depth'), phaserMix: ix('phaser.mix'), phaserRate: ix('phaser.rate'),
-  reverbMix: ix('reverb.mix'), reverbSize: ix('reverb.size'), fxLowcut: ix('fx.lowcut'),
-  eqLow: ix('eq.low_gain'), eqMid: ix('eq.mid_gain'), eqMidFreq: ix('eq.mid_freq'), eqHigh: ix('eq.high_gain'),
-  outGain: ix('output.gain'), crossover: ix('output.crossover'),
-};
-
-interface OscState {
-  phase: Float64Array;
-  inc: Float64Array;
-  panL: Float64Array;
-  panR: Float64Array;
-  voices: number;
-  gain: number; // level / sqrt(voices)
-  wave: number;
-  baseA: number; // wavetable offsets for this block
-  baseB: number;
-  frac: number;
-  pw: number;
-  lastSpread: number;
-  lastVoices: number;
-  baseSaw: number; // mip-mapped saw table offset for this block
-  drift: Float64Array; // analog pitch drift per unison voice (-1..1)
-  driftTarget: Float64Array;
-}
-
-function makeOsc(): OscState {
-  return {
-    phase: new Float64Array(MAX_UNISON),
-    inc: new Float64Array(MAX_UNISON),
-    panL: new Float64Array(MAX_UNISON),
-    panR: new Float64Array(MAX_UNISON),
-    voices: 1, gain: 0, wave: WAVE_SAW, baseA: 0, baseB: 0, baseSaw: 0, frac: 0, pw: 0.5, lastSpread: -1, lastVoices: -1,
-    drift: new Float64Array(MAX_UNISON), driftTarget: new Float64Array(MAX_UNISON),
-  };
-}
+const LFO_COUNT = K.LFO_COUNT, SRC_COUNT = K.SRC_COUNT;
+const SYNC_BEATS = K.SYNC_BEATS, DELAY_BEATS = K.DELAY_BEATS, LFO_RATE_DEST = K.LFO_RATE_DEST;
+const XO_Q = K.XO_Q, SUBSONIC_Q = K.SUBSONIC_Q, TEXTURE_GAIN = K.TEXTURE_GAIN;
 
 export class Synth {
   readonly sampleRate: number;
-  private readonly table = getWavetable().data;
 
   // Parameters: target (from patch), current (smoothed / applied).
   private readonly target = new Float64Array(PARAM_COUNT);
@@ -192,70 +60,24 @@ export class Synth {
   private duckHold = 0; // samples to stay silent after a switch (oversampler latency)
   private readonly duckStep: number;
 
-  // Note state.
-  private readonly stack = new Int32Array(16);
+  // Voices and notes.
+  private readonly voices: Voice[] = [];
+  private poly = 1;
+  private order = 0;
+  private readonly stack = new Int32Array(16); // mono note stack
   private stackLen = 0;
-  private gate = false;
-  private note = 48; // current target note
-  private pitch = 48; // glided pitch (semitones)
-  private hasPlayed = false;
-  private velocity = 1;
-  private noteRandom = 0;
   private bend = 0;
   private modWheel = 0;
   private tempo = 120;
 
-  // Modulation.
-  private readonly ampEnv = new Envelope();
-  private readonly modEnv = new Envelope();
-  // Slow 'bloom' envelope, ticked at control rate.
-  private readonly env2 = new Envelope();
-  private pitchEnvLevel = 0;
+  // Shared modulation.
   private readonly lfoPhase = new Float64Array(LFO_COUNT);
   private readonly lfoValue = new Float64Array(LFO_COUNT);
   private readonly lfoHold = new Float64Array(LFO_COUNT); // current random value (S&H; wander end point)
   private readonly lfoPrev = new Float64Array(LFO_COUNT); // previous random value (wander start point)
   private readonly lfoFade = new Float64Array(LFO_COUNT).fill(1);
-  private readonly src = new Float64Array(SRC_COUNT);
-  private readonly dst = new Float64Array(DEST_COUNT);
+  private readonly gsrc = new Float64Array(SRC_COUNT);
   private readonly rng = new Rng(0x1234567);
-
-  // Oscillators.
-  private readonly osc: OscState[] = [makeOsc(), makeOsc()];
-  private fmPhase = 0;
-  private fmInc = 0;
-  private fmIndex = 0;
-  private pmPrev = 0;
-  private fm2Phase = 0;
-  private fm2Inc = 0;
-  private fm2Index = 0;
-  private fmFbAmt = 0;
-  private fmPrevOut = 0;
-  private fmEnv = 0;
-  private fmEnvCoef = 0.99;
-  private fmPunchIdx = 0;
-  private fmAlgo = 0;
-  private fmActive = false;
-  // Physical-model strings and Shepard oscillators (one per oscillator slot).
-  private readonly strings: KarplusString[];
-  private readonly strPeriod = new Float64Array(2);
-  private readonly strGain = new Float64Array(2);
-  private strTone = 0.5;
-  private readonly shepards = [new Shepard(), new Shepard()];
-  private shepRate = 0;
-  // Attack transient layer.
-  private readonly transient = new Transient();
-  // Texture bed: follows the gate with its own tail; added after the amp so it can outlast the note.
-  private readonly texture = new Texture();
-  private texEnv = 0;
-  private texGain = 0;
-  private texType = 0;
-  private texTone = 0.4;
-  private texAtk = 0.001;
-  private texRel = 0.999;
-  private texLpL = 0;
-  private texLpR = 0;
-  private clickLevel = 0;
   // Slow random 'drift' modulation source.
   private driftVal = 0;
   private driftTarget = 0;
@@ -265,84 +87,19 @@ export class Synth {
   private slowB = 0;
   private slowPos = 1;
   private slowStep = 0;
-  private accentAmt = 0;
-  private subPhase = 0;
-  // Delays the sub by the oversampler latency so it stays phase-aligned with the voice.
-  private readonly subDelay = new Float64Array(32);
-  private subDelayPos = 0;
-  private subInc = 0;
-  private subLevel = 0;
-  private subWave = 0;
-  private noiseLevel = 0;
 
-  // Drive + filter.
-  private driveMix = 0;
-  private driveGain = 1;
-  private driveComp = 1;
-  private filterType = FILTER_LP;
-  private g = 0.1;
-  private gStep = 0;
-  private gPrevTarget = -1;
-  private k = 0;
-  private readonly ladL = new Ladder();
-  private readonly ladR = new Ladder();
-  private readonly diodeL = new DiodeLadder();
-  private readonly diodeR = new DiodeLadder();
-  private readonly notchL = [new Svf(), new Svf()];
-  private readonly notchR = [new Svf(), new Svf()];
-  private readonly lpgL = new Svf();
-  private readonly lpgR = new Svf();
-  private readonly combL: Comb;
-  private readonly combR: Comb;
-  private combDelay = 100;
-  private combFb = 0;
-  private readonly bpL = [new Svf(), new Svf()];
-  private readonly bpR = [new Svf(), new Svf()];
-  private readonly fmtL = [new Svf(), new Svf(), new Svf()];
-  private readonly fmtR = [new Svf(), new Svf(), new Svf()];
-  private readonly fmtG = new Float64Array(3);
-  private fmtK = 0.2;
-
-  // Oversampling around the nonlinear section.
-  private readonly upL = new Upsampler2x();
-  private readonly upR = new Upsampler2x();
-  private readonly dnL = new Downsampler2x();
-  private readonly dnR = new Downsampler2x();
-  private readonly osOut = new Float64Array(4);
-  private readonly voiceDcL = new Biquad();
-  private readonly voiceDcR = new Biquad();
-  private analog = 0;
-  private noteCutoffJitter = 0;
-
-  // Distortion.
-  private distType = DIST_SOFT;
-  private distGain = 1;
-  private distAmt = 0;
-  private toneCoef = 1;
-  private toneL = 0;
-  private toneR = 0;
-  private splitG = 0; // 0 = full-band distortion
-  private readonly adaaU = new Float64Array(2);
-  private readonly driveU = new Float64Array(2);
-  private readonly driveF = new Float64Array(2).fill(tanhIntegral(0));
-  private readonly adaaF = new Float64Array(2);
-  private readonly split = [new Svf(), new Svf(), new Svf(), new Svf(), new Svf(), new Svf()];
-
-  // Bitcrusher, tape.
-  private readonly crusher = new Crusher();
-  private crushQ = 128;
-  private crushRate = 1;
-  private crushMix = 0;
-  private readonly tape: Tape;
-  private tapeWow = 0;
-  private tapeLpCoef = 1;
-  private lastTapeAge = -1;
-  private tapeOn = false;
-
-  // Amp.
-  private ampMod = 1;
-  private ampModStep = 0;
-  private velGain = 1;
+  // Texture bed: follows the notes with its own tail; added after the voices so it can outlast them.
+  private readonly texture = new Texture();
+  private texEnv = 0;
+  private texGain = 0;
+  private texType = 0;
+  private texTone = 0.4;
+  private texAtk = 0.001;
+  private texRel = 0.999;
+  private texLpL = 0;
+  private texLpR = 0;
+  private texLpCoef = 1;
+  private anyGate = false;
 
   // Dynamics.
   private readonly comp = new Compressor();
@@ -356,7 +113,7 @@ export class Synth {
   private readonly delay: Delay;
   private delaySeconds = 0.375;
   private delayToneCoef = 0.5;
-  // Modulated FX amounts (base value + mod matrix), set at control rate.
+  // Modulated FX amounts (base value + the newest voice's mod matrix), set at control rate.
   private chorusDepth = 0;
   private phaserMix = 0;
   private delayMix = 0;
@@ -391,9 +148,9 @@ export class Synth {
   private readonly postDcR: number;
   private outTarget = 1;
   private lastOutDb = NaN;
-  private lastTone = -1;
-  private readonly lastFx = new Float64Array(8); // lowcut, eqLow, eqMid, eqMidFreq, eqHigh, crossover, highcut, split
+  private readonly lastFx = new Float64Array(8); // lowcut, eqLow, eqMid, eqMidFreq, eqHigh, crossover, highcut
   private readonly tmp = new Float64Array(2);
+  private readonly vout = new Float64Array(2);
   private ctrlCount = 0;
 
   /** Peak of the last rendered output (for metering). */
@@ -401,8 +158,8 @@ export class Synth {
 
   constructor(sampleRate: number) {
     this.sampleRate = sampleRate;
-    this.smoothCoef = 1 - Math.exp(-CONTROL_BLOCK / ((SMOOTH_MS / 1000) * sampleRate));
-    this.duckStep = 1 / ((DUCK_MS / 1000) * sampleRate);
+    this.smoothCoef = 1 - Math.exp(-BLOCK / ((K.SMOOTH_MS / 1000) * sampleRate));
+    this.duckStep = 1 / ((K.DUCK_MS / 1000) * sampleRate);
     this.postDcR = 1 - (2 * Math.PI * 5) / sampleRate;
     params.forEach((p, i) => {
       this.isLog[i] = p.curve === 'log' ? 1 : 0;
@@ -411,23 +168,19 @@ export class Synth {
       const v = p.type === 'enum' ? p.options!.indexOf(d as string) : p.type === 'bool' ? (d ? 1 : 0) : (d as number);
       this.target[i] = this.cur[i] = v;
     });
+    const table = getWavetable().data;
+    for (let i = 0; i < MAX_VOICES; i++) this.voices.push(new Voice(sampleRate, this.cur, table, 0x2468ace + 0x9e3779b * i));
     this.chorus = new Chorus(sampleRate);
     this.phaser = new Phaser(sampleRate);
     this.reverb = new Reverb(sampleRate);
-    this.combL = new Comb(Math.ceil((sampleRate * OS) / 20));
-    this.combR = new Comb(Math.ceil((sampleRate * OS) / 20));
-    this.strings = [new KarplusString(Math.ceil(sampleRate / 15)), new KarplusString(Math.ceil(sampleRate / 15))];
     this.flanger = new Flanger(sampleRate);
     this.delay = new Delay(sampleRate);
-    this.tape = new Tape(sampleRate);
     this.ott = new Ott(sampleRate);
-    this.voiceDcL.setHighpass(VOICE_DC_HZ, Math.SQRT1_2, sampleRate);
-    this.voiceDcR.setHighpass(VOICE_DC_HZ, Math.SQRT1_2, sampleRate);
-    this.limiter = new Limiter(sampleRate, LIMITER_CEILING_DB);
+    this.limiter = new Limiter(sampleRate, K.LIMITER_CEILING_DB);
     // Subsonic + DC filter: 15 Hz 4th-order high-pass (−0.4 dB at 20 Hz, flat by 30 Hz).
     for (let i = 0; i < 2; i++) {
-      this.dcL[i].setHighpass(SUBSONIC_HZ, SUBSONIC_Q[i], sampleRate);
-      this.dcR[i].setHighpass(SUBSONIC_HZ, SUBSONIC_Q[i], sampleRate);
+      this.dcL[i].setHighpass(K.SUBSONIC_HZ, SUBSONIC_Q[i], sampleRate);
+      this.dcR[i].setHighpass(K.SUBSONIC_HZ, SUBSONIC_Q[i], sampleRate);
     }
     this.lastFx.fill(NaN);
     // Random LFO shapes (sample & hold, wander) start from random points, not flat at 0.
@@ -455,6 +208,11 @@ export class Synth {
     return this.limiter.lookahead - 1 + OVERSAMPLE_LATENCY;
   }
 
+  private anyActive(): boolean {
+    for (const v of this.voices) if (v.active) return true;
+    return false;
+  }
+
   // ---------------------------------------------------------------- input
 
   /**
@@ -464,7 +222,7 @@ export class Synth {
    */
   setParams(values: ArrayLike<number>, immediate = false): void {
     for (let i = 0; i < N_PARAMS; i++) this.target[i] = values[i];
-    if (immediate || !this.ampEnv.stage) {
+    if (immediate || !this.anyActive()) {
       for (let i = 0; i < N_PARAMS; i++) this.cur[i] = values[i];
       this.applyDiscrete();
     }
@@ -496,50 +254,96 @@ export class Synth {
       this.noteOff(note);
       return;
     }
-    this.removeFromStack(note);
-    if (this.stackLen < this.stack.length) this.stack[this.stackLen++] = note;
-    const overlapping = this.gate;
-    this.startNote(note, overlapping);
-    if (!overlapping || !this.cur[P.legato]) this.velocity = clamp(velocity, 0, 1);
+    if (this.poly <= 1) {
+      this.removeFromStack(note);
+      if (this.stackLen < this.stack.length) this.stack[this.stackLen++] = note;
+      const v = this.voices[0];
+      this.monoStart(note, velocity, v.gate);
+      return;
+    }
+    // Poly: the same note again retriggers its voice; else a free voice; else steal
+    // the oldest released voice, else the oldest held one.
+    let pick: Voice | null = null;
+    for (let i = 0; i < this.poly; i++) {
+      const v = this.voices[i];
+      if (v.gate && v.note === note) { pick = v; break; }
+    }
+    if (!pick) {
+      for (let i = 0; i < this.poly; i++) {
+        const v = this.voices[i];
+        if (!v.active && v.tail === 0) { pick = v; break; }
+      }
+    }
+    if (!pick) {
+      let best: Voice | null = null;
+      for (let i = 0; i < this.poly; i++) {
+        const v = this.voices[i];
+        if (!v.gate && (!best || v.order < best.order)) best = v;
+      }
+      if (!best) for (let i = 0; i < this.poly; i++) {
+        const v = this.voices[i];
+        if (!best || v.order < best.order) best = v;
+      }
+      pick = best;
+    }
+    if (!pick) return;
+    const fresh = !pick.active;
+    pick.start(note, velocity, false, true, ++this.order);
+    this.onTrigger();
+    if (fresh) pick.control(this.gsrc, this.bend);
   }
 
   noteOff(note: number): void {
-    const wasCurrent = this.stackLen > 0 && this.stack[this.stackLen - 1] === note;
-    this.removeFromStack(note);
-    if (!wasCurrent) return;
-    if (this.stackLen > 0) {
-      this.startNote(this.stack[this.stackLen - 1], true);
-    } else {
-      this.gate = false;
-      this.ampEnv.release();
-      this.modEnv.release();
-      this.env2.release();
+    if (this.poly <= 1) {
+      const wasCurrent = this.stackLen > 0 && this.stack[this.stackLen - 1] === note;
+      this.removeFromStack(note);
+      if (!wasCurrent) return;
+      if (this.stackLen > 0) this.monoStart(this.stack[this.stackLen - 1], this.voices[0].velocity, true);
+      else this.voices[0].release();
+      return;
+    }
+    for (let i = 0; i < MAX_VOICES; i++) {
+      const v = this.voices[i];
+      if (v.gate && v.note === note) v.release();
+    }
+  }
+
+  /** Mono note start: legato keeps the envelopes running; glide slides from the previous pitch. */
+  private monoStart(note: number, velocity: number, overlapping: boolean): void {
+    const legato = this.cur[P.legato] > 0.5;
+    const glide = this.cur[P.glide] > 0.5;
+    const v = this.voices[0];
+    const retrigger = !(legato && overlapping);
+    const fresh = !v.active;
+    v.start(note, velocity, glide && !(legato && !overlapping), retrigger, ++this.order);
+    if (retrigger) this.onTrigger();
+    // A voice waking from silence gets its coefficients now, not at the next block.
+    if (fresh) v.control(this.gsrc, this.bend);
+  }
+
+  /** A note (re)started its envelopes: retrigger LFOs that ask for it and restart fade-ins. */
+  private onTrigger(): void {
+    for (let l = 0; l < LFO_COUNT; l++) {
+      const lp = P.lfo[l];
+      if (this.cur[lp.retrig] > 0.5) {
+        this.lfoPhase[l] = 0;
+        this.lfoPrev[l] = this.lfoHold[l];
+        this.lfoHold[l] = this.rng.next();
+      }
+      if (this.cur[lp.fade] > 0) this.lfoFade[l] = 0;
     }
   }
 
   allNotesOff(): void {
     this.stackLen = 0;
-    this.gate = false;
-    this.ampEnv.release();
-    this.modEnv.release();
-    this.env2.release();
+    for (const v of this.voices) v.release();
   }
 
   /** Stop everything and clear all DSP state (used after a fault). */
   panic(): void {
     this.allNotesOff();
-    this.ampEnv.reset();
-    this.modEnv.reset();
-    this.env2.reset();
-    this.ladL.reset();
-    this.ladR.reset();
-    for (let i = 0; i < 2; i++) {
-      this.bpL[i].reset();
-      this.bpR[i].reset();
-    }
+    for (const v of this.voices) v.reset();
     for (let i = 0; i < 3; i++) {
-      this.fmtL[i].reset();
-      this.fmtR[i].reset();
       this.eqL[i].reset();
       this.eqR[i].reset();
     }
@@ -556,28 +360,10 @@ export class Synth {
       this.dcL[i].reset();
       this.dcR[i].reset();
     }
-    this.toneL = this.toneR = 0;
-    this.upL.reset();
-    this.upR.reset();
-    this.dnL.reset();
-    this.dnR.reset();
-    this.voiceDcL.reset();
-    this.voiceDcR.reset();
-    for (const f of this.split) f.reset();
-    this.diodeL.reset();
-    this.diodeR.reset();
-    for (const f of [...this.notchL, ...this.notchR, this.lpgL, this.lpgR]) f.reset();
-    this.combL.reset();
-    this.combR.reset();
-    for (const st of this.strings) st.reset();
-    for (const sh of this.shepards) sh.reset();
-    this.transient.reset();
     this.texture.reset();
     this.texEnv = this.texLpL = this.texLpR = 0;
     this.hcL.reset();
     this.hcR.reset();
-    this.crusher.reset();
-    this.tape.reset();
     this.comp.reset();
     this.ott.reset();
     this.flanger.reset();
@@ -590,87 +376,17 @@ export class Synth {
     this.stackLen = w;
   }
 
-  private startNote(note: number, overlapping: boolean): void {
-    const legato = this.cur[P.legato] > 0.5;
-    const glide = this.cur[P.glide] > 0.5;
-    const sounding = this.ampEnv.stage !== 0;
-    this.note = note;
-    // Glide: legato mode slides only between overlapping notes; otherwise
-    // any note slides from the previous pitch when glide > 0.
-    if (!glide || !this.hasPlayed || (legato && !overlapping)) this.pitch = note;
-    this.hasPlayed = true;
-    this.gate = true;
-    if (legato && overlapping) return; // no retrigger
-    if (!sounding) {
-      // Fresh note from silence: reset phases for a consistent, phase-stable attack.
-      // Voice 0 always starts at phase 0 (consistent punch); other unison voices
-      // start at fixed spread phases, or free-running random ones with analog drift.
-      const free = this.cur[P.analog] > 0.01;
-      for (const o of this.osc) {
-        for (let j = 0; j < MAX_UNISON; j++) {
-          o.phase[j] = j === 0 ? 0 : free ? 0.5 * (this.rng.next() + 1) : (j * 0.381966) % 1;
-        }
-      }
-      this.subPhase = 0;
-      this.fmPhase = 0;
-      this.pmPrev = 0;
-      this.ladL.reset();
-      this.ladR.reset();
-      this.upL.reset();
-      this.upR.reset();
-      this.dnL.reset();
-      this.dnR.reset();
-    }
-    this.noteCutoffJitter = this.rng.next();
-    if (!sounding) {
-      this.diodeL.reset();
-      this.diodeR.reset();
-      this.fm2Phase = 0;
-      this.fmPrevOut = 0;
-    }
-    // Per-note excitations: FM punch, string pluck, transient layer.
-    this.fmEnv = 1;
-    const cur = this.cur;
-    const noteHz = 440 * Math.pow(2, (note + 12 * cur[P.octave] - 69) / 12);
-    for (let n = 0; n < 2; n++) {
-      if (cur[P.osc[n].wave] === WAVE_STRING) {
-        const hz = noteHz * Math.pow(2, cur[P.osc[n].semi] / 12);
-        this.strings[n].pluck(this.sampleRate / hz);
-      }
-    }
-    if (cur[P.clickLevel] > 0) {
-      this.transient.trigger(cur[P.clickType], cur[P.clickDecay], cur[P.clickTone], noteHz, this.sampleRate);
-    }
-    this.ampEnv.trigger();
-    this.modEnv.trigger();
-    this.env2.trigger();
-    this.pitchEnvLevel = 1;
-    this.noteRandom = this.rng.next();
-    for (let l = 0; l < LFO_COUNT; l++) {
-      const lp = P.lfo[l];
-      if (this.cur[lp.retrig] > 0.5) {
-        this.lfoPhase[l] = 0;
-        this.lfoPrev[l] = this.lfoHold[l];
-        this.lfoHold[l] = this.rng.next();
-      }
-      if (this.cur[lp.fade] > 0) this.lfoFade[l] = 0;
-    }
-  }
-
   // ---------------------------------------------------------- control rate
 
   private applyDiscrete(): void {
-    for (let n = 0; n < 2; n++) {
-      const o = this.osc[n];
-      o.wave = this.cur[P.osc[n].wave];
-      o.voices = this.cur[P.osc[n].voices];
+    const poly = Math.max(1, Math.min(MAX_VOICES, Math.round(this.cur[P.poly])));
+    if (poly !== this.poly) {
+      // Switching modes: release everything that no longer belongs to the new mode.
+      for (let i = poly <= 1 ? 1 : poly; i < MAX_VOICES; i++) this.voices[i].release();
+      if (poly > 1) this.stackLen = 0;
+      this.poly = poly;
     }
-    this.filterType = this.cur[P.fType];
-    this.distType = this.cur[P.dType];
-    // Keep the ADAA state consistent with the (possibly new) curve.
-    this.adaaF[0] = this.curveIntegral(this.adaaU[0]);
-    this.adaaF[1] = this.curveIntegral(this.adaaU[1]);
-    this.subWave = this.cur[P.subWave];
+    for (const v of this.voices) v.applyDiscrete();
   }
 
   private smoothParams(): void {
@@ -691,7 +407,7 @@ export class Synth {
       }
     }
     if (discreteChanged) {
-      if (!this.ampEnv.stage) {
+      if (!this.anyActive()) {
         this.copyDiscrete();
       } else if (this.duckDir === 0 || this.duckDir === 1) {
         this.duckDir = -1;
@@ -704,19 +420,15 @@ export class Synth {
     this.applyDiscrete();
   }
 
-  private toInc(semis: number): number {
-    return Math.min(0.45, (440 * Math.pow(2, (semis - 69) / 12)) / this.sampleRate);
-  }
-
   private lfoShape(shape: number, p: number, hold: number, prev: number): number {
     switch (shape) {
-      case LFO_SINE: return Math.sin(TWO_PI * p);
-      case LFO_TRI: return p < 0.5 ? 4 * p - 1 : 3 - 4 * p;
-      case LFO_SAW_UP: return 2 * p - 1;
-      case LFO_SAW_DOWN: return 1 - 2 * p;
-      case LFO_SQUARE: return p < 0.5 ? 1 : -1;
-      case LFO_SH: return hold;
-      case LFO_WANDER: return prev + (hold - prev) * p * p * (3 - 2 * p); // smooth random: never repeats
+      case K.LFO_SINE: return Math.sin(TWO_PI * p);
+      case K.LFO_TRI: return p < 0.5 ? 4 * p - 1 : 3 - 4 * p;
+      case K.LFO_SAW_UP: return 2 * p - 1;
+      case K.LFO_SAW_DOWN: return 1 - 2 * p;
+      case K.LFO_SQUARE: return p < 0.5 ? 1 : -1;
+      case K.LFO_SH: return hold;
+      case K.LFO_WANDER: return prev + (hold - prev) * p * p * (3 - 2 * p); // smooth random: never repeats
       default: return 0;
     }
   }
@@ -726,61 +438,58 @@ export class Synth {
     const cur = this.cur;
     this.smoothParams();
 
-    // Envelope coefficients.
-    this.ampEnv.set(cur[P.amp[0]], cur[P.amp[1]], cur[P.amp[2]], cur[P.amp[3]], fs, cur[P.ampCurve]);
-    this.modEnv.set(cur[P.mod[0]], cur[P.mod[1]], cur[P.mod[2]], cur[P.mod[3]], fs);
-    this.env2.set(cur[P.env2[0]], cur[P.env2[1]], cur[P.env2[2]], cur[P.env2[3]], fs / CONTROL_BLOCK);
-    if (this.env2.stage !== 0) this.env2.tick();
-
-    // Glide and pitch envelope.
-    const glideMs = cur[P.glide];
-    if (glideMs > 0.5) {
-      const c = 1 - Math.exp((-CONTROL_BLOCK * 4.6) / ((glideMs / 1000) * fs));
-      this.pitch += (this.note - this.pitch) * c;
-    } else {
-      this.pitch = this.note;
-    }
-    this.pitchEnvLevel *= Math.exp((-CONTROL_BLOCK * 4.6) / ((cur[P.peDecay] / 1000) * fs));
-
-    // Mod sources.
-    const src = this.src;
+    // Shared mod sources (per-voice ones are filled in by each voice).
+    const src = this.gsrc;
     src[0] = 0;
-    src[SRC_LFO1] = this.lfoValue[0];
-    src[SRC_LFO2] = this.lfoValue[1];
-    src[SRC_MOD_ENV] = this.modEnv.level;
-    src[SRC_AMP_ENV] = this.ampEnv.level;
-    src[SRC_VEL] = this.velocity;
-    src[SRC_KEY] = clamp((this.pitch - KEYTRACK_CENTER) / 24, -1, 1);
-    src[SRC_MODWHEEL] = this.modWheel;
-    src[SRC_RANDOM] = this.noteRandom;
+    src[K.SRC_LFO1] = this.lfoValue[0];
+    src[K.SRC_LFO2] = this.lfoValue[1];
+    src[K.SRC_LFO3] = this.lfoValue[2];
+    src[K.SRC_LFO4] = this.lfoValue[3];
+    src[K.SRC_MODWHEEL] = this.modWheel;
     if (--this.driftCount <= 0) {
       this.driftTarget = this.rng.next();
-      this.driftCount = Math.round(((0.4 + 1.2 * (0.5 + 0.5 * this.rng.next())) * fs) / CONTROL_BLOCK);
+      this.driftCount = Math.round(((0.4 + 1.2 * (0.5 + 0.5 * this.rng.next())) * fs) / BLOCK);
     }
     this.driftVal += (this.driftTarget - this.driftVal) * 0.004;
-    src[SRC_DRIFT] = this.driftVal;
-    src[SRC_PRODUCT] = this.lfoValue[0] * this.lfoValue[1];
-    src[SRC_LFO3] = this.lfoValue[2];
-    src[SRC_LFO4] = this.lfoValue[3];
+    src[K.SRC_DRIFT] = this.driftVal;
+    src[K.SRC_PRODUCT] = this.lfoValue[0] * this.lfoValue[1];
     if (this.slowPos >= 1) {
       this.slowA = this.slowB;
       this.slowB = this.rng.next();
       this.slowPos = 0;
-      this.slowStep = CONTROL_BLOCK / ((2 + 4 * (0.5 + 0.5 * this.rng.next())) * fs);
+      this.slowStep = BLOCK / ((2 + 4 * (0.5 + 0.5 * this.rng.next())) * fs);
     }
     this.slowPos += this.slowStep;
     {
       const t = this.slowPos > 1 ? 1 : this.slowPos;
-      src[SRC_DRIFT_SLOW] = this.slowA + (this.slowB - this.slowA) * (0.5 - 0.5 * Math.cos(Math.PI * t));
+      src[K.SRC_DRIFT_SLOW] = this.slowA + (this.slowB - this.slowA) * (0.5 - 0.5 * Math.cos(Math.PI * t));
     }
-    src[SRC_ENV2] = this.env2.level;
-    const dst = this.dst;
-    dst.fill(0);
-    for (let s = 0; s < SLOT_COUNT; s++) {
-      const slot = P.slots[s];
-      const d = cur[slot.dst];
-      if (d > 0) dst[d] += cur[slot.amt] * src[cur[slot.src]];
+
+    // Voices; find the newest one (its mod matrix drives the shared FX targets)
+    // and, in poly mode, the lowest held note (only it carries the sub).
+    let lead = this.voices[0];
+    let lowest: Voice | null = null;
+    let anyGate = false;
+    for (let i = 0; i < MAX_VOICES; i++) {
+      const v = this.voices[i];
+      if (v.order > lead.order) lead = v;
+      if (v.gate) {
+        anyGate = true;
+        if (!lowest || v.note < lowest.note) lowest = v;
+      }
+      if (v.active || v.gate) v.control(src, this.bend);
     }
+    this.anyGate = anyGate;
+    if (this.poly > 1) {
+      for (let i = 0; i < MAX_VOICES; i++) {
+        const v = this.voices[i];
+        // Released voices keep their sub only if no held note is lower.
+        v.subOn = lowest ? (v === lowest ? 1 : 0) : 1;
+      }
+    } else {
+      this.voices[0].subOn = 1;
+    }
+    const dst = lead.dst;
 
     // LFOs (advance one control block).
     for (let l = 0; l < LFO_COUNT; l++) {
@@ -789,7 +498,7 @@ export class Synth {
       let rate = sync > 0 ? this.tempo / 60 / SYNC_BEATS[sync] : cur[lp.rate];
       const rm = dst[LFO_RATE_DEST[l]];
       if (rm !== 0) rate *= Math.pow(2, 3 * rm);
-      let ph = this.lfoPhase[l] + (rate * CONTROL_BLOCK) / fs;
+      let ph = this.lfoPhase[l] + (rate * BLOCK) / fs;
       if (ph >= 1) {
         ph -= Math.floor(ph);
         this.lfoPrev[l] = this.lfoHold[l];
@@ -799,196 +508,23 @@ export class Synth {
       // Fade-in after each note start (lfoN.fade).
       if (this.lfoFade[l] < 1) {
         const fadeMs = cur[lp.fade];
-        this.lfoFade[l] = fadeMs > 0 ? Math.min(1, this.lfoFade[l] + (CONTROL_BLOCK * 1000) / (fadeMs * fs)) : 1;
+        this.lfoFade[l] = fadeMs > 0 ? Math.min(1, this.lfoFade[l] + (BLOCK * 1000) / (fadeMs * fs)) : 1;
       }
       this.lfoValue[l] = this.lfoShape(cur[lp.shape], ph, this.lfoHold[l], this.lfoPrev[l]) * this.lfoFade[l];
     }
 
-    this.analog = cur[P.analog];
-
-    // Pitch.
-    const basePitch = this.pitch + 12 * cur[P.octave] + 2 * this.bend + cur[P.peAmount] * this.pitchEnvLevel + 24 * dst[D_PITCH];
-
-    // Oscillators.
-    for (let n = 0; n < 2; n++) {
-      const o = this.osc[n];
-      const op = P.osc[n];
-      const pitch = basePitch + cur[op.semi] + cur[op.fine] / 100 + 24 * dst[n === 0 ? D_OSC1_PITCH : D_OSC2_PITCH];
-      // Fold up by octaves below 20 Hz (e.g. during deep pitch dives): inaudible, only eats headroom.
-      let center = this.toInc(pitch);
-      while (center < 20 / fs) center *= 2;
-      const voices = o.voices;
-      const detune = clamp(cur[op.detune] + 100 * dst[D_DETUNE], 0, 100);
-      const spread = cur[op.spread];
-      if (voices === 1) {
-        o.inc[0] = center;
-      } else {
-        // Voices spread evenly over ±detune/2 cents.
-        const step = Math.pow(2, detune / (1200 * (voices - 1)));
-        let inc = center * Math.pow(2, -detune / 2400);
-        for (let j = 0; j < voices; j++) {
-          o.inc[j] = inc < 0.45 ? inc : 0.45;
-          inc *= step;
-        }
-      }
-      if (this.analog > 0) {
-        // Analog drift: each unison voice wanders a few cents (voice 0 less, to keep the core pitch steady).
-        for (let j = 0; j < voices; j++) {
-          if (this.rng.next() > 0.996) o.driftTarget[j] = this.rng.next();
-          o.drift[j] += (o.driftTarget[j] - o.drift[j]) * 0.003;
-          const cents = this.analog * (j === 0 ? 2.5 : 7) * o.drift[j];
-          o.inc[j] *= 1 + cents * 0.000577623; // ≈ 2^(cents/1200)
-        }
-      }
-      if (spread !== o.lastSpread || voices !== o.lastVoices) {
-        for (let j = 0; j < voices; j++) {
-          const pos = voices === 1 ? 0 : (2 * j) / (voices - 1) - 1; // -1..1
-          const a = ((pos * spread + 1) * Math.PI) / 4; // equal-power, unity in the centre
-          o.panL[j] = Math.SQRT2 * Math.cos(a);
-          o.panR[j] = Math.SQRT2 * Math.sin(a);
-        }
-        o.lastSpread = spread;
-        o.lastVoices = voices;
-      }
-      const level = clamp(cur[op.level] + dst[n === 0 ? D_OSC1_LEVEL : D_OSC2_LEVEL], 0, 1);
-      if (o.wave === WAVE_STRING || o.wave === WAVE_SHEPARD) {
-        // Single-voice oscillators: unison doesn't apply.
-        o.gain = level;
-        this.strPeriod[n] = 1 / center;
-        // Loop gain per period for a T60 of 0.08 .. 8 s.
-        const t60 = 0.08 * Math.pow(100, cur[P.strDecay]);
-        this.strGain[n] = Math.pow(10, (-3 * this.strPeriod[n]) / (t60 * fs));
-      } else {
-        o.gain = level / Math.sqrt(voices);
-      }
-      o.pw = clamp(cur[op.pw] + 0.45 * dst[n === 0 ? D_OSC1_PW : D_OSC2_PW], 0.05, 0.95);
-      // Wavetable frame selection.
-      let wt: number;
-      if (o.wave === WAVE_SINE) wt = 0;
-      else if (o.wave === WAVE_TRI) wt = FRAMES_PER_SEGMENT / (FRAME_COUNT - 1);
-      else wt = clamp(cur[op.wt] + dst[n === 0 ? D_OSC1_WT : D_OSC2_WT], 0, 1);
-      const fpos = wt * (FRAME_COUNT - 1);
-      const fa = Math.min(FRAME_COUNT - 2, Math.floor(fpos));
-      const mip = mipForIncrement(o.inc[voices - 1] * (n === 0 && this.fmActive ? 2 : 1));
-      o.baseA = (fa * MIP_LEVELS + mip) * TABLE_SIZE;
-      o.baseB = ((fa + 1) * MIP_LEVELS + mip) * TABLE_SIZE;
-      o.frac = fpos - fa;
-      o.baseSaw = (SAW_FRAME * MIP_LEVELS + mip) * TABLE_SIZE;
-    }
-    this.strTone = cur[P.strTone];
-    this.shepRate = (cur[P.shepRate] * 0.4) / fs; // octaves per sample (±0.4 oct/s)
-
-    // FM: sine operators phase-modulate osc 1 (indices in cycles). Operator 1
-    // has a steady depth plus a decaying punch and self-feedback; operator 2
-    // either modulates operator 1 (stack) or the oscillator directly (parallel).
-    const fmAmt = clamp(cur[P.fmAmount] + dst[D_FM], 0, 1);
-    const fm2 = clamp(cur[P.fm2Amount] + dst[D_FM2], 0, 1);
-    this.fmIndex = fmAmt * fmAmt * 1.3;
-    this.fmPunchIdx = cur[P.fmPunch] * 2;
-    this.fm2Index = fm2 * fm2 * 1.3;
-    this.fmFbAmt = cur[P.fmFb] * 0.3;
-    this.fmAlgo = cur[P.fmAlgo];
-    this.fmEnvCoef = Math.exp(-4.6 / ((cur[P.fmDecay] / 1000) * fs));
-    this.fmActive = this.fmIndex > 0 || this.fmPunchIdx > 0 || this.fm2Index > 0;
-    const carrier = this.toInc(basePitch + cur[P.osc[0].semi]);
-    this.fmInc = Math.min(0.45, carrier * cur[P.fmRatio]);
-    this.fm2Inc = Math.min(0.45, carrier * cur[P.fm2Ratio]);
-    this.clickLevel = cur[P.clickLevel];
-
-    // Sub.
-    // Sub, folded up an octave at a time if it would fall below 20 Hz (inaudible, wastes headroom).
-    let subInc = this.toInc(basePitch + 12 * cur[P.subOct]);
-    while (subInc < 20 / fs) subInc *= 2;
-    this.subInc = subInc;
-    this.subLevel = clamp(cur[P.subLevel] + dst[D_SUB], 0, 1) * SUB_GAIN;
-    this.noiseLevel = clamp(cur[P.noise] + dst[D_NOISE], 0, 1) * 0.5;
-    const tex = clamp(cur[P.texLevel] + dst[D_TEXTURE], 0, 1);
+    // Texture bed.
+    const tex = clamp(cur[P.texLevel] + dst[K.D_TEXTURE], 0, 1);
     this.texGain = tex * tex * TEXTURE_GAIN;
     this.texType = cur[P.texType];
     this.texTone = cur[P.texTone];
     // The bed swells in with the note: never faster than ~a third of the amp attack.
     this.texAtk = 1 - Math.exp(-1 / (Math.max(0.03, cur[P.amp[0]] / 3000) * fs));
     this.texRel = Math.exp(-4.6 / ((cur[P.texTail] / 1000) * fs));
-
-    // Pre-filter drive.
-    const drive = clamp(cur[P.drive] + dst[D_DRIVE], 0, 1);
-    this.driveMix = Math.min(1, drive * 4);
-    this.driveGain = 1 + 15 * drive * drive;
-    this.driveComp = 1 / (1 + 0.6 * drive);
-
-    // Filter.
-    // 303-style accent: hard-played notes sweep further, resonate more and hit louder.
-    this.accentAmt = cur[P.accent] * clamp((this.velocity - 0.6) / 0.4, 0, 1);
-    const res = clamp(cur[P.res] + dst[D_RES] + 0.15 * this.accentAmt, 0, 1);
-    const fsOs = fs * OS;
-    let octs = (cur[P.keytrack] * (this.pitch + 12 * cur[P.octave] - KEYTRACK_CENTER)) / 12 +
-      6 * cur[P.envAmt] * (1 + 1.5 * this.accentAmt) * this.modEnv.level + 6 * dst[D_CUTOFF] + 0.12 * this.analog * this.noteCutoffJitter;
-    // Low-pass gate: the cutoff closes together with the amp envelope.
-    if (this.filterType === FILTER_LPG) octs += 1.5 * Math.log2(Math.max(this.ampEnv.level, 0.002));
-    const fc = clamp(cur[P.cutoff] * Math.pow(2, octs), 20, Math.min(20000, fs * 0.45));
-    const gTarget = Math.tan((Math.PI * fc) / fsOs);
-    if (this.gPrevTarget < 0) this.g = gTarget;
-    this.gStep = (gTarget - this.g) / (CONTROL_BLOCK * OS);
-    this.gPrevTarget = gTarget;
-    if (this.filterType === FILTER_LP) {
-      this.k = 3.85 * res;
-    } else if (this.filterType === FILTER_BP) {
-      this.k = 1.4 * (1 - res) + 0.08; // 1/Q
-    } else if (this.filterType === FILTER_DIODE) {
-      this.k = 7.2 * res;
-    } else if (this.filterType === FILTER_NOTCH) {
-      this.k = 2 * (1 - res) + 0.05;
-    } else if (this.filterType === FILTER_COMB) {
-      this.combDelay = fsOs / fc;
-      this.combFb = 0.96 * res;
-    } else if (this.filterType === FILTER_LPG) {
-      this.k = 1.4 - 1.1 * res;
-    } else {
-      const v = clamp(cur[P.vowel] + dst[D_VOWEL], 0, 1) * 4;
-      const vi = Math.min(3, Math.floor(v));
-      const vf = v - vi;
-      const shift = Math.sqrt(fc / 2000);
-      for (let f = 0; f < 3; f++) {
-        const hz = VOWELS[vi][f] * Math.pow(VOWELS[vi + 1][f] / VOWELS[vi][f], vf) * shift;
-        this.fmtG[f] = Math.tan((Math.PI * clamp(hz, 40, fs * 0.45)) / fsOs);
-      }
-      this.fmtK = 1 / (3 + 15 * res);
-    }
-
-    // Distortion.
-    const dDrive = clamp(cur[P.dDrive] + dst[D_DIST_DRIVE], 0, 1);
-    const dMix = clamp(cur[P.dMix] + dst[D_DIST_MIX], 0, 1);
-    this.distAmt = Math.min(1, dDrive * 5) * dMix;
-    this.distGain = 1 + 49 * dDrive * dDrive;
-    const dTone = clamp(cur[P.dTone] + dst[D_DIST_TONE], 0, 1);
-    if (dTone !== this.lastTone) {
-      const toneHz = 300 * Math.pow(20000 / 300, dTone);
-      this.toneCoef = 1 - Math.exp((-TWO_PI * Math.min(toneHz, fs * 0.45)) / fsOs);
-      this.lastTone = dTone;
-    }
-    if (cur[P.dSplit] !== this.lastFx[7]) {
-      const split = cur[P.dSplit];
-      this.splitG = split > 22 ? Math.tan((Math.PI * split) / fsOs) : 0;
-      if (this.splitG > 0) for (const f of this.split) f.setCoefs(this.splitG, Math.SQRT2);
-      this.lastFx[7] = split;
-    }
-
-    // Bitcrusher.
-    this.crushMix = clamp(cur[P.crushMix] + dst[D_CRUSH], 0, 1);
-    this.crushQ = Math.pow(2, cur[P.crushBits] - 1);
-    this.crushRate = cur[P.crushRate];
-
-    // Tape.
-    this.tapeWow = clamp(cur[P.tapeWow] + dst[D_TAPE_WOW], 0, 1);
-    this.tapeOn = cur[P.tapeDrive] > 0 || this.tapeWow > 0 || cur[P.tapeAge] > 0;
-    if (cur[P.tapeAge] !== this.lastTapeAge) {
-      const hz = 20000 * Math.pow(0.15, cur[P.tapeAge]);
-      this.tapeLpCoef = 1 - Math.exp((-TWO_PI * Math.min(hz, fs * 0.45)) / fs);
-      this.lastTapeAge = cur[P.tapeAge];
-    }
+    this.texLpCoef = lead.tapeLpCoef;
 
     // Dynamics: compressor with a tempo pump, then multiband OTT.
-    this.beatPhase += (this.tempo / 60) * (CONTROL_BLOCK / fs);
+    this.beatPhase += (this.tempo / 60) * (BLOCK / fs);
     if (this.beatPhase >= 1) this.beatPhase -= 1;
     const pump = cur[P.compPump];
     let pumpGain = 1;
@@ -998,27 +534,21 @@ export class Synth {
       pumpGain = 1 - pump * 0.85 * duck;
     }
     this.compOn = cur[P.compAmount] > 0.001 || pump > 0.001;
-    if (this.compOn) this.comp.update(cur[P.compAmount], cur[P.compSpeed], pumpGain, fs, CONTROL_BLOCK);
+    if (this.compOn) this.comp.update(cur[P.compAmount], cur[P.compSpeed], pumpGain, fs, BLOCK);
     this.ottOn = cur[P.ott] > 0.0005;
-    if (this.ottOn) this.ott.update(cur[P.ott], CONTROL_BLOCK);
+    if (this.ottOn) this.ott.update(cur[P.ott], BLOCK);
 
-    // Delay.
-    // Modulating the delay time glides the read head (tape-style pitch smear on the repeats).
-    this.delaySeconds = Math.min(3, ((DELAY_BEATS[cur[P.delayTime]] * 60) / this.tempo) * Math.pow(2, clamp(dst[D_DELAY_TIME], -1, 1)));
-
-    // Modulated FX amounts.
-    this.chorusDepth = clamp(cur[P.chorusDepth] + dst[D_CHORUS_DEPTH], 0, 1);
-    this.phaserMix = clamp(cur[P.phaserMix] + dst[D_PHASER_MIX], 0, 1);
-    this.delayMix = clamp(cur[P.delayMix] + dst[D_DELAY_MIX], 0, 1);
-    this.reverbMix = clamp(cur[P.reverbMix] + dst[D_REVERB_MIX], 0, 1);
-    this.widthTarget = clamp(1 + dst[D_WIDTH], 0, 2);
-    this.widthStep = (this.widthTarget - this.width) / CONTROL_BLOCK;
+    // Delay. Modulating the delay time glides the read head (tape-style pitch smear on the repeats).
+    this.delaySeconds = Math.min(3, ((DELAY_BEATS[cur[P.delayTime]] * 60) / this.tempo) * Math.pow(2, clamp(dst[K.D_DELAY_TIME], -1, 1)));
     this.delayToneCoef = 1 - Math.exp((-TWO_PI * Math.min(800 * Math.pow(20, cur[P.delayTone]), fs * 0.45)) / fs);
 
-    // Amp.
-    const ampTarget = clamp(1 + dst[D_AMP], 0, 2);
-    this.ampModStep = (ampTarget - this.ampMod) / CONTROL_BLOCK;
-    this.velGain = (1 - cur[P.velocity] * (1 - this.velocity)) * (1 + 0.4 * this.accentAmt);
+    // Modulated FX amounts.
+    this.chorusDepth = clamp(cur[P.chorusDepth] + dst[K.D_CHORUS_DEPTH], 0, 1);
+    this.phaserMix = clamp(cur[P.phaserMix] + dst[K.D_PHASER_MIX], 0, 1);
+    this.delayMix = clamp(cur[P.delayMix] + dst[K.D_DELAY_MIX], 0, 1);
+    this.reverbMix = clamp(cur[P.reverbMix] + dst[K.D_REVERB_MIX], 0, 1);
+    this.widthTarget = clamp(1 + dst[K.D_WIDTH], 0, 2);
+    this.widthStep = (this.widthTarget - this.width) / BLOCK;
 
     // FX filters: only recompute coefficients when values move.
     const lf = this.lastFx;
@@ -1066,195 +596,10 @@ export class Synth {
       this.outTarget = Math.pow(10, cur[P.outGain] / 20);
       this.lastOutDb = cur[P.outGain];
     }
-    this.outGainStep = (this.outTarget - this.outGain) / CONTROL_BLOCK;
+    this.outGainStep = (this.outTarget - this.outGain) / BLOCK;
   }
 
   // ------------------------------------------------------------ audio rate
-
-  /** Read a mip-mapped single-cycle table at phase ph (no interpolation between frames). */
-  private readTable(base: number, ph: number): number {
-    const t = this.table;
-    const pos = ph * TABLE_N;
-    const i = pos | 0;
-    const f = pos - i;
-    const a = t[base + i];
-    return a + (t[base + ((i + 1) & TABLE_M)] - a) * f;
-  }
-
-  /** Physical-model string or Shepard oscillator (single voice, centred). */
-  private specialOsc(n: number, o: OscState): number {
-    if (o.wave === WAVE_STRING) return this.strings[n].process(this.strPeriod[n], this.strTone, this.strGain[n]) * 1.4;
-    return this.shepards[n].process(o.inc[0], this.shepRate);
-  }
-
-  private oscSample(o: OscState, ph: number): number {
-    switch (o.wave) {
-      case WAVE_PWMSAW: {
-        // Rave "hoover": saw blended with a pulse whose width is modulated.
-        let p2 = ph - o.pw;
-        if (p2 < 0) p2 += 1;
-        const saw = this.readTable(o.baseSaw, ph);
-        return 0.6 * saw + 0.35 * (saw - this.readTable(o.baseSaw, p2));
-      }
-      case WAVE_SAW:
-        // Band-limited saw from the mip-mapped table (no aliasing at any pitch).
-        return this.readTable(o.baseSaw, ph);
-      case WAVE_PULSE: {
-        // Pulse = difference of two band-limited saws, offset by the pulse width.
-        let p2 = ph - o.pw;
-        if (p2 < 0) p2 += 1;
-        return 0.5 * (this.readTable(o.baseSaw, ph) - this.readTable(o.baseSaw, p2));
-      }
-      default: {
-        // Wavetable (also used for band-limited sine and triangle).
-        const t = this.table;
-        const pos = ph * TABLE_N;
-        const i = pos | 0;
-        const f = pos - i;
-        const i2 = (i + 1) & TABLE_M;
-        const a = t[o.baseA + i] + (t[o.baseA + i2] - t[o.baseA + i]) * f;
-        if (o.frac === 0) return a;
-        const b = t[o.baseB + i] + (t[o.baseB + i2] - t[o.baseB + i]) * f;
-        return a + (b - a) * o.frac;
-      }
-    }
-  }
-
-  /** Pre-filter drive: tanh saturation with first-order ADAA (see shape()). */
-  private driveShape(x: number, ch: number): number {
-    const u = this.driveGain * x;
-    const up = this.driveU[ch];
-    const fu = tanhIntegral(u);
-    const du = u - up;
-    const y = Math.abs(du) > 1e-5 ? (fu - this.driveF[ch]) / du : tanh(0.5 * (u + up));
-    this.driveU[ch] = u;
-    this.driveF[ch] = fu;
-    return y;
-  }
-
-  /** The waveshaper curve itself (used directly when ADAA is ill-conditioned). */
-  private curve(u: number): number {
-    switch (this.distType) {
-      case DIST_SOFT: return tanh(u);
-      case DIST_HARD: return u > 1 ? 1 : u < -1 ? -1 : u;
-      case DIST_FOLD: return Math.sin(HALF_PI * u);
-      default: return tanh(u + TUBE_BIAS) - TUBE_OFFSET; // tube: asymmetric, even harmonics
-    }
-  }
-
-  /** Antiderivative of curve(). */
-  private curveIntegral(u: number): number {
-    switch (this.distType) {
-      case DIST_SOFT: return tanhIntegral(u);
-      case DIST_HARD: return u > 1 ? u - 0.5 : u < -1 ? -u - 0.5 : 0.5 * u * u;
-      case DIST_FOLD: return -Math.cos(HALF_PI * u) / HALF_PI;
-      default: return tanhIntegral(u + TUBE_BIAS) - TUBE_OFFSET * u;
-    }
-  }
-
-  /**
-   * First-order antiderivative anti-aliasing (ADAA): output the average of the
-   * curve between consecutive inputs, (F(u) - F(u_prev)) / (u - u_prev). This
-   * suppresses the harmonics a sharp curve would fold back, on top of the
-   * oversampling. `ch` selects the left/right state.
-   */
-  private shape(x: number, ch: number): number {
-    const u = this.distGain * x;
-    const up = this.adaaU[ch];
-    const fu = this.curveIntegral(u);
-    const du = u - up;
-    const y = Math.abs(du) > 1e-5 ? (fu - this.adaaF[ch]) / du : this.curve(0.5 * (u + up));
-    this.adaaU[ch] = u;
-    this.adaaF[ch] = fu;
-    return y;
-  }
-
-  /**
-   * One oversampled stereo sample through drive → filter → distortion.
-   * Writes the result to osOut[slot], osOut[slot + 1].
-   */
-  private nonlinear(l: number, r: number, slot: number): void {
-    // Pre-filter drive.
-    if (this.driveMix > 0) {
-      const dc = this.driveComp, dm = this.driveMix;
-      l += (this.driveShape(l, 0) * dc - l) * dm;
-      r += (this.driveShape(r, 1) * dc - r) * dm;
-    }
-
-    // Filter (coefficients are for the oversampled rate).
-    this.g += this.gStep;
-    const g = this.g;
-    if (this.filterType === FILTER_LP) {
-      const G = g / (1 + g);
-      l = this.ladL.processG(l, G, this.k);
-      r = this.ladR.processG(r, G, this.k);
-    } else if (this.filterType === FILTER_BP) {
-      const k = this.k;
-      this.bpL[0].process(l, g, k);
-      this.bpL[1].process(this.bpL[0].bp * k, g, k);
-      l = this.bpL[1].bp * k * 1.5;
-      this.bpR[0].process(r, g, k);
-      this.bpR[1].process(this.bpR[0].bp * k, g, k);
-      r = this.bpR[1].bp * k * 1.5;
-    } else if (this.filterType === FILTER_DIODE) {
-      l = this.diodeL.process(l, g, this.k) * 1.4;
-      r = this.diodeR.process(r, g, this.k) * 1.4;
-    } else if (this.filterType === FILTER_NOTCH) {
-      const k = this.k, nl = this.notchL, nr = this.notchR;
-      nl[0].process(l, g, k);
-      nl[1].process(nl[0].lp + nl[0].hp, g, k);
-      l = nl[1].lp + nl[1].hp;
-      nr[0].process(r, g, k);
-      nr[1].process(nr[0].lp + nr[0].hp, g, k);
-      r = nr[1].lp + nr[1].hp;
-    } else if (this.filterType === FILTER_COMB) {
-      l = this.combL.process(l, this.combDelay, this.combFb);
-      r = this.combR.process(r, this.combDelay, this.combFb);
-    } else if (this.filterType === FILTER_LPG) {
-      this.lpgL.process(l, g, this.k);
-      this.lpgR.process(r, g, this.k);
-      l = this.lpgL.lp;
-      r = this.lpgR.lp;
-    } else {
-      let fl = 0, fr = 0;
-      const k = this.fmtK;
-      for (let f = 0; f < 3; f++) {
-        this.fmtL[f].process(l, this.fmtG[f], k);
-        this.fmtR[f].process(r, this.fmtG[f], k);
-        fl += this.fmtL[f].bp * k * FORMANT_GAIN[f];
-        fr += this.fmtR[f].bp * k * FORMANT_GAIN[f];
-      }
-      l = fl * 2.2;
-      r = fr * 2.2;
-    }
-    l *= POST_FILTER_GAIN;
-    r *= POST_FILTER_GAIN;
-
-    // Distortion, optionally on the mids only (below dist.clean_below stays clean).
-    if (this.distAmt > 0) {
-      let lowL = 0, lowR = 0, hl = l, hr = r;
-      if (this.splitG > 0) {
-        // Linkwitz-Riley 4th-order crossover: low = LP∘LP, high = HP∘HP (sum is allpass).
-        const sp = this.split;
-        sp[0].processFixed(l);
-        sp[1].processFixed(sp[0].lp);
-        sp[2].processFixed(sp[0].hp);
-        lowL = sp[1].lp;
-        hl = sp[2].hp;
-        sp[3].processFixed(r);
-        sp[4].processFixed(sp[3].lp);
-        sp[5].processFixed(sp[3].hp);
-        lowR = sp[4].lp;
-        hr = sp[5].hp;
-      }
-      this.toneL += (this.shape(hl, 0) - this.toneL) * this.toneCoef;
-      this.toneR += (this.shape(hr, 1) - this.toneR) * this.toneCoef;
-      l = lowL + hl + (this.toneL - hl) * this.distAmt;
-      r = lowR + hr + (this.toneR - hr) * this.distAmt;
-    }
-    this.osOut[slot] = l;
-    this.osOut[slot + 1] = r;
-  }
 
   /**
    * Render `frames` samples into outL/outR starting at `offset`.
@@ -1263,16 +608,15 @@ export class Synth {
   render(outL: Float32Array, outR: Float32Array, offset: number, frames: number): void {
     const end = offset + frames;
     const out = this.tmp;
-    const os = this.osOut;
-    const o1 = this.osc[0];
-    const o2 = this.osc[1];
+    const vout = this.vout;
     const cur = this.cur;
+    const voices = this.voices;
     let peak = this.peak;
 
     for (let n = offset; n < end; n++) {
       if (this.ctrlCount === 0) {
         this.control();
-        this.ctrlCount = CONTROL_BLOCK;
+        this.ctrlCount = BLOCK;
       }
       this.ctrlCount--;
 
@@ -1297,156 +641,32 @@ export class Synth {
 
       let l = 0;
       let r = 0;
-      this.ampMod += this.ampModStep;
       this.outGain += this.outGainStep;
-
-      if (this.ampEnv.stage !== 0) {
-        const env = this.ampEnv.tick();
-        this.modEnv.tick();
-
-        // FM modulator.
-        let dpm = 0;
-        if (this.fmActive) {
-          this.fmEnv *= this.fmEnvCoef;
-          this.fm2Phase += this.fm2Inc;
-          if (this.fm2Phase >= 1) this.fm2Phase -= 1;
-          const op2 = this.fm2Index > 0 ? this.fm2Index * Math.sin(TWO_PI * this.fm2Phase) : 0;
-          this.fmPhase += this.fmInc;
-          if (this.fmPhase >= 1) this.fmPhase -= 1;
-          const stack = this.fmAlgo === 0;
-          const op1 = Math.sin(TWO_PI * (this.fmPhase + (stack ? op2 : 0) + this.fmFbAmt * this.fmPrevOut));
-          this.fmPrevOut = op1;
-          const pm = (this.fmIndex + this.fmPunchIdx * this.fmEnv) * op1 + (stack ? 0 : op2);
-          dpm = pm - this.pmPrev;
-          this.pmPrev = pm;
-        } else if (this.pmPrev !== 0) {
-          dpm = -this.pmPrev;
-          this.pmPrev = 0;
+      for (let i = 0; i < MAX_VOICES; i++) {
+        const v = voices[i];
+        if (v.ampEnv.stage !== 0 || v.tail > 0) {
+          v.render(this.duckGain, vout);
+          l += vout[0];
+          r += vout[1];
         }
-
-        // Oscillators (band-limited at the base rate).
-        if (o1.gain > 0 && o1.wave >= WAVE_STRING) {
-          const s = this.specialOsc(0, o1) * o1.gain;
-          l += s;
-          r += s;
-        } else if (o1.gain > 0) {
-          for (let j = 0; j < o1.voices; j++) {
-            let ph = o1.phase[j] + o1.inc[j] + dpm;
-            ph -= Math.floor(ph);
-            o1.phase[j] = ph;
-            const s = this.oscSample(o1, ph) * o1.gain;
-            l += s * o1.panL[j];
-            r += s * o1.panR[j];
-          }
-        } else if (dpm !== 0) {
-          for (let j = 0; j < o1.voices; j++) {
-            const ph = o1.phase[j] + o1.inc[j] + dpm;
-            o1.phase[j] = ph - Math.floor(ph);
-          }
-        }
-        if (o2.gain > 0 && o2.wave >= WAVE_STRING) {
-          const s = this.specialOsc(1, o2) * o2.gain;
-          l += s;
-          r += s;
-        } else if (o2.gain > 0) {
-          for (let j = 0; j < o2.voices; j++) {
-            let ph = o2.phase[j] + o2.inc[j];
-            if (ph >= 1) ph -= 1;
-            o2.phase[j] = ph;
-            const s = this.oscSample(o2, ph) * o2.gain;
-            l += s * o2.panL[j];
-            r += s * o2.panR[j];
-          }
-        }
-        if (this.noiseLevel > 0) {
-          const nz = this.rng.next() * this.noiseLevel;
-          l += nz;
-          r += nz;
-        }
-        l *= PRE_FILTER_GAIN;
-        r *= PRE_FILTER_GAIN;
-
-        // 2× oversampled nonlinear section.
-        this.upL.process(l);
-        this.upR.process(r);
-        this.nonlinear(this.upL.out0, this.upR.out0, 0);
-        this.nonlinear(this.upL.out1, this.upR.out1, 2);
-        l = this.dnL.process(os[0], os[2]);
-        r = this.dnR.process(os[1], os[3]);
-
-        // Bitcrusher / downsampler.
-        if (this.crushMix > 0) {
-          this.crusher.process(l, r, this.crushMix, this.crushQ, this.crushRate, out);
-          l = out[0];
-          r = out[1];
-        }
-
-        // Tape (voice only; the sub joins later and stays clean).
-        if (this.tapeOn) {
-          this.tape.process(l, r, cur[P.tapeDrive], this.tapeWow, cur[P.tapeAge], this.tapeLpCoef, env, out);
-          l = out[0];
-          r = out[1];
-        }
-
-        // Remove DC from asymmetric stages (tube, tape) before the envelope shapes it.
-        l = this.voiceDcL.process(l);
-        r = this.voiceDcR.process(r);
-
-        // Amp.
-        const amp = env * this.velGain * this.duckGain;
-        const va = amp * this.ampMod * VOICE_GAIN;
-        l *= va;
-        r *= va;
-
-        // Attack transient layer (bypasses the filter so it stays crisp).
-        if (this.clickLevel > 0) {
-          const c = this.transient.process() * this.clickLevel * this.velGain * this.duckGain * VOICE_GAIN * 1.5;
-          l += c;
-          r += c;
-        }
-
-        // Sub: clean, mono, phase-stable.
-        let sub = 0;
-        if (this.subLevel > 0) {
-          let sp = this.subPhase + this.subInc;
-          if (sp >= 1) sp -= 1;
-          this.subPhase = sp;
-          if (this.subWave === 0) sub = Math.sin(TWO_PI * sp);
-          else sub = sp < 0.25 ? 4 * sp : sp < 0.75 ? 2 - 4 * sp : 4 * sp - 4;
-          sub *= this.subLevel * amp;
-        } else {
-          this.subPhase += this.subInc;
-          if (this.subPhase >= 1) this.subPhase -= 1;
-        }
-        this.subDelay[this.subDelayPos] = sub;
-      } else {
-        this.subDelay[this.subDelayPos] = 0;
-      }
-      {
-        let rp = this.subDelayPos - OVERSAMPLE_LATENCY;
-        if (rp < 0) rp += 32;
-        const sub = this.subDelay[rp];
-        l += sub;
-        r += sub;
-        this.subDelayPos = (this.subDelayPos + 1) & 31;
       }
 
-      // Texture bed (swells in with the gate, lingers for its tail, silent otherwise).
-      if (this.texGain > 0 && (this.gate || this.texEnv > 1e-5)) {
-        this.texEnv = this.gate ? this.texEnv + (1 - this.texEnv) * this.texAtk : this.texEnv * this.texRel;
+      // Texture bed (swells in with the notes, lingers for its tail, silent otherwise).
+      if (this.texGain > 0 && (this.anyGate || this.texEnv > 1e-5)) {
+        this.texEnv = this.anyGate ? this.texEnv + (1 - this.texEnv) * this.texAtk : this.texEnv * this.texRel;
         this.texture.process(this.texType, this.texTone, this.sampleRate, out);
         let tl = out[0], tr = out[1];
         if (cur[P.tapeAge] > 0) {
           // Worn tape dulls the texture the same way it dulls the voice.
-          this.texLpL += (tl - this.texLpL) * this.tapeLpCoef;
-          this.texLpR += (tr - this.texLpR) * this.tapeLpCoef;
+          this.texLpL += (tl - this.texLpL) * this.texLpCoef;
+          this.texLpR += (tr - this.texLpR) * this.texLpCoef;
           tl = this.texLpL;
           tr = this.texLpR;
         }
         const tg = this.texGain * this.texEnv * this.duckGain;
         l += tl * tg;
         r += tr * tg;
-      } else if (!this.gate) {
+      } else if (!this.anyGate) {
         this.texEnv = 0;
       }
 
@@ -1549,23 +769,24 @@ export class Synth {
       this.postDcYR = yr;
       yl = yl > c ? c : yl < -c ? -c : yl;
       yr = yr > c ? c : yr < -c ? -c : yr;
-      out[0] = yl;
-      out[1] = yr;
       outL[n] = yl;
       outR[n] = yr;
-      const a = Math.abs(out[0]) > Math.abs(out[1]) ? Math.abs(out[0]) : Math.abs(out[1]);
+      const a = Math.abs(yl) > Math.abs(yr) ? Math.abs(yl) : Math.abs(yr);
       if (a > peak) peak = a;
     }
     this.peak = peak;
   }
 
-  /** True when the voice is silent (envelope idle). */
+  /** True when every voice is silent. */
   get idle(): boolean {
-    return this.ampEnv.stage === 0;
+    return !this.anyActive();
   }
 
-  /** Current note stack size (for UI). */
+  /** Number of held notes (for UI). */
   get heldNotes(): number {
-    return this.stackLen;
+    if (this.poly <= 1) return this.stackLen;
+    let n = 0;
+    for (const v of this.voices) if (v.gate) n++;
+    return n;
   }
 }

@@ -3,6 +3,18 @@
   "version": 1,
   "params": [
     {
+      "id": "voice.polyphony",
+      "label": "Polyphony",
+      "type": "int",
+      "min": 1,
+      "max": 8,
+      "default": 1,
+      "curve": "linear",
+      "unit": "voices",
+      "group": "voice",
+      "describes": "1 = monophonic (legato and glide work, the bass default). 2-8 = that many notes at once, for pads, keys and chords; the oldest note is taken over when more are played."
+    },
+    {
       "id": "voice.legato",
       "label": "Legato",
       "type": "bool",

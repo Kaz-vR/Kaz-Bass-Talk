@@ -1,0 +1,117 @@
+{
+  "id": "chords",
+  "name": "Dark chords",
+  "description": "70 BPM minor-key chords held over two bars each, with a moving top voice: for pads, keys, strings, brass and choirs.",
+  "bpm": 70,
+  "length_beats": 16,
+  "notes": [
+    {
+      "start": 0,
+      "dur": 3.6,
+      "note": 45,
+      "vel": 0.75
+    },
+    {
+      "start": 0,
+      "dur": 3.6,
+      "note": 52,
+      "vel": 0.8
+    },
+    {
+      "start": 0,
+      "dur": 3.6,
+      "note": 57,
+      "vel": 0.75
+    },
+    {
+      "start": 0,
+      "dur": 3.6,
+      "note": 60,
+      "vel": 0.8
+    },
+    {
+      "start": 4,
+      "dur": 3.6,
+      "note": 41,
+      "vel": 0.75
+    },
+    {
+      "start": 4,
+      "dur": 3.6,
+      "note": 48,
+      "vel": 0.8
+    },
+    {
+      "start": 4,
+      "dur": 3.6,
+      "note": 57,
+      "vel": 0.75
+    },
+    {
+      "start": 4,
+      "dur": 3.6,
+      "note": 60,
+      "vel": 0.8
+    },
+    {
+      "start": 8,
+      "dur": 3.6,
+      "note": 43,
+      "vel": 0.75
+    },
+    {
+      "start": 8,
+      "dur": 3.6,
+      "note": 50,
+      "vel": 0.8
+    },
+    {
+      "start": 8,
+      "dur": 3.6,
+      "note": 55,
+      "vel": 0.75
+    },
+    {
+      "start": 8,
+      "dur": 3.6,
+      "note": 62,
+      "vel": 0.8
+    },
+    {
+      "start": 12,
+      "dur": 3.6,
+      "note": 40,
+      "vel": 0.75
+    },
+    {
+      "start": 12,
+      "dur": 3.6,
+      "note": 47,
+      "vel": 0.8
+    },
+    {
+      "start": 12,
+      "dur": 3.6,
+      "note": 55,
+      "vel": 0.75
+    },
+    {
+      "start": 12,
+      "dur": 3.6,
+      "note": 59,
+      "vel": 0.8
+    },
+    {
+      "start": 2,
+      "dur": 1.6,
+      "note": 64,
+      "vel": 0.7
+    },
+    {
+      "start": 10,
+      "dur": 1.6,
+      "note": 65,
+      "vel": 0.7
+    }
+  ]
+}
