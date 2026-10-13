@@ -1,0 +1,105 @@
+{
+  "id": "funk-octaves",
+  "name": "Funk octaves",
+  "description": "108 BPM syncopated octave bassline with ghost notes, for plucks and slap-ish patches.",
+  "bpm": 108,
+  "length_beats": 8,
+  "notes": [
+    {
+      "start": 0,
+      "dur": 0.3,
+      "note": 28,
+      "vel": 1.0
+    },
+    {
+      "start": 0.5,
+      "dur": 0.2,
+      "note": 40,
+      "vel": 0.8
+    },
+    {
+      "start": 0.75,
+      "dur": 0.15,
+      "note": 28,
+      "vel": 0.5
+    },
+    {
+      "start": 1.25,
+      "dur": 0.2,
+      "note": 40,
+      "vel": 0.85
+    },
+    {
+      "start": 1.75,
+      "dur": 0.3,
+      "note": 31,
+      "vel": 0.9
+    },
+    {
+      "start": 2.5,
+      "dur": 0.2,
+      "note": 43,
+      "vel": 0.8
+    },
+    {
+      "start": 3,
+      "dur": 0.3,
+      "note": 33,
+      "vel": 0.95
+    },
+    {
+      "start": 3.5,
+      "dur": 0.2,
+      "note": 45,
+      "vel": 0.8
+    },
+    {
+      "start": 4,
+      "dur": 0.3,
+      "note": 28,
+      "vel": 1.0
+    },
+    {
+      "start": 4.5,
+      "dur": 0.2,
+      "note": 40,
+      "vel": 0.8
+    },
+    {
+      "start": 4.75,
+      "dur": 0.15,
+      "note": 28,
+      "vel": 0.5
+    },
+    {
+      "start": 5.25,
+      "dur": 0.2,
+      "note": 40,
+      "vel": 0.85
+    },
+    {
+      "start": 5.75,
+      "dur": 0.3,
+      "note": 35,
+      "vel": 0.9
+    },
+    {
+      "start": 6.25,
+      "dur": 0.2,
+      "note": 36,
+      "vel": 0.8
+    },
+    {
+      "start": 6.5,
+      "dur": 0.25,
+      "note": 38,
+      "vel": 0.9
+    },
+    {
+      "start": 7.0,
+      "dur": 0.6,
+      "note": 40,
+      "vel": 0.95
+    }
+  ]
+}

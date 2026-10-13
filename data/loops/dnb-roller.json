@@ -1,0 +1,81 @@
+{
+  "id": "dnb-roller",
+  "name": "DnB roller",
+  "description": "174 BPM rolling drum & bass phrase: long notes, a quick restab and one legato slide.",
+  "bpm": 174,
+  "length_beats": 16,
+  "notes": [
+    {
+      "start": 0,
+      "dur": 1.4,
+      "note": 29,
+      "vel": 0.9
+    },
+    {
+      "start": 1.5,
+      "dur": 0.4,
+      "note": 29,
+      "vel": 0.75
+    },
+    {
+      "start": 2.5,
+      "dur": 1.4,
+      "note": 29,
+      "vel": 0.9
+    },
+    {
+      "start": 4,
+      "dur": 0.5,
+      "note": 32,
+      "vel": 0.8
+    },
+    {
+      "start": 4.75,
+      "dur": 0.9,
+      "note": 31,
+      "vel": 0.85
+    },
+    {
+      "start": 6,
+      "dur": 1.75,
+      "note": 27,
+      "vel": 0.9
+    },
+    {
+      "start": 8,
+      "dur": 1.4,
+      "note": 29,
+      "vel": 0.9
+    },
+    {
+      "start": 9.5,
+      "dur": 0.4,
+      "note": 29,
+      "vel": 0.75
+    },
+    {
+      "start": 10.5,
+      "dur": 1.6,
+      "note": 29,
+      "vel": 0.9
+    },
+    {
+      "start": 12,
+      "dur": 0.6,
+      "note": 36,
+      "vel": 0.85
+    },
+    {
+      "start": 12.5,
+      "dur": 1.2,
+      "note": 34,
+      "vel": 0.85
+    },
+    {
+      "start": 14,
+      "dur": 1.9,
+      "note": 32,
+      "vel": 0.9
+    }
+  ]
+}

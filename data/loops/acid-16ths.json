@@ -1,0 +1,201 @@
+{
+  "id": "acid-16ths",
+  "name": "Acid 16ths",
+  "description": "128 BPM 303-style sixteenths with accents (high velocity) and slides (overlapping notes).",
+  "bpm": 128,
+  "length_beats": 8,
+  "notes": [
+    {
+      "start": 0.0,
+      "dur": 0.17,
+      "note": 36,
+      "vel": 1.0
+    },
+    {
+      "start": 0.25,
+      "dur": 0.17,
+      "note": 36,
+      "vel": 0.7
+    },
+    {
+      "start": 0.5,
+      "dur": 0.17,
+      "note": 48,
+      "vel": 1.0
+    },
+    {
+      "start": 0.75,
+      "dur": 0.3,
+      "note": 36,
+      "vel": 0.7
+    },
+    {
+      "start": 1.0,
+      "dur": 0.17,
+      "note": 39,
+      "vel": 0.7
+    },
+    {
+      "start": 1.25,
+      "dur": 0.17,
+      "note": 36,
+      "vel": 0.7
+    },
+    {
+      "start": 1.5,
+      "dur": 0.17,
+      "note": 46,
+      "vel": 1.0
+    },
+    {
+      "start": 1.75,
+      "dur": 0.3,
+      "note": 36,
+      "vel": 0.7
+    },
+    {
+      "start": 2.0,
+      "dur": 0.17,
+      "note": 43,
+      "vel": 0.7
+    },
+    {
+      "start": 2.25,
+      "dur": 0.17,
+      "note": 36,
+      "vel": 1.0
+    },
+    {
+      "start": 2.5,
+      "dur": 0.17,
+      "note": 36,
+      "vel": 0.7
+    },
+    {
+      "start": 2.75,
+      "dur": 0.3,
+      "note": 34,
+      "vel": 0.7
+    },
+    {
+      "start": 3.0,
+      "dur": 0.17,
+      "note": 36,
+      "vel": 1.0
+    },
+    {
+      "start": 3.25,
+      "dur": 0.17,
+      "note": 48,
+      "vel": 0.7
+    },
+    {
+      "start": 3.5,
+      "dur": 0.3,
+      "note": 39,
+      "vel": 0.7
+    },
+    {
+      "start": 3.75,
+      "dur": 0.17,
+      "note": 41,
+      "vel": 1.0
+    },
+    {
+      "start": 4.0,
+      "dur": 0.17,
+      "note": 36,
+      "vel": 1.0
+    },
+    {
+      "start": 4.25,
+      "dur": 0.17,
+      "note": 36,
+      "vel": 0.7
+    },
+    {
+      "start": 4.5,
+      "dur": 0.17,
+      "note": 48,
+      "vel": 1.0
+    },
+    {
+      "start": 4.75,
+      "dur": 0.3,
+      "note": 36,
+      "vel": 0.7
+    },
+    {
+      "start": 5.0,
+      "dur": 0.17,
+      "note": 42,
+      "vel": 0.7
+    },
+    {
+      "start": 5.25,
+      "dur": 0.17,
+      "note": 36,
+      "vel": 0.7
+    },
+    {
+      "start": 5.5,
+      "dur": 0.17,
+      "note": 46,
+      "vel": 1.0
+    },
+    {
+      "start": 5.75,
+      "dur": 0.3,
+      "note": 36,
+      "vel": 0.7
+    },
+    {
+      "start": 6.0,
+      "dur": 0.17,
+      "note": 46,
+      "vel": 0.7
+    },
+    {
+      "start": 6.25,
+      "dur": 0.17,
+      "note": 36,
+      "vel": 1.0
+    },
+    {
+      "start": 6.5,
+      "dur": 0.17,
+      "note": 36,
+      "vel": 0.7
+    },
+    {
+      "start": 6.75,
+      "dur": 0.3,
+      "note": 34,
+      "vel": 0.7
+    },
+    {
+      "start": 7.0,
+      "dur": 0.17,
+      "note": 36,
+      "vel": 1.0
+    },
+    {
+      "start": 7.25,
+      "dur": 0.17,
+      "note": 48,
+      "vel": 0.7
+    },
+    {
+      "start": 7.5,
+      "dur": 0.3,
+      "note": 39,
+      "vel": 0.7
+    },
+    {
+      "start": 7.75,
+      "dur": 0.17,
+      "note": 41,
+      "vel": 1.0
+    }
+  ]
+}

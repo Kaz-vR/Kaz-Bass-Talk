@@ -1,0 +1,33 @@
+{
+  "id": "long-notes",
+  "name": "Long notes",
+  "description": "Slow held notes with gaps, for hearing sustain, release, movement and low-end weight.",
+  "bpm": 90,
+  "length_beats": 8,
+  "notes": [
+    {
+      "start": 0,
+      "dur": 1.6,
+      "note": 36,
+      "vel": 0.85
+    },
+    {
+      "start": 2,
+      "dur": 1.6,
+      "note": 31,
+      "vel": 0.85
+    },
+    {
+      "start": 4,
+      "dur": 1.6,
+      "note": 34,
+      "vel": 0.85
+    },
+    {
+      "start": 6,
+      "dur": 1.2,
+      "note": 29,
+      "vel": 0.85
+    }
+  ]
+}
