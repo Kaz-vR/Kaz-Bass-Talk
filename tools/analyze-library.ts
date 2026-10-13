@@ -12,7 +12,9 @@ import { DEFAULT_LOOP, loadLibrary, loadLoops } from './lib/data';
 const write = !process.argv.includes('--no-write');
 const loop = loadLoops().get(DEFAULT_LOOP)!;
 let failures = 0;
-for (const entry of loadLibrary()) {
+// Optional file-name filter, e.g. `-- terror-` to only process the Terror presets.
+const only = process.argv.slice(2).find((a) => !a.startsWith('--'));
+for (const entry of loadLibrary().filter((e) => !only || e.file.includes(only))) {
   const patch = validatePatch(entry.json).patch;
   const family = entry.json.meta.family as string | undefined;
   const a = analyzePatch(patch, loop);

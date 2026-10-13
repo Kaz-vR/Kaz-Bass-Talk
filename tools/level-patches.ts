@@ -11,7 +11,9 @@ const MAX_LIMITER_DB = 1.5; // never lean on the limiter for loudness
 const PEAK_LIMIT = 0.85; // just under the -1 dBFS limiter ceiling: it only ever touches stray transients
 const loop = loadLoops().get(DEFAULT_LOOP)!;
 
-for (const entry of loadLibrary()) {
+// Optional file-name filter, e.g. `-- terror-` to only process the Terror presets.
+const only = process.argv.slice(2).find((a) => !a.startsWith('--'));
+for (const entry of loadLibrary().filter((e) => !only || e.file.includes(only))) {
   const patch = entry.json;
   for (let pass = 0; pass < 4; pass++) {
     const r = renderPatch(patch, loop, { seconds: 4 });

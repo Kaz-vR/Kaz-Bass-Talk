@@ -545,7 +545,7 @@ const D: Def[] = [
     mods: [['velocity', 'filter_cutoff', 0.2], ['drift', 'filter_cutoff', 0.05]],
   },
   {
-    dir: 'lorn-tape-flutter', family: 'cinematic', name: 'Broken Tape',
+    dir: 'lorn-tape-flutter', family: 'terror', name: 'Broken Tape',
     description: 'LORN-style decayed bass: saturated and worn, with unstable random pitch flutter, dark echoes and a haunted room.',
     tags: ['lorn', 'tape', 'lo-fi', 'dark', 'haunted', 'cinematic', 'unstable', 'wonky'],
     set: {
@@ -750,7 +750,7 @@ const D: Def[] = [
 // ------------------------------------------------------------------ build
 
 function build(def: Def): Record<string, unknown> {
-  if (def.mods.length > 8) throw new Error(`${def.dir}: more than 8 mod slots`);
+  if (def.mods.length > 12) throw new Error(`${def.dir}: more than 12 mod slots`);
   const raw: Record<string, unknown> = {
     meta: { name: def.name, description: def.description, tags: def.tags, directory: def.dir, family: def.family },
     ...BASE,
@@ -770,7 +770,8 @@ function build(def: Def): Record<string, unknown> {
 
 const libDir = join(ROOT, 'data/library');
 mkdirSync(libDir, { recursive: true });
-for (const f of readdirSync(libDir)) if (f.endsWith('.json')) unlinkSync(join(libDir, f));
+// Terror presets are built by tools/build-terror.ts and left alone here.
+for (const f of readdirSync(libDir)) if (f.endsWith('.json') && !f.startsWith('terror-')) unlinkSync(join(libDir, f));
 const seen = new Set<string>();
 for (const def of D) {
   if (seen.has(def.dir)) throw new Error(`duplicate ${def.dir}`);

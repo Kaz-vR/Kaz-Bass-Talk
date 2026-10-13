@@ -59,11 +59,15 @@
     },
     {
       "id": "cinematic",
-      "description": "Huge, slow, dark or unstable film and ambient basses (incl. LORN)."
+      "description": "Huge, slow, dark or unstable film and ambient basses."
     },
     {
       "id": "experimental",
       "description": "West-coast, physical-model, glitch and illusion basses."
+    },
+    {
+      "id": "terror",
+      "description": "LORN-style terror basses: dark, saturated, tape-worn and wide above a clean sub, always alive with slow, non-repeating movement, sitting in a dark space."
     }
   ],
   "entries": [
@@ -361,7 +365,7 @@
       "id": "lorn-tape-flutter",
       "name": "LORN broken tape flutter",
       "group": "Cinematic, avant-garde & unstable",
-      "family": "cinematic",
+      "family": "terror",
       "status": "native",
       "identity": "Heavy analog bass with rapid random pitch drift: decayed, haunted, defective."
     },
