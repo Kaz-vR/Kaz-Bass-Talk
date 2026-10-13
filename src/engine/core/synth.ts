@@ -420,6 +420,19 @@ export class Synth {
     this.applyDiscrete();
   }
 
+  /**
+   * Next wander point: a real step (0.6-1.2 of the range) up or down from the
+   * last one, reflected off ±1. Uniform random points often land close
+   * together and the LFO hovers near the middle; this keeps it travelling
+   * while never repeating.
+   */
+  private wanderStep(prev: number): number {
+    let v = prev + (this.rng.next() < 0 ? -1 : 1) * (0.6 + 0.3 * (this.rng.next() + 1));
+    if (v > 1) v = 2 - v;
+    else if (v < -1) v = -2 - v;
+    return v;
+  }
+
   private lfoShape(shape: number, p: number, hold: number, prev: number): number {
     switch (shape) {
       case K.LFO_SINE: return Math.sin(TWO_PI * p);
@@ -455,7 +468,7 @@ export class Synth {
     src[K.SRC_PRODUCT] = this.lfoValue[0] * this.lfoValue[1];
     if (this.slowPos >= 1) {
       this.slowA = this.slowB;
-      this.slowB = this.rng.next();
+      this.slowB = this.wanderStep(this.slowA);
       this.slowPos = 0;
       this.slowStep = BLOCK / ((2 + 4 * (0.5 + 0.5 * this.rng.next())) * fs);
     }
@@ -502,7 +515,7 @@ export class Synth {
       if (ph >= 1) {
         ph -= Math.floor(ph);
         this.lfoPrev[l] = this.lfoHold[l];
-        this.lfoHold[l] = this.rng.next();
+        this.lfoHold[l] = cur[lp.shape] === K.LFO_WANDER ? this.wanderStep(this.lfoHold[l]) : this.rng.next();
       }
       this.lfoPhase[l] = ph;
       // Fade-in after each note start (lfoN.fade).
