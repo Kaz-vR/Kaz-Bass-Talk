@@ -17,6 +17,7 @@
 import { renderPatch } from '../engine/core/render';
 import type { Loop } from '../engine/core/sequencer';
 import { validatePatch, type Patch } from '../schema';
+import { wantsLife } from '../quality/critic';
 import { bandPower, centroid, db, flatness, powerSpectrum, type PowerSpectrum } from './spectrum';
 
 export const PROBE_NOTES = { low: 33, mid: 45, high: 57 } as const; // A1, A2, A3
@@ -65,6 +66,21 @@ export interface RawMeasures {
   limiterDb: number;
   /** Blackman-windowed mean of the loop (true DC estimate). */
   dc: number;
+  /** How alive a long held note is (only measured when requested; see measureLife). */
+  life?: Life;
+}
+
+/**
+ * Movement of a long held note, split by time scale. Measured on the spectral
+ * shape above 150 Hz (loudness removed, the sub ignored).
+ */
+export interface Life {
+  /** Slow motion: spread of the shape smoothed over ~1 s, dB (phrase-level wander, blooms, slow LFOs). */
+  slowDb: number;
+  /** Fast motion: shape changes between ~60 ms and ~0.5 s, dB (wobble, flutter, beating, grain). */
+  fastDb: number;
+  /** Strongest self-similarity at lags of 0.25–2 s after removing the slow trend (1 = exactly repeating). */
+  repeat: number;
 }
 
 export interface Features {
@@ -122,6 +138,8 @@ export interface Analysis {
 }
 
 export interface AnalyzeOptions {
+  /** Also measure life on a long held note (slower; on by default for families whose limits check it). */
+  life?: boolean;
   sampleRate?: number;
   /** Seconds of the loop to render. */
   loopSeconds?: number;
@@ -176,12 +194,19 @@ function envelope(x: Float64Array, fs: number): { env: Float64Array; hop: number
   return { env, hop };
 }
 
+/** Octaves and fifths sit on (or half-way along) the harmonic lattice. */
+function harmonicInterval(semi: number): boolean {
+  const m = ((semi % 12) + 12) % 12;
+  return m === 0 || m === 7;
+}
+
 /** Fundamental of the harmonic lattice the frozen patch produces, or null if inharmonic. */
 function latticeBase(p: Patch, f0: number): number | null {
   let base = f0;
   const octaveShift = (semi: number) => Math.floor(semi / 12);
   for (const n of [1, 2]) {
     if ((p[`osc${n}.level`] as number) <= 0) continue;
+    if (n === 2 && !harmonicInterval(p['osc2.semi'] as number)) continue; // muted in the frozen probe
     // Shepard partials glide and a physical-model string is not exactly harmonic: no lattice.
     const wave = p[`osc${n}.wave`];
     if (wave === 'shepard' || wave === 'string') return null;
@@ -269,6 +294,87 @@ function movement(x: Float64Array, fs: number, from: number, to: number): number
   return wsum > 0 ? acc / wsum : 0;
 }
 
+/** Centered moving average with window w frames (edges use the available frames). */
+function movAvg(v: number[], w: number): number[] {
+  const h = Math.floor(w / 2);
+  return v.map((_, i) => {
+    let s = 0, n = 0;
+    for (let j = Math.max(0, i - h); j <= Math.min(v.length - 1, i + h); j++) { s += v[j]; n++; }
+    return s / n;
+  });
+}
+
+function std(v: number[]): number {
+  const m = v.reduce((a, b) => a + b, 0) / v.length;
+  return Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / v.length);
+}
+
+export const LIFE_HOLD_SECONDS = 7;
+const LIFE_HOP_S = 0.02;
+
+/**
+ * Measure life on a held note (x from `from` to `to` samples). The series
+ * ends where the ~1 s average level falls 20 dB below its loudest, so a decaying note is judged on
+ * its audible part rather than its tail.
+ */
+export function measureLife(x: Float64Array, fs: number, from: number, to: number): Life {
+  const N = 2048, hop = Math.round(LIFE_HOP_S * fs);
+  const edges = [150, 300, 600, 1200, 2500, 5000, 12000];
+  const nb = edges.length - 1;
+  const shapes: number[][] = [];
+  const levels: number[] = [];
+  for (let s = from; s + N <= to; s += hop) {
+    const sp = powerSpectrum(x, fs, s, s + N, N);
+    const bands = edges.slice(0, -1).map((lo, i) => bandPower(sp, lo, edges[i + 1]) + 1e-20);
+    const tot = bands.reduce((a, b) => a + b, 0);
+    shapes.push(bands.map((b) => b / tot));
+    levels.push(db(tot));
+  }
+  // Gate on the level averaged over ~1 s, so a decay ends the series but a deep wobble doesn't.
+  const avg = movAvg(levels, Math.round(1 / LIFE_HOP_S));
+  const top = Math.max(...avg);
+  let frames = avg.findIndex((l) => l < top - 20);
+  if (frames < 0) frames = levels.length;
+  const none = { slowDb: 0, fastDb: 0, repeat: 0 };
+  if (frames < 60) return none;
+  const fr = (sec: number) => Math.max(1, Math.round(sec / LIFE_HOP_S));
+  const lags: number[] = [];
+  for (let l = 1; l <= Math.min(fr(2), frames - fr(1)); l++) lags.push(l);
+  const num = new Float64Array(lags.length), den = new Float64Array(lags.length);
+  let slow = 0, fast = 0, wsum = 0;
+  for (let b = 0; b < nb; b++) {
+    let pw = 0;
+    for (let i = 0; i < frames; i++) pw += shapes[i][b];
+    const mean = db(pw / frames);
+    if (mean < -35) continue; // band too quiet to matter
+    const w = Math.pow(10, mean / 10);
+    const v: number[] = [];
+    for (let i = 0; i < frames; i++) v.push(db(shapes[i][b]));
+    const smooth = movAvg(v, fr(0.06)), mid = movAvg(v, fr(0.5)), trend = movAvg(v, fr(2.5));
+    slow += std(movAvg(v, fr(1))) * w;
+    fast += std(smooth.map((y, i) => y - mid[i])) * w;
+    wsum += w;
+    // Autocorrelation of the shape with motion slower than ~2.5 s removed.
+    const d = smooth.map((y, i) => y - trend[i]);
+    lags.forEach((lag, k) => {
+      let c = 0, e1 = 0, e2 = 0;
+      for (let i = 0; i + lag < d.length; i++) { c += d[i] * d[i + lag]; e1 += d[i] * d[i]; e2 += d[i + lag] * d[i + lag]; }
+      num[k] += w * c;
+      den[k] += w * Math.sqrt(e1 * e2);
+    });
+  }
+  if (wsum === 0) return none;
+  // Repetition = a correlation peak that comes back after a dip (a periodic
+  // pattern). Smooth slow motion only decays with lag and scores near 0.
+  let repeat = 0, lowest = 1;
+  for (let k = 0; k < lags.length; k++) {
+    const c = den[k] > 1e-12 ? num[k] / den[k] : 0;
+    lowest = Math.min(lowest, c);
+    if (lags[k] >= fr(0.25)) repeat = Math.max(repeat, Math.min(c, c - lowest));
+  }
+  return { slowDb: slow / wsum, fastDb: fast / wsum, repeat };
+}
+
 function blackmanMean(x: Float64Array): number {
   let s = 0, w = 0;
   const n = x.length;
@@ -289,12 +395,15 @@ export function frozen(p: Patch): Patch {
   q['osc2.unison_voices'] = 1;
   q['osc1.fine'] = 0;
   q['osc2.fine'] = 0;
-  for (let n = 1; n <= 8; n++) q[`mod${n}.amount`] = 0;
+  for (let n = 1; n <= 12; n++) q[`mod${n}.amount`] = 0;
   for (const id of ['chorus.mix', 'flanger.mix', 'phaser.mix', 'delay.mix', 'reverb.mix', 'tape.wow', 'tape.age', 'comp.pump', 'pitch_env.amount', 'filter.env_amount', 'noise.level', 'click.level', 'fm.punch']) q[id] = 0;
   // Hold the note at full level so short plucks are measured, not their silence.
   q['amp_env.attack'] = 1;
   q['amp_env.sustain'] = 1;
   q['amp_env.attack_curve'] = 0;
+  // A deliberately dissonant layer (not an octave or fifth) has no harmonic
+  // lattice, so it would read as aliasing: leave it out of the frozen probe.
+  if (!harmonicInterval(q['osc2.semi'] as number)) q['osc2.level'] = 0;
   return q;
 }
 
@@ -394,5 +503,12 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
     limiterDb: -db(minGain * minGain),
     dc: blackmanMean(m),
   };
+  if (opts.life ?? wantsLife(p.meta?.family as string | undefined)) {
+    const r = renderPatch(p, heldLoop(PROBE_NOTES.mid, LIFE_HOLD_SECONDS), { sampleRate: fs, seconds: LIFE_HOLD_SECONDS });
+    track(r);
+    raw.life = measureLife(mono(r.left, r.right), fs, Math.round(0.5 * fs), Math.round(LIFE_HOLD_SECONDS * fs));
+    raw.peak = peak;
+    raw.limiterDb = -db(minGain * minGain);
+  }
   return { raw, features: toFeatures(raw) };
 }

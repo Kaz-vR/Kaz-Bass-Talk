@@ -77,6 +77,14 @@ export function checkRules(p: Patch, family = (p.meta?.family as string | undefi
     add('envelope-family', 'warn', `A ${family} patch normally sustains: amp sustain is ${n(p, 'amp_env.sustain').toFixed(2)}.`);
   }
 
+  // Coupled: heavy distortion after the filter regenerates the harmonics the filter removed,
+  // so filter movement (envelope, LFOs) is masked. Put the dirt in front (drive.amount) instead.
+  const filterMoves = n(p, 'filter.env_amount') > 0.05 || [...Array(12)].some((_, i) =>
+    p[`mod${i + 1}.dest`] === 'filter_cutoff' && MOVING_SOURCES.has(p[`mod${i + 1}.source`] as string) && Math.abs(n(p, `mod${i + 1}.amount`)) > 0.05);
+  if (filterMoves && n(p, 'dist.drive') > 0.5 && n(p, 'dist.mix') > 0.6 && (p['dist.type'] === 'soft' || p['dist.type'] === 'tube')) {
+    add('masked-filter', 'warn', 'Heavy saturation after a moving filter hides the movement; move some dirt to drive.amount (before the filter) and lower dist.drive.');
+  }
+
   // Movement: sustained patches shouldn't be static.
   if (n(p, 'amp_env.sustain') >= 0.5 && !STATIC_OK.has(family) && !hasMovement(p)) {
     add('movement', 'warn', 'Sustained patch with no movement (no LFO, modulation FX, drift or detune): it will sound static.');

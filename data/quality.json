@@ -1,5 +1,5 @@
 {
-  "$comment": "Quality critic thresholds. A sound fails a check when its measurement crosses the limit. Defaults are set between what good library patches measure and what deliberately broken test sounds measure; families that are aggressive by design get wider limits. Every sound the human flags should tighten or add a rule here.",
+  "$comment": "Quality critic thresholds. A sound fails a check when its measurement crosses the limit. Defaults are set between what good library patches measure and what deliberately broken test sounds measure; families that are aggressive by design get wider limits. Every sound the human flags should tighten or add a rule here. The terror family (LORN-style) must also sound alive: a 7 s held note is measured for slow and fast movement and for how periodic that movement is.",
   "defaults": {
     "aliasDb": { "max": -55, "label": "digital fizz (aliasing)" },
     "harshDb": { "max": -8, "label": "harsh 2–5 kHz" },
@@ -17,6 +17,15 @@
     "acid": { "whistleDb": { "max": 15 } },
     "fm": { "harshDb": { "max": -5 }, "whistleDb": { "max": 12 } },
     "808": { "harshDb": { "max": -5 }, "aliasDb": { "max": -50 } },
-    "experimental": { "harshDb": { "max": 0 }, "whistleDb": { "max": 15 }, "aliasDb": { "max": -40 } }
+    "experimental": { "harshDb": { "max": 0 }, "whistleDb": { "max": 15 }, "aliasDb": { "max": -40 } },
+    "terror": {
+      "harshDb": { "max": -9 },
+      "aliasDb": { "max": -48 },
+      "whistleDb": { "max": 12 },
+      "mudDb": { "max": 4.5 },
+      "lifeSlowDb": { "min": 0.45, "max": 4, "label": "slow movement over a held note (alive, not seasick)" },
+      "lifeFastDb": { "min": 0.35, "max": 2.8, "label": "fast movement within a held note" },
+      "lifeRepeat": { "max": 0.6, "label": "movement repeating like a clock (mechanical)" }
+    }
   }
 }

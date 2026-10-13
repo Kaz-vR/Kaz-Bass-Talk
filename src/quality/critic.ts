@@ -14,7 +14,11 @@ interface QualityData {
 
 const data = qualityJson as unknown as QualityData;
 
-export type CheckCode = 'aliasDb' | 'harshDb' | 'mudDb' | 'fundamentalDb' | 'whistleDb' | 'noteSpreadDb' | 'sideLowDb' | 'limiterDb' | 'dc';
+export type CheckCode =
+  | 'aliasDb' | 'harshDb' | 'mudDb' | 'fundamentalDb' | 'whistleDb' | 'noteSpreadDb' | 'sideLowDb' | 'limiterDb' | 'dc'
+  | 'lifeSlowDb' | 'lifeFastDb' | 'lifeRepeat';
+
+const LIFE_CODES = ['lifeSlowDb', 'lifeFastDb', 'lifeRepeat'];
 
 export interface Issue {
   code: CheckCode;
@@ -29,6 +33,12 @@ export interface Issue {
 export interface Verdict {
   pass: boolean;
   issues: Issue[];
+}
+
+/** True when the family's limits check life (the analysis then renders the long held note). */
+export function wantsLife(family?: string): boolean {
+  const fam = family ? data.families[family] : undefined;
+  return !!fam && LIFE_CODES.some((c) => c in fam);
 }
 
 /** Effective limits for a family (defaults with the family's overrides merged in). */
@@ -69,6 +79,12 @@ export function judge(raw: RawMeasures, family?: string): Verdict {
   check('sideLowDb', raw.sideLowDb);
   check('limiterDb', raw.limiterDb);
   check('dc', raw.dc, '');
+  if (wantsLife(family)) {
+    // A family that must sound alive fails outright when life wasn't measured.
+    check('lifeSlowDb', raw.life ? raw.life.slowDb : -1);
+    check('lifeFastDb', raw.life ? raw.life.fastDb : -1);
+    check('lifeRepeat', raw.life ? raw.life.repeat : 1, '');
+  }
   issues.sort((a, b) => b.excess - a.excess);
   return { pass: issues.length === 0, issues };
 }
