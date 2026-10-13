@@ -139,7 +139,7 @@ Features are normalized (a documented scale per feature) so distances are meanin
 
 Thresholds are derived from library patches that sound good, per family (a deliberately harsh type like Industrial or Rage gets wider limits than a pure sub). Rejected generated sounds are silently replaced before the user hears them.
 
-**Human calibration:** the critic catches *bad* reliably but can't fully prove *great*. Per batch, the human gets a small random sample (about 5 sounds), never everything. Every sound they flag becomes a new rule or a tightened threshold, so the same mistake can't return.
+**Human feedback:** there are no scheduled listening checks; the rules and the critic decide. When the human volunteers that something sounds wrong, that sound becomes a new rule or a tightened threshold, so the same mistake can't return.
 
 Must render four candidates in under 150 ms total. Keep renders short and use a reduced-quality offline mode if needed.
 
@@ -225,12 +225,12 @@ Keeps the visual style of the approved mockup; the layout follows the seed → d
 
 ## Build phases
 
-Finish each phase, with its tests passing, before starting the next. At the end of each phase, summarize what was built and what the human should listen to or try (keep listening requests small: a random sample, never everything).
+Finish each phase, with its tests passing, before starting the next. At the end of each phase, summarize what was built. Don't ask the human to review or listen to batches of sounds.
 
 1. **Engine + schema.** Synth playable from computer keyboard and MIDI, all parameters in the schema, starter patches, default audition loops. *(Done.)*
 2. **Analysis + quality critic.** Feature extraction with normalized features, the quality critic and the first sound-design rules, tests on known signals (a sine should have near-zero high-frequency energy; deliberately fizzy, muddy, harsh test sounds must be caught; the starter patches must pass), and `data/directory.json`.
-3. **Engine additions for full coverage.** Multi-operator FM, click/transient layer, new filter types (303 diode with accent, notch, comb, LPG), PWM-saw + ensemble chorus, physical-model string, Shepard mode, reverse envelope, more random sources.
-4. **Patch library.** About 160 patches across the whole directory (≈3 per entry), with `directory`, `family`, tags and descriptions, every one passing the critic; features precomputed. Human hears a random sample per batch.
+3. **Engine additions for full coverage.** Multi-operator FM, click/transient layer, new filter types (303 diode with accent, notch, comb, LPG), PWM-saw + ensemble chorus, physical-model string, Shepard mode, reverse envelope, more random sources. *(Done.)*
+4. **Patch library.** One production-ready patch for each of the 51 bass types is done (`tools/build-library.ts`); more versions per type (clean / dirty / dark, ~160 total) and the 2 performance variations follow. Every patch passes the critic; features precomputed.
 5. **Macros.** A pool of 8-12 recipes per family, impact ranking, per-patch range tuning within critic and safety limits, lean-based priority, swapping.
 6. **Sound Tree.** Rounds of 4 (3 near the lean + 1 wildcard), leans, generated options within safe regions, "none of these", "between these two" blends, breadcrumb, instant audition, critic on every option.
 7. **UI.** The seed → dial-in interface described above, in the mockup's visual style.
@@ -250,7 +250,6 @@ Finish each phase, with its tests passing, before starting the next. At the end 
 
 - Small, reviewable commits with clear messages, one concern each.
 - Think like a world-class bass sound designer: every patch is a finished, release-quality sound. Encode what makes a sound good as rules and critic checks rather than relying on the human to catch problems.
-- When generating data (patches, macro recipes), work in batches; send the human a small random sample to listen to, not everything.
-- If a sound-design decision genuinely needs ears, ask the human to listen. Don't treat passing tests as proof that something sounds good.
+- Work autonomously: solve problems the way established synths do, and don't stop to ask the human questions or to listen. Passing tests are necessary but not proof of quality, so encode sound-design knowledge in rules and the critic.
 - Never add a dependency that pulls in an ML runtime, model weights, or network access.
-- If the same problem fails 3 times, stop and explain instead of trying again.
+- If the same problem fails 3 times, step back and rethink the approach (root cause, not symptoms) instead of retrying the same fix; note what happened in the commit message.
