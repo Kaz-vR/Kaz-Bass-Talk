@@ -143,7 +143,7 @@ Plain code, deterministic, no ML.
 ```json
 {
   "mode": "edit",
-  "base": "take:B",
+  "base": "option:B",
   "changes": [
     { "descriptor": "buzzy", "direction": -1, "amount": 0.4 },
     { "descriptor": "sub",   "direction": 1,  "amount": 1.8 }
