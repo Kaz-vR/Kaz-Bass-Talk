@@ -7,15 +7,18 @@ import { DEFAULT_LOOP, loadLibrary, loadLoops } from './lib/data';
 import { quickStats } from './lib/measure';
 
 const TARGET_DB = -16;
+const MAX_LIMITER_DB = 1.5; // never lean on the limiter for loudness
 const PEAK_LIMIT = 0.85; // just under the -1 dBFS limiter ceiling: it only ever touches stray transients
 const loop = loadLoops().get(DEFAULT_LOOP)!;
 
 for (const entry of loadLibrary()) {
   const patch = entry.json;
-  for (let pass = 0; pass < 3; pass++) {
+  for (let pass = 0; pass < 4; pass++) {
     const r = renderPatch(patch, loop, { seconds: 4 });
     const s = quickStats(r.left, r.right, r.sampleRate);
-    const delta = Math.min(TARGET_DB - s.rmsDb, 20 * Math.log10(PEAK_LIMIT / s.peak));
+    // Back off if the limiter is doing real work (transients above the ceiling).
+    const limDb = -20 * Math.log10(r.limiterMinGain);
+    const delta = Math.min(TARGET_DB - s.rmsDb, 20 * Math.log10(PEAK_LIMIT / s.peak), MAX_LIMITER_DB - limDb);
     if (Math.abs(delta) < 0.25) break;
     const gain = Math.max(-24, Math.min(12, (patch['output.gain'] as number) + delta));
     patch['output.gain'] = Math.round(gain * 10) / 10;

@@ -14,7 +14,8 @@
     "render:previews": "tsx tools/render-previews.ts",
     "validate:data": "tsx tools/validate-data.ts",
     "level:patches": "tsx tools/level-patches.ts",
-    "analyze:library": "tsx tools/analyze-library.ts"
+    "analyze:library": "tsx tools/analyze-library.ts",
+    "build:library": "tsx tools/build-library.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
