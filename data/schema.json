@@ -121,7 +121,7 @@
       "curve": "linear",
       "unit": "",
       "group": "osc1",
-      "describes": "Only for the wavetable wave. Sweeps sine (0) \u2192 triangle \u2192 saw \u2192 square \u2192 vocal/formant (1). Higher is brighter and more complex."
+      "describes": "Only for the wavetable wave. Sweeps sine (0) → triangle → saw → square → vocal/formant (1). Higher is brighter and more complex."
     },
     {
       "id": "osc1.unison_voices",
@@ -234,7 +234,7 @@
       "curve": "linear",
       "unit": "",
       "group": "osc2",
-      "describes": "Only for the wavetable wave. Sweeps sine (0) \u2192 triangle \u2192 saw \u2192 square \u2192 vocal/formant (1). Higher is brighter and more complex."
+      "describes": "Only for the wavetable wave. Sweeps sine (0) → triangle → saw → square → vocal/formant (1). Higher is brighter and more complex."
     },
     {
       "id": "osc2.unison_voices",
@@ -592,7 +592,7 @@
       "curve": "linear",
       "unit": "",
       "group": "filter",
-      "describes": "How far the mod envelope sweeps the cutoff (\u00b16 octaves). Positive gives a plucky \"wow\" at the start of each note."
+      "describes": "How far the mod envelope sweeps the cutoff (±6 octaves). Positive gives a plucky \"wow\" at the start of each note."
     },
     {
       "id": "filter.vowel",
@@ -604,7 +604,7 @@
       "curve": "linear",
       "unit": "",
       "group": "filter",
-      "describes": "Formant mode only: morphs through vowels A \u2192 E \u2192 I \u2192 O \u2192 U."
+      "describes": "Formant mode only: morphs through vowels A → E → I → O → U."
     },
     {
       "id": "filter.accent",
@@ -862,6 +862,54 @@
       "describes": "Mod envelope fall time after release."
     },
     {
+      "id": "env2.attack",
+      "label": "Env 2 attack",
+      "type": "float",
+      "min": 1,
+      "max": 10000,
+      "default": 1500,
+      "curve": "log",
+      "unit": "ms",
+      "group": "env2",
+      "describes": "Rise time of the second (slow) mod envelope: how long a held note takes to bloom."
+    },
+    {
+      "id": "env2.decay",
+      "label": "Env 2 decay",
+      "type": "float",
+      "min": 1,
+      "max": 20000,
+      "default": 4000,
+      "curve": "log",
+      "unit": "ms",
+      "group": "env2",
+      "describes": "Fall time to the sustain level after the bloom."
+    },
+    {
+      "id": "env2.sustain",
+      "label": "Env 2 sustain",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "curve": "linear",
+      "unit": "",
+      "group": "env2",
+      "describes": "Level env 2 holds while the key is down."
+    },
+    {
+      "id": "env2.release",
+      "label": "Env 2 release",
+      "type": "float",
+      "min": 1,
+      "max": 10000,
+      "default": 800,
+      "curve": "log",
+      "unit": "ms",
+      "group": "env2",
+      "describes": "Fall time of env 2 after the key is released."
+    },
+    {
       "id": "pitch_env.amount",
       "label": "Pitch envelope amount",
       "type": "float",
@@ -895,11 +943,12 @@
         "saw_up",
         "saw_down",
         "square",
-        "sample_hold"
+        "sample_hold",
+        "wander"
       ],
       "default": "sine",
       "group": "lfo1",
-      "describes": "Sine and triangle are smooth wobbles; saws are rhythmic ramps; square jumps; sample & hold is random steps."
+      "describes": "Sine and triangle are smooth wobbles; saws are rhythmic ramps; square jumps; sample & hold is random steps; wander is smooth random motion that never repeats."
     },
     {
       "id": "lfo1.rate",
@@ -948,6 +997,18 @@
       "describes": "On: the LFO restarts on every note, so each note moves the same way."
     },
     {
+      "id": "lfo1.fade",
+      "label": "LFO 1 fade-in",
+      "type": "float",
+      "min": 0,
+      "max": 8000,
+      "default": 0,
+      "curve": "linear",
+      "unit": "ms",
+      "group": "lfo1",
+      "describes": "Time for the LFO to fade in after each note starts. Lets a note hit clean, then come alive."
+    },
+    {
       "id": "lfo2.shape",
       "label": "LFO 2 shape",
       "type": "enum",
@@ -957,11 +1018,12 @@
         "saw_up",
         "saw_down",
         "square",
-        "sample_hold"
+        "sample_hold",
+        "wander"
       ],
       "default": "sine",
       "group": "lfo2",
-      "describes": "Sine and triangle are smooth wobbles; saws are rhythmic ramps; square jumps; sample & hold is random steps."
+      "describes": "Sine and triangle are smooth wobbles; saws are rhythmic ramps; square jumps; sample & hold is random steps; wander is smooth random motion that never repeats."
     },
     {
       "id": "lfo2.rate",
@@ -1010,6 +1072,168 @@
       "describes": "On: the LFO restarts on every note, so each note moves the same way."
     },
     {
+      "id": "lfo2.fade",
+      "label": "LFO 2 fade-in",
+      "type": "float",
+      "min": 0,
+      "max": 8000,
+      "default": 0,
+      "curve": "linear",
+      "unit": "ms",
+      "group": "lfo2",
+      "describes": "Time for the LFO to fade in after each note starts. Lets a note hit clean, then come alive."
+    },
+    {
+      "id": "lfo3.shape",
+      "label": "LFO 3 shape",
+      "type": "enum",
+      "options": [
+        "sine",
+        "triangle",
+        "saw_up",
+        "saw_down",
+        "square",
+        "sample_hold",
+        "wander"
+      ],
+      "default": "sine",
+      "group": "lfo3",
+      "describes": "Sine and triangle are smooth wobbles; saws are rhythmic ramps; square jumps; sample & hold is random steps; wander is smooth random motion that never repeats."
+    },
+    {
+      "id": "lfo3.rate",
+      "label": "LFO 3 rate",
+      "type": "float",
+      "min": 0.01,
+      "max": 30,
+      "default": 0.3,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "lfo3",
+      "describes": "Speed when not tempo-synced. Under 1 Hz is slow drift; 2-8 Hz is wobble; above 10 Hz is buzz/growl."
+    },
+    {
+      "id": "lfo3.sync",
+      "label": "LFO 3 tempo sync",
+      "type": "enum",
+      "options": [
+        "free",
+        "4/1",
+        "2/1",
+        "1/1",
+        "1/2",
+        "1/2D",
+        "1/4",
+        "1/4D",
+        "1/4T",
+        "1/8",
+        "1/8D",
+        "1/8T",
+        "1/16",
+        "1/16D",
+        "1/16T",
+        "1/32"
+      ],
+      "default": "free",
+      "group": "lfo3",
+      "describes": "Locks the LFO to the tempo as a note length (1/8 is the classic dubstep wobble). \"free\" uses the rate in Hz."
+    },
+    {
+      "id": "lfo3.retrigger",
+      "label": "LFO 3 retrigger",
+      "type": "bool",
+      "default": false,
+      "group": "lfo3",
+      "describes": "On: the LFO restarts on every note, so each note moves the same way."
+    },
+    {
+      "id": "lfo3.fade",
+      "label": "LFO 3 fade-in",
+      "type": "float",
+      "min": 0,
+      "max": 8000,
+      "default": 0,
+      "curve": "linear",
+      "unit": "ms",
+      "group": "lfo3",
+      "describes": "Time for the LFO to fade in after each note starts. Lets a note hit clean, then come alive."
+    },
+    {
+      "id": "lfo4.shape",
+      "label": "LFO 4 shape",
+      "type": "enum",
+      "options": [
+        "sine",
+        "triangle",
+        "saw_up",
+        "saw_down",
+        "square",
+        "sample_hold",
+        "wander"
+      ],
+      "default": "sine",
+      "group": "lfo4",
+      "describes": "Sine and triangle are smooth wobbles; saws are rhythmic ramps; square jumps; sample & hold is random steps; wander is smooth random motion that never repeats."
+    },
+    {
+      "id": "lfo4.rate",
+      "label": "LFO 4 rate",
+      "type": "float",
+      "min": 0.01,
+      "max": 30,
+      "default": 0.3,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "lfo4",
+      "describes": "Speed when not tempo-synced. Under 1 Hz is slow drift; 2-8 Hz is wobble; above 10 Hz is buzz/growl."
+    },
+    {
+      "id": "lfo4.sync",
+      "label": "LFO 4 tempo sync",
+      "type": "enum",
+      "options": [
+        "free",
+        "4/1",
+        "2/1",
+        "1/1",
+        "1/2",
+        "1/2D",
+        "1/4",
+        "1/4D",
+        "1/4T",
+        "1/8",
+        "1/8D",
+        "1/8T",
+        "1/16",
+        "1/16D",
+        "1/16T",
+        "1/32"
+      ],
+      "default": "free",
+      "group": "lfo4",
+      "describes": "Locks the LFO to the tempo as a note length (1/8 is the classic dubstep wobble). \"free\" uses the rate in Hz."
+    },
+    {
+      "id": "lfo4.retrigger",
+      "label": "LFO 4 retrigger",
+      "type": "bool",
+      "default": false,
+      "group": "lfo4",
+      "describes": "On: the LFO restarts on every note, so each note moves the same way."
+    },
+    {
+      "id": "lfo4.fade",
+      "label": "LFO 4 fade-in",
+      "type": "float",
+      "min": 0,
+      "max": 8000,
+      "default": 0,
+      "curve": "linear",
+      "unit": "ms",
+      "group": "lfo4",
+      "describes": "Time for the LFO to fade in after each note starts. Lets a note hit clean, then come alive."
+    },
+    {
       "id": "mod1.source",
       "label": "Mod 1 source",
       "type": "enum",
@@ -1024,7 +1248,11 @@
         "modwheel",
         "random",
         "drift",
-        "lfo_product"
+        "lfo_product",
+        "lfo3",
+        "lfo4",
+        "drift_slow",
+        "env2"
       ],
       "default": "none",
       "group": "mod",
@@ -1059,11 +1287,21 @@
         "lfo1_rate",
         "lfo2_rate",
         "fm2_amount",
-        "crush_mix"
+        "crush_mix",
+        "lfo3_rate",
+        "lfo4_rate",
+        "chorus_depth",
+        "phaser_mix",
+        "delay_time",
+        "delay_mix",
+        "reverb_mix",
+        "width",
+        "tape_wow",
+        "dist_tone"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: \u00b11 = \u00b124 st; cutoff: \u00b11 = \u00b16 octaves; others: \u00b11 = full range."
+      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod1.amount",
@@ -1092,7 +1330,11 @@
         "modwheel",
         "random",
         "drift",
-        "lfo_product"
+        "lfo_product",
+        "lfo3",
+        "lfo4",
+        "drift_slow",
+        "env2"
       ],
       "default": "none",
       "group": "mod",
@@ -1127,11 +1369,21 @@
         "lfo1_rate",
         "lfo2_rate",
         "fm2_amount",
-        "crush_mix"
+        "crush_mix",
+        "lfo3_rate",
+        "lfo4_rate",
+        "chorus_depth",
+        "phaser_mix",
+        "delay_time",
+        "delay_mix",
+        "reverb_mix",
+        "width",
+        "tape_wow",
+        "dist_tone"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: \u00b11 = \u00b124 st; cutoff: \u00b11 = \u00b16 octaves; others: \u00b11 = full range."
+      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod2.amount",
@@ -1160,7 +1412,11 @@
         "modwheel",
         "random",
         "drift",
-        "lfo_product"
+        "lfo_product",
+        "lfo3",
+        "lfo4",
+        "drift_slow",
+        "env2"
       ],
       "default": "none",
       "group": "mod",
@@ -1195,11 +1451,21 @@
         "lfo1_rate",
         "lfo2_rate",
         "fm2_amount",
-        "crush_mix"
+        "crush_mix",
+        "lfo3_rate",
+        "lfo4_rate",
+        "chorus_depth",
+        "phaser_mix",
+        "delay_time",
+        "delay_mix",
+        "reverb_mix",
+        "width",
+        "tape_wow",
+        "dist_tone"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: \u00b11 = \u00b124 st; cutoff: \u00b11 = \u00b16 octaves; others: \u00b11 = full range."
+      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod3.amount",
@@ -1228,7 +1494,11 @@
         "modwheel",
         "random",
         "drift",
-        "lfo_product"
+        "lfo_product",
+        "lfo3",
+        "lfo4",
+        "drift_slow",
+        "env2"
       ],
       "default": "none",
       "group": "mod",
@@ -1263,11 +1533,21 @@
         "lfo1_rate",
         "lfo2_rate",
         "fm2_amount",
-        "crush_mix"
+        "crush_mix",
+        "lfo3_rate",
+        "lfo4_rate",
+        "chorus_depth",
+        "phaser_mix",
+        "delay_time",
+        "delay_mix",
+        "reverb_mix",
+        "width",
+        "tape_wow",
+        "dist_tone"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: \u00b11 = \u00b124 st; cutoff: \u00b11 = \u00b16 octaves; others: \u00b11 = full range."
+      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod4.amount",
@@ -1296,7 +1576,11 @@
         "modwheel",
         "random",
         "drift",
-        "lfo_product"
+        "lfo_product",
+        "lfo3",
+        "lfo4",
+        "drift_slow",
+        "env2"
       ],
       "default": "none",
       "group": "mod",
@@ -1331,11 +1615,21 @@
         "lfo1_rate",
         "lfo2_rate",
         "fm2_amount",
-        "crush_mix"
+        "crush_mix",
+        "lfo3_rate",
+        "lfo4_rate",
+        "chorus_depth",
+        "phaser_mix",
+        "delay_time",
+        "delay_mix",
+        "reverb_mix",
+        "width",
+        "tape_wow",
+        "dist_tone"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: \u00b11 = \u00b124 st; cutoff: \u00b11 = \u00b16 octaves; others: \u00b11 = full range."
+      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod5.amount",
@@ -1364,7 +1658,11 @@
         "modwheel",
         "random",
         "drift",
-        "lfo_product"
+        "lfo_product",
+        "lfo3",
+        "lfo4",
+        "drift_slow",
+        "env2"
       ],
       "default": "none",
       "group": "mod",
@@ -1399,11 +1697,21 @@
         "lfo1_rate",
         "lfo2_rate",
         "fm2_amount",
-        "crush_mix"
+        "crush_mix",
+        "lfo3_rate",
+        "lfo4_rate",
+        "chorus_depth",
+        "phaser_mix",
+        "delay_time",
+        "delay_mix",
+        "reverb_mix",
+        "width",
+        "tape_wow",
+        "dist_tone"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: \u00b11 = \u00b124 st; cutoff: \u00b11 = \u00b16 octaves; others: \u00b11 = full range."
+      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod6.amount",
@@ -1432,7 +1740,11 @@
         "modwheel",
         "random",
         "drift",
-        "lfo_product"
+        "lfo_product",
+        "lfo3",
+        "lfo4",
+        "drift_slow",
+        "env2"
       ],
       "default": "none",
       "group": "mod",
@@ -1467,11 +1779,21 @@
         "lfo1_rate",
         "lfo2_rate",
         "fm2_amount",
-        "crush_mix"
+        "crush_mix",
+        "lfo3_rate",
+        "lfo4_rate",
+        "chorus_depth",
+        "phaser_mix",
+        "delay_time",
+        "delay_mix",
+        "reverb_mix",
+        "width",
+        "tape_wow",
+        "dist_tone"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: \u00b11 = \u00b124 st; cutoff: \u00b11 = \u00b16 octaves; others: \u00b11 = full range."
+      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod7.amount",
@@ -1500,7 +1822,11 @@
         "modwheel",
         "random",
         "drift",
-        "lfo_product"
+        "lfo_product",
+        "lfo3",
+        "lfo4",
+        "drift_slow",
+        "env2"
       ],
       "default": "none",
       "group": "mod",
@@ -1535,15 +1861,353 @@
         "lfo1_rate",
         "lfo2_rate",
         "fm2_amount",
-        "crush_mix"
+        "crush_mix",
+        "lfo3_rate",
+        "lfo4_rate",
+        "chorus_depth",
+        "phaser_mix",
+        "delay_time",
+        "delay_mix",
+        "reverb_mix",
+        "width",
+        "tape_wow",
+        "dist_tone"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: \u00b11 = \u00b124 st; cutoff: \u00b11 = \u00b16 octaves; others: \u00b11 = full range."
+      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod8.amount",
       "label": "Mod 8 amount",
+      "type": "float",
+      "min": -1,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "mod",
+      "describes": "Depth and direction of this modulation."
+    },
+    {
+      "id": "mod9.source",
+      "label": "Mod 9 source",
+      "type": "enum",
+      "options": [
+        "none",
+        "lfo1",
+        "lfo2",
+        "mod_env",
+        "amp_env",
+        "velocity",
+        "keytrack",
+        "modwheel",
+        "random",
+        "drift",
+        "lfo_product",
+        "lfo3",
+        "lfo4",
+        "drift_slow",
+        "env2"
+      ],
+      "default": "none",
+      "group": "mod",
+      "describes": "Modulation source for this matrix slot."
+    },
+    {
+      "id": "mod9.dest",
+      "label": "Mod 9 destination",
+      "type": "enum",
+      "options": [
+        "none",
+        "pitch",
+        "osc1_pitch",
+        "osc2_pitch",
+        "osc1_wt_pos",
+        "osc2_wt_pos",
+        "osc1_pw",
+        "osc2_pw",
+        "osc1_level",
+        "osc2_level",
+        "unison_detune",
+        "fm_amount",
+        "sub_level",
+        "noise_level",
+        "drive",
+        "filter_cutoff",
+        "filter_resonance",
+        "filter_vowel",
+        "dist_drive",
+        "dist_mix",
+        "amp",
+        "lfo1_rate",
+        "lfo2_rate",
+        "fm2_amount",
+        "crush_mix",
+        "lfo3_rate",
+        "lfo4_rate",
+        "chorus_depth",
+        "phaser_mix",
+        "delay_time",
+        "delay_mix",
+        "reverb_mix",
+        "width",
+        "tape_wow",
+        "dist_tone"
+      ],
+      "default": "none",
+      "group": "mod",
+      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
+    },
+    {
+      "id": "mod9.amount",
+      "label": "Mod 9 amount",
+      "type": "float",
+      "min": -1,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "mod",
+      "describes": "Depth and direction of this modulation."
+    },
+    {
+      "id": "mod10.source",
+      "label": "Mod 10 source",
+      "type": "enum",
+      "options": [
+        "none",
+        "lfo1",
+        "lfo2",
+        "mod_env",
+        "amp_env",
+        "velocity",
+        "keytrack",
+        "modwheel",
+        "random",
+        "drift",
+        "lfo_product",
+        "lfo3",
+        "lfo4",
+        "drift_slow",
+        "env2"
+      ],
+      "default": "none",
+      "group": "mod",
+      "describes": "Modulation source for this matrix slot."
+    },
+    {
+      "id": "mod10.dest",
+      "label": "Mod 10 destination",
+      "type": "enum",
+      "options": [
+        "none",
+        "pitch",
+        "osc1_pitch",
+        "osc2_pitch",
+        "osc1_wt_pos",
+        "osc2_wt_pos",
+        "osc1_pw",
+        "osc2_pw",
+        "osc1_level",
+        "osc2_level",
+        "unison_detune",
+        "fm_amount",
+        "sub_level",
+        "noise_level",
+        "drive",
+        "filter_cutoff",
+        "filter_resonance",
+        "filter_vowel",
+        "dist_drive",
+        "dist_mix",
+        "amp",
+        "lfo1_rate",
+        "lfo2_rate",
+        "fm2_amount",
+        "crush_mix",
+        "lfo3_rate",
+        "lfo4_rate",
+        "chorus_depth",
+        "phaser_mix",
+        "delay_time",
+        "delay_mix",
+        "reverb_mix",
+        "width",
+        "tape_wow",
+        "dist_tone"
+      ],
+      "default": "none",
+      "group": "mod",
+      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
+    },
+    {
+      "id": "mod10.amount",
+      "label": "Mod 10 amount",
+      "type": "float",
+      "min": -1,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "mod",
+      "describes": "Depth and direction of this modulation."
+    },
+    {
+      "id": "mod11.source",
+      "label": "Mod 11 source",
+      "type": "enum",
+      "options": [
+        "none",
+        "lfo1",
+        "lfo2",
+        "mod_env",
+        "amp_env",
+        "velocity",
+        "keytrack",
+        "modwheel",
+        "random",
+        "drift",
+        "lfo_product",
+        "lfo3",
+        "lfo4",
+        "drift_slow",
+        "env2"
+      ],
+      "default": "none",
+      "group": "mod",
+      "describes": "Modulation source for this matrix slot."
+    },
+    {
+      "id": "mod11.dest",
+      "label": "Mod 11 destination",
+      "type": "enum",
+      "options": [
+        "none",
+        "pitch",
+        "osc1_pitch",
+        "osc2_pitch",
+        "osc1_wt_pos",
+        "osc2_wt_pos",
+        "osc1_pw",
+        "osc2_pw",
+        "osc1_level",
+        "osc2_level",
+        "unison_detune",
+        "fm_amount",
+        "sub_level",
+        "noise_level",
+        "drive",
+        "filter_cutoff",
+        "filter_resonance",
+        "filter_vowel",
+        "dist_drive",
+        "dist_mix",
+        "amp",
+        "lfo1_rate",
+        "lfo2_rate",
+        "fm2_amount",
+        "crush_mix",
+        "lfo3_rate",
+        "lfo4_rate",
+        "chorus_depth",
+        "phaser_mix",
+        "delay_time",
+        "delay_mix",
+        "reverb_mix",
+        "width",
+        "tape_wow",
+        "dist_tone"
+      ],
+      "default": "none",
+      "group": "mod",
+      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
+    },
+    {
+      "id": "mod11.amount",
+      "label": "Mod 11 amount",
+      "type": "float",
+      "min": -1,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "mod",
+      "describes": "Depth and direction of this modulation."
+    },
+    {
+      "id": "mod12.source",
+      "label": "Mod 12 source",
+      "type": "enum",
+      "options": [
+        "none",
+        "lfo1",
+        "lfo2",
+        "mod_env",
+        "amp_env",
+        "velocity",
+        "keytrack",
+        "modwheel",
+        "random",
+        "drift",
+        "lfo_product",
+        "lfo3",
+        "lfo4",
+        "drift_slow",
+        "env2"
+      ],
+      "default": "none",
+      "group": "mod",
+      "describes": "Modulation source for this matrix slot."
+    },
+    {
+      "id": "mod12.dest",
+      "label": "Mod 12 destination",
+      "type": "enum",
+      "options": [
+        "none",
+        "pitch",
+        "osc1_pitch",
+        "osc2_pitch",
+        "osc1_wt_pos",
+        "osc2_wt_pos",
+        "osc1_pw",
+        "osc2_pw",
+        "osc1_level",
+        "osc2_level",
+        "unison_detune",
+        "fm_amount",
+        "sub_level",
+        "noise_level",
+        "drive",
+        "filter_cutoff",
+        "filter_resonance",
+        "filter_vowel",
+        "dist_drive",
+        "dist_mix",
+        "amp",
+        "lfo1_rate",
+        "lfo2_rate",
+        "fm2_amount",
+        "crush_mix",
+        "lfo3_rate",
+        "lfo4_rate",
+        "chorus_depth",
+        "phaser_mix",
+        "delay_time",
+        "delay_mix",
+        "reverb_mix",
+        "width",
+        "tape_wow",
+        "dist_tone"
+      ],
+      "default": "none",
+      "group": "mod",
+      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
+    },
+    {
+      "id": "mod12.amount",
+      "label": "Mod 12 amount",
       "type": "float",
       "min": -1,
       "max": 1,

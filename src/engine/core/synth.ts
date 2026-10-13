@@ -72,19 +72,23 @@ function tanhIntegral(x: number): number {
   const x2 = x * x;
   return x2 / 18 + (4 / 3) * Math.log(x2 + 3);
 }
-const LFO_SINE = 0, LFO_TRI = 1, LFO_SAW_UP = 2, LFO_SAW_DOWN = 3, LFO_SQUARE = 4, LFO_SH = 5;
+const LFO_SINE = 0, LFO_TRI = 1, LFO_SAW_UP = 2, LFO_SAW_DOWN = 3, LFO_SQUARE = 4, LFO_SH = 5, LFO_WANDER = 6;
+const LFO_COUNT = 4;
+const SLOT_COUNT = 12;
 const SYNC_BEATS = [0, 16, 8, 4, 2, 3, 1, 1.5, 2 / 3, 0.5, 0.75, 1 / 3, 0.25, 0.375, 1 / 6, 0.125];
 const DELAY_BEATS = [0.125, 1 / 6, 0.25, 0.375, 1 / 3, 0.5, 0.75, 2 / 3, 1, 1.5, 2, 3, 4];
 
 // Mod matrix sources / destinations (schema option order).
 const SRC_LFO1 = 1, SRC_LFO2 = 2, SRC_MOD_ENV = 3, SRC_AMP_ENV = 4, SRC_VEL = 5, SRC_KEY = 6, SRC_MODWHEEL = 7, SRC_RANDOM = 8,
-  SRC_DRIFT = 9, SRC_PRODUCT = 10;
-const SRC_COUNT = 11;
+  SRC_DRIFT = 9, SRC_PRODUCT = 10, SRC_LFO3 = 11, SRC_LFO4 = 12, SRC_DRIFT_SLOW = 13, SRC_ENV2 = 14;
+const SRC_COUNT = 15;
 const D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_OSC2_WT = 5, D_OSC1_PW = 6, D_OSC2_PW = 7,
   D_OSC1_LEVEL = 8, D_OSC2_LEVEL = 9, D_DETUNE = 10, D_FM = 11, D_SUB = 12, D_NOISE = 13, D_DRIVE = 14,
   D_CUTOFF = 15, D_RES = 16, D_VOWEL = 17, D_DIST_DRIVE = 18, D_DIST_MIX = 19, D_AMP = 20, D_LFO1_RATE = 21, D_LFO2_RATE = 22,
-  D_FM2 = 23, D_CRUSH = 24;
-const DEST_COUNT = 25;
+  D_FM2 = 23, D_CRUSH = 24, D_LFO3_RATE = 25, D_LFO4_RATE = 26, D_CHORUS_DEPTH = 27, D_PHASER_MIX = 28,
+  D_DELAY_TIME = 29, D_DELAY_MIX = 30, D_REVERB_MIX = 31, D_WIDTH = 32, D_TAPE_WOW = 33, D_DIST_TONE = 34;
+const DEST_COUNT = 35;
+const LFO_RATE_DEST = [D_LFO1_RATE, D_LFO2_RATE, D_LFO3_RATE, D_LFO4_RATE];
 
 // Formant table (Hz) for vowels A E I O U: F1, F2, F3.
 const VOWELS = [
@@ -130,8 +134,11 @@ const P = {
   amp: [ix('amp_env.attack'), ix('amp_env.decay'), ix('amp_env.sustain'), ix('amp_env.release')],
   mod: [ix('mod_env.attack'), ix('mod_env.decay'), ix('mod_env.sustain'), ix('mod_env.release')],
   peAmount: ix('pitch_env.amount'), peDecay: ix('pitch_env.decay'),
-  lfo: [1, 2].map((n) => ({ shape: ix(`lfo${n}.shape`), rate: ix(`lfo${n}.rate`), sync: ix(`lfo${n}.sync`), retrig: ix(`lfo${n}.retrigger`) })),
-  slots: [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ src: ix(`mod${n}.source`), dst: ix(`mod${n}.dest`), amt: ix(`mod${n}.amount`) })),
+  lfo: [1, 2, 3, 4].map((n) => ({
+    shape: ix(`lfo${n}.shape`), rate: ix(`lfo${n}.rate`), sync: ix(`lfo${n}.sync`), retrig: ix(`lfo${n}.retrigger`), fade: ix(`lfo${n}.fade`),
+  })),
+  env2: [ix('env2.attack'), ix('env2.decay'), ix('env2.sustain'), ix('env2.release')],
+  slots: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => ({ src: ix(`mod${n}.source`), dst: ix(`mod${n}.dest`), amt: ix(`mod${n}.amount`) })),
   chorusMix: ix('chorus.mix'), chorusDepth: ix('chorus.depth'), phaserMix: ix('phaser.mix'), phaserRate: ix('phaser.rate'),
   reverbMix: ix('reverb.mix'), reverbSize: ix('reverb.size'), fxLowcut: ix('fx.lowcut'),
   eqLow: ix('eq.low_gain'), eqMid: ix('eq.mid_gain'), eqMidFreq: ix('eq.mid_freq'), eqHigh: ix('eq.high_gain'),
@@ -199,10 +206,14 @@ export class Synth {
   // Modulation.
   private readonly ampEnv = new Envelope();
   private readonly modEnv = new Envelope();
+  // Slow 'bloom' envelope, ticked at control rate.
+  private readonly env2 = new Envelope();
   private pitchEnvLevel = 0;
-  private readonly lfoPhase = new Float64Array(2);
-  private readonly lfoValue = new Float64Array(2);
-  private readonly lfoHold = new Float64Array(2);
+  private readonly lfoPhase = new Float64Array(LFO_COUNT);
+  private readonly lfoValue = new Float64Array(LFO_COUNT);
+  private readonly lfoHold = new Float64Array(LFO_COUNT); // current random value (S&H; wander end point)
+  private readonly lfoPrev = new Float64Array(LFO_COUNT); // previous random value (wander start point)
+  private readonly lfoFade = new Float64Array(LFO_COUNT).fill(1);
   private readonly src = new Float64Array(SRC_COUNT);
   private readonly dst = new Float64Array(DEST_COUNT);
   private readonly rng = new Rng(0x1234567);
@@ -237,6 +248,11 @@ export class Synth {
   private driftVal = 0;
   private driftTarget = 0;
   private driftCount = 0;
+  // Slower, smoother wanderer ('drift_slow'): cosine steps between random points every 2-6 s.
+  private slowA = 0;
+  private slowB = 0;
+  private slowPos = 1;
+  private slowStep = 0;
   private accentAmt = 0;
   private subPhase = 0;
   // Delays the sub by the oversampler latency so it stays phase-aligned with the voice.
@@ -306,6 +322,7 @@ export class Synth {
   private crushRate = 1;
   private crushMix = 0;
   private readonly tape: Tape;
+  private tapeWow = 0;
   private tapeLpCoef = 1;
   private lastTapeAge = -1;
   private tapeOn = false;
@@ -327,6 +344,14 @@ export class Synth {
   private readonly delay: Delay;
   private delaySeconds = 0.375;
   private delayToneCoef = 0.5;
+  // Modulated FX amounts (base value + mod matrix), set at control rate.
+  private chorusDepth = 0;
+  private phaserMix = 0;
+  private delayMix = 0;
+  private reverbMix = 0;
+  private width = 1;
+  private widthStep = 0;
+  private widthTarget = 1;
   private readonly hcL = new Biquad();
   private readonly hcR = new Biquad();
   private highcutOn = false;
@@ -468,6 +493,7 @@ export class Synth {
       this.gate = false;
       this.ampEnv.release();
       this.modEnv.release();
+      this.env2.release();
     }
   }
 
@@ -476,6 +502,7 @@ export class Synth {
     this.gate = false;
     this.ampEnv.release();
     this.modEnv.release();
+    this.env2.release();
   }
 
   /** Stop everything and clear all DSP state (used after a fault). */
@@ -483,6 +510,7 @@ export class Synth {
     this.allNotesOff();
     this.ampEnv.reset();
     this.modEnv.reset();
+    this.env2.reset();
     this.ladL.reset();
     this.ladR.reset();
     for (let i = 0; i < 2; i++) {
@@ -592,13 +620,17 @@ export class Synth {
     }
     this.ampEnv.trigger();
     this.modEnv.trigger();
+    this.env2.trigger();
     this.pitchEnvLevel = 1;
     this.noteRandom = this.rng.next();
-    for (let l = 0; l < 2; l++) {
-      if (this.cur[P.lfo[l].retrig] > 0.5) {
+    for (let l = 0; l < LFO_COUNT; l++) {
+      const lp = P.lfo[l];
+      if (this.cur[lp.retrig] > 0.5) {
         this.lfoPhase[l] = 0;
+        this.lfoPrev[l] = this.lfoHold[l];
         this.lfoHold[l] = this.rng.next();
       }
+      if (this.cur[lp.fade] > 0) this.lfoFade[l] = 0;
     }
   }
 
@@ -653,7 +685,7 @@ export class Synth {
     return Math.min(0.45, (440 * Math.pow(2, (semis - 69) / 12)) / this.sampleRate);
   }
 
-  private lfoShape(shape: number, p: number, hold: number): number {
+  private lfoShape(shape: number, p: number, hold: number, prev: number): number {
     switch (shape) {
       case LFO_SINE: return Math.sin(TWO_PI * p);
       case LFO_TRI: return p < 0.5 ? 4 * p - 1 : 3 - 4 * p;
@@ -661,6 +693,7 @@ export class Synth {
       case LFO_SAW_DOWN: return 1 - 2 * p;
       case LFO_SQUARE: return p < 0.5 ? 1 : -1;
       case LFO_SH: return hold;
+      case LFO_WANDER: return prev + (hold - prev) * p * p * (3 - 2 * p); // smooth random: never repeats
       default: return 0;
     }
   }
@@ -673,6 +706,8 @@ export class Synth {
     // Envelope coefficients.
     this.ampEnv.set(cur[P.amp[0]], cur[P.amp[1]], cur[P.amp[2]], cur[P.amp[3]], fs, cur[P.ampCurve]);
     this.modEnv.set(cur[P.mod[0]], cur[P.mod[1]], cur[P.mod[2]], cur[P.mod[3]], fs);
+    this.env2.set(cur[P.env2[0]], cur[P.env2[1]], cur[P.env2[2]], cur[P.env2[3]], fs / CONTROL_BLOCK);
+    if (this.env2.stage !== 0) this.env2.tick();
 
     // Glide and pitch envelope.
     const glideMs = cur[P.glide];
@@ -702,28 +737,48 @@ export class Synth {
     this.driftVal += (this.driftTarget - this.driftVal) * 0.004;
     src[SRC_DRIFT] = this.driftVal;
     src[SRC_PRODUCT] = this.lfoValue[0] * this.lfoValue[1];
+    src[SRC_LFO3] = this.lfoValue[2];
+    src[SRC_LFO4] = this.lfoValue[3];
+    if (this.slowPos >= 1) {
+      this.slowA = this.slowB;
+      this.slowB = this.rng.next();
+      this.slowPos = 0;
+      this.slowStep = CONTROL_BLOCK / ((2 + 4 * (0.5 + 0.5 * this.rng.next())) * fs);
+    }
+    this.slowPos += this.slowStep;
+    {
+      const t = this.slowPos > 1 ? 1 : this.slowPos;
+      src[SRC_DRIFT_SLOW] = this.slowA + (this.slowB - this.slowA) * (0.5 - 0.5 * Math.cos(Math.PI * t));
+    }
+    src[SRC_ENV2] = this.env2.level;
     const dst = this.dst;
     dst.fill(0);
-    for (let s = 0; s < 8; s++) {
+    for (let s = 0; s < SLOT_COUNT; s++) {
       const slot = P.slots[s];
       const d = cur[slot.dst];
       if (d > 0) dst[d] += cur[slot.amt] * src[cur[slot.src]];
     }
 
     // LFOs (advance one control block).
-    for (let l = 0; l < 2; l++) {
+    for (let l = 0; l < LFO_COUNT; l++) {
       const lp = P.lfo[l];
       const sync = cur[lp.sync];
       let rate = sync > 0 ? this.tempo / 60 / SYNC_BEATS[sync] : cur[lp.rate];
-      const rm = dst[l === 0 ? D_LFO1_RATE : D_LFO2_RATE];
+      const rm = dst[LFO_RATE_DEST[l]];
       if (rm !== 0) rate *= Math.pow(2, 3 * rm);
       let ph = this.lfoPhase[l] + (rate * CONTROL_BLOCK) / fs;
       if (ph >= 1) {
         ph -= Math.floor(ph);
+        this.lfoPrev[l] = this.lfoHold[l];
         this.lfoHold[l] = this.rng.next();
       }
       this.lfoPhase[l] = ph;
-      this.lfoValue[l] = this.lfoShape(cur[lp.shape], ph, this.lfoHold[l]);
+      // Fade-in after each note start (lfoN.fade).
+      if (this.lfoFade[l] < 1) {
+        const fadeMs = cur[lp.fade];
+        this.lfoFade[l] = fadeMs > 0 ? Math.min(1, this.lfoFade[l] + (CONTROL_BLOCK * 1000) / (fadeMs * fs)) : 1;
+      }
+      this.lfoValue[l] = this.lfoShape(cur[lp.shape], ph, this.lfoHold[l], this.lfoPrev[l]) * this.lfoFade[l];
     }
 
     this.analog = cur[P.analog];
@@ -875,10 +930,11 @@ export class Synth {
     const dMix = clamp(cur[P.dMix] + dst[D_DIST_MIX], 0, 1);
     this.distAmt = Math.min(1, dDrive * 5) * dMix;
     this.distGain = 1 + 49 * dDrive * dDrive;
-    if (cur[P.dTone] !== this.lastTone) {
-      const toneHz = 300 * Math.pow(20000 / 300, cur[P.dTone]);
+    const dTone = clamp(cur[P.dTone] + dst[D_DIST_TONE], 0, 1);
+    if (dTone !== this.lastTone) {
+      const toneHz = 300 * Math.pow(20000 / 300, dTone);
       this.toneCoef = 1 - Math.exp((-TWO_PI * Math.min(toneHz, fs * 0.45)) / fsOs);
-      this.lastTone = cur[P.dTone];
+      this.lastTone = dTone;
     }
     if (cur[P.dSplit] !== this.lastFx[7]) {
       const split = cur[P.dSplit];
@@ -893,7 +949,8 @@ export class Synth {
     this.crushRate = cur[P.crushRate];
 
     // Tape.
-    this.tapeOn = cur[P.tapeDrive] > 0 || cur[P.tapeWow] > 0 || cur[P.tapeAge] > 0;
+    this.tapeWow = clamp(cur[P.tapeWow] + dst[D_TAPE_WOW], 0, 1);
+    this.tapeOn = cur[P.tapeDrive] > 0 || this.tapeWow > 0 || cur[P.tapeAge] > 0;
     if (cur[P.tapeAge] !== this.lastTapeAge) {
       const hz = 20000 * Math.pow(0.15, cur[P.tapeAge]);
       this.tapeLpCoef = 1 - Math.exp((-TWO_PI * Math.min(hz, fs * 0.45)) / fs);
@@ -916,7 +973,16 @@ export class Synth {
     if (this.ottOn) this.ott.update(cur[P.ott], CONTROL_BLOCK);
 
     // Delay.
-    this.delaySeconds = (DELAY_BEATS[cur[P.delayTime]] * 60) / this.tempo;
+    // Modulating the delay time glides the read head (tape-style pitch smear on the repeats).
+    this.delaySeconds = Math.min(3, ((DELAY_BEATS[cur[P.delayTime]] * 60) / this.tempo) * Math.pow(2, clamp(dst[D_DELAY_TIME], -1, 1)));
+
+    // Modulated FX amounts.
+    this.chorusDepth = clamp(cur[P.chorusDepth] + dst[D_CHORUS_DEPTH], 0, 1);
+    this.phaserMix = clamp(cur[P.phaserMix] + dst[D_PHASER_MIX], 0, 1);
+    this.delayMix = clamp(cur[P.delayMix] + dst[D_DELAY_MIX], 0, 1);
+    this.reverbMix = clamp(cur[P.reverbMix] + dst[D_REVERB_MIX], 0, 1);
+    this.widthTarget = clamp(1 + dst[D_WIDTH], 0, 2);
+    this.widthStep = (this.widthTarget - this.width) / CONTROL_BLOCK;
     this.delayToneCoef = 1 - Math.exp((-TWO_PI * Math.min(800 * Math.pow(20, cur[P.delayTone]), fs * 0.45)) / fs);
 
     // Amp.
@@ -1286,7 +1352,7 @@ export class Synth {
 
         // Tape (voice only; the sub joins later and stays clean).
         if (this.tapeOn) {
-          this.tape.process(l, r, cur[P.tapeDrive], cur[P.tapeWow], cur[P.tapeAge], this.tapeLpCoef, env, out);
+          this.tape.process(l, r, cur[P.tapeDrive], this.tapeWow, cur[P.tapeAge], this.tapeLpCoef, env, out);
           l = out[0];
           r = out[1];
         }
@@ -1352,7 +1418,7 @@ export class Synth {
       let xl = hl, xr = hr;
       const cMix = cur[P.chorusMix];
       if (cMix > 1e-4) {
-        this.chorus.process(xl, xr, cMix, cur[P.chorusDepth], out, cur[P.chorusMode] > 0.5);
+        this.chorus.process(xl, xr, cMix, this.chorusDepth, out, cur[P.chorusMode] > 0.5);
         xl = out[0];
         xr = out[1];
       }
@@ -1362,19 +1428,19 @@ export class Synth {
         xl = out[0];
         xr = out[1];
       }
-      const pMix = cur[P.phaserMix];
+      const pMix = this.phaserMix;
       if (pMix > 1e-4) {
         this.phaser.process(xl, xr, pMix, cur[P.phaserRate], out);
         xl = out[0];
         xr = out[1];
       }
-      const dMix = cur[P.delayMix];
+      const dMix = this.delayMix;
       if (dMix > 1e-4) {
         this.delay.process(xl, xr, this.delaySeconds, cur[P.delayFb], this.delayToneCoef, out);
         xl += out[0] * dMix;
         xr += out[1] * dMix;
       }
-      const rMix = cur[P.reverbMix];
+      const rMix = this.reverbMix;
       if (rMix > 1e-4) {
         this.reverb.process(0.5 * (xl + xr), cur[P.reverbSize], cur[P.reverbTone], out);
         xl += out[0] * rMix;
@@ -1402,7 +1468,9 @@ export class Synth {
       // Mono below the crossover: keep the mid intact, high-pass the side.
       const m = 0.5 * (l + r);
       const xo = this.xo;
-      const s = xo[3].process(xo[2].process(xo[1].process(xo[0].process(0.5 * (l - r)))));
+      // Stereo width (mod target) scales the side, which is already above the crossover.
+      this.width += this.widthStep;
+      const s = this.width * xo[3].process(xo[2].process(xo[1].process(xo[0].process(0.5 * (l - r)))));
       l = (m + s) * this.outGain;
       r = (m - s) * this.outGain;
 

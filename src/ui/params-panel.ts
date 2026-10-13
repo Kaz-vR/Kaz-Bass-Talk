@@ -8,7 +8,7 @@ type OnChange = (id: string, value: ParamValue) => void;
 const GROUP_TITLES: Record<string, string> = {
   voice: 'Voice', osc1: 'Oscillator 1', osc2: 'Oscillator 2', fm: 'FM', sub: 'Sub', noise: 'Noise', drive: 'Drive',
   string: 'String / Shepard', click: 'Transient', filter: 'Filter', dist: 'Distortion', crush: 'Bitcrusher', tape: 'Tape', dynamics: 'Dynamics', amp_env: 'Amp envelope', mod_env: 'Mod envelope', pitch_env: 'Pitch envelope',
-  lfo1: 'LFO 1', lfo2: 'LFO 2', mod: 'Mod matrix', fx: 'Effects', eq: 'EQ', output: 'Output',
+  env2: 'Env 2 (bloom)', lfo1: 'LFO 1', lfo2: 'LFO 2', lfo3: 'LFO 3', lfo4: 'LFO 4', mod: 'Mod matrix', fx: 'Effects', eq: 'EQ', output: 'Output',
 };
 
 export function formatValue(p: ParamDef, v: ParamValue): string {

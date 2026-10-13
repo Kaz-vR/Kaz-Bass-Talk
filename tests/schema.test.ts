@@ -4,9 +4,9 @@ import {
 } from '../src/schema';
 
 describe('schema', () => {
-  it('has around 80-100 parameters with unique ids', () => {
+  it('has around 160 parameters with unique ids', () => {
     expect(params.length).toBeGreaterThanOrEqual(75);
-    expect(params.length).toBeLessThanOrEqual(150);
+    expect(params.length).toBeLessThanOrEqual(175);
     expect(new Set(params.map((p) => p.id)).size).toBe(params.length);
   });
 
@@ -38,10 +38,10 @@ describe('schema', () => {
 
   it('covers the required signal path', () => {
     const groups = new Set(params.map((p) => p.group));
-    for (const g of ['osc1', 'osc2', 'sub', 'noise', 'drive', 'filter', 'dist', 'amp_env', 'mod_env', 'lfo1', 'lfo2', 'mod', 'fx', 'eq', 'output']) {
+    for (const g of ['osc1', 'osc2', 'sub', 'noise', 'drive', 'filter', 'dist', 'amp_env', 'mod_env', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'env2', 'mod', 'fx', 'eq', 'output']) {
       expect(groups, g).toContain(g);
     }
-    expect(params.filter((p) => p.id.endsWith('.source')).length).toBe(8);
+    expect(params.filter((p) => p.id.endsWith('.source')).length).toBe(12);
     expect(schema.version).toBe(1);
   });
 

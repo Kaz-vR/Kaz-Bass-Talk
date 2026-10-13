@@ -24,11 +24,13 @@ const STATIC_OK = new Set(['sub', '808', 'pluck', 'fm', 'organ']);
 const FULLBAND_DIRT_OK = new Set(['808', 'distorted', 'experimental']);
 
 const n = (p: Patch, id: string) => p[id] as number;
+/** Mod sources that move a held note over time. */
+const MOVING_SOURCES = new Set(['lfo1', 'lfo2', 'lfo3', 'lfo4', 'random', 'drift', 'drift_slow', 'lfo_product']);
 
 function hasMovement(p: Patch): boolean {
-  for (let s = 1; s <= 8; s++) {
+  for (let s = 1; s <= 12; s++) {
     const src = p[`mod${s}.source`] as string;
-    if ((src === 'lfo1' || src === 'lfo2' || src === 'random') && Math.abs(n(p, `mod${s}.amount`)) > 0.02 && p[`mod${s}.dest`] !== 'none') return true;
+    if (MOVING_SOURCES.has(src) && Math.abs(n(p, `mod${s}.amount`)) > 0.02 && p[`mod${s}.dest`] !== 'none') return true;
   }
   if (n(p, 'chorus.mix') > 0.05 || n(p, 'flanger.mix') > 0.05 || n(p, 'phaser.mix') > 0.05) return true;
   if (n(p, 'tape.wow') > 0.02 || n(p, 'voice.analog') >= 0.2 || n(p, 'comp.pump') > 0.05) return true;
