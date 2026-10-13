@@ -69,6 +69,7 @@ export class LoopPlayer {
     this.beat = 0;
     this.next = 0;
     this.playing = true;
+    this.synth.syncBeat(0);
   }
 
   stop(): void {
@@ -111,6 +112,7 @@ export class LoopPlayer {
         this.beat -= loop.lengthBeats;
         if (this.beat < 0) this.beat = 0;
         this.next = 0;
+        this.synth.syncBeat(this.beat);
       }
     }
   }

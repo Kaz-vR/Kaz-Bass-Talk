@@ -47,6 +47,18 @@
       "describes": "How much playing harder makes the sound louder. 0 ignores velocity."
     },
     {
+      "id": "voice.analog",
+      "label": "Analog drift",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.25,
+      "curve": "linear",
+      "unit": "",
+      "group": "voice",
+      "describes": "Analog character: each unison voice drifts slightly in pitch, unison phases start free, and the filter varies a touch per note. 0 is perfectly digital and static; 0.2-0.4 is a warm vintage synth; higher is loose and wobbly."
+    },
+    {
       "id": "osc1.wave",
       "label": "Osc 1 wave",
       "type": "enum",
@@ -106,7 +118,7 @@
       "curve": "linear",
       "unit": "",
       "group": "osc1",
-      "describes": "Only for the wavetable wave. Sweeps sine (0) → triangle → saw → square → vocal/formant (1). Higher is brighter and more complex."
+      "describes": "Only for the wavetable wave. Sweeps sine (0) \u2192 triangle \u2192 saw \u2192 square \u2192 vocal/formant (1). Higher is brighter and more complex."
     },
     {
       "id": "osc1.unison_voices",
@@ -216,7 +228,7 @@
       "curve": "linear",
       "unit": "",
       "group": "osc2",
-      "describes": "Only for the wavetable wave. Sweeps sine (0) → triangle → saw → square → vocal/formant (1). Higher is brighter and more complex."
+      "describes": "Only for the wavetable wave. Sweeps sine (0) \u2192 triangle \u2192 saw \u2192 square \u2192 vocal/formant (1). Higher is brighter and more complex."
     },
     {
       "id": "osc2.unison_voices",
@@ -410,7 +422,7 @@
       "curve": "linear",
       "unit": "",
       "group": "filter",
-      "describes": "How far the mod envelope sweeps the cutoff (±6 octaves). Positive gives a plucky \"wow\" at the start of each note."
+      "describes": "How far the mod envelope sweeps the cutoff (\u00b16 octaves). Positive gives a plucky \"wow\" at the start of each note."
     },
     {
       "id": "filter.vowel",
@@ -422,7 +434,7 @@
       "curve": "linear",
       "unit": "",
       "group": "filter",
-      "describes": "Formant mode only: morphs through vowels A → E → I → O → U."
+      "describes": "Formant mode only: morphs through vowels A \u2192 E \u2192 I \u2192 O \u2192 U."
     },
     {
       "id": "dist.type",
@@ -432,11 +444,11 @@
         "soft",
         "hard",
         "fold",
-        "crush"
+        "tube"
       ],
       "default": "soft",
       "group": "dist",
-      "describes": "Soft is warm tape/tube-like; hard is aggressive and buzzy; fold is metallic and growly; crush is lo-fi and digital."
+      "describes": "Soft is warm and round; hard is aggressive and buzzy; fold is metallic, growly and vocal; tube is asymmetric and thick, adding even harmonics like a driven valve amp."
     },
     {
       "id": "dist.drive",
@@ -473,6 +485,91 @@
       "unit": "",
       "group": "dist",
       "describes": "Low-pass after the distortion. Lower tames fizz and harshness; higher keeps the bite."
+    },
+    {
+      "id": "dist.clean_below",
+      "label": "Distortion clean below",
+      "type": "float",
+      "min": 20,
+      "max": 500,
+      "default": 20,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "dist",
+      "describes": "Everything below this frequency bypasses the distortion, so the low end stays clean and tight while the mids get dirty. 20 Hz distorts everything; 100-200 Hz is the classic modern \"clean sub, dirty mids\" bass."
+    },
+    {
+      "id": "crush.mix",
+      "label": "Bitcrusher mix",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "crush",
+      "describes": "Blend of the bitcrushed / downsampled signal. Lo-fi, retro, digital grit. Use sparingly on general basses; great for synthwave, cyberpunk and lo-fi textures. Never touches the sub."
+    },
+    {
+      "id": "crush.bits",
+      "label": "Bit depth",
+      "type": "float",
+      "min": 2,
+      "max": 16,
+      "default": 8,
+      "curve": "linear",
+      "unit": "bits",
+      "group": "crush",
+      "describes": "Lower is harsher and noisier. 12-16 is subtle grit; 6-8 is crunchy; under 5 is broken and fizzy."
+    },
+    {
+      "id": "crush.rate",
+      "label": "Downsample",
+      "type": "float",
+      "min": 1,
+      "max": 40,
+      "default": 1,
+      "curve": "log",
+      "unit": "x",
+      "group": "crush",
+      "describes": "Sample-rate reduction factor. 1 is off; 2-4 adds a metallic, aliased edge; above 10 sounds like a broken toy."
+    },
+    {
+      "id": "tape.drive",
+      "label": "Tape saturation",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "tape",
+      "describes": "Soft, slightly asymmetric tape compression and warmth. Thickens and glues; rounds off transients. Never touches the sub."
+    },
+    {
+      "id": "tape.wow",
+      "label": "Tape wow & flutter",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "pow",
+      "unit": "",
+      "group": "tape",
+      "describes": "Slow, wandering pitch wobble like an old tape machine. A little sounds vintage and alive; a lot sounds warped and seasick (cinematic, LORN-style).",
+      "exponent": 2
+    },
+    {
+      "id": "tape.age",
+      "label": "Tape age",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "tape",
+      "describes": "Worn tape: dulls the top end and adds faint hiss. Dark, dusty, lo-fi."
     },
     {
       "id": "amp_env.attack",
@@ -768,7 +865,7 @@
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch: \u00b11 = \u00b124 st; cutoff: \u00b11 = \u00b16 octaves; others: \u00b11 = full range."
     },
     {
       "id": "mod1.amount",
@@ -832,7 +929,7 @@
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch: \u00b11 = \u00b124 st; cutoff: \u00b11 = \u00b16 octaves; others: \u00b11 = full range."
     },
     {
       "id": "mod2.amount",
@@ -896,7 +993,7 @@
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch: \u00b11 = \u00b124 st; cutoff: \u00b11 = \u00b16 octaves; others: \u00b11 = full range."
     },
     {
       "id": "mod3.amount",
@@ -960,7 +1057,7 @@
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch: \u00b11 = \u00b124 st; cutoff: \u00b11 = \u00b16 octaves; others: \u00b11 = full range."
     },
     {
       "id": "mod4.amount",
@@ -1024,7 +1121,7 @@
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch: \u00b11 = \u00b124 st; cutoff: \u00b11 = \u00b16 octaves; others: \u00b11 = full range."
     },
     {
       "id": "mod5.amount",
@@ -1088,7 +1185,7 @@
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch: \u00b11 = \u00b124 st; cutoff: \u00b11 = \u00b16 octaves; others: \u00b11 = full range."
     },
     {
       "id": "mod6.amount",
@@ -1152,7 +1249,7 @@
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch: \u00b11 = \u00b124 st; cutoff: \u00b11 = \u00b16 octaves; others: \u00b11 = full range."
     },
     {
       "id": "mod7.amount",
@@ -1216,7 +1313,7 @@
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch: \u00b11 = \u00b124 st; cutoff: \u00b11 = \u00b16 octaves; others: \u00b11 = full range."
     },
     {
       "id": "mod8.amount",
@@ -1229,6 +1326,55 @@
       "unit": "",
       "group": "mod",
       "describes": "Depth and direction of this modulation."
+    },
+    {
+      "id": "comp.amount",
+      "label": "Compressor",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "dynamics",
+      "describes": "Evens out the level so every note hits the same and resonance peaks are tamed. Higher squashes harder and sounds denser and more aggressive (with automatic make-up gain)."
+    },
+    {
+      "id": "comp.speed",
+      "label": "Compressor speed",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "group": "dynamics",
+      "describes": "Slow lets the attack of each note punch through; fast clamps everything flat and grabs the transient."
+    },
+    {
+      "id": "comp.pump",
+      "label": "Pump",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "pow",
+      "unit": "",
+      "group": "dynamics",
+      "describes": "Tempo-synced ducking on every beat, like sidechain compression from a kick. Makes the bass breathe and pump.",
+      "exponent": 2
+    },
+    {
+      "id": "ott.amount",
+      "label": "Multiband (OTT)",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "dynamics",
+      "describes": "Three-band upward and downward compression: pulls up quiet detail and squashes peaks for a dense, polished, \"expensive\" modern tone. Low band is protected. Above 0.5 gets hyped and aggressive."
     },
     {
       "id": "chorus.mix",
@@ -1279,6 +1425,101 @@
       "describes": "Speed of the phaser sweep."
     },
     {
+      "id": "flanger.mix",
+      "label": "Flanger mix",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "fx",
+      "describes": "Jet-like comb sweep on the upper range. Metallic movement and width."
+    },
+    {
+      "id": "flanger.rate",
+      "label": "Flanger rate",
+      "type": "float",
+      "min": 0.05,
+      "max": 5,
+      "default": 0.3,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "fx",
+      "describes": "Speed of the flanger sweep."
+    },
+    {
+      "id": "flanger.feedback",
+      "label": "Flanger feedback",
+      "type": "float",
+      "min": 0,
+      "max": 0.9,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "group": "fx",
+      "describes": "Higher makes the flanger more resonant and metallic."
+    },
+    {
+      "id": "delay.mix",
+      "label": "Delay mix",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "fx",
+      "describes": "Tempo-synced ping-pong echoes on the upper range (the low end stays dry). Adds space, rhythm and width."
+    },
+    {
+      "id": "delay.time",
+      "label": "Delay time",
+      "type": "enum",
+      "options": [
+        "1/32",
+        "1/16T",
+        "1/16",
+        "1/16D",
+        "1/8T",
+        "1/8",
+        "1/8D",
+        "1/4T",
+        "1/4",
+        "1/4D",
+        "1/2",
+        "1/2D",
+        "1/1"
+      ],
+      "default": "1/8D",
+      "group": "fx",
+      "describes": "Echo spacing as a note length. 1/8D (dotted eighth) is the classic rhythmic delay."
+    },
+    {
+      "id": "delay.feedback",
+      "label": "Delay feedback",
+      "type": "float",
+      "min": 0,
+      "max": 0.9,
+      "default": 0.35,
+      "curve": "linear",
+      "unit": "",
+      "group": "fx",
+      "describes": "How many repeats. Above 0.7 the echoes trail on for a long time."
+    },
+    {
+      "id": "delay.tone",
+      "label": "Delay tone",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "group": "fx",
+      "describes": "Brightness of the repeats. Low is dark, dubby and distant; high is bright and present."
+    },
+    {
       "id": "reverb.mix",
       "label": "Reverb mix",
       "type": "float",
@@ -1288,7 +1529,7 @@
       "curve": "linear",
       "unit": "",
       "group": "fx",
-      "describes": "Short room reverb on the upper range. Bass rarely wants much; a touch adds space."
+      "describes": "Reverb on the upper range only (the sub stays dry). A touch adds space; a lot is cinematic and washed out."
     },
     {
       "id": "reverb.size",
@@ -1300,7 +1541,19 @@
       "curve": "linear",
       "unit": "",
       "group": "fx",
-      "describes": "Small is a tight room; large is a longer tail."
+      "describes": "Small is a tight room; large is a long, cinematic tail (several seconds)."
+    },
+    {
+      "id": "reverb.tone",
+      "label": "Reverb tone",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "group": "fx",
+      "describes": "0 is a bright, metallic space; 1 is a dark, soft, distant one."
     },
     {
       "id": "fx.lowcut",
@@ -1361,6 +1614,18 @@
       "unit": "dB",
       "group": "eq",
       "describes": "Boost or cut above ~5 kHz. Boost for air and bite, cut to tame fizz."
+    },
+    {
+      "id": "eq.highcut",
+      "label": "High cut",
+      "type": "float",
+      "min": 1000,
+      "max": 20000,
+      "default": 20000,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "eq",
+      "describes": "Final low-pass. Lower removes fizz and air for a darker, vintage, more muffled tone; 20 kHz is off."
     },
     {
       "id": "output.gain",

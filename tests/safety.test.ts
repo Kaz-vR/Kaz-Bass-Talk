@@ -65,7 +65,8 @@ describe('fuzzed patches never break the safety rules', () => {
   it(`${N} random patches`, () => {
     for (let n = 0; n < N; n++) {
       const patch = randomPatch(rng, n);
-      checkSafety(`fuzz ${n}`, patch, ls[n % ls.length], 0.75);
+      // 3 s so infrasonic transients (e.g. huge pitch dives) average out and only true DC remains.
+      checkSafety(`fuzz ${n}`, patch, ls[n % ls.length], 3);
     }
   });
 

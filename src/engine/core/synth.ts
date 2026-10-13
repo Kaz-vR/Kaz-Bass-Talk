@@ -10,15 +10,20 @@
 // over ~15 ms, discrete params (waves, unison count, filter type, ...) switch
 // inside a 3 ms fade-out/fade-in so they never click.
 //
-// Signal path (one monophonic voice):
-//   osc1 (+FM) + osc2 + noise → drive → filter → distortion → amp
-//   + sub (clean, mono, phase-stable, bypasses filter/distortion)
-//   → FX above fx.lowcut (chorus, phaser, reverb) → EQ → subsonic/DC filter
-//   → mono below crossover → output gain → look-ahead limiter (always on)
+// Signal path (fixed order; one monophonic voice):
+//   osc1 (+FM) + osc2 + noise
+//   → [2× oversampled: drive → filter → distortion (optionally mids only)]
+//   → bitcrusher → tape (saturation, wow/flutter, age) → DC filter → amp
+//   + sub (clean, mono, phase-stable: bypasses everything above)
+//   → compressor (+ tempo pump) → multiband OTT
+//   → FX above fx.lowcut only (chorus → flanger → phaser → delay → reverb)
+//   → EQ → high cut → subsonic/DC filter → mono below crossover
+//   → output gain → look-ahead limiter (always on)
 
 import { PARAM_COUNT, paramIndex, params } from '../../schema';
-import { Biquad, clamp, Envelope, fastTanh, Ladder, polyBlep, Rng, Svf, TWO_PI } from './dsp';
-import { Chorus, Limiter, Phaser, Reverb } from './fx';
+import { Biquad, clamp, Envelope, fastTanh, Ladder, Rng, Svf, TWO_PI } from './dsp';
+import { Chorus, Compressor, Crusher, Delay, Flanger, Limiter, Ott, Phaser, Reverb, Tape } from './fx';
+import { Downsampler2x, OVERSAMPLE_LATENCY, Upsampler2x } from './oversample';
 import {
   FRAME_COUNT,
   FRAMES_PER_SEGMENT,
@@ -36,8 +41,11 @@ const DUCK_MS = 3;
 const SMOOTH_MS = 15;
 const LIMITER_CEILING_DB = -1;
 const SUBSONIC_HZ = 12;
+const VOICE_DC_HZ = 8;
+const OS = 2; // oversampling factor of the nonlinear section
 // Section Qs of an 8th-order Butterworth filter.
 const XO_Q = [0.5098, 0.6013, 0.9000, 2.5629];
+const SAW_FRAME = 2 * FRAMES_PER_SEGMENT; // keyframe 2 of the morph table is a pure saw
 const KEYTRACK_CENTER = 48; // C3: filter.cutoff is the actual cutoff at this note
 
 // Gain staging.
@@ -49,9 +57,22 @@ const SUB_GAIN = 0.55;
 // Enum option indices (must match data/schema.json order).
 const WAVE_SINE = 0, WAVE_TRI = 1, WAVE_SAW = 2, WAVE_PULSE = 3; // 4 = wavetable
 const FILTER_LP = 0, FILTER_BP = 1; // 2 = formant
-const DIST_SOFT = 0, DIST_HARD = 1, DIST_FOLD = 2, DIST_CRUSH = 3;
+const DIST_SOFT = 0, DIST_HARD = 1, DIST_FOLD = 2; // 3 = tube
+const TUBE_BIAS = 0.4;
+const TUBE_OFFSET = Math.tanh(TUBE_BIAS);
+const HALF_PI = Math.PI / 2;
+
+/** Antiderivative of fastTanh: x²/18 + (4/3)·ln(x² + 3) inside ±3, linear outside. */
+const TANH_INT_3 = 9 / 18 + (4 / 3) * Math.log(12);
+function tanhIntegral(x: number): number {
+  if (x > 3) return TANH_INT_3 + (x - 3);
+  if (x < -3) return TANH_INT_3 + (-x - 3);
+  const x2 = x * x;
+  return x2 / 18 + (4 / 3) * Math.log(x2 + 3);
+}
 const LFO_SINE = 0, LFO_TRI = 1, LFO_SAW_UP = 2, LFO_SAW_DOWN = 3, LFO_SQUARE = 4, LFO_SH = 5;
 const SYNC_BEATS = [0, 16, 8, 4, 2, 3, 1, 1.5, 2 / 3, 0.5, 0.75, 1 / 3, 0.25, 0.375, 1 / 6, 0.125];
+const DELAY_BEATS = [0.125, 1 / 6, 0.25, 0.375, 1 / 3, 0.5, 0.75, 2 / 3, 1, 1.5, 2, 3, 4];
 
 // Mod matrix sources / destinations (schema option order).
 const SRC_LFO1 = 1, SRC_LFO2 = 2, SRC_MOD_ENV = 3, SRC_AMP_ENV = 4, SRC_VEL = 5, SRC_KEY = 6, SRC_MODWHEEL = 7, SRC_RANDOM = 8;
@@ -75,14 +96,12 @@ const FORMANT_GAIN = [1, 0.5, 0.25];
 // some module transforms (tsx / vite-node).
 const N_PARAMS = PARAM_COUNT;
 const tanh = fastTanh;
-const blep = polyBlep;
-const clampf = clamp;
 const TABLE_N = TABLE_SIZE;
 const TABLE_M = TABLE_MASK;
 
 const ix = paramIndex;
 const P = {
-  legato: ix('voice.legato'), glide: ix('voice.glide'), octave: ix('voice.octave'), velocity: ix('voice.velocity'),
+  legato: ix('voice.legato'), glide: ix('voice.glide'), octave: ix('voice.octave'), velocity: ix('voice.velocity'), analog: ix('voice.analog'),
   osc: [1, 2].map((n) => ({
     wave: ix(`osc${n}.wave`), semi: ix(`osc${n}.semi`), fine: ix(`osc${n}.fine`), pw: ix(`osc${n}.pulse_width`),
     wt: ix(`osc${n}.wt_pos`), voices: ix(`osc${n}.unison_voices`), detune: ix(`osc${n}.unison_detune`),
@@ -93,7 +112,13 @@ const P = {
   noise: ix('noise.level'), drive: ix('drive.amount'),
   fType: ix('filter.type'), cutoff: ix('filter.cutoff'), res: ix('filter.resonance'), keytrack: ix('filter.keytrack'),
   envAmt: ix('filter.env_amount'), vowel: ix('filter.vowel'),
-  dType: ix('dist.type'), dDrive: ix('dist.drive'), dMix: ix('dist.mix'), dTone: ix('dist.post_tone'),
+  dType: ix('dist.type'), dDrive: ix('dist.drive'), dMix: ix('dist.mix'), dTone: ix('dist.post_tone'), dSplit: ix('dist.clean_below'),
+  crushMix: ix('crush.mix'), crushBits: ix('crush.bits'), crushRate: ix('crush.rate'),
+  tapeDrive: ix('tape.drive'), tapeWow: ix('tape.wow'), tapeAge: ix('tape.age'),
+  compAmount: ix('comp.amount'), compSpeed: ix('comp.speed'), compPump: ix('comp.pump'), ott: ix('ott.amount'),
+  flangerMix: ix('flanger.mix'), flangerRate: ix('flanger.rate'), flangerFb: ix('flanger.feedback'),
+  delayMix: ix('delay.mix'), delayTime: ix('delay.time'), delayFb: ix('delay.feedback'), delayTone: ix('delay.tone'),
+  reverbTone: ix('reverb.tone'), eqHighcut: ix('eq.highcut'),
   amp: [ix('amp_env.attack'), ix('amp_env.decay'), ix('amp_env.sustain'), ix('amp_env.release')],
   mod: [ix('mod_env.attack'), ix('mod_env.decay'), ix('mod_env.sustain'), ix('mod_env.release')],
   peAmount: ix('pitch_env.amount'), peDecay: ix('pitch_env.decay'),
@@ -119,6 +144,9 @@ interface OscState {
   pw: number;
   lastSpread: number;
   lastVoices: number;
+  baseSaw: number; // mip-mapped saw table offset for this block
+  drift: Float64Array; // analog pitch drift per unison voice (-1..1)
+  driftTarget: Float64Array;
 }
 
 function makeOsc(): OscState {
@@ -127,7 +155,8 @@ function makeOsc(): OscState {
     inc: new Float64Array(MAX_UNISON),
     panL: new Float64Array(MAX_UNISON),
     panR: new Float64Array(MAX_UNISON),
-    voices: 1, gain: 0, wave: WAVE_SAW, baseA: 0, baseB: 0, frac: 0, pw: 0.5, lastSpread: -1, lastVoices: -1,
+    voices: 1, gain: 0, wave: WAVE_SAW, baseA: 0, baseB: 0, baseSaw: 0, frac: 0, pw: 0.5, lastSpread: -1, lastVoices: -1,
+    drift: new Float64Array(MAX_UNISON), driftTarget: new Float64Array(MAX_UNISON),
   };
 }
 
@@ -143,6 +172,7 @@ export class Synth {
   private readonly smoothCoef: number;
   private duckGain = 1;
   private duckDir = 0; // -1 fading out, +1 fading in
+  private duckHold = 0; // samples to stay silent after a switch (oversampler latency)
   private readonly duckStep: number;
 
   // Note state.
@@ -176,6 +206,9 @@ export class Synth {
   private fmIndex = 0;
   private pmPrev = 0;
   private subPhase = 0;
+  // Delays the sub by the oversampler latency so it stays phase-aligned with the voice.
+  private readonly subDelay = new Float64Array(32);
+  private subDelayPos = 0;
   private subInc = 0;
   private subLevel = 0;
   private subWave = 0;
@@ -199,6 +232,17 @@ export class Synth {
   private readonly fmtG = new Float64Array(3);
   private fmtK = 0.2;
 
+  // Oversampling around the nonlinear section.
+  private readonly upL = new Upsampler2x();
+  private readonly upR = new Upsampler2x();
+  private readonly dnL = new Downsampler2x();
+  private readonly dnR = new Downsampler2x();
+  private readonly osOut = new Float64Array(4);
+  private readonly voiceDcL = new Biquad();
+  private readonly voiceDcR = new Biquad();
+  private analog = 0;
+  private noteCutoffJitter = 0;
+
   // Distortion.
   private distType = DIST_SOFT;
   private distGain = 1;
@@ -206,18 +250,43 @@ export class Synth {
   private toneCoef = 1;
   private toneL = 0;
   private toneR = 0;
-  private crushHold = 1;
-  private crushQ = 32768;
-  private crushCount = 0;
-  private crushL = 0;
-  private crushR = 0;
+  private splitG = 0; // 0 = full-band distortion
+  private readonly adaaU = new Float64Array(2);
+  private readonly driveU = new Float64Array(2);
+  private readonly driveF = new Float64Array(2).fill(tanhIntegral(0));
+  private readonly adaaF = new Float64Array(2);
+  private readonly split = [new Svf(), new Svf(), new Svf(), new Svf(), new Svf(), new Svf()];
+
+  // Bitcrusher, tape.
+  private readonly crusher = new Crusher();
+  private crushQ = 128;
+  private crushRate = 1;
+  private crushMix = 0;
+  private readonly tape: Tape;
+  private tapeLpCoef = 1;
+  private lastTapeAge = -1;
+  private tapeOn = false;
 
   // Amp.
   private ampMod = 1;
   private ampModStep = 0;
   private velGain = 1;
 
+  // Dynamics.
+  private readonly comp = new Compressor();
+  private readonly ott: Ott;
+  private compOn = false;
+  private ottOn = false;
+  private beatPhase = 0;
+
   // FX + output.
+  private readonly flanger: Flanger;
+  private readonly delay: Delay;
+  private delaySeconds = 0.375;
+  private delayToneCoef = 0.5;
+  private readonly hcL = new Biquad();
+  private readonly hcR = new Biquad();
+  private highcutOn = false;
   private readonly hpL = new Biquad();
   private readonly hpR = new Biquad();
   private readonly chorus: Chorus;
@@ -233,9 +302,8 @@ export class Synth {
   private outGainStep = 0;
   private outTarget = 1;
   private lastOutDb = NaN;
-  private lastDistDrive = -1;
   private lastTone = -1;
-  private readonly lastFx = new Float64Array(6); // lowcut, eqLow, eqMid, eqMidFreq, eqHigh, crossover
+  private readonly lastFx = new Float64Array(8); // lowcut, eqLow, eqMid, eqMidFreq, eqHigh, crossover, highcut, split
   private readonly tmp = new Float64Array(2);
   private ctrlCount = 0;
 
@@ -256,6 +324,12 @@ export class Synth {
     this.chorus = new Chorus(sampleRate);
     this.phaser = new Phaser(sampleRate);
     this.reverb = new Reverb(sampleRate);
+    this.flanger = new Flanger(sampleRate);
+    this.delay = new Delay(sampleRate);
+    this.tape = new Tape(sampleRate);
+    this.ott = new Ott(sampleRate);
+    this.voiceDcL.setHighpass(VOICE_DC_HZ, Math.SQRT1_2, sampleRate);
+    this.voiceDcR.setHighpass(VOICE_DC_HZ, Math.SQRT1_2, sampleRate);
     this.limiter = new Limiter(sampleRate, LIMITER_CEILING_DB);
     // Subsonic + DC filter: 12 Hz 2nd-order high-pass (-0.1 dB at 30 Hz).
     this.dcL.setHighpass(SUBSONIC_HZ, Math.SQRT1_2, sampleRate);
@@ -278,7 +352,7 @@ export class Synth {
 
   /** Latency of the output limiter, in samples. */
   get latency(): number {
-    return this.limiter.lookahead - 1;
+    return this.limiter.lookahead - 1 + OVERSAMPLE_LATENCY;
   }
 
   // ---------------------------------------------------------------- input
@@ -302,6 +376,11 @@ export class Synth {
 
   setTempo(bpm: number): void {
     this.tempo = clamp(bpm, 20, 400);
+  }
+
+  /** Align the internal beat clock (used by the tempo pump) to a song position in beats. */
+  syncBeat(beat: number): void {
+    this.beatPhase = beat - Math.floor(beat);
   }
 
   pitchBend(v: number): void {
@@ -370,7 +449,22 @@ export class Synth {
     this.limiter.reset();
     this.dcL.reset();
     this.dcR.reset();
-    this.toneL = this.toneR = this.crushL = this.crushR = 0;
+    this.toneL = this.toneR = 0;
+    this.upL.reset();
+    this.upR.reset();
+    this.dnL.reset();
+    this.dnR.reset();
+    this.voiceDcL.reset();
+    this.voiceDcR.reset();
+    for (const f of this.split) f.reset();
+    this.hcL.reset();
+    this.hcR.reset();
+    this.crusher.reset();
+    this.tape.reset();
+    this.comp.reset();
+    this.ott.reset();
+    this.flanger.reset();
+    this.delay.reset();
   }
 
   private removeFromStack(note: number): void {
@@ -392,13 +486,25 @@ export class Synth {
     if (legato && overlapping) return; // no retrigger
     if (!sounding) {
       // Fresh note from silence: reset phases for a consistent, phase-stable attack.
-      for (const o of this.osc) for (let j = 0; j < MAX_UNISON; j++) o.phase[j] = j === 0 ? 0 : (j * 0.381966) % 1;
+      // Voice 0 always starts at phase 0 (consistent punch); other unison voices
+      // start at fixed spread phases, or free-running random ones with analog drift.
+      const free = this.cur[P.analog] > 0.01;
+      for (const o of this.osc) {
+        for (let j = 0; j < MAX_UNISON; j++) {
+          o.phase[j] = j === 0 ? 0 : free ? 0.5 * (this.rng.next() + 1) : (j * 0.381966) % 1;
+        }
+      }
       this.subPhase = 0;
       this.fmPhase = 0;
       this.pmPrev = 0;
       this.ladL.reset();
       this.ladR.reset();
+      this.upL.reset();
+      this.upR.reset();
+      this.dnL.reset();
+      this.dnR.reset();
     }
+    this.noteCutoffJitter = this.rng.next();
     this.ampEnv.trigger();
     this.modEnv.trigger();
     this.pitchEnvLevel = 1;
@@ -421,6 +527,9 @@ export class Synth {
     }
     this.filterType = this.cur[P.fType];
     this.distType = this.cur[P.dType];
+    // Keep the ADAA state consistent with the (possibly new) curve.
+    this.adaaF[0] = this.curveIntegral(this.adaaU[0]);
+    this.adaaF[1] = this.curveIntegral(this.adaaU[1]);
     this.subWave = this.cur[P.subWave];
   }
 
@@ -525,6 +634,8 @@ export class Synth {
       this.lfoValue[l] = this.lfoShape(cur[lp.shape], ph, this.lfoHold[l]);
     }
 
+    this.analog = cur[P.analog];
+
     // Pitch.
     const basePitch = this.pitch + 12 * cur[P.octave] + 2 * this.bend + cur[P.peAmount] * this.pitchEnvLevel + 24 * dst[D_PITCH];
 
@@ -546,6 +657,15 @@ export class Synth {
         for (let j = 0; j < voices; j++) {
           o.inc[j] = inc < 0.45 ? inc : 0.45;
           inc *= step;
+        }
+      }
+      if (this.analog > 0) {
+        // Analog drift: each unison voice wanders a few cents (voice 0 less, to keep the core pitch steady).
+        for (let j = 0; j < voices; j++) {
+          if (this.rng.next() > 0.996) o.driftTarget[j] = this.rng.next();
+          o.drift[j] += (o.driftTarget[j] - o.drift[j]) * 0.003;
+          const cents = this.analog * (j === 0 ? 2.5 : 7) * o.drift[j];
+          o.inc[j] *= 1 + cents * 0.000577623; // ≈ 2^(cents/1200)
         }
       }
       if (spread !== o.lastSpread || voices !== o.lastVoices) {
@@ -572,6 +692,7 @@ export class Synth {
       o.baseA = (fa * MIP_LEVELS + mip) * TABLE_SIZE;
       o.baseB = ((fa + 1) * MIP_LEVELS + mip) * TABLE_SIZE;
       o.frac = fpos - fa;
+      o.baseSaw = (SAW_FRAME * MIP_LEVELS + mip) * TABLE_SIZE;
     }
     // FM: sine modulator phase-modulates osc 1 (index in cycles).
     const fmAmt = clamp(cur[P.fmAmount] + dst[D_FM], 0, 1);
@@ -591,12 +712,13 @@ export class Synth {
 
     // Filter.
     const res = clamp(cur[P.res] + dst[D_RES], 0, 1);
+    const fsOs = fs * OS;
     const octs = (cur[P.keytrack] * (this.pitch + 12 * cur[P.octave] - KEYTRACK_CENTER)) / 12 +
-      6 * cur[P.envAmt] * this.modEnv.level + 6 * dst[D_CUTOFF];
+      6 * cur[P.envAmt] * this.modEnv.level + 6 * dst[D_CUTOFF] + 0.12 * this.analog * this.noteCutoffJitter;
     const fc = clamp(cur[P.cutoff] * Math.pow(2, octs), 20, Math.min(20000, fs * 0.45));
-    const gTarget = Math.tan((Math.PI * fc) / fs);
+    const gTarget = Math.tan((Math.PI * fc) / fsOs);
     if (this.gPrevTarget < 0) this.g = gTarget;
-    this.gStep = (gTarget - this.g) / CONTROL_BLOCK;
+    this.gStep = (gTarget - this.g) / (CONTROL_BLOCK * OS);
     this.gPrevTarget = gTarget;
     if (this.filterType === FILTER_LP) {
       this.k = 3.85 * res;
@@ -609,7 +731,7 @@ export class Synth {
       const shift = Math.sqrt(fc / 2000);
       for (let f = 0; f < 3; f++) {
         const hz = VOWELS[vi][f] * Math.pow(VOWELS[vi + 1][f] / VOWELS[vi][f], vf) * shift;
-        this.fmtG[f] = Math.tan((Math.PI * clamp(hz, 40, fs * 0.45)) / fs);
+        this.fmtG[f] = Math.tan((Math.PI * clamp(hz, 40, fs * 0.45)) / fsOs);
       }
       this.fmtK = 1 / (3 + 15 * res);
     }
@@ -619,16 +741,48 @@ export class Synth {
     const dMix = clamp(cur[P.dMix] + dst[D_DIST_MIX], 0, 1);
     this.distAmt = Math.min(1, dDrive * 5) * dMix;
     this.distGain = 1 + 49 * dDrive * dDrive;
-    if (dDrive !== this.lastDistDrive) {
-      this.crushHold = 1 + Math.floor(dDrive * dDrive * 24);
-      this.crushQ = Math.pow(2, Math.round(15 - 12 * dDrive));
-      this.lastDistDrive = dDrive;
-    }
     if (cur[P.dTone] !== this.lastTone) {
       const toneHz = 300 * Math.pow(20000 / 300, cur[P.dTone]);
-      this.toneCoef = 1 - Math.exp((-TWO_PI * Math.min(toneHz, fs * 0.45)) / fs);
+      this.toneCoef = 1 - Math.exp((-TWO_PI * Math.min(toneHz, fs * 0.45)) / fsOs);
       this.lastTone = cur[P.dTone];
     }
+    if (cur[P.dSplit] !== this.lastFx[7]) {
+      const split = cur[P.dSplit];
+      this.splitG = split > 22 ? Math.tan((Math.PI * split) / fsOs) : 0;
+      this.lastFx[7] = split;
+    }
+
+    // Bitcrusher.
+    this.crushMix = cur[P.crushMix];
+    this.crushQ = Math.pow(2, cur[P.crushBits] - 1);
+    this.crushRate = cur[P.crushRate];
+
+    // Tape.
+    this.tapeOn = cur[P.tapeDrive] > 0 || cur[P.tapeWow] > 0 || cur[P.tapeAge] > 0;
+    if (cur[P.tapeAge] !== this.lastTapeAge) {
+      const hz = 20000 * Math.pow(0.15, cur[P.tapeAge]);
+      this.tapeLpCoef = 1 - Math.exp((-TWO_PI * Math.min(hz, fs * 0.45)) / fs);
+      this.lastTapeAge = cur[P.tapeAge];
+    }
+
+    // Dynamics: compressor with a tempo pump, then multiband OTT.
+    this.beatPhase += (this.tempo / 60) * (CONTROL_BLOCK / fs);
+    if (this.beatPhase >= 1) this.beatPhase -= 1;
+    const pump = cur[P.compPump];
+    let pumpGain = 1;
+    if (pump > 0) {
+      const b = this.beatPhase;
+      const duck = b < 0.03 ? b / 0.03 : Math.exp(-(b - 0.03) * 6);
+      pumpGain = 1 - pump * 0.85 * duck;
+    }
+    this.compOn = cur[P.compAmount] > 0.001 || pump > 0.001;
+    if (this.compOn) this.comp.update(cur[P.compAmount], cur[P.compSpeed], pumpGain, fs, CONTROL_BLOCK);
+    this.ottOn = cur[P.ott] > 0.0005;
+    if (this.ottOn) this.ott.update(cur[P.ott], CONTROL_BLOCK);
+
+    // Delay.
+    this.delaySeconds = (DELAY_BEATS[cur[P.delayTime]] * 60) / this.tempo;
+    this.delayToneCoef = 1 - Math.exp((-TWO_PI * Math.min(800 * Math.pow(20, cur[P.delayTone]), fs * 0.45)) / fs);
 
     // Amp.
     const ampTarget = clamp(1 + dst[D_AMP], 0, 2);
@@ -664,6 +818,15 @@ export class Synth {
       for (let i = 0; i < 4; i++) this.xo[i].setHighpass(cur[P.crossover], XO_Q[i], fs);
       lf[5] = cur[P.crossover];
     }
+    if (cur[P.eqHighcut] !== lf[6]) {
+      const hc = cur[P.eqHighcut];
+      this.highcutOn = hc < 19500;
+      if (this.highcutOn) {
+        this.hcL.setLowpass(Math.min(hc, fs * 0.45), Math.SQRT1_2, fs);
+        this.hcR.setLowpass(Math.min(hc, fs * 0.45), Math.SQRT1_2, fs);
+      }
+      lf[6] = hc;
+    }
     if (cur[P.outGain] !== this.lastOutDb) {
       this.outTarget = Math.pow(10, cur[P.outGain] / 20);
       this.lastOutDb = cur[P.outGain];
@@ -673,17 +836,26 @@ export class Synth {
 
   // ------------------------------------------------------------ audio rate
 
-  private oscSample(o: OscState, ph: number, dt: number): number {
+  /** Read a mip-mapped single-cycle table at phase ph (no interpolation between frames). */
+  private readTable(base: number, ph: number): number {
+    const t = this.table;
+    const pos = ph * TABLE_N;
+    const i = pos | 0;
+    const f = pos - i;
+    const a = t[base + i];
+    return a + (t[base + ((i + 1) & TABLE_M)] - a) * f;
+  }
+
+  private oscSample(o: OscState, ph: number): number {
     switch (o.wave) {
       case WAVE_SAW:
-        return 2 * ph - 1 - blep(ph, dt);
+        // Band-limited saw from the mip-mapped table (no aliasing at any pitch).
+        return this.readTable(o.baseSaw, ph);
       case WAVE_PULSE: {
-        let s = ph < o.pw ? 1 : -1;
-        s += blep(ph, dt);
+        // Pulse = difference of two band-limited saws, offset by the pulse width.
         let p2 = ph - o.pw;
         if (p2 < 0) p2 += 1;
-        s -= blep(p2, dt);
-        return s - (2 * o.pw - 1);
+        return 0.5 * (this.readTable(o.baseSaw, ph) - this.readTable(o.baseSaw, p2));
       }
       default: {
         // Wavetable (also used for band-limited sine and triangle).
@@ -700,14 +872,120 @@ export class Synth {
     }
   }
 
-  private shape(x: number): number {
-    const g = this.distGain;
+  /** Pre-filter drive: tanh saturation with first-order ADAA (see shape()). */
+  private driveShape(x: number, ch: number): number {
+    const u = this.driveGain * x;
+    const up = this.driveU[ch];
+    const fu = tanhIntegral(u);
+    const du = u - up;
+    const y = Math.abs(du) > 1e-5 ? (fu - this.driveF[ch]) / du : tanh(0.5 * (u + up));
+    this.driveU[ch] = u;
+    this.driveF[ch] = fu;
+    return y;
+  }
+
+  /** The waveshaper curve itself (used directly when ADAA is ill-conditioned). */
+  private curve(u: number): number {
     switch (this.distType) {
-      case DIST_SOFT: return tanh(g * x);
-      case DIST_HARD: { const y = g * x; return y > 1 ? 1 : y < -1 ? -1 : y; }
-      case DIST_FOLD: return Math.sin(1.5707963 * g * x);
-      default: return x;
+      case DIST_SOFT: return tanh(u);
+      case DIST_HARD: return u > 1 ? 1 : u < -1 ? -1 : u;
+      case DIST_FOLD: return Math.sin(HALF_PI * u);
+      default: return tanh(u + TUBE_BIAS) - TUBE_OFFSET; // tube: asymmetric, even harmonics
     }
+  }
+
+  /** Antiderivative of curve(). */
+  private curveIntegral(u: number): number {
+    switch (this.distType) {
+      case DIST_SOFT: return tanhIntegral(u);
+      case DIST_HARD: return u > 1 ? u - 0.5 : u < -1 ? -u - 0.5 : 0.5 * u * u;
+      case DIST_FOLD: return -Math.cos(HALF_PI * u) / HALF_PI;
+      default: return tanhIntegral(u + TUBE_BIAS) - TUBE_OFFSET * u;
+    }
+  }
+
+  /**
+   * First-order antiderivative anti-aliasing (ADAA): output the average of the
+   * curve between consecutive inputs, (F(u) - F(u_prev)) / (u - u_prev). This
+   * suppresses the harmonics a sharp curve would fold back, on top of the
+   * oversampling. `ch` selects the left/right state.
+   */
+  private shape(x: number, ch: number): number {
+    const u = this.distGain * x;
+    const up = this.adaaU[ch];
+    const fu = this.curveIntegral(u);
+    const du = u - up;
+    const y = Math.abs(du) > 1e-5 ? (fu - this.adaaF[ch]) / du : this.curve(0.5 * (u + up));
+    this.adaaU[ch] = u;
+    this.adaaF[ch] = fu;
+    return y;
+  }
+
+  /**
+   * One oversampled stereo sample through drive → filter → distortion.
+   * Writes the result to osOut[slot], osOut[slot + 1].
+   */
+  private nonlinear(l: number, r: number, slot: number): void {
+    // Pre-filter drive.
+    if (this.driveMix > 0) {
+      const dc = this.driveComp, dm = this.driveMix;
+      l += (this.driveShape(l, 0) * dc - l) * dm;
+      r += (this.driveShape(r, 1) * dc - r) * dm;
+    }
+
+    // Filter (coefficients are for the oversampled rate).
+    this.g += this.gStep;
+    const g = this.g;
+    if (this.filterType === FILTER_LP) {
+      l = this.ladL.process(l, g, this.k);
+      r = this.ladR.process(r, g, this.k);
+    } else if (this.filterType === FILTER_BP) {
+      const k = this.k;
+      this.bpL[0].process(l, g, k);
+      this.bpL[1].process(this.bpL[0].bp * k, g, k);
+      l = this.bpL[1].bp * k * 1.5;
+      this.bpR[0].process(r, g, k);
+      this.bpR[1].process(this.bpR[0].bp * k, g, k);
+      r = this.bpR[1].bp * k * 1.5;
+    } else {
+      let fl = 0, fr = 0;
+      const k = this.fmtK;
+      for (let f = 0; f < 3; f++) {
+        this.fmtL[f].process(l, this.fmtG[f], k);
+        this.fmtR[f].process(r, this.fmtG[f], k);
+        fl += this.fmtL[f].bp * k * FORMANT_GAIN[f];
+        fr += this.fmtR[f].bp * k * FORMANT_GAIN[f];
+      }
+      l = fl * 2.2;
+      r = fr * 2.2;
+    }
+    l *= POST_FILTER_GAIN;
+    r *= POST_FILTER_GAIN;
+
+    // Distortion, optionally on the mids only (below dist.clean_below stays clean).
+    if (this.distAmt > 0) {
+      let lowL = 0, lowR = 0, hl = l, hr = r;
+      if (this.splitG > 0) {
+        // Linkwitz-Riley 4th-order crossover: low = LP∘LP, high = HP∘HP (sum is allpass).
+        const g = this.splitG, k = Math.SQRT2, sp = this.split;
+        sp[0].process(l, g, k);
+        sp[1].process(sp[0].lp, g, k);
+        sp[2].process(sp[0].hp, g, k);
+        lowL = sp[1].lp;
+        hl = sp[2].hp;
+        sp[3].process(r, g, k);
+        sp[4].process(sp[3].lp, g, k);
+        sp[5].process(sp[3].hp, g, k);
+        lowR = sp[4].lp;
+        hr = sp[5].hp;
+      }
+      this.toneL += (this.shape(hl, 0) - this.toneL) * this.toneCoef;
+      this.toneR += (this.shape(hr, 1) - this.toneR) * this.toneCoef;
+      l = lowL + hl + (this.toneL - hl) * this.distAmt;
+      r = lowR + hr + (this.toneR - hr) * this.distAmt;
+    }
+    this.osOut[slot] = l;
+    this.osOut[slot + 1] = r;
   }
 
   /**
@@ -717,8 +995,10 @@ export class Synth {
   render(outL: Float32Array, outR: Float32Array, offset: number, frames: number): void {
     const end = offset + frames;
     const out = this.tmp;
+    const os = this.osOut;
     const o1 = this.osc[0];
     const o2 = this.osc[1];
+    const cur = this.cur;
     let peak = this.peak;
 
     for (let n = offset; n < end; n++) {
@@ -735,7 +1015,10 @@ export class Synth {
           this.duckGain = 0;
           this.copyDiscrete();
           this.duckDir = 1;
+          this.duckHold = 2 * OVERSAMPLE_LATENCY + 8;
         }
+      } else if (this.duckHold > 0) {
+        this.duckHold--;
       } else if (this.duckDir > 0) {
         this.duckGain += this.duckStep;
         if (this.duckGain >= 1) {
@@ -746,7 +1029,6 @@ export class Synth {
 
       let l = 0;
       let r = 0;
-      this.g += this.gStep;
       this.ampMod += this.ampModStep;
       this.outGain += this.outGainStep;
 
@@ -767,14 +1049,13 @@ export class Synth {
           this.pmPrev = 0;
         }
 
-        // Oscillators.
+        // Oscillators (band-limited at the base rate).
         if (o1.gain > 0) {
           for (let j = 0; j < o1.voices; j++) {
-            const dt = o1.inc[j] + dpm;
-            let ph = o1.phase[j] + dt;
+            let ph = o1.phase[j] + o1.inc[j] + dpm;
             ph -= Math.floor(ph);
             o1.phase[j] = ph;
-            const s = this.oscSample(o1, ph, dt) * o1.gain;
+            const s = this.oscSample(o1, ph) * o1.gain;
             l += s * o1.panL[j];
             r += s * o1.panR[j];
           }
@@ -786,11 +1067,10 @@ export class Synth {
         }
         if (o2.gain > 0) {
           for (let j = 0; j < o2.voices; j++) {
-            const dt = o2.inc[j];
-            let ph = o2.phase[j] + dt;
+            let ph = o2.phase[j] + o2.inc[j];
             if (ph >= 1) ph -= 1;
             o2.phase[j] = ph;
-            const s = this.oscSample(o2, ph, dt) * o2.gain;
+            const s = this.oscSample(o2, ph) * o2.gain;
             l += s * o2.panL[j];
             r += s * o2.panR[j];
           }
@@ -803,62 +1083,31 @@ export class Synth {
         l *= PRE_FILTER_GAIN;
         r *= PRE_FILTER_GAIN;
 
-        // Pre-filter drive.
-        if (this.driveMix > 0) {
-          const dg = this.driveGain, dc = this.driveComp, dm = this.driveMix;
-          l += (tanh(l * dg) * dc - l) * dm;
-          r += (tanh(r * dg) * dc - r) * dm;
+        // 2× oversampled nonlinear section.
+        this.upL.process(l);
+        this.upR.process(r);
+        this.nonlinear(this.upL.out0, this.upR.out0, 0);
+        this.nonlinear(this.upL.out1, this.upR.out1, 2);
+        l = this.dnL.process(os[0], os[2]);
+        r = this.dnR.process(os[1], os[3]);
+
+        // Bitcrusher / downsampler.
+        if (this.crushMix > 0) {
+          this.crusher.process(l, r, this.crushMix, this.crushQ, this.crushRate, out);
+          l = out[0];
+          r = out[1];
         }
 
-        // Filter.
-        const g = this.g;
-        if (this.filterType === FILTER_LP) {
-          l = this.ladL.process(l, g, this.k);
-          r = this.ladR.process(r, g, this.k);
-        } else if (this.filterType === FILTER_BP) {
-          const k = this.k;
-          this.bpL[0].process(l, g, k);
-          this.bpL[1].process(this.bpL[0].bp * k, g, k);
-          l = this.bpL[1].bp * k * 1.5;
-          this.bpR[0].process(r, g, k);
-          this.bpR[1].process(this.bpR[0].bp * k, g, k);
-          r = this.bpR[1].bp * k * 1.5;
-        } else {
-          let fl = 0, fr = 0;
-          const k = this.fmtK;
-          for (let f = 0; f < 3; f++) {
-            this.fmtL[f].process(l, this.fmtG[f], k);
-            this.fmtR[f].process(r, this.fmtG[f], k);
-            fl += this.fmtL[f].bp * k * FORMANT_GAIN[f];
-            fr += this.fmtR[f].bp * k * FORMANT_GAIN[f];
-          }
-          l = fl * 2.2;
-          r = fr * 2.2;
+        // Tape (voice only; the sub joins later and stays clean).
+        if (this.tapeOn) {
+          this.tape.process(l, r, cur[P.tapeDrive], cur[P.tapeWow], cur[P.tapeAge], this.tapeLpCoef, env, out);
+          l = out[0];
+          r = out[1];
         }
-        l *= POST_FILTER_GAIN;
-        r *= POST_FILTER_GAIN;
 
-        // Distortion (wet path gets the post-tone low-pass).
-        if (this.distAmt > 0) {
-          let wl: number, wr: number;
-          if (this.distType === DIST_CRUSH) {
-            if (this.crushCount <= 0) {
-              this.crushL = Math.round(clampf(l, -1, 1) * this.crushQ) / this.crushQ;
-              this.crushR = Math.round(clampf(r, -1, 1) * this.crushQ) / this.crushQ;
-              this.crushCount = this.crushHold;
-            }
-            this.crushCount--;
-            wl = this.crushL;
-            wr = this.crushR;
-          } else {
-            wl = this.shape(l);
-            wr = this.shape(r);
-          }
-          this.toneL += (wl - this.toneL) * this.toneCoef;
-          this.toneR += (wr - this.toneR) * this.toneCoef;
-          l += (this.toneL - l) * this.distAmt;
-          r += (this.toneR - r) * this.distAmt;
-        }
+        // Remove DC from asymmetric stages (tube, tape) before the envelope shapes it.
+        l = this.voiceDcL.process(l);
+        r = this.voiceDcR.process(r);
 
         // Amp.
         const amp = env * this.velGain * this.duckGain;
@@ -867,51 +1116,88 @@ export class Synth {
         r *= va;
 
         // Sub: clean, mono, phase-stable.
+        let sub = 0;
         if (this.subLevel > 0) {
           let sp = this.subPhase + this.subInc;
           if (sp >= 1) sp -= 1;
           this.subPhase = sp;
-          let s: number;
-          if (this.subWave === 0) s = Math.sin(TWO_PI * sp);
-          else s = sp < 0.25 ? 4 * sp : sp < 0.75 ? 2 - 4 * sp : 4 * sp - 4;
-          s *= this.subLevel * amp;
-          l += s;
-          r += s;
+          if (this.subWave === 0) sub = Math.sin(TWO_PI * sp);
+          else sub = sp < 0.25 ? 4 * sp : sp < 0.75 ? 2 - 4 * sp : 4 * sp - 4;
+          sub *= this.subLevel * amp;
         } else {
           this.subPhase += this.subInc;
           if (this.subPhase >= 1) this.subPhase -= 1;
         }
+        this.subDelay[this.subDelayPos] = sub;
+      } else {
+        this.subDelay[this.subDelayPos] = 0;
+      }
+      {
+        let rp = this.subDelayPos - OVERSAMPLE_LATENCY;
+        if (rp < 0) rp += 32;
+        const sub = this.subDelay[rp];
+        l += sub;
+        r += sub;
+        this.subDelayPos = (this.subDelayPos + 1) & 31;
+      }
+
+      // Dynamics (stereo-linked, so mono content stays mono).
+      if (this.compOn) {
+        this.comp.process(l, r, out);
+        l = out[0];
+        r = out[1];
+      }
+      if (this.ottOn) {
+        this.ott.process(l, r, out);
+        l = out[0];
+        r = out[1];
       }
 
       // FX on the part above fx.lowcut only.
       const hl = this.hpL.process(l);
       const hr = this.hpR.process(r);
       let xl = hl, xr = hr;
-      const cMix = this.cur[P.chorusMix];
+      const cMix = cur[P.chorusMix];
       if (cMix > 1e-4) {
-        this.chorus.process(xl, xr, cMix, this.cur[P.chorusDepth], out);
+        this.chorus.process(xl, xr, cMix, cur[P.chorusDepth], out);
         xl = out[0];
         xr = out[1];
       }
-      const pMix = this.cur[P.phaserMix];
+      const fMix = cur[P.flangerMix];
+      if (fMix > 1e-4) {
+        this.flanger.process(xl, xr, fMix, cur[P.flangerRate], cur[P.flangerFb], out);
+        xl = out[0];
+        xr = out[1];
+      }
+      const pMix = cur[P.phaserMix];
       if (pMix > 1e-4) {
-        this.phaser.process(xl, xr, pMix, this.cur[P.phaserRate], out);
+        this.phaser.process(xl, xr, pMix, cur[P.phaserRate], out);
         xl = out[0];
         xr = out[1];
       }
-      const rMix = this.cur[P.reverbMix];
+      const dMix = cur[P.delayMix];
+      if (dMix > 1e-4) {
+        this.delay.process(xl, xr, this.delaySeconds, cur[P.delayFb], this.delayToneCoef, out);
+        xl += out[0] * dMix;
+        xr += out[1] * dMix;
+      }
+      const rMix = cur[P.reverbMix];
       if (rMix > 1e-4) {
-        this.reverb.process(0.5 * (xl + xr), this.cur[P.reverbSize], out);
+        this.reverb.process(0.5 * (xl + xr), cur[P.reverbSize], cur[P.reverbTone], out);
         xl += out[0] * rMix;
         xr += out[1] * rMix;
       }
       l = l - hl + xl;
       r = r - hr + xr;
 
-      // EQ.
+      // EQ and high cut.
       for (let b = 0; b < 3; b++) {
         l = this.eqL[b].process(l);
         r = this.eqR[b].process(r);
+      }
+      if (this.highcutOn) {
+        l = this.hcL.process(l);
+        r = this.hcR.process(r);
       }
 
       // Subsonic / DC filter.
