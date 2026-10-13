@@ -4,7 +4,7 @@ A bass synth you talk to. See [CLAUDE.md](CLAUDE.md) for the full design and
 the non-negotiables (no AI at runtime, fully offline, real-time safe, the low
 end is protected).
 
-**Status: Phase 1 (engine + schema) — Phase A browser prototype.**
+**Status: Phase A browser prototype — engine with full bass-type coverage, analysis + quality critic, and a library of 51 production patches (one per bass type in `data/directory.json`).**
 
 ## Run it
 
@@ -26,13 +26,17 @@ npm run typecheck
 npm run validate:data     # dev tool: every patch/loop valid
 npm run render:previews   # dev tool: WAVs of every library patch → renders/
 npm run level:patches     # dev tool: loudness-match the library
+npm run build:library     # dev tool: regenerate the 51 patches from tools/build-library.ts
+npm run analyze:library   # dev tool: rules + quality critic on every patch, stores features
 ```
 
 ## Layout
 
 ```
-data/schema.json      94 parameters: the single source of truth
-data/library/         hand-made patches (complete, loudness-matched)
+data/schema.json      131 parameters: the single source of truth
+data/directory.json   53 bass types (coverage map)
+data/quality.json     quality-critic limits
+data/library/         51 patches, one per bass type (complete, loudness-matched, critic-approved)
 data/loops/           audition loops (JSON note lists, beats)
 src/schema/           validation/clamping, knob curves, flattening for the engine
 src/engine/core/      pure-TS DSP: runs in the AudioWorklet, Node tests and offline renders
@@ -51,6 +55,6 @@ osc2 ───────┼─ drive ─ filter (4-pole ladder / band-pass / f
 noise ──────┘                                                                            │
 sub (sine/tri, −1/−2 oct, mono, phase-stable, bypasses filter & distortion) ─────────────┤
                                                                                          ▼
-      chorus → phaser → reverb (only above fx.lowcut)  →  EQ  →  12 Hz subsonic/DC filter
+      chorus → phaser → reverb (only above fx.lowcut)  →  EQ  →  15 Hz subsonic/DC filter
       →  mono below crossover (side high-pass, 48 dB/oct)  →  output gain  →  look-ahead limiter (−1 dBFS, always on)
 ```
