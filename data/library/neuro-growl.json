@@ -11,6 +11,8 @@
       "vocal",
       "moving"
     ],
+    "directory": "neuro",
+    "family": "growl",
     "audition": "dnb-roller"
   },
   "voice.legato": false,

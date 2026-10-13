@@ -11,6 +11,8 @@
       "house",
       "rave"
     ],
+    "directory": "acid-303",
+    "family": "acid",
     "audition": "acid-16ths"
   },
   "voice.legato": true,

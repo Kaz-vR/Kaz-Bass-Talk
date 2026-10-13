@@ -11,6 +11,8 @@
       "detuned",
       "moving"
     ],
+    "directory": "reese",
+    "family": "reese",
     "audition": "dnb-roller"
   },
   "voice.legato": false,

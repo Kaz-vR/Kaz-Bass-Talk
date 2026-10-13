@@ -11,6 +11,8 @@
       "disco",
       "classic"
     ],
+    "directory": "moog",
+    "family": "analog",
     "audition": "funk-octaves"
   },
   "voice.legato": false,

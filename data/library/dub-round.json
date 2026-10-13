@@ -11,6 +11,8 @@
       "soft",
       "roots"
     ],
+    "directory": "dub-rubber",
+    "family": "sub",
     "audition": "long-notes"
   },
   "voice.legato": false,

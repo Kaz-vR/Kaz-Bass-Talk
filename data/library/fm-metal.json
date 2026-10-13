@@ -10,7 +10,9 @@
       "neuro",
       "dubstep",
       "digital"
-    ]
+    ],
+    "directory": "fm-slap-pluck",
+    "family": "fm"
   },
   "voice.legato": false,
   "voice.glide": 0,

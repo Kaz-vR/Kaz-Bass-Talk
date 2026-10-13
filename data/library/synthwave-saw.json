@@ -10,7 +10,9 @@
       "wide",
       "bright",
       "lush"
-    ]
+    ],
+    "directory": "synthwave-outrun",
+    "family": "synthwave"
   },
   "voice.legato": false,
   "voice.glide": 0,

@@ -10,7 +10,9 @@
       "garage",
       "dub",
       "minimal"
-    ]
+    ],
+    "directory": "pure-sub",
+    "family": "sub"
   },
   "voice.legato": false,
   "voice.glide": 0,

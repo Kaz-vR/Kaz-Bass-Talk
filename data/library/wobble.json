@@ -9,7 +9,9 @@
       "wub",
       "moving",
       "rhythmic"
-    ]
+    ],
+    "directory": "wobble",
+    "family": "wobble"
   },
   "voice.legato": false,
   "voice.glide": 0,

@@ -11,6 +11,8 @@
       "sub",
       "distorted"
     ],
+    "directory": "sine-drop-808",
+    "family": "808",
     "audition": "808-slides"
   },
   "voice.legato": true,

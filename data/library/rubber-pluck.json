@@ -11,6 +11,8 @@
       "tight",
       "disco"
     ],
+    "directory": "nu-disco-rubber",
+    "family": "funk",
     "audition": "funk-octaves"
   },
   "voice.legato": false,

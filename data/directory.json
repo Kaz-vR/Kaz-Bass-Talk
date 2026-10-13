@@ -1,0 +1,500 @@
+{
+  "$comment": "Bass directory: the coverage map for the patch library. status: native = the engine can make it today; needs-addition = waits for a phase-3 engine addition; approximation = depends on recorded instruments or processes a synth cannot do, built as a clearly labelled synth version. Entries about how a bass is played are built for their sound only.",
+  "families": [
+    {
+      "id": "sub",
+      "description": "Clean sine/triangle weight, felt more than heard."
+    },
+    {
+      "id": "808",
+      "description": "Pitch-dropped, decaying sine kicks-as-bass, from clean to blown out."
+    },
+    {
+      "id": "analog",
+      "description": "Warm subtractive analog basses: Moog, Taurus, octave disco, chunky squares."
+    },
+    {
+      "id": "acid",
+      "description": "Resonant, squelchy single-oscillator lines with accent and slide."
+    },
+    {
+      "id": "funk",
+      "description": "Elastic, vocal, envelope-driven basses: rubber, auto-wah, talkbox."
+    },
+    {
+      "id": "reese",
+      "description": "Detuned, phase-cancelling saw stacks with slow movement."
+    },
+    {
+      "id": "hoover",
+      "description": "PWM-saw rave basses with heavy ensemble chorus."
+    },
+    {
+      "id": "synthwave",
+      "description": "Tight, gated, chorused vintage polysynth basses: outrun, darkwave."
+    },
+    {
+      "id": "fm",
+      "description": "Percussive FM basses: metallic plunks, slaps, log drums, donks."
+    },
+    {
+      "id": "pluck",
+      "description": "Short, fast-decay plucks that leave space."
+    },
+    {
+      "id": "organ",
+      "description": "Filtered organ and digital-organ basses."
+    },
+    {
+      "id": "wobble",
+      "description": "Tempo-synced filter or wavetable wobbles over a solid sub."
+    },
+    {
+      "id": "growl",
+      "description": "Formant, comb and multiband-distorted talking basses."
+    },
+    {
+      "id": "distorted",
+      "description": "Overdriven, fuzzed, aggressive basses: industrial, metal, phonk."
+    },
+    {
+      "id": "cinematic",
+      "description": "Huge, slow, dark or unstable film and ambient basses (incl. LORN)."
+    },
+    {
+      "id": "experimental",
+      "description": "West-coast, physical-model, glitch and illusion basses."
+    }
+  ],
+  "entries": [
+    {
+      "id": "moog",
+      "name": "Moog bass",
+      "group": "Analog, subtractive & vintage circuit",
+      "family": "analog",
+      "status": "native",
+      "identity": "Warm, thick detuned saw/square through a self-oscillating 24 dB low-pass."
+    },
+    {
+      "id": "acid-303",
+      "name": "303 acid bass",
+      "group": "Analog, subtractive & vintage circuit",
+      "family": "acid",
+      "status": "needs-addition",
+      "identity": "Squelchy resonant saw/square through an 18 dB diode ladder, driven by slide, accent and fast envelopes."
+    },
+    {
+      "id": "reese",
+      "name": "Reese bass",
+      "group": "Analog, subtractive & vintage circuit",
+      "family": "reese",
+      "status": "native",
+      "identity": "Two slightly detuned saws phase-cancelling into a wide, gritty, moving low end."
+    },
+    {
+      "id": "hoover",
+      "name": "Hoover / Alpha Juno bass",
+      "group": "Analog, subtractive & vintage circuit",
+      "family": "hoover",
+      "status": "needs-addition",
+      "identity": "Dense rave PWM-saw with intense analog ensemble chorus."
+    },
+    {
+      "id": "synthwave-outrun",
+      "name": "Synthwave / Outrun bass",
+      "group": "Analog, subtractive & vintage circuit",
+      "family": "synthwave",
+      "status": "native",
+      "identity": "Tightly compressed, snappy vintage saw bass (Juno / Prophet style)."
+    },
+    {
+      "id": "darkwave-gated",
+      "name": "Goth / darkwave gated bass",
+      "group": "Analog, subtractive & vintage circuit",
+      "family": "synthwave",
+      "status": "native",
+      "identity": "Cold, rigid analog bass drenched in chorus and high-ratio compression."
+    },
+    {
+      "id": "moroder-octave",
+      "name": "Disco octave / Moroder bass",
+      "group": "Analog, subtractive & vintage circuit",
+      "family": "analog",
+      "status": "native",
+      "identity": "Punchy square/pulse bass made for octave-jumping lines (sound only; pattern is the player's)."
+    },
+    {
+      "id": "taurus",
+      "name": "Taurus pedal bass",
+      "group": "Analog, subtractive & vintage circuit",
+      "family": "analog",
+      "status": "native",
+      "identity": "Ultra-deep, room-shaking analog bass with massive sustain and low-mid presence."
+    },
+    {
+      "id": "fm-lately",
+      "name": "FM LatelyBass / Solid bass",
+      "group": "Digital, FM & percussive pluck",
+      "family": "fm",
+      "status": "needs-addition",
+      "identity": "Punchy 4-operator FM bass with a sharp, metallic, aggressive transient plunk."
+    },
+    {
+      "id": "m1-eurodance",
+      "name": "Eurodance M1 bass",
+      "group": "Digital, FM & percussive pluck",
+      "family": "organ",
+      "status": "needs-addition",
+      "identity": "90s digital bass: artificial plastic attack click over a rubbery, hollow body."
+    },
+    {
+      "id": "dx7-slap",
+      "name": "DX7 digital slap",
+      "group": "Digital, FM & percussive pluck",
+      "family": "fm",
+      "status": "needs-addition",
+      "identity": "Hyper-percussive, glassy FM slap simulating a snapped string."
+    },
+    {
+      "id": "amapiano-log",
+      "name": "Amapiano log drum",
+      "group": "Digital, FM & percussive pluck",
+      "family": "fm",
+      "status": "needs-addition",
+      "identity": "Hollow, resonant FM/wavetable thud like a struck wooden log drum."
+    },
+    {
+      "id": "fm-slap-pluck",
+      "name": "Slap / pluck FM bass",
+      "group": "Digital, FM & percussive pluck",
+      "family": "fm",
+      "status": "native",
+      "identity": "Bright metallic FM bass with a high modulator index on the initial snap."
+    },
+    {
+      "id": "organ-bass",
+      "name": "Organ bass",
+      "group": "Digital, FM & percussive pluck",
+      "family": "organ",
+      "status": "native",
+      "identity": "Digital organ filtered down to its sub and lower-mid harmonics."
+    },
+    {
+      "id": "nu-disco-rubber",
+      "name": "Nu-disco rubber bass",
+      "group": "Digital, FM & percussive pluck",
+      "family": "funk",
+      "status": "native",
+      "identity": "Bouncy, elastic \"oww-waw\" bass from a tight envelope on the filter cutoff."
+    },
+    {
+      "id": "rnb-pluck",
+      "name": "2000s R&B pluck",
+      "group": "Digital, FM & percussive pluck",
+      "family": "pluck",
+      "status": "native",
+      "identity": "Ultra-clean sine/triangle pluck with lightning-fast decay and no sustain."
+    },
+    {
+      "id": "donk",
+      "name": "Donk bass",
+      "group": "Digital, FM & percussive pluck",
+      "family": "fm",
+      "status": "needs-addition",
+      "identity": "Percussive, metallic, pitch-modulated clack like a struck plastic pipe."
+    },
+    {
+      "id": "wobble",
+      "name": "Wobble bass",
+      "group": "Modulated, morphing & heavily distorted",
+      "family": "wobble",
+      "status": "native",
+      "identity": "Sub-heavy bass with a tempo-synced LFO on filter cutoff or wavetable position."
+    },
+    {
+      "id": "growl-yoi",
+      "name": "Growl / yoi bass",
+      "group": "Modulated, morphing & heavily distorted",
+      "family": "growl",
+      "status": "needs-addition",
+      "identity": "Wavetable through formant/vowel/comb filtering: an aggressive talking throat."
+    },
+    {
+      "id": "neuro",
+      "name": "Neuro bass",
+      "group": "Modulated, morphing & heavily distorted",
+      "family": "growl",
+      "status": "approximation",
+      "identity": "Constantly morphing, multiband-distorted, phased bass.",
+      "approximation_note": "True resampling loops are approximated with multiband distortion and complex modulation."
+    },
+    {
+      "id": "cyberpunk-midtempo",
+      "name": "Cyberpunk mid-tempo bass",
+      "group": "Modulated, morphing & heavily distorted",
+      "family": "growl",
+      "status": "needs-addition",
+      "identity": "Crushing square through moving notch/band-pass filters: grinding mechanical gears."
+    },
+    {
+      "id": "phonk-cowbass",
+      "name": "Drift phonk cow-bass",
+      "group": "Modulated, morphing & heavily distorted",
+      "family": "distorted",
+      "status": "native",
+      "identity": "Blown-out, low, detuned square with aggressive pitch glides (the cowbell itself is a separate drum)."
+    },
+    {
+      "id": "rage-808",
+      "name": "Rage / hyperpop blown-out 808",
+      "group": "Modulated, morphing & heavily distorted",
+      "family": "808",
+      "status": "native",
+      "identity": "Sub kick pushed far past clipping into square-wave fuzz."
+    },
+    {
+      "id": "hardstyle-reverse",
+      "name": "Hardstyle reverse bass",
+      "group": "Modulated, morphing & heavily distorted",
+      "family": "808",
+      "status": "needs-addition",
+      "identity": "Distorted kick transient followed by a reversed, rising sub swell."
+    },
+    {
+      "id": "ebm-industrial",
+      "name": "Industrial / EBM driven bass",
+      "group": "Modulated, morphing & heavily distorted",
+      "family": "distorted",
+      "status": "native",
+      "identity": "Harsh, overdriven square/saw for machinelike repetition."
+    },
+    {
+      "id": "nin-industrial-rock",
+      "name": "Industrial rock (NIN) bass",
+      "group": "Modulated, morphing & heavily distorted",
+      "family": "distorted",
+      "status": "native",
+      "identity": "Toxic analog clipping, fuzz and white noise that tears through guitar walls."
+    },
+    {
+      "id": "synth-metal-doom",
+      "name": "Synth-metal doom bass",
+      "group": "Modulated, morphing & heavily distorted",
+      "family": "distorted",
+      "status": "native",
+      "identity": "Ultra-low fuzzed square/saw hybrid like a 5-string down-tuned to drop G."
+    },
+    {
+      "id": "pure-sub",
+      "name": "Pure sub bass",
+      "group": "Minimalist, functional & global sub",
+      "family": "sub",
+      "status": "native",
+      "identity": "Clean, unmodulated sine or filtered triangle below 60 Hz, felt rather than heard."
+    },
+    {
+      "id": "reggaeton-sub",
+      "name": "Reggaeton dembow sub",
+      "group": "Minimalist, functional & global sub",
+      "family": "sub",
+      "status": "native",
+      "identity": "Round, compressed, slightly saturated sub with deep warm weight."
+    },
+    {
+      "id": "baile-funk",
+      "name": "Baile funk sub-pluck",
+      "group": "Minimalist, functional & global sub",
+      "family": "808",
+      "status": "needs-addition",
+      "identity": "Raw sub with a sharp downbeat pluck and a lo-fi mid-range knock."
+    },
+    {
+      "id": "dub-rubber",
+      "name": "King Tubby / dub rubber bass",
+      "group": "Minimalist, functional & global sub",
+      "family": "sub",
+      "status": "native",
+      "identity": "Extremely low-passed bass, all highs gone: a physical sound-system thud."
+    },
+    {
+      "id": "psy-offbeat",
+      "name": "Offbeat / psy-trance bass",
+      "group": "Minimalist, functional & global sub",
+      "family": "pluck",
+      "status": "native",
+      "identity": "Short, hyper-compressed saw pluck shaped to sit between kicks (sound only)."
+    },
+    {
+      "id": "sine-drop-808",
+      "name": "Sine-drop / 808",
+      "group": "Minimalist, functional & global sub",
+      "family": "808",
+      "status": "native",
+      "identity": "Kick-like sine with a long, decaying, pitch-bent sub tail."
+    },
+    {
+      "id": "gfunk-low",
+      "name": "West Coast G-funk low",
+      "group": "Minimalist, functional & global sub",
+      "family": "analog",
+      "status": "native",
+      "identity": "Deep smooth sub-triangle under a singing, whining high sine layer."
+    },
+    {
+      "id": "indie-chunky-square",
+      "name": "Indie-pop chunky square",
+      "group": "Minimalist, functional & global sub",
+      "family": "analog",
+      "status": "native",
+      "identity": "Clean, mid-heavy, slightly overdriven square with clockwork precision."
+    },
+    {
+      "id": "braam",
+      "name": "Zimmer braam",
+      "group": "Cinematic, avant-garde & unstable",
+      "family": "cinematic",
+      "status": "approximation",
+      "identity": "Colossal brass-and-saw hybrid with multiband saturation.",
+      "approximation_note": "Real tubas/cimbassi are approximated with detuned saws, formant brass filtering and saturation."
+    },
+    {
+      "id": "lorn-tape-flutter",
+      "name": "LORN broken tape flutter",
+      "group": "Cinematic, avant-garde & unstable",
+      "family": "cinematic",
+      "status": "native",
+      "identity": "Heavy analog bass with rapid random pitch drift: decayed, haunted, defective."
+    },
+    {
+      "id": "lorn-infra",
+      "name": "LORN infra-bass rumble",
+      "group": "Cinematic, avant-garde & unstable",
+      "family": "sub",
+      "status": "native",
+      "identity": "Ghostly sub sine at 20-30 Hz relying on saturation and air pressure."
+    },
+    {
+      "id": "clockwork",
+      "name": "Clockwork / tick-tock bass",
+      "group": "Cinematic, avant-garde & unstable",
+      "family": "pluck",
+      "status": "approximation",
+      "identity": "Short, tight pluck with a ticking transient for cinematic tension.",
+      "approximation_note": "Real clocks and spiccato strings are approximated with a synthesized tick transient."
+    },
+    {
+      "id": "organic-hybrid-sub",
+      "name": "Organic hybrid sub",
+      "group": "Cinematic, avant-garde & unstable",
+      "family": "cinematic",
+      "status": "approximation",
+      "identity": "Stretched, pitched acoustic string layered with a pure sub sine.",
+      "approximation_note": "Recorded double-bass/cello is approximated with the physical-model string."
+    },
+    {
+      "id": "drone-brass",
+      "name": "Drone / brass bass",
+      "group": "Cinematic, avant-garde & unstable",
+      "family": "cinematic",
+      "status": "native",
+      "identity": "Massive, slow-opening, detuned analog horn texture."
+    },
+    {
+      "id": "shoegaze-fog",
+      "name": "Shoegaze wall / drone fog",
+      "group": "Cinematic, avant-garde & unstable",
+      "family": "cinematic",
+      "status": "native",
+      "identity": "Endless, very wide, chorus-and-reverb-soaked low fog."
+    },
+    {
+      "id": "popunk-subdrop",
+      "name": "Pop-punk sub drop",
+      "group": "Cinematic, avant-garde & unstable",
+      "family": "sub",
+      "status": "native",
+      "identity": "Single clean sine with a dramatic downward pitch sweep for impacts."
+    },
+    {
+      "id": "buchla-west-coast",
+      "name": "West Coast / Buchla bass",
+      "group": "Cinematic, avant-garde & unstable",
+      "family": "experimental",
+      "status": "needs-addition",
+      "identity": "Wavefolder through a low-pass gate: rich acoustic-like thumps without a classic filter."
+    },
+    {
+      "id": "physical-model",
+      "name": "Physical modeling bass",
+      "group": "Cinematic, avant-garde & unstable",
+      "family": "experimental",
+      "status": "needs-addition",
+      "identity": "String/tube equations: eerie, hyper-real acoustic-digital hybrids."
+    },
+    {
+      "id": "glitch-micro",
+      "name": "Glitch / micro bass",
+      "group": "Cinematic, avant-garde & unstable",
+      "family": "experimental",
+      "status": "approximation",
+      "identity": "Rhythmic low end made of tiny digital bursts, clicks and pops.",
+      "approximation_note": "Granular synthesis is approximated with gating, sample-and-hold and the bitcrusher."
+    },
+    {
+      "id": "chiptune-8bit",
+      "name": "Chiptune / 8-bit bass",
+      "group": "Cinematic, avant-garde & unstable",
+      "family": "experimental",
+      "status": "native",
+      "identity": "Deliberately lo-fi, unfiltered triangle or pulse like a retro sound chip."
+    },
+    {
+      "id": "shepard",
+      "name": "Shepard tone bass",
+      "group": "Cinematic, avant-garde & unstable",
+      "family": "experimental",
+      "status": "needs-addition",
+      "identity": "Cross-fading octave-spaced sines: an endlessly falling or rising sub illusion."
+    },
+    {
+      "id": "generative-drone",
+      "name": "Generative modular drone",
+      "group": "Cinematic, avant-garde & unstable",
+      "family": "cinematic",
+      "status": "needs-addition",
+      "identity": "Endlessly evolving cross-modulated drone driven by random sample-and-hold."
+    },
+    {
+      "id": "bootsy-envelope",
+      "name": "Envelope-filter / Bootsy bass",
+      "group": "Cinematic, avant-garde & unstable",
+      "family": "funk",
+      "status": "native",
+      "identity": "Rubbery tone through an auto-wah envelope filter: elastic funk squelch."
+    },
+    {
+      "id": "talkbox-zapp",
+      "name": "Talkbox / Zapp bass",
+      "group": "Cinematic, avant-garde & unstable",
+      "family": "funk",
+      "status": "native",
+      "identity": "Vowel-shifting bass mimicking a human mouth shape."
+    },
+    {
+      "id": "laser-snap",
+      "name": "Laser / pitch-bent snap",
+      "group": "Performance modification states",
+      "family": "808",
+      "status": "native",
+      "identity": "Instant downward pitch spike on the attack: a \"pew\" transient."
+    },
+    {
+      "id": "reese-growl-cross",
+      "name": "Reese-growl cross",
+      "group": "Performance modification states",
+      "family": "growl",
+      "status": "native",
+      "identity": "Wide phase-cancelled Reese routed into an LFO-driven growl filter."
+    }
+  ]
+}

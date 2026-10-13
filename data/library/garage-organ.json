@@ -10,7 +10,9 @@
       "bouncy",
       "house",
       "speed-garage"
-    ]
+    ],
+    "directory": "organ-bass",
+    "family": "organ"
   },
   "voice.legato": false,
   "voice.glide": 0,
