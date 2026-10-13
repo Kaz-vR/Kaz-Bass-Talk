@@ -59,3 +59,7 @@ canvas { width: 100%; height: auto; display: block; background: #0c0e10; border-
 kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; font-size: 11px; }
 .overlay { position: fixed; inset: 0; background: rgba(10, 12, 14, 0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; z-index: 20; color: var(--dim); }
 .overlay.hidden { display: none; }
+
+/* Terror (LORN-style) preset menu */
+.field.terror { color: #ff7a85; }
+.field.terror select { border-color: #6b2a31; }

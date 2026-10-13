@@ -3,7 +3,7 @@
 // from the mockup arrives in Phase 6.)
 import { EngineHost } from '../engine/host';
 import { validatePatch, type ParamValue, type Patch } from '../schema';
-import { DEFAULT_LOOP_ID, library, loops } from './data';
+import { collection, DEFAULT_LOOP_ID, library, loops } from './data';
 import { Keyboard } from './keyboard';
 import { initMidi } from './midi';
 import { ParamsPanel } from './params-panel';
@@ -14,6 +14,7 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 const playBtn = $<HTMLButtonElement>('play');
 const loopSel = $<HTMLSelectElement>('loop');
 const patchSel = $<HTMLSelectElement>('patch');
+const terrorSel = $<HTMLSelectElement>('terror');
 
 let host: EngineHost | null = null;
 let playing = false;
@@ -22,7 +23,12 @@ let reference: Patch = library[0];
 
 for (const l of loops) loopSel.append(new Option(`${l.name} · ${l.bpm} BPM`, l.id));
 loopSel.value = DEFAULT_LOOP_ID;
-library.forEach((p, i) => patchSel.append(new Option(p.meta.name, String(i))));
+// Main menu: the library; Terror menu: the LORN-style collection. Picking from one clears the other.
+const NONE = '';
+patchSel.append(new Option('—', NONE));
+terrorSel.append(new Option('—', NONE));
+library.forEach((p, i) => (collection(p, 'terror') ? terrorSel : patchSel).append(new Option(p.meta.name, String(i))));
+let currentIndex = 0;
 
 const panel = new ParamsPanel($('params'), (id: string, value: ParamValue) => {
   current[id] = value;
@@ -44,6 +50,10 @@ function showPatchInfo(p: Patch): void {
 }
 
 function loadPatch(index: number): void {
+  currentIndex = index;
+  const terror = collection(library[index], 'terror');
+  patchSel.value = terror ? NONE : String(index);
+  terrorSel.value = terror ? String(index) : NONE;
   reference = library[index];
   current = structuredClone(reference);
   showPatchInfo(current);
@@ -51,7 +61,18 @@ function loadPatch(index: number): void {
   host?.setPatch(current);
 }
 
-patchSel.onchange = () => loadPatch(Number(patchSel.value));
+patchSel.onchange = () => patchSel.value !== NONE && loadPatch(Number(patchSel.value));
+terrorSel.onchange = () => {
+  if (terrorSel.value === NONE) return;
+  const p = library[Number(terrorSel.value)];
+  // Terror presets come with their own slow audition loop.
+  const aud = p.meta.audition as string | undefined;
+  if (aud && loops.some((l) => l.id === aud) && loopSel.value !== aud) {
+    loopSel.value = aud;
+    host?.setLoop(loops.find((l) => l.id === aud) ?? null);
+  }
+  loadPatch(Number(terrorSel.value));
+};
 loopSel.onchange = () => host?.setLoop(loops.find((l) => l.id === loopSel.value) ?? null);
 
 function setPlaying(on: boolean): void {
@@ -68,7 +89,7 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-$<HTMLButtonElement>('revert').onclick = () => loadPatch(Number(patchSel.value));
+$<HTMLButtonElement>('revert').onclick = () => loadPatch(currentIndex);
 $<HTMLButtonElement>('panic').onclick = () => {
   setPlaying(false);
   host?.panic();
@@ -91,7 +112,7 @@ const keyboard = new Keyboard($('keyboard'), {
   onOctave: (base) => ($('octave').textContent = `keys start at C${base / 12 - 1}`),
 });
 
-loadPatch(0);
+loadPatch(library.findIndex((p) => !collection(p, 'terror')));
 
 $('start').querySelector('button')!.addEventListener('click', async () => {
   try {
