@@ -12,7 +12,20 @@
       "speed-garage"
     ],
     "directory": "organ-bass",
-    "family": "organ"
+    "family": "organ",
+    "features": {
+      "brightness": 0.198,
+      "highEnergy": 0.328,
+      "sub": 0.636,
+      "lowMid": 0.726,
+      "dirt": 0.106,
+      "width": 0.252,
+      "attack": 0.382,
+      "decay": 0.901,
+      "sustain": 0.954,
+      "release": 0.431,
+      "movement": 0.068
+    }
   },
   "voice.legato": false,
   "voice.glide": 0,

@@ -13,7 +13,20 @@
     ],
     "directory": "acid-303",
     "family": "acid",
-    "audition": "acid-16ths"
+    "audition": "acid-16ths",
+    "features": {
+      "brightness": 0.336,
+      "highEnergy": 0.599,
+      "sub": 0.362,
+      "lowMid": 0.804,
+      "dirt": 0.469,
+      "width": 0.292,
+      "attack": 0.259,
+      "decay": 0.903,
+      "sustain": 0.943,
+      "release": 0.703,
+      "movement": 0.079
+    }
   },
   "voice.legato": true,
   "voice.glide": 60,

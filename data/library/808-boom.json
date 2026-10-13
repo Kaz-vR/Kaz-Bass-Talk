@@ -13,7 +13,20 @@
     ],
     "directory": "sine-drop-808",
     "family": "808",
-    "audition": "808-slides"
+    "audition": "808-slides",
+    "features": {
+      "brightness": 0.167,
+      "highEnergy": 0.437,
+      "sub": 0.835,
+      "lowMid": 0.496,
+      "dirt": 0.381,
+      "width": 0,
+      "attack": 0.259,
+      "decay": 0.778,
+      "sustain": 0.394,
+      "release": 0.587,
+      "movement": 0.001
+    }
   },
   "voice.legato": true,
   "voice.glide": 70,

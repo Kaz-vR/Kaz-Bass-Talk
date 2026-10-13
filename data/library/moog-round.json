@@ -13,7 +13,20 @@
     ],
     "directory": "moog",
     "family": "analog",
-    "audition": "funk-octaves"
+    "audition": "funk-octaves",
+    "features": {
+      "brightness": 0.195,
+      "highEnergy": 0.375,
+      "sub": 0.769,
+      "lowMid": 0.579,
+      "dirt": 0.175,
+      "width": 0,
+      "attack": 0.333,
+      "decay": 0.902,
+      "sustain": 0.94,
+      "release": 0.466,
+      "movement": 0.203
+    }
   },
   "voice.legato": false,
   "voice.glide": 0,

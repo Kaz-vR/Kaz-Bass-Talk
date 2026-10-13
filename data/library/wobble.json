@@ -11,7 +11,20 @@
       "rhythmic"
     ],
     "directory": "wobble",
-    "family": "wobble"
+    "family": "wobble",
+    "features": {
+      "brightness": 0.303,
+      "highEnergy": 0.577,
+      "sub": 0.695,
+      "lowMid": 0.586,
+      "dirt": 0.565,
+      "width": 0.744,
+      "attack": 0.259,
+      "decay": 0.722,
+      "sustain": 0.83,
+      "release": 0.453,
+      "movement": 0.452
+    }
   },
   "voice.legato": false,
   "voice.glide": 0,

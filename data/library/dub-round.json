@@ -13,7 +13,20 @@
     ],
     "directory": "dub-rubber",
     "family": "sub",
-    "audition": "long-notes"
+    "audition": "long-notes",
+    "features": {
+      "brightness": 0.098,
+      "highEnergy": 0,
+      "sub": 0.803,
+      "lowMid": 0.595,
+      "dirt": 0.099,
+      "width": 0,
+      "attack": 0.36,
+      "decay": 0.902,
+      "sustain": 0.912,
+      "release": 0.526,
+      "movement": 0.01
+    }
   },
   "voice.legato": false,
   "voice.glide": 0,

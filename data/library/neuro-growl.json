@@ -13,7 +13,20 @@
     ],
     "directory": "neuro",
     "family": "growl",
-    "audition": "dnb-roller"
+    "audition": "dnb-roller",
+    "features": {
+      "brightness": 0.396,
+      "highEnergy": 0.74,
+      "sub": 0.805,
+      "lowMid": 0.332,
+      "dirt": 0.997,
+      "width": 0.9,
+      "attack": 0.1,
+      "decay": 0.903,
+      "sustain": 0.875,
+      "release": 0.466,
+      "movement": 0.26
+    }
   },
   "voice.legato": false,
   "voice.glide": 0,

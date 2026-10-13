@@ -12,7 +12,20 @@
       "digital"
     ],
     "directory": "fm-slap-pluck",
-    "family": "fm"
+    "family": "fm",
+    "features": {
+      "brightness": 0.467,
+      "highEnergy": 0.677,
+      "sub": 0.607,
+      "lowMid": 0.403,
+      "dirt": 0.245,
+      "width": 0.441,
+      "attack": 0.382,
+      "decay": 0.901,
+      "sustain": 0.881,
+      "release": 0.446,
+      "movement": 0.096
+    }
   },
   "voice.legato": false,
   "voice.glide": 0,

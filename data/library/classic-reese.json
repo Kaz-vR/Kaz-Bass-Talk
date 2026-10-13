@@ -13,7 +13,20 @@
     ],
     "directory": "reese",
     "family": "reese",
-    "audition": "dnb-roller"
+    "audition": "dnb-roller",
+    "features": {
+      "brightness": 0.289,
+      "highEnergy": 0.439,
+      "sub": 0.506,
+      "lowMid": 0.779,
+      "dirt": 0.192,
+      "width": 0.8,
+      "attack": 0.301,
+      "decay": 0.902,
+      "sustain": 0.908,
+      "release": 0.528,
+      "movement": 0.22
+    }
   },
   "voice.legato": false,
   "voice.glide": 0,

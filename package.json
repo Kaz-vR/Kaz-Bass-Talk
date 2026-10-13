@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "render:previews": "tsx tools/render-previews.ts",
     "validate:data": "tsx tools/validate-data.ts",
-    "level:patches": "tsx tools/level-patches.ts"
+    "level:patches": "tsx tools/level-patches.ts",
+    "analyze:library": "tsx tools/analyze-library.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

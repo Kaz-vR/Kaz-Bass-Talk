@@ -13,7 +13,20 @@
     ],
     "directory": "nu-disco-rubber",
     "family": "funk",
-    "audition": "funk-octaves"
+    "audition": "funk-octaves",
+    "features": {
+      "brightness": 0.316,
+      "highEnergy": 0.559,
+      "sub": 0.601,
+      "lowMid": 0.658,
+      "dirt": 0.461,
+      "width": 0,
+      "attack": 0.382,
+      "decay": 0.546,
+      "sustain": 0.478,
+      "release": 0.481,
+      "movement": 0.144
+    }
   },
   "voice.legato": false,
   "voice.glide": 0,

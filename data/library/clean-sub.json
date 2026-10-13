@@ -12,7 +12,20 @@
       "minimal"
     ],
     "directory": "pure-sub",
-    "family": "sub"
+    "family": "sub",
+    "features": {
+      "brightness": 0.069,
+      "highEnergy": 0,
+      "sub": 0.881,
+      "lowMid": 0.473,
+      "dirt": 0.124,
+      "width": 0,
+      "attack": 0.447,
+      "decay": 0.9,
+      "sustain": 0.97,
+      "release": 0.435,
+      "movement": 0.001
+    }
   },
   "voice.legato": false,
   "voice.glide": 0,
