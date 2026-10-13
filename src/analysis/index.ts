@@ -68,6 +68,8 @@ export interface RawMeasures {
   dc: number;
   /** How alive a long held note is (only measured when requested; see measureLife). */
   life?: Life;
+  /** Texture bed relative to the bass on the held mid note, dB; null when the patch has no texture. */
+  textureDb: number | null;
 }
 
 /**
@@ -401,6 +403,7 @@ export function frozen(p: Patch): Patch {
   q['amp_env.attack'] = 1;
   q['amp_env.sustain'] = 1;
   q['amp_env.attack_curve'] = 0;
+  q['texture.level'] = 0;
   // A deliberately dissonant layer (not an octave or fifth) has no harmonic
   // lattice, so it would read as aliasing: leave it out of the frozen probe.
   if (!harmonicInterval(q['osc2.semi'] as number)) q['osc2.level'] = 0;
@@ -441,6 +444,9 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
     return mono(r.left, r.right);
   };
   const lowX = probe(PROBE_NOTES.low), midX = probe(PROBE_NOTES.mid), highX = probe(PROBE_NOTES.high);
+  // Texture: the same note without the bed; the difference is the bed (it has its own random generators).
+  const hasTexture = (p['texture.level'] as number) > 0;
+  const noTex: Patch = { ...p, meta: p.meta, 'texture.level': 0 };
   const holdEnd = Math.round(hold * fs);
   const settle = Math.round(0.25 * fs);
   const f0 = (note: number) => 440 * Math.pow(2, (note + 12 * (p['voice.octave'] as number) - 69) / 12);
@@ -502,9 +508,21 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
     peak,
     limiterDb: -db(minGain * minGain),
     dc: blackmanMean(m),
+    textureDb: null,
   };
+  if (hasTexture) {
+    const r = renderPatch(noTex, heldLoop(PROBE_NOTES.mid, hold), { sampleRate: fs, seconds: hold + after });
+    const bare = mono(r.left, r.right);
+    let e = 0, d = 0;
+    for (let i = Math.round(0.05 * fs); i < holdEnd; i++) {
+      e += bare[i] * bare[i];
+      d += (midX[i] - bare[i]) ** 2;
+    }
+    raw.textureDb = db(d / (e + 1e-30));
+  }
   if (opts.life ?? wantsLife(p.meta?.family as string | undefined)) {
-    const r = renderPatch(p, heldLoop(PROBE_NOTES.mid, LIFE_HOLD_SECONDS), { sampleRate: fs, seconds: LIFE_HOLD_SECONDS });
+    // Life is judged on the bass itself: a crackle bed must not make a static sound pass as alive.
+    const r = renderPatch(noTex, heldLoop(PROBE_NOTES.mid, LIFE_HOLD_SECONDS), { sampleRate: fs, seconds: LIFE_HOLD_SECONDS });
     track(r);
     raw.life = measureLife(mono(r.left, r.right), fs, Math.round(0.5 * fs), Math.round(LIFE_HOLD_SECONDS * fs));
     raw.peak = peak;

@@ -9,7 +9,8 @@
     "noteSpreadDb": { "max": 3.5, "label": "level jumps between low and high notes" },
     "sideLowDb": { "max": -20, "label": "stereo low end" },
     "limiterDb": { "max": 3, "label": "limiter working hard" },
-    "dc": { "maxAbs": 0.002, "label": "DC offset" }
+    "dc": { "maxAbs": 0.002, "label": "DC offset" },
+    "textureDb": { "max": -12, "label": "texture bed burying the bass" }
   },
   "families": {
     "distorted": { "harshDb": { "max": -3 }, "aliasDb": { "max": -50 } },
@@ -23,6 +24,7 @@
       "aliasDb": { "max": -48 },
       "whistleDb": { "max": 12 },
       "mudDb": { "max": 4.5 },
+      "textureDb": { "max": -8 },
       "lifeSlowDb": { "min": 0.45, "max": 4, "label": "slow movement over a held note (alive, not seasick)" },
       "lifeFastDb": { "min": 0.35, "max": 2.8, "label": "fast movement within a held note" },
       "lifeRepeat": { "max": 0.6, "label": "movement repeating like a clock (mechanical)" }

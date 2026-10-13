@@ -16,7 +16,7 @@ const data = qualityJson as unknown as QualityData;
 
 export type CheckCode =
   | 'aliasDb' | 'harshDb' | 'mudDb' | 'fundamentalDb' | 'whistleDb' | 'noteSpreadDb' | 'sideLowDb' | 'limiterDb' | 'dc'
-  | 'lifeSlowDb' | 'lifeFastDb' | 'lifeRepeat';
+  | 'lifeSlowDb' | 'lifeFastDb' | 'lifeRepeat' | 'textureDb';
 
 const LIFE_CODES = ['lifeSlowDb', 'lifeFastDb', 'lifeRepeat'];
 
@@ -79,6 +79,7 @@ export function judge(raw: RawMeasures, family?: string): Verdict {
   check('sideLowDb', raw.sideLowDb);
   check('limiterDb', raw.limiterDb);
   check('dc', raw.dc, '');
+  check('textureDb', raw.textureDb);
   if (wantsLife(family)) {
     // A family that must sound alive fails outright when life wasn't measured.
     check('lifeSlowDb', raw.life ? raw.life.slowDb : -1);

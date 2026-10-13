@@ -33,11 +33,13 @@ describe('critic checks that need no render', () => {
   const ok: RawMeasures = {
     centroidHz: 200, highDb: -30, subShare: 0.4, lowMidShare: 0.3, harshDb: -20, mudDb: 0, flatness: 0.01, widthDb: -20, sideLowDb: -90,
     attackMs: 5, decayMs: 1000, sustainDb: -2, releaseMs: 100, movementDb: 1, fundamentalDb: { low: -1, mid: -1, high: -2 },
-    noteSpreadDb: 1, aliasDb: -80, whistleDb: 2, peak: 0.7, limiterDb: 0, dc: 0,
+    noteSpreadDb: 1, aliasDb: -80, whistleDb: 2, peak: 0.7, limiterDb: 0, dc: 0, textureDb: null,
   };
   it('passes a clean measurement', () => expect(judge(ok).pass).toBe(true));
   it('flags a stereo low end', () => expect(judge({ ...ok, sideLowDb: -6 }).issues[0].code).toBe('sideLowDb'));
   it('flags DC', () => expect(judge({ ...ok, dc: 0.01 }).issues[0].code).toBe('dc'));
+  it('flags a texture bed that buries the bass', () => expect(judge({ ...ok, textureDb: -3 }).issues[0].code).toBe('textureDb'));
+  it('passes a texture bed under the bass', () => expect(judge({ ...ok, textureDb: -20 }).pass).toBe(true));
   it('skips aliasing when it is not measurable', () => expect(judge({ ...ok, aliasDb: null }).pass).toBe(true));
   it('gives aggressive families wider limits', () => {
     const edgy = { ...ok, harshDb: -5.5 };
