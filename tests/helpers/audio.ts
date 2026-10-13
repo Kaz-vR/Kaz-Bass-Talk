@@ -60,6 +60,32 @@ export function dcOffset(x: Float32Array): number {
   return s / w;
 }
 
+/**
+ * True DC level, measured in the spectrum: the energy below 0.5 Hz relative
+ * to the whole signal, in dB (one FFT over the whole render, zero-padded).
+ * Unlike a windowed mean, real low-frequency content (sub, slow modulation)
+ * doesn't leak into it.
+ */
+export function dcDb(x: Float32Array, sampleRate = 48000): number {
+  let N = 1;
+  while (N < x.length) N <<= 1;
+  N = Math.max(N, 131072);
+  const re = new Float64Array(N), im = new Float64Array(N);
+  for (let i = 0; i < x.length; i++) {
+    const t = (2 * Math.PI * i) / (x.length - 1);
+    re[i] = x[i] * (0.35875 - 0.48829 * Math.cos(t) + 0.14128 * Math.cos(2 * t) - 0.01168 * Math.cos(3 * t));
+  }
+  fft(re, im);
+  let low = 0, total = 0;
+  const kLow = Math.floor((0.5 * N) / sampleRate);
+  for (let k = 0; k < N / 2; k++) {
+    const e = re[k] * re[k] + im[k] * im[k];
+    total += e;
+    if (k <= kLow) low += e;
+  }
+  return 10 * Math.log10(low / (total + 1e-30) + 1e-30);
+}
+
 export function rms(x: Float32Array, from = 0, to = x.length): number {
   from = Math.round(from);
   to = Math.round(to);

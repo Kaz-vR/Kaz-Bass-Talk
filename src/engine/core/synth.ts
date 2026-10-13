@@ -24,6 +24,7 @@ import { PARAM_COUNT, paramIndex, params } from '../../schema';
 import { Biquad, clamp, Envelope, fastTanh, Ladder, Rng, Svf, TWO_PI } from './dsp';
 import { Chorus, Compressor, Crusher, Delay, Flanger, Limiter, Ott, Phaser, Reverb, Tape } from './fx';
 import { Downsampler2x, OVERSAMPLE_LATENCY, Upsampler2x } from './oversample';
+import { Comb, DiodeLadder, KarplusString, Shepard, Transient } from './voicefx';
 import {
   FRAME_COUNT,
   FRAMES_PER_SEGMENT,
@@ -40,7 +41,8 @@ const MAX_UNISON = 7;
 const DUCK_MS = 3;
 const SMOOTH_MS = 15;
 const LIMITER_CEILING_DB = -1;
-const SUBSONIC_HZ = 12;
+const SUBSONIC_HZ = 15;
+const SUBSONIC_Q = [0.5412, 1.3066]; // 4th-order Butterworth
 const VOICE_DC_HZ = 8;
 const OS = 2; // oversampling factor of the nonlinear section
 // Section Qs of an 8th-order Butterworth filter.
@@ -55,8 +57,8 @@ const VOICE_GAIN = 0.55;
 const SUB_GAIN = 0.55;
 
 // Enum option indices (must match data/schema.json order).
-const WAVE_SINE = 0, WAVE_TRI = 1, WAVE_SAW = 2, WAVE_PULSE = 3; // 4 = wavetable
-const FILTER_LP = 0, FILTER_BP = 1; // 2 = formant
+const WAVE_SINE = 0, WAVE_TRI = 1, WAVE_SAW = 2, WAVE_PULSE = 3, WAVE_PWMSAW = 5, WAVE_STRING = 6, WAVE_SHEPARD = 7; // 4 = wavetable
+const FILTER_LP = 0, FILTER_BP = 1, FILTER_DIODE = 3, FILTER_NOTCH = 4, FILTER_COMB = 5, FILTER_LPG = 6; // 2 = formant
 const DIST_SOFT = 0, DIST_HARD = 1, DIST_FOLD = 2; // 3 = tube
 const TUBE_BIAS = 0.4;
 const TUBE_OFFSET = Math.tanh(TUBE_BIAS);
@@ -75,12 +77,14 @@ const SYNC_BEATS = [0, 16, 8, 4, 2, 3, 1, 1.5, 2 / 3, 0.5, 0.75, 1 / 3, 0.25, 0.
 const DELAY_BEATS = [0.125, 1 / 6, 0.25, 0.375, 1 / 3, 0.5, 0.75, 2 / 3, 1, 1.5, 2, 3, 4];
 
 // Mod matrix sources / destinations (schema option order).
-const SRC_LFO1 = 1, SRC_LFO2 = 2, SRC_MOD_ENV = 3, SRC_AMP_ENV = 4, SRC_VEL = 5, SRC_KEY = 6, SRC_MODWHEEL = 7, SRC_RANDOM = 8;
-const SRC_COUNT = 9;
+const SRC_LFO1 = 1, SRC_LFO2 = 2, SRC_MOD_ENV = 3, SRC_AMP_ENV = 4, SRC_VEL = 5, SRC_KEY = 6, SRC_MODWHEEL = 7, SRC_RANDOM = 8,
+  SRC_DRIFT = 9, SRC_PRODUCT = 10;
+const SRC_COUNT = 11;
 const D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_OSC2_WT = 5, D_OSC1_PW = 6, D_OSC2_PW = 7,
   D_OSC1_LEVEL = 8, D_OSC2_LEVEL = 9, D_DETUNE = 10, D_FM = 11, D_SUB = 12, D_NOISE = 13, D_DRIVE = 14,
-  D_CUTOFF = 15, D_RES = 16, D_VOWEL = 17, D_DIST_DRIVE = 18, D_DIST_MIX = 19, D_AMP = 20, D_LFO1_RATE = 21, D_LFO2_RATE = 22;
-const DEST_COUNT = 23;
+  D_CUTOFF = 15, D_RES = 16, D_VOWEL = 17, D_DIST_DRIVE = 18, D_DIST_MIX = 19, D_AMP = 20, D_LFO1_RATE = 21, D_LFO2_RATE = 22,
+  D_FM2 = 23, D_CRUSH = 24;
+const DEST_COUNT = 25;
 
 // Formant table (Hz) for vowels A E I O U: F1, F2, F3.
 const VOWELS = [
@@ -107,7 +111,11 @@ const P = {
     wt: ix(`osc${n}.wt_pos`), voices: ix(`osc${n}.unison_voices`), detune: ix(`osc${n}.unison_detune`),
     spread: ix(`osc${n}.unison_spread`), level: ix(`osc${n}.level`),
   })),
-  fmAmount: ix('fm.amount'), fmRatio: ix('fm.ratio'),
+  fmAmount: ix('fm.amount'), fmRatio: ix('fm.ratio'), fmPunch: ix('fm.punch'), fmDecay: ix('fm.decay'), fmFb: ix('fm.feedback'),
+  fm2Amount: ix('fm2.amount'), fm2Ratio: ix('fm2.ratio'), fmAlgo: ix('fm.algorithm'),
+  strTone: ix('string.tone'), strDecay: ix('string.decay'), shepRate: ix('shepard.rate'),
+  accent: ix('filter.accent'), ampCurve: ix('amp_env.attack_curve'), chorusMode: ix('chorus.mode'),
+  clickType: ix('click.type'), clickLevel: ix('click.level'), clickDecay: ix('click.decay'), clickTone: ix('click.tone'),
   subWave: ix('sub.wave'), subOct: ix('sub.octave'), subLevel: ix('sub.level'),
   noise: ix('noise.level'), drive: ix('drive.amount'),
   fType: ix('filter.type'), cutoff: ix('filter.cutoff'), res: ix('filter.resonance'), keytrack: ix('filter.keytrack'),
@@ -205,6 +213,31 @@ export class Synth {
   private fmInc = 0;
   private fmIndex = 0;
   private pmPrev = 0;
+  private fm2Phase = 0;
+  private fm2Inc = 0;
+  private fm2Index = 0;
+  private fmFbAmt = 0;
+  private fmPrevOut = 0;
+  private fmEnv = 0;
+  private fmEnvCoef = 0.99;
+  private fmPunchIdx = 0;
+  private fmAlgo = 0;
+  private fmActive = false;
+  // Physical-model strings and Shepard oscillators (one per oscillator slot).
+  private readonly strings: KarplusString[];
+  private readonly strPeriod = new Float64Array(2);
+  private readonly strGain = new Float64Array(2);
+  private strTone = 0.5;
+  private readonly shepards = [new Shepard(), new Shepard()];
+  private shepRate = 0;
+  // Attack transient layer.
+  private readonly transient = new Transient();
+  private clickLevel = 0;
+  // Slow random 'drift' modulation source.
+  private driftVal = 0;
+  private driftTarget = 0;
+  private driftCount = 0;
+  private accentAmt = 0;
   private subPhase = 0;
   // Delays the sub by the oversampler latency so it stays phase-aligned with the voice.
   private readonly subDelay = new Float64Array(32);
@@ -225,6 +258,16 @@ export class Synth {
   private k = 0;
   private readonly ladL = new Ladder();
   private readonly ladR = new Ladder();
+  private readonly diodeL = new DiodeLadder();
+  private readonly diodeR = new DiodeLadder();
+  private readonly notchL = [new Svf(), new Svf()];
+  private readonly notchR = [new Svf(), new Svf()];
+  private readonly lpgL = new Svf();
+  private readonly lpgR = new Svf();
+  private readonly combL: Comb;
+  private readonly combR: Comb;
+  private combDelay = 100;
+  private combFb = 0;
   private readonly bpL = [new Svf(), new Svf()];
   private readonly bpR = [new Svf(), new Svf()];
   private readonly fmtL = [new Svf(), new Svf(), new Svf()];
@@ -295,8 +338,8 @@ export class Synth {
   private readonly reverb: Reverb;
   private readonly eqL = [new Biquad(), new Biquad(), new Biquad()];
   private readonly eqR = [new Biquad(), new Biquad(), new Biquad()];
-  private readonly dcL = new Biquad();
-  private readonly dcR = new Biquad();
+  private readonly dcL = [new Biquad(), new Biquad()];
+  private readonly dcR = [new Biquad(), new Biquad()];
   private readonly xo = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
   private readonly limiter: Limiter;
   private outGain = 1;
@@ -325,6 +368,9 @@ export class Synth {
     this.chorus = new Chorus(sampleRate);
     this.phaser = new Phaser(sampleRate);
     this.reverb = new Reverb(sampleRate);
+    this.combL = new Comb(Math.ceil((sampleRate * OS) / 20));
+    this.combR = new Comb(Math.ceil((sampleRate * OS) / 20));
+    this.strings = [new KarplusString(Math.ceil(sampleRate / 15)), new KarplusString(Math.ceil(sampleRate / 15))];
     this.flanger = new Flanger(sampleRate);
     this.delay = new Delay(sampleRate);
     this.tape = new Tape(sampleRate);
@@ -332,9 +378,11 @@ export class Synth {
     this.voiceDcL.setHighpass(VOICE_DC_HZ, Math.SQRT1_2, sampleRate);
     this.voiceDcR.setHighpass(VOICE_DC_HZ, Math.SQRT1_2, sampleRate);
     this.limiter = new Limiter(sampleRate, LIMITER_CEILING_DB);
-    // Subsonic + DC filter: 12 Hz 2nd-order high-pass (-0.1 dB at 30 Hz).
-    this.dcL.setHighpass(SUBSONIC_HZ, Math.SQRT1_2, sampleRate);
-    this.dcR.setHighpass(SUBSONIC_HZ, Math.SQRT1_2, sampleRate);
+    // Subsonic + DC filter: 15 Hz 4th-order high-pass (−0.4 dB at 20 Hz, flat by 30 Hz).
+    for (let i = 0; i < 2; i++) {
+      this.dcL[i].setHighpass(SUBSONIC_HZ, SUBSONIC_Q[i], sampleRate);
+      this.dcR[i].setHighpass(SUBSONIC_HZ, SUBSONIC_Q[i], sampleRate);
+    }
     this.lastFx.fill(NaN);
     this.applyDiscrete();
     this.control();
@@ -448,8 +496,10 @@ export class Synth {
     this.phaser.reset();
     this.reverb.reset();
     this.limiter.reset();
-    this.dcL.reset();
-    this.dcR.reset();
+    for (let i = 0; i < 2; i++) {
+      this.dcL[i].reset();
+      this.dcR[i].reset();
+    }
     this.toneL = this.toneR = 0;
     this.upL.reset();
     this.upR.reset();
@@ -458,6 +508,14 @@ export class Synth {
     this.voiceDcL.reset();
     this.voiceDcR.reset();
     for (const f of this.split) f.reset();
+    this.diodeL.reset();
+    this.diodeR.reset();
+    for (const f of [...this.notchL, ...this.notchR, this.lpgL, this.lpgR]) f.reset();
+    this.combL.reset();
+    this.combR.reset();
+    for (const st of this.strings) st.reset();
+    for (const sh of this.shepards) sh.reset();
+    this.transient.reset();
     this.hcL.reset();
     this.hcR.reset();
     this.crusher.reset();
@@ -506,6 +564,25 @@ export class Synth {
       this.dnR.reset();
     }
     this.noteCutoffJitter = this.rng.next();
+    if (!sounding) {
+      this.diodeL.reset();
+      this.diodeR.reset();
+      this.fm2Phase = 0;
+      this.fmPrevOut = 0;
+    }
+    // Per-note excitations: FM punch, string pluck, transient layer.
+    this.fmEnv = 1;
+    const cur = this.cur;
+    const noteHz = 440 * Math.pow(2, (note + 12 * cur[P.octave] - 69) / 12);
+    for (let n = 0; n < 2; n++) {
+      if (cur[P.osc[n].wave] === WAVE_STRING) {
+        const hz = noteHz * Math.pow(2, cur[P.osc[n].semi] / 12);
+        this.strings[n].pluck(this.sampleRate / hz);
+      }
+    }
+    if (cur[P.clickLevel] > 0) {
+      this.transient.trigger(cur[P.clickType], cur[P.clickDecay], cur[P.clickTone], noteHz, this.sampleRate);
+    }
     this.ampEnv.trigger();
     this.modEnv.trigger();
     this.pitchEnvLevel = 1;
@@ -587,7 +664,7 @@ export class Synth {
     this.smoothParams();
 
     // Envelope coefficients.
-    this.ampEnv.set(cur[P.amp[0]], cur[P.amp[1]], cur[P.amp[2]], cur[P.amp[3]], fs);
+    this.ampEnv.set(cur[P.amp[0]], cur[P.amp[1]], cur[P.amp[2]], cur[P.amp[3]], fs, cur[P.ampCurve]);
     this.modEnv.set(cur[P.mod[0]], cur[P.mod[1]], cur[P.mod[2]], cur[P.mod[3]], fs);
 
     // Glide and pitch envelope.
@@ -611,6 +688,13 @@ export class Synth {
     src[SRC_KEY] = clamp((this.pitch - KEYTRACK_CENTER) / 24, -1, 1);
     src[SRC_MODWHEEL] = this.modWheel;
     src[SRC_RANDOM] = this.noteRandom;
+    if (--this.driftCount <= 0) {
+      this.driftTarget = this.rng.next();
+      this.driftCount = Math.round(((0.4 + 1.2 * (0.5 + 0.5 * this.rng.next())) * fs) / CONTROL_BLOCK);
+    }
+    this.driftVal += (this.driftTarget - this.driftVal) * 0.004;
+    src[SRC_DRIFT] = this.driftVal;
+    src[SRC_PRODUCT] = this.lfoValue[0] * this.lfoValue[1];
     const dst = this.dst;
     dst.fill(0);
     for (let s = 0; s < 8; s++) {
@@ -680,7 +764,16 @@ export class Synth {
         o.lastVoices = voices;
       }
       const level = clamp(cur[op.level] + dst[n === 0 ? D_OSC1_LEVEL : D_OSC2_LEVEL], 0, 1);
-      o.gain = level / Math.sqrt(voices);
+      if (o.wave === WAVE_STRING || o.wave === WAVE_SHEPARD) {
+        // Single-voice oscillators: unison doesn't apply.
+        o.gain = level;
+        this.strPeriod[n] = 1 / center;
+        // Loop gain per period for a T60 of 0.08 .. 8 s.
+        const t60 = 0.08 * Math.pow(100, cur[P.strDecay]);
+        this.strGain[n] = Math.pow(10, (-3 * this.strPeriod[n]) / (t60 * fs));
+      } else {
+        o.gain = level / Math.sqrt(voices);
+      }
       o.pw = clamp(cur[op.pw] + 0.45 * dst[n === 0 ? D_OSC1_PW : D_OSC2_PW], 0.05, 0.95);
       // Wavetable frame selection.
       let wt: number;
@@ -689,19 +782,37 @@ export class Synth {
       else wt = clamp(cur[op.wt] + dst[n === 0 ? D_OSC1_WT : D_OSC2_WT], 0, 1);
       const fpos = wt * (FRAME_COUNT - 1);
       const fa = Math.min(FRAME_COUNT - 2, Math.floor(fpos));
-      const mip = mipForIncrement(o.inc[voices - 1] * (n === 0 && this.fmIndex > 0 ? 1.5 : 1));
+      const mip = mipForIncrement(o.inc[voices - 1] * (n === 0 && this.fmActive ? 2 : 1));
       o.baseA = (fa * MIP_LEVELS + mip) * TABLE_SIZE;
       o.baseB = ((fa + 1) * MIP_LEVELS + mip) * TABLE_SIZE;
       o.frac = fpos - fa;
       o.baseSaw = (SAW_FRAME * MIP_LEVELS + mip) * TABLE_SIZE;
     }
-    // FM: sine modulator phase-modulates osc 1 (index in cycles).
+    this.strTone = cur[P.strTone];
+    this.shepRate = (cur[P.shepRate] * 0.4) / fs; // octaves per sample (±0.4 oct/s)
+
+    // FM: sine operators phase-modulate osc 1 (indices in cycles). Operator 1
+    // has a steady depth plus a decaying punch and self-feedback; operator 2
+    // either modulates operator 1 (stack) or the oscillator directly (parallel).
     const fmAmt = clamp(cur[P.fmAmount] + dst[D_FM], 0, 1);
+    const fm2 = clamp(cur[P.fm2Amount] + dst[D_FM2], 0, 1);
     this.fmIndex = fmAmt * fmAmt * 1.3;
-    this.fmInc = Math.min(0.45, this.toInc(basePitch + cur[P.osc[0].semi]) * cur[P.fmRatio]);
+    this.fmPunchIdx = cur[P.fmPunch] * 2;
+    this.fm2Index = fm2 * fm2 * 1.3;
+    this.fmFbAmt = cur[P.fmFb] * 0.3;
+    this.fmAlgo = cur[P.fmAlgo];
+    this.fmEnvCoef = Math.exp(-4.6 / ((cur[P.fmDecay] / 1000) * fs));
+    this.fmActive = this.fmIndex > 0 || this.fmPunchIdx > 0 || this.fm2Index > 0;
+    const carrier = this.toInc(basePitch + cur[P.osc[0].semi]);
+    this.fmInc = Math.min(0.45, carrier * cur[P.fmRatio]);
+    this.fm2Inc = Math.min(0.45, carrier * cur[P.fm2Ratio]);
+    this.clickLevel = cur[P.clickLevel];
 
     // Sub.
-    this.subInc = this.toInc(basePitch + 12 * cur[P.subOct]);
+    // Sub, folded up an octave at a time if it would fall below 20 Hz (inaudible, wastes headroom).
+    let subInc = this.toInc(basePitch + 12 * cur[P.subOct]);
+    while (subInc < 20 / fs) subInc *= 2;
+    this.subInc = subInc;
     this.subLevel = clamp(cur[P.subLevel] + dst[D_SUB], 0, 1) * SUB_GAIN;
     this.noiseLevel = clamp(cur[P.noise] + dst[D_NOISE], 0, 1) * 0.5;
 
@@ -712,10 +823,14 @@ export class Synth {
     this.driveComp = 1 / (1 + 0.6 * drive);
 
     // Filter.
-    const res = clamp(cur[P.res] + dst[D_RES], 0, 1);
+    // 303-style accent: hard-played notes sweep further, resonate more and hit louder.
+    this.accentAmt = cur[P.accent] * clamp((this.velocity - 0.6) / 0.4, 0, 1);
+    const res = clamp(cur[P.res] + dst[D_RES] + 0.15 * this.accentAmt, 0, 1);
     const fsOs = fs * OS;
-    const octs = (cur[P.keytrack] * (this.pitch + 12 * cur[P.octave] - KEYTRACK_CENTER)) / 12 +
-      6 * cur[P.envAmt] * this.modEnv.level + 6 * dst[D_CUTOFF] + 0.12 * this.analog * this.noteCutoffJitter;
+    let octs = (cur[P.keytrack] * (this.pitch + 12 * cur[P.octave] - KEYTRACK_CENTER)) / 12 +
+      6 * cur[P.envAmt] * (1 + 1.5 * this.accentAmt) * this.modEnv.level + 6 * dst[D_CUTOFF] + 0.12 * this.analog * this.noteCutoffJitter;
+    // Low-pass gate: the cutoff closes together with the amp envelope.
+    if (this.filterType === FILTER_LPG) octs += 1.5 * Math.log2(Math.max(this.ampEnv.level, 0.002));
     const fc = clamp(cur[P.cutoff] * Math.pow(2, octs), 20, Math.min(20000, fs * 0.45));
     const gTarget = Math.tan((Math.PI * fc) / fsOs);
     if (this.gPrevTarget < 0) this.g = gTarget;
@@ -725,6 +840,15 @@ export class Synth {
       this.k = 3.85 * res;
     } else if (this.filterType === FILTER_BP) {
       this.k = 1.4 * (1 - res) + 0.08; // 1/Q
+    } else if (this.filterType === FILTER_DIODE) {
+      this.k = 7.2 * res;
+    } else if (this.filterType === FILTER_NOTCH) {
+      this.k = 2 * (1 - res) + 0.05;
+    } else if (this.filterType === FILTER_COMB) {
+      this.combDelay = fsOs / fc;
+      this.combFb = 0.96 * res;
+    } else if (this.filterType === FILTER_LPG) {
+      this.k = 1.4 - 1.1 * res;
     } else {
       const v = clamp(cur[P.vowel] + dst[D_VOWEL], 0, 1) * 4;
       const vi = Math.min(3, Math.floor(v));
@@ -754,7 +878,7 @@ export class Synth {
     }
 
     // Bitcrusher.
-    this.crushMix = cur[P.crushMix];
+    this.crushMix = clamp(cur[P.crushMix] + dst[D_CRUSH], 0, 1);
     this.crushQ = Math.pow(2, cur[P.crushBits] - 1);
     this.crushRate = cur[P.crushRate];
 
@@ -788,7 +912,7 @@ export class Synth {
     // Amp.
     const ampTarget = clamp(1 + dst[D_AMP], 0, 2);
     this.ampModStep = (ampTarget - this.ampMod) / CONTROL_BLOCK;
-    this.velGain = 1 - cur[P.velocity] * (1 - this.velocity);
+    this.velGain = (1 - cur[P.velocity] * (1 - this.velocity)) * (1 + 0.4 * this.accentAmt);
 
     // FX filters: only recompute coefficients when values move.
     const lf = this.lastFx;
@@ -850,8 +974,21 @@ export class Synth {
     return a + (t[base + ((i + 1) & TABLE_M)] - a) * f;
   }
 
+  /** Physical-model string or Shepard oscillator (single voice, centred). */
+  private specialOsc(n: number, o: OscState): number {
+    if (o.wave === WAVE_STRING) return this.strings[n].process(this.strPeriod[n], this.strTone, this.strGain[n]) * 1.4;
+    return this.shepards[n].process(o.inc[0], this.shepRate);
+  }
+
   private oscSample(o: OscState, ph: number): number {
     switch (o.wave) {
+      case WAVE_PWMSAW: {
+        // Rave "hoover": saw blended with a pulse whose width is modulated.
+        let p2 = ph - o.pw;
+        if (p2 < 0) p2 += 1;
+        const saw = this.readTable(o.baseSaw, ph);
+        return 0.6 * saw + 0.35 * (saw - this.readTable(o.baseSaw, p2));
+      }
       case WAVE_SAW:
         // Band-limited saw from the mip-mapped table (no aliasing at any pitch).
         return this.readTable(o.baseSaw, ph);
@@ -951,6 +1088,25 @@ export class Synth {
       this.bpR[0].process(r, g, k);
       this.bpR[1].process(this.bpR[0].bp * k, g, k);
       r = this.bpR[1].bp * k * 1.5;
+    } else if (this.filterType === FILTER_DIODE) {
+      l = this.diodeL.process(l, g, this.k) * 1.4;
+      r = this.diodeR.process(r, g, this.k) * 1.4;
+    } else if (this.filterType === FILTER_NOTCH) {
+      const k = this.k, nl = this.notchL, nr = this.notchR;
+      nl[0].process(l, g, k);
+      nl[1].process(nl[0].lp + nl[0].hp, g, k);
+      l = nl[1].lp + nl[1].hp;
+      nr[0].process(r, g, k);
+      nr[1].process(nr[0].lp + nr[0].hp, g, k);
+      r = nr[1].lp + nr[1].hp;
+    } else if (this.filterType === FILTER_COMB) {
+      l = this.combL.process(l, this.combDelay, this.combFb);
+      r = this.combR.process(r, this.combDelay, this.combFb);
+    } else if (this.filterType === FILTER_LPG) {
+      this.lpgL.process(l, g, this.k);
+      this.lpgR.process(r, g, this.k);
+      l = this.lpgL.lp;
+      r = this.lpgR.lp;
     } else {
       let fl = 0, fr = 0;
       const k = this.fmtK;
@@ -1042,10 +1198,17 @@ export class Synth {
 
         // FM modulator.
         let dpm = 0;
-        if (this.fmIndex > 0) {
+        if (this.fmActive) {
+          this.fmEnv *= this.fmEnvCoef;
+          this.fm2Phase += this.fm2Inc;
+          if (this.fm2Phase >= 1) this.fm2Phase -= 1;
+          const op2 = this.fm2Index > 0 ? this.fm2Index * Math.sin(TWO_PI * this.fm2Phase) : 0;
           this.fmPhase += this.fmInc;
           if (this.fmPhase >= 1) this.fmPhase -= 1;
-          const pm = this.fmIndex * Math.sin(TWO_PI * this.fmPhase);
+          const stack = this.fmAlgo === 0;
+          const op1 = Math.sin(TWO_PI * (this.fmPhase + (stack ? op2 : 0) + this.fmFbAmt * this.fmPrevOut));
+          this.fmPrevOut = op1;
+          const pm = (this.fmIndex + this.fmPunchIdx * this.fmEnv) * op1 + (stack ? 0 : op2);
           dpm = pm - this.pmPrev;
           this.pmPrev = pm;
         } else if (this.pmPrev !== 0) {
@@ -1054,7 +1217,11 @@ export class Synth {
         }
 
         // Oscillators (band-limited at the base rate).
-        if (o1.gain > 0) {
+        if (o1.gain > 0 && o1.wave >= WAVE_STRING) {
+          const s = this.specialOsc(0, o1) * o1.gain;
+          l += s;
+          r += s;
+        } else if (o1.gain > 0) {
           for (let j = 0; j < o1.voices; j++) {
             let ph = o1.phase[j] + o1.inc[j] + dpm;
             ph -= Math.floor(ph);
@@ -1069,7 +1236,11 @@ export class Synth {
             o1.phase[j] = ph - Math.floor(ph);
           }
         }
-        if (o2.gain > 0) {
+        if (o2.gain > 0 && o2.wave >= WAVE_STRING) {
+          const s = this.specialOsc(1, o2) * o2.gain;
+          l += s;
+          r += s;
+        } else if (o2.gain > 0) {
           for (let j = 0; j < o2.voices; j++) {
             let ph = o2.phase[j] + o2.inc[j];
             if (ph >= 1) ph -= 1;
@@ -1119,6 +1290,13 @@ export class Synth {
         l *= va;
         r *= va;
 
+        // Attack transient layer (bypasses the filter so it stays crisp).
+        if (this.clickLevel > 0) {
+          const c = this.transient.process() * this.clickLevel * this.velGain * this.duckGain * VOICE_GAIN * 1.5;
+          l += c;
+          r += c;
+        }
+
         // Sub: clean, mono, phase-stable.
         let sub = 0;
         if (this.subLevel > 0) {
@@ -1163,7 +1341,7 @@ export class Synth {
       let xl = hl, xr = hr;
       const cMix = cur[P.chorusMix];
       if (cMix > 1e-4) {
-        this.chorus.process(xl, xr, cMix, cur[P.chorusDepth], out);
+        this.chorus.process(xl, xr, cMix, cur[P.chorusDepth], out, cur[P.chorusMode] > 0.5);
         xl = out[0];
         xr = out[1];
       }
@@ -1207,8 +1385,8 @@ export class Synth {
       }
 
       // Subsonic / DC filter.
-      l = this.dcL.process(l);
-      r = this.dcR.process(r);
+      l = this.dcL[1].process(this.dcL[0].process(l));
+      r = this.dcR[1].process(this.dcR[0].process(r));
 
       // Mono below the crossover: keep the mid intact, high-pass the side.
       const m = 0.5 * (l + r);

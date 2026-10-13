@@ -210,14 +210,20 @@ export class Envelope {
   private cd = 0;
   private cr = 0;
   private sustain = 1;
+  // Attack shape: 0 = analog (fast start), >0 = reverse swell (slow start).
+  private curve = 0;
+  private attackInc = 0;
+  private pos = 0;
 
   private lastA = -1;
   private lastD = -1;
   private lastR = -1;
 
   /** Recompute coefficients (call at control rate; cheap when unchanged). */
-  set(attackMs: number, decayMs: number, sustain: number, releaseMs: number, fs: number): void {
+  set(attackMs: number, decayMs: number, sustain: number, releaseMs: number, fs: number, curve = 0): void {
     this.sustain = sustain;
+    this.curve = curve;
+    this.attackInc = 1 / Math.max(1, (attackMs * fs) / 1000);
     if (attackMs === this.lastA && decayMs === this.lastD && releaseMs === this.lastR) return;
     this.lastA = attackMs;
     this.lastD = decayMs;
@@ -232,6 +238,8 @@ export class Envelope {
   /** Start (or restart from the current level, no click) the attack. */
   trigger(): void {
     this.stage = 1;
+    // Reverse shape: continue the swell from the current level.
+    if (this.curve > 0) this.pos = Math.pow(this.level, 1 / (1 + 5 * this.curve));
   }
 
   release(): void {
@@ -246,7 +254,12 @@ export class Envelope {
   tick(): number {
     switch (this.stage) {
       case 1:
-        this.level += (1.2 - this.level) * this.ca;
+        if (this.curve > 0) {
+          this.pos += this.attackInc;
+          this.level = this.pos >= 1 ? 1 : Math.pow(this.pos, 1 + 5 * this.curve);
+        } else {
+          this.level += (1.2 - this.level) * this.ca;
+        }
         if (this.level >= 1) {
           this.level = 1;
           this.stage = 2;

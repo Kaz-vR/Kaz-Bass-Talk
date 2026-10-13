@@ -67,11 +67,14 @@
         "triangle",
         "saw",
         "pulse",
-        "wavetable"
+        "wavetable",
+        "pwm_saw",
+        "string",
+        "shepard"
       ],
       "default": "saw",
       "group": "osc1",
-      "describes": "Sine is pure and round; triangle is soft with a little edge; saw is bright and buzzy (classic bass); pulse is hollow and reedy; wavetable morphs between shapes with the position control."
+      "describes": "Sine is pure and round; triangle is soft with a little edge; saw is bright and buzzy; pulse is hollow and reedy; wavetable morphs with the position control; pwm_saw is the rave \"hoover\" saw-plus-pulse (move pulse width for the swirl); string is a plucked physical-model string (see String); shepard is an endless rising/falling octave illusion (see Shepard rate)."
     },
     {
       "id": "osc1.semi",
@@ -177,11 +180,14 @@
         "triangle",
         "saw",
         "pulse",
-        "wavetable"
+        "wavetable",
+        "pwm_saw",
+        "string",
+        "shepard"
       ],
       "default": "saw",
       "group": "osc2",
-      "describes": "Sine is pure and round; triangle is soft with a little edge; saw is bright and buzzy (classic bass); pulse is hollow and reedy; wavetable morphs between shapes with the position control."
+      "describes": "Sine is pure and round; triangle is soft with a little edge; saw is bright and buzzy; pulse is hollow and reedy; wavetable morphs with the position control; pwm_saw is the rave \"hoover\" saw-plus-pulse (move pulse width for the swirl); string is a plucked physical-model string (see String); shepard is an endless rising/falling octave illusion (see Shepard rate)."
     },
     {
       "id": "osc2.semi",
@@ -288,7 +294,7 @@
       "curve": "pow",
       "unit": "",
       "group": "fm",
-      "describes": "A sine modulator phase-modulates osc 1. Low adds bell-like bite; high is metallic, clangy and aggressive.",
+      "describes": "Steady FM depth: a sine operator phase-modulates osc 1. Low adds bell-like bite; high is metallic and aggressive.",
       "exponent": 2
     },
     {
@@ -302,6 +308,115 @@
       "unit": "x",
       "group": "fm",
       "describes": "Modulator pitch relative to the note. Whole numbers (1, 2, 3) sound harmonic; in-between values sound metallic and inharmonic."
+    },
+    {
+      "id": "fm.punch",
+      "label": "FM punch",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "fm",
+      "describes": "Extra FM depth at the start of each note that decays away: the sharp, metallic \"plunk\" of DX7 and LatelyBass basses."
+    },
+    {
+      "id": "fm.decay",
+      "label": "FM punch decay",
+      "type": "float",
+      "min": 5,
+      "max": 2000,
+      "default": 180,
+      "curve": "log",
+      "unit": "ms",
+      "group": "fm",
+      "describes": "How fast the FM punch fades. Short is a snappy slap; long is a slow metallic bloom."
+    },
+    {
+      "id": "fm.feedback",
+      "label": "FM feedback",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "fm",
+      "describes": "The modulator feeds back into itself: from smooth sine through saw-like buzz to gritty noise."
+    },
+    {
+      "id": "fm2.amount",
+      "label": "FM operator 2 amount",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "pow",
+      "unit": "",
+      "group": "fm",
+      "describes": "Depth of a second sine operator. Adds complexity: glassy, clangy or hollow depending on ratio.",
+      "exponent": 2
+    },
+    {
+      "id": "fm2.ratio",
+      "label": "FM operator 2 ratio",
+      "type": "float",
+      "min": 0.5,
+      "max": 16,
+      "default": 2,
+      "curve": "log",
+      "unit": "x",
+      "group": "fm",
+      "describes": "Pitch of the second operator relative to the note. Whole numbers are harmonic; others are metallic."
+    },
+    {
+      "id": "fm.algorithm",
+      "label": "FM routing",
+      "type": "enum",
+      "options": [
+        "stack",
+        "parallel"
+      ],
+      "default": "stack",
+      "group": "fm",
+      "describes": "Stack: operator 2 modulates operator 1, which modulates the oscillator (richer, more complex). Parallel: both modulate the oscillator directly (cleaner)."
+    },
+    {
+      "id": "string.tone",
+      "label": "String tone",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "group": "string",
+      "describes": "For the string wave: how bright the pluck and the string are. Low is a dark, thumbed double bass; high is a bright, snappy pick."
+    },
+    {
+      "id": "string.decay",
+      "label": "String sustain",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "group": "string",
+      "describes": "For the string wave: how long the string rings, from a short muted thump to a long sustaining tone."
+    },
+    {
+      "id": "shepard.rate",
+      "label": "Shepard rate",
+      "type": "float",
+      "min": -1,
+      "max": 1,
+      "default": -0.3,
+      "curve": "linear",
+      "unit": "",
+      "group": "string",
+      "describes": "For the shepard wave: speed and direction of the endless glide. Negative falls forever, positive rises forever, 0 is still."
     },
     {
       "id": "sub.wave",
@@ -352,6 +467,57 @@
       "exponent": 2
     },
     {
+      "id": "click.type",
+      "label": "Transient type",
+      "type": "enum",
+      "options": [
+        "noise",
+        "click",
+        "knock",
+        "kick"
+      ],
+      "default": "click",
+      "group": "click",
+      "describes": "The attack layer added on top of each note: noise is a breathy hit, click is a sharp tick, knock is a short woody/plastic thud, kick is a pitched kick drum that drops to the note."
+    },
+    {
+      "id": "click.level",
+      "label": "Transient level",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "pow",
+      "unit": "",
+      "group": "click",
+      "describes": "How loud the attack layer is. A little adds definition and punch on small speakers.",
+      "exponent": 2
+    },
+    {
+      "id": "click.decay",
+      "label": "Transient decay",
+      "type": "float",
+      "min": 1,
+      "max": 300,
+      "default": 15,
+      "curve": "log",
+      "unit": "ms",
+      "group": "click",
+      "describes": "Length of the attack layer. A few ms is a tick; 50-150 ms is a knock or kick."
+    },
+    {
+      "id": "click.tone",
+      "label": "Transient tone",
+      "type": "float",
+      "min": 100,
+      "max": 12000,
+      "default": 2500,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "click",
+      "describes": "Brightness of noise/click, or the start pitch of a knock/kick."
+    },
+    {
       "id": "drive.amount",
       "label": "Pre-filter drive",
       "type": "float",
@@ -370,11 +536,15 @@
       "options": [
         "lowpass",
         "bandpass",
-        "formant"
+        "formant",
+        "diode",
+        "notch",
+        "comb",
+        "lpg"
       ],
       "default": "lowpass",
       "group": "filter",
-      "describes": "Low-pass is the classic 4-pole bass filter; band-pass removes lows and highs for a nasal, thin tone; formant makes vowel sounds (\"yoy\", \"wow\")."
+      "describes": "Low-pass is the classic 4-pole bass filter; band-pass is nasal and thin; formant makes vowels; diode is the squelchy 18 dB 303 filter; notch carves a moving hole (grinding, phasey); comb rings at the cutoff pitch (metallic, robotic, growly); lpg is a West-Coast low-pass gate that closes with the note for woody, acoustic thumps."
     },
     {
       "id": "filter.cutoff",
@@ -435,6 +605,18 @@
       "unit": "",
       "group": "filter",
       "describes": "Formant mode only: morphs through vowels A \u2192 E \u2192 I \u2192 O \u2192 U."
+    },
+    {
+      "id": "filter.accent",
+      "label": "Accent",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "filter",
+      "describes": "303-style accent: hard-played notes open the filter further, resonate more and hit louder."
     },
     {
       "id": "dist.type",
@@ -618,6 +800,18 @@
       "unit": "ms",
       "group": "amp_env",
       "describes": "Fade-out after the key is released. Short is tight; long overlaps notes."
+    },
+    {
+      "id": "amp_env.attack_curve",
+      "label": "Attack shape",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "amp_env",
+      "describes": "0 is a normal fast-rising analog attack; 1 is a reverse swell that starts slow and rushes in (hardstyle reverse bass, backwards tape)."
     },
     {
       "id": "mod_env.attack",
@@ -828,7 +1022,9 @@
         "velocity",
         "keytrack",
         "modwheel",
-        "random"
+        "random",
+        "drift",
+        "lfo_product"
       ],
       "default": "none",
       "group": "mod",
@@ -861,7 +1057,9 @@
         "dist_mix",
         "amp",
         "lfo1_rate",
-        "lfo2_rate"
+        "lfo2_rate",
+        "fm2_amount",
+        "crush_mix"
       ],
       "default": "none",
       "group": "mod",
@@ -892,7 +1090,9 @@
         "velocity",
         "keytrack",
         "modwheel",
-        "random"
+        "random",
+        "drift",
+        "lfo_product"
       ],
       "default": "none",
       "group": "mod",
@@ -925,7 +1125,9 @@
         "dist_mix",
         "amp",
         "lfo1_rate",
-        "lfo2_rate"
+        "lfo2_rate",
+        "fm2_amount",
+        "crush_mix"
       ],
       "default": "none",
       "group": "mod",
@@ -956,7 +1158,9 @@
         "velocity",
         "keytrack",
         "modwheel",
-        "random"
+        "random",
+        "drift",
+        "lfo_product"
       ],
       "default": "none",
       "group": "mod",
@@ -989,7 +1193,9 @@
         "dist_mix",
         "amp",
         "lfo1_rate",
-        "lfo2_rate"
+        "lfo2_rate",
+        "fm2_amount",
+        "crush_mix"
       ],
       "default": "none",
       "group": "mod",
@@ -1020,7 +1226,9 @@
         "velocity",
         "keytrack",
         "modwheel",
-        "random"
+        "random",
+        "drift",
+        "lfo_product"
       ],
       "default": "none",
       "group": "mod",
@@ -1053,7 +1261,9 @@
         "dist_mix",
         "amp",
         "lfo1_rate",
-        "lfo2_rate"
+        "lfo2_rate",
+        "fm2_amount",
+        "crush_mix"
       ],
       "default": "none",
       "group": "mod",
@@ -1084,7 +1294,9 @@
         "velocity",
         "keytrack",
         "modwheel",
-        "random"
+        "random",
+        "drift",
+        "lfo_product"
       ],
       "default": "none",
       "group": "mod",
@@ -1117,7 +1329,9 @@
         "dist_mix",
         "amp",
         "lfo1_rate",
-        "lfo2_rate"
+        "lfo2_rate",
+        "fm2_amount",
+        "crush_mix"
       ],
       "default": "none",
       "group": "mod",
@@ -1148,7 +1362,9 @@
         "velocity",
         "keytrack",
         "modwheel",
-        "random"
+        "random",
+        "drift",
+        "lfo_product"
       ],
       "default": "none",
       "group": "mod",
@@ -1181,7 +1397,9 @@
         "dist_mix",
         "amp",
         "lfo1_rate",
-        "lfo2_rate"
+        "lfo2_rate",
+        "fm2_amount",
+        "crush_mix"
       ],
       "default": "none",
       "group": "mod",
@@ -1212,7 +1430,9 @@
         "velocity",
         "keytrack",
         "modwheel",
-        "random"
+        "random",
+        "drift",
+        "lfo_product"
       ],
       "default": "none",
       "group": "mod",
@@ -1245,7 +1465,9 @@
         "dist_mix",
         "amp",
         "lfo1_rate",
-        "lfo2_rate"
+        "lfo2_rate",
+        "fm2_amount",
+        "crush_mix"
       ],
       "default": "none",
       "group": "mod",
@@ -1276,7 +1498,9 @@
         "velocity",
         "keytrack",
         "modwheel",
-        "random"
+        "random",
+        "drift",
+        "lfo_product"
       ],
       "default": "none",
       "group": "mod",
@@ -1309,7 +1533,9 @@
         "dist_mix",
         "amp",
         "lfo1_rate",
-        "lfo2_rate"
+        "lfo2_rate",
+        "fm2_amount",
+        "crush_mix"
       ],
       "default": "none",
       "group": "mod",
@@ -1399,6 +1625,18 @@
       "unit": "",
       "group": "fx",
       "describes": "How much the chorus wobbles. High is seasick; low is a subtle widening."
+    },
+    {
+      "id": "chorus.mode",
+      "label": "Chorus mode",
+      "type": "enum",
+      "options": [
+        "classic",
+        "ensemble"
+      ],
+      "default": "classic",
+      "group": "fx",
+      "describes": "Classic is a two-voice stereo chorus; ensemble is a lush three-voice string-machine/Juno-style chorus (the hoover sound)."
     },
     {
       "id": "phaser.mix",

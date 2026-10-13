@@ -5,7 +5,7 @@ import { renderPatch } from '../src/engine/core/render';
 import { Rng } from '../src/engine/core/dsp';
 import { Synth } from '../src/engine/core/synth';
 import { params, type Patch } from '../src/schema';
-import { bandEnergy, dcOffset, hasNonFinite, libraryPatches, loop, loops, midSide, peak } from './helpers/audio';
+import { bandEnergy, dcDb, dcOffset, hasNonFinite, libraryPatches, loop, loops, midSide, peak } from './helpers/audio';
 
 const FS = 48000;
 const CEILING = new Synth(FS).limiterCeiling;
@@ -14,8 +14,11 @@ function checkSafety(name: string, patch: unknown, l: ReturnType<typeof loop>, s
   const r = renderPatch(patch, l, { seconds, tail: 0.25 });
   expect(hasNonFinite(r.left) || hasNonFinite(r.right), `${name}: non-finite samples`).toBe(false);
   expect(peak(r.left, r.right), `${name}: peak`).toBeLessThanOrEqual(CEILING + 1e-6);
-  expect(Math.abs(dcOffset(r.left)), `${name}: DC left`).toBeLessThan(2e-3);
-  expect(Math.abs(dcOffset(r.right)), `${name}: DC right`).toBeLessThan(2e-3);
+  // No DC: either a negligible absolute offset, or DC energy (< 0.5 Hz) at least 40 dB under the signal.
+  for (const [side, x] of [['left', r.left], ['right', r.right]] as const) {
+    const ok = Math.abs(dcOffset(x)) < 1e-3 || dcDb(x) < -40;
+    expect(ok, `${name}: DC ${side} (mean ${dcOffset(x).toExponential(1)}, ${dcDb(x).toFixed(1)} dB)`).toBe(true);
+  }
   const xo = ((patch as Record<string, unknown>)['output.crossover'] as number | undefined) ?? 120;
   const { mid, side } = midSide(r.left, r.right);
   // Stereo (side) content below half the crossover must be either ≥ 30 dB under

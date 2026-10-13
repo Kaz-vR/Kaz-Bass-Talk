@@ -43,8 +43,16 @@ export class Chorus {
     return a + (b - a) * f;
   }
 
-  /** Processes in place on the provided 2-element output holder. */
-  process(l: number, r: number, mix: number, depth: number, out: Float64Array): void {
+  /**
+   * Processes into the provided 2-element output holder. ensemble = true is
+   * a three-voice string-machine/Juno-style ensemble (taps 120° apart plus a
+   * fast shimmer); false is a classic two-voice chorus.
+   */
+  process(l: number, r: number, mix: number, depth: number, out: Float64Array, ensemble = false): void {
+    if (ensemble) {
+      this.processEnsemble(l, r, mix, depth, out);
+      return;
+    }
     const mask = this.size - 1;
     this.bufL[this.w & mask] = l;
     this.bufR[this.w & mask] = r;
@@ -67,6 +75,33 @@ export class Chorus {
     // Cross-feed the wet signals a little for a wider image.
     out[0] = l * dry + 0.5 * mix * (0.8 * wl + 0.2 * wr);
     out[1] = r * dry + 0.5 * mix * (0.8 * wr + 0.2 * wl);
+  }
+
+  private ensPhase = 0;
+  private shimmer = 0;
+
+  private processEnsemble(l: number, r: number, mix: number, depth: number, out: Float64Array): void {
+    const mask = this.size - 1;
+    this.bufL[this.w & mask] = l;
+    this.bufR[this.w & mask] = r;
+    this.ensPhase += (0.55 + 0.4 * depth) / this.fs;
+    if (this.ensPhase >= 1) this.ensPhase -= 1;
+    this.shimmer += 6.1 / this.fs;
+    if (this.shimmer >= 1) this.shimmer -= 1;
+    const base = 0.0065 * this.fs;
+    const mod = (0.001 + depth * 0.003) * this.fs;
+    const shim = 0.00012 * this.fs * Math.sin(TWO_PI * this.shimmer);
+    let wl = 0, wr = 0;
+    for (let t = 0; t < 3; t++) {
+      const ph = this.ensPhase + t / 3;
+      const s = Math.sin(TWO_PI * ph);
+      wl += this.read(this.bufL, base + mod * (0.5 + 0.5 * s) + shim);
+      wr += this.read(this.bufR, base + mod * (0.5 - 0.5 * s) + shim);
+    }
+    this.w = (this.w + 1) & mask;
+    const dry = 1 - 0.55 * mix;
+    out[0] = l * dry + mix * 0.3 * (0.7 * wl + 0.3 * wr);
+    out[1] = r * dry + mix * 0.3 * (0.7 * wr + 0.3 * wl);
   }
 }
 
