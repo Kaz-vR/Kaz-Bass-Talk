@@ -338,7 +338,7 @@
       "label": "FM punch decay",
       "type": "float",
       "min": 5,
-      "max": 2000,
+      "max": 8000,
       "default": 180,
       "curve": "log",
       "unit": "ms",
@@ -820,7 +820,7 @@
       "label": "Amp attack",
       "type": "float",
       "min": 0.5,
-      "max": 5000,
+      "max": 20000,
       "default": 2,
       "curve": "log",
       "unit": "ms",
@@ -832,7 +832,7 @@
       "label": "Amp decay",
       "type": "float",
       "min": 1,
-      "max": 10000,
+      "max": 20000,
       "default": 300,
       "curve": "log",
       "unit": "ms",
@@ -856,7 +856,7 @@
       "label": "Amp release",
       "type": "float",
       "min": 1,
-      "max": 10000,
+      "max": 15000,
       "default": 60,
       "curve": "log",
       "unit": "ms",
@@ -928,7 +928,7 @@
       "label": "Env 2 attack",
       "type": "float",
       "min": 1,
-      "max": 10000,
+      "max": 30000,
       "default": 1500,
       "curve": "log",
       "unit": "ms",
@@ -988,12 +988,108 @@
       "label": "Pitch envelope decay",
       "type": "float",
       "min": 1,
-      "max": 2000,
+      "max": 20000,
       "default": 60,
       "curve": "log",
       "unit": "ms",
       "group": "pitch_env",
       "describes": "How quickly the pitch envelope falls back to the played note."
+    },
+    {
+      "id": "vibrato.depth",
+      "label": "Vibrato depth",
+      "type": "float",
+      "min": 0,
+      "max": 100,
+      "default": 0,
+      "curve": "linear",
+      "unit": "ct",
+      "group": "vibrato",
+      "describes": "Pitch wobble of a played note in cents, like a string player or singer. 10-25 is natural; more is wobbly."
+    },
+    {
+      "id": "vibrato.rate",
+      "label": "Vibrato rate",
+      "type": "float",
+      "min": 2,
+      "max": 9,
+      "default": 5.2,
+      "curve": "linear",
+      "unit": "Hz",
+      "group": "vibrato",
+      "describes": "Vibrato speed; each note varies it slightly so a chord never wobbles in lockstep."
+    },
+    {
+      "id": "vibrato.delay",
+      "label": "Vibrato delay",
+      "type": "float",
+      "min": 0,
+      "max": 3000,
+      "default": 350,
+      "curve": "linear",
+      "unit": "ms",
+      "group": "vibrato",
+      "describes": "Time after the note starts before the vibrato begins: notes start straight, then sing."
+    },
+    {
+      "id": "vibrato.fade",
+      "label": "Vibrato fade-in",
+      "type": "float",
+      "min": 1,
+      "max": 3000,
+      "default": 500,
+      "curve": "log",
+      "unit": "ms",
+      "group": "vibrato",
+      "describes": "How long the vibrato takes to reach full depth after its delay."
+    },
+    {
+      "id": "breath.chiff",
+      "label": "Breath chiff",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "breath",
+      "describes": "A short burst of breath or bow noise at the start of each note, through the filter: the attack of brass, flutes and bowed strings."
+    },
+    {
+      "id": "breath.decay",
+      "label": "Chiff decay",
+      "type": "float",
+      "min": 5,
+      "max": 1000,
+      "default": 120,
+      "curve": "log",
+      "unit": "ms",
+      "group": "breath",
+      "describes": "How long the attack noise lasts."
+    },
+    {
+      "id": "breath.level",
+      "label": "Breath level",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "breath",
+      "describes": "Breath noise that sustains with the note (follows the amp envelope): airy brass, breathy voices, bowing."
+    },
+    {
+      "id": "breath.tone",
+      "label": "Breath tone",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "group": "breath",
+      "describes": "Where the breath noise sits: dark (0, ~500 Hz) to airy (1, ~8 kHz)."
     },
     {
       "id": "lfo1.shape",
@@ -1360,7 +1456,9 @@
         "width",
         "tape_wow",
         "dist_tone",
-        "texture_level"
+        "texture_level",
+        "vibrato_depth",
+        "breath_level"
       ],
       "default": "none",
       "group": "mod",
@@ -1443,7 +1541,9 @@
         "width",
         "tape_wow",
         "dist_tone",
-        "texture_level"
+        "texture_level",
+        "vibrato_depth",
+        "breath_level"
       ],
       "default": "none",
       "group": "mod",
@@ -1526,7 +1626,9 @@
         "width",
         "tape_wow",
         "dist_tone",
-        "texture_level"
+        "texture_level",
+        "vibrato_depth",
+        "breath_level"
       ],
       "default": "none",
       "group": "mod",
@@ -1609,7 +1711,9 @@
         "width",
         "tape_wow",
         "dist_tone",
-        "texture_level"
+        "texture_level",
+        "vibrato_depth",
+        "breath_level"
       ],
       "default": "none",
       "group": "mod",
@@ -1692,7 +1796,9 @@
         "width",
         "tape_wow",
         "dist_tone",
-        "texture_level"
+        "texture_level",
+        "vibrato_depth",
+        "breath_level"
       ],
       "default": "none",
       "group": "mod",
@@ -1775,7 +1881,9 @@
         "width",
         "tape_wow",
         "dist_tone",
-        "texture_level"
+        "texture_level",
+        "vibrato_depth",
+        "breath_level"
       ],
       "default": "none",
       "group": "mod",
@@ -1858,7 +1966,9 @@
         "width",
         "tape_wow",
         "dist_tone",
-        "texture_level"
+        "texture_level",
+        "vibrato_depth",
+        "breath_level"
       ],
       "default": "none",
       "group": "mod",
@@ -1941,7 +2051,9 @@
         "width",
         "tape_wow",
         "dist_tone",
-        "texture_level"
+        "texture_level",
+        "vibrato_depth",
+        "breath_level"
       ],
       "default": "none",
       "group": "mod",
@@ -2024,7 +2136,9 @@
         "width",
         "tape_wow",
         "dist_tone",
-        "texture_level"
+        "texture_level",
+        "vibrato_depth",
+        "breath_level"
       ],
       "default": "none",
       "group": "mod",
@@ -2107,7 +2221,9 @@
         "width",
         "tape_wow",
         "dist_tone",
-        "texture_level"
+        "texture_level",
+        "vibrato_depth",
+        "breath_level"
       ],
       "default": "none",
       "group": "mod",
@@ -2190,7 +2306,9 @@
         "width",
         "tape_wow",
         "dist_tone",
-        "texture_level"
+        "texture_level",
+        "vibrato_depth",
+        "breath_level"
       ],
       "default": "none",
       "group": "mod",
@@ -2273,7 +2391,9 @@
         "width",
         "tape_wow",
         "dist_tone",
-        "texture_level"
+        "texture_level",
+        "vibrato_depth",
+        "breath_level"
       ],
       "default": "none",
       "group": "mod",

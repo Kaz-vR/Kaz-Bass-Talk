@@ -57,8 +57,9 @@ export const D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_O
   D_OSC1_LEVEL = 8, D_OSC2_LEVEL = 9, D_DETUNE = 10, D_FM = 11, D_SUB = 12, D_NOISE = 13, D_DRIVE = 14,
   D_CUTOFF = 15, D_RES = 16, D_VOWEL = 17, D_DIST_DRIVE = 18, D_DIST_MIX = 19, D_AMP = 20, D_LFO1_RATE = 21, D_LFO2_RATE = 22,
   D_FM2 = 23, D_CRUSH = 24, D_LFO3_RATE = 25, D_LFO4_RATE = 26, D_CHORUS_DEPTH = 27, D_PHASER_MIX = 28,
-  D_DELAY_TIME = 29, D_DELAY_MIX = 30, D_REVERB_MIX = 31, D_WIDTH = 32, D_TAPE_WOW = 33, D_DIST_TONE = 34, D_TEXTURE = 35;
-export const DEST_COUNT = 36;
+  D_DELAY_TIME = 29, D_DELAY_MIX = 30, D_REVERB_MIX = 31, D_WIDTH = 32, D_TAPE_WOW = 33, D_DIST_TONE = 34, D_TEXTURE = 35,
+  D_VIBRATO = 36, D_BREATH = 37;
+export const DEST_COUNT = 38;
 export const TEXTURE_GAIN = 0.5;
 export const LFO_RATE_DEST = [D_LFO1_RATE, D_LFO2_RATE, D_LFO3_RATE, D_LFO4_RATE];
 
@@ -104,6 +105,8 @@ export const P = {
   amp: [ix('amp_env.attack'), ix('amp_env.decay'), ix('amp_env.sustain'), ix('amp_env.release')],
   mod: [ix('mod_env.attack'), ix('mod_env.decay'), ix('mod_env.sustain'), ix('mod_env.release')],
   peAmount: ix('pitch_env.amount'), peDecay: ix('pitch_env.decay'),
+  vibDepth: ix('vibrato.depth'), vibRate: ix('vibrato.rate'), vibDelay: ix('vibrato.delay'), vibFade: ix('vibrato.fade'),
+  chiff: ix('breath.chiff'), chiffDecay: ix('breath.decay'), breath: ix('breath.level'), breathTone: ix('breath.tone'),
   lfo: [1, 2, 3, 4].map((n) => ({
     shape: ix(`lfo${n}.shape`), rate: ix(`lfo${n}.rate`), sync: ix(`lfo${n}.sync`), retrig: ix(`lfo${n}.retrigger`), fade: ix(`lfo${n}.fade`),
   })),

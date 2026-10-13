@@ -38,8 +38,11 @@ const D = {
   OSC1_PW: K.D_OSC1_PW, OSC2_PW: K.D_OSC2_PW, OSC1_LEVEL: K.D_OSC1_LEVEL, OSC2_LEVEL: K.D_OSC2_LEVEL, DETUNE: K.D_DETUNE,
   FM: K.D_FM, SUB: K.D_SUB, NOISE: K.D_NOISE, DRIVE: K.D_DRIVE, CUTOFF: K.D_CUTOFF, RES: K.D_RES, VOWEL: K.D_VOWEL,
   DIST_DRIVE: K.D_DIST_DRIVE, DIST_MIX: K.D_DIST_MIX, AMP: K.D_AMP, FM2: K.D_FM2, CRUSH: K.D_CRUSH, TAPE_WOW: K.D_TAPE_WOW,
-  DIST_TONE: K.D_DIST_TONE,
+  DIST_TONE: K.D_DIST_TONE, VIBRATO: K.D_VIBRATO, BREATH: K.D_BREATH,
 };
+
+/** Offsets (in grid steps) of interior unison voices from an even spread. */
+const UNISON_SKEW = [0, 0.19, -0.13, 0.08, -0.17, 0.11, 0];
 
 interface OscState {
   phase: Float64Array;
@@ -126,6 +129,18 @@ export class Voice {
   private shepRate = 0;
   private readonly transient = new Transient();
   private clickLevel = 0;
+  // Delayed vibrato (per note: its own phase and a slightly different rate).
+  private noteTime = 0;
+  private vibPhase = 0;
+  private vibRate = 5;
+  // Breath: band-passed noise through the filter, an attack chiff plus a sustained level.
+  private readonly breathSvf = new Svf();
+  private breathG = 0.1;
+  private chiffEnv = 0;
+  private chiffCoef = 0.99;
+  private chiffAmt = 0;
+  private breathLvl = 0;
+  private breathOn = false;
   private accentAmt = 0;
   private subPhase = 0;
   // Delays the sub by the oversampler latency so it stays phase-aligned with the voice.
@@ -285,6 +300,10 @@ export class Voice {
     this.env2.trigger();
     this.pitchEnvLevel = 1;
     this.noteRandom = this.rng.next();
+    this.noteTime = 0;
+    this.vibPhase = 0.5 * (this.rng.next() + 1);
+    this.vibRate = cur[P.vibRate] * (1 + 0.05 * this.rng.next());
+    this.chiffEnv = 1;
   }
 
   release(): void {
@@ -326,6 +345,7 @@ export class Voice {
     for (const st of this.strings) st.reset();
     for (const sh of this.shepards) sh.reset();
     this.transient.reset();
+    this.breathSvf.reset();
     this.crusher.reset();
     this.tape.reset();
     this.subDelay.fill(0);
@@ -396,8 +416,21 @@ export class Voice {
 
     this.analog = cur[P.analog];
 
+    // Delayed vibrato: the note starts straight, then sings.
+    this.noteTime += CONTROL_BLOCK / fs;
+    let vib = 0;
+    const vibDepth = clamp(cur[P.vibDepth] + 100 * dst[D.VIBRATO], 0, 100);
+    if (vibDepth > 0) {
+      const t = this.noteTime - cur[P.vibDelay] / 1000;
+      if (t > 0) {
+        this.vibPhase += (this.vibRate * CONTROL_BLOCK) / fs;
+        if (this.vibPhase >= 1) this.vibPhase -= 1;
+        vib = (vibDepth / 100) * Math.min(1, t / (cur[P.vibFade] / 1000)) * Math.sin(TWO_PI * this.vibPhase);
+      }
+    }
+
     // Pitch.
-    const basePitch = this.pitch + 12 * cur[P.octave] + 2 * bend + cur[P.peAmount] * this.pitchEnvLevel + 24 * dst[D.PITCH];
+    const basePitch = this.pitch + 12 * cur[P.octave] + 2 * bend + cur[P.peAmount] * this.pitchEnvLevel + 24 * dst[D.PITCH] + vib;
 
     // Oscillators.
     for (let n = 0; n < 2; n++) {
@@ -413,12 +446,14 @@ export class Voice {
       if (voices === 1) {
         o.inc[0] = center;
       } else {
-        // Voices spread evenly over ±detune/2 cents.
-        const step = Math.pow(2, detune / (1200 * (voices - 1)));
-        let inc = center * Math.pow(2, -detune / 2400);
+        // Voices spread over ±detune/2 cents. Interior voices sit slightly off the even
+        // grid: evenly spaced detunes beat at exact multiples of each other and the
+        // pattern repeats like a clock; uneven ones never line up.
+        const last = voices - 1;
         for (let j = 0; j < voices; j++) {
+          const pos = j / last - 0.5 + (j > 0 && j < last ? UNISON_SKEW[j] / last : 0);
+          const inc = center * Math.pow(2, (detune * pos) / 1200);
           o.inc[j] = inc < 0.45 ? inc : 0.45;
-          inc *= step;
         }
       }
       if (this.analog > 0) {
@@ -491,6 +526,13 @@ export class Voice {
     this.subInc = subInc;
     this.subLevel = clamp(cur[P.subLevel] + dst[D.SUB], 0, 1) * SUB_GAIN;
     this.noiseLevel = clamp(cur[P.noise] + dst[D.NOISE], 0, 1) * 0.5;
+    this.chiffAmt = cur[P.chiff];
+    this.breathLvl = clamp(cur[P.breath] + dst[D.BREATH], 0, 1);
+    this.breathOn = this.chiffAmt > 0 || this.breathLvl > 0;
+    if (this.breathOn) {
+      this.breathG = Math.tan((Math.PI * Math.min(500 * Math.pow(16, cur[P.breathTone]), fs * 0.45)) / fs);
+      this.chiffCoef = Math.exp(-4.6 / ((cur[P.chiffDecay] / 1000) * fs));
+    }
 
     // Pre-filter drive.
     const drive = clamp(cur[P.drive] + dst[D.DRIVE], 0, 1);
@@ -835,6 +877,14 @@ export class Voice {
         const nz = this.rng.next() * this.noiseLevel;
         l += nz;
         r += nz;
+      }
+      if (this.breathOn) {
+        this.chiffEnv *= this.chiffCoef;
+        const ba = this.chiffAmt * this.chiffEnv + 0.5 * this.breathLvl;
+        this.breathSvf.process(this.rng.next(), this.breathG, 1.1);
+        const b = this.breathSvf.bp * ba * 1.6;
+        l += b;
+        r += b;
       }
       l *= PRE_FILTER_GAIN;
       r *= PRE_FILTER_GAIN;
