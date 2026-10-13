@@ -438,7 +438,7 @@
       "limits": {
         "lifeSlowDb": {
           "min": 0.45,
-          "max": 4
+          "max": 5
         },
         "lifeFastDb": {
           "min": 0.35,
