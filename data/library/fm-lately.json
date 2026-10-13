@@ -16,11 +16,11 @@
     "directory": "fm-lately",
     "family": "fm",
     "features": {
-      "brightness": 0.418,
-      "highEnergy": 0.736,
-      "sub": 0.566,
-      "lowMid": 0.688,
-      "dirt": 0.914,
+      "brightness": 0.42,
+      "highEnergy": 0.738,
+      "sub": 0.559,
+      "lowMid": 0.692,
+      "dirt": 0.913,
       "width": 0,
       "attack": 0.46,
       "decay": 0.9,
@@ -199,6 +199,6 @@
   "eq.mid_freq": 280,
   "eq.high_gain": 1.5,
   "eq.highcut": 14000,
-  "output.gain": -0.4,
+  "output.gain": -0.7,
   "output.crossover": 120
 }

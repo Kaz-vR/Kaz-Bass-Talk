@@ -14,12 +14,12 @@
     "directory": "psy-offbeat",
     "family": "pluck",
     "features": {
-      "brightness": 0.293,
-      "highEnergy": 0.559,
-      "sub": 0.521,
-      "lowMid": 0.735,
-      "dirt": 0.584,
-      "width": 0.795,
+      "brightness": 0.296,
+      "highEnergy": 0.569,
+      "sub": 0.523,
+      "lowMid": 0.734,
+      "dirt": 0.59,
+      "width": 0.792,
       "attack": 0.301,
       "decay": 0.475,
       "sustain": 0.594,
@@ -197,6 +197,6 @@
   "eq.mid_freq": 800,
   "eq.high_gain": 0,
   "eq.highcut": 12000,
-  "output.gain": -3,
+  "output.gain": -3.3,
   "output.crossover": 120
 }

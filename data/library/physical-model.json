@@ -13,9 +13,9 @@
     "directory": "physical-model",
     "family": "experimental",
     "features": {
-      "brightness": 0.175,
-      "highEnergy": 0.675,
-      "sub": 0.925,
+      "brightness": 0.183,
+      "highEnergy": 0.682,
+      "sub": 0.924,
       "lowMid": 0.346,
       "dirt": 1,
       "width": 0.404,

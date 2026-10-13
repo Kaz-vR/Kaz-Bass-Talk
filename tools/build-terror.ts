@@ -56,7 +56,7 @@ const TERROR_BASE: Record<string, number | string | boolean> = {
   // Dirt above the sub, kept dark.
   'dist.type': 'tube', 'dist.drive': 0.28, 'dist.mix': 0.65, 'dist.post_tone': 0.35, 'dist.clean_below': 120,
   'tape.drive': 0.45, 'tape.wow': 0.22, 'tape.age': 0.45,
-  'crush.mix': 0.05, 'crush.bits': 11, 'crush.rate': 1,
+  'crush.mix': 0,
   // Glue and breath.
   'comp.amount': 0.5, 'comp.speed': 0.4, 'comp.pump': 0.25, 'ott.amount': 0.2,
   // Space, above the low cut only.
@@ -76,12 +76,12 @@ const ALIVE: Mod[] = [
   ['lfo1', 'filter_cutoff', 0.14],
   ['lfo2', 'filter_cutoff', 0.05],
   ['env2', 'filter_cutoff', 0.12],
-  ['drift_slow', 'dist_drive', 0.12],
+  ['drift_slow', 'drive', 0.15],
   ['lfo3', 'unison_detune', 0.06],
   ['lfo4', 'width', 0.35],
   ['drift', 'osc2_pitch', 0.002],
   ['lfo1', 'delay_time', 0.04],
-  ['drift_slow', 'reverb_mix', 0.08],
+  ['drift_slow', 'reverb_mix', 0.2],
   ['lfo4', 'chorus_depth', 0.25],
   ['velocity', 'filter_cutoff', 0.15],
   ['random', 'filter_cutoff', 0.05],
@@ -129,7 +129,7 @@ const D: Def[] = [
       'env2.attack': 2600, 'reverb.mix': 0.34, 'reverb.size': 0.92, 'reverb.tone': 0.85,
       'delay.mix': 0.14, 'delay.time': '1/2', 'delay.feedback': 0.5, 'delay.tone': 0.2, 'eq.highcut': 4800, 'comp.pump': 0.15,
     },
-    mods: kit([['env2', 'filter_cutoff', 0.2], ['drift_slow', 'reverb_mix', 0.12]]),
+    mods: kit([['env2', 'filter_cutoff', 0.2], ['drift_slow', 'reverb_mix', 0.25]]),
   },
   {
     id: 'worn-tape', dir: 'lorn-tape-flutter', name: 'Worn Tape',
@@ -137,7 +137,7 @@ const D: Def[] = [
     description: 'Bass from a tape that has been played to death: sick wow and flutter, crushed grain, hiss and a dull, warm top.',
     tags: ['lorn', 'terror', 'tape', 'lo-fi', 'worn', 'wonky', 'grain', 'haunted'],
     set: {
-      'tape.drive': 0.6, 'tape.wow': 0.55, 'tape.age': 0.7, 'crush.mix': 0.12, 'crush.bits': 10, 'crush.rate': 2,
+      'tape.drive': 0.6, 'tape.wow': 0.55, 'tape.age': 0.7, 'crush.mix': 0.3, 'crush.bits': 6, 'crush.rate': 10,
       'noise.level': 0.025, 'filter.cutoff': 700, 'eq.highcut': 5000,
     },
     mods: kit([['drift', 'osc2_pitch', 0.004]]),
@@ -196,17 +196,19 @@ const D: Def[] = [
     tags: ['lorn', 'terror', '808', 'crushed', 'distorted', 'long', 'dark'],
     set: {
       'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'osc1.level': 0.75, 'osc2.wave': 'triangle', 'osc2.level': 0.2,
-      'pitch_env.amount': 12, 'pitch_env.decay': 60, 'click.type': 'knock', 'click.level': 0.25, 'click.decay': 25, 'click.tone': 900,
+      'pitch_env.amount': 12, 'pitch_env.decay': 60, 'click.type': 'knock', 'click.level': 0.65, 'click.decay': 25, 'click.tone': 900,
       'amp_env.attack': 1, 'amp_env.decay': 3200, 'amp_env.sustain': 0.4, 'amp_env.release': 700,
       'drive.amount': 0.6, 'filter.cutoff': 1200, 'dist.type': 'fold', 'dist.drive': 0.3, 'dist.mix': 0.75, 'dist.clean_below': 90, 'sub.level': 0.5,
-      'crush.mix': 0.14, 'crush.bits': 9, 'comp.pump': 0.1, 'chorus.mix': 0.1, 'tape.wow': 0.3, 'lfo2.rate': 3.1,
+      'crush.mix': 0.25, 'crush.bits': 5, 'crush.rate': 7, 'comp.pump': 0.1, 'chorus.mix': 0.24, 'tape.wow': 0.3, 'lfo2.rate': 3.1,
     },
     // A sine body has few harmonics before the distortion, so the filter can't move it:
     // a wavefolder whose depth wanders reshapes the strong low harmonics instead.
-    mods: kit([['drift_slow', 'dist_drive', 0.1]], {
+    mods: kit([], {
       'lfo1>filter_cutoff': ['lfo1', 'dist_drive', 0.15],
       'lfo2>filter_cutoff': ['lfo2', 'dist_drive', 0.08],
       'lfo3>unison_detune': ['lfo3', 'tape_wow', 0.3],
+      'env2>filter_cutoff': ['env2', 'osc2_level', 0.2],
+      'random>filter_cutoff': ['random', 'dist_drive', 0.06],
     }),
   },
   {
@@ -230,9 +232,10 @@ const D: Def[] = [
       'filter.cutoff': 380, 'filter.resonance': 0.15, 'drive.amount': 0.5, 'tape.drive': 0.6, 'tape.wow': 0.35, 'tape.age': 0.65,
       'chorus.mix': 0.06, 'reverb.mix': 0.12, 'reverb.size': 0.5, 'delay.mix': 0.05, 'comp.pump': 0.15, 'eq.highcut': 6000,
     },
-    mods: kit([], {
+    mods: kit([['lfo2', 'filter_cutoff', 0.1]], {
       'lfo4>width': ['lfo4', 'width', -0.4],
-      'lfo4>chorus_depth': ['drift_slow', 'texture_level', 0.15],
+      'lfo4>chorus_depth': ['drift_slow', 'texture_level', 0.3],
+      'lfo3>unison_detune': ['lfo3', 'osc2_pitch', 0.003],
     }),
   },
   {
@@ -247,10 +250,12 @@ const D: Def[] = [
       'reverb.mix': 0.3, 'reverb.size': 0.85, 'delay.mix': 0.16, 'delay.time': '1/2', 'delay.feedback': 0.5, 'comp.pump': 0.1, 'eq.highcut': 7500, 'tape.age': 0.25,
     },
     // A sine body barely reacts to the filter: move its drive and the octave layer instead, and let the dust breathe.
-    mods: kit([['drift_slow', 'dist_drive', 0.28]], {
+    mods: kit([['drift_slow', 'drive', 0.25]], {
       'lfo1>filter_cutoff': ['lfo1', 'osc2_level', 0.4],
       'lfo2>filter_cutoff': ['lfo2', 'dist_drive', 0.08],
       'lfo3>unison_detune': ['lfo3', 'texture_level', 0.2],
+      'env2>filter_cutoff': ['env2', 'osc2_level', 0.15],
+      'random>filter_cutoff': ['random', 'drive', 0.1],
     }),
   },
   {
@@ -278,7 +283,7 @@ const D: Def[] = [
       'filter.cutoff': 520, 'eq.mid_gain': -3.5, 'reverb.mix': 0.18, 'comp.pump': 0.3,
     },
     mods: kit([], {
-      'drift_slow>reverb_mix': ['drift_slow', 'texture_level', 0.2],
+      'drift_slow>reverb_mix': ['drift_slow', 'texture_level', 0.35],
     }),
   },
 ];
@@ -289,7 +294,7 @@ function build(def: Def): Record<string, unknown> {
   const raw: Record<string, unknown> = {
     meta: {
       name: def.name, description: def.description, tags: def.tags, directory: def.dir, family: 'terror',
-      collection: 'terror', audition: 'dread',
+      category: 'bass', collection: 'terror', audition: 'dread',
     },
     ...TERROR_BASE,
     ...def.set,

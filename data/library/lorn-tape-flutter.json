@@ -15,17 +15,17 @@
     "directory": "lorn-tape-flutter",
     "family": "terror",
     "features": {
-      "brightness": 0.376,
-      "highEnergy": 0.623,
-      "sub": 0.437,
-      "lowMid": 0.717,
-      "dirt": 0.62,
+      "brightness": 0.377,
+      "highEnergy": 0.622,
+      "sub": 0.438,
+      "lowMid": 0.721,
+      "dirt": 0.601,
       "width": 0.767,
       "attack": 0.36,
       "decay": 0.902,
-      "sustain": 0.868,
+      "sustain": 0.876,
       "release": 0.755,
-      "movement": 0.285
+      "movement": 0.302
     }
   },
   "voice.polyphony": 1,
@@ -198,6 +198,6 @@
   "eq.mid_freq": 800,
   "eq.high_gain": 0,
   "eq.highcut": 7000,
-  "output.gain": -4,
+  "output.gain": -4.4,
   "output.crossover": 120
 }

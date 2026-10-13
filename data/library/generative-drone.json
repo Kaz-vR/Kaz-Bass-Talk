@@ -14,12 +14,12 @@
     "directory": "generative-drone",
     "family": "cinematic",
     "features": {
-      "brightness": 0.169,
-      "highEnergy": 0.296,
-      "sub": 0.806,
-      "lowMid": 0.546,
-      "dirt": 0.044,
-      "width": 0.554,
+      "brightness": 0.197,
+      "highEnergy": 0.325,
+      "sub": 0.816,
+      "lowMid": 0.502,
+      "dirt": 0.054,
+      "width": 0.559,
       "attack": 0.917,
       "decay": 0.089,
       "sustain": 1,
@@ -197,6 +197,6 @@
   "eq.mid_freq": 800,
   "eq.high_gain": 0,
   "eq.highcut": 9000,
-  "output.gain": -0.7,
+  "output.gain": -0.3,
   "output.crossover": 120
 }

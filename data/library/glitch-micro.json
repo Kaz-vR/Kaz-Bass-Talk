@@ -14,17 +14,17 @@
     "directory": "glitch-micro",
     "family": "experimental",
     "features": {
-      "brightness": 0.103,
-      "highEnergy": 0.491,
+      "brightness": 0.104,
+      "highEnergy": 0.5,
       "sub": 0.897,
       "lowMid": 0.425,
-      "dirt": 0.568,
+      "dirt": 0.581,
       "width": 0,
       "attack": 0.502,
       "decay": 0.898,
-      "sustain": 0.905,
-      "release": 0.367,
-      "movement": 0.063
+      "sustain": 0.907,
+      "release": 0.373,
+      "movement": 0.064
     }
   },
   "voice.polyphony": 1,

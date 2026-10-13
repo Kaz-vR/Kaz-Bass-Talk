@@ -16,10 +16,10 @@
     "family": "pluck",
     "features": {
       "brightness": 0.128,
-      "highEnergy": 0.189,
+      "highEnergy": 0.196,
       "sub": 0.728,
       "lowMid": 0.679,
-      "dirt": 0.246,
+      "dirt": 0.247,
       "width": 0.101,
       "attack": 0.434,
       "decay": 0.459,

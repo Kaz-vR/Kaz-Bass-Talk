@@ -14,17 +14,17 @@
     "directory": "neuro",
     "family": "growl",
     "features": {
-      "brightness": 0.349,
-      "highEnergy": 0.748,
-      "sub": 0.735,
-      "lowMid": 0.599,
+      "brightness": 0.356,
+      "highEnergy": 0.747,
+      "sub": 0.718,
+      "lowMid": 0.612,
       "dirt": 1,
-      "width": 0.948,
+      "width": 0.933,
       "attack": 0.333,
       "decay": 0.902,
-      "sustain": 0.83,
+      "sustain": 0.831,
       "release": 0.463,
-      "movement": 0.136
+      "movement": 0.145
     }
   },
   "voice.polyphony": 1,
