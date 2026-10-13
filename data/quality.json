@@ -1,0 +1,22 @@
+{
+  "$comment": "Quality critic thresholds. A sound fails a check when its measurement crosses the limit. Defaults are set between what good library patches measure and what deliberately broken test sounds measure; families that are aggressive by design get wider limits. Every sound the human flags should tighten or add a rule here.",
+  "defaults": {
+    "aliasDb": { "max": -55, "label": "digital fizz (aliasing)" },
+    "harshDb": { "max": -8, "label": "harsh 2–5 kHz" },
+    "mudDb": { "max": 3.5, "label": "mud build-up 200–400 Hz" },
+    "fundamentalDb": { "min": -15, "label": "weak fundamental" },
+    "whistleDb": { "max": 9, "label": "whistling resonance" },
+    "noteSpreadDb": { "max": 3.5, "label": "level jumps between low and high notes" },
+    "sideLowDb": { "max": -20, "label": "stereo low end" },
+    "limiterDb": { "max": 3, "label": "limiter working hard" },
+    "dc": { "maxAbs": 0.002, "label": "DC offset" }
+  },
+  "families": {
+    "distorted": { "harshDb": { "max": -3 }, "aliasDb": { "max": -50 } },
+    "growl": { "harshDb": { "max": -5 }, "whistleDb": { "max": 12 }, "aliasDb": { "max": -50 } },
+    "acid": { "whistleDb": { "max": 15 } },
+    "fm": { "harshDb": { "max": -5 }, "whistleDb": { "max": 12 } },
+    "808": { "harshDb": { "max": -5 }, "aliasDb": { "max": -50 } },
+    "experimental": { "harshDb": { "max": 0 }, "whistleDb": { "max": 15 }, "aliasDb": { "max": -40 } }
+  }
+}
