@@ -1,11 +1,11 @@
 # CLAUDE.md — Low Talk
 
-Low Talk is a bass synth plugin built around one flow: **seed, then dial in**.
+Low Talk is a bass synth plugin built around one flow: **seed, then dial in**. There is no typing.
 
-1. **Seed** (ballpark the sound fast). The default start is the **Sound Tree**: it plays 4 options, the user clicks the closest, hears 4 more around that choice, and after 2-3 clicks is in the right neighborhood. Two other seed doors are always visible: **drop a reference** audio file, or **type** ("dark reese", "more sub", "less buzzy").
+1. **Seed** (ballpark the sound fast) with the **Sound Tree**: it plays 4 options, the user clicks the closest, hears 4 more around that choice, and after 2-3 clicks is in the right neighborhood. As the user picks, the tree generates new sounds that drift toward what they like, so they end up on sounds that exist nowhere in the library.
 2. **Dial in** (once it's close) with **4 generated macro knobs**: recipes that each move several real parameters, chosen for this patch by how much they audibly change it, with ranges tuned so the whole knob travel sounds good.
 
-Text is a shortcut, not the main interface.
+Every sound the user can hear (library patch, generated Sound Tree option, macro position) must sound like a finished, expensive patch. Quality is enforced automatically (sound-design rules + quality critic), because nobody can listen to everything the system generates.
 
 Read this whole file before starting any task. When something here conflicts with a request in a session, ask before deviating.
 
@@ -13,68 +13,71 @@ Read this whole file before starting any task. When something here conflicts wit
 
 ## Non-negotiables
 
-1. **No AI at runtime.** The shipped plugin contains no language model, no embedding model and no neural network of any kind. All "understanding" comes from data files and plain code.
+1. **No AI at runtime.** The shipped plugin contains no language model, no embedding model and no neural network of any kind. All behavior comes from data files and plain code.
 2. **Fully offline.** The plugin never makes network requests. No API keys, no servers, no telemetry.
-3. **Lightweight.** Total install size under 25 MB including all data. No GPU use. A Sound Tree round, a reference drop or a text request must respond in under 300 ms on a mid-range laptop. The synth itself should stay under ~3% CPU per voice at 48 kHz.
-4. **Real-time safety.** Nothing on the audio thread allocates memory, locks, or touches the language layer. Patch changes are handed to the audio thread and applied with parameter smoothing (no clicks).
+3. **Lightweight.** Total install size under 25 MB including all data. No GPU use. A Sound Tree round must respond in under 300 ms on a mid-range laptop. The synth itself should stay under ~3% CPU per voice at 48 kHz. No sample libraries: every sound is synthesized.
+4. **Real-time safety.** Nothing on the audio thread allocates memory, locks, or runs analysis, tree or macro-selection code. Patch changes are handed to the audio thread and applied with parameter smoothing (no clicks).
 5. **The low end is protected.** Regardless of any patch, the sub stays mono and phase-stable, there's no DC offset, and a transparent output limiter is always on.
-6. **AI is a development tool only.** Claude may be used during development to generate and expand data (the sound dictionary, patch descriptions, test phrases). Anything under `tools/` is dev-only and must never be shipped or imported by runtime code.
+6. **AI is a development tool only.** Claude may be used during development to generate and expand data (patches, macro recipes, descriptions, quality rules). Anything under `tools/` is dev-only and must never be shipped or imported by runtime code.
 
 ---
 
 ## How it works (overview)
 
 ```
-                SEED  (ballpark)                                DIAL IN  (precise)
- ┌──────────────────────────────────────────────┐
- │ Sound Tree (default)   4 options per round,  │
- │   picks are leans, wildcard, "none of these",│      Macro selector
- │   "between these two", breadcrumb            │──┐     family pool (8-12 recipes)
- │ Drop a reference       nearest patches by    │  │     → render each at a few positions
- │   features                                   │──┼──▶  → keep the 4 with most audible impact
- │ Type (shortcut)        parser + dictionary   │  │     → tune each range to "still sounds good"
- └──────────────────────────────────────────────┘  │     → boost macros matching the user's leans
-          ▲ all three use measured features         │
-          │                                         ▼
-   Analysis / listening check ◀──────── renders, measures, verifies
+        SEED (ballpark)                                  DIAL IN (precise)
+ ┌────────────────────────────────────┐
+ │ Sound Tree                         │        Macro selector
+ │  4 options per round: 3 near the   │          family pool (8-12 recipes)
+ │  lean + 1 wildcard; picks are      │──────▶   → render each at a few positions
+ │  leans; "none of these"; "between  │          → keep the 4 with most audible impact
+ │  these two"; breadcrumb            │          → tune each range to "still sounds good"
+ │  generates NEW sounds toward the   │          → boost macros matching the user's leans
+ │  user's leans                      │
+ └────────────────────────────────────┘
+          │ every candidate sound                      │ every knob position
+          ▼                                            ▼
+   Sound-design rules  ─▶  Quality critic  (reject anything that sounds cheap or unsafe)
           │
-   Patch library (precomputed features, family tags)
-                                                    │
- History tree: every tree step, macro change and text tweak is a node (jump, branch, A/B, morph)
-                                                    │
- Synth engine: plays the current patch in real time ▼
+   Analysis: offline render → normalized features (the map everything navigates)
+          │
+   Patch library (~160 patches covering the bass directory, precomputed features, families)
+
+ History tree: every tree step and macro change is a node (jump, branch, A/B, morph)
+ Synth engine: plays the current patch in real time
 ```
 
-The **measured feature space** (from the analysis code) is the map everything navigates: the Sound Tree walks it, reference drops land in it, macros are judged by how far they move a sound through it, and text edits are verified against it.
+The **measured feature space** (from the analysis code) is the map: the Sound Tree walks it, macros are judged by how far they move a sound through it, and the quality critic checks positions in it.
 
 ---
 
 ## Components
 
 ### 1. Synth engine
-A monophonic-first bass synth (with optional legato/glide). Suggested signal path:
+A monophonic-first bass synth (with optional legato/glide). Signal path:
 
-- 2 main oscillators (saw, square/pulse, wavetable with position), each with detune, unison (1–7 voices), spread, level
+- 2 main oscillators (sine, triangle, saw, pulse, wavetable with position), each with detune, unison (1–7 voices), spread, level
 - Sub oscillator (sine/triangle, −1 or −2 octaves), always mono
 - Noise source (low level, for grit)
 - Pre-filter drive
 - Filter: 4-pole low-pass, band-pass, formant (vowel morph); cutoff, resonance, key tracking, envelope amount
-- Distortion stage: soft clip, hard clip, wavefold, bitcrush; drive, mix, post-tone
-- 2 envelopes (amp, mod), 2 LFOs (tempo-syncable, multiple shapes, retrigger option)
+- Distortion stage: soft, hard, fold, tube; drive, mix, post-tone; optionally mids-only (clean below a split frequency) so the sub stays clean
+- Amp, mod and pitch envelopes, 2 LFOs (tempo-syncable, multiple shapes, retrigger option)
 - Small mod matrix (8 slots)
 - Analog character: per-voice pitch drift, free unison phases, per-note filter variation
-- Quality: band-limited oscillators; drive, filter and distortion run 2× oversampled with anti-aliased (ADAA) waveshapers. Expensive-sounding, never "chiptune".
-- Distortion can be mids-only (clean below a split frequency) so the sub stays clean
-- FX, in a **fixed order** (no user re-ordering; the language layer relies on a known chain):
+- Quality: band-limited oscillators; drive, filter and distortion run 2× oversampled with anti-aliased (ADAA) waveshapers. Expensive-sounding, never "chiptune" (unless the patch is a deliberate chiptune).
+- FX, in a **fixed order** (no user re-ordering; the macro, tree and critic logic rely on a known chain):
   distortion → bitcrusher/downsampler → tape (saturation, wow/flutter, age) → amp → + sub → compressor (with tempo-synced pump) → multiband "OTT" → chorus → flanger → phaser → delay → reverb (these five only above the FX low cut) → EQ + high cut → subsonic/DC filter → mono below crossover → output limiter
 - Mono-below-crossover processing (default 120 Hz)
 
-The FX that are part of the bass sound itself live inside the plugin, because the language layer can only change what is inside. Big creative space effects, mastering and real kick sidechain are left to other plugins.
+**Additions planned for full directory coverage** (phase 3): multi-operator FM (2-4 operators with their own envelopes and feedback), an attack click/transient layer (short filtered noise/click burst with its own envelope), filter types (303-style 18 dB diode with accent, notch, comb, low-pass gate), a PWM-saw wave and an ensemble chorus (Hoover / Alpha Juno), a physical-model string oscillator, a Shepard-tone oscillator mode, a reverse envelope shape, and more random modulation sources.
 
-Around 115 parameters total (approved by the repo owner; grew from the original ~80 target to fit the FX). Every parameter must be defined in the patch schema.
+The FX that are part of the bass sound itself live inside the plugin, because the Sound Tree and macros can only change what is inside. Big creative space effects, mastering and real kick sidechain are left to other plugins.
+
+Around 115 parameters today, roughly 135 after the coverage additions (approved by the repo owner). Every parameter must be defined in the patch schema.
 
 ### 2. Patch schema — `data/schema.json`
-The single source of truth shared by the engine, the language layer, and the UI. For each parameter:
+The single source of truth shared by the engine, the analysis, the tree, the macros and the UI. For each parameter:
 
 ```json
 {
@@ -91,77 +94,29 @@ The single source of truth shared by the engine, the language layer, and the UI.
 
 Types: `float`, `int`, `enum`, `bool`. A patch is a flat JSON object `{ "<param id>": value, ... }` plus `meta` (name, tags, description). Any patch loaded from anywhere is validated and clamped against the schema.
 
-### 3. Patch library — `data/library/*.json`
-150–300 hand-tuned patches, each with:
+### 3. Bass directory — `data/directory.json`
+The coverage map for the library: every synth bass type across genres, cinema and history (about 50 types plus performance variations such as the laser pitch snap and the Reese-growl cross). Each entry has an id, name, group, one-line sonic identity, the family it belongs to, and its engine status: `native` (the engine can make it), `needs-addition` (waits for a phase-3 engine addition) or `approximation` (depends on recorded instruments or processes a synth can't do, e.g. real brass, cello samples, clocks, true resampling, granular; built as a clearly labelled synth version).
 
-- `name`, `description` (one sentence), `tags` (genre, character, era), `family` (which macro pool it uses, e.g. reese, 808, acid, growl), `features` (precomputed by the listening check)
+Some entries are partly about how they're played (Moroder octaves, psy offbeats, synthwave 16ths, hardstyle offbeats, dembow, amapiano, baile funk). Build only the sound; the playing pattern is the user's business. No special audition loops for them.
 
-Coverage should span: Reese, sub-only, 808-style, acid, Moog-style, FM/metallic, neuro/growl, wobble, dub, pluck, synthwave, garage/organ, techno rumble, funk/slap-ish, distorted rock-style, and clean "utility" basses.
+### 4. Patch library — `data/library/*.json`
+Around 160 hand-designed patches: roughly 3 versions of each directory entry (e.g. clean / dirty / dark), each with:
 
-Quality bar: every patch must sound good on the default audition loop, and sound "expensive" (think Diva / Serum), not like a chiptune. Also cover dark, cinematic, heavily processed basses in the style of LORN (saturated, tape-worn, lo-fi, wide, with space), not only basic ones. The human (repo owner) is the final judge; generate candidates, render them, and ask for review in batches.
+- `name`, `description` (one sentence), `tags` (genre, character, era), `directory` (which directory entry it realizes), `family` (which macro pool it uses), `features` (precomputed by the analysis)
 
-### 4. Sound dictionary — `data/dictionary/*.json`
-The core of the "intelligence". It maps words and phrases to parameter moves.
+Quality bar: every patch sounds like a finished, release-quality patch from an expensive synth (think Diva / Serum), not a sketch and not a chiptune (unless deliberately). This includes dark, cinematic, heavily processed basses in the style of LORN (saturated, tape-worn, lo-fi, wide, with space). Every patch must pass the quality critic.
 
-```json
-{
-  "id": "buzzy",
-  "phrases": ["buzzy", "fizzy", "harsh", "too much top", "raspy", "brittle"],
-  "category": "brightness",
-  "moves": [
-    { "param": "filter.cutoff",     "op": "mul", "amount": 1.6 },
-    { "param": "dist.post_tone",    "op": "add", "amount": 0.25 },
-    { "param": "osc1.unison_voices","op": "add", "amount": 1 }
-  ],
-  "expect": { "brightness": "up", "high_energy": "up" },
-  "opposite": "smooth"
-}
-```
+### 5. Sound-design rules — `src/quality/rules`
+The "logic of good bass", written as code and data, applied to every hand-made patch, every generated Sound Tree option and every macro range:
 
-- `op`: `add`, `mul`, `set`, `toward` (move toward a target value by a fraction).
-- Applying a word negatively ("less buzzy") inverts the moves; if `opposite` exists, prefer applying the opposite entry.
-- `expect` declares which measured features should change and in which direction. The listening check enforces this, and so do the tests.
-- Category groups prevent contradictions (e.g. "darker and brighter" in one sentence triggers a clarification).
+- **Layering:** a clean mono sine/triangle sub, a mid layer that carries the character (what's audible on phones and laptops), a controlled top.
+- **Clean low end:** distortion and stereo effects stay above the sub.
+- **Coupled parameters:** settings that must move together do (more drive → darker post-tone; high resonance → tamed level; wide unison stays above the crossover; envelope times fit the family: an 808 decays, a Reese sustains).
+- **Movement:** sustained patches have at least slow modulation so they never sound static (unless the type is deliberately static, e.g. pure sub).
+- **Safe regions:** generated sounds only move parameters within ranges taken from library patches that sound good, per family.
 
-Aim for 150+ descriptor entries and 2,000+ phrases at launch, including common misspellings and producer slang. Expanding this file is the main way the plugin gets "smarter" over time.
-
-Also in the dictionary folder:
-- `amounts.json`: intensity words → multipliers ("a touch" 0.25, "a bit" 0.4, "more" 1.0, "way more"/"much more" 1.8, "max" → clamp to range end).
-- `commands.json`: "like A/B/C/D", "back", "undo", "go back to the first one", "start over", "new idea", "keep the sub but…", "same but…".
-- `genres.json`: genre/style words → library tags ("dnb", "dubstep", "techno", "house", "trap", "synthwave"...).
-
-### 5. Parser — `src/language/parser`
-Plain code, deterministic, no ML.
-
-1. Normalize: lowercase, strip punctuation, fix common typos (small edit-distance match against dictionary phrases; max distance 1 for words ≤5 chars, 2 for longer).
-2. Longest-match phrase lookup (so "too much top" wins over "top").
-3. Attach amount words to the next or previous descriptor.
-4. Detect negation ("less", "not so", "without", "no", "remove").
-5. Detect commands and references to Sound Tree options ("like B") or history steps.
-6. Output a structured intent:
-
-```json
-{
-  "mode": "edit",
-  "base": "option:B",
-  "changes": [
-    { "descriptor": "buzzy", "direction": -1, "amount": 0.4 },
-    { "descriptor": "sub",   "direction": 1,  "amount": 1.8 }
-  ],
-  "unknown": []
-}
-```
-
-`mode` is `fresh` (new sound from library), `edit` (modify current), or `command`.
-
-### 6. Resolver — `src/language/resolver`
-Text is a shortcut into the same flow, not a separate one:
-- **Fresh** ("dark reese"): score library patches by tag and descriptor overlap, apply any descriptors in the request, and hand the result to the Sound Tree as its starting lean. The user sees an ordinary Sound Tree round (4 options that differ meaningfully, with a wildcard) and continues from there.
-- **Edit** ("less buzzy", "more sub"): apply the descriptor moves to the current patch as one change, verified by the listening check (with its one correction pass), and saved as a history node. No batch of variations; the macros are the precise tool.
-- **Unknown words:** never guess silently. Return them in `unknown`, and suggest the 3 nearest known phrases (by edit distance and by shared category in a small hand-written synonym map) as tappable chips.
-
-### 7. Listening check — `src/analysis`
-Renders each candidate offline (about 2 seconds of the audition loop) and measures:
+### 6. Analysis + quality critic — `src/analysis`, `src/quality`
+**Analysis** renders a sound offline (about 2 seconds of the audition loop, plus a low / mid / high note test) and measures:
 
 - brightness (spectral centroid), high-frequency energy, sub energy (< 80 Hz), low-mid energy (80–300 Hz)
 - attack time, release/decay length
@@ -169,91 +124,96 @@ Renders each candidate offline (about 2 seconds of the audition loop) and measur
 - stereo width above the crossover, mono correlation below it
 - peak level, DC offset
 
-These features are the coordinate system for the whole product. They are:
-- precomputed for every library patch (and stored in its `features`),
-- the distance measure the Sound Tree uses to pick options and track leans,
-- how a dropped reference clip is placed (the same features measured from the audio file),
-- how macros are judged (how far a macro moves the sound) and how their ranges are limited (where the sound stops being good or safe),
-- how text edits are verified: compare against the previous patch and check every `expect` from the applied descriptors. A change that moves in the wrong direction gets one automatic correction pass (scale the offending moves up, or apply the move list again); if it still fails, the user is told in one line.
+Features are normalized (a documented scale per feature) so distances are meaningful. They are precomputed for every library patch (stored in its `features`), and are what the Sound Tree uses to pick options and track leans and what the macro selector uses to judge impact.
 
-Features must be normalized so distances are meaningful across features (a documented scale per feature). Must render four candidates in under 150 ms total. Keep renders short and use a reduced-quality offline mode if needed.
+**The quality critic** turns measurements into pass/fail with a plain reason ("fails: harsh 2–5 kHz, +6 dB over limit"). It rejects anything that sounds cheap or unsafe:
 
-### 8. Sound Tree — `src/tree`
-The default way to start. It ballparks a sound in 2-3 clicks; it never has to be finished.
+- digital fizz / aliasing (inharmonic energy)
+- harshness in the 2–5 kHz band relative to the mids
+- mud build-up in 200–400 Hz
+- weak or missing fundamental
+- whistling resonance
+- level jumping between low and high notes
+- smeared or stereo low end
+- clipping, DC, limiter working hard
+
+Thresholds are derived from library patches that sound good, per family (a deliberately harsh type like Industrial or Rage gets wider limits than a pure sub). Rejected generated sounds are silently replaced before the user hears them.
+
+**Human calibration:** the critic catches *bad* reliably but can't fully prove *great*. Per batch, the human gets a small random sample (about 5 sounds), never everything. Every sound they flag becomes a new rule or a tightened threshold, so the same mistake can't return.
+
+Must render four candidates in under 150 ms total. Keep renders short and use a reduced-quality offline mode if needed.
+
+### 7. Sound Tree — `src/tree`
+The only way to start a sound. It ballparks in 2-3 clicks; it never has to be finished.
 
 - **Rounds of 4.** Each round plays 4 options: **3 near the current lean + 1 wildcard** from a nearby but different area. Picking the wildcard redirects the walk.
 - **Picks are leans, not commitments.** A pick shifts the odds toward that region of the feature space; nothing is ruled out permanently.
+- **Generates new sounds.** The library is the starting set, but each round creates new options by blending and shifting real parameters toward what the user has been picking, within the sound-design rules' safe regions. Every generated option passes the quality critic before it's played.
 - **Chosen by measured features, never by genre labels alone.** Within a round, options are picked to sound as different from each other as possible (maximize feature distance between them), while staying in the leaned region.
 - **"None of these"** gives 4 fresh options from parts of the sound space the user hasn't heard yet.
-- **"Between these two"**: the user selects 2 options and gets blends of them (morphs: continuous params interpolated, enums/ints switch at the midpoint), measured like any other option.
+- **"Between these two"**: the user selects 2 options and gets blends of them (continuous params interpolated, enums/ints switch at the midpoint), measured and checked like any other option.
 - **Breadcrumb trail** of picks at the top. Clicking any step jumps back to it so the user can choose differently.
 - **Stop any time.** The current pick becomes the patch to dial in.
 - **Instant audition.** Every option plays under the audition loop on hover/click, swapped in with smoothing.
-- The candidate pool is the library (with precomputed features) plus blends between nearby library patches, so the space has no big holes.
-- Picks feed the macro selector (a lean toward "dirtier" raises dirt-related macros) and every step is saved to history.
+- Picks feed the macro selector (a lean toward dirtier options raises dirt-related macros) and every step is saved to history.
 
-**Other seed doors** (always visible next to the tree):
-- **Drop a reference:** measure the dropped audio file with the analysis code and seed from the nearest library patches by features (as a Sound Tree round leaning toward them).
-- **Type:** the parser/dictionary shortcut (see Resolver).
+A small internal **descriptor vocabulary** (`data/vocabulary.json`: words like dirtier, darker, wider, rounder, each tied to features) is used only to name macros and to interpret what a run of picks leans toward. There is no text input.
 
-### 9. Macros — `src/macros`
+### 8. Macros — `src/macros`, `data/macros/`
 The main dial-in tool: 4 knobs, precise and predictable. No variations at this stage.
 
-- **Family pools.** Each bass family in the library has its own pool of roughly 8-12 macro candidates. A macro is a recipe: name + a list of `{ param, from, to, curve }` mappings that move several real parameters at once. Examples:
+- **Family pools.** Each family has its own pool of roughly 8-12 macro candidates. A macro is a recipe: name + a list of `{ param, from, to, curve }` mappings that move several real parameters at once. Examples:
   - Reese: Detune, Movement, Grit, Sub
   - 808: Decay, Punch, Saturation, Pitch drop
   - Acid: Cutoff, Resonance, Squelch, Accent
   - Growl: Talk (formant), Rate, Drive, Width
 
   Every family in the library gets a full pool.
-- **Chosen by audible impact.** Before showing knobs, render each candidate at a few positions offline and measure how much the sound actually changes. Drop macros with little audible effect on this patch; show the 4 with the biggest impact.
-- **Leans raise priority.** The user's Sound Tree picks (and text requests) boost related macros: a lean toward "dirtier" puts a dirt macro ahead.
-- **Ranges tuned per patch.** Each knob starts at the current sound's position and sweeps only through territory that still sounds good, with limits set by the listening check and the safety guardrails. The whole knob travel must be usable.
+- **Chosen by audible impact.** When a sound is picked, render each candidate at a few positions offline and measure how much the sound actually changes. Drop macros with little audible effect on this patch; show the 4 with the biggest impact. The knobs appear once the best 4 are ready (target: about half a second to a second; no placeholder knobs).
+- **Leans raise priority.** The user's Sound Tree picks boost related macros.
+- **Ranges tuned per patch.** Each knob starts at the current sound's position and sweeps only through territory that still sounds good: every position passes the quality critic and the safety guardrails. The whole knob travel must be usable.
 - **Swappable.** Clicking a macro's name swaps it for another from the family pool.
-- **Stable.** Once picked, a macro keeps its name and behavior. Turning it is instant and local (it never runs the language layer). Macros are automatable from the DAW (host parameters in the plugin).
+- **Stable.** Once picked, a macro keeps its name and behavior. Turning it is instant and local. Macros are automatable from the DAW (host parameters in the plugin).
 
-### 10. History — `src/history`
-A tree of patch snapshots (not a list). Every Sound Tree step, macro change, reference drop and text tweak creates a node with a short label. Users can jump to any node, branch from it, A/B the current sound against any node, and morph between two nodes (interpolate continuous params; switch enums/ints at the midpoint).
+### 9. History — `src/history`
+A tree of patch snapshots (not a list). Every Sound Tree step and macro change creates a node with a short label. Users can jump to any node, branch from it, A/B the current sound against any node, and morph between two nodes (interpolate continuous params; switch enums/ints at the midpoint).
 
 ---
 
 ## UI
 
-Keeps the visual style of the approved mockup; the layout follows the seed → dial-in flow.
+Keeps the visual style of the approved mockup; the layout follows the seed → dial-in flow. No text input.
 
 - **Header:** play/pause audition loop, loop selector (built-in riffs or host MIDI), current patch name, "sub mono · limiter on" indicator.
-- **Seed area (main focus at the start):**
-  - Sound Tree: breadcrumb trail of picks across the top; 4 option cards (mini waveform, short name, the wildcard clearly marked); "None of these" and "Between these two" buttons. Hover/click plays an option under the loop.
-  - The two other seed doors, always visible: a reference drop zone and a short text box with Send.
+- **Seed area (main focus at the start):** the Sound Tree: breadcrumb trail of picks across the top; 4 option cards (mini waveform, short name, the wildcard clearly marked); "None of these" and "Between these two" buttons. Hover/click plays an option under the loop.
 - **Dial-in area (main focus once a sound is picked):** 4 large macro knobs; click a knob's name to swap it from the family pool.
-- **Secondary tools (visible, not the focus):** text tweaks via the dictionary ("less buzzy") with one-line replies, A/B against any history step, a listening-check panel (spectrum + one line per expectation, e.g. "'Less buzzy' → brightness −34% ✓"), and the full parameter view behind a button.
+- **Secondary tools (visible, not the focus):** A/B against any history step, a spectrum view, and the full parameter view behind a button.
 - **History strip:** clickable nodes with branches; Alt-drag between two nodes to morph.
-
-The synth's own replies must be one short line. The sound is the answer.
 
 ---
 
 ## Tech stack
 
 - **Phase A (prototype):** TypeScript + Vite, Web Audio with an AudioWorklet for the synth engine. Runs in the browser, no backend.
-- **Phase B (plugin):** C++ with JUCE, VST3 + AU (and standalone app). The DSP is ported from the prototype; the language layer, schema, dictionary and library are reused.
-- `data/` is plain JSON shared by both phases. Keep the language layer free of browser APIs so it's easy to port (or compile the same logic into the plugin).
+- **Phase B (plugin):** C++ with JUCE, VST3 + AU (and standalone app). The DSP is ported from the prototype; the schema, directory, library, macro pools, rules and vocabulary are reused.
+- `data/` is plain JSON shared by both phases. Keep analysis, quality, tree, macro and history code free of browser APIs so it's easy to port (or compile the same logic into the plugin).
 
 ## Repository layout
 
 ```
 /data
   schema.json
+  directory.json  bass directory (coverage map)
+  vocabulary.json internal descriptor words (naming macros, reading leans)
   /library        patch files
   /macros         macro pools, one file per family
-  /dictionary     descriptors, amounts.json, commands.json, genres.json
   /loops          audition MIDI riffs
 /src
   /engine         synth DSP + AudioWorklet
-  /language       parser, resolver
   /analysis       offline render + feature extraction
-  /tree           Sound Tree (seed by listening) + reference-drop seeding
-  /macros         family pools, impact ranking, per-patch range tuning
+  /quality        sound-design rules + quality critic
+  /tree           Sound Tree
+  /macros         impact ranking, per-patch range tuning
   /history
   /ui
 /plugin           JUCE project (Phase B)
@@ -265,33 +225,32 @@ The synth's own replies must be one short line. The sound is the answer.
 
 ## Build phases
 
-Finish each phase, with its tests passing, before starting the next. At the end of each phase, summarize what was built and what the human should listen to or try.
+Finish each phase, with its tests passing, before starting the next. At the end of each phase, summarize what was built and what the human should listen to or try (keep listening requests small: a random sample, never everything).
 
-1. **Engine + schema.** Synth playable from computer keyboard and MIDI, all parameters in the schema, ~10 hand-made patches, default audition loops. *Done when:* it sounds good with zero language features.
-2. **Patch library.** Grow to 150+ patches with tags, `family` and descriptions; batch-render them for human review.
-3. **Macro pools.** For every family in the library, a pool of roughly 8-12 macro recipes. Render each macro at several positions on the family's patches for human review. (Automatic impact ranking and per-patch range tuning come in phase 6, once features exist.)
-4. **Analysis.** Offline render + feature extraction with normalized features, tests on known signals (a sine should have near-zero high-frequency energy, etc.), and precomputed features for every library patch.
-5. **Sound Tree + reference drop.** Rounds of 4 (3 near the lean + 1 wildcard), leans, "none of these", "between these two" blends, breadcrumb, instant audition; reference-clip seeding from measured features.
-6. **Dial-in macros.** Impact ranking (render each candidate at a few positions, keep the 4 biggest), per-patch range tuning within listening-check and safety limits, lean-based priority, swapping from the pool.
+1. **Engine + schema.** Synth playable from computer keyboard and MIDI, all parameters in the schema, starter patches, default audition loops. *(Done.)*
+2. **Analysis + quality critic.** Feature extraction with normalized features, the quality critic and the first sound-design rules, tests on known signals (a sine should have near-zero high-frequency energy; deliberately fizzy, muddy, harsh test sounds must be caught; the starter patches must pass), and `data/directory.json`.
+3. **Engine additions for full coverage.** Multi-operator FM, click/transient layer, new filter types (303 diode with accent, notch, comb, LPG), PWM-saw + ensemble chorus, physical-model string, Shepard mode, reverse envelope, more random sources.
+4. **Patch library.** About 160 patches across the whole directory (≈3 per entry), with `directory`, `family`, tags and descriptions, every one passing the critic; features precomputed. Human hears a random sample per batch.
+5. **Macros.** A pool of 8-12 recipes per family, impact ranking, per-patch range tuning within critic and safety limits, lean-based priority, swapping.
+6. **Sound Tree.** Rounds of 4 (3 near the lean + 1 wildcard), leans, generated options within safe regions, "none of these", "between these two" blends, breadcrumb, instant audition, critic on every option.
 7. **UI.** The seed → dial-in interface described above, in the mockup's visual style.
-8. **History + A/B + morphing.** Every tree step, macro change and tweak saved as a node.
-9. **Dictionary + parser.** Descriptors, amounts, commands, genres, typo handling, unknown-word suggestions; text as a seed (into the Sound Tree) and as a verified tweak.
-10. **JUCE plugin port.** Same data, same behavior, host MIDI, the 4 macros as automatable host parameters, preset save/load.
-11. **Later:** user-taught words ("when I say gritty I mean this").
+8. **History + A/B + morphing.** Every tree step and macro change saved as a node.
+9. **JUCE plugin port.** Same data, same behavior, host MIDI, the 4 macros as automatable host parameters, preset save/load.
 
 ## Testing rules
 
-- **Dictionary integrity test:** for every descriptor, apply it to a set of library patches, render, and check that every `expect` holds in the majority of cases. A descriptor that fails gets flagged for rework. This test is what keeps the dictionary honest as it grows.
-- **Golden phrases:** `tests/phrases.json` holds 300+ realistic user messages with the expected parsed intent. Parser changes must keep these passing.
 - **Safety tests:** random patches (fuzzing the full schema) must never produce clipping above the limiter ceiling, DC offset, or non-mono content below the crossover.
-- **Sound Tree tests:** options in a round keep a minimum feature distance from each other; the wildcard comes from a different region than the other three; "none of these" returns only unheard regions; a simulated user who always picks the option nearest a hidden target patch lands within a set feature distance of it in 3 rounds for most targets.
-- **Macro tests:** every macro shown has a measurable effect across its range on that patch; the whole tuned range passes the safety rules and the listening-check quality limits; the same macro on the same patch always produces the same parameter values (stable and automatable).
-- **Performance tests:** a Sound Tree round, a reference drop or a text request responds in under 300 ms; four offline renders under 150 ms.
+- **Critic tests:** known-bad signals (aliased, harsh, muddy, no fundamental, whistling, uneven across notes) are rejected with the right reason; every library patch passes; every sound the human flagged stays rejected.
+- **Directory coverage:** every directory entry has at least one library patch (once phase 4 is done), and each patch's `directory` and `family` exist.
+- **Sound Tree tests:** options in a round keep a minimum feature distance from each other; the wildcard comes from a different region than the other three; "none of these" returns only unheard regions; every generated option passes the critic; a simulated user who always picks the option nearest a hidden target lands within a set feature distance of it in 3 rounds for most targets.
+- **Macro tests:** every macro shown has a measurable effect across its range on that patch; every position of the tuned range passes the critic and the safety rules; the same macro on the same patch always produces the same parameter values (stable and automatable).
+- **Performance tests:** a Sound Tree round responds in under 300 ms; four offline renders under 150 ms.
 
 ## Working style for Claude Code
 
 - Small, reviewable commits with clear messages, one concern each.
-- When generating data (patches, descriptors, phrases), work in batches and render audio previews for human review rather than generating everything at once.
-- If a sound-design decision needs ears, stop and ask the human to listen. Don't treat passing tests as proof that something sounds good.
+- Think like a world-class bass sound designer: every patch is a finished, release-quality sound. Encode what makes a sound good as rules and critic checks rather than relying on the human to catch problems.
+- When generating data (patches, macro recipes), work in batches; send the human a small random sample to listen to, not everything.
+- If a sound-design decision genuinely needs ears, ask the human to listen. Don't treat passing tests as proof that something sounds good.
 - Never add a dependency that pulls in an ML runtime, model weights, or network access.
 - If the same problem fails 3 times, stop and explain instead of trying again.
