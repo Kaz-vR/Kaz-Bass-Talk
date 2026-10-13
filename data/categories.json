@@ -66,7 +66,7 @@
         },
         "lifeFastDb": {
           "min": 0.35,
-          "max": 2.8
+          "max": 3.4
         },
         "lifeRepeat": {
           "max": 0.6
@@ -83,7 +83,7 @@
           "max": -26
         },
         "vibeDirt": {
-          "min": 0.45,
+          "min": 0.35,
           "max": 1.4
         },
         "vibeWidth": {
@@ -404,7 +404,7 @@
           "max": -28
         },
         "vibeDirt": {
-          "min": 0.4,
+          "min": 0.35,
           "max": 1.4
         },
         "vibeWidth": {
