@@ -26,7 +26,9 @@ const loops = loadLoops();
 let failures = 0;
 // Optional file-name filter, e.g. `-- terror-` to only process the Terror presets.
 const only = process.argv.slice(2).find((a) => !a.startsWith('--'));
-for (const entry of loadLibrary().filter((e) => !only || e.file.includes(only))) {
+// Or an exact list (used by tools/analyze-parallel.ts): --files=a.json,b.json
+const fileList = process.argv.find((a) => a.startsWith('--files='))?.slice(8).split(',');
+for (const entry of loadLibrary().filter((e) => (fileList ? fileList.includes(e.file) : !only || e.file.includes(only)))) {
   const patch = validatePatch(entry.json).patch;
   const meta = entry.json.meta;
   const family = meta.family as string | undefined;
@@ -71,10 +73,12 @@ for (const entry of loadLibrary().filter((e) => !only || e.file.includes(only)))
 }
 
 // Bank consistency (over the whole bank, from the stored vibe measurements).
-const bank = loadLibrary().filter((e) => e.json.meta.category && e.json.meta.vibe);
-const odd = outliers(bank.map((e) => ({ name: e.json.meta.name, vibe: e.json.meta.vibe as Vibe })));
-for (const o of odd) console.log(`✗ outlier: ${o.name} ${o.key} ${o.value} (bank median ${o.median}, z ${o.z.toFixed(1)})`);
-failures += odd.length;
+if (!process.argv.includes('--no-consistency')) {
+  const bank = loadLibrary().filter((e) => e.json.meta.category && e.json.meta.vibe);
+  const odd = outliers(bank.map((e) => ({ name: e.json.meta.name, vibe: e.json.meta.vibe as Vibe })));
+  for (const o of odd) console.log(`✗ outlier: ${o.name} ${o.key} ${o.value} (bank median ${o.median}, z ${o.z.toFixed(1)})`);
+  failures += odd.length;
+}
 
 console.log(failures ? `\n${failures} problem(s)` : '\nall patches pass');
 process.exit(failures ? 1 : 0);

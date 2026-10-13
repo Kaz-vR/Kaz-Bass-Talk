@@ -16,7 +16,8 @@
     "level:patches": "tsx tools/level-patches.ts",
     "analyze:library": "tsx tools/analyze-library.ts",
     "build:library": "tsx tools/build-library.ts",
-    "build:terror": "tsx tools/build-terror.ts"
+    "build:terror": "tsx tools/build-terror.ts",
+    "build:bank": "tsx tools/build-bank.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

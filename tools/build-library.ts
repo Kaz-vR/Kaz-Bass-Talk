@@ -774,8 +774,10 @@ function build(def: Def): Record<string, unknown> {
 
 const libDir = join(ROOT, 'data/library');
 mkdirSync(libDir, { recursive: true });
-// Terror presets are built by tools/build-terror.ts and left alone here.
-for (const f of readdirSync(libDir)) if (f.endsWith('.json') && !f.startsWith('terror-')) unlinkSync(join(libDir, f));
+// Only replace this builder's own files (one per directory entry); the Terror
+// presets and the bank are built by their own tools.
+const own = new Set(D.map((d) => `${d.dir}.json`));
+for (const f of readdirSync(libDir)) if (own.has(f)) unlinkSync(join(libDir, f));
 const seen = new Set<string>();
 for (const def of D) {
   if (seen.has(def.dir)) throw new Error(`duplicate ${def.dir}`);

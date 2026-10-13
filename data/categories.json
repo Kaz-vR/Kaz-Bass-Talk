@@ -121,7 +121,7 @@
         },
         "lifeFastDb": {
           "min": 0.35,
-          "max": 2.8
+          "max": 3.6
         },
         "lifeRepeat": {
           "max": 0.6
@@ -323,7 +323,7 @@
         },
         "lifeFastDb": {
           "min": 0.35,
-          "max": 2.8
+          "max": 3.6
         },
         "lifeRepeat": {
           "max": 0.6
@@ -442,7 +442,7 @@
         },
         "lifeFastDb": {
           "min": 0.35,
-          "max": 2.8
+          "max": 3.6
         },
         "lifeRepeat": {
           "max": 0.6
