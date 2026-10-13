@@ -8,97 +8,97 @@
     {
       "start": 0,
       "dur": 0.3,
-      "note": 28,
+      "note": 40,
       "vel": 1.0
     },
     {
       "start": 0.5,
       "dur": 0.2,
-      "note": 40,
+      "note": 52,
       "vel": 0.8
     },
     {
       "start": 0.75,
       "dur": 0.15,
-      "note": 28,
+      "note": 40,
       "vel": 0.5
     },
     {
       "start": 1.25,
       "dur": 0.2,
-      "note": 40,
+      "note": 52,
       "vel": 0.85
     },
     {
       "start": 1.75,
       "dur": 0.3,
-      "note": 31,
+      "note": 43,
       "vel": 0.9
     },
     {
       "start": 2.5,
       "dur": 0.2,
-      "note": 43,
+      "note": 55,
       "vel": 0.8
     },
     {
       "start": 3,
       "dur": 0.3,
-      "note": 33,
+      "note": 45,
       "vel": 0.95
     },
     {
       "start": 3.5,
       "dur": 0.2,
-      "note": 45,
+      "note": 57,
       "vel": 0.8
     },
     {
       "start": 4,
       "dur": 0.3,
-      "note": 28,
+      "note": 40,
       "vel": 1.0
     },
     {
       "start": 4.5,
       "dur": 0.2,
-      "note": 40,
+      "note": 52,
       "vel": 0.8
     },
     {
       "start": 4.75,
       "dur": 0.15,
-      "note": 28,
+      "note": 40,
       "vel": 0.5
     },
     {
       "start": 5.25,
       "dur": 0.2,
-      "note": 40,
+      "note": 52,
       "vel": 0.85
     },
     {
       "start": 5.75,
       "dur": 0.3,
-      "note": 35,
+      "note": 47,
       "vel": 0.9
     },
     {
       "start": 6.25,
       "dur": 0.2,
-      "note": 36,
+      "note": 48,
       "vel": 0.8
     },
     {
       "start": 6.5,
       "dur": 0.25,
-      "note": 38,
+      "note": 50,
       "vel": 0.9
     },
     {
       "start": 7.0,
       "dur": 0.6,
-      "note": 40,
+      "note": 52,
       "vel": 0.95
     }
   ]

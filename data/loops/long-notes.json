@@ -8,25 +8,25 @@
     {
       "start": 0,
       "dur": 1.6,
-      "note": 36,
+      "note": 48,
       "vel": 0.85
     },
     {
       "start": 2,
       "dur": 1.6,
-      "note": 31,
+      "note": 43,
       "vel": 0.85
     },
     {
       "start": 4,
       "dur": 1.6,
-      "note": 34,
+      "note": 46,
       "vel": 0.85
     },
     {
       "start": 6,
       "dur": 1.2,
-      "note": 29,
+      "note": 41,
       "vel": 0.85
     }
   ]

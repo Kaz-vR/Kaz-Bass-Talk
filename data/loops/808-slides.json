@@ -8,49 +8,49 @@
     {
       "start": 0,
       "dur": 1.2,
-      "note": 33,
+      "note": 45,
       "vel": 0.95
     },
     {
       "start": 1.5,
       "dur": 0.4,
-      "note": 33,
+      "note": 45,
       "vel": 0.8
     },
     {
       "start": 2.25,
       "dur": 1.0,
-      "note": 33,
+      "note": 45,
       "vel": 0.9
     },
     {
       "start": 3.0,
       "dur": 0.9,
-      "note": 40,
+      "note": 52,
       "vel": 0.9
     },
     {
       "start": 4,
       "dur": 1.6,
-      "note": 31,
+      "note": 43,
       "vel": 0.95
     },
     {
       "start": 5.75,
       "dur": 0.25,
-      "note": 31,
+      "note": 43,
       "vel": 0.8
     },
     {
       "start": 6.0,
       "dur": 0.7,
-      "note": 31,
+      "note": 43,
       "vel": 0.9
     },
     {
       "start": 6.5,
       "dur": 1.4,
-      "note": 28,
+      "note": 40,
       "vel": 0.9
     }
   ]
