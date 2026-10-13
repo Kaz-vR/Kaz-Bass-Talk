@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Low Talk</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/src/ui/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <button id="play" class="btn primary" title="Play / stop the audition loop (Space)">▶ Play</button>
+      <label class="field">Loop <select id="loop"></select></label>
+      <label class="field">Patch <select id="patch"></select></label>
+      <span id="patch-name" class="patch-name"></span>
+      <span class="spacer"></span>
+      <span class="pill" title="The sub is always mono and phase-stable; a transparent output limiter is always on.">sub mono · limiter on</span>
+      <span id="midi" class="pill dim">MIDI: –</span>
+    </header>
+
+    <main class="layout">
+      <section class="side">
+        <div class="card">
+          <h2 id="patch-title">–</h2>
+          <p id="patch-desc" class="desc"></p>
+          <div id="patch-tags" class="tags"></div>
+          <div class="row">
+            <button id="copy" class="btn" title="Copy the current patch as JSON (to save into data/library)">Copy patch JSON</button>
+            <button id="revert" class="btn" title="Discard edits and reload the library patch">Revert</button>
+            <button id="panic" class="btn" title="Stop all sound">Panic</button>
+          </div>
+        </div>
+        <div class="card">
+          <canvas id="scope" width="560" height="140"></canvas>
+          <canvas id="spectrum" width="560" height="140"></canvas>
+        </div>
+      </section>
+      <section id="params" class="params"></section>
+    </main>
+
+    <footer class="keys-wrap">
+      <div id="keyboard" class="keyboard"></div>
+      <p class="hint">Play with <kbd>A</kbd>–<kbd>;</kbd> (white) and <kbd>W E T Y U O P</kbd> (black) · <kbd>Z</kbd>/<kbd>X</kbd> octave · <kbd>Space</kbd> loop · double-click a knob to reset · <span id="octave"></span></p>
+    </footer>
+
+    <div id="start" class="overlay">
+      <button class="btn primary big">Click to start audio</button>
+      <p>Low Talk runs fully offline in your browser.</p>
+    </div>
+
+    <script type="module" src="/src/ui/main.ts"></script>
+  </body>
+</html>
