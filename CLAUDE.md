@@ -59,6 +59,7 @@ A monophonic-first bass synth (with optional legato/glide). Signal path:
 - 2 main oscillators (sine, triangle, saw, pulse, wavetable with position), each with detune, unison (1–7 voices), spread, level
 - Sub oscillator (sine/triangle, −1 or −2 octaves), always mono
 - Noise source (low level, for grit)
+- Texture bed: crackle, dust, rumble (mono, kept off the sub) or air; follows the notes with its own tail, silent between notes
 - Pre-filter drive
 - Filter: 4-pole low-pass, band-pass, formant (vowel morph); cutoff, resonance, key tracking, envelope amount
 - Distortion stage: soft, hard, fold, tube; drive, mix, post-tone; optionally mids-only (clean below a split frequency) so the sub stays clean
@@ -74,7 +75,7 @@ A monophonic-first bass synth (with optional legato/glide). Signal path:
 
 The FX that are part of the bass sound itself live inside the plugin, because the Sound Tree and macros can only change what is inside. Big creative space effects, mastering and real kick sidechain are left to other plugins.
 
-Around 159 parameters (coverage additions plus the movement additions, approved by the repo owner). Every parameter must be defined in the patch schema.
+Around 163 parameters (coverage additions plus the movement additions, approved by the repo owner). Every parameter must be defined in the patch schema.
 
 ### 2. Patch schema — `data/schema.json`
 The single source of truth shared by the engine, the analysis, the tree, the macros and the UI. For each parameter:
@@ -106,7 +107,7 @@ Around 160 hand-designed patches: roughly 3 versions of each directory entry (e.
 
 Quality bar: every patch sounds like a finished, release-quality patch from an expensive synth (think Diva / Serum), not a sketch and not a chiptune (unless deliberately). This includes dark, cinematic, heavily processed basses in the style of LORN (saturated, tape-worn, lo-fi, wide, with space). Every patch must pass the quality critic.
 
-**Terror presets** (requested by the repo owner): a separate collection (`meta.collection: "terror"`, family `terror`, built by `tools/build-terror.ts`) that gets as close as possible to LORN's basses. Their sound depends on being *alive*: many small, independent, non-repeating motions at different time scales, mostly in front of the distortion. The critic checks this by measurement (see 6).
+**Terror presets** (requested by the repo owner): a separate collection (`meta.collection: "terror"`, family `terror`, built by `tools/build-terror.ts`) that gets as close as possible to LORN's basses. Their sound depends on being *alive*: many small, independent, non-repeating motions at different time scales, mostly in front of the distortion. The critic checks this by measurement (see 6). Some carry a texture bed as part of the sound; a few are built around it.
 
 ### 5. Sound-design rules — `src/quality/rules`
 The "logic of good bass", written as code and data, applied to every hand-made patch, every generated Sound Tree option and every macro range:
@@ -137,6 +138,7 @@ Features are normalized (a documented scale per feature) so distances are meanin
 - whistling resonance
 - level jumping between low and high notes
 - (families that must sound alive, e.g. terror) a long held note that is static, moves like a clock, or is seasick
+- a texture bed loud enough to bury the bass
 - smeared or stereo low end
 - clipping, DC, limiter working hard
 

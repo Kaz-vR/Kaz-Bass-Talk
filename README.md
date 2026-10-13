@@ -4,7 +4,7 @@ A bass synth you talk to. See [CLAUDE.md](CLAUDE.md) for the full design and
 the non-negotiables (no AI at runtime, fully offline, real-time safe, the low
 end is protected).
 
-**Status: Phase A browser prototype — engine with full bass-type coverage, analysis + quality critic, and a library of 51 production patches (one per bass type in `data/directory.json`) plus 9 LORN-style Terror presets.**
+**Status: Phase A browser prototype — engine with full bass-type coverage, analysis + quality critic, and a library of 51 production patches (one per bass type in `data/directory.json`) plus 13 LORN-style Terror presets.**
 
 ## Run it
 
@@ -34,7 +34,7 @@ npm run analyze:library   # dev tool: rules + quality critic on every patch, sto
 ## Layout
 
 ```
-data/schema.json      159 parameters: the single source of truth
+data/schema.json      163 parameters: the single source of truth
 data/directory.json   53 bass types (coverage map)
 data/quality.json     quality-critic limits
 data/library/         51 patches, one per bass type, + terror-*.json Terror presets (complete, loudness-matched, critic-approved)
