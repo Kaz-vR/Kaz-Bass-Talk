@@ -18,7 +18,7 @@
 //   → compressor (+ tempo pump) → multiband OTT
 //   → FX above fx.lowcut only (chorus → flanger → phaser → delay → reverb)
 //   → EQ → high cut → subsonic/DC filter → mono below crossover
-//   → output gain → look-ahead limiter (always on)
+//   → output gain → look-ahead limiter (always on) → side high-pass again (mono below crossover)
 
 import { PARAM_COUNT, paramIndex, params } from '../../schema';
 import { Biquad, clamp, Envelope, fastTanh, Ladder, Rng, Svf, TWO_PI } from './dsp';
@@ -366,6 +366,9 @@ export class Synth {
   private readonly dcL = [new Biquad(), new Biquad()];
   private readonly dcR = [new Biquad(), new Biquad()];
   private readonly xo = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
+  // Side high-pass again after the limiter: its fast gain changes modulate the side and
+  // would otherwise splash a little stereo content back below the crossover.
+  private readonly xoPost = [new Biquad(), new Biquad()];
   private readonly limiter: Limiter;
   private outGain = 1;
   private outGainStep = 0;
@@ -415,6 +418,11 @@ export class Synth {
       this.dcR[i].setHighpass(SUBSONIC_HZ, SUBSONIC_Q[i], sampleRate);
     }
     this.lastFx.fill(NaN);
+    // Random LFO shapes (sample & hold, wander) start from random points, not flat at 0.
+    for (let l = 0; l < LFO_COUNT; l++) {
+      this.lfoPrev[l] = this.rng.next();
+      this.lfoHold[l] = this.rng.next();
+    }
     this.applyDiscrete();
     this.control();
   }
@@ -526,6 +534,7 @@ export class Synth {
     this.hpL.reset();
     this.hpR.reset();
     for (let i = 0; i < 4; i++) this.xo[i].reset();
+    for (let i = 0; i < 2; i++) this.xoPost[i].reset();
     this.chorus.reset();
     this.phaser.reset();
     this.reverb.reset();
@@ -1020,6 +1029,7 @@ export class Synth {
     if (cur[P.crossover] !== lf[5]) {
       // 8th-order Butterworth high-pass on the side channel (48 dB/oct).
       for (let i = 0; i < 4; i++) this.xo[i].setHighpass(cur[P.crossover], XO_Q[i], fs);
+      for (let i = 0; i < 2; i++) this.xoPost[i].setHighpass(cur[P.crossover], SUBSONIC_Q[i], fs);
       lf[5] = cur[P.crossover];
     }
     if (cur[P.eqHighcut] !== lf[6]) {
@@ -1481,6 +1491,12 @@ export class Synth {
       }
 
       this.limiter.process(l, r, out);
+      {
+        const pm = 0.5 * (out[0] + out[1]);
+        const ps = this.xoPost[1].process(this.xoPost[0].process(0.5 * (out[0] - out[1])));
+        out[0] = pm + ps;
+        out[1] = pm - ps;
+      }
       // Final DC filter (5 Hz one-pole): removes the near-DC intermodulation a
       // limiter produces under heavy gain reduction. It shifts peaks by well
       // under 0.1%; the clamp keeps the ceiling an absolute guarantee.

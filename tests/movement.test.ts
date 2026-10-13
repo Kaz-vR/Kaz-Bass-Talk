@@ -95,3 +95,11 @@ describe('FX and width mod targets', () => {
     expect(rms(r.left, 2.2 * FS, 3 * FS)).toBeGreaterThan(1e-4);
   });
 });
+
+describe('random LFO shapes from the start', () => {
+  it('a slow wander moves during its first cycle (no flat start)', () => {
+    const p = { ...base, 'lfo1.shape': 'wander', 'lfo1.rate': 0.1, 'mod1.source': 'lfo1', 'mod1.dest': 'filter_cutoff', 'mod1.amount': 0.4 };
+    const x = mono(renderPatch(p, heldNote(45, 8), { seconds: 4 }));
+    expect(spread([0.3, 1.5, 2.7, 3.6].map((t) => brightness(x, t, t + 0.3)))).toBeGreaterThan(1.05);
+  });
+});
