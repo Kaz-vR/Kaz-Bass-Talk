@@ -15,7 +15,7 @@
     "family": "fm",
     "features": {
       "brightness": 0.588,
-      "highEnergy": 0.819,
+      "highEnergy": 0.82,
       "sub": 0.418,
       "lowMid": 0.588,
       "dirt": 1,
@@ -108,6 +108,14 @@
   "env2.release": 800,
   "pitch_env.amount": 18,
   "pitch_env.decay": 25,
+  "vibrato.depth": 0,
+  "vibrato.rate": 5.2,
+  "vibrato.delay": 350,
+  "vibrato.fade": 500,
+  "breath.chiff": 0,
+  "breath.decay": 120,
+  "breath.level": 0,
+  "breath.tone": 0.5,
   "lfo1.shape": "sine",
   "lfo1.rate": 2,
   "lfo1.sync": "free",
@@ -189,6 +197,6 @@
   "eq.mid_freq": 1000,
   "eq.high_gain": 0,
   "eq.highcut": 13000,
-  "output.gain": -3.7,
+  "output.gain": -4.3,
   "output.crossover": 120
 }

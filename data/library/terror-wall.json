@@ -17,16 +17,16 @@
     "audition": "dread",
     "features": {
       "brightness": 0.33,
-      "highEnergy": 0.641,
-      "sub": 0.578,
-      "lowMid": 0.682,
-      "dirt": 0.748,
-      "width": 0.871,
+      "highEnergy": 0.634,
+      "sub": 0.604,
+      "lowMid": 0.663,
+      "dirt": 0.717,
+      "width": 0.859,
       "attack": 0.201,
       "decay": 0.903,
-      "sustain": 0.808,
-      "release": 0.765,
-      "movement": 0.356
+      "sustain": 0.83,
+      "release": 0.773,
+      "movement": 0.342
     }
   },
   "voice.polyphony": 1,
@@ -110,6 +110,14 @@
   "env2.release": 1200,
   "pitch_env.amount": 0,
   "pitch_env.decay": 60,
+  "vibrato.depth": 0,
+  "vibrato.rate": 5.2,
+  "vibrato.delay": 350,
+  "vibrato.fade": 500,
+  "breath.chiff": 0,
+  "breath.decay": 120,
+  "breath.level": 0,
+  "breath.tone": 0.5,
   "lfo1.shape": "wander",
   "lfo1.rate": 0.31,
   "lfo1.sync": "free",
@@ -191,6 +199,6 @@
   "eq.mid_freq": 320,
   "eq.high_gain": -2,
   "eq.highcut": 5500,
-  "output.gain": -2.1,
+  "output.gain": -2.4,
   "output.crossover": 120
 }

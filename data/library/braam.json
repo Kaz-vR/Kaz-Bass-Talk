@@ -15,17 +15,17 @@
     "directory": "braam",
     "family": "cinematic",
     "features": {
-      "brightness": 0.294,
-      "highEnergy": 0.535,
-      "sub": 0.622,
-      "lowMid": 0.67,
-      "dirt": 0.488,
-      "width": 0.809,
+      "brightness": 0.281,
+      "highEnergy": 0.523,
+      "sub": 0.652,
+      "lowMid": 0.652,
+      "dirt": 0.463,
+      "width": 0.8,
       "attack": 0.577,
       "decay": 0.895,
-      "sustain": 0.902,
+      "sustain": 0.901,
       "release": 0.773,
-      "movement": 0.322
+      "movement": 0.266
     }
   },
   "voice.polyphony": 1,
@@ -109,6 +109,14 @@
   "env2.release": 800,
   "pitch_env.amount": 0,
   "pitch_env.decay": 60,
+  "vibrato.depth": 0,
+  "vibrato.rate": 5.2,
+  "vibrato.delay": 350,
+  "vibrato.fade": 500,
+  "breath.chiff": 0,
+  "breath.decay": 120,
+  "breath.level": 0,
+  "breath.tone": 0.5,
   "lfo1.shape": "sine",
   "lfo1.rate": 2,
   "lfo1.sync": "free",
@@ -190,6 +198,6 @@
   "eq.mid_freq": 400,
   "eq.high_gain": 0,
   "eq.highcut": 9000,
-  "output.gain": -3.7,
+  "output.gain": -2.8,
   "output.crossover": 120
 }

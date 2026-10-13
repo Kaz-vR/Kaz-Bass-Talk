@@ -18,11 +18,11 @@
       "highEnergy": 0.615,
       "sub": 0.43,
       "lowMid": 0.794,
-      "dirt": 0.527,
+      "dirt": 0.526,
       "width": 0,
       "attack": 0.259,
       "decay": 0.903,
-      "sustain": 0.838,
+      "sustain": 0.828,
       "release": 0.397,
       "movement": 0.153
     }
@@ -108,6 +108,14 @@
   "env2.release": 800,
   "pitch_env.amount": 0,
   "pitch_env.decay": 60,
+  "vibrato.depth": 0,
+  "vibrato.rate": 5.2,
+  "vibrato.delay": 350,
+  "vibrato.fade": 500,
+  "breath.chiff": 0,
+  "breath.decay": 120,
+  "breath.level": 0,
+  "breath.tone": 0.5,
   "lfo1.shape": "square",
   "lfo1.rate": 2,
   "lfo1.sync": "1/16",
@@ -189,6 +197,6 @@
   "eq.mid_freq": 1200,
   "eq.high_gain": 0,
   "eq.highcut": 10000,
-  "output.gain": -2.9,
+  "output.gain": -3.5,
   "output.crossover": 120
 }

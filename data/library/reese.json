@@ -15,17 +15,17 @@
     "directory": "reese",
     "family": "reese",
     "features": {
-      "brightness": 0.276,
+      "brightness": 0.271,
       "highEnergy": 0.495,
-      "sub": 0.633,
-      "lowMid": 0.672,
-      "dirt": 0.262,
-      "width": 0.799,
+      "sub": 0.618,
+      "lowMid": 0.691,
+      "dirt": 0.273,
+      "width": 0.833,
       "attack": 0.36,
       "decay": 0.901,
-      "sustain": 0.908,
-      "release": 0.554,
-      "movement": 0.274
+      "sustain": 0.869,
+      "release": 0.548,
+      "movement": 0.219
     }
   },
   "voice.polyphony": 1,
@@ -109,6 +109,14 @@
   "env2.release": 800,
   "pitch_env.amount": 0,
   "pitch_env.decay": 60,
+  "vibrato.depth": 0,
+  "vibrato.rate": 5.2,
+  "vibrato.delay": 350,
+  "vibrato.fade": 500,
+  "breath.chiff": 0,
+  "breath.decay": 120,
+  "breath.level": 0,
+  "breath.tone": 0.5,
   "lfo1.shape": "sine",
   "lfo1.rate": 0.16,
   "lfo1.sync": "free",
@@ -190,6 +198,6 @@
   "eq.mid_freq": 380,
   "eq.high_gain": 0,
   "eq.highcut": 10500,
-  "output.gain": -2.3,
+  "output.gain": -2,
   "output.crossover": 120
 }

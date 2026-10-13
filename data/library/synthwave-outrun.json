@@ -14,17 +14,17 @@
     "directory": "synthwave-outrun",
     "family": "synthwave",
     "features": {
-      "brightness": 0.198,
-      "highEnergy": 0.576,
-      "sub": 0.766,
-      "lowMid": 0.596,
-      "dirt": 0.585,
-      "width": 0.747,
+      "brightness": 0.206,
+      "highEnergy": 0.589,
+      "sub": 0.801,
+      "lowMid": 0.542,
+      "dirt": 0.604,
+      "width": 0.761,
       "attack": 0.301,
       "decay": 0.902,
-      "sustain": 0.985,
+      "sustain": 0.966,
       "release": 0.449,
-      "movement": 0.147
+      "movement": 0.146
     }
   },
   "voice.polyphony": 1,
@@ -108,6 +108,14 @@
   "env2.release": 800,
   "pitch_env.amount": 0,
   "pitch_env.decay": 60,
+  "vibrato.depth": 0,
+  "vibrato.rate": 5.2,
+  "vibrato.delay": 350,
+  "vibrato.fade": 500,
+  "breath.chiff": 0,
+  "breath.decay": 120,
+  "breath.level": 0,
+  "breath.tone": 0.5,
   "lfo1.shape": "sine",
   "lfo1.rate": 2,
   "lfo1.sync": "free",
@@ -189,6 +197,6 @@
   "eq.mid_freq": 800,
   "eq.high_gain": 0,
   "eq.highcut": 11500,
-  "output.gain": -1.8,
+  "output.gain": -1,
   "output.crossover": 120
 }

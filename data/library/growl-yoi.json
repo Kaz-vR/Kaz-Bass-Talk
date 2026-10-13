@@ -14,17 +14,17 @@
     "directory": "growl-yoi",
     "family": "growl",
     "features": {
-      "brightness": 0.404,
-      "highEnergy": 0.768,
-      "sub": 0.826,
-      "lowMid": 0.343,
+      "brightness": 0.393,
+      "highEnergy": 0.762,
+      "sub": 0.829,
+      "lowMid": 0.342,
       "dirt": 1,
-      "width": 0.903,
+      "width": 0.902,
       "attack": 0.1,
       "decay": 0.903,
-      "sustain": 0.894,
+      "sustain": 0.878,
       "release": 0.466,
-      "movement": 0.162
+      "movement": 0.149
     }
   },
   "voice.polyphony": 1,
@@ -108,6 +108,14 @@
   "env2.release": 800,
   "pitch_env.amount": 0,
   "pitch_env.decay": 60,
+  "vibrato.depth": 0,
+  "vibrato.rate": 5.2,
+  "vibrato.delay": 350,
+  "vibrato.fade": 500,
+  "breath.chiff": 0,
+  "breath.decay": 120,
+  "breath.level": 0,
+  "breath.tone": 0.5,
   "lfo1.shape": "triangle",
   "lfo1.rate": 2,
   "lfo1.sync": "1/8",
@@ -189,6 +197,6 @@
   "eq.mid_freq": 400,
   "eq.high_gain": 0,
   "eq.highcut": 12000,
-  "output.gain": -1,
+  "output.gain": -1.4,
   "output.crossover": 120
 }

@@ -14,17 +14,17 @@
     "directory": "neuro",
     "family": "growl",
     "features": {
-      "brightness": 0.336,
-      "highEnergy": 0.742,
-      "sub": 0.728,
-      "lowMid": 0.614,
+      "brightness": 0.349,
+      "highEnergy": 0.748,
+      "sub": 0.735,
+      "lowMid": 0.599,
       "dirt": 1,
-      "width": 0.964,
+      "width": 0.948,
       "attack": 0.333,
       "decay": 0.902,
-      "sustain": 0.854,
+      "sustain": 0.83,
       "release": 0.463,
-      "movement": 0.135
+      "movement": 0.136
     }
   },
   "voice.polyphony": 1,
@@ -108,6 +108,14 @@
   "env2.release": 800,
   "pitch_env.amount": 0,
   "pitch_env.decay": 60,
+  "vibrato.depth": 0,
+  "vibrato.rate": 5.2,
+  "vibrato.delay": 350,
+  "vibrato.fade": 500,
+  "breath.chiff": 0,
+  "breath.decay": 120,
+  "breath.level": 0,
+  "breath.tone": 0.5,
   "lfo1.shape": "saw_down",
   "lfo1.rate": 2,
   "lfo1.sync": "1/16",
@@ -189,6 +197,6 @@
   "eq.mid_freq": 420,
   "eq.high_gain": 0,
   "eq.highcut": 12500,
-  "output.gain": -1.5,
+  "output.gain": -2.3,
   "output.crossover": 120
 }
