@@ -14,19 +14,20 @@
     "directory": "cyberpunk-midtempo",
     "family": "growl",
     "features": {
-      "brightness": 0.32,
-      "highEnergy": 0.659,
-      "sub": 0.6,
-      "lowMid": 0.685,
-      "dirt": 0.677,
+      "brightness": 0.322,
+      "highEnergy": 0.663,
+      "sub": 0.595,
+      "lowMid": 0.692,
+      "dirt": 0.688,
       "width": 0,
       "attack": 0.259,
       "decay": 0.903,
-      "sustain": 0.806,
+      "sustain": 0.796,
       "release": 0.469,
-      "movement": 0.192
+      "movement": 0.176
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,

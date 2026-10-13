@@ -15,18 +15,19 @@
     "family": "fm",
     "features": {
       "brightness": 0.368,
-      "highEnergy": 0.594,
-      "sub": 0.662,
+      "highEnergy": 0.593,
+      "sub": 0.664,
       "lowMid": 0.556,
       "dirt": 0.256,
-      "width": 0.229,
+      "width": 0.23,
       "attack": 0.301,
       "decay": 0.498,
       "sustain": 0,
       "release": 0.712,
-      "movement": 0.415
+      "movement": 0.409
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": true,
   "voice.glide": 30,
   "voice.octave": 0,

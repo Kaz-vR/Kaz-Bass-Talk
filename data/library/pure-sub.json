@@ -27,6 +27,7 @@
       "movement": 0
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,

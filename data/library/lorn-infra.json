@@ -20,14 +20,15 @@
       "sub": 0.928,
       "lowMid": 0.335,
       "dirt": 0.095,
-      "width": 0.35,
+      "width": 0.349,
       "attack": 0.519,
       "decay": 0.898,
-      "sustain": 0.959,
+      "sustain": 0.96,
       "release": 0.773,
       "movement": 0.106
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": -1,

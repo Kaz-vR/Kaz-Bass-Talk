@@ -15,10 +15,10 @@
     "family": "organ",
     "features": {
       "brightness": 0.18,
-      "highEnergy": 0.241,
+      "highEnergy": 0.242,
       "sub": 0.531,
       "lowMid": 0.841,
-      "dirt": 0.556,
+      "dirt": 0.563,
       "width": 0.037,
       "attack": 0.434,
       "decay": 0.9,
@@ -27,6 +27,7 @@
       "movement": 0.062
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,

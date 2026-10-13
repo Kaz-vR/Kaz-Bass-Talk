@@ -14,19 +14,20 @@
     "directory": "wobble",
     "family": "wobble",
     "features": {
-      "brightness": 0.313,
-      "highEnergy": 0.621,
-      "sub": 0.682,
-      "lowMid": 0.584,
-      "dirt": 0.666,
-      "width": 0.732,
+      "brightness": 0.315,
+      "highEnergy": 0.62,
+      "sub": 0.716,
+      "lowMid": 0.513,
+      "dirt": 0.667,
+      "width": 0.74,
       "attack": 0.333,
       "decay": 0.902,
-      "sustain": 0.861,
+      "sustain": 0.854,
       "release": 0.453,
-      "movement": 0.41
+      "movement": 0.436
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,

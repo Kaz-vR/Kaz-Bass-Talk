@@ -14,18 +14,19 @@
     "family": "808",
     "features": {
       "brightness": 0.337,
-      "highEnergy": 0.537,
+      "highEnergy": 0.538,
       "sub": 0.186,
-      "lowMid": 0.859,
-      "dirt": 0.437,
+      "lowMid": 0.858,
+      "dirt": 0.436,
       "width": 0,
       "attack": 0.1,
       "decay": 0.344,
-      "sustain": 0.929,
+      "sustain": 0.928,
       "release": 0.338,
       "movement": 0.016
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,

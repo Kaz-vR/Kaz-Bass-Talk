@@ -14,19 +14,20 @@
     "directory": "talkbox-zapp",
     "family": "funk",
     "features": {
-      "brightness": 0.192,
+      "brightness": 0.197,
       "highEnergy": 0.625,
-      "sub": 0.889,
-      "lowMid": 0.306,
-      "dirt": 0.402,
-      "width": 0.831,
+      "sub": 0.886,
+      "lowMid": 0.311,
+      "dirt": 0.35,
+      "width": 0.83,
       "attack": 0.333,
-      "decay": 0.902,
-      "sustain": 0.909,
+      "decay": 0.9,
+      "sustain": 0.888,
       "release": 0.449,
-      "movement": 0.233
+      "movement": 0.254
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": true,
   "voice.glide": 80,
   "voice.octave": 0,

@@ -17,19 +17,20 @@
     "collection": "terror",
     "audition": "dread",
     "features": {
-      "brightness": 0.237,
-      "highEnergy": 0.638,
-      "sub": 0.606,
-      "lowMid": 0.753,
+      "brightness": 0.238,
+      "highEnergy": 0.639,
+      "sub": 0.603,
+      "lowMid": 0.754,
       "dirt": 1,
-      "width": 0.702,
-      "attack": 0.382,
+      "width": 0.7,
+      "attack": 0.36,
       "decay": 0.901,
-      "sustain": 0.877,
+      "sustain": 0.863,
       "release": 0.773,
-      "movement": 0.048
+      "movement": 0.05
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,

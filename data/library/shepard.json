@@ -23,10 +23,11 @@
       "attack": 0.527,
       "decay": 0.892,
       "sustain": 0.961,
-      "release": 0.773,
-      "movement": 0.189
+      "release": 0.766,
+      "movement": 0.19
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,

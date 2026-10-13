@@ -15,18 +15,19 @@
     "family": "growl",
     "features": {
       "brightness": 0.404,
-      "highEnergy": 0.765,
-      "sub": 0.833,
-      "lowMid": 0.32,
+      "highEnergy": 0.768,
+      "sub": 0.826,
+      "lowMid": 0.343,
       "dirt": 1,
-      "width": 0.897,
+      "width": 0.903,
       "attack": 0.1,
       "decay": 0.903,
-      "sustain": 0.825,
+      "sustain": 0.894,
       "release": 0.466,
-      "movement": 0.155
+      "movement": 0.162
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,

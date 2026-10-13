@@ -15,18 +15,19 @@
     "family": "sub",
     "features": {
       "brightness": 0.379,
-      "highEnergy": 0.519,
-      "sub": 0.055,
-      "lowMid": 0.804,
-      "dirt": 0.263,
-      "width": 0.245,
-      "attack": 0.259,
+      "highEnergy": 0.534,
+      "sub": 0.06,
+      "lowMid": 0.81,
+      "dirt": 0.271,
+      "width": 0.244,
+      "attack": 0.201,
       "decay": 0.901,
-      "sustain": 0.922,
+      "sustain": 0.941,
       "release": 0.773,
-      "movement": 0.329
+      "movement": 0.31
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,
@@ -184,10 +185,10 @@
   "reverb.tone": 0.5,
   "fx.lowcut": 220,
   "eq.low_gain": 0,
-  "eq.mid_gain": 0,
-  "eq.mid_freq": 800,
+  "eq.mid_gain": -1.5,
+  "eq.mid_freq": 300,
   "eq.high_gain": 0,
   "eq.highcut": 8000,
-  "output.gain": -6.4,
+  "output.gain": -5.5,
   "output.crossover": 120
 }

@@ -16,11 +16,11 @@
     "directory": "fm-lately",
     "family": "fm",
     "features": {
-      "brightness": 0.42,
-      "highEnergy": 0.738,
-      "sub": 0.56,
-      "lowMid": 0.691,
-      "dirt": 0.909,
+      "brightness": 0.418,
+      "highEnergy": 0.736,
+      "sub": 0.566,
+      "lowMid": 0.688,
+      "dirt": 0.915,
       "width": 0,
       "attack": 0.46,
       "decay": 0.9,
@@ -29,6 +29,7 @@
       "movement": 0.041
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,

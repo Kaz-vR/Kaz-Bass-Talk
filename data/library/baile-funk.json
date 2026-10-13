@@ -14,11 +14,11 @@
     "directory": "baile-funk",
     "family": "808",
     "features": {
-      "brightness": 0.249,
-      "highEnergy": 0.329,
+      "brightness": 0.25,
+      "highEnergy": 0.336,
       "sub": 0.34,
-      "lowMid": 0.882,
-      "dirt": 0.167,
+      "lowMid": 0.881,
+      "dirt": 0.169,
       "width": 0,
       "attack": 0.259,
       "decay": 0.478,
@@ -27,6 +27,7 @@
       "movement": 0.017
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,

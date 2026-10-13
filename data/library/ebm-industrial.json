@@ -15,18 +15,19 @@
     "family": "distorted",
     "features": {
       "brightness": 0.343,
-      "highEnergy": 0.616,
-      "sub": 0.428,
+      "highEnergy": 0.615,
+      "sub": 0.43,
       "lowMid": 0.794,
-      "dirt": 0.524,
+      "dirt": 0.527,
       "width": 0,
       "attack": 0.259,
       "decay": 0.903,
-      "sustain": 0.832,
+      "sustain": 0.838,
       "release": 0.397,
-      "movement": 0.164
+      "movement": 0.153
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,

@@ -15,10 +15,10 @@
     "directory": "dx7-slap",
     "family": "fm",
     "features": {
-      "brightness": 0.654,
-      "highEnergy": 0.863,
-      "sub": 0.469,
-      "lowMid": 0.433,
+      "brightness": 0.643,
+      "highEnergy": 0.86,
+      "sub": 0.466,
+      "lowMid": 0.442,
       "dirt": 1,
       "width": 0,
       "attack": 0.1,
@@ -28,6 +28,7 @@
       "movement": 0.104
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,

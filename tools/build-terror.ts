@@ -242,12 +242,13 @@ const D: Def[] = [
     texture: ['dust', 1, 0.2, 2200],
     set: {
       'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'osc1.level': 0.7, 'osc2.wave': 'triangle', 'osc2.semi': 12, 'osc2.level': 0.25, 'osc2.fine': 5,
+      'osc2.unison_voices': 3, 'osc2.unison_detune': 14,
       'drive.amount': 0.45, 'filter.cutoff': 600, 'amp_env.attack': 60, 'amp_env.release': 1500, 'env2.attack': 2200,
       'reverb.mix': 0.3, 'reverb.size': 0.85, 'delay.mix': 0.16, 'delay.time': '1/2', 'delay.feedback': 0.5, 'comp.pump': 0.1, 'eq.highcut': 7500, 'tape.age': 0.25,
     },
     // A sine body barely reacts to the filter: move its drive and the octave layer instead, and let the dust breathe.
-    mods: kit([['drift_slow', 'dist_drive', 0.2]], {
-      'lfo1>filter_cutoff': ['lfo1', 'osc2_level', 0.2],
+    mods: kit([['drift_slow', 'dist_drive', 0.28]], {
+      'lfo1>filter_cutoff': ['lfo1', 'osc2_level', 0.4],
       'lfo2>filter_cutoff': ['lfo2', 'dist_drive', 0.08],
       'lfo3>unison_detune': ['lfo3', 'texture_level', 0.2],
     }),

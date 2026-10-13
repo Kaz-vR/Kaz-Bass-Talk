@@ -14,19 +14,20 @@
     "directory": "nu-disco-rubber",
     "family": "funk",
     "features": {
-      "brightness": 0.31,
-      "highEnergy": 0.604,
-      "sub": 0.669,
-      "lowMid": 0.603,
-      "dirt": 0.585,
-      "width": 0.178,
+      "brightness": 0.309,
+      "highEnergy": 0.589,
+      "sub": 0.663,
+      "lowMid": 0.606,
+      "dirt": 0.564,
+      "width": 0.179,
       "attack": 0.333,
       "decay": 0.902,
-      "sustain": 0.796,
+      "sustain": 0.798,
       "release": 0.453,
-      "movement": 0.126
+      "movement": 0.122
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,

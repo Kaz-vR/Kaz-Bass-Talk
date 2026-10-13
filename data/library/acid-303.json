@@ -15,19 +15,20 @@
     "directory": "acid-303",
     "family": "acid",
     "features": {
-      "brightness": 0.616,
-      "highEnergy": 0.836,
-      "sub": 0.371,
+      "brightness": 0.618,
+      "highEnergy": 0.838,
+      "sub": 0.373,
       "lowMid": 0.631,
       "dirt": 1,
-      "width": 0.337,
+      "width": 0.336,
       "attack": 0.492,
       "decay": 0.898,
-      "sustain": 0.99,
+      "sustain": 0.987,
       "release": 0.703,
-      "movement": 0.118
+      "movement": 0.113
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": true,
   "voice.glide": 55,
   "voice.octave": 0,

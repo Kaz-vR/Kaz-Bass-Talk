@@ -16,18 +16,19 @@
     "family": "pluck",
     "features": {
       "brightness": 0.128,
-      "highEnergy": 0.196,
+      "highEnergy": 0.189,
       "sub": 0.728,
       "lowMid": 0.679,
-      "dirt": 0.247,
+      "dirt": 0.246,
       "width": 0.101,
       "attack": 0.434,
       "decay": 0.459,
       "sustain": 0,
       "release": 0.725,
-      "movement": 0.223
+      "movement": 0.222
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,

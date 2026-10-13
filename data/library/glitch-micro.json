@@ -14,19 +14,20 @@
     "directory": "glitch-micro",
     "family": "experimental",
     "features": {
-      "brightness": 0.102,
-      "highEnergy": 0.489,
+      "brightness": 0.103,
+      "highEnergy": 0.491,
       "sub": 0.897,
-      "lowMid": 0.424,
-      "dirt": 0.519,
+      "lowMid": 0.425,
+      "dirt": 0.569,
       "width": 0,
       "attack": 0.502,
       "decay": 0.898,
-      "sustain": 0.929,
+      "sustain": 0.905,
       "release": 0.367,
-      "movement": 0.064
+      "movement": 0.063
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,

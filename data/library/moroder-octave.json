@@ -15,19 +15,20 @@
     "directory": "moroder-octave",
     "family": "analog",
     "features": {
-      "brightness": 0.184,
-      "highEnergy": 0.553,
-      "sub": 0.767,
+      "brightness": 0.182,
+      "highEnergy": 0.543,
+      "sub": 0.766,
       "lowMid": 0.595,
-      "dirt": 0.534,
+      "dirt": 0.519,
       "width": 0.316,
       "attack": 0.382,
       "decay": 0.901,
-      "sustain": 0.843,
+      "sustain": 0.855,
       "release": 0.392,
-      "movement": 0.08
+      "movement": 0.081
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,

@@ -14,11 +14,11 @@
     "directory": "synth-metal-doom",
     "family": "distorted",
     "features": {
-      "brightness": 0.218,
-      "highEnergy": 0.571,
-      "sub": 0.719,
-      "lowMid": 0.633,
-      "dirt": 0.658,
+      "brightness": 0.219,
+      "highEnergy": 0.572,
+      "sub": 0.715,
+      "lowMid": 0.637,
+      "dirt": 0.669,
       "width": 0,
       "attack": 0.301,
       "decay": 0.902,
@@ -27,6 +27,7 @@
       "movement": 0.227
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": -1,

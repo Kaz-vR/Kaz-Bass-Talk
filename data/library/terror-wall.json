@@ -16,19 +16,20 @@
     "collection": "terror",
     "audition": "dread",
     "features": {
-      "brightness": 0.336,
-      "highEnergy": 0.642,
-      "sub": 0.634,
-      "lowMid": 0.623,
-      "dirt": 0.618,
-      "width": 0.9,
+      "brightness": 0.33,
+      "highEnergy": 0.641,
+      "sub": 0.578,
+      "lowMid": 0.682,
+      "dirt": 0.748,
+      "width": 0.871,
       "attack": 0.201,
       "decay": 0.903,
-      "sustain": 0.843,
-      "release": 0.773,
-      "movement": 0.344
+      "sustain": 0.808,
+      "release": 0.765,
+      "movement": 0.356
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,
@@ -190,6 +191,6 @@
   "eq.mid_freq": 320,
   "eq.high_gain": -2,
   "eq.highcut": 5500,
-  "output.gain": -1.7,
+  "output.gain": -2.1,
   "output.crossover": 120
 }

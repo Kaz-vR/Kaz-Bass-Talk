@@ -17,16 +17,17 @@
       "brightness": 0.639,
       "highEnergy": 0.801,
       "sub": 0.389,
-      "lowMid": 0.332,
-      "dirt": 0.716,
+      "lowMid": 0.333,
+      "dirt": 0.715,
       "width": 0.277,
       "attack": 0.1,
       "decay": 0.535,
       "sustain": 0,
       "release": 0.737,
-      "movement": 0.603
+      "movement": 0.599
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,

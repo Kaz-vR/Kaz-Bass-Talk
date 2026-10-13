@@ -14,19 +14,20 @@
     "directory": "nin-industrial-rock",
     "family": "distorted",
     "features": {
-      "brightness": 0.318,
-      "highEnergy": 0.668,
-      "sub": 0.64,
-      "lowMid": 0.66,
-      "dirt": 0.878,
-      "width": 0.914,
+      "brightness": 0.315,
+      "highEnergy": 0.666,
+      "sub": 0.674,
+      "lowMid": 0.616,
+      "dirt": 0.888,
+      "width": 0.92,
       "attack": 0.301,
       "decay": 0.902,
-      "sustain": 0.852,
+      "sustain": 0.859,
       "release": 0.449,
-      "movement": 0.198
+      "movement": 0.189
     }
   },
+  "voice.polyphony": 1,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,
