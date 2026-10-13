@@ -180,9 +180,11 @@ export class Reverb {
  *
  * The gain applied to a sample is the box-car average of a sliding-window
  * minimum of the required gain, delayed so that the average can never exceed
- * the gain the sample itself needs. Gain recovery is additionally slowed by a
- * release; that only ever lowers the gain, so the guarantee holds. A final
- * clamp catches floating-point residue.
+ * the gain the sample itself needs. Recovery waits for a hold time longer than
+ * a low bass period and then follows a slow release, so the gain doesn't
+ * ripple within each waveform cycle (which would distort and create DC). Hold
+ * and release only ever lower the gain, so the guarantee holds. A final clamp
+ * catches floating-point residue.
  */
 export class Limiter {
   readonly ceiling: number;
@@ -203,10 +205,12 @@ export class Limiter {
   private boxSum: number;
   private gain = 1;
   private release: number;
+  private holdSamples: number;
+  private holdCount = 0;
   /** Lowest gain applied since last read (for metering). */
   minGain = 1;
 
-  constructor(fs: number, ceilingDb = -1, lookaheadMs = 1.5, releaseMs = 80) {
+  constructor(fs: number, ceilingDb = -1, lookaheadMs = 1.5, releaseMs = 150, holdMs = 30) {
     this.ceiling = Math.pow(10, ceilingDb / 20);
     this.lookahead = Math.max(2, Math.round((lookaheadMs * fs) / 1000));
     const L = this.lookahead;
@@ -218,6 +222,7 @@ export class Limiter {
     this.box = new Float64Array(L).fill(1);
     this.boxSum = L;
     this.release = 1 - Math.exp(-1 / ((releaseMs * fs) / 1000));
+    this.holdSamples = Math.round((holdMs * fs) / 1000);
   }
 
   reset(): void {
@@ -227,6 +232,7 @@ export class Limiter {
     this.boxSum = this.lookahead;
     this.qHead = this.qTail = 0;
     this.gain = 1;
+    this.holdCount = 0;
   }
 
   process(l: number, r: number, out: Float64Array): void {
@@ -258,9 +264,16 @@ export class Limiter {
     }
     const smooth = this.boxSum / L;
 
-    // Slow recovery; instant reduction.
-    const rel = this.gain + (1 - this.gain) * this.release;
-    this.gain = smooth < rel ? smooth : rel;
+    // Instant reduction; hold, then slow recovery.
+    if (smooth < this.gain) {
+      this.gain = smooth;
+      this.holdCount = this.holdSamples;
+    } else if (this.holdCount > 0) {
+      this.holdCount--;
+    } else {
+      const rel = this.gain + (1 - this.gain) * this.release;
+      this.gain = smooth < rel ? smooth : rel;
+    }
     if (this.gain < this.minGain) this.minGain = this.gain;
 
     // Delay the signal by L-1 samples so the gain is applied ahead of peaks.

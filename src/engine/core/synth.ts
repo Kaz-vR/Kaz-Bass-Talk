@@ -13,11 +13,11 @@
 // Signal path (one monophonic voice):
 //   osc1 (+FM) + osc2 + noise → drive → filter → distortion → amp
 //   + sub (clean, mono, phase-stable, bypasses filter/distortion)
-//   → FX above fx.lowcut (chorus, phaser, reverb) → EQ → DC blocker
+//   → FX above fx.lowcut (chorus, phaser, reverb) → EQ → subsonic/DC filter
 //   → mono below crossover → output gain → look-ahead limiter (always on)
 
 import { PARAM_COUNT, paramIndex, params } from '../../schema';
-import { Biquad, clamp, DcBlocker, Envelope, fastTanh, Ladder, polyBlep, Rng, Svf, TWO_PI } from './dsp';
+import { Biquad, clamp, Envelope, fastTanh, Ladder, polyBlep, Rng, Svf, TWO_PI } from './dsp';
 import { Chorus, Limiter, Phaser, Reverb } from './fx';
 import {
   FRAME_COUNT,
@@ -35,6 +35,9 @@ const MAX_UNISON = 7;
 const DUCK_MS = 3;
 const SMOOTH_MS = 15;
 const LIMITER_CEILING_DB = -1;
+const SUBSONIC_HZ = 12;
+// Section Qs of an 8th-order Butterworth filter.
+const XO_Q = [0.5098, 0.6013, 0.9000, 2.5629];
 const KEYTRACK_CENTER = 48; // C3: filter.cutoff is the actual cutoff at this note
 
 // Gain staging.
@@ -222,10 +225,9 @@ export class Synth {
   private readonly reverb: Reverb;
   private readonly eqL = [new Biquad(), new Biquad(), new Biquad()];
   private readonly eqR = [new Biquad(), new Biquad(), new Biquad()];
-  private readonly dcL = new DcBlocker();
-  private readonly dcR = new DcBlocker();
-  private readonly xo1 = new Biquad();
-  private readonly xo2 = new Biquad();
+  private readonly dcL = new Biquad();
+  private readonly dcR = new Biquad();
+  private readonly xo = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
   private readonly limiter: Limiter;
   private outGain = 1;
   private outGainStep = 0;
@@ -255,8 +257,9 @@ export class Synth {
     this.phaser = new Phaser(sampleRate);
     this.reverb = new Reverb(sampleRate);
     this.limiter = new Limiter(sampleRate, LIMITER_CEILING_DB);
-    this.dcL.setup(sampleRate);
-    this.dcR.setup(sampleRate);
+    // Subsonic + DC filter: 12 Hz 2nd-order high-pass (-0.1 dB at 30 Hz).
+    this.dcL.setHighpass(SUBSONIC_HZ, Math.SQRT1_2, sampleRate);
+    this.dcR.setHighpass(SUBSONIC_HZ, Math.SQRT1_2, sampleRate);
     this.lastFx.fill(NaN);
     this.applyDiscrete();
     this.control();
@@ -264,6 +267,13 @@ export class Synth {
 
   get limiterCeiling(): number {
     return this.limiter.ceiling;
+  }
+
+  /** Lowest limiter gain since the last call (1 = no limiting); resets the meter. */
+  takeLimiterMinGain(): number {
+    const g = this.limiter.minGain;
+    this.limiter.minGain = 1;
+    return g;
   }
 
   /** Latency of the output limiter, in samples. */
@@ -353,8 +363,7 @@ export class Synth {
     }
     this.hpL.reset();
     this.hpR.reset();
-    this.xo1.reset();
-    this.xo2.reset();
+    for (let i = 0; i < 4; i++) this.xo[i].reset();
     this.chorus.reset();
     this.phaser.reset();
     this.reverb.reset();
@@ -651,9 +660,8 @@ export class Synth {
       lf[4] = cur[P.eqHigh];
     }
     if (cur[P.crossover] !== lf[5]) {
-      // Two cascaded Butterworth sections = Linkwitz-Riley 24 dB/oct.
-      this.xo1.setHighpass(cur[P.crossover], Math.SQRT1_2, fs);
-      this.xo2.setHighpass(cur[P.crossover], Math.SQRT1_2, fs);
+      // 8th-order Butterworth high-pass on the side channel (48 dB/oct).
+      for (let i = 0; i < 4; i++) this.xo[i].setHighpass(cur[P.crossover], XO_Q[i], fs);
       lf[5] = cur[P.crossover];
     }
     if (cur[P.outGain] !== this.lastOutDb) {
@@ -906,13 +914,14 @@ export class Synth {
         r = this.eqR[b].process(r);
       }
 
-      // DC blocker.
+      // Subsonic / DC filter.
       l = this.dcL.process(l);
       r = this.dcR.process(r);
 
       // Mono below the crossover: keep the mid intact, high-pass the side.
       const m = 0.5 * (l + r);
-      const s = this.xo2.process(this.xo1.process(0.5 * (l - r)));
+      const xo = this.xo;
+      const s = xo[3].process(xo[2].process(xo[1].process(xo[0].process(0.5 * (l - r)))));
       l = (m + s) * this.outGain;
       r = (m - s) * this.outGain;
 

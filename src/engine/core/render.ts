@@ -15,6 +15,8 @@ export interface RenderResult {
   left: Float32Array;
   right: Float32Array;
   sampleRate: number;
+  /** Lowest gain the output limiter applied (1 = never engaged). */
+  limiterMinGain: number;
 }
 
 const BLOCK = 128;
@@ -37,5 +39,5 @@ export function renderPatch(patch: unknown, loop: Loop, opts: RenderOptions = {}
     if (pos >= playFrames && player.playing) player.stop();
     player.render(left, right, pos, Math.min(BLOCK, total - pos));
   }
-  return { left, right, sampleRate };
+  return { left, right, sampleRate, limiterMinGain: synth.takeLimiterMinGain() };
 }

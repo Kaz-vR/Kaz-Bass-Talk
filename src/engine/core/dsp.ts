@@ -196,25 +196,6 @@ export class Biquad {
   }
 }
 
-/** One-pole DC blocker. */
-export class DcBlocker {
-  private x1 = 0;
-  private y1 = 0;
-  private r = 0.999;
-  setup(fs: number, fc = 5): void {
-    this.r = 1 - (TWO_PI * fc) / fs;
-  }
-  reset(): void {
-    this.x1 = this.y1 = 0;
-  }
-  process(x: number): number {
-    const y = x - this.x1 + this.r * this.y1;
-    this.x1 = x;
-    this.y1 = y;
-    return y;
-  }
-}
-
 /** ADSR with analog-style exponential segments. Times are in ms. */
 export class Envelope {
   level = 0;
