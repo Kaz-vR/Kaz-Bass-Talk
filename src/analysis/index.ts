@@ -404,6 +404,9 @@ export function frozen(p: Patch): Patch {
   q['amp_env.sustain'] = 1;
   q['amp_env.attack_curve'] = 0;
   q['texture.level'] = 0;
+  q['vibrato.depth'] = 0;
+  q['breath.chiff'] = 0;
+  q['breath.level'] = 0;
   // A deliberately dissonant layer (not an octave or fifth) has no harmonic
   // lattice, so it would read as aliasing: leave it out of the frozen probe.
   if (!harmonicInterval(q['osc2.semi'] as number)) q['osc2.level'] = 0;
@@ -521,10 +524,18 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
     raw.textureDb = db(d / (e + 1e-30));
   }
   if (opts.life ?? wantsLife(p.meta?.family as string | undefined)) {
-    // Life is judged on the bass itself: a crackle bed must not make a static sound pass as alive.
-    const r = renderPatch(noTex, heldLoop(PROBE_NOTES.mid, LIFE_HOLD_SECONDS), { sampleRate: fs, seconds: LIFE_HOLD_SECONDS });
-    track(r);
-    raw.life = measureLife(mono(r.left, r.right), fs, Math.round(0.5 * fs), Math.round(LIFE_HOLD_SECONDS * fs));
+    // Life is judged on the sound itself: a crackle bed must not make a static sound pass as alive.
+    // Two held notes, averaged, so one lucky or unlucky random realization doesn't decide.
+    const lives = [PROBE_NOTES.mid, PROBE_NOTES.mid - 5].map((note) => {
+      const r = renderPatch(noTex, heldLoop(note, LIFE_HOLD_SECONDS), { sampleRate: fs, seconds: LIFE_HOLD_SECONDS });
+      track(r);
+      return measureLife(mono(r.left, r.right), fs, Math.round(0.5 * fs), Math.round(LIFE_HOLD_SECONDS * fs));
+    });
+    raw.life = {
+      slowDb: (lives[0].slowDb + lives[1].slowDb) / 2,
+      fastDb: (lives[0].fastDb + lives[1].fastDb) / 2,
+      repeat: (lives[0].repeat + lives[1].repeat) / 2,
+    };
     raw.peak = peak;
     raw.limiterDb = -db(minGain * minGain);
   }
