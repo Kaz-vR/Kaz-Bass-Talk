@@ -3,7 +3,14 @@
 // and the attack transient layer. All state is preallocated; nothing here
 // allocates after construction.
 
-import { fastTanh, Rng, Svf, TWO_PI } from './dsp';
+import { fastTanh as fastTanh_, Rng as Rng_, Svf as Svf_, TWO_PI as TWO_PI_ } from './dsp';
+
+// Module-local bindings: avoids live-binding getter overhead on hot paths in
+// some module transforms (tsx / vite-node).
+const fastTanh = fastTanh_;
+const Rng = Rng_;
+const Svf = Svf_;
+const TWO_PI = TWO_PI_;
 
 /**
  * 3-pole (18 dB/oct) diode-style ladder, the 303 filter's character: each

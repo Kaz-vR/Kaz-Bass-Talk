@@ -62,8 +62,12 @@ export class Ladder {
 
   /** g = tan(π·fc/fs); k = feedback 0..~3.9 */
   process(x: number, g: number, k: number): number {
-    const G = g / (1 + g);
-    const b = 1 / (1 + g);
+    return this.processG(x, g / (1 + g), k);
+  }
+
+  /** Same as process() with G = g / (1 + g) precomputed (share it across channels). */
+  processG(x: number, G: number, k: number): number {
+    const b = 1 - G;
     const G2 = G * G;
     const G3 = G2 * G;
     const G4 = G3 * G;
@@ -99,6 +103,31 @@ export class Svf {
 
   reset(): void {
     this.ic1 = this.ic2 = this.lp = this.bp = this.hp = 0;
+  }
+
+  private ca1 = 0;
+  private ca2 = 0;
+  private ca3 = 0;
+  private ck = 0;
+
+  /** Precompute coefficients for processFixed() (for filters whose frequency rarely changes). */
+  setCoefs(g: number, k: number): void {
+    this.ca1 = 1 / (1 + g * (g + k));
+    this.ca2 = g * this.ca1;
+    this.ca3 = g * this.ca2;
+    this.ck = k;
+  }
+
+  /** process() with the coefficients from setCoefs(). */
+  processFixed(x: number): void {
+    const v3 = x - this.ic2;
+    const v1 = this.ca1 * this.ic1 + this.ca2 * v3;
+    const v2 = this.ic2 + this.ca2 * this.ic1 + this.ca3 * v3;
+    this.ic1 = 2 * v1 - this.ic1;
+    this.ic2 = 2 * v2 - this.ic2;
+    this.lp = v2;
+    this.bp = v1;
+    this.hp = x - this.ck * v1 - v2;
   }
 
   /** g = tan(π·fc/fs); k = 1/Q */

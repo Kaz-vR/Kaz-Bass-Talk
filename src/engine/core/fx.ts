@@ -2,7 +2,15 @@
 // signal above `fx.lowcut` (see Synth.processFx), so the low end stays dry,
 // centred and phase-stable whatever the effect settings are.
 
-import { clamp, fastTanh, Rng, Svf, TWO_PI } from './dsp';
+import { clamp as clamp_, fastTanh as fastTanh_, Rng as Rng_, Svf as Svf_, TWO_PI as TWO_PI_ } from './dsp';
+
+// Module-local bindings: avoids live-binding getter overhead on hot paths in
+// some module transforms (tsx / vite-node).
+const clamp = clamp_;
+const fastTanh = fastTanh_;
+const Rng = Rng_;
+const Svf = Svf_;
+const TWO_PI = TWO_PI_;
 
 const MAX_FS = 192000;
 
@@ -658,6 +666,10 @@ export class Ott {
   constructor(fs: number) {
     this.gLow = Math.tan((Math.PI * 120) / fs);
     this.gMid = Math.tan((Math.PI * 2500) / fs);
+    this.lowL.setCoefs(this.gLow, Math.SQRT2);
+    this.lowR.setCoefs(this.gLow, Math.SQRT2);
+    this.midL.setCoefs(this.gMid, Math.SQRT2);
+    this.midR.setCoefs(this.gMid, Math.SQRT2);
     this.atk = 1 - Math.exp(-1 / (0.004 * fs));
     this.rel = 1 - Math.exp(-1 / (0.12 * fs));
   }
@@ -690,13 +702,12 @@ export class Ott {
   }
 
   process(l: number, r: number, out: Float64Array): void {
-    const k = Math.SQRT2;
-    this.lowL.process(l, this.gLow, k);
-    this.lowR.process(r, this.gLow, k);
+    this.lowL.processFixed(l);
+    this.lowR.processFixed(r);
     const loL = this.lowL.lp, loR = this.lowR.lp;
     const restL = l - loL, restR = r - loR;
-    this.midL.process(restL, this.gMid, k);
-    this.midR.process(restR, this.gMid, k);
+    this.midL.processFixed(restL);
+    this.midR.processFixed(restR);
     const miL = this.midL.lp, miR = this.midR.lp;
     const hiL = restL - miL, hiR = restR - miR;
     const bands0 = Math.max(Math.abs(loL), Math.abs(loR));

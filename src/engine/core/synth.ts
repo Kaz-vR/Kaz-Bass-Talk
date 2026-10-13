@@ -883,6 +883,7 @@ export class Synth {
     if (cur[P.dSplit] !== this.lastFx[7]) {
       const split = cur[P.dSplit];
       this.splitG = split > 22 ? Math.tan((Math.PI * split) / fsOs) : 0;
+      if (this.splitG > 0) for (const f of this.split) f.setCoefs(this.splitG, Math.SQRT2);
       this.lastFx[7] = split;
     }
 
@@ -1087,8 +1088,9 @@ export class Synth {
     this.g += this.gStep;
     const g = this.g;
     if (this.filterType === FILTER_LP) {
-      l = this.ladL.process(l, g, this.k);
-      r = this.ladR.process(r, g, this.k);
+      const G = g / (1 + g);
+      l = this.ladL.processG(l, G, this.k);
+      r = this.ladR.processG(r, G, this.k);
     } else if (this.filterType === FILTER_BP) {
       const k = this.k;
       this.bpL[0].process(l, g, k);
@@ -1136,15 +1138,15 @@ export class Synth {
       let lowL = 0, lowR = 0, hl = l, hr = r;
       if (this.splitG > 0) {
         // Linkwitz-Riley 4th-order crossover: low = LP∘LP, high = HP∘HP (sum is allpass).
-        const g = this.splitG, k = Math.SQRT2, sp = this.split;
-        sp[0].process(l, g, k);
-        sp[1].process(sp[0].lp, g, k);
-        sp[2].process(sp[0].hp, g, k);
+        const sp = this.split;
+        sp[0].processFixed(l);
+        sp[1].processFixed(sp[0].lp);
+        sp[2].processFixed(sp[0].hp);
         lowL = sp[1].lp;
         hl = sp[2].hp;
-        sp[3].process(r, g, k);
-        sp[4].process(sp[3].lp, g, k);
-        sp[5].process(sp[3].hp, g, k);
+        sp[3].processFixed(r);
+        sp[4].processFixed(sp[3].lp);
+        sp[5].processFixed(sp[3].hp);
         lowR = sp[4].lp;
         hr = sp[5].hp;
       }

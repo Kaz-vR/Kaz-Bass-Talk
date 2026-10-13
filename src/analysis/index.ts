@@ -182,6 +182,9 @@ function latticeBase(p: Patch, f0: number): number | null {
   const octaveShift = (semi: number) => Math.floor(semi / 12);
   for (const n of [1, 2]) {
     if ((p[`osc${n}.level`] as number) <= 0) continue;
+    // Shepard partials glide and a physical-model string is not exactly harmonic: no lattice.
+    const wave = p[`osc${n}.wave`];
+    if (wave === 'shepard' || wave === 'string') return null;
     const semi = p[`osc${n}.semi`] as number;
     base = Math.min(base, f0 * Math.pow(2, octaveShift(semi)));
     if (semi % 12 !== 0) base = Math.min(base, (f0 * Math.pow(2, octaveShift(semi))) / 2); // fifths etc. fall on half-steps of the lattice
@@ -287,7 +290,11 @@ export function frozen(p: Patch): Patch {
   q['osc1.fine'] = 0;
   q['osc2.fine'] = 0;
   for (let n = 1; n <= 8; n++) q[`mod${n}.amount`] = 0;
-  for (const id of ['chorus.mix', 'flanger.mix', 'phaser.mix', 'delay.mix', 'reverb.mix', 'tape.wow', 'tape.age', 'comp.pump', 'pitch_env.amount', 'filter.env_amount']) q[id] = 0;
+  for (const id of ['chorus.mix', 'flanger.mix', 'phaser.mix', 'delay.mix', 'reverb.mix', 'tape.wow', 'tape.age', 'comp.pump', 'pitch_env.amount', 'filter.env_amount', 'noise.level', 'click.level', 'fm.punch']) q[id] = 0;
+  // Hold the note at full level so short plucks are measured, not their silence.
+  q['amp_env.attack'] = 1;
+  q['amp_env.sustain'] = 1;
+  q['amp_env.attack_curve'] = 0;
   return q;
 }
 
