@@ -1,0 +1,24 @@
+{
+  "name": "low-talk",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Low Talk: a bass synth you talk to (Phase A browser prototype).",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "render:previews": "tsx tools/render-previews.ts",
+    "validate:data": "tsx tools/validate-data.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.4"
+  }
+}
