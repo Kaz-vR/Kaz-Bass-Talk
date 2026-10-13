@@ -7,7 +7,7 @@ import { DEFAULT_LOOP, loadLibrary, loadLoops } from './lib/data';
 import { quickStats } from './lib/measure';
 
 const TARGET_DB = -16;
-const PEAK_LIMIT = 0.7; // keep ~2 dB clear of the limiter ceiling
+const PEAK_LIMIT = 0.85; // just under the -1 dBFS limiter ceiling: it only ever touches stray transients
 const loop = loadLoops().get(DEFAULT_LOOP)!;
 
 for (const entry of loadLibrary()) {
