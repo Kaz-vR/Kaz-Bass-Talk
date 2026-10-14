@@ -180,6 +180,7 @@ export class ParamsPanel {
       box.append(h);
       if (Object.values(SOURCE_BOX).includes(g) || g === 'pitch_env') box.append(this.routeEl(g));
       if (LAYERS[g]) h.append(this.monitorButtons(LAYERS[g]));
+      if (g !== 'output' && g !== 'wheel') h.append(this.lockButton(g, box));
       const power = ps.find((p) => p.id === `${g}.on`);
       if (power) h.append(this.powerButton(power, box));
       const rest = ps.filter((p) => p !== power);
@@ -420,6 +421,33 @@ export class ParamsPanel {
         section.append(this.buildControl(p));
       }
     }
+  }
+
+  /** Boxes the randomizer keeps as they are. */
+  private readonly locked = new Set<string>();
+
+  /** The randomizer's lock for a box (not saved in the preset). */
+  private lockButton(group: string, box: HTMLElement): HTMLElement {
+    const wrap = document.createElement('span');
+    wrap.className = 'monitor';
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'mon lock';
+    b.textContent = '🔒';
+    b.title = 'Lock: the randomizer keeps this box exactly as it is and only rolls the unlocked ones.';
+    b.onclick = () => {
+      if (this.locked.has(group)) this.locked.delete(group);
+      else this.locked.add(group);
+      b.classList.toggle('on', this.locked.has(group));
+      box.classList.toggle('locked', this.locked.has(group));
+    };
+    wrap.append(b);
+    return wrap;
+  }
+
+  /** Boxes locked for the randomizer. */
+  getLocked(): ReadonlySet<string> {
+    return this.locked;
   }
 
   // Solo / mute: listening aids, not saved in the preset. Several layers can be soloed at once.
