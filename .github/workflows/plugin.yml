@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Configure
-        run: cmake -S plugin -B build -A x64
+        run: cmake -S plugin -B build -A x64 "-DLOWTALK_FORMATS=VST3;Standalone"
 
       - name: Build
         run: cmake --build build --config Release --target LowTalk_VST3 --parallel
@@ -34,6 +34,24 @@ jobs:
           if (Select-String -Path pluginval.log -Pattern "FAILED" -Quiet) { exit 1 }
           if (-not (Select-String -Path pluginval.log -Pattern "^SUCCESS" -Quiet)) { exit 1 }
           exit 0
+
+      - name: Build the standalone test app
+        run: cmake --build build --config Release --target LowTalk_Standalone --parallel
+
+      - name: Report what's in the plugin
+        shell: pwsh
+        run: |
+          Get-ChildItem -Recurse "build\LowTalk_artefacts\Release\VST3" | Select-Object FullName, Length | Format-Table -AutoSize | Out-String -Width 300
+          $dll = "build\LowTalk_artefacts\Release\VST3\Low Talk.vst3\Contents\x86_64-win\Low Talk.vst3"
+          $dumpbin = Get-ChildItem -Recurse "C:\Program Files\Microsoft Visual Studio" -Filter dumpbin.exe -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match "Hostx64\\x64" } | Select-Object -First 1
+          & $dumpbin.FullName /dependents /headers $dll | Select-String -Pattern "machine|\.dll" | Out-String -Width 300
+          Get-Content "build\LowTalk_artefacts\Release\VST3\Low Talk.vst3\Contents\Resources\moduleinfo.json" -ErrorAction SilentlyContinue
+
+      - name: Upload standalone test app
+        uses: actions/upload-artifact@v7
+        with:
+          name: LowTalk-Standalone-Windows
+          path: build/LowTalk_artefacts/Release/Standalone/
 
       - name: Upload VST3
         uses: actions/upload-artifact@v7
