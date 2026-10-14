@@ -159,6 +159,15 @@ const def: CategoryDef = {
         'amp_env.attack': 1800, 'flanger.mix': 0.15, 'flanger.rate': 0.1, 'flanger.feedback': 0.3,
       },
     },
+    // ------------------------------------------------ filling the gaps
+    {
+      id: 'tidal-fog', name: 'Tidal Fog',
+      description: 'A pad whose filter rises and falls in time over two bars, like a slow tide under the drifting fog.',
+      tags: ['pad', 'tempo', 'tidal', 'slow', 'synced', 'fog', 'lorn'],
+      texture: ['air', 0.4, 0.3, 2500],
+      set: { 'lfo3.sync': '2/1', 'lfo3.shape': 'triangle' },
+      mods: kit(ALIVE, [], { 'lfo3>unison_detune': ['lfo3', 'filter_cutoff', 0.18] }),
+    },
   ],
 };
 

@@ -112,6 +112,15 @@ const def: CategoryDef = {
         'reverb.mix': 0.55, 'reverb.size': 0.97, 'phaser.mix': 0.15, 'phaser.rate': 0.1, 'amp_env.attack': 900, 'breath.level': 0.32,
       },
     },
+    // ------------------------------------------------ filling the gaps
+    {
+      id: 'tape-choir', name: 'Tape Choir',
+      description: 'A choir played back from an old tape machine: warbling, dulled and haunted, the voices smeared into one.',
+      tags: ['choir', 'tape', 'warble', 'vintage', 'haunted', 'lo-fi', 'lorn'],
+      texture: ['crackle', 0.6, 0.35, 2000],
+      set: { 'filter.type': 'lowpass', 'filter.cutoff': 1500, 'filter.resonance': 0.15, 'tape.wow': 0.45, 'tape.age': 0.65, 'breath.level': 0.2 },
+      mods: kit(VOICE_KIT, [], { 'lfo1>filter_vowel': ['lfo1', 'filter_cutoff', 0.15], 'lfo2>filter_vowel': ['lfo2', 'filter_cutoff', 0.1], 'random>filter_vowel': ['random', 'filter_cutoff', 0.1], 'env2>filter_vowel': ['env2', 'filter_cutoff', 0.1] }),
+    },
   ],
 };
 

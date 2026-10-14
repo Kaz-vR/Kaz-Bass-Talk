@@ -116,6 +116,25 @@ const def: CategoryDef = {
         'chorus.mix': 0.55, 'chorus.depth': 0.7, 'phaser.mix': 0.25, 'phaser.rate': 0.2, 'vibrato.depth': 6,
       },
     },
+    // ------------------------------------------------ filling the gaps
+    {
+      id: 'staccato-rain', name: 'Staccato Rain',
+      description: 'Short, hollow pulse-wave strings, bowed tight and quick, their tone rising and falling over two bars.',
+      tags: ['strings', 'staccato', 'pulse', 'short', 'tempo', 'tense', 'lorn'],
+      texture: ['dust', 0.4, 0.35, 900],
+      set: {
+        'osc1.wave': 'pulse', 'osc1.pulse_width': 0.35, 'amp_env.attack': 5, 'amp_env.decay': 400, 'amp_env.sustain': 0.6, 'amp_env.release': 150,
+        'lfo3.sync': '2/1', 'lfo3.shape': 'triangle', 'vibrato.depth': 8,
+      },
+      mods: kit(BOW_KIT, [], { 'lfo3>unison_detune': ['lfo3', 'filter_cutoff', 0.15] }),
+    },
+    {
+      id: 'vowel-section', name: 'Vowel Section',
+      description: 'A string section bowed through a vowel filter that slowly opens, so the strings almost seem to sing.',
+      tags: ['strings', 'formant', 'vowel', 'singing', 'slow-open', 'eerie', 'lorn'],
+      texture: ['dust', 0.55, 0.3, 1500],
+      set: { 'filter.type': 'formant', 'filter.vowel': 0.3, 'filter.resonance': 0.4, 'filter.env_amount': 0.25, 'mod_env.attack': 800, 'mod_env.decay': 3000, 'mod_env.sustain': 0.7 },
+    },
   ],
 };
 

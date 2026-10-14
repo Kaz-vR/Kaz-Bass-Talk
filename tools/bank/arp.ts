@@ -153,6 +153,17 @@ const def: CategoryDef = {
       // The slow opening is the identity: the bloom envelope takes back the per-note drive slot.
       mods: kit(ARP_KIT, [], { 'random>drive': ['env2', 'filter_cutoff', 0.45] }),
     },
+    // ------------------------------------------------ filling the gaps
+    {
+      id: 'triplet-machine', name: 'Triplet Machine',
+      description: 'A hard-clipped arp through a low-pass gate, a twitch on every note, falling into triplet echoes.',
+      tags: ['arp', 'lpg', 'hard-clip', 'triplet', 'machine', 'twitchy', 'lorn'],
+      texture: ['dust', 0.3, 0.35, 600],
+      set: {
+        'filter.type': 'lpg', 'filter.cutoff': 900, 'dist.type': 'hard', 'dist.drive': 0.3, 'lfo2.retrigger': true, 'lfo2.rate': 6,
+        'lfo2.shape': 'sine', 'delay.time': '1/8T', 'delay.feedback': 0.55, 'reverb.mix': 0.3,
+      },
+    },
   ],
 };
 

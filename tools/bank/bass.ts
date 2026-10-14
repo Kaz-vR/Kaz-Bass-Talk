@@ -137,6 +137,17 @@ const def: CategoryDef = {
         'env2>filter_cutoff': null,
       }),
     },
+    // ------------------------------------------------ filling the gaps
+    {
+      id: 'iron-wobble', name: 'Iron Wobble', audition: 'groove',
+      description: 'A LORN wobble bass: the filter and grit swing on the eighths, every swing a little different, over a sub two octaves down.',
+      tags: ['bass', 'wobble', 'rhythmic', 'growl', 'dark', 'sub', 'lorn'],
+      texture: ['dust', 0.3, 0.35, 500],
+      set: {
+        'voice.octave': 1, 'sub.octave': -2, 'sub.level': 0.55, 'filter.cutoff': 300, 'filter.env_amount': 0.15, 'amp_env.sustain': 0.9,
+        'wobble.depth': 0.6, 'wobble.rate': '1/8', 'wobble.target': 'filter + drive', 'wobble.life': 0.5,
+      },
+    },
   ],
 };
 

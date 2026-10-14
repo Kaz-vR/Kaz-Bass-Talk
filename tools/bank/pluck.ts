@@ -140,6 +140,14 @@ const def: CategoryDef = {
         'voice.velocity': 0.8, 'reverb.size': 0.92, 'reverb.mix': 0.3, 'dist.type': 'soft', 'dist.drive': 0.3,
       },
     },
+    // ------------------------------------------------ filling the gaps
+    {
+      id: 'rubber-gate', name: 'Rubber Gate',
+      description: 'A rubbery pluck through a low-pass gate, a quick wobble on every note, echoing in triplets.',
+      tags: ['pluck', 'lpg', 'rubbery', 'triplet', 'wobble', 'percussive', 'lorn'],
+      texture: ['dust', 0.3, 0.35, 700],
+      set: { 'filter.type': 'lpg', 'filter.cutoff': 900, 'lfo2.retrigger': true, 'lfo2.rate': 7, 'lfo2.shape': 'sine', 'delay.time': '1/8T' },
+    },
   ],
 };
 

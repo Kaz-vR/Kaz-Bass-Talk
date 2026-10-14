@@ -129,6 +129,19 @@ const def: CategoryDef = {
         'osc2.level': 0.2, 'delay.mix': 0.3, 'delay.time': '1/8D', 'reverb.mix': 0.35, 'reverb.size': 0.8,
       },
     },
+    // ------------------------------------------------ filling the gaps
+    {
+      id: 'rust-kalimba', name: 'Rust Kalimba',
+      description: 'A rusty plucked-tine kalimba, crushed and slightly out of tune, each note bending as it rings.',
+      tags: ['bells', 'kalimba', 'plucked', 'crushed', 'detuned', 'rusty', 'lorn'],
+      texture: ['dust', 0.35, 0.35, 1200],
+      set: {
+        'voice.octave': -1, 'osc1.wave': 'string', 'string.tone': 0.45, 'string.decay': 0.6, 'fm.amount': 0, 'fm.punch': 0, 'crush.mix': 0.25, 'crush.bits': 6, 'crush.rate': 6,
+        'amp_env.decay': 1500,
+      },
+      // No FM here: the life is in the pitch, the grit and the level. High tines ring out faster: the key lifts their level.
+      mods: BELL_KIT.map((m) => (m[1] === 'fm_amount' ? (m[0] === 'random' ? (['random', 'pitch', 0.006] as Mod) : m[0] === 'velocity' ? (['velocity', 'crush_mix', 0.15] as Mod) : m[0] === 'lfo1' ? (['lfo1', 'crush_mix', 0.25] as Mod) : (['keytrack', 'amp', 0.8] as Mod)) : m)),
+    },
   ],
 };
 

@@ -151,6 +151,18 @@ const def: CategoryDef = {
       },
       mods: kit(BREATH_KIT, [], { 'lfo2>amp': ['lfo2', 'osc2_level', 0.2] }),
     },
+    // ------------------------------------------------ filling the gaps
+    {
+      id: 'steel-section', name: 'Steel Section',
+      description: 'An FM brass section with a vowel in its throat: bright, metallic and a little inhuman, worn down to grey.',
+      tags: ['brass', 'fm', 'formant', 'metallic', 'eighties', 'section', 'lorn'],
+      texture: ['dust', 0.6, 0.35, 1500],
+      set: {
+        'osc1.wave': 'sine', 'osc2.level': 0.2, 'fm.amount': 0.35, 'fm.ratio': 1, 'fm.punch': 0.4, 'fm.decay': 400, 'breath.level': 0.28,
+        'filter.type': 'formant', 'filter.vowel': 0.45, 'filter.resonance': 0.35, 'filter.cutoff': 1200,
+      },
+      mods: kit(BREATH_KIT, [], { 'lfo1>filter_cutoff': ['lfo1', 'fm_amount', 0.1], 'random>filter_cutoff': ['random', 'filter_vowel', 0.08] }),
+    },
   ],
 };
 

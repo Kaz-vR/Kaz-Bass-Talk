@@ -418,6 +418,8 @@ export function frozen(p: Patch): Patch {
   q['amp_env.attack_curve'] = 0;
   q['texture.level'] = 0;
   q['vibrato.depth'] = 0;
+  // The wobble sweeps the filter (motion, not fizz).
+  q['wobble.depth'] = 0;
   q['breath.chiff'] = 0;
   q['breath.level'] = 0;
   // A deliberately dissonant layer (not an octave or fifth) has no harmonic

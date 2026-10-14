@@ -160,6 +160,29 @@ const def: CategoryDef = {
         'chorus.mix': 0.3, 'chorus.mode': 'ensemble', 'phaser.mix': 0.12, 'phaser.rate': 0.3,
       },
     },
+    // ------------------------------------------------ filling the gaps
+    {
+      id: 'shiver-keys', name: 'Shiver Keys',
+      description: 'Hollow pulse keys with a fast, shivering tremolo and a soft overdrive, like an old organ in a cold church.',
+      tags: ['keys', 'tremolo', 'pulse', 'pwm', 'organ', 'cold', 'lorn'],
+      texture: ['dust', 0.35, 0.35, 900],
+      set: {
+        'osc1.wave': 'pulse', 'osc1.pulse_width': 0.4, 'lfo2.rate': 5.5, 'lfo2.shape': 'sine', 'dist.type': 'soft', 'dist.drive': 0.35,
+        'amp_env.sustain': 0.6,
+      },
+      mods: KEYS_KIT.map((m) => (m[0] === 'lfo1' && m[1] === 'fm_amount' ? (['lfo1', 'osc1_pw', 0.15] as Mod) : m[0] === 'lfo2' ? (['lfo2', 'amp', -0.3] as Mod) : m)),
+    },
+    {
+      id: 'tin-clock', name: 'Tin Clock',
+      description: 'Wavetable keys through a low-pass gate, their tone ticking along in time like a tin clock in an empty house.',
+      tags: ['keys', 'wavetable', 'lpg', 'ticking', 'synced', 'percussive', 'lorn'],
+      texture: ['crackle', 0.35, 0.35, 900],
+      set: {
+        'osc1.wave': 'wavetable', 'osc1.wt_pos': 0.4, 'filter.type': 'lpg', 'filter.cutoff': 1200, 'lfo3.sync': '1/4', 'lfo3.shape': 'triangle',
+        'amp_env.decay': 1500,
+      },
+      mods: KEYS_KIT.map((m) => (m[0] === 'lfo3' ? (['lfo3', 'osc1_wt_pos', 0.15] as Mod) : m)),
+    },
   ],
 };
 
