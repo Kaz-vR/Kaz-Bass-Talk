@@ -171,8 +171,8 @@ Finish each phase, with its tests passing, before starting the next. At the end 
 2. **Analysis + quality critic.** *(Done.)*
 3. **Engine additions for full bass coverage.** *(Done.)*
 4. **Bass library.** The 51-type Bass Atlas and the 13 Terror basses, with movement additions (4 LFOs, wander, env 2, 12 slots, FX mod targets), the alive check and texture beds. *(Done.)*
-5. **Polyphony + instrument additions.** 8 voices with voice stealing (mono mode unchanged), delayed vibrato, breath attack, richer vowels, bell partials, long riser/fall envelopes; CPU within budget.
-6. **Style checks.** `data/categories.json`, per-category critic limits, earns-its-place, LORN fingerprint, bank consistency.
+5. **Polyphony + instrument additions.** 8 voices with voice stealing (mono mode unchanged), delayed vibrato, breath attack, richer vowels, bell partials, long riser/fall envelopes; CPU within budget. *(Done.)*
+6. **Style checks.** `data/categories.json`, per-category critic limits, earns-its-place, LORN fingerprint, bank consistency. *(Done.)*
 7. **Preset bank.** ~10-12 presets in each of the 14 categories, all passing every check.
 8. **UI.** Category browser in the mockup's style (macros and create area follow their phases).
 9. **Macros.** Family pools, impact ranking, per-preset range tuning, swapping.
