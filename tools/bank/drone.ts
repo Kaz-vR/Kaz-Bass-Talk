@@ -112,6 +112,25 @@ const def: CategoryDef = {
       texture: ['dust', 0.65, 0.4, 3000],
       set: { 'noise.level': 0.1, 'osc1.unison_voices': 6, 'osc1.unison_detune': 22 },
     },
+    // ------------------------------------------------ iconic (LORN versions)
+    {
+      id: 'black-pump', name: 'Black Pump', iconic: true,
+      description: 'A dark, folded drone breathing hard on the beat, as if something huge were pumping in the next room.',
+      tags: ['drone', 'pump', 'sidechain', 'dark', 'cyberpunk', 'breathing', 'lorn'],
+      texture: ['rumble', 0.45, 0.35, 2500],
+      set: { 'comp.amount': 0.6, 'comp.pump': 0.7, 'comp.pump_rate': '1/4', 'dist.type': 'fold', 'dist.drive': 0.3 },
+    },
+    {
+      id: 'city-below', name: 'City Below', iconic: true,
+      description: 'A deep, slowly morphing drone pulsing in time under everything, in a vast dark space: the city at night.',
+      tags: ['drone', 'deep', 'pulsing', 'wavetable', 'cinematic', 'eighties', 'lorn'],
+      texture: ['air', 0.45, 0.3, 3000],
+      set: {
+        'voice.octave': -1, 'sub.level': 0.4, 'osc1.wave': 'wavetable', 'osc1.wt_pos': 0.3, 'osc1.unison_spread': 0.55, 'reverb.size': 0.95, 'reverb.mix': 0.5,
+        'lfo2.sync': '1/2', 'lfo2.shape': 'sine',
+      },
+      mods: kit(DRONE_KIT, [], { 'lfo2>filter_cutoff': ['lfo2', 'amp', -0.3], 'lfo3>unison_detune': ['lfo3', 'osc1_wt_pos', 0.15] }),
+    },
   ],
 };
 

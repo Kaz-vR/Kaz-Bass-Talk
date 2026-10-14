@@ -117,6 +117,15 @@ const def: CategoryDef = {
       },
       mods: [...HIT_KIT, ['env2', 'pitch', -0.5]],
     },
+    // ------------------------------------------------ iconic (LORN versions)
+    {
+      id: 'steel-rain', name: 'Steel Rain', iconic: true,
+      description: 'A clanging metallic FM impact that drops in pitch and shatters into a dark hall: cyberpunk metal.',
+      tags: ['hit', 'fm', 'metallic', 'impact', 'cyberpunk', 'clang', 'lorn'],
+      texture: ['crackle', 0.3, 0.4, 2000],
+      set: { 'fm.amount': 0.45, 'fm.ratio': 3.7, 'fm.punch': 0.9, 'fm.decay': 200, 'pitch_env.amount': 18, 'pitch_env.decay': 150, 'noise.level': 0.2, 'dist.type': 'hard', 'dist.drive': 0.35 },
+      mods: HIT_KIT.map((m) => (m[0] === 'lfo1' ? (['lfo1', 'fm_amount', 0.12] as Mod) : m)),
+    },
   ],
 };
 

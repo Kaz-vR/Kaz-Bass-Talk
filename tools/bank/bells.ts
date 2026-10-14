@@ -108,6 +108,27 @@ const def: CategoryDef = {
       set: { 'fm.ratio': 4, 'fm.amount': 0.08, 'fm.punch': 0.3, 'amp_env.decay': 2500, 'lfo2.rate': 5 },
       mods: kit(BELL_KIT, [['lfo2', 'amp', -0.25]]),
     },
+    // ------------------------------------------------ iconic (LORN versions)
+    {
+      id: 'glass-rain', name: 'Glass Rain', iconic: true,
+      description: 'Clear, glistening crystal bells ringing long into a vast space, like light catching rain at night.',
+      tags: ['bells', 'crystal', 'fm', 'glistening', 'cinematic', 'eighties', 'lorn'],
+      texture: ['air', 0.35, 0.4, 3000],
+      set: {
+        'fm.amount': 0.3, 'fm2.amount': 0.12, 'fm2.ratio': 7, 'fm.feedback': 0.1, 'reverb.size': 0.95, 'reverb.mix': 0.5,
+        'eq.highcut': 9000, 'chorus.mix': 0.3, 'chorus.mode': 'ensemble', 'voice.velocity': 0.85,
+      },
+    },
+    {
+      id: 'bicycle-lights', name: 'Bicycle Lights', iconic: true,
+      description: 'Small glassy plinks echoing in dotted time: nostalgic, sparkling, a little too quiet for comfort.',
+      tags: ['bells', 'plink', 'glassy', 'nostalgic', 'eighties', 'echo', 'lorn'],
+      texture: ['dust', 0.35, 0.35, 1200],
+      set: {
+        'amp_env.decay': 600, 'amp_env.release': 400, 'fm.amount': 0.1, 'fm.ratio': 2, 'osc2.wave': 'triangle', 'osc2.semi': 12,
+        'osc2.level': 0.2, 'delay.mix': 0.3, 'delay.time': '1/8D', 'reverb.mix': 0.35, 'reverb.size': 0.8,
+      },
+    },
   ],
 };
 

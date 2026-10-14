@@ -116,6 +116,19 @@ const def: CategoryDef = {
       set: { 'filter.type': 'bandpass', 'filter.cutoff': 1000, 'filter.resonance': 0.3, 'crush.mix': 0.3, 'crush.bits': 6, 'crush.rate': 8, 'eq.highcut': 4500 },
       mods: BANDPASS_KIT.map((m) => (m[1] === 'filter_cutoff' ? (['drift_slow', 'filter_cutoff', 0.12] as Mod) : m)),
     },
+    // ------------------------------------------------ iconic (LORN versions)
+    {
+      id: 'data-rot', name: 'Data Rot', iconic: true,
+      description: 'Crushed digital ticks chopped in time, like a dying machine reading corrupted data in the dark.',
+      tags: ['texture', 'glitch', 'digital', 'crushed', 'ticks', 'cyberpunk', 'lorn'],
+      texture: ['crackle', 0.6, 0.5, 1500],
+      set: {
+        'crush.mix': 0.5, 'crush.bits': 4, 'crush.rate': 12, 'osc1.wave': 'saw', 'osc1.level': 0.35, 'filter.cutoff': 1500, 'filter.resonance': 0.3,
+        'lfo1.sync': '1/16', 'lfo1.shape': 'sample_hold', 'lfo2.sync': '1/8', 'lfo2.shape': 'square', 'lfo2.retrigger': true,
+      },
+      // Ticks: a stepped filter and chopped level, locked to the tempo.
+      mods: TEXTURE_KIT.map((m) => (m[0] === 'lfo1' && m[1] === 'texture_level' ? (['lfo1', 'filter_cutoff', 0.35] as Mod) : m[0] === 'lfo2' ? (['lfo2', 'amp', -0.4] as Mod) : m[0] === 'velocity' ? (['drift_slow', 'crush_mix', 0.3] as Mod) : m)),
+    },
   ],
 };
 

@@ -101,6 +101,17 @@ const def: CategoryDef = {
       set: { 'reverb.mix': 0.55, 'reverb.size': 0.97, 'delay.mix': 0.2, 'filter.cutoff': 1500, 'drive.amount': 0.58 },
       mods: kit(VOICE_KIT, [['lfo1', 'filter_vowel', 0.12]]),
     },
+    // ------------------------------------------------ iconic (LORN versions)
+    {
+      id: 'neon-hymn', name: 'Neon Hymn', iconic: true,
+      description: 'A floating, ghostly choir singing from inside a machine city: soft vowels, phased, in an endless space.',
+      tags: ['choir', 'ethereal', 'ghostly', 'cyberpunk', 'vowel', 'vast', 'lorn'],
+      texture: ['air', 0.45, 0.4, 3000],
+      set: {
+        'osc1.wave': 'triangle', 'osc2.wave': 'sine', 'osc2.semi': 12, 'osc2.fine': 0, 'osc2.level': 0.2, 'filter.vowel': 0.7,
+        'reverb.mix': 0.55, 'reverb.size': 0.97, 'phaser.mix': 0.15, 'phaser.rate': 0.1, 'amp_env.attack': 900, 'breath.level': 0.32,
+      },
+    },
   ],
 };
 
