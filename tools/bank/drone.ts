@@ -60,8 +60,8 @@ const def: CategoryDef = {
       tags: ['drone', 'wind', 'noise', 'breath', 'howl', 'atmosphere', 'lorn'],
       texture: ['air', 0.55, 0.4, 3000],
       set: {
-        'noise.level': 0.15, 'breath.level': 0.2, 'breath.tone': 0.3, 'osc1.level': 0.4, 'filter.type': 'bandpass', 'filter.cutoff': 400,
-        'filter.resonance': 0.4, 'eq.highcut': 3500,
+        'noise.level': 0.15, 'breath.level': 0.2, 'breath.tone': 0.2, 'osc1.level': 0.5, 'filter.type': 'bandpass', 'filter.cutoff': 250,
+        'filter.resonance': 0.4, 'eq.highcut': 2500,
       },
     },
     {
@@ -75,9 +75,10 @@ const def: CategoryDef = {
       },
       // A buzz, not a filter sweep: the motion is in the distortion and the level.
       mods: kit(DRONE_KIT, [], {
-        'lfo1>filter_cutoff': ['lfo1', 'dist_drive', 0.15],
+        'lfo1>filter_cutoff': ['lfo1', 'dist_drive', 0.25],
         'lfo2>filter_cutoff': ['lfo2', 'amp', -0.15],
         'random>filter_cutoff': ['random', 'drive', 0.1],
+        'velocity>filter_cutoff': ['velocity', 'dist_drive', 0.2],
       }),
     },
     {
@@ -92,7 +93,7 @@ const def: CategoryDef = {
       description: 'A transmission from nowhere: crushed, band-limited and buried in dust.',
       tags: ['drone', 'radio', 'signal', 'crushed', 'lo-fi', 'ghost', 'lorn'],
       texture: ['dust', 0.55, 0.45, 2500],
-      set: { 'filter.type': 'bandpass', 'filter.cutoff': 500, 'filter.resonance': 0.35, 'crush.mix': 0.3, 'crush.bits': 5, 'crush.rate': 10, 'eq.highcut': 4000 },
+      set: { 'filter.type': 'bandpass', 'filter.cutoff': 300, 'filter.resonance': 0.35, 'crush.mix': 0.3, 'crush.bits': 5, 'crush.rate': 10, 'eq.highcut': 3000 },
     },
     {
       id: 'iron-lung', name: 'Iron Lung',

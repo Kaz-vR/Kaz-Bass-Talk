@@ -60,7 +60,7 @@ const def: CategoryDef = {
       description: 'Something breaks: a crushed burst of noise and debris raining into the reverb.',
       tags: ['hit', 'impact', 'noise', 'crushed', 'shatter', 'glitch', 'lorn'],
       texture: ['crackle', 0.3, 0.45, 2000],
-      set: { 'noise.level': 0.5, 'osc1.level': 0.3, 'crush.mix': 0.4, 'crush.bits': 5, 'crush.rate': 9, 'eq.highcut': 5000 },
+      set: { 'noise.level': 0.5, 'osc1.level': 0.3, 'crush.mix': 0.4, 'crush.bits': 5, 'crush.rate': 9, 'eq.highcut': 4000 },
     },
     {
       id: 'thunder-slam', name: 'Thunder Slam',
@@ -88,7 +88,7 @@ const def: CategoryDef = {
       description: 'A tight, heavy, compressed impact with a short dark tail: no wasted space.',
       tags: ['hit', 'impact', 'tight', 'punchy', 'compressed', 'short', 'lorn'],
       texture: ['dust', 0.3, 0.35, 1000],
-      set: { 'amp_env.decay': 600, 'reverb.mix': 0.35, 'reverb.size': 0.65, 'comp.amount': 0.6, 'eq.highcut': 5500 },
+      set: { 'amp_env.decay': 600, 'reverb.mix': 0.45, 'reverb.size': 0.65, 'comp.amount': 0.6, 'eq.highcut': 5500 },
     },
     {
       id: 'grave-drop', name: 'Grave Drop',

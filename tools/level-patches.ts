@@ -15,7 +15,9 @@ const loops = loadLoops();
 
 // Optional file-name filter, e.g. `-- terror-` to only process the Terror presets.
 const only = process.argv.slice(2).find((a) => !a.startsWith('--'));
-for (const entry of loadLibrary().filter((e) => !only || e.file.includes(only))) {
+// Or an exact list (used by tools/analyze-parallel.ts --level): --files=a.json,b.json
+const fileList = process.argv.find((a) => a.startsWith('--files='))?.slice(8).split(',');
+for (const entry of loadLibrary().filter((e) => (fileList ? fileList.includes(e.file) : !only || e.file.includes(only)))) {
   const patch = entry.json;
   // Level on the loop the patch is measured with (its category's, else the default bass groove).
   const setup = analysisSetup(patch.meta);

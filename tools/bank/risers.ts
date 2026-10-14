@@ -11,7 +11,7 @@ const base = {
   'filter.cutoff': 300, 'filter.keytrack': 0.3, 'filter.env_amount': 0,
   'drive.amount': 0.55, 'dist.drive': 0.3,
   'reverb.mix': 0.4, 'reverb.size': 0.92, 'delay.mix': 0.15, 'delay.time': '1/4D',
-  'eq.highcut': 7000, 'lfo2.fade': 0, 'lfo4.rate': 0.4,
+  'eq.highcut': 7000, 'lfo2.fade': 0, 'lfo4.rate': 0.4, 'chorus.mix': 0.1,
 };
 
 /** The build: one slow envelope moving everything at once, with independent motion on top. */
@@ -20,7 +20,7 @@ const RISE_KIT: Mod[] = [
   ['env2', 'filter_cutoff', 0.45],
   ['env2', 'noise_level', 0.3],
   ['env2', 'reverb_mix', 0.25],
-  ['env2', 'width', 0.25],
+  ['env2', 'width', 0.15],
   ['lfo1', 'filter_cutoff', 0.12],
   ['lfo2', 'amp', -0.18],
   ['drift', 'pitch', 0.0015],
@@ -55,8 +55,8 @@ const def: CategoryDef = {
       description: 'A noise riser: static rushing up through a resonant band, getting louder and closer.',
       tags: ['riser', 'noise', 'static', 'sweep', 'build', 'transition', 'lorn'],
       texture: ['dust', 0.5, 0.45, 2500],
-      set: { 'osc1.level': 0.4, 'noise.level': 0.06, 'filter.type': 'bandpass', 'filter.cutoff': 300, 'filter.resonance': 0.35, 'eq.highcut': 5000 },
-      mods: kit(RISE_KIT, [['env2', 'filter_cutoff', 0.35], ['env2', 'noise_level', 0.3], ['env2', 'pitch', 0.25]]),
+      set: { 'osc1.level': 0.4, 'noise.level': 0.06, 'filter.type': 'bandpass', 'filter.cutoff': 250, 'filter.resonance': 0.35, 'eq.highcut': 3500 },
+      mods: kit(RISE_KIT, [['env2', 'filter_cutoff', 0.25], ['env2', 'noise_level', 0.3], ['env2', 'pitch', 0.25]]),
     },
     {
       id: 'siren-rise', name: 'Siren Rise',
