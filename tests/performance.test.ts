@@ -10,7 +10,8 @@
 // time, which also counts JIT/GC threads, so it reads on the high side.
 import { describe, expect, it } from 'vitest';
 import { renderPatch } from '../src/engine/core/render';
-import { heldNote, libraryPatches, type Loop } from './helpers/audio';
+import type { Loop } from '../src/engine/core/sequencer';
+import { heldNote, libraryPatches } from './helpers/audio';
 
 const SECONDS = 4;
 
