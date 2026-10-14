@@ -16,39 +16,7 @@
     "family": "keys",
     "collection": "bank",
     "audition": "chords",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 1.79,
-      "airDb": -40.7,
-      "dirt": 0.59,
-      "widthDb": -13.9,
-      "tailDb": -11.5
-    },
-    "checks": {
-      "hash": "7cffc13b",
-      "audio": "85ce7e33",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": false,
-      "weakest": "texture bed 0.08 dB",
-      "failing": [
-        "texture bed 0.08 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.591,
-      "highEnergy": 0.776,
-      "sub": 0.08,
-      "lowMid": 0.515,
-      "dirt": 0.585,
-      "width": 0.652,
-      "attack": 0,
-      "decay": 1,
-      "sustain": 0.895,
-      "release": 0.773,
-      "movement": 0.133
-    }
+    "iconic": 2
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -94,7 +62,7 @@
   "sub.level": 0,
   "noise.level": 0,
   "texture.type": "dust",
-  "texture.level": 0.35,
+  "texture.level": 0.55,
   "texture.tone": 0.35,
   "texture.tail": 1200,
   "texture.position": "before dynamics",

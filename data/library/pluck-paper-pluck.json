@@ -16,39 +16,7 @@
     "family": "pluck",
     "collection": "bank",
     "audition": "arp-line",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 0.15,
-      "airDb": -39.6,
-      "dirt": 0.62,
-      "widthDb": -19.6,
-      "tailDb": -30.6
-    },
-    "checks": {
-      "hash": "8862ebd7",
-      "audio": "253fedbb",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "mud build-up 200–400 Hz: 7.3 dB (limit 7.0 dB)"
-      ],
-      "earns": true,
-      "weakest": "mod 12 (random → amp) 0.44 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.383,
-      "highEnergy": 0.55,
-      "sub": 0.054,
-      "lowMid": 0.874,
-      "dirt": 0.616,
-      "width": 0.51,
-      "attack": 0.201,
-      "decay": 0.541,
-      "sustain": 0.369,
-      "release": 0.773,
-      "movement": 0.61
-    }
+    "iconic": 2
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -246,8 +214,8 @@
   "fx.lowcut": 200,
   "eq.on": true,
   "eq.low_gain": 0,
-  "eq.mid_gain": -2,
-  "eq.mid_freq": 350,
+  "eq.mid_gain": -4.5,
+  "eq.mid_freq": 300,
   "eq.high_gain": -2,
   "eq.highcut": 7000,
   "output.gain": -0.9,

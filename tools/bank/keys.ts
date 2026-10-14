@@ -39,6 +39,15 @@ const FILTER_KEYS_KIT = kit(KEYS_KIT, [], {
   'drift_slow>drive': ['drift_slow', 'filter_cutoff', 0.12],
 });
 
+/** Soft keys (sine, triangle, felt): a filter or drive has little to grab, so move the octave layer, level and space. */
+const SOFT_KEYS_KIT = kit(KEYS_KIT, [], {
+  'lfo1>fm_amount': ['lfo1', 'osc2_level', 0.35],
+  'env2>drive': ['env2', 'reverb_mix', 0.3],
+  'drift_slow>drive': ['drift_slow', 'amp', -0.12],
+  'velocity>fm_amount': ['velocity', 'amp', 0.25],
+  'random>fm_amount': ['random', 'osc2_level', 0.12],
+});
+
 const def: CategoryDef = {
   category: 'keys',
   base,
@@ -234,8 +243,8 @@ const def: CategoryDef = {
       description: "A celesta in the small hours: tiny, sweet, glassy bells, a little out of reach.",
       tags: ['keys', 'celesta', 'bells', 'sweet', 'fragile', 'glassy', 'lorn'],
       texture: ['dust', 0.3, 0.35, 1200],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'voice.octave': 1, 'fm.amount': 0.15, 'fm.ratio': 4, 'fm.punch': 0.5, 'fm.decay': 120, 'amp_env.decay': 1500, 'amp_env.sustain': 0, 'drive.amount': 0.7 },
-      mods: kit(KEYS_KIT, [['env2', 'drive', 0.35], ['drift_slow', 'drive', 0.35]]),
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'voice.octave': 1, 'fm.amount': 0.15, 'fm.ratio': 4, 'fm.punch': 0.5, 'fm.decay': 120, 'amp_env.decay': 1500, 'amp_env.sustain': 0, 'drive.amount': 0.7, 'osc2.wave': 'sine', 'osc2.semi': 12, 'osc2.level': 0.12 },
+      mods: SOFT_KEYS_KIT,
     },
     {
       id: 'wobble-box', name: 'Wobble Box', iconic: 2,
@@ -299,8 +308,8 @@ const def: CategoryDef = {
       description: "A bandoneon by a cold harbour: two reeds beating against each other, the bellows swelling under a slow, melancholic chord.",
       tags: ['keys', 'accordion', 'bandoneon', 'reed', 'detuned', 'melancholic', 'lorn'],
       texture: ['dust', 0.35, 0.35, 900],
-      set: { 'osc1.wave': 'saw', 'osc1.unison_voices': 1, 'osc2.wave': 'pulse', 'osc2.pulse_width': 0.35, 'osc2.fine': 16, 'osc2.level': 0.5, 'fm.amount': 0, 'fm.punch': 0, 'breath.level': 0.15, 'breath.tone': 0.35, 'amp_env.attack': 60, 'amp_env.decay': 800, 'amp_env.sustain': 1, 'amp_env.release': 220, 'filter.cutoff': 1500, 'chorus.mix': 0.12 },
-      mods: kit(FILTER_KEYS_KIT, [], { 'lfo2>amp': ['lfo2', 'amp', -0.15] }),
+      set: { 'osc1.wave': 'saw', 'osc1.unison_voices': 1, 'osc2.wave': 'pulse', 'osc2.pulse_width': 0.35, 'osc2.fine': 10, 'osc2.level': 0.5, 'fm.amount': 0, 'fm.punch': 0, 'breath.level': 0.15, 'breath.tone': 0.35, 'amp_env.attack': 60, 'amp_env.decay': 800, 'amp_env.sustain': 1, 'amp_env.release': 220, 'filter.cutoff': 1500, 'chorus.mix': 0.35},
+      mods: kit(FILTER_KEYS_KIT, [], { 'lfo2>amp': ['lfo2', 'amp', -0.15], 'drift>pitch': ['lfo2', 'osc2_pitch', 0.004] }),
     },
     {
       id: 'backwards-room', name: 'Backwards Room', iconic: 2, audition: 'chords',
@@ -308,13 +317,13 @@ const def: CategoryDef = {
       tags: ['keys', 'reversed', 'swell', 'backwards', 'eerie', 'tape', 'lorn'],
       texture: ['dust', 0.35, 0.35, 900],
       set: { 'fm.amount': 0, 'fm.punch': 0, 'osc1.wave': 'triangle', 'osc2.wave': 'saw', 'osc2.level': 0.2, 'amp_env.attack': 700, 'amp_env.decay': 4000, 'amp_env.sustain': 1, 'amp_env.release': 40, 'filter.cutoff': 700, 'filter.env_amount': 0.35, 'mod_env.attack': 800, 'mod_env.decay': 2000, 'mod_env.sustain': 1, 'mod_env.release': 40, 'reverb.mix': 0.4, 'reverb.size': 0.85 },
-      mods: FILTER_KEYS_KIT,
+      mods: SOFT_KEYS_KIT,
     },
     {
       id: 'glass-decade', name: 'Glass Decade', iconic: 2, audition: 'chords',
       description: "Late-eighties digital keys: a glassy bell strikes on top while a soft pad body sustains underneath, chorused and faded.",
       tags: ['keys', 'digital', 'bell', 'fm', 'pad', 'eighties', 'lorn'],
-      texture: ['dust', 0.35, 0.35, 1200],
+      texture: ['dust', 0.55, 0.35, 1200],
       set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.3, 'fm.ratio': 3.5, 'fm.punch': 0.7, 'fm.decay': 300, 'fm2.amount': 0.08, 'fm2.ratio': 7, 'osc2.wave': 'saw', 'osc2.level': 0.3, 'osc2.unison_voices': 3, 'osc2.unison_detune': 12, 'amp_env.decay': 3000, 'amp_env.sustain': 0.6, 'amp_env.release': 1200, 'filter.cutoff': 1600, 'chorus.mix': 0.4, 'chorus.mode': 'classic', 'eq.highcut': 4500 },
     },
     {
@@ -322,22 +331,22 @@ const def: CategoryDef = {
       description: "Short, punchy saw chord stabs that snap open and vanish into a dark echo.",
       tags: ['keys', 'stab', 'chord', 'punchy', 'short', 'saw', 'lorn'],
       texture: ['crackle', 0.3, 0.35, 500],
-      set: { 'osc1.wave': 'saw', 'osc1.unison_voices': 5, 'osc1.unison_detune': 18, 'osc1.unison_spread': 0.7, 'fm.amount': 0, 'fm.punch': 0, 'amp_env.attack': 2, 'amp_env.decay': 320, 'amp_env.sustain': 0, 'amp_env.release': 150, 'filter.cutoff': 900, 'filter.env_amount': 0.45, 'mod_env.attack': 1, 'mod_env.decay': 180, 'mod_env.sustain': 0, 'comp.pump': 0.3, 'delay.mix': 0.2, 'delay.time': '1/8D' },
-      mods: FILTER_KEYS_KIT,
+      set: { 'osc1.wave': 'saw', 'osc1.unison_voices': 5, 'osc1.unison_detune': 18, 'osc1.unison_spread': 0.7, 'fm.amount': 0, 'fm.punch': 0, 'amp_env.attack': 2, 'amp_env.decay': 320, 'amp_env.sustain': 0, 'amp_env.release': 150, 'filter.cutoff': 700, 'filter.env_amount': 0.45, 'mod_env.attack': 1, 'mod_env.decay': 180, 'mod_env.sustain': 0, 'comp.pump': 0.3, 'delay.mix': 0.2, 'delay.time': '1/8D' },
+      mods: kit(FILTER_KEYS_KIT, [['lfo1', 'filter_cutoff', 0.32], ['drift_slow', 'filter_cutoff', 0.25]]),
     },
     {
       id: 'pedal-wash', name: 'Pedal Wash', iconic: 2,
       description: "A soft piano with the sustain pedal held down forever: every note rings on into a warm, blurred wash.",
       tags: ['keys', 'piano', 'sustain-pedal', 'ambient', 'wash', 'soft', 'lorn'],
       texture: ['air', 0.3, 0.35, 3000],
-      set: { 'fm.amount': 0.06, 'fm.punch': 0.2, 'breath.chiff': 0.15, 'breath.tone': 0.3, 'breath.decay': 60, 'amp_env.attack': 6, 'amp_env.decay': 7000, 'amp_env.sustain': 0.2, 'amp_env.release': 4500, 'filter.cutoff': 1300, 'reverb.size': 0.95, 'reverb.mix': 0.5, 'delay.mix': 0.18, 'delay.time': '1/4D', 'drive.amount': 0.3, 'dist.drive': 0.12 },
+      set: { 'fm.amount': 0.06, 'fm.punch': 0.2, 'breath.chiff': 0.15, 'breath.tone': 0.3, 'breath.decay': 60, 'amp_env.attack': 6, 'amp_env.decay': 7000, 'amp_env.sustain': 0.2, 'amp_env.release': 3500, 'filter.cutoff': 1300, 'reverb.size': 0.95, 'reverb.mix': 0.38, 'delay.mix': 0.18, 'delay.time': '1/4D', 'drive.amount': 0.3, 'dist.drive': 0.12 },
     },
     {
       id: 'cotton-tines', name: 'Cotton Tines', iconic: 2,
       description: "A soft electric piano played at a whisper: round tines with no bark, warm and close.",
       tags: ['keys', 'electric-piano', 'soft', 'round', 'warm', 'intimate', 'lorn'],
-      texture: ['dust', 0.35, 0.3, 1200],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 12, 'fm.amount': 0.07, 'fm.punch': 0.2 },
+      texture: ['dust', 0.5, 0.3, 1200],
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 12, 'fm.amount': 0.07, 'fm.punch': 0.2, 'tape.age': 0.6 },
     },
     {
       id: 'pillow-felt', name: 'Pillow Felt', iconic: 2,
@@ -352,16 +361,16 @@ const def: CategoryDef = {
       description: "A soft vibraphone with a slow tremolo, hit with yarn mallets in a dim room.",
       tags: ['keys', 'vibraphone', 'mallet', 'tremolo', 'soft', 'warm', 'lorn'],
       texture: ['air', 0.3, 0.35, 1500],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 12, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.1, 'fm.ratio': 4, 'fm.punch': 0.4, 'fm.decay': 150, 'amp_env.decay': 3000, 'amp_env.sustain': 0.1, 'lfo2.rate': 4.2, 'lfo2.shape': 'sine', 'filter.cutoff': 1600, 'eq.highcut': 4500 },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 12, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.1, 'fm.ratio': 4, 'fm.punch': 0.4, 'fm.decay': 150, 'amp_env.decay': 3000, 'amp_env.sustain': 0.1, 'lfo2.rate': 4.2, 'lfo2.shape': 'sine', 'filter.cutoff': 1600, 'eq.highcut': 4500, 'chorus.mix': 0.32 },
       mods: KEYS_KIT.map((m) => (m[0] === 'lfo2' ? (['lfo2', 'amp', -0.25] as Mod) : m)),
     },
     {
       id: 'sleep-organ', name: 'Sleep Organ', iconic: 2,
       description: "A soft sine organ, two drawbars and nothing else, breathing slowly in the dark.",
       tags: ['keys', 'organ', 'sine', 'soft', 'gentle', 'calm', 'lorn'],
-      texture: ['air', 0.35, 0.35, 1200],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 30, 'osc1.wave': 'sine', 'osc2.wave': 'sine', 'osc2.semi': 12, 'osc2.level': 0.35, 'fm.amount': 0, 'fm.punch': 0, 'amp_env.sustain': 1, 'amp_env.release': 300, 'filter.cutoff': 1500 },
-      mods: kit(FILTER_KEYS_KIT, [], { 'lfo2>amp': ['lfo2', 'amp', -0.15] }),
+      texture: ['air', 0.55, 0.35, 1200],
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 30, 'osc1.wave': 'sine', 'osc2.wave': 'sine', 'osc2.semi': 12, 'osc2.level': 0.35, 'fm.amount': 0, 'fm.punch': 0, 'amp_env.sustain': 1, 'amp_env.release': 300, 'filter.cutoff': 1500, 'tape.age': 0.65, 'breath.level': 0.08, 'breath.tone': 0.4 },
+      mods: SOFT_KEYS_KIT,
     },
     {
       id: 'quiet-reed', name: 'Quiet Reed', iconic: 2,
@@ -383,15 +392,15 @@ const def: CategoryDef = {
       description: "Soft triangle keys with a little air in every note, like a sigh between chords.",
       tags: ['keys', 'soft', 'breathy', 'airy', 'gentle', 'triangle', 'lorn'],
       texture: ['air', 0.35, 0.35, 1200],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 25, 'fm.amount': 0, 'fm.punch': 0, 'breath.level': 0.15, 'breath.tone': 0.35, 'amp_env.decay': 2500, 'amp_env.sustain': 0.45, 'filter.cutoff': 1300 },
-      mods: kit(FILTER_KEYS_KIT, [], { 'lfo2>amp': ['lfo2', 'breath_level', 0.12] }),
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 25, 'fm.amount': 0, 'fm.punch': 0, 'breath.level': 0.15, 'breath.tone': 0.35, 'amp_env.decay': 2500, 'amp_env.sustain': 0.45, 'filter.cutoff': 1300, 'osc2.wave': 'sine', 'osc2.semi': 12, 'osc2.level': 0.15 },
+      mods: kit(SOFT_KEYS_KIT, [], { 'lfo2>amp': ['lfo2', 'breath_level', 0.12] }),
     },
     {
       id: 'velvet-tape', name: 'Velvet Tape', iconic: 2,
       description: "Soft, round keys with an octave shadow, slowly warping on a gentle tape.",
       tags: ['keys', 'soft', 'round', 'tape', 'warm', 'nostalgic', 'lorn'],
-      texture: ['crackle', 0.3, 0.3, 1200],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 12, 'osc2.wave': 'sine', 'osc2.semi': 12, 'osc2.level': 0.2, 'fm.amount': 0.05, 'fm.punch': 0.15, 'tape.wow': 0.42, 'filter.cutoff': 1100 },
+      texture: ['crackle', 0.6, 0.35, 1200],
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 12, 'osc2.wave': 'sine', 'osc2.semi': 12, 'osc2.level': 0.2, 'fm.amount': 0.05, 'fm.punch': 0.15, 'tape.wow': 0.42, 'filter.cutoff': 1100, 'tape.age': 0.75, 'breath.level': 0.1, 'breath.tone': 0.4 },
     },
   ],
 };

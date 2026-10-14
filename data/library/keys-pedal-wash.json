@@ -16,39 +16,7 @@
     "family": "keys",
     "collection": "bank",
     "audition": "chords",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 0.11,
-      "airDb": -47.1,
-      "dirt": 0.35,
-      "widthDb": -7.6,
-      "tailDb": -1.5
-    },
-    "checks": {
-      "hash": "4c4a8da2",
-      "audio": "79cb841a",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "off-style space (tail after the notes stop): -1.5 dB (limit -3.0 dB)"
-      ],
-      "earns": true,
-      "weakest": "mod 2 (lfo2 → amp) 0.25 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.338,
-      "highEnergy": 0.462,
-      "sub": 0.045,
-      "lowMid": 0.892,
-      "dirt": 0.347,
-      "width": 0.81,
-      "attack": 0.333,
-      "decay": 0.998,
-      "sustain": 0.799,
-      "release": 0.773,
-      "movement": 0.056
-    }
+    "iconic": 2
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -129,7 +97,7 @@
   "amp_env.attack": 6,
   "amp_env.decay": 7000,
   "amp_env.sustain": 0.2,
-  "amp_env.release": 4500,
+  "amp_env.release": 3500,
   "amp_env.attack_curve": 0,
   "mod_env.attack": 5,
   "mod_env.decay": 800,
@@ -240,7 +208,7 @@
   "delay.feedback": 0.4,
   "delay.tone": 0.25,
   "reverb.on": true,
-  "reverb.mix": 0.5,
+  "reverb.mix": 0.38,
   "reverb.size": 0.95,
   "reverb.tone": 0.8,
   "fx.lowcut": 250,

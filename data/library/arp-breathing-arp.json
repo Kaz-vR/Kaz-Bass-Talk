@@ -16,42 +16,7 @@
     "family": "arp",
     "collection": "bank",
     "audition": "arp-line",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 0.25,
-      "airDb": -34.3,
-      "dirt": 1.15,
-      "widthDb": -6.1,
-      "tailDb": -28.6
-    },
-    "checks": {
-      "hash": "2d46efc8",
-      "audio": "10ee7231",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "texture bed burying the bass: -10.4 dB (limit -12.0 dB)",
-        "mud build-up 200–400 Hz: 7.5 dB (limit 7.0 dB)"
-      ],
-      "earns": false,
-      "weakest": "mod 2 (lfo2 → breath_level) 0.13 dB",
-      "failing": [
-        "mod 2 (lfo2 → breath_level) 0.13 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.396,
-      "highEnergy": 0.643,
-      "sub": 0.064,
-      "lowMid": 0.85,
-      "dirt": 1,
-      "width": 0.848,
-      "attack": 0.259,
-      "decay": 0.73,
-      "sustain": 0.704,
-      "release": 0.773,
-      "movement": 0.302
-    }
+    "iconic": 2
   },
   "voice.polyphony": 4,
   "voice.legato": false,
@@ -97,7 +62,7 @@
   "sub.level": 0,
   "noise.level": 0,
   "texture.type": "air",
-  "texture.level": 0.35,
+  "texture.level": 0.25,
   "texture.tone": 0.35,
   "texture.tail": 900,
   "texture.position": "before dynamics",
@@ -151,7 +116,7 @@
   "vibrato.fade": 500,
   "breath.chiff": 0,
   "breath.decay": 120,
-  "breath.level": 0.18,
+  "breath.level": 0.24,
   "breath.tone": 0.35,
   "lfo1.on": true,
   "lfo1.shape": "wander",
@@ -189,7 +154,7 @@
   "mod1.amount": 0.35,
   "mod2.source": "lfo2",
   "mod2.dest": "breath_level",
-  "mod2.amount": 0.15,
+  "mod2.amount": 0.3,
   "mod3.source": "random",
   "mod3.dest": "pitch",
   "mod3.amount": 0.0025,
@@ -249,8 +214,8 @@
   "fx.lowcut": 200,
   "eq.on": true,
   "eq.low_gain": 0,
-  "eq.mid_gain": -2,
-  "eq.mid_freq": 350,
+  "eq.mid_gain": -4.5,
+  "eq.mid_freq": 300,
   "eq.high_gain": -2,
   "eq.highcut": 7000,
   "output.gain": 0.7,

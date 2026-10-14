@@ -16,40 +16,7 @@
     "family": "keys",
     "collection": "bank",
     "audition": "chords",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 0.79,
-      "airDb": -36.4,
-      "dirt": 0.71,
-      "widthDb": -20.2,
-      "tailDb": -27.2
-    },
-    "checks": {
-      "hash": "246f941d",
-      "audio": "9b3fa6b6",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "off-style stereo width: -20.2 dB (limit -18.0 dB)",
-        "lifeRepeat: 0.9388 (limit 0.6000)"
-      ],
-      "earns": true,
-      "weakest": "mod 4 (drift_slow → filter_cutoff) 0.18 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.44,
-      "highEnergy": 0.713,
-      "sub": 0.032,
-      "lowMid": 0.814,
-      "dirt": 0.708,
-      "width": 0.494,
-      "attack": 0.519,
-      "decay": 0.995,
-      "sustain": 0.958,
-      "release": 0.773,
-      "movement": 0.448
-    }
+    "iconic": 2
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -70,7 +37,7 @@
   "osc1.level": 0.6,
   "osc2.wave": "pulse",
   "osc2.semi": 0,
-  "osc2.fine": 16,
+  "osc2.fine": 10,
   "osc2.pulse_width": 0.35,
   "osc2.wt_pos": 0,
   "osc2.unison_voices": 1,
@@ -200,9 +167,9 @@
   "mod6.source": "lfo4",
   "mod6.dest": "width",
   "mod6.amount": 0.25,
-  "mod7.source": "drift",
-  "mod7.dest": "pitch",
-  "mod7.amount": 0.0015,
+  "mod7.source": "lfo2",
+  "mod7.dest": "osc2_pitch",
+  "mod7.amount": 0.004,
   "mod8.source": "lfo1",
   "mod8.dest": "delay_time",
   "mod8.amount": 0.04,
@@ -225,7 +192,7 @@
   "comp.pump_rate": "1/4",
   "ott.amount": 0.15,
   "chorus.on": true,
-  "chorus.mix": 0.12,
+  "chorus.mix": 0.35,
   "chorus.depth": 0.45,
   "chorus.mode": "classic",
   "phaser.on": true,

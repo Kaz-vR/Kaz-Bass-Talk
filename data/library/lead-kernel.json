@@ -16,39 +16,7 @@
     "family": "lead",
     "collection": "bank",
     "audition": "lead-line",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 0.62,
-      "airDb": -31.2,
-      "dirt": 0.46,
-      "widthDb": -14.3,
-      "tailDb": -17.4
-    },
-    "checks": {
-      "hash": "3383b81b",
-      "audio": "f0ec3903",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "lifeSlowDb: 0.2 dB (limit 0.5 dB)"
-      ],
-      "earns": true,
-      "weakest": "mod 4 (drift_slow → drive) 0.27 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.566,
-      "highEnergy": 0.768,
-      "sub": 0.006,
-      "lowMid": 0.016,
-      "dirt": 0.455,
-      "width": 0.642,
-      "attack": 0.1,
-      "decay": 0.646,
-      "sustain": 0.637,
-      "release": 0.773,
-      "movement": 0.186
-    }
+    "iconic": 2
   },
   "voice.polyphony": 1,
   "voice.legato": false,
@@ -187,9 +155,9 @@
   "mod2.source": "lfo2",
   "mod2.dest": "amp",
   "mod2.amount": -0.16,
-  "mod3.source": "env2",
-  "mod3.dest": "filter_cutoff",
-  "mod3.amount": 0.15,
+  "mod3.source": "lfo3",
+  "mod3.dest": "osc1_pw",
+  "mod3.amount": 0.3,
   "mod4.source": "drift_slow",
   "mod4.dest": "drive",
   "mod4.amount": 0.15,

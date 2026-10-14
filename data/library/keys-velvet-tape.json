@@ -16,39 +16,7 @@
     "family": "keys",
     "collection": "bank",
     "audition": "chords",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 0.32,
-      "airDb": -53.7,
-      "dirt": 0.13,
-      "widthDb": -8.4,
-      "tailDb": -18
-    },
-    "checks": {
-      "hash": "24cd4076",
-      "audio": "2cf6f3a3",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "off-style dirt (too clean or too broken): 0.1320 (limit 0.3000)"
-      ],
-      "earns": true,
-      "weakest": "delay 0.35 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.369,
-      "highEnergy": 0.436,
-      "sub": 0.059,
-      "lowMid": 0.845,
-      "dirt": 0.132,
-      "width": 0.789,
-      "attack": 0.301,
-      "decay": 0.818,
-      "sustain": 0.664,
-      "release": 0.773,
-      "movement": 0.508
-    }
+    "iconic": 2
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -94,8 +62,8 @@
   "sub.level": 0,
   "noise.level": 0,
   "texture.type": "crackle",
-  "texture.level": 0.3,
-  "texture.tone": 0.3,
+  "texture.level": 0.6,
+  "texture.tone": 0.35,
   "texture.tail": 1200,
   "texture.position": "before dynamics",
   "click.type": "click",
@@ -125,7 +93,7 @@
   "tape.on": true,
   "tape.drive": 0.4,
   "tape.wow": 0.42,
-  "tape.age": 0.45,
+  "tape.age": 0.75,
   "amp_env.attack": 12,
   "amp_env.decay": 3500,
   "amp_env.sustain": 0.25,
@@ -148,8 +116,8 @@
   "vibrato.fade": 500,
   "breath.chiff": 0,
   "breath.decay": 120,
-  "breath.level": 0,
-  "breath.tone": 0.5,
+  "breath.level": 0.1,
+  "breath.tone": 0.4,
   "lfo1.on": true,
   "lfo1.shape": "wander",
   "lfo1.rate": 0.31,

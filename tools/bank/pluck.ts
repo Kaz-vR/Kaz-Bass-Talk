@@ -277,7 +277,7 @@ const def: CategoryDef = {
       tags: ['pluck', 'glass', 'fm', 'long-delay', 'shimmer', 'dreamy', 'lorn'],
       texture: ['air', 0.3, 0.35, 1200],
       set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.16, 'fm.ratio': 3.5, 'fm.punch': 0.4, 'fm.decay': 250, 'delay.time': '1/4', 'delay.mix': 0.45, 'delay.feedback': 0.6, 'reverb.size': 0.93, 'reverb.mix': 0.4, 'filter.cutoff': 1700, 'filter.env_amount': 0.05, 'eq.highcut': 4500 },
-      mods: SOFT_PLUCK_KIT,
+      mods: kit(SOFT_PLUCK_KIT, [], { 'drift_slow>drive': ['drift_slow', 'amp', -0.12] }),
     },
     {
       id: 'soft-harp', name: 'Soft Harp', iconic: 2,
@@ -301,7 +301,7 @@ const def: CategoryDef = {
       description: "A soft thumb piano, small round tines plucked slowly to sleep.",
       tags: ['pluck', 'kalimba', 'soft', 'tine', 'lullaby', 'gentle', 'lorn'],
       texture: ['air', 0.3, 0.35, 1000],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.12, 'fm.ratio': 5, 'fm.punch': 0.4, 'fm.decay': 80, 'filter.cutoff': 1600, 'filter.env_amount': 0, 'amp_env.decay': 700, 'eq.highcut': 4500 },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.12, 'fm.ratio': 5, 'fm.punch': 0.4, 'fm.decay': 80, 'filter.cutoff': 1600, 'filter.env_amount': 0, 'amp_env.decay': 700, 'eq.highcut': 4500, 'eq.mid_freq': 300, 'eq.mid_gain': -4.5 },
       mods: SOFT_PLUCK_KIT,
     },
     {
@@ -309,7 +309,7 @@ const def: CategoryDef = {
       description: "A nylon string plucked softly with the thumb, warm and close at night.",
       tags: ['pluck', 'nylon', 'guitar', 'string', 'soft', 'warm', 'lorn'],
       texture: ['dust', 0.3, 0.3, 800],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'string', 'string.tone': 0.35, 'string.decay': 0.5, 'osc1.unison_voices': 1, 'filter.cutoff': 2200, 'filter.env_amount': 0, 'chorus.mix': 0.2, 'osc2.wave': 'sine', 'osc2.level': 0.35 },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'string', 'string.tone': 0.35, 'string.decay': 0.5, 'osc1.unison_voices': 1, 'filter.cutoff': 2200, 'filter.env_amount': 0, 'chorus.mix': 0.2, 'osc2.wave': 'sine', 'osc2.level': 0.35, 'eq.mid_freq': 300, 'eq.mid_gain': -4.5 },
       mods: SOFT_PLUCK_KIT,
     },
     {
@@ -317,7 +317,7 @@ const def: CategoryDef = {
       description: "A muted, papery string pluck: barely there, dry and gentle.",
       tags: ['pluck', 'muted', 'string', 'soft', 'papery', 'dry', 'lorn'],
       texture: ['dust', 0.35, 0.3, 500],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'string', 'string.tone': 0.25, 'string.decay': 0.3, 'osc1.unison_voices': 1, 'filter.cutoff': 1500, 'filter.env_amount': 0, 'delay.mix': 0.15, 'reverb.mix': 0.18, 'osc2.wave': 'sine', 'osc2.level': 0.35 },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'string', 'string.tone': 0.25, 'string.decay': 0.3, 'osc1.unison_voices': 1, 'filter.cutoff': 1500, 'filter.env_amount': 0, 'delay.mix': 0.15, 'reverb.mix': 0.18, 'osc2.wave': 'sine', 'osc2.level': 0.35, 'eq.mid_freq': 300, 'eq.mid_gain': -4.5 },
       mods: SOFT_PLUCK_KIT,
     },
     {
@@ -333,15 +333,15 @@ const def: CategoryDef = {
       description: "A soft glass bead: a pure tone with a faint shimmer, dropping into a quiet pool.",
       tags: ['pluck', 'glass', 'soft', 'droplet', 'pure', 'fm', 'lorn'],
       texture: ['air', 0.3, 0.35, 1000],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.1, 'fm.ratio': 2, 'fm.punch': 0.3, 'fm.decay': 400, 'filter.cutoff': 1500, 'filter.env_amount': 0, 'amp_env.decay': 900, 'eq.highcut': 4500 },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.1, 'fm.ratio': 2, 'fm.punch': 0.3, 'fm.decay': 400, 'filter.cutoff': 1500, 'filter.env_amount': 0, 'amp_env.decay': 900, 'eq.highcut': 4500, 'eq.mid_freq': 300, 'eq.mid_gain': -4.5 },
       mods: SOFT_PLUCK_KIT,
     },
     {
       id: 'velvet-pick', name: 'Velvet Pick', iconic: 2,
       description: "A soft triangle pluck with an octave shadow and a slow chorus, velvet-smooth.",
       tags: ['pluck', 'soft', 'velvet', 'octave', 'chorus', 'smooth', 'lorn'],
-      texture: ['dust', 0.3, 0.3, 800],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'triangle', 'osc2.wave': 'sine', 'osc2.semi': 12, 'osc2.level': 0.2, 'filter.cutoff': 1200, 'filter.env_amount': 0.2, 'chorus.mix': 0.35, 'chorus.mode': 'classic' },
+      texture: ['dust', 0.45, 0.3, 800],
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'triangle', 'osc2.wave': 'sine', 'osc2.semi': 12, 'osc2.level': 0.2, 'filter.cutoff': 1200, 'filter.env_amount': 0.2, 'chorus.mix': 0.35, 'chorus.mode': 'classic', 'tape.age': 0.6 },
       mods: SOFT_PLUCK_KIT,
     },
     {

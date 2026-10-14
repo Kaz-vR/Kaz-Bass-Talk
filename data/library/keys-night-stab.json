@@ -16,40 +16,7 @@
     "family": "keys",
     "collection": "bank",
     "audition": "chords",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 1,
-      "airDb": -34,
-      "dirt": 0.9,
-      "widthDb": -5.4,
-      "tailDb": -29.7
-    },
-    "checks": {
-      "hash": "4d7f5f88",
-      "audio": "668b6c92",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": false,
-      "weakest": "mod 1 (lfo1 → filter_cutoff) 0.10 dB",
-      "failing": [
-        "mod 1 (lfo1 → filter_cutoff) 0.10 dB",
-        "mod 4 (drift_slow → filter_cutoff) 0.14 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.472,
-      "highEnergy": 0.745,
-      "sub": 0.309,
-      "lowMid": 0.734,
-      "dirt": 0.896,
-      "width": 0.866,
-      "attack": 0.1,
-      "decay": 0.475,
-      "sustain": 0.544,
-      "release": 0.55,
-      "movement": 0.632
-    }
+    "iconic": 2
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -107,7 +74,7 @@
   "drive.amount": 0.5,
   "filter.on": true,
   "filter.type": "lowpass",
-  "filter.cutoff": 900,
+  "filter.cutoff": 700,
   "filter.resonance": 0.18,
   "filter.keytrack": 0.5,
   "filter.env_amount": 0.45,
@@ -184,7 +151,7 @@
   "mod.on": true,
   "mod1.source": "lfo1",
   "mod1.dest": "filter_cutoff",
-  "mod1.amount": 0.2,
+  "mod1.amount": 0.32,
   "mod2.source": "lfo2",
   "mod2.dest": "amp",
   "mod2.amount": -0.12,
@@ -193,7 +160,7 @@
   "mod3.amount": 0.15,
   "mod4.source": "drift_slow",
   "mod4.dest": "filter_cutoff",
-  "mod4.amount": 0.12,
+  "mod4.amount": 0.25,
   "mod5.source": "lfo3",
   "mod5.dest": "tape_wow",
   "mod5.amount": 0.3,

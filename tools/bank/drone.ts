@@ -142,6 +142,7 @@ const def: CategoryDef = {
         'filter.type': 'bandpass', 'filter.cutoff': 160, 'filter.keytrack': 0.8, 'filter.resonance': 0.3, 'tape.wow': 0.45, 'tape.age': 0.7,
         'phaser.mix': 0.2, 'phaser.rate': 0.12, 'flanger.mix': 0.2, 'flanger.rate': 0.08,
       },
+      allow: { 'consistency:brightOct': { why: 'a noise-based sound: its brightness comes from noise, which has no note to be dark against' } },
     },
   ],
 };

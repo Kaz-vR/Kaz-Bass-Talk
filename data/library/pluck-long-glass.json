@@ -16,39 +16,7 @@
     "family": "pluck",
     "collection": "bank",
     "audition": "arp-line",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 1.95,
-      "airDb": -36.2,
-      "dirt": 0.91,
-      "widthDb": -9.7,
-      "tailDb": -14.8
-    },
-    "checks": {
-      "hash": "6cef9405",
-      "audio": "67c3b73a",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": false,
-      "weakest": "mod 4 (drift_slow → drive) 0.15 dB",
-      "failing": [
-        "mod 4 (drift_slow → drive) 0.15 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.653,
-      "highEnergy": 0.843,
-      "sub": 0.091,
-      "lowMid": 0.492,
-      "dirt": 0.909,
-      "width": 0.759,
-      "attack": 0.1,
-      "decay": 0.528,
-      "sustain": 0.457,
-      "release": 0.773,
-      "movement": 0.393
-    }
+    "iconic": 2
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -191,8 +159,8 @@
   "mod3.dest": "pitch",
   "mod3.amount": 0.0025,
   "mod4.source": "drift_slow",
-  "mod4.dest": "drive",
-  "mod4.amount": 0.2,
+  "mod4.dest": "amp",
+  "mod4.amount": -0.12,
   "mod5.source": "lfo3",
   "mod5.dest": "delay_mix",
   "mod5.amount": 0.1,

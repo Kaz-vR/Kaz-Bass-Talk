@@ -16,39 +16,7 @@
     "family": "pluck",
     "collection": "bank",
     "audition": "arp-line",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 0.2,
-      "airDb": -42.5,
-      "dirt": 0.33,
-      "widthDb": -7.6,
-      "tailDb": -27.4
-    },
-    "checks": {
-      "hash": "42534ce8",
-      "audio": "7bd04541",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "off-style dirt (too clean or too broken): 0.3270 (limit 0.3500)"
-      ],
-      "earns": true,
-      "weakest": "mod 12 (random → amp) 0.42 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.39,
-      "highEnergy": 0.485,
-      "sub": 0.064,
-      "lowMid": 0.839,
-      "dirt": 0.327,
-      "width": 0.809,
-      "attack": 0.201,
-      "decay": 0.55,
-      "sustain": 0.315,
-      "release": 0.773,
-      "movement": 0.445
-    }
+    "iconic": 2
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -94,7 +62,7 @@
   "sub.level": 0,
   "noise.level": 0,
   "texture.type": "dust",
-  "texture.level": 0.3,
+  "texture.level": 0.45,
   "texture.tone": 0.3,
   "texture.tail": 800,
   "texture.position": "before dynamics",
@@ -125,7 +93,7 @@
   "tape.on": true,
   "tape.drive": 0.4,
   "tape.wow": 0.18,
-  "tape.age": 0.4,
+  "tape.age": 0.6,
   "amp_env.attack": 8,
   "amp_env.decay": 450,
   "amp_env.sustain": 0,

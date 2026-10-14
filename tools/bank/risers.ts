@@ -105,6 +105,7 @@ const def: CategoryDef = {
       texture: ['air', 0.5, 0.4, 2500],
       set: { 'osc1.level': 0.4, 'breath.level': 0.1, 'breath.tone': 0.5, 'filter.cutoff': 600 },
       mods: kit(RISE_KIT, [], { 'env2>noise_level': ['env2', 'breath_level', 0.6] }),
+      allow: { 'consistency:brightOct': { why: 'a noise-based sound: its brightness comes from noise, which has no note to be dark against' } },
     },
     {
       id: 'ascension', name: 'Ascension',
@@ -113,6 +114,7 @@ const def: CategoryDef = {
       texture: ['air', 0.45, 0.35, 3000],
       set: { 'osc2.wave': 'saw', 'osc2.semi': 12, 'osc2.level': 0.3, 'chorus.mix': 0.3, 'chorus.mode': 'ensemble', 'reverb.mix': 0.5 },
       mods: kit(RISE_KIT, [['env2', 'pitch', 1]]),
+      allow: { 'consistency:brightOct': { why: 'a noise-based sound: its brightness comes from noise, which has no note to be dark against' } },
     },
     // ------------------------------------------------ filling the gaps
     {
