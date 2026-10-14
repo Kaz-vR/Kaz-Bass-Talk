@@ -51,6 +51,18 @@ const GROUP_TIPS: Record<string, string> = {
   output: 'Final level and the low-end crossover. The limiter and mono low end are always on.',
 };
 
+/** The page's sections, in the order the sound flows: play, sources, the dirt chain, envelopes, movement, space, out. */
+const SECTIONS: { id: string; title: string; hint: string; groups: string[] }[] = [
+  { id: 'play', title: 'Play', hint: 'How it is played: voices, glide, touch, the mod wheel and a player\'s vibrato.', groups: ['voice', 'wheel', 'vibrato'] },
+  { id: 'sources', title: 'Sources', hint: 'What makes the sound: oscillators, FM, sub, noise, breath, the attack transient and the pitch at the start of a note.', groups: ['osc1', 'osc2', 'string', 'fm', 'sub', 'noise', 'breath', 'click', 'pitch_env'] },
+  { id: 'tone', title: 'Tone and dirt', hint: 'The fixed chain, left to right: drive → filter → distortion → bitcrusher → tape.', groups: ['drive', 'filter', 'dist', 'crush', 'tape'] },
+  { id: 'shape', title: 'Shape over time', hint: 'Per-note envelopes: volume, the filter sweep and the slow bloom.', groups: ['amp_env', 'mod_env', 'env2'] },
+  { id: 'movement', title: 'Movement', hint: 'What keeps it alive: the wobble, four LFOs, the other sources and the matrix that routes them.', groups: ['wobble', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'other', 'mod'] },
+  { id: 'space', title: 'Space and finish', hint: 'After the voices, in order: the texture bed, dynamics, effects (chorus → flanger → phaser → delay → reverb) and EQ.', groups: ['texture', 'dynamics', 'fx', 'eq'] },
+  { id: 'out', title: 'Output', hint: 'Final level. The limiter and the mono low end are always on.', groups: ['output'] },
+];
+const FOLD_KEY = 'lowtalk.folded-sections';
+
 export function formatValue(p: ParamDef, v: ParamValue): string {
   if (p.type === 'bool') return v ? 'on' : 'off';
   if (p.type === 'enum') return String(v);
@@ -171,6 +183,7 @@ export class ParamsPanel {
       if (!groups.has(p.group)) groups.set(p.group, []);
       groups.get(p.group)!.push(p);
     }
+    const boxes = new Map<string, HTMLElement>();
     for (const [g, ps] of groups) {
       const box = document.createElement('div');
       box.className = 'group' + (g === 'mod' ? ' wide' : '');
@@ -184,13 +197,44 @@ export class ParamsPanel {
       const power = ps.find((p) => p.id === `${g}.on`);
       if (power) h.append(this.powerButton(power, box));
       const rest = ps.filter((p) => p !== power);
-      if (g === 'mod') this.root.append(this.buildOtherSources());
       if (g === 'mod') this.buildMatrix(box, rest);
       else if (/^lfo\d$/.test(g)) this.buildLfo(box, g, rest);
       else if (g === 'wheel') this.buildWheel(box, rest);
       else if (g === 'fx') this.buildEffects(box, rest);
       else for (const p of rest) box.append(this.buildControl(p));
-      this.root.append(box);
+      boxes.set(g, box);
+    }
+    boxes.set('other', this.buildOtherSources());
+    // Sections in signal order; anything new in the schema lands in a last section rather than disappearing.
+    const placed = new Set(SECTIONS.flatMap((s) => s.groups));
+    const leftover = [...boxes.keys()].filter((g) => !placed.has(g));
+    const sections = leftover.length ? [...SECTIONS, { id: 'more', title: 'More', hint: '', groups: leftover }] : SECTIONS;
+    let folded = new Set<string>();
+    try { folded = new Set(JSON.parse(localStorage.getItem(FOLD_KEY) ?? '[]')); } catch { /* no storage: everything open */ }
+    for (const sec of sections) {
+      const head = document.createElement('button');
+      head.className = 'section-head';
+      head.type = 'button';
+      const title = document.createElement('span');
+      title.className = 'section-title';
+      const hint = document.createElement('span');
+      hint.className = 'section-hint';
+      hint.textContent = sec.hint;
+      head.append(title, hint);
+      const members = sec.groups.map((g) => boxes.get(g)).filter((b): b is HTMLElement => !!b);
+      const apply = () => {
+        const shut = folded.has(sec.id);
+        title.textContent = `${shut ? '▸' : '▾'} ${sec.title}`;
+        head.classList.toggle('folded', shut);
+        for (const b of members) b.hidden = shut;
+      };
+      head.onclick = () => {
+        if (folded.has(sec.id)) folded.delete(sec.id); else folded.add(sec.id);
+        try { localStorage.setItem(FOLD_KEY, JSON.stringify([...folded])); } catch { /* not remembered */ }
+        apply();
+      };
+      apply();
+      this.root.append(head, ...members);
     }
   }
 

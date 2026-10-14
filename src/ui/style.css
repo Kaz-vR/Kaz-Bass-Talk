@@ -38,6 +38,13 @@ canvas { width: 100%; height: auto; display: block; background: #0c0e10; border-
 .params { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; align-content: start; }
 .group { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 .group.wide { grid-column: 1 / -1; }
+.group[hidden] { display: none; }
+.section-head { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 10px 2px 6px; margin-top: 4px; cursor: pointer; text-align: left; color: var(--text); }
+.section-head:first-child { margin-top: 0; padding-top: 0; }
+.section-head:hover .section-title { color: var(--accent); }
+.section-title { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+.section-hint { font-size: 12px; color: var(--dim); }
+.section-head.folded { opacity: 0.75; }
 .group h3[title] { cursor: help; }
 .group h3 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-2); }
 .ctl { display: grid; grid-template-columns: 1fr auto; gap: 0 8px; align-items: center; margin-bottom: 6px; }
