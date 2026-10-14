@@ -60,6 +60,13 @@ const def: CategoryDef = {
       },
       mods: kit(SOFT_PLUCK_KIT, [], { 'random>amp': ['random', 'fm_amount', 0.08], 'lfo3>delay_mix': ['lfo3', 'fm_amount', 0.1] }),
     },
+    {
+      id: 'blackwater', name: 'Blackwater',
+      description: 'A deep, dark pluck that barely opens before it sinks into a murky room.',
+      tags: ['pluck', 'dark', 'deep', 'murky', 'reverb', 'underwater', 'lorn'],
+      texture: ['rumble', 0.3, 0.3, 800],
+      set: { 'filter.cutoff': 300, 'filter.env_amount': 0.5, 'reverb.mix': 0.4, 'drive.amount': 0.6 },
+    },
     // ------------------------------------------------ iconic (LORN versions)
     {
       id: 'wet-neon', name: 'Wet Neon', iconic: true,

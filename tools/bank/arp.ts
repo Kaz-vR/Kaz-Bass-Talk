@@ -57,6 +57,27 @@ const def: CategoryDef = {
       texture: ['dust', 0.28, 0.4, 400],
       set: { 'osc1.wave': 'pwm_saw', 'osc1.pulse_width': 0.4, 'ott.amount': 0.35 },
     },
+    {
+      id: 'pulse-engine', name: 'Pulse Engine',
+      description: 'A driving saw sequence pumping against the beat as its filter slowly opens and closes.',
+      tags: ['arp', 'sequence', 'saw', 'pump', 'driving', 'dark', 'lorn'],
+      texture: ['dust', 0.28, 0.35, 400],
+      set: { 'comp.pump': 0.45 },
+    },
+    {
+      id: 'night-drive', name: 'Night Drive',
+      description: 'Octave-stacked saws racing through a wide chorus and a heavy pump: headlights in the rain.',
+      tags: ['arp', 'sequence', 'saw', 'octave', 'synthwave', 'pump', 'lorn'],
+      texture: ['air', 0.28, 0.35, 400],
+      set: { 'osc2.wave': 'saw', 'osc2.semi': 12, 'osc2.level': 0.3, 'chorus.mix': 0.3, 'comp.pump': 0.5 },
+    },
+    {
+      id: 'static-ladder', name: 'Static Ladder',
+      description: 'A dark, squelching diode-filter sequence, its accents biting through the haze.',
+      tags: ['arp', 'sequence', 'acid', 'diode', 'squelch', 'dark', 'lorn'],
+      texture: ['dust', 0.28, 0.35, 400],
+      set: { 'filter.type': 'diode', 'filter.resonance': 0.6, 'filter.accent': 0.5, 'filter.cutoff': 500, 'filter.env_amount': 0.45 },
+    },
     // ------------------------------------------------ iconic (LORN versions)
     {
       id: 'gridlock', name: 'Gridlock', iconic: true,
