@@ -1,6 +1,7 @@
 // DEV ONLY. Runs tools/analyze-library.ts over the matching library files in
 // parallel worker processes (one per CPU), then the bank consistency check.
-//   npx tsx tools/analyze-parallel.ts <file filter> [--force]
+// --level first loudness-matches each chunk (tools/level-patches.ts).
+//   npx tsx tools/analyze-parallel.ts <file filter> [--force] [--level]
 import { spawn } from 'node:child_process';
 import { availableParallelism } from 'node:os';
 import { loadLibrary } from './lib/data';
@@ -12,9 +13,9 @@ const workers = Math.max(1, Math.min(availableParallelism(), files.length));
 const chunks: string[][] = Array.from({ length: workers }, () => []);
 files.forEach((f, i) => chunks[i % workers].push(f));
 
-const run = (args: string[]) =>
+const run = (args: string[], tool = 'tools/analyze-library.ts') =>
   new Promise<number>((resolve) => {
-    const p = spawn('npx', ['tsx', 'tools/analyze-library.ts', ...args], { stdio: ['ignore', 'pipe', 'inherit'] });
+    const p = spawn('npx', ['tsx', tool, ...args], { stdio: ['ignore', 'pipe', 'inherit'] });
     let out = '';
     p.stdout.on('data', (d) => (out += d));
     p.on('close', (code) => {
@@ -23,9 +24,16 @@ const run = (args: string[]) =>
     });
   });
 
-const codes = await Promise.all(chunks.map((c) => run([`--files=${c.join(',')}`, '--no-consistency', ...extra])));
+const level = extra.includes('--level');
+const pass = extra.filter((a) => a !== '--level');
+const codes = await Promise.all(
+  chunks.map(async (c) => {
+    if (level) await run([`--files=${c.join(',')}`], 'tools/level-patches.ts');
+    return run([`--files=${c.join(',')}`, '--no-consistency', ...pass]);
+  }),
+);
 // Consistency over the whole bank, no re-analysis.
-const final = await run(['--files=', ...extra]);
+const final = await run(['--files=', ...pass]);
 const failed = codes.some((c) => c !== 0) || final !== 0;
 console.log(failed ? '\nproblems found' : '\nall pass');
 process.exit(failed ? 1 : 0);

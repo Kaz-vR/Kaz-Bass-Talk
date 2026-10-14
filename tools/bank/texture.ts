@@ -53,14 +53,14 @@ const def: CategoryDef = {
       tags: ['texture', 'air', 'breath', 'soft', 'room', 'intimate', 'lorn'],
       texture: ['air', 0.7, 0.15, 3000],
       set: { 'breath.level': 0.3, 'breath.tone': 0.2, 'chorus.mix': 0.1, 'eq.highcut': 4000 },
-      mods: TEXTURE_KIT.map((m) => (m[1] === 'chorus_depth' ? (['lfo4', 'delay_mix', 0.12] as Mod) : m)),
+      mods: TEXTURE_KIT.map((m) => (m[1] === 'chorus_depth' ? (['lfo4', 'delay_mix', 0.22] as Mod) : m)),
     },
     {
       id: 'deep-hum', name: 'Deep Hum',
       description: 'A low hum you feel more than hear, shifting slowly under a dim sine.',
       tags: ['texture', 'rumble', 'hum', 'low', 'deep', 'pressure', 'lorn'],
       texture: ['rumble', 0.7, 0.35, 3500],
-      set: { 'osc1.wave': 'sine', 'osc1.level': 0.3, 'filter.cutoff': 800, 'noise.level': 0.12, 'drive.amount': 0.7, 'breath.level': 0.25, 'breath.tone': 0.2 },
+      set: { 'osc1.wave': 'saw', 'osc1.level': 0.3, 'filter.cutoff': 600, 'noise.level': 0.15, 'drive.amount': 0.7, 'breath.level': 0.25, 'breath.tone': 0.2 },
     },
     {
       id: 'rain-static', name: 'Rain Static',

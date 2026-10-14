@@ -55,15 +55,15 @@ const def: CategoryDef = {
       description: 'A noise riser: static rushing up through a resonant band, getting louder and closer.',
       tags: ['riser', 'noise', 'static', 'sweep', 'build', 'transition', 'lorn'],
       texture: ['dust', 0.5, 0.45, 2500],
-      set: { 'osc1.level': 0.4, 'noise.level': 0.06, 'filter.type': 'bandpass', 'filter.cutoff': 250, 'filter.resonance': 0.35, 'eq.highcut': 3500 },
-      mods: kit(RISE_KIT, [['env2', 'filter_cutoff', 0.25], ['env2', 'noise_level', 0.3], ['env2', 'pitch', 0.25]]),
+      set: { 'osc1.level': 0.4, 'noise.level': 0.06, 'filter.type': 'bandpass', 'filter.cutoff': 200, 'filter.resonance': 0.35, 'eq.highcut': 3000 },
+      mods: kit(RISE_KIT, [['env2', 'filter_cutoff', 0.2], ['env2', 'noise_level', 0.3], ['env2', 'pitch', 0.25]]),
     },
     {
       id: 'siren-rise', name: 'Siren Rise',
       description: 'A rising siren whose vibrato grows wilder and wider the longer it climbs.',
       tags: ['riser', 'siren', 'vibrato', 'alarm', 'tension', 'build', 'lorn'],
       texture: ['air', 0.45, 0.4, 2500],
-      set: { 'vibrato.depth': 30, 'vibrato.delay': 0, 'vibrato.fade': 3000, 'osc1.unison_voices': 2 },
+      set: { 'vibrato.depth': 30, 'vibrato.delay': 0, 'vibrato.fade': 3000, 'osc1.unison_voices': 2, 'osc1.unison_spread': 0.5, 'chorus.mix': 0 },
       mods: kit(RISE_KIT, [], { 'lfo4>unison_detune': ['env2', 'vibrato_depth', 0.6] }),
     },
     {

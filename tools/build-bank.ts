@@ -5,7 +5,7 @@
 //   npm run build:bank [-- <category> [<preset id>]]
 //   then: npm run level:patches -- <category>- && npm run analyze:library -- <category>-
 
-import { readdirSync, unlinkSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { categoryById } from '../src/quality/categories';
 import { buildPreset, type CategoryDef } from './bank/common';
@@ -20,7 +20,9 @@ for (const f of files.sort()) {
   if (onlyCat && def.category !== onlyCat) continue;
   const cat = categoryById(def.category);
   if (!cat) throw new Error(`unknown category ${def.category}`);
-  if (!onlyId) for (const g of readdirSync(libDir)) if (g.startsWith(`${def.category}-`)) unlinkSync(join(libDir, g));
+  // Only this category's bank presets: Atlas files can share the prefix (drone-brass.json).
+  const ours = (g: string) => g.startsWith(`${def.category}-`) && JSON.parse(readFileSync(join(libDir, g), 'utf8')).meta?.category === def.category;
+  if (!onlyId) for (const g of readdirSync(libDir)) if (ours(g)) unlinkSync(join(libDir, g));
   const seen = new Set<string>();
   for (const p of def.presets) {
     if (seen.has(p.id)) throw new Error(`duplicate ${def.category}/${p.id}`);
