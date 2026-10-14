@@ -31,6 +31,9 @@ groups.push({ id: ATLAS, name: 'Bass Atlas', description: 'One patch for each of
 // The randomizer: its own tab after the categories (rolls, not presets).
 const RANDOMIZER = 'randomizer';
 groups.push({ id: RANDOMIZER, name: '🎲 Randomizer', description: "Roll new sounds from the bank's own parts: tame cousins of a category, or weird collisions.", items: [] });
+// Your own sounds: rolls you starred (kept in this browser).
+const USER = 'user';
+groups.push({ id: USER, name: '★ User', description: 'The rolls you starred. They stay here even when you clear the rolls.', items: [] });
 library.forEach((p, i) => {
   const g = groups.find((x) => x.id === ((p.meta.category as string | undefined) ?? ATLAS))!;
   g.items.push(i);
@@ -72,19 +75,19 @@ function renderBrowser(): void {
   const cats = $('categories');
   cats.innerHTML = '';
   for (const g of groups) {
-    if (!g.items.length && g.id !== RANDOMIZER) continue;
+    if (!g.items.length && g.id !== RANDOMIZER && g.id !== USER) continue;
     const b = document.createElement('button');
     b.className = 'cat' + (g === currentGroup ? ' active' : '') + (g.id === ATLAS ? ' secondary' : '');
     b.textContent = g.name;
     const n = document.createElement('span');
     n.className = 'count';
-    n.textContent = String(g.items.length);
+    n.textContent = String(g.id === USER ? userSounds.length : g.items.length);
     if (g.id !== RANDOMIZER) b.append(n);
     b.title = g.description;
     b.onclick = () => {
-      if (g.id === RANDOMIZER) {
-        // Keep the sound on screen: locked boxes are taken from it.
-        if (currentGroup.id !== RANDOMIZER && currentGroup.id !== ATLAS) basedOn = currentGroup.id;
+      if (g.id === RANDOMIZER || g.id === USER) {
+        // Keep the sound on screen (for the randomizer, locked boxes are taken from it).
+        if (g.id === RANDOMIZER && !['randomizer', 'user', ATLAS].includes(currentGroup.id)) basedOn = currentGroup.id;
         currentGroup = g;
         renderBrowser();
         return;
@@ -98,9 +101,15 @@ function renderBrowser(): void {
   }
   const list = $('presets');
   list.innerHTML = '';
-  list.classList.toggle('rolls', currentGroup.id === RANDOMIZER);
+  list.classList.toggle('rolls', currentGroup.id === RANDOMIZER || currentGroup.id === USER);
+  // The randomizer's box locks only show while it's open.
+  document.body.classList.toggle('randomizing', currentGroup.id === RANDOMIZER);
   if (currentGroup.id === RANDOMIZER) {
     renderRandomizer(list);
+    return;
+  }
+  if (currentGroup.id === USER) {
+    renderUser(list);
     return;
   }
   for (const i of currentGroup.items) {
@@ -119,27 +128,36 @@ function renderBrowser(): void {
 
 // ---------------------------------------------------------------- randomizer
 
-interface RollEntry { roll: Roll; kept: boolean; id: number }
-const KEPT_KEY = 'lowtalk.kept-rolls';
+interface RollEntry { roll: Roll; id: number }
+const USER_KEY = 'lowtalk.user-sounds';
+const OLD_KEPT_KEY = 'lowtalk.kept-rolls';
 const bank = library.filter((p) => p.meta.category);
 let rolls: RollEntry[] = [];
+/** Starred rolls: the User tab. */
+let userSounds: RollEntry[] = [];
 let currentRoll: RollEntry | null = null;
 let basedOn = 'any';
 let weirdness = 0.4;
 let rolling = false;
 let nextId = 1;
 try {
-  const kept = JSON.parse(localStorage.getItem(KEPT_KEY) ?? '[]') as Roll[];
-  rolls = kept.map((r) => ({ roll: { ...r, patch: validatePatch(r.patch).patch }, kept: true, id: nextId++ }));
+  const stored = JSON.parse(localStorage.getItem(USER_KEY) ?? localStorage.getItem(OLD_KEPT_KEY) ?? '[]') as Roll[];
+  userSounds = stored.map((r) => ({ roll: { ...r, patch: validatePatch(r.patch).patch }, id: nextId++ }));
 } catch {
-  // No storage (private window): kept rolls just don't survive a reload.
+  // No storage (private window): starred sounds just don't survive a reload.
 }
-function saveKept(): void {
+function saveUser(): void {
   try {
-    localStorage.setItem(KEPT_KEY, JSON.stringify(rolls.filter((r) => r.kept).map((r) => r.roll)));
+    localStorage.setItem(USER_KEY, JSON.stringify(userSounds.map((e) => e.roll)));
   } catch {
     // ignore
   }
+}
+const isStarred = (e: RollEntry) => userSounds.includes(e);
+function toggleStar(e: RollEntry): void {
+  userSounds = isStarred(e) ? userSounds.filter((x) => x !== e) : [e, ...userSounds];
+  saveUser();
+  renderBrowser();
 }
 
 function loadRoll(e: RollEntry): void {
@@ -164,11 +182,9 @@ function doRoll(): void {
       basedOn, weirdness, locked: panel.getLocked(), current, bank,
       loop: loops.find((l) => l.id === audition) ?? loops[0], seed: (Date.now() ^ (nextId * 0x9e3779b1)) >>> 0,
     });
-    const e: RollEntry = { roll: r, kept: false, id: nextId++ };
-    // Newest first; old unkept rolls drop off after 24.
-    rolls = [e, ...rolls];
-    let unkept = 0;
-    rolls = rolls.filter((x) => x.kept || ++unkept <= 24);
+    const e: RollEntry = { roll: r, id: nextId++ };
+    // Newest first; the oldest drop off after 30 (starred ones live on in User).
+    rolls = [e, ...rolls].slice(0, 30);
     rolling = false;
     loadRoll(e);
   }, 30);
@@ -214,31 +230,66 @@ function renderRandomizer(list: HTMLElement): void {
 
   const tip = document.createElement('span');
   tip.className = 'roll-tip';
-  tip.textContent = 'Tip: 🔒 a box to keep it while rolling the rest.';
-  bar.append(dice, weird, based, tip);
+  tip.textContent = 'Tip: 🔒 a box to keep it while rolling the rest. ☆ adds a roll to User.';
+  const clear = document.createElement('button');
+  clear.className = 'btn clear-rolls';
+  clear.textContent = 'Clear all rolls';
+  clear.title = 'Remove every roll from this page (starred ones stay in User)';
+  clear.disabled = !rolls.length;
+  clear.onclick = () => {
+    rolls = [];
+    renderBrowser();
+  };
+  bar.append(dice, weird, based, tip, clear);
   list.append(bar);
+  for (const e of rolls) list.append(soundCard(e, () => { rolls = rolls.filter((x) => x !== e); renderBrowser(); }, 'Throw this roll away'));
+}
 
-  for (const e of rolls) {
-    const card = document.createElement('div');
-    card.className = 'preset roll' + (e === currentRoll ? ' active' : '') + (e.kept ? ' kept' : '');
-    card.onclick = () => loadRoll(e);
-    const name = document.createElement('b');
-    name.textContent = e.roll.name;
-    const keep = document.createElement('button');
-    keep.className = 'keep';
-    keep.textContent = e.kept ? '★' : '☆';
-    keep.title = e.kept ? 'Kept (click to let it go)' : 'Keep this roll (it stays, even after reloading)';
-    keep.onclick = (ev) => {
-      ev.stopPropagation();
-      e.kept = !e.kept;
-      saveKept();
-      renderBrowser();
-    };
-    name.append(keep);
-    const desc = document.createElement('span');
-    desc.textContent = e.roll.hint;
-    card.append(name, desc);
-    list.append(card);
+/** A rolled or starred sound: click to load, ☆ to star (adds to User), ✕ to remove. */
+function soundCard(e: RollEntry, remove: () => void, removeTitle: string): HTMLElement {
+  const card = document.createElement('div');
+  card.className = 'preset roll' + (e === currentRoll ? ' active' : '') + (isStarred(e) ? ' kept' : '');
+  card.onclick = () => loadRoll(e);
+  const name = document.createElement('b');
+  const title = document.createElement('span');
+  title.className = 'roll-name';
+  title.textContent = e.roll.name;
+  const tools = document.createElement('span');
+  tools.className = 'roll-tools';
+  const star = document.createElement('button');
+  star.className = 'keep';
+  star.textContent = isStarred(e) ? '★' : '☆';
+  star.title = isStarred(e) ? 'In User (click to take it out)' : 'Star: add this sound to User';
+  star.onclick = (ev) => {
+    ev.stopPropagation();
+    toggleStar(e);
+  };
+  const del = document.createElement('button');
+  del.className = 'drop';
+  del.textContent = '✕';
+  del.title = removeTitle;
+  del.onclick = (ev) => {
+    ev.stopPropagation();
+    remove();
+  };
+  tools.append(star, del);
+  name.append(title, tools);
+  const desc = document.createElement('span');
+  desc.textContent = e.roll.hint;
+  card.append(name, desc);
+  return card;
+}
+
+function renderUser(list: HTMLElement): void {
+  if (!userSounds.length) {
+    const empty = document.createElement('p');
+    empty.className = 'roll-tip user-empty';
+    empty.textContent = 'Nothing here yet. Star (☆) a roll in the Randomizer and it lands here.';
+    list.append(empty);
+    return;
+  }
+  for (const e of userSounds) {
+    list.append(soundCard(e, () => { userSounds = userSounds.filter((x) => x !== e); saveUser(); renderBrowser(); }, 'Delete this sound from User'));
   }
 }
 
@@ -272,10 +323,11 @@ window.addEventListener('keydown', (e) => {
 $<HTMLButtonElement>('revert').onclick = () => (currentRoll ? loadRoll(currentRoll) : loadPatch(currentIndex));
 /** Step through the current category, wrapping around at either end. */
 function stepPreset(dir: number): void {
-  if (currentGroup.id === RANDOMIZER) {
-    if (!rolls.length) return;
-    const at = currentRoll ? rolls.indexOf(currentRoll) : -1;
-    loadRoll(rolls[(at + dir + rolls.length) % rolls.length]);
+  if (currentGroup.id === RANDOMIZER || currentGroup.id === USER) {
+    const list = currentGroup.id === USER ? userSounds : rolls;
+    if (!list.length) return;
+    const at = currentRoll ? list.indexOf(currentRoll) : -1;
+    loadRoll(list[(at + dir + list.length) % list.length]);
     return;
   }
   const items = currentGroup.items;
