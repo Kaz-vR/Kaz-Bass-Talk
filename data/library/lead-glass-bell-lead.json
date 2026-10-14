@@ -16,7 +16,44 @@
     "family": "lead",
     "collection": "bank",
     "audition": "lead-line",
-    "iconic": 2
+    "iconic": 2,
+    "vibe": {
+      "brightOct": 1.43,
+      "airDb": -25.4,
+      "dirt": 0.66,
+      "widthDb": -14.8,
+      "tailDb": -16.3
+    },
+    "checks": {
+      "hash": "60d7e64a",
+      "audio": "8094bd99",
+      "judge": "b3d612c0",
+      "critic": false,
+      "issues": [
+        "off-style air above 6 kHz: -25.4 dB (limit -26.0 dB)",
+        "harsh 2–5 kHz: -6.6 dB (limit -7.0 dB)",
+        "lifeSlowDb: 0.3 dB (limit 0.5 dB)"
+      ],
+      "earns": false,
+      "weakest": "mod 4 (drift_slow → drive) 0.09 dB",
+      "failing": [
+        "mod 4 (drift_slow → drive) 0.09 dB",
+        "mod 11 (velocity → drive) 0.14 dB"
+      ]
+    },
+    "features": {
+      "brightness": 0.687,
+      "highEnergy": 0.878,
+      "sub": 0.016,
+      "lowMid": 0.153,
+      "dirt": 0.658,
+      "width": 0.63,
+      "attack": 0.963,
+      "decay": 0.587,
+      "sustain": 0.928,
+      "release": 0.773,
+      "movement": 0.153
+    }
   },
   "voice.polyphony": 1,
   "voice.legato": true,
