@@ -26,6 +26,18 @@
       "sustain": 0.965,
       "release": 0.735,
       "movement": 0.051
+    },
+    "checks": {
+      "hash": "55bd9947",
+      "audio": "50406401",
+      "judge": "e6948739",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "",
+      "failing": [],
+      "wheel": true,
+      "wheelIssues": []
     }
   },
   "voice.polyphony": 1,

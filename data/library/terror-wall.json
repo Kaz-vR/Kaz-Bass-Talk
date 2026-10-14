@@ -24,13 +24,16 @@
       "tailDb": -30.2
     },
     "checks": {
-      "hash": "aa89c910",
-      "code": "f2a012d0",
+      "hash": "5e1df790",
+      "audio": "f77a77ab",
+      "judge": "e6948739",
+      "critic": true,
+      "issues": [],
       "earns": true,
       "weakest": "mod 2 (lfo2 → filter_cutoff) 0.15 dB",
       "failing": [],
-      "critic": true,
-      "issues": []
+      "wheel": true,
+      "wheelIssues": []
     },
     "features": {
       "brightness": 0.328,
