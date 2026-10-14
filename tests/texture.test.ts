@@ -85,3 +85,23 @@ describe('pump rate and texture position', () => {
     expect(at('after dynamics')).toBeGreaterThan(0.7);
   });
 });
+
+describe('texture solo / mute', () => {
+  const p = { ...base, 'texture.type': 'dust' };
+  const render = (mode?: 'solo' | 'mute', q: object = p) => renderPatch(q, heldNote(45, 1), { seconds: 0.5, textureMonitor: mode }).left;
+
+  it('mute plays the sound without the bed', () => {
+    const muted = render('mute'), none = render(undefined, { ...p, 'texture.level': 0 });
+    let d = 0;
+    for (let i = 0.05 * FS; i < muted.length; i++) d = Math.max(d, Math.abs(muted[i] - none[i]));
+    expect(d).toBeLessThan(1e-6);
+  });
+
+  it('solo plays only the bed', () => {
+    const solo = render('solo'), full = render(), none = render(undefined, { ...p, 'texture.level': 0 });
+    const bedOnly = Float32Array.from(full, (v, i) => v - none[i]);
+    expect(rms(solo, 0.1 * FS, 0.45 * FS)).toBeGreaterThan(1e-3);
+    // Without the body the bed alone is what's left (the limiter may treat it a touch differently).
+    expect(Math.abs(rms(solo, 0.1 * FS, 0.45 * FS) / rms(bedOnly, 0.1 * FS, 0.45 * FS) - 1)).toBeLessThan(0.2);
+  });
+});

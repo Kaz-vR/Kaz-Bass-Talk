@@ -70,6 +70,11 @@ export class Synth {
   private modWheel = 0;
   /** The mod wheel, smoothed (~20 ms) so a fast move never zips. */
   private wheel = 0;
+  // Texture solo / mute (a listening aid, not part of the patch), faded over ~5 ms.
+  private voiceMon = 1;
+  private voiceMonTarget = 1;
+  private texMon = 1;
+  private texMonTarget = 1;
   /** Analysis only: the wheel's move without its moving/noisy parts (see WHEEL_MOVING_DESTS). */
   wheelFrozen = false;
   /** Extra modulation shared by every voice: the wheel move and the wobble. */
@@ -256,6 +261,12 @@ export class Synth {
 
   pitchBend(v: number): void {
     this.bend = clamp(v, -1, 1);
+  }
+
+  /** Hear the texture bed alone ('solo'), the sound without it ('mute'), or both ('normal'). */
+  setTextureMonitor(mode: 'normal' | 'solo' | 'mute'): void {
+    this.voiceMonTarget = mode === 'solo' ? 0 : 1;
+    this.texMonTarget = mode === 'mute' ? 0 : 1;
   }
 
   setModWheel(v: number): void {
@@ -737,6 +748,15 @@ export class Synth {
         }
       }
 
+      if (this.voiceMon !== this.voiceMonTarget || this.texMon !== this.texMonTarget) {
+        const k = 1 / (0.005 * this.sampleRate);
+        this.voiceMon += Math.max(-k, Math.min(k, this.voiceMonTarget - this.voiceMon));
+        this.texMon += Math.max(-k, Math.min(k, this.texMonTarget - this.texMon));
+      }
+      if (this.voiceMon !== 1) {
+        l *= this.voiceMon;
+        r *= this.voiceMon;
+      }
       let texL = 0, texR = 0;
       // Texture bed (swells in with the notes, lingers for its tail, silent otherwise).
       if (this.texGain > 0 && (this.anyGate || this.texEnv > 1e-5)) {
@@ -750,7 +770,7 @@ export class Synth {
           tl = this.texLpL;
           tr = this.texLpR;
         }
-        const tg = this.texGain * this.texEnv * this.duckGain;
+        const tg = this.texGain * this.texEnv * this.duckGain * this.texMon;
         texL = tl * tg;
         texR = tr * tg;
       } else if (!this.anyGate) {

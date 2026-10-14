@@ -5,6 +5,7 @@ import {
 
 type OnChange = (id: string, value: ParamValue) => void;
 type OnWheel = (value: number) => void;
+type OnTextureMonitor = (mode: 'normal' | 'solo' | 'mute') => void;
 
 const GROUP_TITLES: Record<string, string> = {
   voice: 'Voice', osc1: 'Oscillator 1', osc2: 'Oscillator 2', fm: 'FM', sub: 'Sub', noise: 'Noise', texture: 'Texture', drive: 'Drive',
@@ -52,7 +53,7 @@ export class ParamsPanel {
   private wheelSlider: HTMLInputElement | null = null;
   private wheelVal: HTMLElement | null = null;
 
-  constructor(private root: HTMLElement, private onChange: OnChange, private onWheel: OnWheel = () => {}) {
+  constructor(private root: HTMLElement, private onChange: OnChange, private onWheel: OnWheel = () => {}, private onTextureMonitor: OnTextureMonitor = () => {}) {
     this.build();
   }
 
@@ -138,6 +139,7 @@ export class ParamsPanel {
       h.textContent = GROUP_TITLES[g] ?? g;
       box.append(h);
       if (Object.values(SOURCE_BOX).includes(g) || g === 'pitch_env') box.append(this.routeEl(g));
+      if (g === 'texture') h.append(this.textureMonitorButtons());
       if (g === 'mod') this.root.append(this.buildOtherSources());
       if (g === 'mod') this.buildMatrix(box, ps);
       else if (/^lfo\d$/.test(g)) this.buildLfo(box, g, ps);
@@ -325,6 +327,31 @@ export class ParamsPanel {
     wheel.append(slider, val);
     row.append(left, wheel);
     box.append(row);
+  }
+
+  /** Solo / mute for listening to the texture bed (not saved in the preset). */
+  private textureMonitorButtons(): HTMLElement {
+    const wrap = document.createElement('span');
+    wrap.className = 'monitor';
+    let mode: 'normal' | 'solo' | 'mute' = 'normal';
+    const mk = (text: string, which: 'solo' | 'mute', title: string) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = `mon ${which}`;
+      b.textContent = text;
+      b.title = title;
+      b.onclick = () => {
+        mode = mode === which ? 'normal' : which;
+        solo.classList.toggle('on', mode === 'solo');
+        mute.classList.toggle('on', mode === 'mute');
+        this.onTextureMonitor(mode);
+      };
+      wrap.append(b);
+      return b;
+    };
+    const solo = mk('S', 'solo', 'Solo: hear only the texture bed (listening aid, not saved)');
+    const mute = mk('M', 'mute', 'Mute: hear the sound without the texture bed (listening aid, not saved)');
+    return wrap;
   }
 
   /** A hardware mod wheel moved: show it. */

@@ -10,6 +10,7 @@ export type EngineMessage =
   | { type: 'noteOff'; note: number }
   | { type: 'bend'; value: number }
   | { type: 'modwheel'; value: number }
+  | { type: 'textureMonitor'; mode: 'normal' | 'solo' | 'mute' }
   | { type: 'loop'; loop: CompiledLoop | null }
   | { type: 'play' }
   | { type: 'stop' }
