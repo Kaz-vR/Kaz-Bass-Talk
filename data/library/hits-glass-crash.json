@@ -19,6 +19,36 @@
       "consistency:brightOct": {
         "why": "its bright metal/noise top is the identity; the soft Iconic II sounds narrowed the bank spread"
       }
+    },
+    "vibe": {
+      "brightOct": 2.55,
+      "airDb": -34.2,
+      "dirt": 1.04,
+      "widthDb": -10.5,
+      "tailDb": -14.9
+    },
+    "checks": {
+      "hash": "cef9c98b",
+      "audio": "2bb3373c",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "mod 9 (random → noise_level) 0.20 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.467,
+      "highEnergy": 0.746,
+      "sub": 0.564,
+      "lowMid": 0.537,
+      "dirt": 1,
+      "width": 0.737,
+      "attack": 0.201,
+      "decay": 0.73,
+      "sustain": 0.419,
+      "release": 0.773,
+      "movement": 0.752
     }
   },
   "voice.polyphony": 4,
