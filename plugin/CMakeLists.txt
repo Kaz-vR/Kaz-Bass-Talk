@@ -3,6 +3,8 @@ project(LowTalk VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# Windows: link the C++ runtime into the plugin, so it loads on machines without the VC++ redistributable.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 # JUCE: a local checkout (-DLOWTALK_JUCE_DIR=...) or fetched at configure time (build machine only;
 # the plugin itself never touches the network).
