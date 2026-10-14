@@ -101,6 +101,56 @@ const def: CategoryDef = {
       texture: ['air', 0.55, 0.35, 2000],
       set: { 'breath.level': 0.35, 'breath.chiff': 0.45, 'osc1.level': 0.45 },
     },
+    // ------------------------------------------------ iconic (LORN versions)
+    {
+      id: 'rooftop-stab', name: 'Rooftop Stab', iconic: true,
+      description: 'The big eighties poly brass stab: stacked saws punching open on every chord, short and proud, through worn tape.',
+      tags: ['brass', 'stab', 'poly', 'eighties', 'synthwave', 'punchy', 'lorn'],
+      texture: ['dust', 0.45, 0.35, 1200],
+      set: {
+        'osc1.unison_detune': 14, 'osc2.fine': -9, 'osc2.level': 0.45, 'filter.cutoff': 600, 'filter.env_amount': 0.55,
+        'mod_env.attack': 20, 'mod_env.decay': 280, 'mod_env.sustain': 0.25, 'amp_env.attack': 5, 'amp_env.decay': 600,
+        'amp_env.sustain': 0.7, 'amp_env.release': 160, 'chorus.mix': 0.3, 'chorus.mode': 'ensemble', 'reverb.mix': 0.3,
+      },
+    },
+    {
+      id: 'monolith', name: 'Monolith', iconic: true,
+      description: 'A colossal, hard-clipped brass braam an octave down, hanging in a vast concrete space.',
+      tags: ['brass', 'braam', 'huge', 'distorted', 'cyberpunk', 'cinematic', 'lorn'],
+      texture: ['rumble', 0.75, 0.35, 3000],
+      set: {
+        'voice.polyphony': 4, 'voice.octave': -1, 'osc1.unison_voices': 5, 'osc1.unison_detune': 20, 'osc2.semi': -12, 'osc2.level': 0.5,
+        'sub.level': 0.3, 'dist.type': 'hard', 'dist.drive': 0.45, 'dist.mix': 0.7, 'dist.clean_below': 120, 'filter.cutoff': 400,
+        'filter.env_amount': 0.4, 'mod_env.attack': 300, 'mod_env.decay': 2000, 'mod_env.sustain': 0.6, 'amp_env.attack': 120,
+        'amp_env.decay': 4000, 'amp_env.sustain': 0.9, 'amp_env.release': 2500, 'reverb.size': 0.95, 'reverb.mix': 0.45, 'ott.amount': 0.35,
+      },
+    },
+    {
+      id: 'rain-brass', name: 'Rain Brass', iconic: true,
+      description: 'A singing brass lead that brightens the longer you hold it, with a slow vibrato and a glide: lonely, in the rain.',
+      tags: ['brass', 'lead', 'expressive', 'vibrato', 'cinematic', 'eighties', 'lorn'],
+      texture: ['air', 0.45, 0.35, 2000],
+      set: {
+        'voice.polyphony': 1, 'voice.legato': true, 'voice.glide': 90, 'osc1.unison_detune': 8, 'osc2.fine': 8, 'osc2.level': 0.45,
+        'filter.cutoff': 500, 'filter.env_amount': 0.45, 'mod_env.attack': 900, 'mod_env.decay': 2500, 'mod_env.sustain': 0.8,
+        'vibrato.depth': 22, 'vibrato.rate': 5.5, 'vibrato.delay': 600, 'vibrato.fade': 900, 'breath.level': 0.1,
+        'reverb.size': 0.92, 'reverb.mix': 0.4,
+      },
+      // A legato line doesn't re-roll per-note random: its vibrato depth wanders instead.
+      mods: kit(BREATH_KIT, [], { 'random>filter_cutoff': ['lfo3', 'vibrato_depth', 0.25] }),
+    },
+    {
+      id: 'tower-swell', name: 'Tower Swell', iconic: true,
+      description: 'Huge brass chords swelling up slowly and opening in a vast, smoky space over a burning city.',
+      tags: ['brass', 'swell', 'pad', 'huge', 'cinematic', 'eighties', 'lorn'],
+      texture: ['air', 0.45, 0.3, 3000],
+      set: {
+        'osc1.unison_voices': 4, 'osc1.unison_detune': 16, 'osc2.semi': -12, 'osc2.fine': -4, 'amp_env.attack': 1400, 'amp_env.decay': 5000,
+        'amp_env.sustain': 0.9, 'amp_env.release': 3000, 'filter.cutoff': 450, 'filter.env_amount': 0.4, 'mod_env.attack': 1800,
+        'mod_env.decay': 4000, 'mod_env.sustain': 0.7, 'reverb.size': 0.96, 'reverb.mix': 0.5, 'chorus.mix': 0.25, 'chorus.mode': 'ensemble',
+      },
+      mods: kit(BREATH_KIT, [], { 'lfo2>amp': ['lfo2', 'osc2_level', 0.2] }),
+    },
   ],
 };
 
