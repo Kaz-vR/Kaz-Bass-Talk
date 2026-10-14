@@ -21,7 +21,11 @@ for (const f of files.sort()) {
   const cat = categoryById(def.category);
   if (!cat) throw new Error(`unknown category ${def.category}`);
   // Only this category's bank presets: Atlas files can share the prefix (drone-brass.json).
-  const ours = (g: string) => g.startsWith(`${def.category}-`) && JSON.parse(readFileSync(join(libDir, g), 'utf8')).meta?.category === def.category;
+  const ours = (g: string) => {
+    if (!g.startsWith(`${def.category}-`)) return false;
+    const m = JSON.parse(readFileSync(join(libDir, g), 'utf8')).meta;
+    return m?.category === def.category && m?.collection === 'bank';
+  };
   if (!onlyId) for (const g of readdirSync(libDir)) if (ours(g)) unlinkSync(join(libDir, g));
   const seen = new Set<string>();
   for (const p of def.presets) {

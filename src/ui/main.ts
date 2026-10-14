@@ -305,6 +305,8 @@ function loadPatch(index: number): void {
   currentIndex = index;
   renderBrowser();
   reference = library[index];
+  // A preset can name its own audition loop (a short bass wants a riff, not long notes).
+  if (typeof reference.meta.audition === 'string') setLoop(reference.meta.audition);
   current = structuredClone(reference);
   showPatchInfo(current);
   panel.show(current, reference);

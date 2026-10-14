@@ -20,6 +20,8 @@ export interface PresetDef {
   mods?: Mod[];
   /** Texture bed: type, level, tone, tail (ms). */
   texture?: [type: string, level: number, tone: number, tail: number];
+  /** Audition loop for this preset, when the category's doesn't show it off (e.g. a short bass). */
+  audition?: string;
   /** A must-have iconic sound (data/coverage.json): tagged so it can be spotted. */
   iconic?: boolean;
   /** Written exceptions to the style limits for this preset (tools/lib/allow.ts). */
@@ -104,7 +106,7 @@ export function buildPreset(cat: CategoryDef, def: PresetDef, audition: string):
   const raw: Record<string, unknown> = {
     meta: {
       name: def.name, description: def.description, tags: def.iconic ? [...def.tags, 'iconic'] : def.tags, category: cat.category,
-      family: cat.category, collection: 'bank', audition,
+      family: cat.category, collection: 'bank', audition: def.audition ?? audition,
       ...(def.iconic ? { iconic: true } : {}),
       ...(def.allow ? { allow: def.allow } : {}),
     },
