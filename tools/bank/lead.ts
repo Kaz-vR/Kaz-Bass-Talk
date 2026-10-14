@@ -93,7 +93,7 @@ const def: CategoryDef = {
       description: 'A lead with a throat: a formant filter slowly changing its vowel as it howls.',
       tags: ['lead', 'formant', 'vowel', 'howl', 'vocal', 'growl', 'lorn'],
       texture: ['air', 0.45, 0.35, 1200],
-      set: { 'filter.type': 'formant', 'filter.vowel': 0.3, 'filter.resonance': 0.45, 'filter.cutoff': 2000, 'filter.keytrack': 0.2, 'drive.amount': 0.6 },
+      set: { 'filter.type': 'formant', 'filter.vowel': 0.3, 'filter.resonance': 0.45, 'filter.cutoff': 2000, 'filter.keytrack': 0.2, 'drive.amount': 0.6, 'sub.level': 0.12 },
       mods: kit(LEAD_KIT, [], {
         'lfo1>filter_cutoff': ['lfo1', 'filter_vowel', 0.25],
         'env2>filter_cutoff': ['env2', 'filter_vowel', 0.12],

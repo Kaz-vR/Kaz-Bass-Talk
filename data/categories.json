@@ -552,7 +552,7 @@
       "audition": "hits",
       "analysis": {
         "loop": "hits",
-        "seconds": 8,
+        "seconds": 6,
         "probes": {
           "low": 31,
           "mid": 38,
@@ -759,6 +759,9 @@
         },
         "noteSpreadDb": {
           "max": 8
+        },
+        "harshDb": {
+          "max": -4
         }
       },
       "zone": {

@@ -33,8 +33,9 @@ for (const entry of loadLibrary().filter((e) => !only || e.file.includes(only)))
   }
   // The critic also plays held notes in the patch's register (low notes can hit the
   // limiter harder than the loop): back off until its limiter measure is comfortable too.
-  for (let pass = 0; pass < 3; pass++) {
-    const lim = analyzePatch(patch, loop, { ...setup.opts, life: false }).raw.limiterDb;
+  for (let pass = 0; pass < 5; pass++) {
+    // The full analysis, including the long held notes life is judged on (risers swell, crackle spikes).
+    const lim = analyzePatch(patch, loop, setup.opts).raw.limiterDb;
     if (lim <= MAX_LIMITER_DB + 0.5) break;
     patch['output.gain'] = Math.round(((patch['output.gain'] as number) - (lim - MAX_LIMITER_DB)) * 10) / 10;
   }

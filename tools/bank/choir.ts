@@ -33,7 +33,7 @@ const def: CategoryDef = {
       description: 'A ghost choir singing "ah" that slowly drifts toward other vowels, deep in a dark cathedral.',
       tags: ['choir', 'vocal', 'ah', 'cathedral', 'ghostly', 'dark', 'lorn'],
       texture: ['air', 0.45, 0.35, 2500],
-      set: {},
+      set: { 'sub.level': 0.1 },
     },
     {
       id: 'ooh-below', name: 'Ooh Below',
