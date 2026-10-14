@@ -144,7 +144,7 @@ export class ParamsPanel {
       if (Object.values(SOURCE_BOX).includes(g) || g === 'pitch_env') box.append(this.routeEl(g));
       if (LAYERS[g]) h.append(this.monitorButtons(LAYERS[g]));
       const power = ps.find((p) => p.id === `${g}.on`);
-      if (power) h.prepend(this.powerButton(power, box));
+      if (power) h.append(this.powerButton(power, box));
       const rest = ps.filter((p) => p !== power);
       if (g === 'mod') this.root.append(this.buildOtherSources());
       if (g === 'mod') this.buildMatrix(box, rest);
@@ -338,10 +338,13 @@ export class ParamsPanel {
 
   /** A block's power switch (saved in the preset); `dim` greys out while it's off. */
   private powerButton(p: ParamDef, dim: HTMLElement): HTMLElement {
+    const wrap = document.createElement('span');
+    wrap.className = 'monitor';
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'power';
+    b.className = 'mon power';
     b.textContent = '⏻';
+    wrap.append(b);
     b.title = p.describes;
     let on = true;
     const view = () => {
@@ -361,7 +364,7 @@ export class ParamsPanel {
       },
     });
     view();
-    return b;
+    return wrap;
   }
 
   /** The effects box: each effect gets its own row with a power switch. */
@@ -373,7 +376,7 @@ export class ParamsPanel {
         section.className = 'fx-section';
         const title = document.createElement('div');
         title.className = 'fx-title';
-        title.append(this.powerButton(p, section), p.label.replace(/ on$/, ''));
+        title.append(p.label.replace(/ on$/, ''), this.powerButton(p, section));
         section.append(title);
         box.append(section);
       } else {
