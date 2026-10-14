@@ -113,6 +113,41 @@ const def: CategoryDef = {
         'velocity>drive': ['velocity', 'fm_amount', 0.12],
       }),
     },
+    {
+      id: 'black-sun', name: 'Black Sun',
+      description: 'Stacked saws an octave apart, driven hard into a dark filter and a long smeared echo.',
+      tags: ['lead', 'saw', 'octave', 'driven', 'heavy', 'echo', 'lorn'],
+      texture: ['dust', 0.45, 0.3, 1200],
+      set: { 'osc2.wave': 'saw', 'osc2.semi': 12, 'osc2.level': 0.35, 'drive.amount': 0.65, 'filter.cutoff': 1300, 'delay.mix': 0.3 },
+    },
+    {
+      id: 'broken-signal', name: 'Broken Signal',
+      description: 'A detuned saw lead on a sick tape, gliding between notes and repeating into a dark echo.',
+      tags: ['lead', 'saw', 'detuned', 'tape', 'glide', 'echo', 'lorn'],
+      texture: ['dust', 0.45, 0.3, 1200],
+      set: { 'tape.wow': 0.45 },
+    },
+    {
+      id: 'dying-radio', name: 'Dying Radio',
+      description: 'A melody squeezed through a broken radio: band-limited, crushed and fading in and out of dust.',
+      tags: ['lead', 'radio', 'lo-fi', 'crushed', 'band-limited', 'dust', 'lorn'],
+      texture: ['dust', 0.55, 0.4, 1200],
+      set: {
+        'filter.cutoff': 1400, 'filter.resonance': 0.35, 'eq.low_gain': -10, 'eq.highcut': 3500,
+        'crush.mix': 0.3, 'crush.bits': 6, 'crush.rate': 9,
+      },
+    },
+    {
+      id: 'howl', name: 'Howl',
+      description: 'A lead with a throat: a formant filter slowly changing its vowel as it howls.',
+      tags: ['lead', 'formant', 'vowel', 'howl', 'vocal', 'growl', 'lorn'],
+      texture: ['air', 0.45, 0.35, 1200],
+      set: { 'filter.type': 'formant', 'filter.vowel': 0.3, 'filter.resonance': 0.45, 'filter.cutoff': 2000, 'filter.keytrack': 0.2, 'drive.amount': 0.6, 'sub.level': 0.12 },
+      mods: kit(LEAD_KIT, [], {
+        'lfo1>filter_cutoff': ['lfo1', 'filter_vowel', 0.25],
+        'env2>filter_cutoff': ['env2', 'filter_vowel', 0.12],
+      }),
+    },
     // ------------------------------------------------ iconic (LORN versions)
     {
       id: 'highway-glide', name: 'Highway Glide', iconic: true,

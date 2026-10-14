@@ -128,6 +128,29 @@ const def: CategoryDef = {
       },
       mods: KEYS_KIT.map((m) => (m[0] === 'lfo1' && m[1] === 'fm_amount' ? (['lfo1', 'osc1_pw', 0.15] as Mod) : m[0] === 'lfo2' ? (['lfo2', 'amp', -0.3] as Mod) : m)),
     },
+    {
+      id: 'glass-harp', name: 'Glass Harp',
+      description: 'Bright, glassy FM keys like wet fingers on crystal, ringing into a cold room.',
+      tags: ['keys', 'fm', 'glass', 'crystal', 'bright', 'cold', 'lorn'],
+      texture: ['air', 0.45, 0.4, 1500],
+      set: { 'osc1.wave': 'sine', 'fm.ratio': 2, 'fm.amount': 0.25, 'fm.punch': 0.3, 'reverb.mix': 0.38 },
+    },
+    {
+      id: 'lofi-grand', name: 'Lo-Fi Grand',
+      description: 'A grand piano sampled from a cassette: soft, wide, warbling and dull.',
+      tags: ['keys', 'piano', 'lo-fi', 'cassette', 'warble', 'soft', 'lorn'],
+      texture: ['crackle', 0.5, 0.3, 1500],
+      set: {
+        'osc2.wave': 'saw', 'osc2.level': 0.25, 'fm.amount': 0.08, 'amp_env.decay': 4500, 'tape.wow': 0.45, 'tape.age': 0.65, 'eq.highcut': 5000,
+      },
+    },
+    {
+      id: 'moth-keys', name: 'Moth Keys',
+      description: 'Soft FM keys that flutter into each note and hang in the air like dust in lamplight.',
+      tags: ['keys', 'fm', 'soft', 'airy', 'dreamy', 'ambient', 'lorn'],
+      texture: ['air', 0.45, 0.3, 2000],
+      set: { 'amp_env.attack': 30, 'fm.amount': 0.1, 'fm.punch': 0.2, 'chorus.mix': 0.45, 'reverb.mix': 0.4 },
+    },
     // ------------------------------------------------ iconic (LORN versions)
     {
       id: 'glass-tine', name: 'Glass Tine', iconic: true,
