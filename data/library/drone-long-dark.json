@@ -23,9 +23,9 @@
       "tailDb": -6.6
     },
     "checks": {
-      "hash": "528b7227",
+      "hash": "60d444cb",
       "audio": "2a18432e",
-      "judge": "6956165c",
+      "judge": "b3d612c0",
       "critic": true,
       "issues": [],
       "earns": true,
