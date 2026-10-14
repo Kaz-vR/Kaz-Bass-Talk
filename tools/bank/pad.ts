@@ -133,6 +133,32 @@ const def: CategoryDef = {
         'drift_slow>drive': ['drift_slow', 'dist_drive', 0.12],
       }),
     },
+    // ------------------------------------------------ iconic (LORN versions)
+    {
+      id: 'velvet-neon', name: 'Velvet Neon', iconic: true,
+      description: 'The classic PWM pad under a lush stereo chorus, swelling in soft and wide, now worn on tape and lost in the dark.',
+      tags: ['pad', 'pwm', 'chorus', 'synthwave', 'eighties', 'lush', 'lorn'],
+      texture: ['dust', 0.55, 0.35, 2000],
+      set: {
+        'osc1.wave': 'pulse', 'osc1.pulse_width': 0.45, 'osc1.unison_voices': 3, 'osc1.unison_detune': 10, 'osc1.unison_spread': 0.9,
+        'osc2.wave': 'pulse', 'osc2.semi': -12, 'osc2.pulse_width': 0.5, 'osc2.level': 0.2, 'noise.level': 0.04,
+        'amp_env.attack': 500, 'amp_env.release': 1800, 'filter.cutoff': 1600, 'filter.resonance': 0.15,
+        'chorus.mix': 0.45, 'chorus.depth': 0.6, 'chorus.mode': 'classic', 'phaser.mix': 0.12, 'phaser.rate': 0.15,
+      },
+      // The pulse width breathes slowly (the identity); the rest of the kit wanders as usual.
+      mods: kit(ALIVE, [], { 'lfo2>filter_cutoff': ['lfo2', 'osc1_pw', 0.2] }),
+    },
+    {
+      id: 'warm-dread', name: 'Warm Dread', iconic: true,
+      description: 'A thick two-oscillator analog pad that swells and slowly opens, dreamy on top and uneasy underneath.',
+      tags: ['pad', 'analog', 'swell', 'warm', 'eighties', 'uneasy', 'lorn'],
+      texture: ['air', 0.35, 0.35, 2500],
+      set: {
+        'osc1.unison_voices': 4, 'osc1.unison_detune': 15, 'osc2.wave': 'saw', 'osc2.semi': -12, 'osc2.fine': -6, 'osc2.level': 0.35,
+        'filter.cutoff': 500, 'filter.env_amount': 0.3, 'mod_env.attack': 2500, 'mod_env.decay': 3000, 'mod_env.sustain': 0.7, 'mod_env.release': 2000,
+        'amp_env.attack': 1800, 'flanger.mix': 0.15, 'flanger.rate': 0.1, 'flanger.feedback': 0.3,
+      },
+    },
   ],
 };
 
