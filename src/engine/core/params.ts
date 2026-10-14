@@ -75,6 +75,16 @@ export const WOB_SINE = 0, WOB_TRI = 1, WOB_SAW_DOWN = 2, WOB_SQUARE = 3;
  * 1 = 24 semitones, amp 1 = double level, the rest 0..1 of their range).
  * Several connected things move together, like an instrument played harder.
  */
+/**
+ * Wheel-move destinations that add motion, noise or space rather than a
+ * static change of tone. The analysis's frozen probe (aliasing, whistle)
+ * leaves them out, the same way it switches off vibrato, breath and texture.
+ */
+export const WHEEL_MOVING_DESTS = new Set([
+  D_NOISE, D_BREATH, D_VIBRATO, D_TAPE_WOW, D_DETUNE, D_TEXTURE, D_CRUSH, D_PITCH, D_LFO2_RATE, D_CHORUS_DEPTH, D_REVERB_MIX,
+  D_DELAY_MIX, D_WIDTH,
+]);
+
 export const WHEEL_MOVES: [dest: number, amount: number][][] = [
   // pressure: louder, brighter, grittier, a little breath and sharpness
   [[D_AMP, 0.2], [D_CUTOFF, 0.22], [D_DRIVE, 0.25], [D_NOISE, 0.04], [D_BREATH, 0.12], [D_PITCH, 0.0008]],

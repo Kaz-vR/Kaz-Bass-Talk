@@ -369,8 +369,8 @@ export class Texture {
         const g = Math.tan((Math.PI * Math.min(1000 * Math.pow(6, tone), fs * 0.4)) / fs);
         this.svfL.process(this.rngL.next(), g, 1.5);
         this.svfR.process(this.rngR.next(), g, 1.5);
-        l = 4 * this.svfL.bp * b;
-        r = 4 * this.svfR.bp * b;
+        l = 2.4 * this.svfL.bp * b;
+        r = 2.4 * this.svfR.bp * b;
       }
     }
     out[0] = l;

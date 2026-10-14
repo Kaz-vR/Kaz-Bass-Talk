@@ -11,6 +11,8 @@ export interface RenderOptions {
   tail?: number;
   /** Mod wheel position 0..1, held for the whole render. */
   modWheel?: number;
+  /** Analysis only: play the wheel's move without its moving/noisy parts. */
+  wheelFrozen?: boolean;
 }
 
 export interface RenderResult {
@@ -31,6 +33,7 @@ export function renderPatch(patch: unknown, loop: Loop, opts: RenderOptions = {}
   const synth = new Synth(sampleRate);
   synth.setParams(patchToArray(validatePatch(patch).patch), true);
   if (opts.modWheel) synth.setModWheel(opts.modWheel);
+  synth.wheelFrozen = !!opts.wheelFrozen;
   const player = new LoopPlayer(synth);
   player.setLoop(compileLoop(loop));
   player.start();

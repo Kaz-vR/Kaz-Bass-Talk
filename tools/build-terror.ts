@@ -221,6 +221,8 @@ const D: Def[] = [
       'osc1.unison_voices': 6, 'osc1.unison_detune': 20, 'osc1.unison_spread': 1, 'comp.amount': 0.6, 'comp.pump': 0.7,
       'chorus.mix': 0.24, 'chorus.mode': 'ensemble', 'filter.cutoff': 700,
     },
+    // The faster wander needs a little more depth to be heard under the pump.
+    mods: kit([['lfo2', 'filter_cutoff', 0.09]]),
   },
   // ---------------------------------------------------- texture is the point
   {

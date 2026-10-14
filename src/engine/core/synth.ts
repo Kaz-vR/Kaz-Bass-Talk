@@ -70,12 +70,15 @@ export class Synth {
   private modWheel = 0;
   /** The mod wheel, smoothed (~20 ms) so a fast move never zips. */
   private wheel = 0;
+  /** Analysis only: the wheel's move without its moving/noisy parts (see WHEEL_MOVING_DESTS). */
+  wheelFrozen = false;
   /** Extra modulation shared by every voice: the wheel move and the wobble. */
   private readonly xdst = new Float64Array(K.DEST_COUNT);
   // Wobble: its own random source, so switching it on doesn't change anything else.
   private readonly wobRng = new Rng(0x60bb1e);
   private wobCycle = -1;
   private wobScale = 1;
+  private wobScaleTarget = 1;
   private wobBright = 0;
   private wobBrightTarget = 0;
   private tempo = 120;
@@ -371,7 +374,7 @@ export class Synth {
     this.texture.reset();
     this.texEnv = this.texLpL = this.texLpR = 0;
     this.wobCycle = -1;
-    this.wobScale = 1;
+    this.wobScale = this.wobScaleTarget = 1;
     this.wobBright = this.wobBrightTarget = 0;
     this.hcL.reset();
     this.hcR.reset();
@@ -466,7 +469,7 @@ export class Synth {
     if (w > 1e-4) {
       const sel = Math.round(cur[P.wheelMove]);
       const move = K.WHEEL_MOVES[sel > 0 ? sel - 1 : Math.round(cur[P.wheelPreset])];
-      for (const [d, a] of move) x[d] += a * w;
+      for (const [d, a] of move) if (!this.wheelFrozen || !K.WHEEL_MOVING_DESTS.has(d)) x[d] += a * w;
     }
     const depth = cur[P.wobDepth];
     if (depth > 1e-4) {
@@ -478,9 +481,11 @@ export class Synth {
         // Life: every cycle swings a little deeper or shallower and sits a little brighter or darker.
         this.wobCycle = n;
         const life = cur[P.wobLife];
-        this.wobScale = 1 + 0.45 * life * this.wobRng.next();
+        this.wobScaleTarget = 1 + 0.45 * life * this.wobRng.next();
         this.wobBrightTarget = 0.05 * life * this.wobRng.next();
       }
+      // Glide to the new cycle's depth and brightness (~30 ms) so the change never steps.
+      this.wobScale += (this.wobScaleTarget - this.wobScale) * 0.1;
       this.wobBright += (this.wobBrightTarget - this.wobBright) * 0.05;
       let v: number;
       switch (Math.round(cur[P.wobShape])) {
@@ -491,19 +496,27 @@ export class Synth {
         case K.WOB_SQUARE: v = 0.5 + 0.5 * Math.tanh(6 * Math.sin(TWO_PI * p)); break;
         default: v = 0.5 - 0.5 * Math.cos(TWO_PI * p);
       }
+      // A classic wobble swings both ways around the preset's cutoff: shut
+      // ("ooo") to wide open ("waaa"), about ±2.5 octaves at full depth, with
+      // a resonant peak that grows with depth.
       const a = depth * v * this.wobScale;
+      const swing = depth * (2 * v - 1) * this.wobScale;
       switch (Math.round(cur[P.wobTarget])) {
         case K.WOB_FILTER_DRIVE:
-          x[K.D_CUTOFF] += 0.55 * a + this.wobBright;
-          x[K.D_DRIVE] += 0.35 * a;
-          x[K.D_DIST_DRIVE] += 0.2 * a;
+          // The drive in front of the filter pulses with each opening, so the
+          // dirt opens with the filter instead of refilling the closed part.
+          x[K.D_CUTOFF] += 0.38 * swing + this.wobBright;
+          x[K.D_RES] += 0.12 * depth;
+          x[K.D_DRIVE] += 0.4 * a;
+          x[K.D_DIST_DRIVE] += 0.1 * a;
           break;
         case K.WOB_VOWEL:
           x[K.D_VOWEL] += 0.85 * a;
-          x[K.D_CUTOFF] += 0.15 * a + this.wobBright;
+          x[K.D_CUTOFF] += 0.1 * swing + this.wobBright;
           break;
         default:
-          x[K.D_CUTOFF] += 0.7 * a + this.wobBright;
+          x[K.D_CUTOFF] += 0.42 * swing + this.wobBright;
+          x[K.D_RES] += 0.15 * depth;
       }
     }
   }

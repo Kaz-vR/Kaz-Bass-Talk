@@ -498,7 +498,7 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
   // 3. Frozen renders for aliasing and whistle.
   const fz = frozen(p);
   const frozenSpec = (note: number) => {
-    const r = renderPatch(fz, heldLoop(note, hold), { sampleRate: fs, modWheel, seconds: hold });
+    const r = renderPatch(fz, heldLoop(note, hold), { sampleRate: fs, modWheel, wheelFrozen: true, seconds: hold });
     return powerSpectrum(mono(r.left, r.right), fs, settle, holdEnd, 32768);
   };
   const fzMid = frozenSpec(PROBE_NOTES.mid);

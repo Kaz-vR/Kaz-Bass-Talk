@@ -30,9 +30,9 @@
       "critic": true,
       "issues": [],
       "earns": false,
-      "weakest": "mod 2 (lfo2 → filter_cutoff) 0.15 dB",
+      "weakest": "mod 2 (lfo2 \u2192 filter_cutoff) 0.15 dB",
       "failing": [
-        "mod 2 (lfo2 → filter_cutoff) 0.15 dB"
+        "mod 2 (lfo2 \u2192 filter_cutoff) 0.15 dB"
       ],
       "wheel": true,
       "wheelIssues": []
@@ -165,7 +165,7 @@
   "mod1.amount": 0.14,
   "mod2.source": "lfo2",
   "mod2.dest": "filter_cutoff",
-  "mod2.amount": 0.05,
+  "mod2.amount": 0.09,
   "mod3.source": "env2",
   "mod3.dest": "filter_cutoff",
   "mod3.amount": 0.12,
