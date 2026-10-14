@@ -95,6 +95,10 @@ export interface Coverage {
   iconic2: Iconic[];
 }
 
+/** Categories shown and capped as one shelf: plucks and sequences are the same short sounds, played differently. */
+export const SHELVES: Record<string, string> = { arp: 'pluck' };
+export const shelfOf = (category: string) => SHELVES[category] ?? category;
+
 /** Ingredients a category should use that no preset in it uses yet. */
 export function missing(cov: Coverage, category: string, presets: Patch[]): string[] {
   return (cov.categories[category] ?? []).filter((ing) => {

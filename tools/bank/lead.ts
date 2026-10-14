@@ -42,13 +42,6 @@ const def: CategoryDef = {
   kit: LEAD_KIT,
   presets: [
     {
-      id: 'broken-signal', name: 'Broken Signal',
-      description: 'A detuned saw lead on a sick tape, gliding between notes and repeating into a dark echo.',
-      tags: ['lead', 'saw', 'detuned', 'tape', 'glide', 'echo', 'lorn'],
-      texture: ['dust', 0.45, 0.3, 1200],
-      set: { 'tape.wow': 0.45 },
-    },
-    {
       id: 'ghost-whistle', name: 'Ghost Whistle',
       description: 'A soft, breathy whistle with a slow vibrato, floating far away in the dark.',
       tags: ['lead', 'whistle', 'breath', 'soft', 'eerie', 'reverb', 'lorn'],
@@ -79,27 +72,6 @@ const def: CategoryDef = {
       mods: kit(LEAD_KIT, [], { 'lfo3>unison_detune': ['lfo3', 'osc1_pw', 0.2] }),
     },
     {
-      id: 'dying-radio', name: 'Dying Radio',
-      description: 'A melody squeezed through a broken radio: band-limited, crushed and fading in and out of dust.',
-      tags: ['lead', 'radio', 'lo-fi', 'crushed', 'band-limited', 'dust', 'lorn'],
-      texture: ['dust', 0.55, 0.4, 1200],
-      set: {
-        'filter.cutoff': 1400, 'filter.resonance': 0.35, 'eq.low_gain': -10, 'eq.highcut': 3500,
-        'crush.mix': 0.3, 'crush.bits': 6, 'crush.rate': 9,
-      },
-    },
-    {
-      id: 'howl', name: 'Howl',
-      description: 'A lead with a throat: a formant filter slowly changing its vowel as it howls.',
-      tags: ['lead', 'formant', 'vowel', 'howl', 'vocal', 'growl', 'lorn'],
-      texture: ['air', 0.45, 0.35, 1200],
-      set: { 'filter.type': 'formant', 'filter.vowel': 0.3, 'filter.resonance': 0.45, 'filter.cutoff': 2000, 'filter.keytrack': 0.2, 'drive.amount': 0.6, 'sub.level': 0.12 },
-      mods: kit(LEAD_KIT, [], {
-        'lfo1>filter_cutoff': ['lfo1', 'filter_vowel', 0.25],
-        'env2>filter_cutoff': ['env2', 'filter_vowel', 0.12],
-      }),
-    },
-    {
       id: 'glass-throat', name: 'Glass Throat',
       description: 'A glassy FM lead whose edge thickens and thins as it sings.',
       tags: ['lead', 'fm', 'glass', 'bell-like', 'clean', 'eerie', 'lorn'],
@@ -123,13 +95,6 @@ const def: CategoryDef = {
         'breath.chiff': 0.3, 'breath.decay': 100, 'vibrato.depth': 20,
       },
       mods: kit(LEAD_KIT, [['lfo1', 'filter_cutoff', 0.3]]),
-    },
-    {
-      id: 'black-sun', name: 'Black Sun',
-      description: 'Stacked saws an octave apart, driven hard into a dark filter and a long smeared echo.',
-      tags: ['lead', 'saw', 'octave', 'driven', 'heavy', 'echo', 'lorn'],
-      texture: ['dust', 0.45, 0.3, 1200],
-      set: { 'osc2.wave': 'saw', 'osc2.semi': 12, 'osc2.level': 0.35, 'drive.amount': 0.65, 'filter.cutoff': 1300, 'delay.mix': 0.3 },
     },
     {
       id: 'last-light', name: 'Last Light',
@@ -307,13 +272,6 @@ const def: CategoryDef = {
       mods: kit(LEAD_KIT, [['lfo1', 'filter_cutoff', 0.32], ['drift_slow', 'drive', 0.3]], { 'env2>filter_cutoff': ['lfo3', 'osc1_pw', 0.3] }),
     },
     {
-      id: 'byte-ghost', name: 'Byte Ghost', iconic: 2,
-      description: "A lead crushed into a broken digital signal, the melody surviving somewhere in the static.",
-      tags: ['lead', 'bitcrushed', 'digital', 'broken', 'lo-fi', 'ghost', 'lorn'],
-      texture: ['crackle', 0.4, 0.4, 1000],
-      set: { 'crush.mix': 0.4, 'crush.bits': 5, 'crush.rate': 8 },
-    },
-    {
       id: 'glass-bell-lead', name: 'Glass Bell Lead', iconic: 2,
       description: "A glassy FM bell melody, bright at every strike and ringing into a cold room.",
       tags: ['lead', 'fm', 'bell', 'glassy', 'bright', 'melodic', 'lorn'],
@@ -350,29 +308,6 @@ const def: CategoryDef = {
       texture: ['crackle', 0.4, 0.35, 1200],
       set: { 'tape.wow': 0.55, 'tape.age': 0.65 },
       mods: kit(LEAD_KIT, [['drift', 'pitch', 0.008]]),
-    },
-    {
-      id: 'city-rush', name: 'City Rush', iconic: 2,
-      description: "A big, euphoric synth riff: bright detuned saws with an octave on top, rushing through a city at night.",
-      tags: ['lead', 'riff', 'euphoric', 'bright', 'huge', 'dreamy', 'lorn'],
-      texture: ['dust', 0.4, 0.35, 1200],
-      set: { 'voice.legato': false, 'voice.glide': 0, 'osc1.unison_voices': 5, 'osc1.unison_detune': 20, 'osc2.wave': 'saw', 'osc2.semi': 12, 'osc2.level': 0.3, 'filter.cutoff': 1400, 'dist.type': 'soft', 'chorus.mix': 0.3 },
-      mods: kit(LEAD_KIT, [['lfo1', 'filter_cutoff', 0.32]]),
-    },
-    {
-      id: 'warm-coast', name: 'Warm Coast', iconic: 2,
-      description: "A warm, soft saw lead in a wide chorus and a lazy echo: a sunset coast seen through old film.",
-      tags: ['lead', 'warm', 'chorus', 'soft', 'dreamy', 'sunset', 'lorn'],
-      texture: ['air', 0.35, 0.35, 1200],
-      set: { 'osc1.unison_voices': 3, 'osc1.unison_detune': 10, 'filter.cutoff': 1000, 'chorus.mix': 0.45, 'chorus.mode': 'classic', 'delay.mix': 0.3 },
-    },
-    {
-      id: 'far-whistle', name: 'Far Whistle', iconic: 2,
-      description: "A soft whistle far away, its echo carrying on and on through a vast, dark space.",
-      tags: ['lead', 'whistle', 'sine', 'soft', 'echo', 'dreamy', 'lorn'],
-      texture: ['air', 0.35, 0.35, 1500],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'osc2.level': 0.18, 'delay.time': '1/4D', 'delay.mix': 0.45, 'delay.feedback': 0.6, 'reverb.size': 0.93, 'reverb.mix': 0.42, 'filter.cutoff': 4000, 'filter.env_amount': 0, 'osc2.wave': 'sine', 'osc2.semi': 12, 'breath.level': 0.1, 'drive.amount': 0.7 },
-      mods: kit(SOFT_KIT, [['lfo1', 'osc2_level', 0.4]], { 'drift_slow>drive': ['drift_slow', 'osc2_level', 0.25] }),
     },
   ],
 };

@@ -23,10 +23,15 @@ let reference: Patch = library[0];
 
 for (const l of loops) loopSel.append(new Option(`${l.name} · ${l.bpm} BPM`, l.id));
 loopSel.value = DEFAULT_LOOP_ID;
-// Browser groups: the 14 bank categories, then the Bass Atlas (one patch per bass type, no category).
+// Browser groups: the bank categories (13 shelves), then the Bass Atlas (one patch per bass type, no category).
 const ATLAS = 'atlas';
 interface Group { id: string; name: string; description: string; audition?: string; items: number[] }
-const groups: Group[] = categories.map((c) => ({ id: c.id, name: c.name, description: c.description, audition: c.audition, items: [] }));
+// Plucks and sequences share one shelf: the same short sounds, played as notes or patterns (each keeps its own audition).
+const SHELF: Record<string, string> = { arp: 'pluck' };
+const groups: Group[] = categories.filter((c) => !SHELF[c.id]).map((c) =>
+  c.id === 'pluck'
+    ? { id: c.id, name: 'Pluck / Sequence', description: 'Short, defined sounds to play as notes, chords or patterns: soft and round to hard and driving.', audition: c.audition, items: [] }
+    : { id: c.id, name: c.name, description: c.description, audition: c.audition, items: [] });
 groups.push({ id: ATLAS, name: 'Bass Atlas', description: 'One patch for each of 51 synth bass types across genres and history (outside the LORN style).', items: [] });
 // The randomizer: its own tab after the categories (rolls, not presets).
 const RANDOMIZER = 'randomizer';
@@ -35,7 +40,8 @@ groups.push({ id: RANDOMIZER, name: '🎲 Randomizer', description: "Roll new so
 const USER = 'user';
 groups.push({ id: USER, name: '★ User', description: 'The rolls you starred. They stay here even when you clear the rolls.', items: [] });
 library.forEach((p, i) => {
-  const g = groups.find((x) => x.id === ((p.meta.category as string | undefined) ?? ATLAS))!;
+  const cat = (p.meta.category as string | undefined) ?? ATLAS;
+  const g = groups.find((x) => x.id === (SHELF[cat] ?? cat))!;
   g.items.push(i);
 });
 let currentIndex = groups[0].items[0] ?? 0;

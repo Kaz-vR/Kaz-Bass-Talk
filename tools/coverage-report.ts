@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { validatePatch } from '../src/schema';
-import { INGREDIENTS, missing, type Coverage } from './lib/coverage';
+import { INGREDIENTS, missing, shelfOf, type Coverage } from './lib/coverage';
 import { loadLibrary, ROOT } from './lib/data';
 
 const cov = JSON.parse(readFileSync(join(ROOT, 'data/coverage.json'), 'utf8')) as Coverage;
@@ -13,7 +13,7 @@ const bank = lib.filter((e) => e.patch.meta.category);
 let holes = 0;
 console.log('Ingredients no preset uses yet:');
 for (const c of Object.keys(cov.categories)) {
-  const m = missing(cov, c, bank.filter((e) => e.patch.meta.category === c).map((e) => e.patch));
+  const m = missing(cov, c, bank.filter((e) => shelfOf(e.patch.meta.category as string) === shelfOf(c)).map((e) => e.patch));
   holes += m.length;
   console.log(`  ${c.padEnd(8)} ${m.length ? m.join(', ') : '-'}`);
 }

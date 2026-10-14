@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { validatePatch } from '../src/schema';
-import { INGREDIENTS, missing, type Coverage } from '../tools/lib/coverage';
+import { INGREDIENTS, missing, shelfOf, type Coverage } from '../tools/lib/coverage';
 import { ROOT } from '../tools/lib/data';
 import { libraryPatches } from './helpers/audio';
 
@@ -13,7 +13,7 @@ const lib = libraryPatches().map(({ file, json }) => ({ id: file.replace(/\.json
 
 describe('coverage', () => {
   it.each(Object.keys(cov.categories))('%s uses every sensible ingredient', (c) => {
-    expect(missing(cov, c, lib.filter((e) => e.patch.meta.category === c).map((e) => e.patch))).toEqual([]);
+    expect(missing(cov, c, lib.filter((e) => shelfOf(e.patch.meta.category as string) === shelfOf(c)).map((e) => e.patch))).toEqual([]);
   });
 
   it.each([...cov.iconic, ...cov.targets, ...cov.iconic2].map((s) => [s.name, s]))('%s exists and keeps its identity', (_n, s) => {
