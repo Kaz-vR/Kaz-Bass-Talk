@@ -9,44 +9,13 @@
       "clean",
       "touch",
       "digital",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "bass",
     "family": "bass",
     "collection": "bank",
-    "audition": "groove",
-    "vibe": {
-      "brightOct": 1.29,
-      "airDb": -43.4,
-      "dirt": 0.41,
-      "widthDb": -16.1,
-      "tailDb": -31.5
-    },
-    "checks": {
-      "hash": "7d7fd837",
-      "audio": "8ad71934",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "off-style dirt (too clean or too broken): 0.4107 (limit 0.4500)"
-      ],
-      "earns": true,
-      "weakest": "pump 0.22 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.365,
-      "highEnergy": 0.552,
-      "sub": 0.471,
-      "lowMid": 0.687,
-      "dirt": 0.411,
-      "width": 0.597,
-      "attack": 0.36,
-      "decay": 0.901,
-      "sustain": 0.868,
-      "release": 0.738,
-      "movement": 0.179
-    }
+    "audition": "groove"
   },
   "voice.polyphony": 1,
   "voice.legato": false,
@@ -92,9 +61,9 @@
   "sub.level": 0.3,
   "noise.level": 0,
   "texture.type": "dust",
-  "texture.level": 0.5,
+  "texture.level": 0.7,
   "texture.tone": 0.35,
-  "texture.tail": 400,
+  "texture.tail": 500,
   "texture.position": "before dynamics",
   "click.type": "click",
   "click.level": 0,
@@ -123,7 +92,7 @@
   "tape.on": true,
   "tape.drive": 0.45,
   "tape.wow": 0.15,
-  "tape.age": 0.6,
+  "tape.age": 0.7,
   "amp_env.attack": 5,
   "amp_env.decay": 400,
   "amp_env.sustain": 0.6,

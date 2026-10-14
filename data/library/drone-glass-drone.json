@@ -9,45 +9,13 @@
       "evolving",
       "cold",
       "shimmer",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "drone",
     "family": "drone",
     "collection": "bank",
-    "audition": "swell",
-    "vibe": {
-      "brightOct": 1.48,
-      "airDb": -36.6,
-      "dirt": 0.89,
-      "widthDb": -4.5,
-      "tailDb": -6.6
-    },
-    "checks": {
-      "hash": "3311585c",
-      "audio": "4392b70f",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": false,
-      "weakest": "mod 1 (lfo1 → filter_cutoff) 0.12 dB",
-      "failing": [
-        "mod 1 (lfo1 → filter_cutoff) 0.12 dB",
-        "mod 12 (random → filter_cutoff) 0.13 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.331,
-      "highEnergy": 0.682,
-      "sub": 0.234,
-      "lowMid": 0.888,
-      "dirt": 0.893,
-      "width": 0.887,
-      "attack": 1,
-      "decay": 1,
-      "sustain": 0.95,
-      "release": 0.773,
-      "movement": 0.569
-    }
+    "audition": "swell"
   },
   "voice.polyphony": 4,
   "voice.legato": false,
@@ -105,7 +73,7 @@
   "drive.amount": 0.55,
   "filter.on": true,
   "filter.type": "lowpass",
-  "filter.cutoff": 1500,
+  "filter.cutoff": 900,
   "filter.resonance": 0.18,
   "filter.keytrack": 0.3,
   "filter.env_amount": 0,
@@ -182,7 +150,7 @@
   "mod.on": true,
   "mod1.source": "lfo1",
   "mod1.dest": "filter_cutoff",
-  "mod1.amount": 0.22,
+  "mod1.amount": 0.35,
   "mod2.source": "lfo2",
   "mod2.dest": "osc1_wt_pos",
   "mod2.amount": 0.2,
@@ -215,7 +183,7 @@
   "mod11.amount": 0.15,
   "mod12.source": "random",
   "mod12.dest": "filter_cutoff",
-  "mod12.amount": 0.08,
+  "mod12.amount": 0.2,
   "dynamics.on": true,
   "comp.amount": 0.35,
   "comp.speed": 0.4,

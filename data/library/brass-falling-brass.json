@@ -9,51 +9,13 @@
       "pitch-drop",
       "short",
       "worn",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "brass",
     "family": "brass",
     "collection": "bank",
-    "audition": "chords",
-    "vibe": {
-      "brightOct": 1.33,
-      "airDb": -32.9,
-      "dirt": 1.07,
-      "widthDb": -5.3,
-      "tailDb": -24.1
-    },
-    "checks": {
-      "hash": "872a8273",
-      "audio": "7dea072b",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "lifeSlowDb: 0.0 dB (limit 0.5 dB)",
-        "lifeFastDb: 0.0 dB (limit 0.3 dB)"
-      ],
-      "earns": false,
-      "weakest": "mod 2 (lfo2 → amp) 0.08 dB",
-      "failing": [
-        "mod 1 (lfo1 → filter_cutoff) 0.08 dB",
-        "mod 2 (lfo2 → amp) 0.08 dB",
-        "mod 4 (drift_slow → drive) 0.11 dB",
-        "mod 12 (random → filter_cutoff) 0.11 dB",
-        "vibrato 0.09 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.471,
-      "highEnergy": 0.743,
-      "sub": 0.103,
-      "lowMid": 0.792,
-      "dirt": 1,
-      "width": 0.869,
-      "attack": 0.259,
-      "decay": 0.662,
-      "sustain": 0.743,
-      "release": 0.725,
-      "movement": 0.624
-    }
+    "audition": "chords"
   },
   "voice.polyphony": 6,
   "voice.legato": false,
@@ -133,7 +95,7 @@
   "tape.age": 0.4,
   "amp_env.attack": 5,
   "amp_env.decay": 800,
-  "amp_env.sustain": 0,
+  "amp_env.sustain": 0.15,
   "amp_env.release": 300,
   "amp_env.attack_curve": 0,
   "mod_env.attack": 120,
@@ -188,16 +150,16 @@
   "mod.on": true,
   "mod1.source": "lfo1",
   "mod1.dest": "filter_cutoff",
-  "mod1.amount": 0.18,
+  "mod1.amount": 0.3,
   "mod2.source": "lfo2",
   "mod2.dest": "amp",
-  "mod2.amount": -0.1,
+  "mod2.amount": -0.2,
   "mod3.source": "env2",
   "mod3.dest": "filter_cutoff",
   "mod3.amount": 0.12,
   "mod4.source": "drift_slow",
-  "mod4.dest": "drive",
-  "mod4.amount": 0.15,
+  "mod4.dest": "filter_cutoff",
+  "mod4.amount": 0.2,
   "mod5.source": "lfo3",
   "mod5.dest": "unison_detune",
   "mod5.amount": 0.06,

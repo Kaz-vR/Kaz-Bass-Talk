@@ -9,44 +9,13 @@
       "gritty",
       "burnt",
       "aggressive",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "pad",
     "family": "pad",
     "collection": "bank",
-    "audition": "chords",
-    "vibe": {
-      "brightOct": 1.03,
-      "airDb": -37.8,
-      "dirt": 0.51,
-      "widthDb": -2.9,
-      "tailDb": -5.1
-    },
-    "checks": {
-      "hash": "7ab3ac23",
-      "audio": "7247ecd6",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": false,
-      "weakest": "texture bed 0.13 dB",
-      "failing": [
-        "texture bed 0.13 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.477,
-      "highEnergy": 0.712,
-      "sub": 0.01,
-      "lowMid": 0.766,
-      "dirt": 0.507,
-      "width": 0.928,
-      "attack": 0.945,
-      "decay": 0.973,
-      "sustain": 0.944,
-      "release": 0.773,
-      "movement": 0.713
-    }
+    "audition": "chords"
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -92,10 +61,10 @@
   "sub.level": 0,
   "noise.level": 0,
   "texture.type": "crackle",
-  "texture.level": 0.55,
+  "texture.level": 0.65,
   "texture.tone": 0.4,
-  "texture.tail": 2500,
-  "texture.position": "before dynamics",
+  "texture.tail": 2000,
+  "texture.position": "after dynamics",
   "click.type": "click",
   "click.level": 0,
   "click.decay": 15,

@@ -9,44 +9,13 @@
       "moving",
       "dark",
       "pad-like",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "bass",
     "family": "bass",
     "collection": "bank",
-    "audition": "dread",
-    "vibe": {
-      "brightOct": 0.87,
-      "airDb": -66.9,
-      "dirt": 0.36,
-      "widthDb": -6.5,
-      "tailDb": -29.7
-    },
-    "checks": {
-      "hash": "57d99dd3",
-      "audio": "1ee4b533",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "off-style dirt (too clean or too broken): 0.3561 (limit 0.4500)"
-      ],
-      "earns": true,
-      "weakest": "texture bed 0.28 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.301,
-      "highEnergy": 0.516,
-      "sub": 0.584,
-      "lowMid": 0.67,
-      "dirt": 0.356,
-      "width": 0.838,
-      "attack": 0.68,
-      "decay": 0.879,
-      "sustain": 0.916,
-      "release": 0.773,
-      "movement": 0.276
-    }
+    "audition": "dread"
   },
   "voice.polyphony": 1,
   "voice.legato": false,
@@ -91,9 +60,9 @@
   "sub.octave": -1,
   "sub.level": 0.5,
   "noise.level": 0,
-  "texture.type": "rumble",
-  "texture.level": 0.4,
-  "texture.tone": 0.3,
+  "texture.type": "dust",
+  "texture.level": 0.65,
+  "texture.tone": 0.45,
   "texture.tail": 600,
   "texture.position": "before dynamics",
   "click.type": "click",
@@ -123,7 +92,7 @@
   "tape.on": true,
   "tape.drive": 0.45,
   "tape.wow": 0.15,
-  "tape.age": 0.45,
+  "tape.age": 0.7,
   "amp_env.attack": 250,
   "amp_env.decay": 400,
   "amp_env.sustain": 0.95,

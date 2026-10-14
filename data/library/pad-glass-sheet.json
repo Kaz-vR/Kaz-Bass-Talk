@@ -9,12 +9,19 @@
       "fm",
       "steady",
       "still",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "pad",
     "family": "pad",
     "collection": "bank",
-    "audition": "chords"
+    "audition": "chords",
+    "allow": {
+      "vibeWidth": {
+        "min": -20,
+        "why": "a thin, single sheet of tone by design"
+      }
+    }
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -149,13 +156,13 @@
   "mod.on": true,
   "mod1.source": "lfo1",
   "mod1.dest": "fm_amount",
-  "mod1.amount": 0.12,
+  "mod1.amount": 0.25,
   "mod2.source": "lfo2",
   "mod2.dest": "amp",
-  "mod2.amount": -0.12,
+  "mod2.amount": -0.2,
   "mod3.source": "env2",
   "mod3.dest": "fm_amount",
-  "mod3.amount": 0.1,
+  "mod3.amount": 0.12,
   "mod4.source": "drift_slow",
   "mod4.dest": "drive",
   "mod4.amount": 0.15,
@@ -182,7 +189,7 @@
   "mod11.amount": 0.2,
   "mod12.source": "random",
   "mod12.dest": "fm_amount",
-  "mod12.amount": 0.05,
+  "mod12.amount": 0.12,
   "dynamics.on": true,
   "comp.amount": 0.35,
   "comp.speed": 0.4,

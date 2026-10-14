@@ -14,7 +14,37 @@
     "category": "strings",
     "family": "strings",
     "collection": "bank",
-    "audition": "chords"
+    "audition": "chords",
+    "vibe": {
+      "brightOct": 0.58,
+      "airDb": -30.6,
+      "dirt": 0.4,
+      "widthDb": -2.6,
+      "tailDb": -8.4
+    },
+    "checks": {
+      "hash": "01274477",
+      "audio": "78ca77e3",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "mod 12 (random → filter_cutoff) 0.17 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.56,
+      "highEnergy": 0.765,
+      "sub": 0.002,
+      "lowMid": 0.419,
+      "dirt": 0.401,
+      "width": 0.934,
+      "attack": 0.948,
+      "decay": 0.976,
+      "sustain": 0.928,
+      "release": 0.773,
+      "movement": 0.167
+    }
   },
   "voice.polyphony": 8,
   "voice.legato": false,

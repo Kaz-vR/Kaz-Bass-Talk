@@ -14,39 +14,7 @@
     "category": "keys",
     "family": "keys",
     "collection": "bank",
-    "audition": "chords",
-    "vibe": {
-      "brightOct": 0.69,
-      "airDb": -35.6,
-      "dirt": 0.48,
-      "widthDb": -7.7,
-      "tailDb": -28.3
-    },
-    "checks": {
-      "hash": "159c6a06",
-      "audio": "2edd1625",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": false,
-      "weakest": "transient 0.14 dB",
-      "failing": [
-        "transient 0.14 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.426,
-      "highEnergy": 0.673,
-      "sub": 0.062,
-      "lowMid": 0.797,
-      "dirt": 0.479,
-      "width": 0.808,
-      "attack": 0.301,
-      "decay": 0.999,
-      "sustain": 0.858,
-      "release": 0.773,
-      "movement": 0.434
-    }
+    "audition": "chords"
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -97,7 +65,7 @@
   "texture.tail": 800,
   "texture.position": "before dynamics",
   "click.type": "click",
-  "click.level": 0.8,
+  "click.level": 1,
   "click.decay": 12,
   "click.tone": 2000,
   "drive.on": true,

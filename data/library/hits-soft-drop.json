@@ -9,42 +9,13 @@
       "sinking",
       "deep",
       "gentle",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "hits",
     "family": "hits",
     "collection": "bank",
-    "audition": "hits",
-    "vibe": {
-      "brightOct": 0.32,
-      "airDb": -47.1,
-      "dirt": 0.94,
-      "widthDb": -10.8,
-      "tailDb": -12.4
-    },
-    "checks": {
-      "hash": "ae66c044",
-      "audio": "737989ad",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": true,
-      "weakest": "mod 6 (lfo4 → width) 0.35 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.132,
-      "highEnergy": 0.454,
-      "sub": 0.775,
-      "lowMid": 0.617,
-      "dirt": 0.935,
-      "width": 0.731,
-      "attack": 0.36,
-      "decay": 0.882,
-      "sustain": 0.499,
-      "release": 0.773,
-      "movement": 0.537
-    }
+    "audition": "hits"
   },
   "voice.polyphony": 4,
   "voice.legato": false,

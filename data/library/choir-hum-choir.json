@@ -9,42 +9,13 @@
       "warm",
       "intimate",
       "quick",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "choir",
     "family": "choir",
     "collection": "bank",
-    "audition": "chords",
-    "vibe": {
-      "brightOct": 0.44,
-      "airDb": -40.5,
-      "dirt": 0.55,
-      "widthDb": -3.7,
-      "tailDb": -6.3
-    },
-    "checks": {
-      "hash": "0b2451ba",
-      "audio": "af4b2332",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": true,
-      "weakest": "delay 0.25 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.387,
-      "highEnergy": 0.617,
-      "sub": 0.033,
-      "lowMid": 0.863,
-      "dirt": 0.545,
-      "width": 0.908,
-      "attack": 0.831,
-      "decay": 0.621,
-      "sustain": 0.939,
-      "release": 0.773,
-      "movement": 0.445
-    }
+    "audition": "chords"
   },
   "voice.polyphony": 8,
   "voice.legato": false,

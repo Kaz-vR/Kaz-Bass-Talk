@@ -9,7 +9,8 @@
       "fine",
       "calm",
       "grain",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "texture",
     "family": "texture",
@@ -61,7 +62,7 @@
   "noise.level": 0,
   "texture.type": "dust",
   "texture.level": 0.65,
-  "texture.tone": 0.3,
+  "texture.tone": 0.2,
   "texture.tail": 3000,
   "texture.position": "before dynamics",
   "click.type": "click",

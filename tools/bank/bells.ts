@@ -68,7 +68,7 @@ const def: CategoryDef = {
       id: 'glass-mallet', name: 'Glass Mallet',
       description: 'A short mallet struck on thick glass: a knock, a ring, then silence.',
       tags: ['bells', 'mallet', 'glass', 'marimba', 'short', 'percussive', 'lorn'],
-      texture: ['air', 0.45, 0.4, 800],
+      texture: ['air', 0.4, 0.4, 800],
       set: {
         'fm.ratio': 4, 'fm.amount': 0.1, 'fm.punch': 0.4, 'fm.decay': 150, 'amp_env.decay': 1200,
         'click.type': 'knock', 'click.level': 0.7, 'click.tone': 2500, 'click.decay': 10,
@@ -163,7 +163,7 @@ const def: CategoryDef = {
       id: 'tick-bell', name: 'Tick Bell', audition: 'arp-line',
       description: "A tiny, short bell tick: a bright point of sound that's gone in a moment, for rhythms and accents.",
       tags: ['bells', 'short', 'tick', 'percussive', 'rhythmic', 'tiny', 'lorn', 'new'],
-      texture: ['dust', 0.5, 0.35, 600],
+      texture: ['dust', 0.25, 0.35, 600],
       set: { 'amp_env.decay': 250, 'amp_env.release': 200, 'fm.ratio': 5, 'fm.punch': 0.6, 'fm.decay': 100, 'reverb.mix': 0.3 },
     },
     {

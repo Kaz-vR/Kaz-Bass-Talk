@@ -9,44 +9,13 @@
       "bite",
       "bold",
       "lead",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "brass",
     "family": "brass",
     "collection": "bank",
-    "audition": "chords",
-    "vibe": {
-      "brightOct": 1.12,
-      "airDb": -35.2,
-      "dirt": 0.78,
-      "widthDb": -5,
-      "tailDb": -20.6
-    },
-    "checks": {
-      "hash": "3367a51f",
-      "audio": "8af474df",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": false,
-      "weakest": "mod 4 (drift_slow → drive) 0.14 dB",
-      "failing": [
-        "mod 4 (drift_slow → drive) 0.14 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.44,
-      "highEnergy": 0.719,
-      "sub": 0.032,
-      "lowMid": 0.843,
-      "dirt": 0.778,
-      "width": 0.874,
-      "attack": 0.301,
-      "decay": 0.998,
-      "sustain": 0.977,
-      "release": 0.773,
-      "movement": 0.109
-    }
+    "audition": "chords"
   },
   "voice.polyphony": 6,
   "voice.legato": false,
@@ -189,8 +158,8 @@
   "mod3.dest": "filter_cutoff",
   "mod3.amount": 0.12,
   "mod4.source": "drift_slow",
-  "mod4.dest": "drive",
-  "mod4.amount": 0.15,
+  "mod4.dest": "filter_cutoff",
+  "mod4.amount": 0.2,
   "mod5.source": "lfo3",
   "mod5.dest": "unison_detune",
   "mod5.amount": 0.06,

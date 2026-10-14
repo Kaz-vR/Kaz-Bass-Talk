@@ -9,12 +9,19 @@
       "thin",
       "lonely",
       "singing",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "strings",
     "family": "strings",
     "collection": "bank",
-    "audition": "chords"
+    "audition": "chords",
+    "allow": {
+      "vibeWidth": {
+        "min": -23,
+        "why": "a solo instrument: thin and centred is its identity"
+      }
+    }
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -72,7 +79,7 @@
   "drive.amount": 0.45,
   "filter.on": true,
   "filter.type": "lowpass",
-  "filter.cutoff": 1600,
+  "filter.cutoff": 1100,
   "filter.resonance": 0.18,
   "filter.keytrack": 0.7,
   "filter.env_amount": 0,
@@ -149,10 +156,10 @@
   "mod.on": true,
   "mod1.source": "lfo1",
   "mod1.dest": "filter_cutoff",
-  "mod1.amount": 0.2,
+  "mod1.amount": 0.35,
   "mod2.source": "lfo2",
   "mod2.dest": "amp",
-  "mod2.amount": -0.12,
+  "mod2.amount": -0.2,
   "mod3.source": "env2",
   "mod3.dest": "filter_cutoff",
   "mod3.amount": 0.15,

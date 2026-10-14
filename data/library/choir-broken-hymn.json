@@ -9,44 +9,13 @@
       "dirty",
       "harsh",
       "menacing",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "choir",
     "family": "choir",
     "collection": "bank",
-    "audition": "chords",
-    "vibe": {
-      "brightOct": 1.94,
-      "airDb": -35.9,
-      "dirt": 0.52,
-      "widthDb": -2.4,
-      "tailDb": -5.6
-    },
-    "checks": {
-      "hash": "cdc61cf0",
-      "audio": "fc039807",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": false,
-      "weakest": "texture bed 0.14 dB",
-      "failing": [
-        "texture bed 0.14 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.614,
-      "highEnergy": 0.777,
-      "sub": 0.023,
-      "lowMid": 0.266,
-      "dirt": 0.52,
-      "width": 0.941,
-      "attack": 0.955,
-      "decay": 0.909,
-      "sustain": 0.913,
-      "release": 0.773,
-      "movement": 0.288
-    }
+    "audition": "chords"
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -92,10 +61,10 @@
   "sub.level": 0,
   "noise.level": 0,
   "texture.type": "crackle",
-  "texture.level": 0.55,
+  "texture.level": 0.65,
   "texture.tone": 0.4,
   "texture.tail": 2000,
-  "texture.position": "before dynamics",
+  "texture.position": "after dynamics",
   "click.type": "click",
   "click.level": 0,
   "click.decay": 15,

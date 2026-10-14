@@ -9,45 +9,13 @@
       "fold",
       "stutter",
       "industrial",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "drone",
     "family": "drone",
     "collection": "bank",
-    "audition": "swell",
-    "vibe": {
-      "brightOct": 3.07,
-      "airDb": -32.7,
-      "dirt": 0.62,
-      "widthDb": -0.4,
-      "tailDb": -7.2
-    },
-    "checks": {
-      "hash": "b8fd491e",
-      "audio": "1b4608c3",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "off-style stereo width: -0.4 dB (limit -1.0 dB)",
-        "off-style brightness (octaves above the note): 3.1 oct (limit 2.6 oct)"
-      ],
-      "earns": true,
-      "weakest": "delay 0.32 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.57,
-      "highEnergy": 0.737,
-      "sub": 0.252,
-      "lowMid": 0.53,
-      "dirt": 0.616,
-      "width": 0.99,
-      "attack": 1,
-      "decay": 1,
-      "sustain": 0.915,
-      "release": 0.773,
-      "movement": 0.34
-    }
+    "audition": "swell"
   },
   "voice.polyphony": 4,
   "voice.legato": false,
@@ -64,7 +32,7 @@
   "osc1.wt_pos": 0,
   "osc1.unison_voices": 4,
   "osc1.unison_detune": 14,
-  "osc1.unison_spread": 0.8,
+  "osc1.unison_spread": 0.45,
   "osc1.level": 0.6,
   "osc2.wave": "saw",
   "osc2.semi": -12,
@@ -115,7 +83,7 @@
   "dist.type": "fold",
   "dist.drive": 0.45,
   "dist.mix": 0.6,
-  "dist.post_tone": 0.4,
+  "dist.post_tone": 0.25,
   "dist.clean_below": 20,
   "crush.on": true,
   "crush.mix": 0.25,
@@ -223,7 +191,7 @@
   "comp.pump_rate": "1/4",
   "ott.amount": 0.15,
   "chorus.on": true,
-  "chorus.mix": 0.2,
+  "chorus.mix": 0.08,
   "chorus.depth": 0.45,
   "chorus.mode": "classic",
   "phaser.on": true,
@@ -248,7 +216,7 @@
   "eq.mid_gain": -2,
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
-  "eq.highcut": 6000,
+  "eq.highcut": 4500,
   "output.gain": -4.6,
   "output.crossover": 120
 }

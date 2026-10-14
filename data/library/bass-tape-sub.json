@@ -9,45 +9,13 @@
       "warm",
       "soft",
       "deep",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "bass",
     "family": "bass",
     "collection": "bank",
-    "audition": "dread",
-    "vibe": {
-      "brightOct": 0.29,
-      "airDb": -46.4,
-      "dirt": 0.36,
-      "widthDb": -17.4,
-      "tailDb": -35.5
-    },
-    "checks": {
-      "hash": "fe005377",
-      "audio": "54eb2c82",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "off-style space (tail after the notes stop): -35.5 dB (limit -35.0 dB)",
-        "off-style dirt (too clean or too broken): 0.3593 (limit 0.4500)"
-      ],
-      "earns": true,
-      "weakest": "pump 0.34 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.215,
-      "highEnergy": 0.438,
-      "sub": 0.33,
-      "lowMid": 0.911,
-      "dirt": 0.359,
-      "width": 0.564,
-      "attack": 0.434,
-      "decay": 0.9,
-      "sustain": 0.91,
-      "release": 0.757,
-      "movement": 0.024
-    }
+    "audition": "dread"
   },
   "voice.polyphony": 1,
   "voice.legato": false,
@@ -93,8 +61,8 @@
   "sub.level": 0.3,
   "noise.level": 0,
   "texture.type": "dust",
-  "texture.level": 0.55,
-  "texture.tone": 0.3,
+  "texture.level": 0.7,
+  "texture.tone": 0.35,
   "texture.tail": 500,
   "texture.position": "before dynamics",
   "click.type": "click",
@@ -124,7 +92,7 @@
   "tape.on": true,
   "tape.drive": 0.6,
   "tape.wow": 0.15,
-  "tape.age": 0.6,
+  "tape.age": 0.7,
   "amp_env.attack": 30,
   "amp_env.decay": 400,
   "amp_env.sustain": 0.9,
@@ -234,12 +202,12 @@
   "flanger.rate": 0.3,
   "flanger.feedback": 0.5,
   "delay.on": true,
-  "delay.mix": 0.16,
+  "delay.mix": 0.22,
   "delay.time": "1/8D",
   "delay.feedback": 0.45,
   "delay.tone": 0.25,
   "reverb.on": true,
-  "reverb.mix": 0.3,
+  "reverb.mix": 0.38,
   "reverb.size": 0.85,
   "reverb.tone": 0.8,
   "fx.lowcut": 250,

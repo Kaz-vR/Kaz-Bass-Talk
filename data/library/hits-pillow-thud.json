@@ -9,48 +9,13 @@
       "short",
       "muted",
       "knock",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "hits",
     "family": "hits",
     "collection": "bank",
-    "audition": "hits",
-    "vibe": {
-      "brightOct": 1.17,
-      "airDb": -24.3,
-      "dirt": 1.89,
-      "widthDb": -3.7,
-      "tailDb": -30.9
-    },
-    "checks": {
-      "hash": "74582d5d",
-      "audio": "3dc10b16",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "harsh 2–5 kHz: -3.9 dB (limit -8.0 dB)",
-        "texture bed burying the bass: -9.8 dB (limit -12.0 dB)",
-        "off-style air above 6 kHz: -24.3 dB (limit -26.0 dB)",
-        "off-style space (tail after the notes stop): -30.9 dB (limit -30.0 dB)",
-        "off-style dirt (too clean or too broken): 1.8880 (limit 1.6000)"
-      ],
-      "earns": true,
-      "weakest": "mod 9 (random → noise_level) 0.16 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.26,
-      "highEnergy": 0.715,
-      "sub": 0.909,
-      "lowMid": 0.372,
-      "dirt": 1,
-      "width": 0.907,
-      "attack": 0.259,
-      "decay": 0.556,
-      "sustain": 0.532,
-      "release": 0.773,
-      "movement": 0.376
-    }
+    "audition": "hits"
   },
   "voice.polyphony": 4,
   "voice.legato": false,
@@ -96,12 +61,12 @@
   "sub.level": 0,
   "noise.level": 0.15,
   "texture.type": "dust",
-  "texture.level": 0.55,
+  "texture.level": 0.3,
   "texture.tone": 0.3,
   "texture.tail": 800,
   "texture.position": "before dynamics",
   "click.type": "knock",
-  "click.level": 0.3,
+  "click.level": 0.15,
   "click.decay": 60,
   "click.tone": 120,
   "drive.on": true,
@@ -242,7 +207,7 @@
   "delay.feedback": 0.4,
   "delay.tone": 0.25,
   "reverb.on": true,
-  "reverb.mix": 0.45,
+  "reverb.mix": 0.5,
   "reverb.size": 0.9,
   "reverb.tone": 0.85,
   "fx.lowcut": 200,
@@ -251,7 +216,7 @@
   "eq.mid_gain": -2,
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
-  "eq.highcut": 6500,
+  "eq.highcut": 3000,
   "output.gain": -1.2,
   "output.crossover": 120
 }

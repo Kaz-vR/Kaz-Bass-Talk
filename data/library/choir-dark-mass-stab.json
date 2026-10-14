@@ -9,45 +9,13 @@
       "dark",
       "heavy",
       "cinematic",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "choir",
     "family": "choir",
     "collection": "bank",
-    "audition": "chords",
-    "vibe": {
-      "brightOct": 2.37,
-      "airDb": -28.3,
-      "dirt": 0.69,
-      "widthDb": -2.7,
-      "tailDb": -14.8
-    },
-    "checks": {
-      "hash": "2e0b88e0",
-      "audio": "bb42cf71",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "weak fundamental: -16.6 dB (limit -15.0 dB)",
-        "whistling resonance: 15.0 dB (limit 15.0 dB)"
-      ],
-      "earns": true,
-      "weakest": "mod 10 (lfo4 → chorus_depth) 0.32 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.528,
-      "highEnergy": 0.717,
-      "sub": 0.11,
-      "lowMid": 0.368,
-      "dirt": 0.689,
-      "width": 0.933,
-      "attack": 0.259,
-      "decay": 0.875,
-      "sustain": 0.745,
-      "release": 0.773,
-      "movement": 0.223
-    }
+    "audition": "chords"
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -90,7 +58,7 @@
   "shepard.rate": -0.3,
   "sub.wave": "sine",
   "sub.octave": -1,
-  "sub.level": 0,
+  "sub.level": 0.15,
   "noise.level": 0,
   "texture.type": "dust",
   "texture.level": 0.5,
@@ -106,7 +74,7 @@
   "filter.on": true,
   "filter.type": "formant",
   "filter.cutoff": 1800,
-  "filter.resonance": 0.45,
+  "filter.resonance": 0.3,
   "filter.keytrack": 0.15,
   "filter.env_amount": 0,
   "filter.vowel": 0.6,

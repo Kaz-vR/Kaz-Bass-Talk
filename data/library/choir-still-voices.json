@@ -9,44 +9,13 @@
       "clean",
       "calm",
       "sustained",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "choir",
     "family": "choir",
     "collection": "bank",
-    "audition": "chords",
-    "vibe": {
-      "brightOct": 1.96,
-      "airDb": -34.7,
-      "dirt": 0.41,
-      "widthDb": -4.3,
-      "tailDb": -6.7
-    },
-    "checks": {
-      "hash": "9c7c5b1a",
-      "audio": "70af1f56",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "lifeSlowDb: 5.1 dB (limit 5.0 dB)"
-      ],
-      "earns": true,
-      "weakest": "delay 0.29 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.617,
-      "highEnergy": 0.759,
-      "sub": 0.004,
-      "lowMid": 0.209,
-      "dirt": 0.409,
-      "width": 0.893,
-      "attack": 0.863,
-      "decay": 1,
-      "sustain": 0.881,
-      "release": 0.773,
-      "movement": 0.268
-    }
+    "audition": "chords"
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -181,7 +150,7 @@
   "mod.on": true,
   "mod1.source": "lfo1",
   "mod1.dest": "filter_vowel",
-  "mod1.amount": 0.25,
+  "mod1.amount": 0.2,
   "mod2.source": "lfo2",
   "mod2.dest": "filter_vowel",
   "mod2.amount": 0.04,

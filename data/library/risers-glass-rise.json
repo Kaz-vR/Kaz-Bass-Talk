@@ -9,7 +9,8 @@
       "bright",
       "build",
       "shimmer",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "risers",
     "family": "risers",
@@ -163,8 +164,8 @@
   "mod5.dest": "width",
   "mod5.amount": 0.15,
   "mod6.source": "lfo1",
-  "mod6.dest": "filter_cutoff",
-  "mod6.amount": 0.12,
+  "mod6.dest": "fm_amount",
+  "mod6.amount": 0.1,
   "mod7.source": "lfo2",
   "mod7.dest": "amp",
   "mod7.amount": -0.18,

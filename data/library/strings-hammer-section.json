@@ -9,7 +9,8 @@
       "hard",
       "section",
       "cinematic",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "strings",
     "family": "strings",
@@ -94,7 +95,7 @@
   "tape.age": 0.4,
   "amp_env.attack": 3,
   "amp_env.decay": 500,
-  "amp_env.sustain": 0,
+  "amp_env.sustain": 0.15,
   "amp_env.release": 250,
   "amp_env.attack_curve": 0,
   "mod_env.attack": 1,
@@ -149,10 +150,10 @@
   "mod.on": true,
   "mod1.source": "lfo1",
   "mod1.dest": "filter_cutoff",
-  "mod1.amount": 0.2,
+  "mod1.amount": 0.3,
   "mod2.source": "lfo2",
   "mod2.dest": "amp",
-  "mod2.amount": -0.12,
+  "mod2.amount": -0.2,
   "mod3.source": "env2",
   "mod3.dest": "filter_cutoff",
   "mod3.amount": 0.15,
@@ -215,7 +216,7 @@
   "eq.mid_gain": -2,
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
-  "eq.highcut": 7000,
+  "eq.highcut": 5000,
   "output.gain": -3.4,
   "output.crossover": 120
 }

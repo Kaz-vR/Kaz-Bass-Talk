@@ -9,45 +9,18 @@
       "thin",
       "lonely",
       "breathy",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "brass",
     "family": "brass",
     "collection": "bank",
     "audition": "chords",
-    "vibe": {
-      "brightOct": 0.72,
-      "airDb": -36.2,
-      "dirt": 0.95,
-      "widthDb": -19,
-      "tailDb": -21.8
-    },
-    "checks": {
-      "hash": "9f28ab4f",
-      "audio": "dd9581e7",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "off-style stereo width: -19.0 dB (limit -18.0 dB)",
-        "lifeSlowDb: 0.1 dB (limit 0.5 dB)",
-        "lifeFastDb: 0.2 dB (limit 0.3 dB)"
-      ],
-      "earns": true,
-      "weakest": "mod 2 (lfo2 → amp) 0.17 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.38,
-      "highEnergy": 0.692,
-      "sub": 0.038,
-      "lowMid": 0.916,
-      "dirt": 0.948,
-      "width": 0.524,
-      "attack": 0.623,
-      "decay": 0.933,
-      "sustain": 0.969,
-      "release": 0.773,
-      "movement": 0.03
+    "allow": {
+      "vibeWidth": {
+        "min": -23,
+        "why": "a solo instrument: thin and centred is its identity"
+      }
     }
   },
   "voice.polyphony": 6,
@@ -106,7 +79,7 @@
   "drive.amount": 0.45,
   "filter.on": true,
   "filter.type": "lowpass",
-  "filter.cutoff": 900,
+  "filter.cutoff": 700,
   "filter.resonance": 0.18,
   "filter.keytrack": 0.6,
   "filter.env_amount": 0.35,
@@ -183,10 +156,10 @@
   "mod.on": true,
   "mod1.source": "lfo1",
   "mod1.dest": "filter_cutoff",
-  "mod1.amount": 0.18,
+  "mod1.amount": 0.35,
   "mod2.source": "lfo2",
   "mod2.dest": "amp",
-  "mod2.amount": -0.1,
+  "mod2.amount": -0.2,
   "mod3.source": "env2",
   "mod3.dest": "filter_cutoff",
   "mod3.amount": 0.12,

@@ -176,7 +176,7 @@ const def: CategoryDef = {
       id: 'clean-glass-seq', name: 'Clean Glass Sequence',
       description: "A clean, glassy sequence: pure FM notes with no grit, just tape age and air around them.",
       tags: ['arp', 'sequence', 'clean', 'glassy', 'fm', 'pure', 'lorn', 'new'],
-      texture: ['air', 0.45, 0.35, 900],
+      texture: ['air', 0.2, 0.35, 900],
       set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.12, 'fm.ratio': 2, 'fm.punch': 0.3, 'fm.decay': 150, 'drive.amount': 0.3, 'dist.drive': 0.08, 'filter.cutoff': 1500, 'filter.env_amount': 0, 'eq.highcut': 4500, 'comp.pump': 0.15 },
       mods: SOFT_ARP_KIT,
     },

@@ -9,7 +9,8 @@
       "crushed",
       "noise",
       "broken",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "texture",
     "family": "texture",
@@ -31,7 +32,7 @@
   "osc1.wt_pos": 0,
   "osc1.unison_voices": 3,
   "osc1.unison_detune": 12,
-  "osc1.unison_spread": 0.8,
+  "osc1.unison_spread": 0.45,
   "osc1.level": 0.25,
   "osc2.wave": "saw",
   "osc2.semi": 0,
@@ -190,7 +191,7 @@
   "comp.pump_rate": "1/4",
   "ott.amount": 0.15,
   "chorus.on": true,
-  "chorus.mix": 0.2,
+  "chorus.mix": 0.08,
   "chorus.depth": 0.45,
   "chorus.mode": "classic",
   "phaser.on": true,

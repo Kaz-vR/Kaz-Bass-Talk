@@ -9,44 +9,13 @@
       "round",
       "quiet",
       "triangle",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "lead",
     "family": "lead",
     "collection": "bank",
-    "audition": "lead-line",
-    "vibe": {
-      "brightOct": 0.35,
-      "airDb": -39,
-      "dirt": 0.34,
-      "widthDb": -14.6,
-      "tailDb": -16.2
-    },
-    "checks": {
-      "hash": "703d9b54",
-      "audio": "a55b5a97",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "off-style dirt (too clean or too broken): 0.3376 (limit 0.3500)"
-      ],
-      "earns": true,
-      "weakest": "mod 10 (lfo4 → chorus_depth) 0.38 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.524,
-      "highEnergy": 0.679,
-      "sub": 0.008,
-      "lowMid": 0.013,
-      "dirt": 0.338,
-      "width": 0.634,
-      "attack": 0.502,
-      "decay": 0.922,
-      "sustain": 0.974,
-      "release": 0.773,
-      "movement": 0.044
-    }
+    "audition": "lead-line"
   },
   "voice.polyphony": 1,
   "voice.legato": true,
@@ -92,7 +61,7 @@
   "sub.level": 0,
   "noise.level": 0,
   "texture.type": "dust",
-  "texture.level": 0.5,
+  "texture.level": 0.6,
   "texture.tone": 0.3,
   "texture.tail": 1200,
   "texture.position": "before dynamics",

@@ -9,47 +9,13 @@
       "soft",
       "transition",
       "breath",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "hits",
     "family": "hits",
     "collection": "bank",
-    "audition": "hits",
-    "vibe": {
-      "brightOct": 0.61,
-      "airDb": -32.9,
-      "dirt": 1.83,
-      "widthDb": -4.2,
-      "tailDb": -20.8
-    },
-    "checks": {
-      "hash": "77babcf7",
-      "audio": "a60947e0",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "harsh 2–5 kHz: -2.5 dB (limit -8.0 dB)",
-        "off-style dirt (too clean or too broken): 1.8258 (limit 1.6000)"
-      ],
-      "earns": false,
-      "weakest": "mod 5 (lfo1 → filter_cutoff) 0.11 dB",
-      "failing": [
-        "mod 5 (lfo1 → filter_cutoff) 0.11 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.175,
-      "highEnergy": 0.676,
-      "sub": 0.973,
-      "lowMid": 0.17,
-      "dirt": 1,
-      "width": 0.896,
-      "attack": 0.962,
-      "decay": 0.957,
-      "sustain": 0.984,
-      "release": 0.773,
-      "movement": 0.018
-    }
+    "audition": "hits"
   },
   "voice.polyphony": 4,
   "voice.legato": false,
@@ -93,9 +59,9 @@
   "sub.wave": "sine",
   "sub.octave": -1,
   "sub.level": 0,
-  "noise.level": 0.3,
+  "noise.level": 0.12,
   "texture.type": "air",
-  "texture.level": 0.55,
+  "texture.level": 0.3,
   "texture.tone": 0.35,
   "texture.tail": 1500,
   "texture.position": "before dynamics",
@@ -195,8 +161,8 @@
   "mod4.dest": "reverb_mix",
   "mod4.amount": 0.2,
   "mod5.source": "lfo1",
-  "mod5.dest": "filter_cutoff",
-  "mod5.amount": 0.2,
+  "mod5.dest": "reverb_mix",
+  "mod5.amount": 0.3,
   "mod6.source": "lfo4",
   "mod6.dest": "width",
   "mod6.amount": 0.25,
@@ -250,7 +216,7 @@
   "eq.mid_gain": -2,
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
-  "eq.highcut": 6500,
+  "eq.highcut": 3000,
   "output.gain": 1.9,
   "output.crossover": 120
 }

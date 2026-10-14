@@ -9,7 +9,8 @@
       "pulse",
       "aggressive",
       "build",
-      "lorn"
+      "lorn",
+      "new"
     ],
     "category": "risers",
     "family": "risers",
@@ -31,7 +32,7 @@
   "osc1.wt_pos": 0,
   "osc1.unison_voices": 4,
   "osc1.unison_detune": 16,
-  "osc1.unison_spread": 0.8,
+  "osc1.unison_spread": 0.45,
   "osc1.level": 0.6,
   "osc2.wave": "saw",
   "osc2.semi": 0,
@@ -82,7 +83,7 @@
   "dist.type": "fold",
   "dist.drive": 0.45,
   "dist.mix": 0.6,
-  "dist.post_tone": 0.4,
+  "dist.post_tone": 0.25,
   "dist.clean_below": 20,
   "crush.on": true,
   "crush.mix": 0,
@@ -190,7 +191,7 @@
   "comp.pump_rate": "1/4",
   "ott.amount": 0.15,
   "chorus.on": true,
-  "chorus.mix": 0.1,
+  "chorus.mix": 0.08,
   "chorus.depth": 0.45,
   "chorus.mode": "classic",
   "phaser.on": true,
@@ -215,7 +216,7 @@
   "eq.mid_gain": -2,
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
-  "eq.highcut": 7000,
+  "eq.highcut": 4500,
   "output.gain": -5.1,
   "output.crossover": 120
 }

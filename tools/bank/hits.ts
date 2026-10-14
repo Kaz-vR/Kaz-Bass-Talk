@@ -1,6 +1,6 @@
 // DEV ONLY. Hits / impacts: a heavy transient, a pitch-dropped distorted body
 // and a long dark tail. Every hit a little different (per-hit random).
-import { type CategoryDef, type Mod } from './common';
+import { kit, type CategoryDef, type Mod } from './common';
 
 const base = {
   'voice.polyphony': 4,
@@ -133,8 +133,9 @@ const def: CategoryDef = {
       id: 'felt-boom', name: 'Felt Boom',
       description: "A soft, deep boom, like a padded drum in a big room: felt, not heard as a hit.",
       tags: ['hits', 'soft', 'boom', 'deep', 'padded', 'gentle', 'lorn', 'new'],
-      texture: ['dust', 0.55, 0.3, 2500],
-      set: { 'amp_env.attack': 15, 'click.type': 'knock', 'click.level': 0.15, 'pitch_env.amount': 7, 'pitch_env.decay': 200, 'drive.amount': 0.35, 'dist.drive': 0.1, 'reverb.mix': 0.5 },
+      texture: ['dust', 0.3, 0.3, 2500],
+      set: { 'amp_env.attack': 15, 'click.type': 'knock', 'click.level': 0.15, 'pitch_env.amount': 7, 'pitch_env.decay': 200, 'drive.amount': 0.35, 'dist.drive': 0.1, 'reverb.mix': 0.5, 'eq.highcut': 4000 },
+      mods: kit(HIT_KIT, [], { 'lfo1>filter_cutoff': ['lfo1', 'reverb_mix', 0.3] }),
     },
     {
       id: 'soft-drop', name: 'Soft Drop',
@@ -147,15 +148,16 @@ const def: CategoryDef = {
       id: 'velvet-reverse', name: 'Velvet Reverse',
       description: "A soft hit played backwards: a breath of sound that swells up and stops dead.",
       tags: ['hits', 'reverse', 'swell', 'soft', 'transition', 'breath', 'lorn', 'new'],
-      texture: ['air', 0.55, 0.35, 1500],
-      set: { 'amp_env.attack': 1200, 'amp_env.decay': 300, 'amp_env.sustain': 1, 'amp_env.release': 50, 'click.level': 0, 'pitch_env.amount': 0, 'noise.level': 0.3, 'filter.cutoff': 500, 'filter.env_amount': 0.5, 'mod_env.attack': 1200, 'mod_env.sustain': 1, 'drive.amount': 0.35, 'dist.drive': 0.1 },
+      texture: ['air', 0.3, 0.35, 1500],
+      set: { 'amp_env.attack': 1200, 'amp_env.decay': 300, 'amp_env.sustain': 1, 'amp_env.release': 50, 'click.level': 0, 'pitch_env.amount': 0, 'noise.level': 0.12, 'filter.cutoff': 500, 'filter.env_amount': 0.5, 'mod_env.attack': 1200, 'mod_env.sustain': 1, 'drive.amount': 0.35, 'dist.drive': 0.1, 'eq.highcut': 3000 },
+      mods: kit(HIT_KIT, [], { 'lfo1>filter_cutoff': ['lfo1', 'reverb_mix', 0.3] }),
     },
     {
       id: 'pillow-thud', name: 'Pillow Thud',
       description: "A short, soft thud, like a fist on a pillow: punctuation without violence.",
       tags: ['hits', 'thud', 'soft', 'short', 'muted', 'knock', 'lorn', 'new'],
-      texture: ['dust', 0.55, 0.3, 800],
-      set: { 'amp_env.attack': 5, 'amp_env.decay': 400, 'click.type': 'knock', 'click.level': 0.3, 'click.tone': 120, 'drive.amount': 0.35, 'dist.drive': 0.1, 'filter.cutoff': 900, 'pitch_env.amount': 10, 'pitch_env.decay': 80 },
+      texture: ['dust', 0.3, 0.3, 800],
+      set: { 'amp_env.attack': 5, 'amp_env.decay': 400, 'click.type': 'knock', 'click.level': 0.15, 'click.tone': 120, 'drive.amount': 0.35, 'dist.drive': 0.1, 'filter.cutoff': 900, 'pitch_env.amount': 10, 'pitch_env.decay': 80, 'eq.highcut': 3000, 'reverb.mix': 0.5 },
     },
     {
       id: 'distant-hit', name: 'Distant Hit',
@@ -163,13 +165,15 @@ const def: CategoryDef = {
       tags: ['hits', 'distant', 'soft', 'reverb', 'far', 'dark', 'lorn', 'new'],
       texture: ['dust', 0.5, 0.3, 3000],
       set: { 'amp_env.attack': 8, 'reverb.mix': 0.7, 'eq.highcut': 3500, 'drive.amount': 0.4, 'dist.drive': 0.12, 'pitch_env.amount': 12, 'pitch_env.decay': 150, 'click.level': 0.3 },
+      mods: kit(HIT_KIT, [], { 'lfo1>filter_cutoff': ['lfo1', 'reverb_mix', 0.3] }),
     },
     {
       id: 'breath-impact', name: 'Breath Impact',
       description: "A soft impact made of air: a gust that swells, lands and drifts away.",
       tags: ['hits', 'air', 'soft', 'gust', 'breath', 'swell', 'lorn', 'new'],
-      texture: ['air', 0.55, 0.35, 2000],
-      set: { 'noise.level': 0.4, 'breath.level': 0.3, 'breath.tone': 0.4, 'amp_env.attack': 30, 'amp_env.decay': 1200, 'click.level': 0, 'drive.amount': 0.35, 'dist.drive': 0.1, 'pitch_env.amount': 5 },
+      texture: ['air', 0.3, 0.35, 2000],
+      set: { 'noise.level': 0.15, 'breath.level': 0.15, 'breath.tone': 0.4, 'amp_env.attack': 30, 'amp_env.decay': 1200, 'click.level': 0, 'drive.amount': 0.35, 'dist.drive': 0.1, 'pitch_env.amount': 5, 'eq.highcut': 3000 },
+      mods: kit(HIT_KIT, [], { 'lfo1>filter_cutoff': ['lfo1', 'reverb_mix', 0.3] }),
     },
   ],
 };
