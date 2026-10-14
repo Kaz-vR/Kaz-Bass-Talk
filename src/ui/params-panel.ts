@@ -136,6 +136,7 @@ export class ParamsPanel {
       if (Object.values(SOURCE_BOX).includes(g) || g === 'pitch_env') box.append(this.routeEl(g));
       if (g === 'mod') this.root.append(this.buildOtherSources());
       if (g === 'mod') this.buildMatrix(box, ps);
+      else if (/^lfo\d$/.test(g)) this.buildLfo(box, g, ps);
       else for (const p of ps) box.append(this.buildControl(p));
       this.root.append(box);
     }
@@ -197,6 +198,63 @@ export class ParamsPanel {
       this.controls.set(p.id, { p, set: (v) => { range.value = String(toNormalized(p, v as number)); show(v as number); } });
     }
     return wrap;
+  }
+
+  /**
+   * An LFO runs either free (rate in Hz) or locked to the tempo (a note
+   * length), never both: a Hz | Sync switch shows only the control in use.
+   */
+  private buildLfo(box: HTMLElement, g: string, ps: ParamDef[]): void {
+    const syncP = ps.find((p) => p.id === `${g}.sync`)!;
+    const rateWrap = this.buildControl(ps.find((p) => p.id === `${g}.rate`)!);
+    const syncWrap = this.buildControl(syncP);
+    const sel = syncWrap.querySelector('select')!;
+    sel.querySelector('option[value="free"]')?.remove();
+    syncWrap.querySelector('label')!.textContent = 'note length';
+    let lastDivision = '1/8';
+
+    const sw = document.createElement('div');
+    sw.className = 'seg';
+    const mk = (text: string, title: string) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = text;
+      b.title = title;
+      sw.append(b);
+      return b;
+    };
+    const hz = mk('Hz', 'Free-running: the rate knob sets the speed');
+    const sync = mk('Sync', 'Locked to the tempo: a note length sets the speed');
+    const view = (v: string) => {
+      const synced = v !== 'free';
+      if (synced) lastDivision = v;
+      hz.classList.toggle('on', !synced);
+      sync.classList.toggle('on', synced);
+      rateWrap.hidden = synced;
+      syncWrap.hidden = !synced;
+    };
+    hz.onclick = () => {
+      this.emit(syncP.id, 'free');
+      view('free');
+    };
+    sync.onclick = () => {
+      this.emit(syncP.id, lastDivision);
+      sel.value = lastDivision;
+      view(lastDivision);
+    };
+    sel.addEventListener('change', () => view(sel.value));
+    const ctl = this.controls.get(syncP.id)!;
+    const inner = ctl.set;
+    ctl.set = (v) => {
+      inner(v);
+      view(String(v));
+    };
+
+    for (const p of ps) {
+      if (p.id === `${g}.shape`) box.append(this.buildControl(p), sw, rateWrap, syncWrap);
+      else if (p.id !== `${g}.rate` && p.id !== `${g}.sync`) box.append(this.buildControl(p));
+    }
+    view(String(syncP.default));
   }
 
   private buildMatrix(box: HTMLElement, ps: ParamDef[]): void {
