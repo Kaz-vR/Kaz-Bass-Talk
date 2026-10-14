@@ -6,6 +6,7 @@ import { renderPatch } from '../src/engine/core/render';
 import { analysisSetup } from '../src/quality/categories';
 import { judge, limitsFor } from '../src/quality/critic';
 import { libraryPatches, loop } from './helpers/audio';
+import { applyAllowances } from '../tools/lib/allow';
 
 const groove = loop('groove');
 const base = { meta: { name: 'bad' }, 'osc1.wave': 'saw', 'osc1.level': 0.8, 'sub.level': 0.4, 'voice.analog': 0 };
@@ -55,7 +56,7 @@ describe('every Bass Atlas patch passes the critic', () => {
   for (const { file, json } of libraryPatches().filter(({ json }) => !json.meta.category)) {
     it(file, () => {
       const setup = analysisSetup(json.meta);
-      const v = judge(analyzePatch(json, loop(setup.loop), setup.opts).raw, json.meta.family, json.meta.category);
+      const v = applyAllowances(judge(analyzePatch(json, loop(setup.loop), setup.opts).raw, json.meta.family, json.meta.category), json.meta);
       expect(v.issues.map((i) => i.message)).toEqual([]);
     });
   }

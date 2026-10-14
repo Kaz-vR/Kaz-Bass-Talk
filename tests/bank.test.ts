@@ -12,6 +12,7 @@ import { audioFingerprint } from '../src/quality/stamp';
 import { validatePatch } from '../src/schema';
 import { judgeHash } from '../tools/lib/codehash';
 import { libraryPatches, loop } from './helpers/audio';
+import { allowedOutlier } from '../tools/lib/allow';
 
 const bank = libraryPatches().filter(({ json }) => json.meta.category);
 
@@ -41,7 +42,8 @@ describe('preset bank', () => {
   });
 
   it('every preset sits with the rest of the bank', () => {
-    const odd = outliers(bank.map(({ json }) => ({ name: json.meta.name, vibe: json.meta.vibe as Vibe })));
+    const metaByName = new Map(bank.map(({ json }) => [json.meta.name, json.meta]));
+    const odd = outliers(bank.map(({ json }) => ({ name: json.meta.name, vibe: json.meta.vibe as Vibe }))).filter((o) => !allowedOutlier(metaByName.get(o.name), o.key));
     expect(odd.map((o) => `${o.name}: ${o.key} ${o.value} (median ${o.median})`)).toEqual([]);
   });
 

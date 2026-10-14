@@ -20,6 +20,10 @@ export interface PresetDef {
   mods?: Mod[];
   /** Texture bed: type, level, tone, tail (ms). */
   texture?: [type: string, level: number, tone: number, tail: number];
+  /** A must-have iconic sound (data/coverage.json): tagged so it can be spotted. */
+  iconic?: boolean;
+  /** Written exceptions to the style limits for this preset (tools/lib/allow.ts). */
+  allow?: Record<string, { min?: number; max?: number; why: string }>;
 }
 
 export interface CategoryDef {
@@ -99,8 +103,10 @@ export function buildPreset(cat: CategoryDef, def: PresetDef, audition: string):
   if (mods.length > 12) throw new Error(`${cat.category}/${def.id}: more than 12 mod slots`);
   const raw: Record<string, unknown> = {
     meta: {
-      name: def.name, description: def.description, tags: def.tags, category: cat.category, family: cat.category,
-      collection: 'bank', audition,
+      name: def.name, description: def.description, tags: def.iconic ? [...def.tags, 'iconic'] : def.tags, category: cat.category,
+      family: cat.category, collection: 'bank', audition,
+      ...(def.iconic ? { iconic: true } : {}),
+      ...(def.allow ? { allow: def.allow } : {}),
     },
     'wheel.preset': wheelDefault(cat.category),
     ...LORN_BASE,

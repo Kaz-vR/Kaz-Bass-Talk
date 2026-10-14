@@ -16,6 +16,7 @@ import { judge } from '../src/quality/critic';
 import { checkRules } from '../src/quality/rules';
 import { audioFingerprint, paramHash } from '../src/quality/stamp';
 import { validatePatch } from '../src/schema';
+import { allowedOutlier, applyAllowances } from './lib/allow';
 import { judgeHash } from './lib/codehash';
 import { loadLibrary, loadLoops } from './lib/data';
 
@@ -71,7 +72,7 @@ for (const entry of loadLibrary().filter((e) => (fileList ? fileList.includes(e.
   }
 
   const a = analyzePatch(patch, loop, setup.opts);
-  const verdict = judge(a.raw, family, category);
+  const verdict = applyAllowances(judge(a.raw, family, category), meta);
   const rules = checkRules(patch, family);
   const errors = rules.filter((r) => r.severity === 'error');
   let ok = verdict.pass && errors.length === 0;
@@ -110,7 +111,8 @@ if (reused) console.log(`(${reused} with unchanged sound: results kept)`);
 // Bank consistency (over the whole bank, from the stored vibe measurements).
 if (!process.argv.includes('--no-consistency')) {
   const bank = loadLibrary().filter((e) => e.json.meta.category && e.json.meta.vibe);
-  const odd = outliers(bank.map((e) => ({ name: e.json.meta.name, vibe: e.json.meta.vibe as Vibe })));
+  const metaByName = new Map(bank.map((e) => [e.json.meta.name, e.json.meta]));
+  const odd = outliers(bank.map((e) => ({ name: e.json.meta.name, vibe: e.json.meta.vibe as Vibe }))).filter((o) => !allowedOutlier(metaByName.get(o.name), o.key));
   for (const o of odd) console.log(`✗ outlier: ${o.name} ${o.key} ${o.value} (bank median ${o.median}, z ${o.z.toFixed(1)})`);
   failures += odd.length;
 }

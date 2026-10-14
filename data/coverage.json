@@ -1,0 +1,685 @@
+{
+  "$comment": "Coverage of the preset bank. 'categories': the ingredients each category's presets should use between them (only ones that make musical sense there); tools/lib/coverage.ts defines each ingredient. 'iconic': the must-have sounds (synthwave, dark synthwave, cyberpunk, Vangelis/Blade Runner, Stranger Things). Each names its preset, its identity in words, and the ingredients that identity requires: those are protected; LORN treatment goes around them. 'targets': other must-have sounds (the short basses).",
+  "categories": {
+    "bass": [
+      "wave:saw",
+      "wave:pulse",
+      "wave:pwm",
+      "wave:wavetable",
+      "fm",
+      "osc2-layer",
+      "sub:triangle",
+      "sub:2oct",
+      "layer:click",
+      "filter:lowpass",
+      "filter:diode",
+      "filter-env:strong",
+      "res:high",
+      "dist:hard",
+      "dist:fold",
+      "dist:mids-only",
+      "crush",
+      "amp:pluck",
+      "amp:short-sustain",
+      "modenv:snappy",
+      "pitch-env",
+      "move:synced",
+      "move:retrigger",
+      "glide",
+      "wobble",
+      "pump:strong",
+      "reverb:small",
+      "delay:dotted",
+      "texture:dust",
+      "texture:crackle"
+    ],
+    "lead": [
+      "wave:saw",
+      "wave:pulse",
+      "wave:pwm",
+      "wave:sine",
+      "wave:wavetable",
+      "sync",
+      "fm",
+      "osc2-layer",
+      "layer:breath",
+      "filter:lowpass",
+      "filter:formant",
+      "filter-env:strong",
+      "dist:hard",
+      "dist:fold",
+      "tape:heavy",
+      "glide",
+      "vibrato",
+      "move:pitch",
+      "move:fade-in",
+      "modenv:slow",
+      "delay:dotted",
+      "delay:triplet",
+      "reverb:huge",
+      "phaser",
+      "texture:air",
+      "texture:dust"
+    ],
+    "pad": [
+      "wave:saw",
+      "wave:pwm",
+      "wave:wavetable",
+      "wave:triangle",
+      "osc2-layer",
+      "fm",
+      "layer:noise",
+      "filter:lowpass",
+      "filter:formant",
+      "filter:comb",
+      "tape:heavy",
+      "amp:swell",
+      "modenv:slow",
+      "move:synced",
+      "move:fade-in",
+      "move:wavetable",
+      "reverb:huge",
+      "delay:dotted",
+      "chorus:ensemble",
+      "phaser",
+      "flanger",
+      "pump:strong",
+      "texture:dust",
+      "texture:air",
+      "texture:crackle"
+    ],
+    "keys": [
+      "wave:saw",
+      "wave:pulse",
+      "wave:pwm",
+      "wave:wavetable",
+      "wave:sine",
+      "fm",
+      "fm:operator2",
+      "osc2-layer",
+      "layer:click",
+      "filter:lowpass",
+      "filter:lpg",
+      "filter-env:strong",
+      "dist:soft",
+      "crush",
+      "tape:heavy",
+      "amp:pluck",
+      "velocity:strong",
+      "move:fast",
+      "move:synced",
+      "delay:dotted",
+      "chorus:ensemble",
+      "phaser",
+      "texture:crackle",
+      "texture:dust"
+    ],
+    "pluck": [
+      "wave:saw",
+      "wave:pulse",
+      "wave:string",
+      "wave:sine",
+      "fm",
+      "osc2-layer",
+      "layer:click",
+      "filter:lowpass",
+      "filter:lpg",
+      "filter:comb",
+      "filter-env:strong",
+      "dist:soft",
+      "crush",
+      "amp:pluck",
+      "modenv:snappy",
+      "velocity:strong",
+      "move:retrigger",
+      "delay:dotted",
+      "delay:triplet",
+      "reverb:small",
+      "reverb:huge",
+      "texture:crackle",
+      "texture:dust"
+    ],
+    "arp": [
+      "wave:saw",
+      "wave:pulse",
+      "wave:pwm",
+      "wave:sine",
+      "fm",
+      "osc2-layer",
+      "filter:lowpass",
+      "filter:diode",
+      "filter:lpg",
+      "filter-env:strong",
+      "res:high",
+      "dist:hard",
+      "crush",
+      "amp:pluck",
+      "modenv:snappy",
+      "move:synced",
+      "move:retrigger",
+      "move:bloom",
+      "delay:dotted",
+      "delay:triplet",
+      "delay:straight",
+      "phaser",
+      "pump:strong",
+      "pump:other-rate",
+      "texture:dust"
+    ],
+    "strings": [
+      "wave:saw",
+      "wave:pwm",
+      "wave:pulse",
+      "osc2-layer",
+      "layer:breath",
+      "filter:lowpass",
+      "filter:formant",
+      "tape:heavy",
+      "amp:swell",
+      "amp:short-sustain",
+      "vibrato",
+      "move:fade-in",
+      "move:synced",
+      "modenv:slow",
+      "reverb:huge",
+      "chorus:ensemble",
+      "phaser",
+      "texture:dust",
+      "texture:crackle"
+    ],
+    "brass": [
+      "wave:saw",
+      "wave:pulse",
+      "fm",
+      "osc2-layer",
+      "layer:breath",
+      "filter:lowpass",
+      "filter:formant",
+      "filter-env:strong",
+      "dist:hard",
+      "tape:heavy",
+      "amp:swell",
+      "amp:short-sustain",
+      "modenv:slow",
+      "modenv:snappy",
+      "vibrato",
+      "glide",
+      "move:fade-in",
+      "reverb:huge",
+      "chorus:ensemble",
+      "texture:air",
+      "texture:dust"
+    ],
+    "choir": [
+      "wave:saw",
+      "wave:pulse",
+      "wave:sine",
+      "wave:triangle",
+      "osc2-layer",
+      "layer:breath",
+      "filter:formant",
+      "filter:lowpass",
+      "tape:heavy",
+      "crush",
+      "amp:swell",
+      "vibrato",
+      "move:fade-in",
+      "reverb:huge",
+      "chorus:ensemble",
+      "phaser",
+      "texture:air",
+      "texture:dust"
+    ],
+    "bells": [
+      "wave:sine",
+      "wave:triangle",
+      "wave:string",
+      "fm",
+      "fm:operator2",
+      "fm:feedback",
+      "osc2-layer",
+      "filter:lowpass",
+      "filter:comb",
+      "crush",
+      "tape:heavy",
+      "amp:pluck",
+      "velocity:strong",
+      "move:pitch",
+      "delay:dotted",
+      "reverb:huge",
+      "chorus:ensemble",
+      "texture:dust",
+      "texture:air"
+    ],
+    "hits": [
+      "wave:sine",
+      "wave:saw",
+      "fm",
+      "osc2-layer",
+      "layer:noise",
+      "layer:click",
+      "filter:lowpass",
+      "filter:comb",
+      "dist:fold",
+      "dist:hard",
+      "crush",
+      "pitch-env",
+      "amp:pluck",
+      "reverb:huge",
+      "texture:rumble",
+      "texture:crackle"
+    ],
+    "risers": [
+      "wave:saw",
+      "wave:pulse",
+      "wave:wavetable",
+      "fm",
+      "osc2-layer",
+      "layer:noise",
+      "layer:breath",
+      "filter:lowpass",
+      "filter:bandpass",
+      "filter:comb",
+      "crush",
+      "tape:heavy",
+      "move:bloom",
+      "move:synced",
+      "vibrato",
+      "reverb:huge",
+      "delay:dotted",
+      "phaser",
+      "flanger",
+      "texture:air",
+      "texture:rumble"
+    ],
+    "drone": [
+      "wave:saw",
+      "wave:wavetable",
+      "wave:pulse",
+      "fm",
+      "osc2-layer",
+      "layer:noise",
+      "filter:lowpass",
+      "filter:comb",
+      "filter:bandpass",
+      "dist:fold",
+      "crush",
+      "tape:heavy",
+      "move:bloom",
+      "move:wavetable",
+      "move:synced",
+      "pump:strong",
+      "reverb:huge",
+      "phaser",
+      "flanger",
+      "texture:rumble",
+      "texture:dust",
+      "texture:air"
+    ],
+    "texture": [
+      "wave:triangle",
+      "wave:saw",
+      "fm",
+      "osc2-layer",
+      "layer:noise",
+      "layer:breath",
+      "filter:bandpass",
+      "filter:comb",
+      "crush",
+      "tape:heavy",
+      "move:synced",
+      "move:retrigger",
+      "amp:pluck",
+      "pump:strong",
+      "reverb:huge",
+      "texture:crackle",
+      "texture:dust",
+      "texture:rumble",
+      "texture:air",
+      "texture:after-dynamics"
+    ]
+  },
+  "iconic": [
+    {
+      "id": "octave-bass",
+      "name": "Driving octave bass",
+      "category": "bass",
+      "preset": "bass-neon-octave",
+      "identity": "Saw or pulse bass jumping octaves in driving 8ths; a short, snappy filter envelope makes every note bop.",
+      "requires": [
+        "wave:saw",
+        "modenv:snappy",
+        "amp:short-sustain"
+      ]
+    },
+    {
+      "id": "pwm-pad",
+      "name": "PWM pad with chorus",
+      "category": "pad",
+      "preset": "pad-velvet-neon",
+      "identity": "Slowly modulated pulse width under a classic stereo chorus; a soft swell in, warm and wide.",
+      "requires": [
+        "wave:pwm",
+        "chorus:classic"
+      ]
+    },
+    {
+      "id": "poly-brass-stab",
+      "name": "Poly brass stab",
+      "category": "brass",
+      "preset": "brass-rooftop-stab",
+      "identity": "Stacked detuned saws, a quick filter swell on every chord, punchy and short.",
+      "requires": [
+        "wave:saw",
+        "osc2-layer",
+        "filter-env:strong",
+        "amp:short-sustain"
+      ]
+    },
+    {
+      "id": "synced-arp",
+      "name": "Tempo-synced arpeggio",
+      "category": "arp",
+      "preset": "arp-gridlock",
+      "identity": "Rhythmic notes with filter movement locked to the tempo and a tempo delay.",
+      "requires": [
+        "move:synced",
+        "amp:pluck"
+      ]
+    },
+    {
+      "id": "portamento-lead",
+      "name": "Portamento saw lead",
+      "category": "lead",
+      "preset": "lead-highway-glide",
+      "identity": "A mono saw lead that glides between notes, with a slow vibrato.",
+      "requires": [
+        "wave:saw",
+        "glide"
+      ]
+    },
+    {
+      "id": "sync-lead",
+      "name": "Hard-sync lead",
+      "category": "lead",
+      "preset": "lead-torn-signal",
+      "identity": "Oscillator 2 hard-synced and swept, the tearing, vocal sync tone.",
+      "requires": [
+        "sync",
+        "move:pitch"
+      ]
+    },
+    {
+      "id": "fm-epiano",
+      "name": "FM electric piano",
+      "category": "keys",
+      "preset": "keys-glass-tine",
+      "identity": "Two-operator FM tine: a glassy bell-like attack over a soft body; harder playing brings more tine.",
+      "requires": [
+        "fm",
+        "velocity:strong",
+        "amp:pluck"
+      ]
+    },
+    {
+      "id": "string-machine",
+      "name": "String machine",
+      "category": "strings",
+      "preset": "strings-machine-strings",
+      "identity": "Thin bright saw strings thickened by an ensemble chorus, with a soft attack.",
+      "requires": [
+        "wave:saw",
+        "chorus:ensemble"
+      ]
+    },
+    {
+      "id": "distorted-saw-bass",
+      "name": "Aggressive distorted saw bass",
+      "category": "bass",
+      "preset": "bass-chrome-teeth",
+      "identity": "Hard-driven saw bass, distorted and snarling, with a punchy filter.",
+      "requires": [
+        "wave:saw",
+        "dist:hard"
+      ]
+    },
+    {
+      "id": "dotted-pluck",
+      "name": "Pluck with a dotted-eighth delay",
+      "category": "pluck",
+      "preset": "pluck-wet-neon",
+      "identity": "A short pluck whose dotted-eighth echo makes the rhythm.",
+      "requires": [
+        "amp:pluck",
+        "delay:dotted"
+      ]
+    },
+    {
+      "id": "braam",
+      "name": "Giant brass braam",
+      "category": "brass",
+      "preset": "brass-monolith",
+      "identity": "A huge, low, distorted brass blast that hangs in a vast space.",
+      "requires": [
+        "dist:hard",
+        "reverb:huge",
+        "osc2-layer"
+      ]
+    },
+    {
+      "id": "industrial-bass",
+      "name": "Gritty industrial bass",
+      "category": "bass",
+      "preset": "bass-rebar",
+      "identity": "A metallic, grinding bass: FM and fold make it clank.",
+      "requires": [
+        "fm",
+        "dist:fold"
+      ]
+    },
+    {
+      "id": "fm-hit",
+      "name": "Metallic FM hit",
+      "category": "hits",
+      "preset": "hits-steel-rain",
+      "identity": "A clanging metallic FM impact with a pitch drop.",
+      "requires": [
+        "fm",
+        "pitch-env"
+      ]
+    },
+    {
+      "id": "glitch-ticks",
+      "name": "Glitchy digital ticks",
+      "category": "texture",
+      "preset": "texture-data-rot",
+      "identity": "Crushed digital ticks chopped in time, like a machine reading data.",
+      "requires": [
+        "crush",
+        "move:synced"
+      ]
+    },
+    {
+      "id": "pump-drone",
+      "name": "Pulsing sidechained drone",
+      "category": "drone",
+      "preset": "drone-black-pump",
+      "identity": "A dark drone breathing hard on the beat.",
+      "requires": [
+        "pump:strong"
+      ]
+    },
+    {
+      "id": "ethereal-choir",
+      "name": "Ethereal choir pad",
+      "category": "choir",
+      "preset": "choir-neon-hymn",
+      "identity": "Floating, ghostly vowel choir in a vast space.",
+      "requires": [
+        "filter:formant",
+        "reverb:huge"
+      ]
+    },
+    {
+      "id": "cs-brass-lead",
+      "name": "Expressive brass lead",
+      "category": "brass",
+      "preset": "brass-rain-brass",
+      "identity": "A brass lead that brightens as it's held, with a singing vibrato and glide.",
+      "requires": [
+        "modenv:slow",
+        "vibrato",
+        "glide"
+      ]
+    },
+    {
+      "id": "crystal-bells",
+      "name": "Crystal bells",
+      "category": "bells",
+      "preset": "bells-glass-rain",
+      "identity": "Clear, glistening FM bells ringing long in a big space.",
+      "requires": [
+        "fm",
+        "reverb:huge"
+      ]
+    },
+    {
+      "id": "title-brass-pad",
+      "name": "Swelling brass pad",
+      "category": "brass",
+      "preset": "brass-tower-swell",
+      "identity": "Big, slow-swelling brass chords opening up in a huge space.",
+      "requires": [
+        "amp:swell",
+        "reverb:huge",
+        "modenv:slow"
+      ]
+    },
+    {
+      "id": "title-drone",
+      "name": "Deep pulsing drone",
+      "category": "drone",
+      "preset": "drone-city-below",
+      "identity": "A deep, low drone pulsing in time under everything.",
+      "requires": [
+        "move:synced",
+        "reverb:huge"
+      ]
+    },
+    {
+      "id": "airy-flute",
+      "name": "Airy synth flute",
+      "category": "lead",
+      "preset": "lead-rain-flute",
+      "identity": "A breathy, soft flute-like lead with a gentle delayed vibrato.",
+      "requires": [
+        "layer:breath",
+        "vibrato",
+        "wave:sine"
+      ]
+    },
+    {
+      "id": "title-arp",
+      "name": "Warm analog arpeggio, filter slowly opening",
+      "category": "arp",
+      "preset": "arp-chapter-one",
+      "identity": "A warm saw arpeggio whose filter opens slowly over bars.",
+      "requires": [
+        "wave:saw",
+        "move:bloom"
+      ]
+    },
+    {
+      "id": "pulse-bass",
+      "name": "Pulsing sequenced bass",
+      "category": "bass",
+      "preset": "bass-basement-pulse",
+      "identity": "A steady pulsing bass line whose filter slowly opens.",
+      "requires": [
+        "amp:short-sustain",
+        "move:bloom"
+      ]
+    },
+    {
+      "id": "swell-pad",
+      "name": "Warm analog swell pad",
+      "category": "pad",
+      "preset": "pad-warm-dread",
+      "identity": "Thick, slowly swelling analog pad: dreamy but uneasy.",
+      "requires": [
+        "amp:swell",
+        "modenv:slow",
+        "osc2-layer"
+      ]
+    },
+    {
+      "id": "upside-lead",
+      "name": "Eerie gliding lead",
+      "category": "lead",
+      "preset": "lead-other-side",
+      "identity": "A detuned, gliding, slightly unstable lead that howls above.",
+      "requires": [
+        "glide",
+        "vibrato",
+        "tape:heavy"
+      ]
+    },
+    {
+      "id": "glass-plinks",
+      "name": "Glassy plinks",
+      "category": "bells",
+      "preset": "bells-bicycle-lights",
+      "identity": "Small glassy bell notes, nostalgic and sparkling.",
+      "requires": [
+        "amp:pluck",
+        "wave:sine"
+      ]
+    }
+  ],
+  "targets": [
+    {
+      "id": "short-pluck-bass",
+      "name": "Short plucky bass",
+      "category": "bass",
+      "preset": "bass-rubber-night",
+      "identity": "Every note a short bop: snappy filter, quick decay.",
+      "requires": [
+        "amp:pluck",
+        "modenv:snappy"
+      ]
+    },
+    {
+      "id": "square-bass",
+      "name": "Staccato square bass",
+      "category": "bass",
+      "preset": "bass-square-shadow",
+      "identity": "Hollow, punchy square bass, short and tight.",
+      "requires": [
+        "wave:pulse",
+        "amp:short-sustain"
+      ]
+    },
+    {
+      "id": "stab-bass",
+      "name": "Short distorted stab bass",
+      "category": "bass",
+      "preset": "bass-hammer-stab",
+      "identity": "A short, hard, distorted bass stab.",
+      "requires": [
+        "amp:pluck",
+        "dist:fold"
+      ]
+    },
+    {
+      "id": "sub-kick-bass",
+      "name": "Punchy sub-kick bass",
+      "category": "bass",
+      "preset": "bass-kick-below",
+      "identity": "A short, deep thump: the pitch drops into the sub.",
+      "requires": [
+        "pitch-env",
+        "amp:pluck"
+      ]
+    }
+  ]
+}

@@ -118,6 +118,13 @@ function renderBrowser(): void {
     card.className = 'preset' + (i === currentIndex ? ' active' : '');
     const name = document.createElement('b');
     name.textContent = p.meta.name;
+    if (p.meta.iconic) {
+      const tag = document.createElement('em');
+      tag.className = 'iconic-tag';
+      tag.textContent = 'Iconic';
+      tag.title = 'A LORN version of an iconic sound from synthwave, cyberpunk, Vangelis or Stranger Things';
+      name.append(tag);
+    }
     const desc = document.createElement('span');
     desc.textContent = p.meta.description ?? '';
     card.append(name, desc);
