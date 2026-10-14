@@ -148,6 +148,64 @@ const def: CategoryDef = {
         'velocity>drive': ['velocity', 'fm_amount', 0.12],
       }),
     },
+    // ------------------------------------------------ iconic (LORN versions)
+    {
+      id: 'highway-glide', name: 'Highway Glide', iconic: true,
+      description: 'The night-drive portamento saw lead, gliding between notes over a triplet echo in a huge dark room.',
+      tags: ['lead', 'saw', 'portamento', 'synthwave', 'glide', 'eighties', 'lorn'],
+      texture: ['dust', 0.45, 0.35, 1200],
+      set: {
+        'osc1.unison_voices': 3, 'osc1.unison_detune': 12, 'osc1.unison_spread': 0.6, 'osc2.wave': 'saw', 'osc2.semi': 12, 'osc2.level': 0.22,
+        'voice.glide': 120, 'vibrato.depth': 14, 'vibrato.delay': 500, 'filter.cutoff': 1400, 'filter.resonance': 0.25, 'filter.env_amount': 0.2,
+        'drive.amount': 0.7, 'dist.drive': 0.36, 'dist.clean_below': 120,
+        'delay.time': '1/8T', 'delay.mix': 0.24, 'reverb.size': 0.93, 'reverb.mix': 0.34,
+      },
+    },
+    {
+      id: 'torn-signal', name: 'Torn Signal', iconic: true,
+      description: 'A hard-synced lead that tears open on every note, then settles into a phased, broken shimmer.',
+      tags: ['lead', 'sync', 'tearing', 'synthwave', 'aggressive', 'phaser', 'lorn'],
+      texture: ['crackle', 0.5, 0.4, 900],
+      set: {
+        'osc1.level': 0.35, 'osc1.unison_voices': 1, 'osc2.wave': 'saw', 'osc2.sync': true, 'osc2.semi': 7, 'osc2.fine': 0, 'osc2.level': 0.55,
+        'mod_env.attack': 1, 'mod_env.decay': 450, 'mod_env.sustain': 0.2, 'filter.cutoff': 2400, 'filter.env_amount': 0.15,
+        'dist.type': 'hard', 'dist.drive': 0.32, 'phaser.mix': 0.22, 'phaser.rate': 0.4,
+      },
+      // The sync sweep: the mod envelope drags oscillator 2 down on every note; a slow wander keeps it moving after.
+      mods: kit(LEAD_KIT, [], {
+        'lfo3>unison_detune': ['mod_env', 'osc2_pitch', 0.25],
+        'random>filter_cutoff': ['lfo1', 'osc2_pitch', 0.03],
+        // The tear is in the sync, not the filter: a slow filter wander adds nothing audible here.
+        'lfo1>filter_cutoff': null,
+      }),
+    },
+    {
+      id: 'rain-flute', name: 'Rain Flute', iconic: true,
+      description: 'An airy synth flute: breath first, then a soft tone that brightens and sings with a late vibrato.',
+      tags: ['lead', 'flute', 'breath', 'airy', 'soft', 'cinematic', 'lorn'],
+      texture: ['air', 0.35, 0.4, 1500],
+      set: {
+        'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'osc2.wave': 'triangle', 'osc2.semi': 12, 'osc2.fine': 0, 'osc2.level': 0.15,
+        'breath.level': 0.35, 'breath.chiff': 0.3, 'breath.tone': 0.6, 'vibrato.depth': 15, 'vibrato.delay': 450, 'vibrato.fade': 600,
+        'filter.cutoff': 3500, 'filter.env_amount': 0.2, 'mod_env.attack': 400, 'mod_env.sustain': 0.8, 'reverb.size': 0.9, 'reverb.mix': 0.36,
+      },
+      // The breath itself drifts slowly, like a player's air.
+      mods: SOFT_KIT.map((m) => (m[0] === 'random' ? (['drift_slow', 'breath_level', 0.22] as Mod) : m[0] === 'lfo1' && m[1] === 'osc2_level' ? (['lfo1', 'osc2_level', 0.35] as Mod) : m)),
+    },
+    {
+      id: 'other-side', name: 'Other Side', iconic: true,
+      description: 'An eerie, detuned lead that glides and howls from somewhere it should not be, its tone slowly morphing.',
+      tags: ['lead', 'eerie', 'detuned', 'glide', 'wavetable', 'unstable', 'lorn'],
+      texture: ['air', 0.35, 0.35, 1500],
+      set: {
+        'osc1.wave': 'wavetable', 'osc1.wt_pos': 0.55, 'osc1.unison_voices': 1, 'osc2.wave': 'saw', 'osc2.fine': 14, 'osc2.level': 0.3,
+        'voice.glide': 150, 'vibrato.depth': 25, 'vibrato.rate': 4.5, 'tape.wow': 0.45, 'tape.age': 0.6, 'filter.cutoff': 1100,
+      },
+      mods: kit(LEAD_KIT, [['lfo1', 'filter_cutoff', 0.3]], {
+        'lfo3>unison_detune': ['lfo3', 'osc1_wt_pos', 0.2],
+        'drift_slow>drive': ['drift_slow', 'osc1_wt_pos', 0.2],
+      }),
+    },
   ],
 };
 
