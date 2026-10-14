@@ -23,7 +23,7 @@
       "tailDb": -15.3
     },
     "checks": {
-      "hash": "5162a73a",
+      "hash": "2a6ed2f8",
       "code": "02096e9d",
       "earns": true,
       "weakest": "mod 6 (lfo4 → width) 0.42 dB",
@@ -33,11 +33,11 @@
     },
     "features": {
       "brightness": 0.226,
-      "highEnergy": 0.659,
+      "highEnergy": 0.66,
       "sub": 0.903,
       "lowMid": 0.347,
       "dirt": 1,
-      "width": 0.737,
+      "width": 0.736,
       "attack": 0.201,
       "decay": 0.735,
       "sustain": 0.34,
@@ -215,6 +215,6 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 3000,
-  "output.gain": -3.6,
+  "output.gain": -4.3,
   "output.crossover": 120
 }

@@ -14,7 +14,36 @@
     "category": "hits",
     "family": "hits",
     "collection": "bank",
-    "audition": "hits"
+    "audition": "hits",
+    "vibe": {
+      "brightOct": 0.59,
+      "airDb": -41.2,
+      "dirt": 0.95,
+      "widthDb": -9.7,
+      "tailDb": -15
+    },
+    "checks": {
+      "hash": "668ee471",
+      "code": "02096e9d",
+      "earns": true,
+      "weakest": "mod 6 (lfo4 → width) 0.39 dB",
+      "failing": [],
+      "critic": true,
+      "issues": []
+    },
+    "features": {
+      "brightness": 0.172,
+      "highEnergy": 0.561,
+      "sub": 0.891,
+      "lowMid": 0.383,
+      "dirt": 0.953,
+      "width": 0.757,
+      "attack": 0.1,
+      "decay": 0.757,
+      "sustain": 0.317,
+      "release": 0.773,
+      "movement": 0.639
+    }
   },
   "voice.polyphony": 4,
   "voice.legato": false,
@@ -186,6 +215,6 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 6500,
-  "output.gain": 0,
+  "output.gain": -2.4,
   "output.crossover": 120
 }

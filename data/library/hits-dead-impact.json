@@ -17,13 +17,13 @@
     "audition": "hits",
     "vibe": {
       "brightOct": 0.94,
-      "airDb": -35.4,
+      "airDb": -35.5,
       "dirt": 1.03,
       "widthDb": -8.5,
-      "tailDb": -27.3
+      "tailDb": -27.4
     },
     "checks": {
-      "hash": "4dc326cb",
+      "hash": "68d1fd44",
       "code": "02096e9d",
       "earns": true,
       "weakest": "mod 5 (lfo1 → filter_cutoff) 0.18 dB",
@@ -33,14 +33,14 @@
     },
     "features": {
       "brightness": 0.224,
-      "highEnergy": 0.592,
+      "highEnergy": 0.591,
       "sub": 0.76,
-      "lowMid": 0.594,
+      "lowMid": 0.595,
       "dirt": 1,
-      "width": 0.788,
+      "width": 0.787,
       "attack": 0.259,
       "decay": 0.311,
-      "sustain": 0.225,
+      "sustain": 0.214,
       "release": 0.773,
       "movement": 1
     }
@@ -215,6 +215,6 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 5500,
-  "output.gain": -3.9,
+  "output.gain": -4.7,
   "output.crossover": 120
 }
