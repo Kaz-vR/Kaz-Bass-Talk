@@ -14,7 +14,40 @@
     "category": "bass",
     "family": "bass",
     "collection": "bank",
-    "audition": "dread"
+    "audition": "dread",
+    "vibe": {
+      "brightOct": 0.29,
+      "airDb": -46.4,
+      "dirt": 0.36,
+      "widthDb": -17.4,
+      "tailDb": -35.5
+    },
+    "checks": {
+      "hash": "fe005377",
+      "audio": "54eb2c82",
+      "judge": "b3d612c0",
+      "critic": false,
+      "issues": [
+        "off-style space (tail after the notes stop): -35.5 dB (limit -35.0 dB)",
+        "off-style dirt (too clean or too broken): 0.3593 (limit 0.4500)"
+      ],
+      "earns": true,
+      "weakest": "pump 0.34 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.215,
+      "highEnergy": 0.438,
+      "sub": 0.33,
+      "lowMid": 0.911,
+      "dirt": 0.359,
+      "width": 0.564,
+      "attack": 0.434,
+      "decay": 0.9,
+      "sustain": 0.91,
+      "release": 0.757,
+      "movement": 0.024
+    }
   },
   "voice.polyphony": 1,
   "voice.legato": false,

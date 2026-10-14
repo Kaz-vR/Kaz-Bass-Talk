@@ -14,7 +14,44 @@
     "category": "hits",
     "family": "hits",
     "collection": "bank",
-    "audition": "hits"
+    "audition": "hits",
+    "vibe": {
+      "brightOct": 1.66,
+      "airDb": -27.6,
+      "dirt": 1.81,
+      "widthDb": -1.8,
+      "tailDb": -14.6
+    },
+    "checks": {
+      "hash": "3eb46cce",
+      "audio": "a795e217",
+      "judge": "b3d612c0",
+      "critic": false,
+      "issues": [
+        "harsh 2–5 kHz: -0.7 dB (limit -8.0 dB)",
+        "texture bed burying the bass: -6.9 dB (limit -12.0 dB)",
+        "off-style dirt (too clean or too broken): 1.8134 (limit 1.6000)"
+      ],
+      "earns": false,
+      "weakest": "mod 5 (lfo1 → filter_cutoff) 0.07 dB",
+      "failing": [
+        "mod 5 (lfo1 → filter_cutoff) 0.07 dB",
+        "mod 9 (random → noise_level) 0.09 dB"
+      ]
+    },
+    "features": {
+      "brightness": 0.333,
+      "highEnergy": 0.766,
+      "sub": 0.944,
+      "lowMid": 0.184,
+      "dirt": 1,
+      "width": 0.956,
+      "attack": 0.401,
+      "decay": 0.82,
+      "sustain": 0.662,
+      "release": 0.773,
+      "movement": 0.563
+    }
   },
   "voice.polyphony": 4,
   "voice.legato": false,

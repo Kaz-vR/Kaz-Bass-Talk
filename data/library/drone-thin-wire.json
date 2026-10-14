@@ -14,7 +14,39 @@
     "category": "drone",
     "family": "drone",
     "collection": "bank",
-    "audition": "swell"
+    "audition": "swell",
+    "vibe": {
+      "brightOct": 1.04,
+      "airDb": -40.7,
+      "dirt": 0.56,
+      "widthDb": -10.8,
+      "tailDb": -6.1
+    },
+    "checks": {
+      "hash": "d916231e",
+      "audio": "6938671e",
+      "judge": "b3d612c0",
+      "critic": false,
+      "issues": [
+        "digital fizz (aliasing): -46.3 dB (limit -55.0 dB)"
+      ],
+      "earns": true,
+      "weakest": "mod 2 (lfo2 → amp) 0.24 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.265,
+      "highEnergy": 0.597,
+      "sub": 0.001,
+      "lowMid": 0.942,
+      "dirt": 0.56,
+      "width": 0.73,
+      "attack": 1,
+      "decay": 0.689,
+      "sustain": 0.991,
+      "release": 0.773,
+      "movement": 0.041
+    }
   },
   "voice.polyphony": 4,
   "voice.legato": false,

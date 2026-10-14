@@ -14,7 +14,39 @@
     "category": "bass",
     "family": "bass",
     "collection": "bank",
-    "audition": "funk-octaves"
+    "audition": "funk-octaves",
+    "vibe": {
+      "brightOct": 0.18,
+      "airDb": -39.5,
+      "dirt": 0.65,
+      "widthDb": -16.1,
+      "tailDb": -35.7
+    },
+    "checks": {
+      "hash": "7f7ab138",
+      "audio": "53e4289a",
+      "judge": "b3d612c0",
+      "critic": false,
+      "issues": [
+        "off-style space (tail after the notes stop): -35.7 dB (limit -35.0 dB)"
+      ],
+      "earns": true,
+      "weakest": "pump 0.25 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.198,
+      "highEnergy": 0.525,
+      "sub": 0.68,
+      "lowMid": 0.691,
+      "dirt": 0.648,
+      "width": 0.598,
+      "attack": 0.36,
+      "decay": 0.692,
+      "sustain": 0.653,
+      "release": 0.739,
+      "movement": 0.084
+    }
   },
   "voice.polyphony": 1,
   "voice.legato": false,

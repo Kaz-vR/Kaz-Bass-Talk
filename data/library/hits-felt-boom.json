@@ -14,7 +14,42 @@
     "category": "hits",
     "family": "hits",
     "collection": "bank",
-    "audition": "hits"
+    "audition": "hits",
+    "vibe": {
+      "brightOct": 0.24,
+      "airDb": -31.6,
+      "dirt": 1.87,
+      "widthDb": -7.5,
+      "tailDb": -14.9
+    },
+    "checks": {
+      "hash": "b28068ea",
+      "audio": "b507a195",
+      "judge": "b3d612c0",
+      "critic": false,
+      "issues": [
+        "off-style dirt (too clean or too broken): 1.8717 (limit 1.6000)",
+        "harsh 2–5 kHz: -8.0 dB (limit -8.0 dB)"
+      ],
+      "earns": false,
+      "weakest": "mod 5 (lfo1 → filter_cutoff) 0.08 dB",
+      "failing": [
+        "mod 5 (lfo1 → filter_cutoff) 0.08 dB"
+      ]
+    },
+    "features": {
+      "brightness": 0.119,
+      "highEnergy": 0.607,
+      "sub": 0.965,
+      "lowMid": 0.234,
+      "dirt": 1,
+      "width": 0.813,
+      "attack": 0.401,
+      "decay": 0.845,
+      "sustain": 0.567,
+      "release": 0.773,
+      "movement": 1
+    }
   },
   "voice.polyphony": 4,
   "voice.legato": false,

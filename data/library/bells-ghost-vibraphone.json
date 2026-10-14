@@ -14,7 +14,37 @@
     "category": "bells",
     "family": "bells",
     "collection": "bank",
-    "audition": "arp-line"
+    "audition": "arp-line",
+    "vibe": {
+      "brightOct": 1.04,
+      "airDb": -29.9,
+      "dirt": 0.77,
+      "widthDb": -14,
+      "tailDb": -7.4
+    },
+    "checks": {
+      "hash": "a86c3955",
+      "audio": "872fe59b",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "mod 4 (drift_slow → drive) 0.24 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.666,
+      "highEnergy": 0.863,
+      "sub": 0.033,
+      "lowMid": 0.558,
+      "dirt": 0.773,
+      "width": 0.651,
+      "attack": 0.201,
+      "decay": 0.727,
+      "sustain": 0.477,
+      "release": 0.773,
+      "movement": 0.402
+    }
   },
   "voice.polyphony": 8,
   "voice.legato": false,

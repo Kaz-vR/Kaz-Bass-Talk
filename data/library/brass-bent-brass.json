@@ -14,7 +14,37 @@
     "category": "brass",
     "family": "brass",
     "collection": "bank",
-    "audition": "chords"
+    "audition": "chords",
+    "vibe": {
+      "brightOct": 1.02,
+      "airDb": -38.7,
+      "dirt": 0.68,
+      "widthDb": -5.5,
+      "tailDb": -22
+    },
+    "checks": {
+      "hash": "f9a5f49f",
+      "audio": "2fd1d847",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "texture bed 0.17 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.424,
+      "highEnergy": 0.696,
+      "sub": 0.028,
+      "lowMid": 0.849,
+      "dirt": 0.683,
+      "width": 0.862,
+      "attack": 0.76,
+      "decay": 0.744,
+      "sustain": 0.96,
+      "release": 0.773,
+      "movement": 0.103
+    }
   },
   "voice.polyphony": 6,
   "voice.legato": false,

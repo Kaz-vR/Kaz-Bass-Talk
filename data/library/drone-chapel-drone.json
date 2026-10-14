@@ -14,7 +14,48 @@
     "category": "drone",
     "family": "drone",
     "collection": "bank",
-    "audition": "swell"
+    "audition": "swell",
+    "vibe": {
+      "brightOct": 0.97,
+      "airDb": -33.2,
+      "dirt": 1.79,
+      "widthDb": -1.7,
+      "tailDb": -5.6
+    },
+    "checks": {
+      "hash": "968b3524",
+      "audio": "ee9b5a7d",
+      "judge": "b3d612c0",
+      "critic": false,
+      "issues": [
+        "harsh 2–5 kHz: -2.4 dB (limit -8.0 dB)",
+        "off-style dirt (too clean or too broken): 1.7924 (limit 1.6000)",
+        "lifeSlowDb: 0.3 dB (limit 0.5 dB)",
+        "lifeFastDb: 0.3 dB (limit 0.3 dB)"
+      ],
+      "earns": false,
+      "weakest": "mod 1 (lfo1 → filter_cutoff) 0.02 dB",
+      "failing": [
+        "mod 1 (lfo1 → filter_cutoff) 0.02 dB",
+        "mod 2 (lfo2 → filter_cutoff) 0.03 dB",
+        "mod 3 (env2 → filter_cutoff) 0.10 dB",
+        "mod 11 (velocity → filter_cutoff) 0.08 dB",
+        "mod 12 (random → filter_cutoff) 0.02 dB"
+      ]
+    },
+    "features": {
+      "brightness": 0.254,
+      "highEnergy": 0.698,
+      "sub": 0.536,
+      "lowMid": 0.826,
+      "dirt": 1,
+      "width": 0.957,
+      "attack": 0.973,
+      "decay": 0.597,
+      "sustain": 0.979,
+      "release": 0.773,
+      "movement": 0.132
+    }
   },
   "voice.polyphony": 4,
   "voice.legato": false,
