@@ -16,7 +16,39 @@
     "family": "arp",
     "collection": "bank",
     "audition": "arp-line",
-    "iconic": 2
+    "iconic": 2,
+    "vibe": {
+      "brightOct": 0.19,
+      "airDb": -36.4,
+      "dirt": 0.49,
+      "widthDb": -3.4,
+      "tailDb": -25.6
+    },
+    "checks": {
+      "hash": "23b0f08b",
+      "audio": "1003cb53",
+      "judge": "b3d612c0",
+      "critic": false,
+      "issues": [
+        "mud build-up 200–400 Hz: 7.0 dB (limit 7.0 dB)"
+      ],
+      "earns": true,
+      "weakest": "pump 0.26 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.388,
+      "highEnergy": 0.522,
+      "sub": 0.046,
+      "lowMid": 0.868,
+      "dirt": 0.491,
+      "width": 0.916,
+      "attack": 0.1,
+      "decay": 0.709,
+      "sustain": 0.688,
+      "release": 0.773,
+      "movement": 0.353
+    }
   },
   "voice.polyphony": 4,
   "voice.legato": false,
