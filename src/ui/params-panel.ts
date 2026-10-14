@@ -16,6 +16,41 @@ const GROUP_TITLES: Record<string, string> = {
   env2: 'Env 2 (bloom)', wheel: 'Mod wheel', wobble: 'Wobble', lfo1: 'LFO 1', lfo2: 'LFO 2', lfo3: 'LFO 3', lfo4: 'LFO 4', mod: 'Mod matrix', fx: 'Effects', eq: 'EQ', output: 'Output',
 };
 
+/** What each box does, shown when hovering its title. */
+const GROUP_TIPS: Record<string, string> = {
+  voice: 'How notes are played: one at a time (mono, with legato and glide, the bass default) or several (chords), octave, velocity response and analog drift.',
+  wheel: 'What the mod wheel does: one connected move (several things changing together, like playing harder). Wheel at 0 = the preset as designed.',
+  osc1: 'The main sound source: a waveform with its pitch, unison (stacked detuned copies for width) and level.',
+  osc2: 'A second sound source, often an octave or a detuned layer on top of oscillator 1.',
+  fm: 'Frequency modulation: one tone wobbling another very fast, for metallic, glassy, bell or growly edges.',
+  string: 'Settings for the plucked-string and endless-glide (Shepard) waveforms; only used when an oscillator is set to string or shepard.',
+  sub: 'A clean sine or triangle one or two octaves below, always mono: the weight in the low end.',
+  noise: 'White noise mixed in before the filter: air, grit and breath in the tone.',
+  texture: 'A bed of crackle, dust, rumble or air that plays with the notes and lingers after them: the worn, recorded feel.',
+  click: 'A short attack at the start of each note (click, knock, noise or kick) so it cuts through.',
+  drive: 'Saturation before the filter: dirt that the filter then shapes, so the filter movement stays audible.',
+  filter: 'Shapes the tone: low-pass (darker), band-pass, formant (vowels), 303 diode, notch, comb or low-pass gate. Cutoff, resonance and envelope.',
+  dist: 'Distortion after the filter (soft, hard, fold, tube), optionally only on the mids so the low end stays clean.',
+  crush: 'Bitcrusher: lowers bit depth and sample rate for digital grain and lo-fi grit.',
+  tape: 'Tape machine: saturation, wow and flutter (pitch wobble) and age (a dull, worn top).',
+  amp_env: 'Volume over time for each note: attack, decay, sustain and release.',
+  mod_env: 'A second envelope that sweeps the filter on each note (set its depth in the Filter box), and a source for the mod matrix.',
+  env2: 'A slow envelope for long changes while a note is held (blooming open, swelling grit). Does nothing until routed in the mod matrix.',
+  pitch_env: 'A quick pitch drop or rise at the start of each note: kicks, 808 drops, zaps, scoops.',
+  vibrato: 'A human vibrato that starts after a short delay and fades in, so notes start straight and then sing.',
+  breath: 'The player\'s air: a short noisy puff at the start of each note plus a soft breathy band under it, before the filter.',
+  lfo1: 'A slow or fast repeating (or smoothly random) movement. Does nothing until routed in the mod matrix; the line under the title shows where it goes.',
+  lfo2: 'A slow or fast repeating (or smoothly random) movement. Does nothing until routed in the mod matrix; the line under the title shows where it goes.',
+  lfo3: 'A slow or fast repeating (or smoothly random) movement. Does nothing until routed in the mod matrix; the line under the title shows where it goes.',
+  lfo4: 'A slow or fast repeating (or smoothly random) movement. Does nothing until routed in the mod matrix; the line under the title shows where it goes.',
+  wobble: 'A tempo-locked wobble: the filter (and optionally the drive and texture) swings shut and open on the beat. Depth 0 = off.',
+  mod: 'The mod matrix: connects movement sources (LFOs, envelopes, drift, velocity, mod wheel…) to what they move, with an amount for each.',
+  dynamics: 'Compression and the tempo pump (ducking on the beat, like sidechain), plus a multiband squash (OTT) that brings out detail.',
+  fx: 'Chorus, flanger, phaser, delay and reverb, only above the low end so the bass stays clean and mono.',
+  eq: 'Final tone shaping: low, mid and high bands and the high cut (where the dark, controlled top comes from).',
+  output: 'Final level and the low-end crossover. The limiter and mono low end are always on.',
+};
+
 export function formatValue(p: ParamDef, v: ParamValue): string {
   if (p.type === 'bool') return v ? 'on' : 'off';
   if (p.type === 'enum') return String(v);
@@ -116,6 +151,7 @@ export class ParamsPanel {
     box.className = 'group';
     const h = document.createElement('h3');
     h.textContent = 'Other sources';
+    h.title = 'Movement sources without settings of their own (drift, random per note, velocity, mod wheel, keytrack) and where each is routed.';
     box.append(h);
     for (const [src, label] of OTHER_SOURCES) {
       const row = document.createElement('div');
@@ -140,6 +176,7 @@ export class ParamsPanel {
       box.className = 'group' + (g === 'mod' ? ' wide' : '');
       const h = document.createElement('h3');
       h.textContent = GROUP_TITLES[g] ?? g;
+      if (GROUP_TIPS[g]) h.title = GROUP_TIPS[g];
       box.append(h);
       if (Object.values(SOURCE_BOX).includes(g) || g === 'pitch_env') box.append(this.routeEl(g));
       if (LAYERS[g]) h.append(this.monitorButtons(LAYERS[g]));
