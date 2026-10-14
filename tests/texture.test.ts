@@ -61,3 +61,27 @@ describe('texture bed', () => {
     }
   });
 });
+
+describe('pump rate and texture position', () => {
+  // 120 BPM: one beat = 0.5 s. The pump ducks at the start of each cycle and swells back.
+  const pumped = { ...base, 'texture.type': 'air', 'comp.pump': 1, 'comp.amount': 0 };
+  /** Level just after beat 2 starts, relative to just before it. */
+  const dipAtBeat2 = (x: Float32Array) => rms(x, 0.505 * FS, 0.535 * FS) / rms(x, 0.44 * FS, 0.47 * FS);
+
+  it('1/4 ducks on every beat, 1/2 only every other beat', () => {
+    const voice = (rate: string) => renderPatch({ ...pumped, 'texture.level': 0, 'comp.pump_rate': rate }, heldNote(45, 8), { seconds: 1.2 }).left;
+    expect(dipAtBeat2(voice('1/4'))).toBeLessThan(0.5);
+    expect(dipAtBeat2(voice('1/2'))).toBeGreaterThan(0.8);
+  });
+
+  it('a bed before dynamics pumps with the sound; after dynamics it stays steady', () => {
+    const at = (position: string) => {
+      const p = { ...pumped, 'texture.position': position };
+      const a = renderPatch(p, heldNote(45, 8), { seconds: 1.2 }).left;
+      const b = renderPatch({ ...p, 'texture.level': 0 }, heldNote(45, 8), { seconds: 1.2 }).left;
+      return dipAtBeat2(Float32Array.from(a, (v, i) => v - b[i]));
+    };
+    expect(at('before dynamics')).toBeLessThan(0.5);
+    expect(at('after dynamics')).toBeGreaterThan(0.7);
+  });
+});

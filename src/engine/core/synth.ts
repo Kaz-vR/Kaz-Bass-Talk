@@ -105,7 +105,8 @@ export class Synth {
   private readonly ott: Ott;
   private compOn = false;
   private ottOn = false;
-  private beatPhase = 0;
+  /** Position in the bar, in beats [0, 4): the pump's clock. */
+  private beatPos = 0;
 
   // FX + output.
   private readonly flanger: Flanger;
@@ -237,7 +238,7 @@ export class Synth {
 
   /** Align the internal beat clock (used by the tempo pump) to a song position in beats. */
   syncBeat(beat: number): void {
-    this.beatPhase = beat - Math.floor(beat);
+    this.beatPos = beat - 4 * Math.floor(beat / 4);
   }
 
   pitchBend(v: number): void {
@@ -529,12 +530,13 @@ export class Synth {
     this.texLpCoef = lead.tapeLpCoef;
 
     // Dynamics: compressor with a tempo pump, then multiband OTT.
-    this.beatPhase += (this.tempo / 60) * (BLOCK / fs);
-    if (this.beatPhase >= 1) this.beatPhase -= 1;
+    this.beatPos += (this.tempo / 60) * (BLOCK / fs);
+    if (this.beatPos >= 4) this.beatPos -= 4;
     const pump = cur[P.compPump];
     let pumpGain = 1;
     if (pump > 0) {
-      const b = this.beatPhase;
+      const cycle = K.PUMP_BEATS[Math.round(cur[P.compPumpRate])] ?? 1;
+      const b = (this.beatPos % cycle) / cycle;
       const duck = b < 0.03 ? b / 0.03 : Math.exp(-(b - 0.03) * 6);
       pumpGain = 1 - pump * 0.85 * duck;
     }
@@ -656,6 +658,7 @@ export class Synth {
         }
       }
 
+      let texL = 0, texR = 0;
       // Texture bed (swells in with the notes, lingers for its tail, silent otherwise).
       if (this.texGain > 0 && (this.anyGate || this.texEnv > 1e-5)) {
         this.texEnv = this.anyGate ? this.texEnv + (1 - this.texEnv) * this.texAtk : this.texEnv * this.texRel;
@@ -669,10 +672,16 @@ export class Synth {
           tr = this.texLpR;
         }
         const tg = this.texGain * this.texEnv * this.duckGain;
-        l += tl * tg;
-        r += tr * tg;
+        texL = tl * tg;
+        texR = tr * tg;
       } else if (!this.anyGate) {
         this.texEnv = 0;
+      }
+      // Before dynamics the bed is compressed and pumps with the sound; after, it stays steady.
+      const texPost = cur[P.texPosition] > 0.5;
+      if (!texPost) {
+        l += texL;
+        r += texR;
       }
 
       // Dynamics (stereo-linked, so mono content stays mono).
@@ -685,6 +694,10 @@ export class Synth {
         this.ott.process(l, r, out);
         l = out[0];
         r = out[1];
+      }
+      if (texPost) {
+        l += texL;
+        r += texR;
       }
 
       // FX on the part above fx.lowcut only.

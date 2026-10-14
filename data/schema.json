@@ -529,6 +529,18 @@
       "describes": "How long the texture lingers after a note ends."
     },
     {
+      "id": "texture.position",
+      "label": "Texture position",
+      "type": "enum",
+      "options": [
+        "before dynamics",
+        "after dynamics"
+      ],
+      "default": "before dynamics",
+      "group": "texture",
+      "describes": "Before dynamics: the bed is compressed and pumps with the sound, breathing as one. After dynamics: the bed skips the compressor, pump and OTT and stays steady underneath, like crackle on its own track."
+    },
+    {
       "id": "click.type",
       "label": "Transient type",
       "type": "enum",
@@ -2447,6 +2459,20 @@
       "group": "dynamics",
       "describes": "Tempo-synced ducking on every beat, like sidechain compression from a kick. Makes the bass breathe and pump.",
       "exponent": 2
+    },
+    {
+      "id": "comp.pump_rate",
+      "label": "Pump rate",
+      "type": "enum",
+      "options": [
+        "1/1",
+        "1/2",
+        "1/4",
+        "1/8"
+      ],
+      "default": "1/4",
+      "group": "dynamics",
+      "describes": "How often the pump ducks: 1/4 on every beat (four-on-the-floor), 1/2 for half-time grooves, 1/8 for double-time, 1/1 once a bar."
     },
     {
       "id": "ott.amount",
