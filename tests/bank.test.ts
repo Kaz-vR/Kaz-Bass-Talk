@@ -10,6 +10,7 @@ import { outliers, type Vibe } from '../src/quality/consistency';
 import { judge } from '../src/quality/critic';
 import { paramHash } from '../src/quality/stamp';
 import { validatePatch } from '../src/schema';
+import { codeHash } from '../tools/lib/codehash';
 import { libraryPatches, loop } from './helpers/audio';
 
 const bank = libraryPatches().filter(({ json }) => json.meta.category);
@@ -20,10 +21,19 @@ describe('preset bank', () => {
     for (const { file, json } of bank) expect(ids, file).toContain(json.meta.category);
   });
 
-  it.each(bank.map((e) => [e.file, e.json]))('%s earns its place (stamp matches the sound)', (_f, json) => {
+  it('every category has its presets', () => {
+    for (const c of categories) {
+      expect(bank.filter(({ json }) => json.meta.category === c.id).length, c.id).toBeGreaterThanOrEqual(10);
+    }
+  });
+
+  it.each(bank.map((e) => [e.file, e.json]))('%s passes every check (stamp matches the sound and the code)', (_f, json) => {
     const checks = json.meta.checks;
-    expect(checks, 'run npm run analyze:library').toBeTruthy();
-    expect(checks.hash, 'sound changed since the check: run npm run analyze:library').toBe(paramHash(validatePatch(json).patch));
+    expect(checks, 'run tools/analyze-parallel.ts').toBeTruthy();
+    expect(checks.hash, 'sound changed since the check: re-run the analysis').toBe(paramHash(validatePatch(json).patch));
+    expect(checks.code, 'engine/analysis/critic code or data changed since the check: re-run the analysis').toBe(codeHash());
+    expect(checks.issues).toEqual([]);
+    expect(checks.critic).toBe(true);
     expect(checks.failing).toEqual([]);
     expect(checks.earns).toBe(true);
   });

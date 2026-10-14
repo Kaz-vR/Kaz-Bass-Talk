@@ -21,8 +21,8 @@ describe('bass directory', () => {
   it('every family has at least one entry', () => {
     for (const f of families) expect(dir.entries.some((e: { family: string }) => e.family === f), String(f)).toBe(true);
   });
-  it('every library patch names an existing directory entry and family', () => {
-    for (const { file, json } of libraryPatches()) {
+  it('every Atlas and Terror patch names an existing directory entry and family', () => {
+    for (const { file, json } of libraryPatches().filter(({ json }) => json.meta.directory)) {
       expect(ids, file).toContain(json.meta.directory);
       expect(families, file).toContain(json.meta.family);
     }

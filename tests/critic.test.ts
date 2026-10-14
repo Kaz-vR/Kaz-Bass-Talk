@@ -50,8 +50,9 @@ describe('critic checks that need no render', () => {
   });
 });
 
-describe('every library patch passes the critic', () => {
-  for (const { file, json } of libraryPatches()) {
+describe('every Bass Atlas patch passes the critic', () => {
+  // Bank presets carry stamped verdicts (tests/bank.test.ts) and a re-analyzed sample below.
+  for (const { file, json } of libraryPatches().filter(({ json }) => !json.meta.category)) {
     it(file, () => {
       const setup = analysisSetup(json.meta);
       const v = judge(analyzePatch(json, loop(setup.loop), setup.opts).raw, json.meta.family, json.meta.category);
@@ -95,4 +96,17 @@ describe('alive (terror family)', () => {
     const raw = analyzePatch(base, groove, { life: false }).raw;
     expect(judge(raw, 'terror').issues.map((i) => i.code)).toContain('lifeSlowDb');
   });
+});
+
+describe('bank presets pass the critic (re-analyzed sample)', () => {
+  const bank = libraryPatches().filter(({ json }) => json.meta.category);
+  // Three presets per run, spread over the bank and moving as it grows.
+  const sample = [0, 1, 2].map((k) => bank[(k * 53 + bank.length * 7) % bank.length]);
+  for (const { file, json } of sample) {
+    it(file, () => {
+      const setup = analysisSetup(json.meta);
+      const v = judge(analyzePatch(json, loop(setup.loop), setup.opts).raw, json.meta.family, json.meta.category);
+      expect(v.issues.map((i) => i.message)).toEqual([]);
+    }, 120000);
+  }
 });

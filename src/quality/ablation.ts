@@ -16,6 +16,8 @@ export interface Ingredient {
   label: string;
   /** Parameter values that switch it off. */
   off: Record<string, ParamValue>;
+  /** Acts only for a moment per note (click, pitch or filter envelope, chiff): judged on its strongest frames. */
+  momentary?: boolean;
 }
 
 export interface AblationResult {
@@ -33,11 +35,12 @@ export interface AblationResult {
 export const EARNS_PLACE_DB = 0.15;
 
 const n = (p: Patch, id: string) => p[id] as number;
+const MOMENTARY = new Set(['click', 'pitchEnv', 'filterEnv', 'fm']);
 
 /** The ingredients present in a patch (things a designer chose to add). */
 export function ingredients(p: Patch): Ingredient[] {
   const out: Ingredient[] = [];
-  const add = (id: string, label: string, off: Record<string, ParamValue>) => out.push({ id, label, off });
+  const add = (id: string, label: string, off: Record<string, ParamValue>) => out.push({ id, label, off, momentary: MOMENTARY.has(id) });
   for (let s = 1; s <= 12; s++) {
     const dst = p[`mod${s}.dest`] as string;
     if (dst !== 'none' && p[`mod${s}.source`] !== 'none' && Math.abs(n(p, `mod${s}.amount`)) > 0.0005) {
@@ -98,9 +101,10 @@ function bandFrames(l: Float32Array, r: Float32Array, fs: number): Float64Array[
  * difference of each band (mid and side), counted only where either render
  * is within 45 dB of that frame's loudest band and weighted toward louder
  * bands. Across frames: the 80th percentile, because movement only shows
- * while the modulator is away from its centre.
+ * while the modulator is away from its centre (95th for momentary
+ * ingredients like a click, which only act at the start of each note).
  */
-export function audibleDifference(a: Float64Array[], b: Float64Array[]): number {
+export function audibleDifference(a: Float64Array[], b: Float64Array[], percentile = 0.8): number {
   const perFrame: number[] = [];
   for (let f = 0; f < Math.min(a.length, b.length); f++) {
     const ra = a[f], rb = b[f];
@@ -119,7 +123,7 @@ export function audibleDifference(a: Float64Array[], b: Float64Array[]): number 
   }
   if (!perFrame.length) return 0;
   perFrame.sort((x, y) => x - y);
-  return perFrame[Math.floor(0.8 * (perFrame.length - 1))];
+  return perFrame[Math.floor(percentile * (perFrame.length - 1))];
 }
 
 export interface AblationOptions {
@@ -139,7 +143,7 @@ export function earnsItsPlace(input: unknown, loop: Loop, opts: AblationOptions)
   };
   const full = render(p);
   return ingredients(p).map((ing) => {
-    const diffDb = audibleDifference(full, render({ ...p, ...ing.off, meta: p.meta }));
+    const diffDb = audibleDifference(full, render({ ...p, ...ing.off, meta: p.meta }), ing.momentary ? 0.95 : 0.8);
     return { ingredient: ing, diffDb, pass: diffDb >= EARNS_PLACE_DB };
   });
 }

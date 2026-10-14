@@ -15,6 +15,7 @@ import { judge } from '../src/quality/critic';
 import { checkRules } from '../src/quality/rules';
 import { paramHash } from '../src/quality/stamp';
 import { validatePatch } from '../src/schema';
+import { codeHash } from './lib/codehash';
 import { loadLibrary, loadLoops } from './lib/data';
 
 /** Sample rate for the (slow) earns-its-place renders. */
@@ -44,18 +45,25 @@ for (const entry of loadLibrary().filter((e) => (fileList ? fileList.includes(e.
   if (category) {
     meta.vibe = vibeOf(a.raw);
     const hash = paramHash(patch);
-    const prev = meta.checks as { hash?: string; earns?: boolean; weakest?: string } | undefined;
-    if (force || !prev || prev.hash !== hash) {
+    const code = codeHash();
+    const prev = meta.checks as { hash?: string; code?: string; earns?: boolean; weakest?: string } | undefined;
+    if (force || !prev || prev.hash !== hash || prev.code !== code) {
       const res = earnsItsPlace(patch, loop, { seconds: setup.opts.loopSeconds, sampleRate: ABLATION_RATE });
       const failing = res.filter((r) => !r.pass);
       const weakest = [...res].sort((x, y) => x.diffDb - y.diffDb)[0];
       meta.checks = {
         hash,
+        code,
         earns: failing.length === 0,
         weakest: weakest ? `${weakest.ingredient.label} ${weakest.diffDb.toFixed(2)} dB` : '',
         failing: failing.map((r) => `${r.ingredient.label} ${r.diffDb.toFixed(2)} dB`),
       };
     }
+    // The critic and rules verdicts, stamped too (the tests check the stamp and re-run a sample).
+    Object.assign(meta.checks as object, {
+      critic: verdict.pass && errors.length === 0,
+      issues: [...verdict.issues.map((i) => i.message), ...errors.map((e) => e.message)],
+    });
     const checks = meta.checks as { earns: boolean; failing: string[] };
     if (!checks.earns) {
       ok = false;

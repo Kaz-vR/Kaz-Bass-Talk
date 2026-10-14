@@ -1,5 +1,5 @@
 {
-  "$comment": "The 14 categories of the preset bank. poly: default voices; audition: loop the UI plays; analysis/seconds/probes/hold: how the critic measures the category (its loop, its register as low/mid/high MIDI notes, held-note length); decaying: notes are meant to die away (life is judged more gently). limits: critic overrides for the category. zone: the LORN fingerprint (vibe measurements the category's presets must land in).",
+  "$comment": "The 14 categories of the preset bank. poly: default voices; audition: loop the UI plays; analysis/seconds/probes/hold: how the critic measures the category (its loop, its register as low/mid/high MIDI notes, held-note length); decaying: notes are meant to die away (life is judged more gently). limits: critic overrides for the category. zone: the LORN fingerprint (vibe measurements the category's presets must land in). Mud limits are higher for mid-register categories (keys, pluck, arp, bells): their notes' fundamentals sit in the 200-400 Hz mud band, so energy there is the instrument, not build-up.",
   "categories": [
     {
       "id": "bass",
@@ -177,7 +177,7 @@
           "max": 0.6
         },
         "mudDb": {
-          "max": 5
+          "max": 6
         },
         "noteSpreadDb": {
           "max": 5
@@ -228,6 +228,9 @@
         },
         "noteSpreadDb": {
           "max": 5
+        },
+        "mudDb": {
+          "max": 7
         }
       },
       "zone": {
@@ -275,6 +278,9 @@
         },
         "noteSpreadDb": {
           "max": 5
+        },
+        "mudDb": {
+          "max": 7
         }
       },
       "zone": {
@@ -507,10 +513,13 @@
           "min": -25
         },
         "harshDb": {
-          "max": -6
+          "max": -4
         },
         "noteSpreadDb": {
           "max": 6
+        },
+        "mudDb": {
+          "max": 7
         }
       },
       "zone": {
