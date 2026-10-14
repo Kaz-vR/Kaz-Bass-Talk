@@ -16,7 +16,42 @@
     "family": "arp",
     "collection": "bank",
     "audition": "arp-line",
-    "iconic": 2
+    "iconic": 2,
+    "vibe": {
+      "brightOct": 1.18,
+      "airDb": -19,
+      "dirt": 1.21,
+      "widthDb": -18.2,
+      "tailDb": -27.8
+    },
+    "checks": {
+      "hash": "6478b9c1",
+      "audio": "bab58691",
+      "judge": "b3d612c0",
+      "critic": false,
+      "issues": [
+        "off-style air above 6 kHz: -19.0 dB (limit -24.0 dB)",
+        "Mod 5 → unison_detune does nothing: no oscillator uses unison."
+      ],
+      "earns": false,
+      "weakest": "mod 5 (lfo3 → unison_detune) 0.00 dB",
+      "failing": [
+        "mod 5 (lfo3 → unison_detune) 0.00 dB"
+      ]
+    },
+    "features": {
+      "brightness": 0.537,
+      "highEnergy": 0.784,
+      "sub": 0.179,
+      "lowMid": 0.758,
+      "dirt": 1,
+      "width": 0.546,
+      "attack": 0.1,
+      "decay": 0.75,
+      "sustain": 0.71,
+      "release": 0.773,
+      "movement": 0.042
+    }
   },
   "voice.polyphony": 4,
   "voice.legato": false,
@@ -218,6 +253,6 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 7000,
-  "output.gain": 0,
+  "output.gain": 1.8,
   "output.crossover": 120
 }
