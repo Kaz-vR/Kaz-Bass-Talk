@@ -28,10 +28,12 @@ const ATLAS = 'atlas';
 interface Group { id: string; name: string; description: string; audition?: string; items: number[] }
 // Plucks and sequences share one shelf: the same short sounds, played as notes or patterns (each keeps its own audition).
 const SHELF: Record<string, string> = { arp: 'pluck' };
+// Browser titles (the category data keeps its own names).
+const TITLE: Record<string, string> = { bass: 'Dark Basses', lead: 'Leads', pad: 'Pads', pluck: 'Plucks', brass: 'Brass', choir: 'Choir', texture: 'Textures' };
 const groups: Group[] = categories.filter((c) => !SHELF[c.id]).map((c) =>
   c.id === 'pluck'
-    ? { id: c.id, name: 'Pluck / Sequence', description: 'Short, defined sounds to play as notes, chords or patterns: soft and round to hard and driving.', audition: c.audition, items: [] }
-    : { id: c.id, name: c.id === 'bass' ? 'Dark Basses' : c.name, description: c.description, audition: c.audition, items: [] });
+    ? { id: c.id, name: TITLE.pluck, description: 'Short, defined sounds to play as notes, chords or patterns: soft and round to hard and driving.', audition: c.audition, items: [] }
+    : { id: c.id, name: TITLE[c.id] ?? c.name, description: c.description, audition: c.audition, items: [] });
 groups.push({ id: ATLAS, name: 'Classic Basses', description: 'One patch for each of 51 well-known synth bass types across genres and history (outside the LORN style).', items: [] });
 // The randomizer: its own tab after the categories (rolls, not presets).
 const RANDOMIZER = 'randomizer';
