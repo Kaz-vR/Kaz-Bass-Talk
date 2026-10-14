@@ -349,7 +349,7 @@ const def: CategoryDef = {
     {
       id: 'felt-lead', name: 'Felt Lead',
       description: "A soft, steady lead with no vibrato: a round triangle tone that sings quietly, close to the ear.",
-      tags: ['lead', 'soft', 'steady', 'round', 'quiet', 'triangle', 'lorn'],
+      tags: ['lead', 'soft', 'steady', 'round', 'quiet', 'triangle', 'lorn', 'new'],
       texture: ['dust', 0.5, 0.3, 1200],
       set: { 'osc1.wave': 'triangle', 'osc1.unison_voices': 1, 'osc2.wave': 'sine', 'osc2.semi': 12, 'osc2.fine': 0, 'osc2.level': 0.15, 'amp_env.attack': 40, 'vibrato.depth': 0, 'breath.level': 0.15, 'drive.amount': 0.4, 'dist.drive': 0.12, 'tape.wow': 0.1, 'filter.cutoff': 3000, 'filter.env_amount': 0 },
       mods: kit(SOFT_KIT, [['lfo1', 'osc2_level', 0.4]], { 'drift_slow>drive': ['drift_slow', 'osc2_level', 0.25], 'velocity>drive': ['velocity', 'amp', 0.25] }),
@@ -357,14 +357,14 @@ const def: CategoryDef = {
     {
       id: 'iron-lead', name: 'Iron Lead',
       description: "A hard, clipped saw lead that cuts straight through: no glide, no softness, all edge.",
-      tags: ['lead', 'hard', 'clipped', 'aggressive', 'saw', 'cutting', 'lorn'],
+      tags: ['lead', 'hard', 'clipped', 'aggressive', 'saw', 'cutting', 'lorn', 'new'],
       texture: ['crackle', 0.45, 0.4, 900],
       set: { 'voice.glide': 0, 'amp_env.attack': 2, 'drive.amount': 0.75, 'dist.type': 'hard', 'dist.drive': 0.45, 'dist.mix': 0.7, 'filter.cutoff': 1500, 'vibrato.depth': 6 },
     },
     {
       id: 'stab-lead', name: 'Stab Lead',
       description: "Short, punchy lead stabs: a hollow pulse that speaks and stops, for riffs and call-and-response.",
-      tags: ['lead', 'short', 'stab', 'pulse', 'punchy', 'riff', 'lorn'],
+      tags: ['lead', 'short', 'stab', 'pulse', 'punchy', 'riff', 'lorn', 'new'],
       texture: ['dust', 0.45, 0.35, 800],
       set: { 'voice.legato': false, 'voice.glide': 0, 'osc1.wave': 'pulse', 'osc1.pulse_width': 0.4, 'amp_env.attack': 2, 'amp_env.decay': 250, 'amp_env.sustain': 0.2, 'amp_env.release': 90, 'filter.env_amount': 0.35, 'mod_env.decay': 150, 'mod_env.sustain': 0, 'vibrato.depth': 0 },
       mods: kit(LEAD_KIT, [], { 'lfo3>unison_detune': ['lfo3', 'osc1_pw', 0.2] }),

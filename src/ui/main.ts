@@ -134,6 +134,13 @@ function renderBrowser(): void {
         : 'A LORN version of an iconic sound from synthwave, cyberpunk, Vangelis or Stranger Things';
       name.append(tag);
     }
+    if ((p.meta.tags as string[] | undefined)?.includes('new')) {
+      const tag = document.createElement('em');
+      tag.className = 'iconic-tag new';
+      tag.textContent = 'New';
+      tag.title = 'Added to cover a role this category was missing: audition it and keep or delete';
+      name.append(tag);
+    }
     const desc = document.createElement('span');
     desc.textContent = p.meta.description ?? '';
     card.append(name, desc);

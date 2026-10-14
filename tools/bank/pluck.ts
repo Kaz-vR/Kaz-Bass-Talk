@@ -155,7 +155,7 @@ const def: CategoryDef = {
     {
       id: 'ringing-wire', name: 'Ringing Wire',
       description: "A plucked wire that rings on and on, the note hanging in the dark long after the pick.",
-      tags: ['pluck', 'ringing', 'string', 'long', 'sustain', 'dark', 'lorn'],
+      tags: ['pluck', 'ringing', 'string', 'long', 'sustain', 'dark', 'lorn', 'new'],
       texture: ['dust', 0.45, 0.3, 2000],
       set: { 'osc1.wave': 'string', 'string.tone': 0.45, 'string.decay': 0.9, 'osc1.unison_voices': 1, 'osc2.wave': 'sine', 'osc2.level': 0.35, 'amp_env.decay': 3000, 'amp_env.release': 1500, 'filter.cutoff': 1800, 'filter.env_amount': 0, 'drive.amount': 0.35, 'dist.drive': 0.12, 'eq.mid_freq': 300, 'eq.mid_gain': -4 },
       mods: SOFT_PLUCK_KIT,
@@ -163,7 +163,7 @@ const def: CategoryDef = {
     {
       id: 'thick-pluck', name: 'Thick Pluck',
       description: "A big, thick pluck: five detuned saws and an octave below, filling the whole middle of the track.",
-      tags: ['pluck', 'thick', 'supersaw', 'big', 'wide', 'detuned', 'lorn'],
+      tags: ['pluck', 'thick', 'supersaw', 'big', 'wide', 'detuned', 'lorn', 'new'],
       texture: ['dust', 0.45, 0.35, 800],
       set: { 'osc1.unison_voices': 5, 'osc1.unison_detune': 16, 'osc2.wave': 'saw', 'osc2.semi': -12, 'osc2.level': 0.4, 'filter.cutoff': 500, 'filter.env_amount': 0.5, 'eq.mid_freq': 300, 'eq.mid_gain': -4 },
     },
