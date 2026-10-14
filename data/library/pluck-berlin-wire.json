@@ -16,7 +16,41 @@
     "family": "pluck",
     "collection": "bank",
     "audition": "arp-line",
-    "iconic": 2
+    "iconic": 2,
+    "vibe": {
+      "brightOct": 0.54,
+      "airDb": -33.9,
+      "dirt": 0.98,
+      "widthDb": -18,
+      "tailDb": -28.3
+    },
+    "checks": {
+      "hash": "ef7f8c91",
+      "audio": "a2a2925c",
+      "judge": "b3d612c0",
+      "critic": false,
+      "issues": [
+        "Mod 5 → unison_detune does nothing: no oscillator uses unison."
+      ],
+      "earns": false,
+      "weakest": "mod 5 (lfo3 → unison_detune) 0.00 dB",
+      "failing": [
+        "mod 5 (lfo3 → unison_detune) 0.00 dB"
+      ]
+    },
+    "features": {
+      "brightness": 0.441,
+      "highEnergy": 0.705,
+      "sub": 0.094,
+      "lowMid": 0.821,
+      "dirt": 0.976,
+      "width": 0.551,
+      "attack": 0.1,
+      "decay": 0.378,
+      "sustain": 0.209,
+      "release": 0.773,
+      "movement": 0.722
+    }
   },
   "voice.polyphony": 8,
   "voice.legato": false,

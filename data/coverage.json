@@ -1489,6 +1489,265 @@
         "chorus:classic",
         "wave:saw"
       ]
+    },
+    {
+      "id": "reed-tears",
+      "name": "Melodica",
+      "category": "keys",
+      "preset": "keys-reed-tears",
+      "identity": "A breathy free reed with a wobbly, sad vibrato and air on every note.",
+      "requires": [
+        "wave:pulse",
+        "layer:breath"
+      ]
+    },
+    {
+      "id": "harbour-reed",
+      "name": "Accordion / bandoneon",
+      "category": "keys",
+      "preset": "keys-harbour-reed",
+      "identity": "Reedy layers detuned against each other (the musette beat), bellows swelling the level.",
+      "requires": [
+        "wave:saw",
+        "osc2-layer",
+        "layer:breath"
+      ]
+    },
+    {
+      "id": "backwards-room",
+      "name": "Reversed keys",
+      "category": "keys",
+      "preset": "keys-backwards-room",
+      "identity": "Every note swells in backwards with the tone opening late, then cuts off.",
+      "requires": [
+        "amp:swell"
+      ]
+    },
+    {
+      "id": "glass-decade",
+      "name": "80s/90s digital keys",
+      "category": "keys",
+      "preset": "keys-glass-decade",
+      "identity": "A glassy FM bell attack over a soft sustained pad body.",
+      "requires": [
+        "fm:operator2",
+        "osc2-layer"
+      ]
+    },
+    {
+      "id": "night-stab",
+      "name": "Synth stab keys",
+      "category": "keys",
+      "preset": "keys-night-stab",
+      "identity": "Short, punchy detuned-saw chord stabs with a quick filter snap.",
+      "requires": [
+        "wave:saw",
+        "amp:short-sustain",
+        "modenv:snappy"
+      ]
+    },
+    {
+      "id": "pedal-wash",
+      "name": "Ambient sustain-pedal piano",
+      "category": "keys",
+      "preset": "keys-pedal-wash",
+      "identity": "A soft piano whose notes all ring on into each other, a long wash of release and room.",
+      "requires": [
+        "release:long",
+        "reverb:huge"
+      ]
+    },
+    {
+      "id": "cotton-tines",
+      "name": "Soft keys: Cotton Tines",
+      "category": "keys",
+      "preset": "keys-cotton-tines",
+      "identity": "A soft electric piano played at a whisper: round tines with no bark, warm and close.",
+      "requires": []
+    },
+    {
+      "id": "pillow-felt",
+      "name": "Soft keys: Pillow Felt",
+      "category": "keys",
+      "preset": "keys-pillow-felt",
+      "identity": "A felt piano with the soft pedal down: muffled hammers and a gentle, sleepy tone.",
+      "requires": []
+    },
+    {
+      "id": "hush-vibes",
+      "name": "Soft keys: Hush Vibes",
+      "category": "keys",
+      "preset": "keys-hush-vibes",
+      "identity": "A soft vibraphone with a slow tremolo, hit with yarn mallets in a dim room.",
+      "requires": []
+    },
+    {
+      "id": "sleep-organ",
+      "name": "Soft keys: Sleep Organ",
+      "category": "keys",
+      "preset": "keys-sleep-organ",
+      "identity": "A soft sine organ, two drawbars and nothing else, breathing slowly in the dark.",
+      "requires": []
+    },
+    {
+      "id": "quiet-reed",
+      "name": "Soft keys: Quiet Reed",
+      "category": "keys",
+      "preset": "keys-quiet-reed",
+      "identity": "A reedy electric piano turned all the way down: soft, round, with a lazy tremolo.",
+      "requires": []
+    },
+    {
+      "id": "glass-hush",
+      "name": "Soft keys: Glass Hush",
+      "category": "keys",
+      "preset": "keys-glass-hush",
+      "identity": "Soft glass keys, small and pure, ringing gently far away.",
+      "requires": []
+    },
+    {
+      "id": "breath-keys",
+      "name": "Soft keys: Breath Keys",
+      "category": "keys",
+      "preset": "keys-breath-keys",
+      "identity": "Soft triangle keys with a little air in every note, like a sigh between chords.",
+      "requires": []
+    },
+    {
+      "id": "velvet-tape",
+      "name": "Soft keys: Velvet Tape",
+      "category": "keys",
+      "preset": "keys-velvet-tape",
+      "identity": "Soft, round keys with an octave shadow, slowly warping on a gentle tape.",
+      "requires": []
+    },
+    {
+      "id": "felt-pluck",
+      "name": "Soft pluck: Felt Pluck",
+      "category": "pluck",
+      "preset": "pluck-felt-pluck",
+      "identity": "A soft triangle pluck, round as felt, dropping gently into a dark echo.",
+      "requires": []
+    },
+    {
+      "id": "thumb-lullaby",
+      "name": "Soft pluck: Thumb Lullaby",
+      "category": "pluck",
+      "preset": "pluck-thumb-lullaby",
+      "identity": "A soft thumb piano, small round tines plucked slowly to sleep.",
+      "requires": []
+    },
+    {
+      "id": "nylon-night",
+      "name": "Soft pluck: Nylon Night",
+      "category": "pluck",
+      "preset": "pluck-nylon-night",
+      "identity": "A nylon string plucked softly with the thumb, warm and close at night.",
+      "requires": []
+    },
+    {
+      "id": "paper-pluck",
+      "name": "Soft pluck: Paper Pluck",
+      "category": "pluck",
+      "preset": "pluck-paper-pluck",
+      "identity": "A muted, papery string pluck: barely there, dry and gentle.",
+      "requires": []
+    },
+    {
+      "id": "cloud-pluck",
+      "name": "Soft pluck: Cloud Pluck",
+      "category": "pluck",
+      "preset": "pluck-cloud-pluck",
+      "identity": "A soft saw pluck that blooms into a huge, slow reverb, like a note dissolving into fog.",
+      "requires": []
+    },
+    {
+      "id": "glass-drop",
+      "name": "Soft pluck: Glass Drop",
+      "category": "pluck",
+      "preset": "pluck-glass-drop",
+      "identity": "A soft glass droplet: a pure tone with a faint shimmer, falling into a quiet pool.",
+      "requires": []
+    },
+    {
+      "id": "velvet-pick",
+      "name": "Soft pluck: Velvet Pick",
+      "category": "pluck",
+      "preset": "pluck-velvet-pick",
+      "identity": "A soft triangle pluck with an octave shadow and a slow chorus, velvet-smooth.",
+      "requires": []
+    },
+    {
+      "id": "wood-hush",
+      "name": "Soft pluck: Wood Hush",
+      "category": "pluck",
+      "preset": "pluck-wood-hush",
+      "identity": "A soft wooden mallet on a marimba bar: a warm knock that fades fast.",
+      "requires": []
+    },
+    {
+      "id": "cradle-arp",
+      "name": "Soft arp: Cradle Arp",
+      "category": "arp",
+      "preset": "arp-cradle-arp",
+      "identity": "A slow, soft sine-bell arpeggio rocking back and forth like a cradle.",
+      "requires": []
+    },
+    {
+      "id": "cotton-steps",
+      "name": "Soft arp: Cotton Steps",
+      "category": "arp",
+      "preset": "arp-cotton-steps",
+      "identity": "Soft triangle steps, round and quiet, walking through a gentle echo.",
+      "requires": []
+    },
+    {
+      "id": "felt-sequence",
+      "name": "Soft arp: Felt Sequence",
+      "category": "arp",
+      "preset": "arp-felt-sequence",
+      "identity": "A felt-piano sequence, muffled and patient, every note a little different.",
+      "requires": []
+    },
+    {
+      "id": "glass-lullaby",
+      "name": "Soft arp: Glass Lullaby",
+      "category": "arp",
+      "preset": "arp-glass-lullaby",
+      "identity": "A glassy music-box arpeggio, small and sweet, ringing in a big quiet room.",
+      "requires": []
+    },
+    {
+      "id": "breathing-arp",
+      "name": "Soft arp: Breathing Arp",
+      "category": "arp",
+      "preset": "arp-breathing-arp",
+      "identity": "A soft arpeggio with air in every note, rising and falling like slow breathing.",
+      "requires": []
+    },
+    {
+      "id": "slow-tide",
+      "name": "Soft arp: Slow Tide",
+      "category": "arp",
+      "preset": "arp-slow-tide",
+      "identity": "A soft saw arpeggio whose filter rises and falls over the bars like a slow tide.",
+      "requires": []
+    },
+    {
+      "id": "warm-haze",
+      "name": "Soft arp: Warm Haze",
+      "category": "arp",
+      "preset": "arp-warm-haze",
+      "identity": "A warm, chorused arp seen through haze: soft-edged, slow and golden.",
+      "requires": []
+    },
+    {
+      "id": "night-light",
+      "name": "Soft arp: Night-light Sequence",
+      "category": "arp",
+      "preset": "arp-night-light",
+      "identity": "A tiny, soft pulse sequence glowing in a dark room like a night light.",
+      "requires": []
     }
   ]
 }
