@@ -129,6 +129,21 @@ const def: CategoryDef = {
       // Ticks: a stepped filter and chopped level, locked to the tempo.
       mods: TEXTURE_KIT.map((m) => (m[0] === 'lfo1' && m[1] === 'texture_level' ? (['lfo1', 'filter_cutoff', 0.35] as Mod) : m[0] === 'lfo2' ? (['lfo2', 'amp', -0.4] as Mod) : m[0] === 'velocity' ? (['drift_slow', 'crush_mix', 0.3] as Mod) : m)),
     },
+    // ------------------------------------------------ filling the gaps
+    {
+      id: 'breathing-static', name: 'Breathing Static',
+      description: 'Warped tape static that stays steady while the tone under it breathes hard on the beat.',
+      tags: ['texture', 'static', 'pump', 'tape', 'warped', 'breathing', 'lorn'],
+      texture: ['crackle', 0.7, 0.4, 2500],
+      set: { 'texture.position': 'after dynamics', 'comp.amount': 0.5, 'comp.pump': 0.6, 'tape.wow': 0.4, 'tape.age': 0.65 },
+    },
+    {
+      id: 'tin-rain', name: 'Tin Rain',
+      description: 'A metallic FM shimmer with an octave above it, like rain on a tin roof turned into a tone.',
+      tags: ['texture', 'fm', 'metallic', 'shimmer', 'rain', 'tin', 'lorn'],
+      texture: ['dust', 0.6, 0.4, 2500],
+      set: { 'fm.amount': 0.25, 'fm.ratio': 3.1, 'osc2.wave': 'triangle', 'osc2.semi': 12, 'osc2.level': 0.2 },
+    },
   ],
 };
 

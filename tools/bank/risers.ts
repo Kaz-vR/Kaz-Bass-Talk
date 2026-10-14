@@ -114,6 +114,29 @@ const def: CategoryDef = {
       set: { 'osc2.wave': 'saw', 'osc2.semi': 12, 'osc2.level': 0.3, 'chorus.mix': 0.3, 'chorus.mode': 'ensemble', 'reverb.mix': 0.5 },
       mods: kit(RISE_KIT, [['env2', 'pitch', 1]]),
     },
+    // ------------------------------------------------ filling the gaps
+    {
+      id: 'signal-sweep', name: 'Signal Sweep',
+      description: 'A wavetable riser morphing as it climbs, its filter ticking in sixteenths through a phaser and a flanger.',
+      tags: ['riser', 'wavetable', 'morph', 'synced', 'phaser', 'flanger', 'lorn'],
+      texture: ['air', 0.45, 0.35, 2500],
+      set: {
+        'osc1.wave': 'wavetable', 'osc1.wt_pos': 0.2, 'lfo2.sync': '1/16', 'lfo2.shape': 'triangle', 'phaser.mix': 0.25, 'phaser.rate': 0.3,
+        'flanger.mix': 0.2, 'flanger.rate': 0.15,
+      },
+      mods: kit(RISE_KIT, [], { 'lfo4>unison_detune': ['env2', 'osc1_wt_pos', 0.5], 'lfo2>amp': ['lfo2', 'filter_cutoff', 0.1] }),
+    },
+    {
+      id: 'broken-ascent', name: 'Broken Ascent',
+      description: 'A crushed, metallic pulse riser climbing through a narrow band, as if a broken machine were straining upward.',
+      tags: ['riser', 'pulse', 'fm', 'bandpass', 'crushed', 'machine', 'lorn'],
+      texture: ['rumble', 0.45, 0.35, 2500],
+      set: {
+        // The band sits on the note itself (a band-pass above the fundamental reads far too bright) and climbs from there.
+        'osc1.wave': 'pulse', 'osc1.pulse_width': 0.3, 'fm.amount': 0.15, 'fm.ratio': 2.76, 'filter.type': 'bandpass', 'filter.cutoff': 110,
+        'filter.resonance': 0.35, 'filter.keytrack': 1, 'crush.mix': 0.2, 'crush.bits': 7, 'crush.rate': 5, 'eq.highcut': 5000,
+      },
+    },
   ],
 };
 

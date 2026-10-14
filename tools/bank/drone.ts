@@ -131,6 +131,17 @@ const def: CategoryDef = {
       },
       mods: kit(DRONE_KIT, [], { 'lfo2>filter_cutoff': ['lfo2', 'amp', -0.3], 'lfo3>unison_detune': ['lfo3', 'osc1_wt_pos', 0.15] }),
     },
+    // ------------------------------------------------ filling the gaps
+    {
+      id: 'rust-tunnel', name: 'Rust Tunnel',
+      description: 'A drone heard through a long rusted pipe: a narrow, phasing band of sound warbling on a dying tape.',
+      tags: ['drone', 'bandpass', 'tape', 'phaser', 'flanger', 'tunnel', 'lorn'],
+      texture: ['dust', 0.7, 0.3, 3000],
+      set: {
+        'filter.type': 'bandpass', 'filter.cutoff': 160, 'filter.keytrack': 0.8, 'filter.resonance': 0.3, 'tape.wow': 0.45, 'tape.age': 0.7,
+        'phaser.mix': 0.2, 'phaser.rate': 0.12, 'flanger.mix': 0.2, 'flanger.rate': 0.08,
+      },
+    },
   ],
 };
 
