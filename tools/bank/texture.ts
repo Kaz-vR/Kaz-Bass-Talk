@@ -144,6 +144,42 @@ const def: CategoryDef = {
       texture: ['dust', 0.6, 0.4, 2500],
       set: { 'fm.amount': 0.25, 'fm.ratio': 3.1, 'osc2.wave': 'triangle', 'osc2.semi': 12, 'osc2.level': 0.2 },
     },
+    // ------------------------------------------------ producer range: the roles this category was missing
+    {
+      id: 'clean-air', name: 'Clean Air',
+      description: "Clean, soft air moving through an open window: no grit, just the room breathing.",
+      tags: ['texture', 'air', 'clean', 'soft', 'open', 'calm', 'lorn'],
+      texture: ['air', 0.65, 0.6, 3000],
+      set: { 'breath.level': 0.25, 'breath.tone': 0.5, 'drive.amount': 0.3, 'eq.highcut': 6000 },
+    },
+    {
+      id: 'room-tone', name: 'Room Tone',
+      description: "The low, soft hum of an empty room at night: barely there, but you'd miss it.",
+      tags: ['texture', 'room', 'soft', 'low', 'hum', 'quiet', 'lorn'],
+      texture: ['rumble', 0.6, 0.3, 3000],
+      set: { 'breath.level': 0.15, 'breath.tone': 0.3, 'drive.amount': 0.3, 'filter.cutoff': 900 },
+    },
+    {
+      id: 'soft-rain', name: 'Soft Rain',
+      description: "Fine, soft rain on a window: gentle grain with no crackle, a calm bed under everything.",
+      tags: ['texture', 'rain', 'soft', 'fine', 'calm', 'grain', 'lorn'],
+      texture: ['dust', 0.65, 0.3, 3000],
+      set: { 'drive.amount': 0.3, 'breath.level': 0.1 },
+    },
+    {
+      id: 'harsh-static', name: 'Harsh Static',
+      description: "Loud, ugly static from a broken receiver: crushed crackle and hiss, harsh on purpose.",
+      tags: ['texture', 'static', 'harsh', 'crushed', 'noise', 'broken', 'lorn'],
+      texture: ['crackle', 0.8, 0.6, 2500],
+      set: { 'crush.mix': 0.5, 'crush.bits': 4, 'crush.rate': 10, 'dist.type': 'hard', 'dist.drive': 0.4, 'dist.mix': 0.6, 'drive.amount': 0.6 },
+    },
+    {
+      id: 'glass-air', name: 'Glass Air',
+      description: "High glassy tones floating in soft air, like wind across the rim of a glass.",
+      tags: ['texture', 'glassy', 'air', 'high', 'floating', 'soft', 'lorn'],
+      texture: ['air', 0.6, 0.5, 3000],
+      set: { 'osc1.wave': 'sine', 'voice.octave': 1, 'fm.amount': 0.1, 'fm.ratio': 3, 'fm.punch': 0, 'osc1.level': 0.3, 'drive.amount': 0.3 },
+    },
   ],
 };
 

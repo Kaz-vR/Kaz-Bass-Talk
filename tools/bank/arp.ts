@@ -3,6 +3,8 @@
 import { ALIVE, kit, type CategoryDef, type Mod } from './common';
 
 const base = {
+  // Touch: playing harder is clearly louder.
+  'voice.velocity': 0.75,
   'voice.polyphony': 4,
   'osc1.wave': 'saw', 'osc1.unison_voices': 2, 'osc1.unison_detune': 8,
   'amp_env.attack': 1, 'amp_env.decay': 180, 'amp_env.sustain': 0.15, 'amp_env.release': 120,
@@ -168,6 +170,15 @@ const def: CategoryDef = {
       texture: ['air', 0.3, 0.35, 900],
       set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'comp.pump': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'filter.cutoff': 450, 'filter.env_amount': 0.2, 'lfo1.rate': 0.08 },
       mods: kit(ARP_KIT, [['lfo1', 'filter_cutoff', 0.35]]),
+    },
+    // ------------------------------------------------ producer range: the roles this category was missing
+    {
+      id: 'clean-glass-seq', name: 'Clean Glass Sequence',
+      description: "A clean, glassy sequence: pure FM notes with no grit, just tape age and air around them.",
+      tags: ['arp', 'sequence', 'clean', 'glassy', 'fm', 'pure', 'lorn'],
+      texture: ['air', 0.45, 0.35, 900],
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.12, 'fm.ratio': 2, 'fm.punch': 0.3, 'fm.decay': 150, 'drive.amount': 0.3, 'dist.drive': 0.08, 'filter.cutoff': 1500, 'filter.env_amount': 0, 'eq.highcut': 4500, 'comp.pump': 0.15 },
+      mods: SOFT_ARP_KIT,
     },
   ],
 };

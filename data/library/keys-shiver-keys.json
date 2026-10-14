@@ -14,43 +14,13 @@
     "category": "keys",
     "family": "keys",
     "collection": "bank",
-    "audition": "chords",
-    "vibe": {
-      "brightOct": 0.87,
-      "airDb": -39.4,
-      "dirt": 0.66,
-      "widthDb": -4.9,
-      "tailDb": -13.7
-    },
-    "checks": {
-      "hash": "4925d674",
-      "audio": "f4031a70",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": true,
-      "weakest": "texture bed 0.17 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.453,
-      "highEnergy": 0.709,
-      "sub": 0.044,
-      "lowMid": 0.796,
-      "dirt": 0.656,
-      "width": 0.878,
-      "attack": 0.1,
-      "decay": 1,
-      "sustain": 0.91,
-      "release": 0.773,
-      "movement": 0.468
-    }
+    "audition": "chords"
   },
   "voice.polyphony": 8,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,
-  "voice.velocity": 0.5,
+  "voice.velocity": 0.75,
   "voice.analog": 0.6,
   "wheel.move": "preset default",
   "wheel.preset": "open",

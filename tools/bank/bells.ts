@@ -4,6 +4,8 @@
 import { kit, type CategoryDef, type Mod } from './common';
 
 const base = {
+  // Touch: playing harder is clearly louder.
+  'voice.velocity': 0.75,
   'voice.polyphony': 8,
   'osc1.wave': 'sine', 'osc1.unison_voices': 1,
   'fm.amount': 0.15, 'fm.ratio': 3.5, 'fm.punch': 0.5, 'fm.decay': 600, 'lfo2.fade': 0,
@@ -141,6 +143,42 @@ const def: CategoryDef = {
       },
       // No FM here: the life is in the pitch, the grit and the level. High tines ring out faster: the key lifts their level.
       mods: BELL_KIT.map((m) => (m[1] === 'fm_amount' ? (m[0] === 'random' ? (['random', 'pitch', 0.006] as Mod) : m[0] === 'velocity' ? (['velocity', 'crush_mix', 0.15] as Mod) : m[0] === 'lfo1' ? (['lfo1', 'crush_mix', 0.25] as Mod) : (['keytrack', 'amp', 0.8] as Mod)) : m)),
+    },
+    // ------------------------------------------------ producer range: the roles this category was missing
+    {
+      id: 'felt-bell', name: 'Felt Bell',
+      description: "A bell struck with a felt mallet: no clang, just a soft, round ring that blooms.",
+      tags: ['bells', 'soft', 'felt', 'round', 'gentle', 'mallet', 'lorn'],
+      texture: ['dust', 0.5, 0.3, 1500],
+      set: { 'amp_env.attack': 25, 'fm.punch': 0.1, 'fm.amount': 0.1, 'drive.amount': 0.3, 'dist.drive': 0.1, 'amp_env.decay': 3000 },
+    },
+    {
+      id: 'wool-chime', name: 'Wool Chime',
+      description: "Soft chimes wrapped in wool: gentle, warm and blurred by a slow chorus.",
+      tags: ['bells', 'chime', 'soft', 'warm', 'blurred', 'gentle', 'lorn'],
+      texture: ['air', 0.5, 0.3, 1500],
+      set: { 'osc1.wave': 'triangle', 'amp_env.attack': 15, 'fm.amount': 0.06, 'fm.ratio': 2.8, 'fm.punch': 0.2, 'chorus.mix': 0.35, 'drive.amount': 0.3, 'dist.drive': 0.1 },
+    },
+    {
+      id: 'tick-bell', name: 'Tick Bell', audition: 'arp-line',
+      description: "A tiny, short bell tick: a bright point of sound that's gone in a moment, for rhythms and accents.",
+      tags: ['bells', 'short', 'tick', 'percussive', 'rhythmic', 'tiny', 'lorn'],
+      texture: ['dust', 0.5, 0.35, 600],
+      set: { 'amp_env.decay': 250, 'amp_env.release': 200, 'fm.ratio': 5, 'fm.punch': 0.6, 'fm.decay': 100, 'reverb.mix': 0.3 },
+    },
+    {
+      id: 'worn-glock', name: 'Worn Glock',
+      description: "An old glockenspiel with tired bars: the ring is still sweet, but worn and dusty, not broken.",
+      tags: ['bells', 'glockenspiel', 'worn', 'sweet', 'dusty', 'nostalgic', 'lorn'],
+      texture: ['dust', 0.55, 0.3, 1500],
+      set: { 'fm.amount': 0.12, 'drive.amount': 0.3, 'dist.drive': 0.1, 'tape.age': 0.7 },
+    },
+    {
+      id: 'bell-swell', name: 'Bell Swell', audition: 'chords',
+      description: "Bells that swell in instead of striking, holding a soft, shimmering chord.",
+      tags: ['bells', 'swell', 'soft', 'pad-like', 'shimmer', 'slow', 'lorn'],
+      texture: ['air', 0.5, 0.35, 3000],
+      set: { 'amp_env.attack': 300, 'amp_env.sustain': 0.6, 'amp_env.decay': 5000, 'amp_env.release': 3000, 'fm.punch': 0, 'drive.amount': 0.3, 'dist.drive': 0.1 },
     },
   ],
 };

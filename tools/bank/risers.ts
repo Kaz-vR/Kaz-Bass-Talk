@@ -140,6 +140,46 @@ const def: CategoryDef = {
       },
       allow: { 'consistency:brightOct': { why: 'its bright metal/noise top is the identity; the soft Iconic II sounds narrowed the bank spread' } },
     },
+    // ------------------------------------------------ producer range: the roles this category was missing
+    {
+      id: 'noise-assault', name: 'Noise Assault',
+      description: "A riser of pure aggression: noise and saws clipping harder and harder until the drop.",
+      tags: ['risers', 'harsh', 'noise', 'distorted', 'aggressive', 'build', 'lorn'],
+      texture: ['crackle', 0.55, 0.4, 2000],
+      set: { 'noise.level': 0.5, 'drive.amount': 0.8, 'dist.type': 'hard', 'dist.drive': 0.5, 'dist.mix': 0.7, 'crush.mix': 0.2, 'crush.bits': 7, 'crush.rate': 6 },
+    },
+    {
+      id: 'engine-scream', name: 'Engine Scream',
+      description: "A folded pulse screaming upward like an engine past its limit.",
+      tags: ['risers', 'scream', 'fold', 'pulse', 'aggressive', 'build', 'lorn'],
+      texture: ['dust', 0.5, 0.4, 2000],
+      set: { 'osc1.wave': 'pulse', 'osc1.pulse_width': 0.3, 'dist.type': 'fold', 'dist.drive': 0.45, 'dist.mix': 0.6 },
+      mods: kit(RISE_KIT, [['env2', 'pitch', 0.7]]),
+    },
+    {
+      id: 'drop-fall', name: 'Drop Fall',
+      description: "A fall that starts with a hit: a hard impact, then everything sinks away into the dark.",
+      tags: ['risers', 'fall', 'impact', 'hard-start', 'downlifter', 'dark', 'lorn'],
+      texture: ['crackle', 0.5, 0.35, 2000],
+      set: { 'amp_env.attack': 2, 'env2.attack': 4000, 'click.type': 'kick', 'click.level': 0.4, 'filter.cutoff': 1500 },
+      mods: kit(RISE_KIT, [['env2', 'pitch', -1], ['env2', 'filter_cutoff', -0.4]], { 'env2>noise_level': ['env2', 'amp', -0.5] }),
+    },
+    {
+      id: 'glass-rise', name: 'Glass Rise',
+      description: "A glassy FM tone climbing and brightening as its bell partials open up.",
+      tags: ['risers', 'fm', 'glassy', 'bright', 'build', 'shimmer', 'lorn'],
+      texture: ['air', 0.5, 0.35, 2000],
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.1, 'fm.ratio': 3.5, 'fm.punch': 0, 'filter.cutoff': 1200 },
+      mods: kit(RISE_KIT, [], { 'env2>noise_level': ['env2', 'fm_amount', 0.3], 'lfo4>unison_detune': ['lfo4', 'fm_amount', 0.05] }),
+    },
+    {
+      id: 'breath-rise', name: 'Breath Rise',
+      description: "A soft rise made of breath: air slowly filling the room, gentle and clean.",
+      tags: ['risers', 'soft', 'breath', 'air', 'gentle', 'clean', 'lorn'],
+      texture: ['air', 0.55, 0.35, 2000],
+      set: { 'osc1.wave': 'triangle', 'osc1.unison_voices': 2, 'breath.level': 0.3, 'breath.tone': 0.45, 'drive.amount': 0.3, 'dist.drive': 0.1 },
+      mods: kit(RISE_KIT, [], { 'env2>noise_level': ['env2', 'breath_level', 0.4] }),
+    },
   ],
 };
 

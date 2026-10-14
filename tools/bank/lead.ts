@@ -240,9 +240,10 @@ const def: CategoryDef = {
       id: 'sunset-whine', name: 'Sunset Whine', iconic: 2,
       description: "A high, whining sine lead sliding between notes with a quick vibrato, warped like a tape from a lowrider at dusk.",
       tags: ['lead', 'whistle', 'sine', 'g-funk', 'slide', 'high', 'lorn'],
-      texture: ['dust', 0.6, 0.35, 1200],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'voice.octave': 1, 'osc2.level': 0.18, 'voice.glide': 180, 'vibrato.depth': 25, 'vibrato.rate': 6, 'vibrato.delay': 200, 'filter.cutoff': 4000, 'filter.env_amount': 0, 'osc2.wave': 'sine', 'osc2.semi': 12, 'breath.level': 0.2, 'drive.amount': 0.75, 'tape.age': 0.7},
+      texture: ['crackle', 0.7, 0.35, 1200],
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'voice.octave': 1, 'osc2.level': 0.18, 'voice.glide': 180, 'vibrato.depth': 25, 'vibrato.rate': 6, 'vibrato.delay': 200, 'filter.cutoff': 4000, 'filter.env_amount': 0, 'osc2.wave': 'sine', 'osc2.semi': 12, 'breath.level': 0.3, 'drive.amount': 0.75, 'tape.age': 0.8},
       mods: kit(SOFT_KIT, [['lfo1', 'osc2_level', 0.4], ['lfo2', 'breath_level', 0.25]], { 'drift_slow>drive': ['drift_slow', 'osc2_level', 0.25], 'velocity>drive': ['velocity', 'amp', 0.25] }),
+      allow: { vibeDirt: { min: 0.2, why: 'a pure whistle: its wear is tape, crackle and breath, not grit in the tone' } },
     },
     {
       id: 'acid-rain', name: 'Acid Rain', iconic: 2,
@@ -264,7 +265,7 @@ const def: CategoryDef = {
       tags: ['lead', 'square', 'bouncy', 'plucky', 'seventies', 'popping', 'lorn'],
       texture: ['dust', 0.35, 0.35, 800],
       set: { 'voice.legato': false, 'voice.glide': 0, 'osc1.wave': 'pulse', 'osc1.pulse_width': 0.5, 'osc1.unison_voices': 1, 'osc2.level': 0, 'filter.cutoff': 700, 'filter.env_amount': 0.35, 'mod_env.decay': 120, 'mod_env.sustain': 0, 'amp_env.decay': 300, 'amp_env.sustain': 0.2, 'amp_env.release': 80 },
-      mods: kit(LEAD_KIT, [['lfo1', 'filter_cutoff', 0.32]], { 'env2>filter_cutoff': ['lfo3', 'osc1_pw', 0.3] }),
+      mods: kit(LEAD_KIT, [['lfo1', 'filter_cutoff', 0.4], ['drift_slow', 'drive', 0.35]], { 'env2>filter_cutoff': ['lfo3', 'osc1_pw', 0.4] }),
     },
     {
       id: 'ether-wave', name: 'Ether Wave', iconic: 2,
@@ -312,7 +313,7 @@ const def: CategoryDef = {
       tags: ['lead', 'fm', 'bell', 'glassy', 'bright', 'melodic', 'lorn'],
       texture: ['air', 0.35, 0.35, 1200],
       set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'osc2.level': 0.15, 'fm.amount': 0.2, 'fm.ratio': 3.5, 'fm.punch': 0.6, 'fm.decay': 400, 'filter.cutoff': 1800, 'filter.env_amount': 0, 'eq.highcut': 4500, 'osc2.wave': 'sine', 'osc2.semi': 12, 'breath.level': 0.1, 'drive.amount': 0.7 },
-      mods: kit(SOFT_KIT, [['lfo1', 'osc2_level', 0.4], ['velocity', 'drive', 0.3]], { 'drift_slow>drive': ['drift_slow', 'osc2_level', 0.25] }),
+      mods: kit(SOFT_KIT, [['lfo1', 'osc2_level', 0.4]], { 'drift_slow>drive': ['drift_slow', 'osc2_level', 0.25], 'env2>drive': ['env2', 'osc2_level', 0.3], 'velocity>drive': ['velocity', 'amp', 0.25] }),
     },
     {
       id: 'zap-line', name: 'Zap Line', iconic: 2,
@@ -343,6 +344,30 @@ const def: CategoryDef = {
       texture: ['crackle', 0.4, 0.35, 1200],
       set: { 'tape.wow': 0.55, 'tape.age': 0.65 },
       mods: kit(LEAD_KIT, [['drift', 'pitch', 0.008]]),
+    },
+    // ------------------------------------------------ producer range: the roles this category was missing
+    {
+      id: 'felt-lead', name: 'Felt Lead',
+      description: "A soft, steady lead with no vibrato: a round triangle tone that sings quietly, close to the ear.",
+      tags: ['lead', 'soft', 'steady', 'round', 'quiet', 'triangle', 'lorn'],
+      texture: ['dust', 0.5, 0.3, 1200],
+      set: { 'osc1.wave': 'triangle', 'osc1.unison_voices': 1, 'osc2.wave': 'sine', 'osc2.semi': 12, 'osc2.fine': 0, 'osc2.level': 0.15, 'amp_env.attack': 40, 'vibrato.depth': 0, 'breath.level': 0.15, 'drive.amount': 0.4, 'dist.drive': 0.12, 'tape.wow': 0.1, 'filter.cutoff': 3000, 'filter.env_amount': 0 },
+      mods: kit(SOFT_KIT, [['lfo1', 'osc2_level', 0.4]], { 'drift_slow>drive': ['drift_slow', 'osc2_level', 0.25], 'velocity>drive': ['velocity', 'amp', 0.25] }),
+    },
+    {
+      id: 'iron-lead', name: 'Iron Lead',
+      description: "A hard, clipped saw lead that cuts straight through: no glide, no softness, all edge.",
+      tags: ['lead', 'hard', 'clipped', 'aggressive', 'saw', 'cutting', 'lorn'],
+      texture: ['crackle', 0.45, 0.4, 900],
+      set: { 'voice.glide': 0, 'amp_env.attack': 2, 'drive.amount': 0.75, 'dist.type': 'hard', 'dist.drive': 0.45, 'dist.mix': 0.7, 'filter.cutoff': 1500, 'vibrato.depth': 6 },
+    },
+    {
+      id: 'stab-lead', name: 'Stab Lead',
+      description: "Short, punchy lead stabs: a hollow pulse that speaks and stops, for riffs and call-and-response.",
+      tags: ['lead', 'short', 'stab', 'pulse', 'punchy', 'riff', 'lorn'],
+      texture: ['dust', 0.45, 0.35, 800],
+      set: { 'voice.legato': false, 'voice.glide': 0, 'osc1.wave': 'pulse', 'osc1.pulse_width': 0.4, 'amp_env.attack': 2, 'amp_env.decay': 250, 'amp_env.sustain': 0.2, 'amp_env.release': 90, 'filter.env_amount': 0.35, 'mod_env.decay': 150, 'mod_env.sustain': 0, 'vibrato.depth': 0 },
+      mods: kit(LEAD_KIT, [], { 'lfo3>unison_detune': ['lfo3', 'osc1_pw', 0.2] }),
     },
   ],
 };

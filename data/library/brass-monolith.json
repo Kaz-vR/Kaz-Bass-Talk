@@ -16,43 +16,13 @@
     "family": "brass",
     "collection": "bank",
     "audition": "chords",
-    "iconic": true,
-    "vibe": {
-      "brightOct": 1.68,
-      "airDb": -43.7,
-      "dirt": 0.77,
-      "widthDb": -5.2,
-      "tailDb": -3.6
-    },
-    "checks": {
-      "hash": "b179fabe",
-      "audio": "98caef11",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": true,
-      "weakest": "delay 0.16 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.374,
-      "highEnergy": 0.659,
-      "sub": 0.427,
-      "lowMid": 0.766,
-      "dirt": 0.765,
-      "width": 0.869,
-      "attack": 0.597,
-      "decay": 0.968,
-      "sustain": 0.957,
-      "release": 0.773,
-      "movement": 0.411
-    }
+    "iconic": true
   },
   "voice.polyphony": 4,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": -1,
-  "voice.velocity": 0.5,
+  "voice.velocity": 0.75,
   "voice.analog": 0.6,
   "wheel.move": "preset default",
   "wheel.preset": "pressure",

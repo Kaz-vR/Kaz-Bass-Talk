@@ -3,6 +3,8 @@
 import { ALIVE, kit, type CategoryDef, type Mod } from './common';
 
 const base = {
+  // Touch: playing harder is clearly louder.
+  'voice.velocity': 0.75,
   'voice.polyphony': 8,
   'osc1.wave': 'saw', 'osc1.unison_voices': 2, 'osc1.unison_detune': 8,
   'amp_env.attack': 1, 'amp_env.decay': 450, 'amp_env.sustain': 0, 'amp_env.release': 350,
@@ -148,6 +150,22 @@ const def: CategoryDef = {
       texture: ['dust', 0.3, 0.3, 600],
       set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.15, 'fm.ratio': 4, 'fm.punch': 0.5, 'fm.decay': 60, 'filter.cutoff': 1600, 'filter.env_amount': 0, 'amp_env.decay': 400, 'eq.highcut': 4500 },
       mods: SOFT_PLUCK_KIT,
+    },
+    // ------------------------------------------------ producer range: the roles this category was missing
+    {
+      id: 'ringing-wire', name: 'Ringing Wire',
+      description: "A plucked wire that rings on and on, the note hanging in the dark long after the pick.",
+      tags: ['pluck', 'ringing', 'string', 'long', 'sustain', 'dark', 'lorn'],
+      texture: ['dust', 0.45, 0.3, 2000],
+      set: { 'osc1.wave': 'string', 'string.tone': 0.45, 'string.decay': 0.9, 'osc1.unison_voices': 1, 'osc2.wave': 'sine', 'osc2.level': 0.35, 'amp_env.decay': 3000, 'amp_env.release': 1500, 'filter.cutoff': 1800, 'filter.env_amount': 0, 'drive.amount': 0.35, 'dist.drive': 0.12, 'eq.mid_freq': 300, 'eq.mid_gain': -4 },
+      mods: SOFT_PLUCK_KIT,
+    },
+    {
+      id: 'thick-pluck', name: 'Thick Pluck',
+      description: "A big, thick pluck: five detuned saws and an octave below, filling the whole middle of the track.",
+      tags: ['pluck', 'thick', 'supersaw', 'big', 'wide', 'detuned', 'lorn'],
+      texture: ['dust', 0.45, 0.35, 800],
+      set: { 'osc1.unison_voices': 5, 'osc1.unison_detune': 16, 'osc2.wave': 'saw', 'osc2.semi': -12, 'osc2.level': 0.4, 'filter.cutoff': 500, 'filter.env_amount': 0.5, 'eq.mid_freq': 300, 'eq.mid_gain': -4 },
     },
   ],
 };

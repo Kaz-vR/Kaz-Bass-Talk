@@ -128,6 +128,49 @@ const def: CategoryDef = {
       mods: HIT_KIT.map((m) => (m[0] === 'lfo1' ? (['lfo1', 'fm_amount', 0.12] as Mod) : m)),
       allow: { 'consistency:brightOct': { why: 'its bright metal/noise top is the identity; the soft Iconic II sounds narrowed the bank spread' } },
     },
+    // ------------------------------------------------ producer range: the roles this category was missing
+    {
+      id: 'felt-boom', name: 'Felt Boom',
+      description: "A soft, deep boom, like a padded drum in a big room: felt, not heard as a hit.",
+      tags: ['hits', 'soft', 'boom', 'deep', 'padded', 'gentle', 'lorn'],
+      texture: ['dust', 0.55, 0.3, 2500],
+      set: { 'amp_env.attack': 15, 'click.type': 'knock', 'click.level': 0.15, 'pitch_env.amount': 7, 'pitch_env.decay': 200, 'drive.amount': 0.35, 'dist.drive': 0.1, 'reverb.mix': 0.5 },
+    },
+    {
+      id: 'soft-drop', name: 'Soft Drop',
+      description: "A gentle sub drop that sinks slowly away, for the moment the floor gives way softly.",
+      tags: ['hits', 'sub-drop', 'soft', 'sinking', 'deep', 'gentle', 'lorn'],
+      texture: ['rumble', 0.45, 0.3, 2500],
+      set: { 'amp_env.attack': 10, 'click.level': 0, 'pitch_env.amount': 12, 'pitch_env.decay': 1200, 'drive.amount': 0.4, 'dist.drive': 0.12, 'amp_env.decay': 2500 },
+    },
+    {
+      id: 'velvet-reverse', name: 'Velvet Reverse',
+      description: "A soft hit played backwards: a breath of sound that swells up and stops dead.",
+      tags: ['hits', 'reverse', 'swell', 'soft', 'transition', 'breath', 'lorn'],
+      texture: ['air', 0.55, 0.35, 1500],
+      set: { 'amp_env.attack': 1200, 'amp_env.decay': 300, 'amp_env.sustain': 1, 'amp_env.release': 50, 'click.level': 0, 'pitch_env.amount': 0, 'noise.level': 0.3, 'filter.cutoff': 500, 'filter.env_amount': 0.5, 'mod_env.attack': 1200, 'mod_env.sustain': 1, 'drive.amount': 0.35, 'dist.drive': 0.1 },
+    },
+    {
+      id: 'pillow-thud', name: 'Pillow Thud',
+      description: "A short, soft thud, like a fist on a pillow: punctuation without violence.",
+      tags: ['hits', 'thud', 'soft', 'short', 'muted', 'knock', 'lorn'],
+      texture: ['dust', 0.55, 0.3, 800],
+      set: { 'amp_env.attack': 5, 'amp_env.decay': 400, 'click.type': 'knock', 'click.level': 0.3, 'click.tone': 120, 'drive.amount': 0.35, 'dist.drive': 0.1, 'filter.cutoff': 900, 'pitch_env.amount': 10, 'pitch_env.decay': 80 },
+    },
+    {
+      id: 'distant-hit', name: 'Distant Hit',
+      description: "An impact far away across the city: soft at the source, mostly the dark room that answers it.",
+      tags: ['hits', 'distant', 'soft', 'reverb', 'far', 'dark', 'lorn'],
+      texture: ['dust', 0.5, 0.3, 3000],
+      set: { 'amp_env.attack': 8, 'reverb.mix': 0.7, 'eq.highcut': 3500, 'drive.amount': 0.4, 'dist.drive': 0.12, 'pitch_env.amount': 12, 'pitch_env.decay': 150, 'click.level': 0.3 },
+    },
+    {
+      id: 'breath-impact', name: 'Breath Impact',
+      description: "A soft impact made of air: a gust that swells, lands and drifts away.",
+      tags: ['hits', 'air', 'soft', 'gust', 'breath', 'swell', 'lorn'],
+      texture: ['air', 0.55, 0.35, 2000],
+      set: { 'noise.level': 0.4, 'breath.level': 0.3, 'breath.tone': 0.4, 'amp_env.attack': 30, 'amp_env.decay': 1200, 'click.level': 0, 'drive.amount': 0.35, 'dist.drive': 0.1, 'pitch_env.amount': 5 },
+    },
   ],
 };
 

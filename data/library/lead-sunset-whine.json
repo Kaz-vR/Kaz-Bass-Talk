@@ -17,37 +17,11 @@
     "collection": "bank",
     "audition": "lead-line",
     "iconic": 2,
-    "vibe": {
-      "brightOct": 0.31,
-      "airDb": -29.5,
-      "dirt": 0.24,
-      "widthDb": -13.6,
-      "tailDb": -17
-    },
-    "checks": {
-      "hash": "fe8c0e15",
-      "audio": "e8b46671",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "off-style dirt (too clean or too broken): 0.2440 (limit 0.3500)"
-      ],
-      "earns": true,
-      "weakest": "mod 3 (env2 → drive) 0.19 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.67,
-      "highEnergy": 0.815,
-      "sub": 0.012,
-      "lowMid": 0.016,
-      "dirt": 0.244,
-      "width": 0.661,
-      "attack": 0.1,
-      "decay": 0.766,
-      "sustain": 0.946,
-      "release": 0.773,
-      "movement": 0.044
+    "allow": {
+      "vibeDirt": {
+        "min": 0.2,
+        "why": "a pure whistle: its wear is tape, crackle and breath, not grit in the tone"
+      }
     }
   },
   "voice.polyphony": 1,
@@ -93,8 +67,8 @@
   "sub.octave": -1,
   "sub.level": 0,
   "noise.level": 0,
-  "texture.type": "dust",
-  "texture.level": 0.6,
+  "texture.type": "crackle",
+  "texture.level": 0.7,
   "texture.tone": 0.35,
   "texture.tail": 1200,
   "texture.position": "before dynamics",
@@ -125,7 +99,7 @@
   "tape.on": true,
   "tape.drive": 0.4,
   "tape.wow": 0.3,
-  "tape.age": 0.7,
+  "tape.age": 0.8,
   "amp_env.attack": 8,
   "amp_env.decay": 1500,
   "amp_env.sustain": 0.85,
@@ -148,7 +122,7 @@
   "vibrato.fade": 500,
   "breath.chiff": 0,
   "breath.decay": 120,
-  "breath.level": 0.2,
+  "breath.level": 0.3,
   "breath.tone": 0.5,
   "lfo1.on": true,
   "lfo1.shape": "wander",

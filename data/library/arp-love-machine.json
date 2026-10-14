@@ -16,43 +16,13 @@
     "family": "arp",
     "collection": "bank",
     "audition": "arp-line",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 0.46,
-      "airDb": -37.8,
-      "dirt": 0.95,
-      "widthDb": -4.4,
-      "tailDb": -33.8
-    },
-    "checks": {
-      "hash": "908b1fd9",
-      "audio": "70d0bd34",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": true,
-      "weakest": "mod 7 (drift → pitch) 0.39 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.279,
-      "highEnergy": 0.608,
-      "sub": 0.425,
-      "lowMid": 0.851,
-      "dirt": 0.949,
-      "width": 0.89,
-      "attack": 0.333,
-      "decay": 0.463,
-      "sustain": 0.624,
-      "release": 0.727,
-      "movement": 0.323
-    }
+    "iconic": 2
   },
   "voice.polyphony": 4,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": -1,
-  "voice.velocity": 0.5,
+  "voice.velocity": 0.75,
   "voice.analog": 0.6,
   "wheel.move": "preset default",
   "wheel.preset": "open",

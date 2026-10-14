@@ -121,6 +121,51 @@ const def: CategoryDef = {
       set: { 'filter.type': 'lowpass', 'filter.cutoff': 1500, 'filter.resonance': 0.15, 'tape.wow': 0.45, 'tape.age': 0.65, 'breath.level': 0.2 },
       mods: kit(VOICE_KIT, [], { 'lfo1>filter_vowel': ['lfo1', 'filter_cutoff', 0.15], 'lfo2>filter_vowel': ['lfo2', 'filter_cutoff', 0.1], 'random>filter_vowel': ['random', 'filter_cutoff', 0.1], 'env2>filter_vowel': ['env2', 'filter_cutoff', 0.1] }),
     },
+    // ------------------------------------------------ producer range: the roles this category was missing
+    {
+      id: 'choir-stab', name: 'Choir Stab',
+      description: "A choir hit: every voice on one short syllable, cut off and left to ring in a dark church.",
+      tags: ['choir', 'stab', 'short', 'hit', 'vocal', 'cinematic', 'lorn'],
+      texture: ['dust', 0.5, 0.35, 1500],
+      set: { 'amp_env.attack': 3, 'amp_env.decay': 450, 'amp_env.sustain': 0, 'amp_env.release': 300, 'filter.vowel': 0.3, 'vibrato.depth': 0, 'breath.chiff': 0.3, 'comp.amount': 0.5 },
+    },
+    {
+      id: 'vox-chop', name: 'Vox Chop', audition: 'arp-line',
+      description: "A chopped vocal syllable, short and rhythmic: the vowel snaps open on each note like a sliced sample.",
+      tags: ['choir', 'chop', 'vocal', 'short', 'rhythmic', 'sliced', 'lorn'],
+      texture: ['dust', 0.5, 0.35, 800],
+      set: { 'amp_env.attack': 2, 'amp_env.decay': 200, 'amp_env.sustain': 0.4, 'amp_env.release': 80, 'vibrato.depth': 0, 'filter.vowel': 0.45, 'reverb.mix': 0.3, 'delay.mix': 0.2, 'delay.time': '1/8D' },
+    },
+    {
+      id: 'broken-hymn', name: 'Broken Hymn',
+      description: "A hymn sung through a blown speaker: voices clipped, crushed and torn, still trying to sing.",
+      tags: ['choir', 'distorted', 'broken', 'dirty', 'harsh', 'menacing', 'lorn'],
+      texture: ['crackle', 0.55, 0.4, 2000],
+      set: { 'drive.amount': 0.75, 'dist.type': 'hard', 'dist.drive': 0.4, 'dist.mix': 0.6, 'crush.mix': 0.2, 'crush.bits': 7, 'crush.rate': 6, 'tape.age': 0.7 },
+    },
+    {
+      id: 'still-voices', name: 'Still Voices',
+      description: "Voices held perfectly still, no vibrato and no wobble, only the vowel slowly turning: calm and clean.",
+      tags: ['choir', 'steady', 'still', 'clean', 'calm', 'sustained', 'lorn'],
+      texture: ['air', 0.5, 0.3, 2000],
+      set: { 'vibrato.depth': 0, 'tape.wow': 0.05, 'drive.amount': 0.35, 'dist.drive': 0.12 },
+      mods: kit(VOICE_KIT, [['lfo1', 'filter_vowel', 0.25], ['drift', 'pitch', 0.0005]]),
+    },
+    {
+      id: 'dark-mass-stab', name: 'Dark Mass Stab',
+      description: "Low voices hitting an 'oh' together: a heavy, dark choral stab that falls into a long room.",
+      tags: ['choir', 'stab', 'low', 'dark', 'heavy', 'cinematic', 'lorn'],
+      texture: ['dust', 0.5, 0.35, 2000],
+      set: { 'voice.octave': -1, 'amp_env.attack': 5, 'amp_env.decay': 700, 'amp_env.sustain': 0.2, 'amp_env.release': 400, 'filter.vowel': 0.6, 'drive.amount': 0.6, 'vibrato.depth': 0 },
+    },
+    {
+      id: 'hum-choir', name: 'Hum Choir',
+      description: "A choir humming with closed mouths: soft, quick to speak, warm, close and intimate.",
+      tags: ['choir', 'hum', 'soft', 'warm', 'intimate', 'quick', 'lorn'],
+      texture: ['air', 0.5, 0.3, 1500],
+      set: { 'amp_env.attack': 40, 'filter.type': 'lowpass', 'filter.cutoff': 900, 'filter.resonance': 0.1, 'breath.level': 0.1, 'drive.amount': 0.35, 'dist.drive': 0.12 },
+      mods: kit(VOICE_KIT, [], { 'lfo1>filter_vowel': ['lfo1', 'filter_cutoff', 0.2], 'lfo2>filter_vowel': ['lfo2', 'filter_cutoff', 0.08], 'random>filter_vowel': ['random', 'filter_cutoff', 0.1], 'env2>filter_vowel': ['env2', 'filter_cutoff', 0.12] }),
+    },
   ],
 };
 

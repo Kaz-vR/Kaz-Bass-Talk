@@ -16,40 +16,7 @@
     "family": "lead",
     "collection": "bank",
     "audition": "lead-line",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 0.82,
-      "airDb": -37.3,
-      "dirt": 0.59,
-      "widthDb": -14.4,
-      "tailDb": -15.9
-    },
-    "checks": {
-      "hash": "ad9cd178",
-      "audio": "faf7d764",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": false,
-      "weakest": "mod 3 (env2 → drive) 0.05 dB",
-      "failing": [
-        "mod 3 (env2 → drive) 0.05 dB",
-        "mod 11 (velocity → drive) 0.09 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.596,
-      "highEnergy": 0.791,
-      "sub": 0.013,
-      "lowMid": 0.152,
-      "dirt": 0.593,
-      "width": 0.64,
-      "attack": 0.989,
-      "decay": 0.593,
-      "sustain": 0.897,
-      "release": 0.773,
-      "movement": 0.101
-    }
+    "iconic": 2
   },
   "voice.polyphony": 1,
   "voice.legato": true,
@@ -189,8 +156,8 @@
   "mod2.dest": "breath_level",
   "mod2.amount": 0.15,
   "mod3.source": "env2",
-  "mod3.dest": "drive",
-  "mod3.amount": 0.25,
+  "mod3.dest": "osc2_level",
+  "mod3.amount": 0.3,
   "mod4.source": "drift_slow",
   "mod4.dest": "osc2_level",
   "mod4.amount": 0.25,
@@ -213,8 +180,8 @@
   "mod10.dest": "chorus_depth",
   "mod10.amount": 0.25,
   "mod11.source": "velocity",
-  "mod11.dest": "drive",
-  "mod11.amount": 0.3,
+  "mod11.dest": "amp",
+  "mod11.amount": 0.25,
   "mod12.source": "random",
   "mod12.dest": "osc2_level",
   "mod12.amount": 0.1,

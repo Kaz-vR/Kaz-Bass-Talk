@@ -14,43 +14,13 @@
     "category": "strings",
     "family": "strings",
     "collection": "bank",
-    "audition": "chords",
-    "vibe": {
-      "brightOct": 0.53,
-      "airDb": -38.7,
-      "dirt": 0.6,
-      "widthDb": -2.8,
-      "tailDb": -25.6
-    },
-    "checks": {
-      "hash": "1859e50e",
-      "audio": "80c6f311",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": true,
-      "weakest": "mod 2 (lfo2 → amp) 0.20 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.401,
-      "highEnergy": 0.676,
-      "sub": 0.039,
-      "lowMid": 0.874,
-      "dirt": 0.601,
-      "width": 0.93,
-      "attack": 0.201,
-      "decay": 1,
-      "sustain": 0.873,
-      "release": 0.773,
-      "movement": 0.376
-    }
+    "audition": "chords"
   },
   "voice.polyphony": 8,
   "voice.legato": false,
   "voice.glide": 0,
   "voice.octave": 0,
-  "voice.velocity": 0.5,
+  "voice.velocity": 0.75,
   "voice.analog": 0.6,
   "wheel.move": "preset default",
   "wheel.preset": "pressure",

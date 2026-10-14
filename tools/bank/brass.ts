@@ -4,6 +4,8 @@
 import { ALIVE, kit, type CategoryDef } from './common';
 
 const base = {
+  // Touch: playing harder is clearly louder.
+  'voice.velocity': 0.75,
   'voice.polyphony': 6,
   'osc1.wave': 'saw', 'osc1.unison_voices': 3, 'osc1.unison_detune': 10,
   'osc2.wave': 'saw', 'osc2.level': 0.4, 'osc2.fine': -7,
@@ -162,6 +164,42 @@ const def: CategoryDef = {
         'filter.type': 'formant', 'filter.vowel': 0.45, 'filter.resonance': 0.35, 'filter.cutoff': 1200,
       },
       mods: kit(BREATH_KIT, [], { 'lfo1>filter_cutoff': ['lfo1', 'fm_amount', 0.1], 'random>filter_cutoff': ['random', 'filter_vowel', 0.08] }),
+    },
+    // ------------------------------------------------ producer range: the roles this category was missing
+    {
+      id: 'iron-stab', name: 'Iron Stab',
+      description: "A hard, clipped brass hit: one bark, gone, leaving a dark ring behind.",
+      tags: ['brass', 'stab', 'hard', 'short', 'clipped', 'aggressive', 'lorn'],
+      texture: ['crackle', 0.45, 0.35, 1000],
+      set: { 'dist.type': 'hard', 'dist.drive': 0.4, 'dist.mix': 0.6, 'amp_env.attack': 2, 'amp_env.decay': 300, 'amp_env.sustain': 0, 'amp_env.release': 150, 'filter.cutoff': 500, 'filter.env_amount': 0.65, 'mod_env.attack': 1, 'mod_env.decay': 180, 'mod_env.sustain': 0, 'vibrato.depth': 0 },
+    },
+    {
+      id: 'bite-horn', name: 'Bite Horn',
+      description: "A horn that bites into every note and then sings: a hard, bright start over a held, dark tone.",
+      tags: ['brass', 'horn', 'hard-attack', 'bite', 'bold', 'lead', 'lorn'],
+      texture: ['dust', 0.45, 0.35, 1200],
+      set: { 'amp_env.attack': 10, 'mod_env.attack': 5, 'mod_env.decay': 300, 'filter.env_amount': 0.6, 'drive.amount': 0.7 },
+    },
+    {
+      id: 'thin-trumpet', name: 'Thin Trumpet',
+      description: "One muted trumpet far down the street: thin, breathy and alone.",
+      tags: ['brass', 'trumpet', 'solo', 'thin', 'lonely', 'breathy', 'lorn'],
+      texture: ['dust', 0.45, 0.3, 1500],
+      set: { 'osc1.unison_voices': 1, 'osc2.level': 0, 'breath.level': 0.2, 'filter.cutoff': 900, 'vibrato.depth': 14 },
+    },
+    {
+      id: 'muted-horn', name: 'Muted Horn',
+      description: "Soft, short horn notes, muted and round: brass that supports without pushing.",
+      tags: ['brass', 'muted', 'soft', 'short', 'round', 'support', 'lorn'],
+      texture: ['dust', 0.45, 0.3, 1000],
+      set: { 'amp_env.attack': 40, 'amp_env.decay': 600, 'amp_env.sustain': 0.3, 'amp_env.release': 200, 'filter.cutoff': 450, 'filter.env_amount': 0.2, 'drive.amount': 0.35, 'dist.drive': 0.12 },
+    },
+    {
+      id: 'falling-brass', name: 'Falling Brass',
+      description: "A brass stab that sags as it dies, the pitch dropping like a tired sigh.",
+      tags: ['brass', 'fall', 'stab', 'pitch-drop', 'short', 'worn', 'lorn'],
+      texture: ['crackle', 0.45, 0.35, 1200],
+      set: { 'amp_env.attack': 5, 'amp_env.decay': 800, 'amp_env.sustain': 0, 'amp_env.release': 300, 'pitch_env.amount': -3, 'pitch_env.decay': 500, 'filter.env_amount': 0.45, 'mod_env.decay': 400 },
     },
   ],
 };
