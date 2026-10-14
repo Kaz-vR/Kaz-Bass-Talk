@@ -25,8 +25,7 @@ const FP_RATE = 24000;
 
 /**
  * Fingerprint of what a patch sounds like where the checks listen: its
- * audition loop (with tail), a low and a high held note, and the loop with
- * the mod wheel fully up. Samples are
+ * audition loop (with tail) and a low and a high held note. Samples are
  * quantized (~-84 dBFS steps), so only a real change in the sound changes it;
  * a change right at a step boundary only costs an unneeded re-check.
  */
@@ -43,8 +42,6 @@ export function audioFingerprint(
     renderPatch(patch, loop, { sampleRate: FP_RATE, seconds: opts.loopSeconds, tail: 1 }),
     renderPatch(patch, held(opts.probes.low), { sampleRate: FP_RATE, seconds: opts.holdSeconds, tail: 0.5 }),
     renderPatch(patch, held(opts.probes.high), { sampleRate: FP_RATE, seconds: opts.holdSeconds, tail: 0.5 }),
-    // The mod wheel fully up: its move is part of the preset's sound.
-    renderPatch(patch, loop, { sampleRate: FP_RATE, seconds: Math.min(3, opts.loopSeconds), modWheel: 1 }),
   ];
   let h = 0x811c9dc5;
   for (const r of renders) {

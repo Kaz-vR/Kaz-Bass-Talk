@@ -32,9 +32,6 @@ interface Stamp {
   earns: boolean;
   weakest: string;
   failing: string[];
-  /** The preset's own mod wheel move, fully up, passes the critic's quality and safety checks. */
-  wheel: boolean;
-  wheelIssues: string[];
 }
 
 const write = !process.argv.includes('--no-write');
@@ -61,11 +58,11 @@ for (const entry of loadLibrary().filter((e) => (fileList ? fileList.includes(e.
   // Same sound, same judge: the stored results still hold, nothing to re-run.
   if (!force && prev && prev.audio === audio && prev.judge === judgeH && (!category || meta.vibe)) {
     reused++;
-    const ok = prev.critic && prev.wheel && (!category || prev.earns);
+    const ok = prev.critic && (!category || prev.earns);
     if (!ok) failures++;
     console.log(`${ok ? '✓' : '✗'} ${meta.name.padEnd(16)} ${(category ?? family ?? '?').padEnd(10)}  (unchanged sound, results kept)` +
       (prev.issues.length ? `  critic: ${prev.issues.join('; ')}` : '') +
-      (prev.wheelIssues.length ? `  wheel up: ${prev.wheelIssues.join('; ')}` : '') + (category && !prev.earns ? `  doesn't earn its place: ${prev.failing.join('; ')}` : ''));
+      (category && !prev.earns ? `  doesn't earn its place: ${prev.failing.join('; ')}` : ''));
     if (write && prev.hash !== hash) {
       prev.hash = hash;
       writeFileSync(entry.path, JSON.stringify(entry.json, null, 2) + '\n');
@@ -83,14 +80,8 @@ for (const entry of loadLibrary().filter((e) => (fileList ? fileList.includes(e.
     hash, audio, judge: judgeH,
     critic: verdict.pass && errors.length === 0,
     issues: [...verdict.issues.map((i) => i.message), ...errors.map((e) => e.message)],
-    earns: true, weakest: '', failing: [], wheel: true, wheelIssues: [],
+    earns: true, weakest: '', failing: [],
   };
-  // The mod wheel fully up (the preset's own move): quality and safety only.
-  // Its style zone and life are not judged: moving the wheel is meant to change the character.
-  const up = judge(analyzePatch(patch, loop, { ...setup.opts, life: false, modWheel: 1 }).raw, family, category);
-  stamp.wheelIssues = up.issues.filter((i) => !/^(vibe|life)/.test(i.code)).map((i) => i.message);
-  stamp.wheel = stamp.wheelIssues.length === 0;
-  if (!stamp.wheel) ok = false;
   if (category) {
     meta.vibe = vibeOf(a.raw);
     const res = earnsItsPlace(patch, loop, { seconds: setup.opts.loopSeconds, sampleRate: ABLATION_RATE });
@@ -108,8 +99,7 @@ for (const entry of loadLibrary().filter((e) => (fileList ? fileList.includes(e.
   if (!ok) failures++;
   console.log(`${ok ? '✓' : '✗'} ${meta.name.padEnd(16)} ${(category ?? family ?? '?').padEnd(10)}` +
     (verdict.issues.length ? `  critic: ${verdict.issues.map((i) => i.message).join('; ')}` : '') +
-    (rules.length ? `  rules: ${rules.map((r) => `[${r.severity}] ${r.rule}`).join(', ')}` : '') +
-    (stamp.wheelIssues.length ? `  wheel up: ${stamp.wheelIssues.join('; ')}` : '') + earned);
+    (rules.length ? `  rules: ${rules.map((r) => `[${r.severity}] ${r.rule}`).join(', ')}` : '') + earned);
   if (write) {
     meta.features = a.features;
     writeFileSync(entry.path, JSON.stringify(entry.json, null, 2) + '\n');

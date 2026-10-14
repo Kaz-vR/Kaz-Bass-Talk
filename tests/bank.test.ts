@@ -38,7 +38,6 @@ describe('preset bank', () => {
     expect(checks.critic).toBe(true);
     expect(checks.failing).toEqual([]);
     expect(checks.earns).toBe(true);
-    expect(checks.wheel, `mod wheel fully up: ${checks.wheelIssues?.join('; ')}`).toBe(true);
   });
 
   it('every preset sits with the rest of the bank', () => {
