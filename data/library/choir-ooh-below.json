@@ -24,18 +24,13 @@
     },
     "checks": {
       "hash": "3c34e962",
-      "audio": "d0670633",
-      "judge": "e6948739",
+      "audio": "0c498ff5",
+      "judge": "6956165c",
       "critic": true,
       "issues": [],
       "earns": true,
       "weakest": "delay 0.29 dB",
-      "failing": [],
-      "wheel": false,
-      "wheelIssues": [
-        "digital fizz (aliasing): -20.0 dB (limit -55.0 dB)",
-        "weak fundamental: -15.3 dB (limit -15.0 dB)"
-      ]
+      "failing": []
     },
     "features": {
       "brightness": 0.575,

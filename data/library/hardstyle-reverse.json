@@ -27,15 +27,13 @@
     },
     "checks": {
       "hash": "914ed300",
-      "audio": "6f1c675d",
-      "judge": "e6948739",
+      "audio": "43a133ed",
+      "judge": "6956165c",
       "critic": true,
       "issues": [],
       "earns": true,
       "weakest": "",
-      "failing": [],
-      "wheel": true,
-      "wheelIssues": []
+      "failing": []
     }
   },
   "voice.polyphony": 1,

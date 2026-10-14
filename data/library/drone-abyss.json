@@ -24,17 +24,13 @@
     },
     "checks": {
       "hash": "240caa35",
-      "audio": "38522e0d",
-      "judge": "e6948739",
+      "audio": "589db95f",
+      "judge": "6956165c",
       "critic": true,
       "issues": [],
       "earns": true,
       "weakest": "mod 10 (lfo4 → chorus_depth) 0.27 dB",
-      "failing": [],
-      "wheel": false,
-      "wheelIssues": [
-        "digital fizz (aliasing): -25.9 dB (limit -55.0 dB)"
-      ]
+      "failing": []
     },
     "features": {
       "brightness": 0.232,
