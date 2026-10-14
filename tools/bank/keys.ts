@@ -148,6 +148,18 @@ const def: CategoryDef = {
       texture: ['air', 0.45, 0.3, 2000],
       set: { 'amp_env.attack': 30, 'fm.amount': 0.1, 'fm.punch': 0.2, 'chorus.mix': 0.45, 'reverb.mix': 0.4 },
     },
+    // ------------------------------------------------ iconic (LORN versions)
+    {
+      id: 'glass-tine', name: 'Glass Tine', iconic: true,
+      description: 'The eighties FM electric piano: a glassy tine over a soft round body, chorused and phased, now on a worn tape in a dark room.',
+      tags: ['keys', 'fm', 'electric-piano', 'eighties', 'glassy', 'chorus', 'lorn'],
+      texture: ['crackle', 0.3, 0.35, 900],
+      set: {
+        'osc1.wave': 'sine', 'fm.amount': 0.3, 'fm.ratio': 1, 'fm.punch': 0.7, 'fm.decay': 300, 'fm2.amount': 0.15, 'fm2.ratio': 14,
+        'voice.velocity': 0.85, 'amp_env.decay': 2500, 'amp_env.sustain': 0.2, 'amp_env.release': 600,
+        'chorus.mix': 0.3, 'chorus.mode': 'ensemble', 'phaser.mix': 0.12, 'phaser.rate': 0.3,
+      },
+    },
   ],
 };
 

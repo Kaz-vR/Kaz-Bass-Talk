@@ -130,6 +130,29 @@ const def: CategoryDef = {
       },
       mods: SOFT_ARP_KIT,
     },
+    // ------------------------------------------------ iconic (LORN versions)
+    {
+      id: 'gridlock', name: 'Gridlock', iconic: true,
+      description: 'A tempo-locked synthwave arpeggio: a resonant diode filter sweeping in time, pumping on the eighths, echoing into the dark.',
+      tags: ['arp', 'synced', 'synthwave', 'diode', 'pumping', 'driving', 'lorn'],
+      texture: ['dust', 0.3, 0.35, 600],
+      set: {
+        'filter.type': 'diode', 'filter.resonance': 0.4, 'filter.cutoff': 800, 'lfo1.sync': '1/2', 'lfo1.shape': 'triangle',
+        'comp.pump': 0.4, 'comp.pump_rate': '1/8', 'delay.time': '1/8D',
+      },
+    },
+    {
+      id: 'chapter-one', name: 'Chapter One', iconic: true,
+      description: 'A warm analog arpeggio whose filter opens slowly over the bars, glowing and ominous: an eighties mystery beginning.',
+      tags: ['arp', 'analog', 'warm', 'slow-open', 'eighties', 'mystery', 'lorn'],
+      texture: ['dust', 0.3, 0.3, 600],
+      set: {
+        'osc1.unison_voices': 3, 'osc1.unison_detune': 9, 'filter.cutoff': 350, 'filter.env_amount': 0.25, 'amp_env.decay': 250,
+        'env2.attack': 8000, 'env2.sustain': 1, 'delay.time': '1/4', 'delay.mix': 0.2, 'phaser.mix': 0.15, 'phaser.rate': 0.12,
+      },
+      // The slow opening is the identity: the bloom envelope takes back the per-note drive slot.
+      mods: kit(ARP_KIT, [], { 'random>drive': ['env2', 'filter_cutoff', 0.45] }),
+    },
   ],
 };
 

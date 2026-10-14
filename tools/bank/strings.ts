@@ -105,6 +105,17 @@ const def: CategoryDef = {
         'vibrato.depth': 10, 'eq.highcut': 5500,
       },
     },
+    // ------------------------------------------------ iconic (LORN versions)
+    {
+      id: 'machine-strings', name: 'Machine Strings', iconic: true,
+      description: 'The seventies string machine: thin bright saws made lush by an ensemble chorus and a slow phaser, gone soft with age.',
+      tags: ['strings', 'string-machine', 'ensemble', 'phaser', 'vintage', 'lush', 'lorn'],
+      texture: ['dust', 0.4, 0.35, 1500],
+      set: {
+        'osc1.unison_detune': 14, 'amp_env.attack': 300, 'amp_env.release': 1200, 'filter.cutoff': 2000, 'filter.resonance': 0,
+        'chorus.mix': 0.55, 'chorus.depth': 0.7, 'phaser.mix': 0.25, 'phaser.rate': 0.2, 'vibrato.depth': 6,
+      },
+    },
   ],
 };
 

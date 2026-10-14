@@ -129,6 +129,17 @@ const def: CategoryDef = {
       texture: ['rumble', 0.3, 0.3, 800],
       set: { 'filter.cutoff': 300, 'filter.env_amount': 0.5, 'reverb.mix': 0.4, 'drive.amount': 0.6 },
     },
+    // ------------------------------------------------ iconic (LORN versions)
+    {
+      id: 'wet-neon', name: 'Wet Neon', iconic: true,
+      description: 'A short neon pluck whose dotted-eighth echo becomes the rhythm, softly overdriven and dissolving in a huge room.',
+      tags: ['pluck', 'dotted-delay', 'synthwave', 'echo', 'rhythmic', 'neon', 'lorn'],
+      texture: ['dust', 0.3, 0.35, 700],
+      set: {
+        'delay.time': '1/8D', 'delay.mix': 0.38, 'delay.feedback': 0.55, 'filter.cutoff': 700, 'filter.env_amount': 0.5,
+        'voice.velocity': 0.8, 'reverb.size': 0.92, 'reverb.mix': 0.3, 'dist.type': 'soft', 'dist.drive': 0.3,
+      },
+    },
   ],
 };
 

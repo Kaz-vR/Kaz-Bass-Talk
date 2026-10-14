@@ -417,8 +417,8 @@
       "identity": "Two-operator FM tine: a glassy bell-like attack over a soft body; harder playing brings more tine.",
       "requires": [
         "fm",
-        "velocity:strong",
-        "amp:pluck"
+        "fm:operator2",
+        "velocity:strong"
       ]
     },
     {
