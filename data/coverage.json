@@ -1749,5 +1749,11 @@
       "identity": "A tiny, soft pulse sequence glowing in a dark room like a night light.",
       "requires": []
     }
+  ],
+  "keep": [
+    {
+      "preset": "keys-midnight-upright",
+      "why": "the owner uses it as is: never change, re-tune or remove it"
+    }
   ]
 }
