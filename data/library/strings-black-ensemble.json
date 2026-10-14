@@ -23,8 +23,8 @@
       "tailDb": -8.4
     },
     "checks": {
-      "hash": "553fa96c",
-      "code": "02096e9d",
+      "hash": "f8657599",
+      "code": "f2a012d0",
       "earns": true,
       "weakest": "texture bed 0.20 dB",
       "failing": [],
