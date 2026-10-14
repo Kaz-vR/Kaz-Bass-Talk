@@ -124,3 +124,19 @@ describe('wobble', () => {
     expect(spread(peaks(1))).toBeGreaterThan(0.15);
   });
 });
+
+describe('wobble on the texture bed', () => {
+  it('filter + drive + texture moves the bed; the other targets leave it alone', () => {
+    // The bed alone (solo), so only its own movement is measured.
+    const p = { meta: { name: 't' }, 'osc1.wave': 'saw', 'amp_env.sustain': 1, 'texture.level': 0.6, 'texture.type': 'dust', 'wobble.depth': 1, 'wobble.life': 0 };
+    const bed = (target: string) => renderPatch({ ...p, 'wobble.target': target }, heldNote(57, 4), { seconds: 1.5, sampleRate: 24000, monitor: { solo: ['texture'] } }).left;
+    const still = renderPatch({ ...p, 'wobble.depth': 0 }, heldNote(57, 4), { seconds: 1.5, sampleRate: 24000, monitor: { solo: ['texture'] } }).left;
+    const diff = (a: Float32Array, b: Float32Array) => {
+      let d = 0, e = 0;
+      for (let i = 0; i < a.length; i++) { d += (a[i] - b[i]) ** 2; e += a[i] ** 2; }
+      return 10 * Math.log10(d / e + 1e-30);
+    };
+    expect(diff(still, bed('filter + drive'))).toBeLessThan(-60);
+    expect(diff(still, bed('filter + drive + texture'))).toBeGreaterThan(-15);
+  });
+});

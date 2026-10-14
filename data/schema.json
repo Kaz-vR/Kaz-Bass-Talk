@@ -1572,11 +1572,12 @@
       "type": "enum",
       "options": [
         "filter",
-        "filter + drive"
+        "filter + drive",
+        "filter + drive + texture"
       ],
       "default": "filter",
       "group": "wobble",
-      "describes": "Filter: the classic wub (the filter swings shut and wide open with a resonant peak). Filter + drive: the same wub with the drive in front of the filter pulsing along, so it growls."
+      "describes": "Filter: the classic wub (the filter swings shut and wide open with a resonant peak). Filter + drive: the same wub with the drive in front of the filter pulsing along, so it growls. Filter + drive + texture: the texture bed wobbles with it too (it opens, brightens and swells on each wub)."
     },
     {
       "id": "wobble.shape",
