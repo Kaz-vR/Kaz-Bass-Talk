@@ -16,33 +16,40 @@
     "collection": "bank",
     "audition": "lead-line",
     "vibe": {
-      "brightOct": 0.68,
-      "airDb": -31.2,
-      "dirt": 0.75,
-      "widthDb": -11.9,
-      "tailDb": -15.7
+      "brightOct": 0.7,
+      "airDb": -30.3,
+      "dirt": 0.79,
+      "widthDb": -11.6,
+      "tailDb": -15.4
     },
     "checks": {
-      "hash": "37276ae2",
-      "code": "f2a012d0",
-      "earns": true,
-      "weakest": "mod 4 (drift_slow → drive) 0.15 dB",
-      "failing": [],
+      "hash": "33c4bb0e",
+      "audio": "d8e5b15b",
+      "judge": "e6948739",
       "critic": true,
-      "issues": []
+      "issues": [],
+      "earns": false,
+      "weakest": "mod 4 (drift_slow → drive) 0.14 dB",
+      "failing": [
+        "mod 4 (drift_slow → drive) 0.14 dB"
+      ],
+      "wheel": false,
+      "wheelIssues": [
+        "digital fizz (aliasing): -2.9 dB (limit -55.0 dB)"
+      ]
     },
     "features": {
-      "brightness": 0.575,
-      "highEnergy": 0.773,
+      "brightness": 0.578,
+      "highEnergy": 0.778,
       "sub": 0.024,
-      "lowMid": 0.032,
-      "dirt": 0.749,
-      "width": 0.702,
+      "lowMid": 0.033,
+      "dirt": 0.794,
+      "width": 0.711,
       "attack": 1,
       "decay": 0.593,
       "sustain": 0.886,
       "release": 0.773,
-      "movement": 0.105
+      "movement": 0.111
     }
   },
   "voice.polyphony": 1,
@@ -215,7 +222,7 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 7000,
-  "output.gain": -4.9,
+  "output.gain": -4.6,
   "output.crossover": 120,
   "wheel.preset": "vibrato"
 }

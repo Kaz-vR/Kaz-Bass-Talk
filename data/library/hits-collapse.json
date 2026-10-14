@@ -16,28 +16,33 @@
     "collection": "bank",
     "audition": "hits",
     "vibe": {
-      "brightOct": 2.04,
-      "airDb": -38.2,
+      "brightOct": 2.05,
+      "airDb": -38.3,
       "dirt": 0.82,
       "widthDb": -8.7,
-      "tailDb": -13.5
+      "tailDb": -13.6
     },
     "checks": {
-      "hash": "dd457dfc",
-      "code": "f2a012d0",
+      "hash": "772ca513",
+      "audio": "0454ab70",
+      "judge": "e6948739",
+      "critic": true,
+      "issues": [],
       "earns": true,
       "weakest": "mod 5 (lfo1 → filter_cutoff) 0.37 dB",
       "failing": [],
-      "critic": true,
-      "issues": []
+      "wheel": false,
+      "wheelIssues": [
+        "harsh 2–5 kHz: -7.0 dB (limit -8.0 dB)"
+      ]
     },
     "features": {
-      "brightness": 0.391,
+      "brightness": 0.392,
       "highEnergy": 0.682,
-      "sub": 0.615,
+      "sub": 0.614,
       "lowMid": 0.615,
       "dirt": 0.825,
-      "width": 0.783,
+      "width": 0.782,
       "attack": 0.201,
       "decay": 0.727,
       "sustain": 0.246,
@@ -215,7 +220,7 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 6500,
-  "output.gain": -2.9,
+  "output.gain": -3.7,
   "output.crossover": 120,
   "wheel.preset": "snarl"
 }

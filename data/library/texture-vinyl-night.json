@@ -215,7 +215,7 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 5500,
-  "output.gain": -5.2,
+  "output.gain": -5.6,
   "output.crossover": 120,
   "wheel.preset": "decay"
 }

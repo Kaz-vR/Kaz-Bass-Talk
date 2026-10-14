@@ -23,13 +23,16 @@
       "tailDb": -16.2
     },
     "checks": {
-      "hash": "38484d49",
-      "code": "f2a012d0",
+      "hash": "b13eae92",
+      "audio": "8dea6eb2",
+      "judge": "e6948739",
+      "critic": true,
+      "issues": [],
       "earns": true,
       "weakest": "mod 5 (lfo1 → filter_cutoff) 0.31 dB",
       "failing": [],
-      "critic": true,
-      "issues": []
+      "wheel": true,
+      "wheelIssues": []
     },
     "features": {
       "brightness": 0.167,
@@ -215,7 +218,7 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 6500,
-  "output.gain": -5.2,
+  "output.gain": -6,
   "output.crossover": 120,
   "wheel.preset": "snarl"
 }

@@ -17,27 +17,30 @@
     "audition": "hits",
     "vibe": {
       "brightOct": 0.48,
-      "airDb": -46,
+      "airDb": -45.9,
       "dirt": 0.93,
       "widthDb": -13.9,
-      "tailDb": -13.5
+      "tailDb": -13.6
     },
     "checks": {
-      "hash": "d8c91cca",
-      "code": "f2a012d0",
+      "hash": "6da43da2",
+      "audio": "8602427b",
+      "judge": "e6948739",
+      "critic": true,
+      "issues": [],
       "earns": true,
       "weakest": "mod 5 (lfo1 → filter_cutoff) 0.28 dB",
       "failing": [],
-      "critic": true,
-      "issues": []
+      "wheel": true,
+      "wheelIssues": []
     },
     "features": {
       "brightness": 0.155,
       "highEnergy": 0.56,
       "sub": 0.867,
-      "lowMid": 0.438,
+      "lowMid": 0.439,
       "dirt": 0.926,
-      "width": 0.653,
+      "width": 0.652,
       "attack": 0.1,
       "decay": 0.78,
       "sustain": 0.264,
@@ -215,7 +218,7 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 6500,
-  "output.gain": -5.5,
+  "output.gain": -6.4,
   "output.crossover": 120,
   "wheel.preset": "snarl"
 }

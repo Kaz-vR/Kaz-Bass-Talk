@@ -23,13 +23,18 @@
       "tailDb": -5.2
     },
     "checks": {
-      "hash": "b672489e",
-      "code": "f2a012d0",
+      "hash": "29aa850f",
+      "audio": "3c33cf85",
+      "judge": "e6948739",
+      "critic": true,
+      "issues": [],
       "earns": true,
       "weakest": "texture bed 0.15 dB",
       "failing": [],
-      "critic": true,
-      "issues": []
+      "wheel": false,
+      "wheelIssues": [
+        "digital fizz (aliasing): -36.8 dB (limit -55.0 dB)"
+      ]
     },
     "features": {
       "brightness": 0.423,

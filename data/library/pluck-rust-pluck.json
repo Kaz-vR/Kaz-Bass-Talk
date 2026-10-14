@@ -23,13 +23,18 @@
       "tailDb": -23.5
     },
     "checks": {
-      "hash": "17e5bab7",
-      "code": "f2a012d0",
+      "hash": "1e3c9c67",
+      "audio": "8a6344ec",
+      "judge": "e6948739",
+      "critic": true,
+      "issues": [],
       "earns": true,
       "weakest": "mod 9 (drift_slow → reverb_mix) 0.50 dB",
       "failing": [],
-      "critic": true,
-      "issues": []
+      "wheel": false,
+      "wheelIssues": [
+        "weak fundamental: -20.4 dB (limit -15.0 dB)"
+      ]
     },
     "features": {
       "brightness": 0.581,

@@ -16,33 +16,40 @@
     "collection": "bank",
     "audition": "arp-line",
     "vibe": {
-      "brightOct": 1.21,
-      "airDb": -29.9,
-      "dirt": 1.05,
+      "brightOct": 1.22,
+      "airDb": -29.5,
+      "dirt": 1.07,
       "widthDb": -1.1,
       "tailDb": -5.5
     },
     "checks": {
-      "hash": "13157175",
-      "code": "f2a012d0",
+      "hash": "e5f3fd9c",
+      "audio": "aa34c61a",
+      "judge": "e6948739",
+      "critic": false,
+      "issues": [
+        "texture bed burying the bass: -9.8 dB (limit -12.0 dB)"
+      ],
       "earns": true,
-      "weakest": "mod 2 (lfo2 → amp) 0.20 dB",
+      "weakest": "mod 2 (lfo2 → amp) 0.19 dB",
       "failing": [],
-      "critic": true,
-      "issues": []
+      "wheel": false,
+      "wheelIssues": [
+        "texture bed burying the bass: -4.2 dB (limit -12.0 dB)"
+      ]
     },
     "features": {
-      "brightness": 0.692,
+      "brightness": 0.693,
       "highEnergy": 0.878,
       "sub": 0.09,
       "lowMid": 0.384,
       "dirt": 1,
-      "width": 0.972,
+      "width": 0.973,
       "attack": 0.36,
-      "decay": 0.885,
-      "sustain": 0.567,
+      "decay": 0.891,
+      "sustain": 0.667,
       "release": 0.773,
-      "movement": 0.208
+      "movement": 0.265
     }
   },
   "voice.polyphony": 8,

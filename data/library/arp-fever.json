@@ -23,13 +23,16 @@
       "tailDb": -27.7
     },
     "checks": {
-      "hash": "1cf631cf",
-      "code": "f2a012d0",
+      "hash": "6380df6f",
+      "audio": "2d04ea68",
+      "judge": "e6948739",
+      "critic": true,
+      "issues": [],
       "earns": true,
       "weakest": "mod 3 (random → drive) 0.27 dB",
       "failing": [],
-      "critic": true,
-      "issues": []
+      "wheel": true,
+      "wheelIssues": []
     },
     "features": {
       "brightness": 0.46,

@@ -16,33 +16,38 @@
     "collection": "bank",
     "audition": "swell",
     "vibe": {
-      "brightOct": 2.33,
-      "airDb": -29.3,
-      "dirt": 1.33,
+      "brightOct": 2.41,
+      "airDb": -27.6,
+      "dirt": 1.39,
       "widthDb": -2.6,
-      "tailDb": -7.4
+      "tailDb": -7.1
     },
     "checks": {
-      "hash": "1dee8eb5",
-      "code": "f2a012d0",
-      "earns": true,
-      "weakest": "mod 7 (lfo2 → amp) 0.32 dB",
-      "failing": [],
+      "hash": "8456f3da",
+      "audio": "3673b779",
+      "judge": "e6948739",
       "critic": true,
-      "issues": []
+      "issues": [],
+      "earns": true,
+      "weakest": "delay 0.33 dB",
+      "failing": [],
+      "wheel": false,
+      "wheelIssues": [
+        "digital fizz (aliasing): -20.5 dB (limit -55.0 dB)"
+      ]
     },
     "features": {
-      "brightness": 0.522,
-      "highEnergy": 0.796,
+      "brightness": 0.534,
+      "highEnergy": 0.805,
       "sub": 0.026,
-      "lowMid": 0.764,
+      "lowMid": 0.761,
       "dirt": 1,
-      "width": 0.934,
+      "width": 0.935,
       "attack": 1,
       "decay": 1,
-      "sustain": 0.973,
+      "sustain": 0.967,
       "release": 0.773,
-      "movement": 0.559
+      "movement": 0.549
     }
   },
   "voice.polyphony": 2,
@@ -215,7 +220,7 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 7000,
-  "output.gain": -6.4,
+  "output.gain": -6.1,
   "output.crossover": 120,
   "wheel.preset": "unstable"
 }

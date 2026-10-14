@@ -25,6 +25,21 @@
       "sustain": 0,
       "release": 0.725,
       "movement": 0.402
+    },
+    "checks": {
+      "hash": "21d3ed74",
+      "audio": "d6f8c552",
+      "judge": "e6948739",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "",
+      "failing": [],
+      "wheel": false,
+      "wheelIssues": [
+        "limiter working hard: 3.5 dB (limit 3.0 dB)",
+        "digital fizz (aliasing): -54.9 dB (limit -55.0 dB)"
+      ]
     }
   },
   "voice.polyphony": 1,

@@ -17,27 +17,30 @@
     "audition": "hits",
     "vibe": {
       "brightOct": 0.59,
-      "airDb": -41.2,
-      "dirt": 0.95,
-      "widthDb": -9.7,
-      "tailDb": -15
+      "airDb": -41.1,
+      "dirt": 0.96,
+      "widthDb": -9.8,
+      "tailDb": -15.1
     },
     "checks": {
-      "hash": "994bb660",
-      "code": "f2a012d0",
+      "hash": "bab5b350",
+      "audio": "cff90acd",
+      "judge": "e6948739",
+      "critic": true,
+      "issues": [],
       "earns": true,
       "weakest": "mod 6 (lfo4 → width) 0.39 dB",
       "failing": [],
-      "critic": true,
-      "issues": []
+      "wheel": true,
+      "wheelIssues": []
     },
     "features": {
       "brightness": 0.172,
-      "highEnergy": 0.561,
-      "sub": 0.891,
-      "lowMid": 0.383,
-      "dirt": 0.953,
-      "width": 0.757,
+      "highEnergy": 0.562,
+      "sub": 0.89,
+      "lowMid": 0.385,
+      "dirt": 0.958,
+      "width": 0.756,
       "attack": 0.1,
       "decay": 0.757,
       "sustain": 0.317,
@@ -215,7 +218,7 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 6500,
-  "output.gain": -2.4,
+  "output.gain": -3.3,
   "output.crossover": 120,
   "wheel.preset": "snarl"
 }
