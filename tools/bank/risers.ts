@@ -52,10 +52,10 @@ const def: CategoryDef = {
     },
     {
       id: 'static-climb', name: 'Static Climb',
-      description: 'A noise riser: static rushing up through a resonant band, getting louder and closer.',
+      description: 'A noise riser: static rushing up through a resonant filter, getting louder and closer.',
       tags: ['riser', 'noise', 'static', 'sweep', 'build', 'transition', 'lorn'],
       texture: ['dust', 0.5, 0.45, 2500],
-      set: { 'osc1.level': 0.4, 'noise.level': 0.06, 'filter.type': 'bandpass', 'filter.cutoff': 200, 'filter.resonance': 0.35, 'eq.highcut': 3000 },
+      set: { 'osc1.level': 0.4, 'noise.level': 0.06, 'filter.cutoff': 200, 'filter.resonance': 0.45, 'dist.drive': 0.45, 'eq.highcut': 3000 },
       mods: kit(RISE_KIT, [['env2', 'filter_cutoff', 0.2], ['env2', 'noise_level', 0.3], ['env2', 'pitch', 0.25]]),
     },
     {

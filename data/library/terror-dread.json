@@ -25,21 +25,24 @@
     },
     "checks": {
       "hash": "ca738483",
+      "code": "02096e9d",
       "earns": true,
-      "weakest": "mod 2 (lfo2 → filter_cutoff) 0.19 dB",
-      "failing": []
+      "weakest": "mod 2 (lfo2 → filter_cutoff) 0.18 dB",
+      "failing": [],
+      "critic": true,
+      "issues": []
     },
     "features": {
       "brightness": 0.272,
       "highEnergy": 0.569,
       "sub": 0.656,
       "lowMid": 0.642,
-      "dirt": 0.582,
+      "dirt": 0.576,
       "width": 0.852,
       "attack": 0.201,
       "decay": 0.902,
-      "sustain": 0.911,
-      "release": 0.77,
+      "sustain": 0.916,
+      "release": 0.76,
       "movement": 0.328
     }
   },

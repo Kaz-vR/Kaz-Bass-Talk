@@ -19,29 +19,32 @@
     "audition": "dread",
     "vibe": {
       "brightOct": 0.7,
-      "airDb": -46.6,
+      "airDb": -46.5,
       "dirt": 0.59,
       "widthDb": -4.2,
       "tailDb": -10.9
     },
     "checks": {
       "hash": "58683071",
+      "code": "02096e9d",
       "earns": true,
-      "weakest": "mod 2 (lfo2 → filter_cutoff) 0.19 dB",
-      "failing": []
+      "weakest": "mod 2 (lfo2 → filter_cutoff) 0.18 dB",
+      "failing": [],
+      "critic": true,
+      "issues": []
     },
     "features": {
-      "brightness": 0.276,
+      "brightness": 0.277,
       "highEnergy": 0.579,
       "sub": 0.578,
-      "lowMid": 0.735,
-      "dirt": 0.59,
+      "lowMid": 0.734,
+      "dirt": 0.586,
       "width": 0.895,
       "attack": 0.434,
       "decay": 0.9,
-      "sustain": 0.86,
+      "sustain": 0.859,
       "release": 0.773,
-      "movement": 0.226
+      "movement": 0.228
     }
   },
   "voice.polyphony": 1,

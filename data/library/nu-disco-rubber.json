@@ -14,17 +14,17 @@
     "directory": "nu-disco-rubber",
     "family": "funk",
     "features": {
-      "brightness": 0.312,
-      "highEnergy": 0.608,
+      "brightness": 0.311,
+      "highEnergy": 0.609,
       "sub": 0.668,
       "lowMid": 0.604,
-      "dirt": 0.595,
-      "width": 0.177,
+      "dirt": 0.596,
+      "width": 0.181,
       "attack": 0.333,
       "decay": 0.902,
       "sustain": 0.787,
       "release": 0.453,
-      "movement": 0.122
+      "movement": 0.121
     }
   },
   "voice.polyphony": 1,

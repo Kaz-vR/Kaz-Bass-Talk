@@ -14,15 +14,15 @@
     "directory": "gfunk-low",
     "family": "analog",
     "features": {
-      "brightness": 0.1,
-      "highEnergy": 0.109,
+      "brightness": 0.099,
+      "highEnergy": 0.11,
       "sub": 0.876,
       "lowMid": 0.453,
-      "dirt": 0.074,
-      "width": 0.151,
+      "dirt": 0.075,
+      "width": 0.153,
       "attack": 0.434,
       "decay": 0.9,
-      "sustain": 0.959,
+      "sustain": 0.958,
       "release": 0.516,
       "movement": 0.038
     }

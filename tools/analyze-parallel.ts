@@ -1,14 +1,19 @@
 // DEV ONLY. Runs tools/analyze-library.ts over the matching library files in
 // parallel worker processes (one per CPU), then the bank consistency check.
 // --level first loudness-matches each chunk (tools/level-patches.ts).
-//   npx tsx tools/analyze-parallel.ts <file filter> [--force] [--level]
+//   npx tsx tools/analyze-parallel.ts <file filter[,filter…]> [--force] [--level]
 import { spawn } from 'node:child_process';
 import { availableParallelism } from 'node:os';
 import { loadLibrary } from './lib/data';
 
 const only = process.argv.slice(2).find((a) => !a.startsWith('--')) ?? '';
 const extra = process.argv.slice(2).filter((a) => a.startsWith('--'));
-const files = loadLibrary().map((e) => e.file).filter((f) => f.includes(only));
+const pats = only.split(',');
+const files = loadLibrary().map((e) => e.file).filter((f) => pats.some((p) => f.includes(p)));
+if (!files.length) {
+  console.log(`no library files match "${only}"`);
+  process.exit(1);
+}
 const workers = Math.max(1, Math.min(availableParallelism(), files.length));
 const chunks: string[][] = Array.from({ length: workers }, () => []);
 files.forEach((f, i) => chunks[i % workers].push(f));

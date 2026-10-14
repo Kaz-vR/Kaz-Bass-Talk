@@ -14,17 +14,17 @@
     "directory": "shoegaze-fog",
     "family": "cinematic",
     "features": {
-      "brightness": 0.161,
-      "highEnergy": 0.24,
-      "sub": 0.828,
+      "brightness": 0.163,
+      "highEnergy": 0.239,
+      "sub": 0.827,
       "lowMid": 0.515,
-      "dirt": 0.088,
-      "width": 0.774,
+      "dirt": 0.081,
+      "width": 0.772,
       "attack": 0.761,
       "decay": 0.86,
-      "sustain": 0.924,
+      "sustain": 0.934,
       "release": 0.773,
-      "movement": 0.198
+      "movement": 0.195
     }
   },
   "voice.polyphony": 1,

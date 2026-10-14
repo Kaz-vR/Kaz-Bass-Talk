@@ -21,22 +21,25 @@
       "brightOct": 0.24,
       "airDb": -30,
       "dirt": 0.96,
-      "widthDb": -9.5,
+      "widthDb": -9.6,
       "tailDb": -8.9
     },
     "checks": {
       "hash": "46e11061",
+      "code": "02096e9d",
       "earns": true,
       "weakest": "mod 2 (lfo2 → dist_drive) 0.15 dB",
-      "failing": []
+      "failing": [],
+      "critic": true,
+      "issues": []
     },
     "features": {
       "brightness": 0.207,
       "highEnergy": 0.599,
       "sub": 0.578,
       "lowMid": 0.794,
-      "dirt": 0.96,
-      "width": 0.762,
+      "dirt": 0.962,
+      "width": 0.761,
       "attack": 0.492,
       "decay": 0.898,
       "sustain": 0.907,

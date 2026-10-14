@@ -18,14 +18,14 @@
       "brightness": 0.377,
       "highEnergy": 0.622,
       "sub": 0.438,
-      "lowMid": 0.721,
-      "dirt": 0.601,
+      "lowMid": 0.72,
+      "dirt": 0.6,
       "width": 0.767,
       "attack": 0.36,
       "decay": 0.902,
-      "sustain": 0.876,
-      "release": 0.755,
-      "movement": 0.302
+      "sustain": 0.879,
+      "release": 0.756,
+      "movement": 0.303
     }
   },
   "voice.polyphony": 1,

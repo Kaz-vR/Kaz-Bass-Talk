@@ -20,26 +20,29 @@
       "airDb": -33,
       "dirt": 0.36,
       "widthDb": -5,
-      "tailDb": -17.3
+      "tailDb": -17.2
     },
     "checks": {
       "hash": "a6ee01d4",
+      "code": "02096e9d",
       "earns": true,
-      "weakest": "mod 2 (lfo2 → amp) 0.25 dB",
-      "failing": []
+      "weakest": "mod 2 (lfo2 → amp) 0.24 dB",
+      "failing": [],
+      "critic": true,
+      "issues": []
     },
     "features": {
       "brightness": 0.58,
       "highEnergy": 0.764,
       "sub": 0.005,
       "lowMid": 0.006,
-      "dirt": 0.364,
-      "width": 0.874,
+      "dirt": 0.365,
+      "width": 0.876,
       "attack": 0.259,
       "decay": 0.926,
-      "sustain": 0.962,
+      "sustain": 0.979,
       "release": 0.773,
-      "movement": 0.185
+      "movement": 0.187
     }
   },
   "voice.polyphony": 1,

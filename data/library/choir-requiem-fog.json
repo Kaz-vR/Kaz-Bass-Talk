@@ -19,27 +19,30 @@
       "brightOct": 1.76,
       "airDb": -39.8,
       "dirt": 0.35,
-      "widthDb": -2.8,
-      "tailDb": -5.6
+      "widthDb": -2.9,
+      "tailDb": -5.4
     },
     "checks": {
       "hash": "f15fbd28",
+      "code": "02096e9d",
       "earns": true,
-      "weakest": "mod 10 (lfo4 → chorus_depth) 0.40 dB",
-      "failing": []
+      "weakest": "mod 10 (lfo4 → chorus_depth) 0.38 dB",
+      "failing": [],
+      "critic": true,
+      "issues": []
     },
     "features": {
       "brightness": 0.586,
-      "highEnergy": 0.736,
+      "highEnergy": 0.735,
       "sub": 0.008,
-      "lowMid": 0.257,
-      "dirt": 0.35,
-      "width": 0.929,
-      "attack": 0.929,
+      "lowMid": 0.256,
+      "dirt": 0.351,
+      "width": 0.927,
+      "attack": 0.919,
       "decay": 0.931,
-      "sustain": 0.884,
+      "sustain": 0.87,
       "release": 0.773,
-      "movement": 0.192
+      "movement": 0.224
     }
   },
   "voice.polyphony": 8,

@@ -16,13 +16,13 @@
     "features": {
       "brightness": 0.204,
       "highEnergy": 0.613,
-      "sub": 0.874,
+      "sub": 0.875,
       "lowMid": 0.295,
-      "dirt": 0.499,
-      "width": 0.762,
+      "dirt": 0.502,
+      "width": 0.761,
       "attack": 0.333,
       "decay": 0.9,
-      "sustain": 0.908,
+      "sustain": 0.907,
       "release": 0.449,
       "movement": 0.258
     }

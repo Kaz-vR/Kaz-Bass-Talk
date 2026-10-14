@@ -17,30 +17,33 @@
     "collection": "terror",
     "audition": "dread",
     "vibe": {
-      "brightOct": 1.71,
-      "airDb": -43,
-      "dirt": 0.56,
-      "widthDb": -19.4,
-      "tailDb": -23.2
+      "brightOct": 1.72,
+      "airDb": -43.1,
+      "dirt": 0.55,
+      "widthDb": -19.3,
+      "tailDb": -23.1
     },
     "checks": {
-      "hash": "c4bc79a3",
+      "hash": "130aed5c",
+      "code": "02096e9d",
       "earns": true,
       "weakest": "pump 0.20 dB",
-      "failing": []
+      "failing": [],
+      "critic": true,
+      "issues": []
     },
     "features": {
-      "brightness": 0.428,
-      "highEnergy": 0.65,
-      "sub": 0.61,
+      "brightness": 0.429,
+      "highEnergy": 0.649,
+      "sub": 0.609,
       "lowMid": 0.521,
-      "dirt": 0.558,
-      "width": 0.515,
+      "dirt": 0.553,
+      "width": 0.517,
       "attack": 0.259,
       "decay": 0.903,
-      "sustain": 0.811,
+      "sustain": 0.818,
       "release": 0.773,
-      "movement": 0.296
+      "movement": 0.295
     }
   },
   "voice.polyphony": 1,
@@ -213,6 +216,6 @@
   "eq.mid_freq": 320,
   "eq.high_gain": -2,
   "eq.highcut": 5500,
-  "output.gain": -3.6,
+  "output.gain": -3.3,
   "output.crossover": 120
 }

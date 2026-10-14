@@ -26,22 +26,25 @@
     },
     "checks": {
       "hash": "393e86f4",
+      "code": "02096e9d",
       "earns": true,
       "weakest": "delay 0.20 dB",
-      "failing": []
+      "failing": [],
+      "critic": true,
+      "issues": []
     },
     "features": {
       "brightness": 0.421,
       "highEnergy": 0.737,
       "sub": 0.74,
-      "lowMid": 0.223,
-      "dirt": 0.822,
+      "lowMid": 0.222,
+      "dirt": 0.819,
       "width": 0.881,
       "attack": 0.434,
       "decay": 0.9,
-      "sustain": 0.906,
+      "sustain": 0.904,
       "release": 0.773,
-      "movement": 0.132
+      "movement": 0.139
     }
   },
   "voice.polyphony": 1,

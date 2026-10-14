@@ -14,17 +14,17 @@
     "directory": "shepard",
     "family": "experimental",
     "features": {
-      "brightness": 0.17,
+      "brightness": 0.171,
       "highEnergy": 0,
-      "sub": 0.744,
-      "lowMid": 0.637,
-      "dirt": 0.02,
-      "width": 0.337,
+      "sub": 0.745,
+      "lowMid": 0.636,
+      "dirt": 0.019,
+      "width": 0.338,
       "attack": 0.527,
       "decay": 0.892,
       "sustain": 0.961,
       "release": 0.766,
-      "movement": 0.19
+      "movement": 0.191
     }
   },
   "voice.polyphony": 1,

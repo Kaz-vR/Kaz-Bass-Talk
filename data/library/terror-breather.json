@@ -25,20 +25,23 @@
     },
     "checks": {
       "hash": "6de73262",
+      "code": "02096e9d",
       "earns": true,
       "weakest": "mod 2 (lfo2 → filter_cutoff) 0.16 dB",
-      "failing": []
+      "failing": [],
+      "critic": true,
+      "issues": []
     },
     "features": {
-      "brightness": 0.315,
-      "highEnergy": 0.605,
+      "brightness": 0.316,
+      "highEnergy": 0.606,
       "sub": 0.597,
       "lowMid": 0.663,
-      "dirt": 0.614,
+      "dirt": 0.615,
       "width": 0.888,
       "attack": 0.201,
       "decay": 0.903,
-      "sustain": 0.845,
+      "sustain": 0.842,
       "release": 0.77,
       "movement": 0.41
     }

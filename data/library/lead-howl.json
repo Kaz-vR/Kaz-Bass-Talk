@@ -16,30 +16,33 @@
     "collection": "bank",
     "audition": "lead-line",
     "vibe": {
-      "brightOct": 0.75,
+      "brightOct": 0.73,
       "airDb": -32.6,
-      "dirt": 0.5,
+      "dirt": 0.51,
       "widthDb": -3.9,
-      "tailDb": -17.5
+      "tailDb": -17.4
     },
     "checks": {
-      "hash": "afcd6047",
+      "hash": "09748969",
+      "code": "02096e9d",
       "earns": true,
-      "weakest": "mod 2 (lfo2 → amp) 0.30 dB",
-      "failing": []
+      "weakest": "mod 2 (lfo2 → amp) 0.28 dB",
+      "failing": [],
+      "critic": true,
+      "issues": []
     },
     "features": {
-      "brightness": 0.585,
+      "brightness": 0.583,
       "highEnergy": 0.758,
       "sub": 0.011,
-      "lowMid": 0.016,
-      "dirt": 0.502,
+      "lowMid": 0.166,
+      "dirt": 0.507,
       "width": 0.902,
       "attack": 0.333,
-      "decay": 0.944,
-      "sustain": 0.954,
+      "decay": 0.924,
+      "sustain": 0.95,
       "release": 0.773,
-      "movement": 0.201
+      "movement": 0.213
     }
   },
   "voice.polyphony": 1,
@@ -79,7 +82,7 @@
   "shepard.rate": -0.3,
   "sub.wave": "sine",
   "sub.octave": -1,
-  "sub.level": 0,
+  "sub.level": 0.12,
   "noise.level": 0,
   "texture.type": "air",
   "texture.level": 0.45,
@@ -212,6 +215,6 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 7000,
-  "output.gain": -5.3,
+  "output.gain": -5,
   "output.crossover": 120
 }

@@ -18,28 +18,31 @@
     "vibe": {
       "brightOct": 0.55,
       "airDb": -38.3,
-      "dirt": 0.59,
+      "dirt": 0.58,
       "widthDb": -2.4,
       "tailDb": -7.5
     },
     "checks": {
       "hash": "8451a2f5",
+      "code": "02096e9d",
       "earns": true,
-      "weakest": "mod 2 (lfo2 → amp) 0.18 dB",
-      "failing": []
+      "weakest": "mod 2 (lfo2 → amp) 0.19 dB",
+      "failing": [],
+      "critic": true,
+      "issues": []
     },
     "features": {
       "brightness": 0.405,
       "highEnergy": 0.648,
       "sub": 0.012,
-      "lowMid": 0.842,
-      "dirt": 0.586,
-      "width": 0.94,
-      "attack": 0.926,
-      "decay": 0.989,
-      "sustain": 0.972,
+      "lowMid": 0.841,
+      "dirt": 0.584,
+      "width": 0.941,
+      "attack": 0.918,
+      "decay": 0.99,
+      "sustain": 0.977,
       "release": 0.773,
-      "movement": 0.476
+      "movement": 0.436
     }
   },
   "voice.polyphony": 8,

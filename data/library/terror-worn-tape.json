@@ -26,22 +26,25 @@
     },
     "checks": {
       "hash": "32ddafb5",
+      "code": "02096e9d",
       "earns": true,
-      "weakest": "mod 2 (lfo2 → filter_cutoff) 0.21 dB",
-      "failing": []
+      "weakest": "mod 2 (lfo2 → filter_cutoff) 0.20 dB",
+      "failing": [],
+      "critic": true,
+      "issues": []
     },
     "features": {
-      "brightness": 0.29,
-      "highEnergy": 0.595,
-      "sub": 0.633,
-      "lowMid": 0.67,
-      "dirt": 0.615,
+      "brightness": 0.291,
+      "highEnergy": 0.594,
+      "sub": 0.634,
+      "lowMid": 0.669,
+      "dirt": 0.619,
       "width": 0.872,
       "attack": 0.36,
       "decay": 0.902,
-      "sustain": 0.909,
+      "sustain": 0.911,
       "release": 0.745,
-      "movement": 0.362
+      "movement": 0.363
     }
   },
   "voice.polyphony": 1,

@@ -16,30 +16,33 @@
     "collection": "bank",
     "audition": "chords",
     "vibe": {
-      "brightOct": 0.65,
-      "airDb": -37.6,
-      "dirt": 0.54,
+      "brightOct": 0.63,
+      "airDb": -37.7,
+      "dirt": 0.53,
       "widthDb": -3.1,
       "tailDb": -4.7
     },
     "checks": {
-      "hash": "84146212",
+      "hash": "eeb1dd54",
+      "code": "02096e9d",
       "earns": true,
-      "weakest": "mod 12 (random → filter_cutoff) 0.20 dB",
-      "failing": []
+      "weakest": "mod 12 (random → filter_cutoff) 0.19 dB",
+      "failing": [],
+      "critic": true,
+      "issues": []
     },
     "features": {
-      "brightness": 0.42,
-      "highEnergy": 0.678,
+      "brightness": 0.416,
+      "highEnergy": 0.674,
       "sub": 0.015,
-      "lowMid": 0.858,
-      "dirt": 0.538,
-      "width": 0.923,
-      "attack": 1,
-      "decay": 0.885,
-      "sustain": 0.922,
+      "lowMid": 0.862,
+      "dirt": 0.534,
+      "width": 0.922,
+      "attack": 0.939,
+      "decay": 0.884,
+      "sustain": 0.939,
       "release": 0.773,
-      "movement": 0.684
+      "movement": 0.692
     }
   },
   "voice.polyphony": 8,
@@ -212,6 +215,6 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 6500,
-  "output.gain": -3.7,
+  "output.gain": -4,
   "output.crossover": 120
 }

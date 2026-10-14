@@ -16,30 +16,33 @@
     "collection": "bank",
     "audition": "chords",
     "vibe": {
-      "brightOct": 0.72,
-      "airDb": -42.4,
-      "dirt": 0.39,
+      "brightOct": 0.71,
+      "airDb": -42.5,
+      "dirt": 0.38,
       "widthDb": -3.2,
       "tailDb": -5.1
     },
     "checks": {
       "hash": "f5557b75",
+      "code": "02096e9d",
       "earns": true,
       "weakest": "delay 0.23 dB",
-      "failing": []
+      "failing": [],
+      "critic": true,
+      "issues": []
     },
     "features": {
       "brightness": 0.429,
-      "highEnergy": 0.658,
+      "highEnergy": 0.655,
       "sub": 0.014,
-      "lowMid": 0.819,
-      "dirt": 0.392,
-      "width": 0.92,
+      "lowMid": 0.818,
+      "dirt": 0.381,
+      "width": 0.919,
       "attack": 0.986,
       "decay": 0.955,
-      "sustain": 0.923,
+      "sustain": 0.899,
       "release": 0.773,
-      "movement": 0.711
+      "movement": 0.721
     }
   },
   "voice.polyphony": 8,

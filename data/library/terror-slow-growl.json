@@ -18,30 +18,33 @@
     "collection": "terror",
     "audition": "dread",
     "vibe": {
-      "brightOct": 1.49,
-      "airDb": -42,
-      "dirt": 0.56,
+      "brightOct": 1.48,
+      "airDb": -41.9,
+      "dirt": 0.55,
       "widthDb": -5.7,
-      "tailDb": -30.5
+      "tailDb": -30.6
     },
     "checks": {
       "hash": "04c89ce9",
+      "code": "02096e9d",
       "earns": true,
       "weakest": "mod 10 (lfo4 → chorus_depth) 0.30 dB",
-      "failing": []
+      "failing": [],
+      "critic": true,
+      "issues": []
     },
     "features": {
       "brightness": 0.395,
       "highEnergy": 0.683,
       "sub": 0.711,
-      "lowMid": 0.239,
-      "dirt": 0.556,
+      "lowMid": 0.238,
+      "dirt": 0.554,
       "width": 0.858,
       "attack": 0.333,
       "decay": 0.902,
-      "sustain": 0.853,
+      "sustain": 0.851,
       "release": 0.768,
-      "movement": 0.476
+      "movement": 0.48
     }
   },
   "voice.polyphony": 1,

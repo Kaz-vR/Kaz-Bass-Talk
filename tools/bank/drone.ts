@@ -56,12 +56,12 @@ const def: CategoryDef = {
     },
     {
       id: 'wind-tunnel', name: 'Wind Tunnel',
-      description: 'Wind howling through a concrete tunnel: breath and noise through a wandering band.',
+      description: 'Wind howling through a concrete tunnel: breath and noise through a wandering resonance.',
       tags: ['drone', 'wind', 'noise', 'breath', 'howl', 'atmosphere', 'lorn'],
       texture: ['air', 0.55, 0.4, 3000],
       set: {
-        'noise.level': 0.08, 'breath.level': 0.12, 'breath.tone': 0.2, 'osc1.level': 0.7, 'filter.type': 'bandpass', 'filter.cutoff': 250,
-        'filter.resonance': 0.4, 'eq.highcut': 2000,
+        'noise.level': 0.08, 'breath.level': 0.12, 'breath.tone': 0.2, 'osc1.level': 0.7, 'filter.cutoff': 350, 'filter.resonance': 0.45,
+        'dist.drive': 0.45, 'eq.highcut': 2500,
       },
     },
     {
@@ -94,8 +94,8 @@ const def: CategoryDef = {
       tags: ['drone', 'radio', 'signal', 'crushed', 'lo-fi', 'ghost', 'lorn'],
       texture: ['dust', 0.55, 0.45, 2500],
       set: {
-        'filter.type': 'bandpass', 'filter.cutoff': 300, 'filter.resonance': 0.35, 'crush.mix': 0.3, 'crush.bits': 5, 'crush.rate': 10,
-        'eq.highcut': 2500, 'drive.amount': 0.7,
+        'filter.cutoff': 500, 'filter.resonance': 0.4, 'noise.level': 0.12, 'crush.mix': 0.35, 'crush.bits': 4, 'crush.rate': 10,
+        'eq.highcut': 2500, 'drive.amount': 0.7, 'dist.drive': 0.6, 'dist.clean_below': 100,
       },
     },
     {

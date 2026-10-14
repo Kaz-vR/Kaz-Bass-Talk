@@ -14,17 +14,17 @@
     "directory": "darkwave-gated",
     "family": "synthwave",
     "features": {
-      "brightness": 0.232,
-      "highEnergy": 0.528,
-      "sub": 0.566,
-      "lowMid": 0.775,
-      "dirt": 0.396,
-      "width": 0.571,
+      "brightness": 0.23,
+      "highEnergy": 0.525,
+      "sub": 0.571,
+      "lowMid": 0.771,
+      "dirt": 0.397,
+      "width": 0.563,
       "attack": 0.259,
       "decay": 0.903,
-      "sustain": 0.898,
-      "release": 0.419,
-      "movement": 0.238
+      "sustain": 0.896,
+      "release": 0.406,
+      "movement": 0.236
     }
   },
   "voice.polyphony": 1,
