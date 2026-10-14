@@ -27,9 +27,9 @@
       "movement": 0.017
     },
     "checks": {
-      "hash": "693e7764",
+      "hash": "451ec862",
       "audio": "daa97035",
-      "judge": "6956165c",
+      "judge": "b3d612c0",
       "critic": true,
       "issues": [],
       "earns": true,
