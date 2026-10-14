@@ -13,9 +13,6 @@ export const library: Patch[] = Object.keys(libraryFiles)
   .map((k) => validatePatch(libraryFiles[k]).patch)
   .sort((a, b) => a.meta.name.localeCompare(b.meta.name));
 
-/** Presets that belong to a named collection with its own menu (e.g. "terror"). */
-export const collection = (p: Patch, name: string) => p.meta.collection === name;
-
 export const loops: Loop[] = Object.values(loopFiles as Record<string, Loop>).sort((a, b) =>
   a.id === DEFAULT_LOOP_ID ? -1 : b.id === DEFAULT_LOOP_ID ? 1 : a.name.localeCompare(b.name),
 );

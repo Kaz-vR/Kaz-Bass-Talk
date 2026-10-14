@@ -60,6 +60,18 @@ kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 
 .overlay { position: fixed; inset: 0; background: rgba(10, 12, 14, 0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; z-index: 20; color: var(--dim); }
 .overlay.hidden { display: none; }
 
-/* Terror (LORN-style) preset menu */
-.field.terror { color: #ff7a85; }
-.field.terror select { border-color: #6b2a31; }
+/* Preset browser: categories and preset cards */
+.browser { padding: 14px 16px 4px; border-bottom: 1px solid var(--line); }
+.cats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.cat { background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer; color: var(--dim); }
+.cat:hover { border-color: var(--dim); color: var(--text); }
+.cat.active { background: var(--accent); border-color: var(--accent); color: #0b1a10; font-weight: 600; }
+.cat.secondary { border-style: dashed; }
+.cat .count { opacity: 0.6; margin-left: 4px; font-size: 11px; }
+.cat-desc { color: var(--dim); margin: -4px 0 10px; }
+.presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; margin-bottom: 12px; max-height: 330px; overflow-y: auto; }
+.preset { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; cursor: pointer; text-align: left; }
+.preset:hover { border-color: var(--dim); }
+.preset.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.preset b { display: block; margin-bottom: 2px; }
+.preset span { display: block; color: var(--dim); font-size: 12px; line-height: 1.35; }

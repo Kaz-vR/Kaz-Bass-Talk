@@ -1,9 +1,10 @@
-// Phase 1 prototype UI: play the engine from the computer keyboard, MIDI or
-// the audition loops, and edit every schema parameter. (The conversational UI
-// from the mockup arrives in Phase 6.)
+// Prototype UI: browse the preset bank by category, play it from the
+// computer keyboard, MIDI or the audition loops, and edit every schema
+// parameter. (Macros and the create area follow their phases.)
 import { EngineHost } from '../engine/host';
+import { categories } from '../quality/categories';
 import { validatePatch, type ParamValue, type Patch } from '../schema';
-import { collection, DEFAULT_LOOP_ID, library, loops } from './data';
+import { DEFAULT_LOOP_ID, library, loops } from './data';
 import { Keyboard } from './keyboard';
 import { initMidi } from './midi';
 import { ParamsPanel } from './params-panel';
@@ -13,8 +14,6 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 
 const playBtn = $<HTMLButtonElement>('play');
 const loopSel = $<HTMLSelectElement>('loop');
-const patchSel = $<HTMLSelectElement>('patch');
-const terrorSel = $<HTMLSelectElement>('terror');
 
 let host: EngineHost | null = null;
 let playing = false;
@@ -23,12 +22,17 @@ let reference: Patch = library[0];
 
 for (const l of loops) loopSel.append(new Option(`${l.name} · ${l.bpm} BPM`, l.id));
 loopSel.value = DEFAULT_LOOP_ID;
-// Main menu: the library; Terror menu: the LORN-style collection. Picking from one clears the other.
-const NONE = '';
-patchSel.append(new Option('—', NONE));
-terrorSel.append(new Option('—', NONE));
-library.forEach((p, i) => (collection(p, 'terror') ? terrorSel : patchSel).append(new Option(p.meta.name, String(i))));
-let currentIndex = 0;
+// Browser groups: the 14 bank categories, then the Bass Atlas (one patch per bass type, no category).
+const ATLAS = 'atlas';
+interface Group { id: string; name: string; description: string; audition?: string; items: number[] }
+const groups: Group[] = categories.map((c) => ({ id: c.id, name: c.name, description: c.description, audition: c.audition, items: [] }));
+groups.push({ id: ATLAS, name: 'Bass Atlas', description: 'One patch for each of 51 synth bass types across genres and history (outside the LORN style).', items: [] });
+library.forEach((p, i) => {
+  const g = groups.find((x) => x.id === ((p.meta.category as string | undefined) ?? ATLAS)) ?? groups[groups.length - 1];
+  g.items.push(i);
+});
+let currentIndex = groups[0].items[0] ?? 0;
+let currentGroup = groups[0];
 
 const panel = new ParamsPanel($('params'), (id: string, value: ParamValue) => {
   current[id] = value;
@@ -49,11 +53,52 @@ function showPatchInfo(p: Patch): void {
   }
 }
 
+function setLoop(id: string): void {
+  if (!loops.some((l) => l.id === id) || loopSel.value === id) return;
+  loopSel.value = id;
+  host?.setLoop(loops.find((l) => l.id === id) ?? null);
+}
+
+function renderBrowser(): void {
+  const cats = $('categories');
+  cats.innerHTML = '';
+  for (const g of groups) {
+    if (!g.items.length) continue;
+    const b = document.createElement('button');
+    b.className = 'cat' + (g === currentGroup ? ' active' : '') + (g.id === ATLAS ? ' secondary' : '');
+    b.textContent = g.name;
+    const n = document.createElement('span');
+    n.className = 'count';
+    n.textContent = String(g.items.length);
+    b.append(n);
+    b.title = g.description;
+    b.onclick = () => {
+      currentGroup = g;
+      // Each category has its own audition loop (chords for pads, a lead line for leads, ...).
+      if (g.audition) setLoop(g.audition);
+      loadPatch(g.items[0]);
+    };
+    cats.append(b);
+  }
+  const list = $('presets');
+  list.innerHTML = '';
+  for (const i of currentGroup.items) {
+    const p = library[i];
+    const card = document.createElement('button');
+    card.className = 'preset' + (i === currentIndex ? ' active' : '');
+    const name = document.createElement('b');
+    name.textContent = p.meta.name;
+    const desc = document.createElement('span');
+    desc.textContent = p.meta.description ?? '';
+    card.append(name, desc);
+    card.onclick = () => loadPatch(i);
+    list.append(card);
+  }
+}
+
 function loadPatch(index: number): void {
   currentIndex = index;
-  const terror = collection(library[index], 'terror');
-  patchSel.value = terror ? NONE : String(index);
-  terrorSel.value = terror ? String(index) : NONE;
+  renderBrowser();
   reference = library[index];
   current = structuredClone(reference);
   showPatchInfo(current);
@@ -61,18 +106,6 @@ function loadPatch(index: number): void {
   host?.setPatch(current);
 }
 
-patchSel.onchange = () => patchSel.value !== NONE && loadPatch(Number(patchSel.value));
-terrorSel.onchange = () => {
-  if (terrorSel.value === NONE) return;
-  const p = library[Number(terrorSel.value)];
-  // Terror presets come with their own slow audition loop.
-  const aud = p.meta.audition as string | undefined;
-  if (aud && loops.some((l) => l.id === aud) && loopSel.value !== aud) {
-    loopSel.value = aud;
-    host?.setLoop(loops.find((l) => l.id === aud) ?? null);
-  }
-  loadPatch(Number(terrorSel.value));
-};
 loopSel.onchange = () => host?.setLoop(loops.find((l) => l.id === loopSel.value) ?? null);
 
 function setPlaying(on: boolean): void {
@@ -112,7 +145,8 @@ const keyboard = new Keyboard($('keyboard'), {
   onOctave: (base) => ($('octave').textContent = `keys start at C${base / 12 - 1}`),
 });
 
-loadPatch(library.findIndex((p) => !collection(p, 'terror')));
+if (groups[0].audition) loopSel.value = groups[0].audition;
+loadPatch(currentIndex);
 
 $('start').querySelector('button')!.addEventListener('click', async () => {
   try {
