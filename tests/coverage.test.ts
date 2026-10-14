@@ -23,6 +23,20 @@ describe('coverage', () => {
     expect(s.requires.filter((r) => !INGREDIENTS[r](e!.patch))).toEqual([]);
   });
 
+  it('every shelf holds at most 35 bank presets', () => {
+    const n = new Map<string, number>();
+    for (const e of lib) {
+      const c = e.patch.meta.category as string | undefined;
+      if (!c || !['bank', 'terror'].includes(e.patch.meta.collection as string)) continue;
+      n.set(shelfOf(c), (n.get(shelfOf(c)) ?? 0) + 1);
+    }
+    expect([...n].filter(([, k]) => k > 35)).toEqual([]);
+  });
+
+  it('presets the owner uses as they are stay in the bank', () => {
+    for (const k of (cov as Coverage & { keep?: { preset: string }[] }).keep ?? []) expect(lib.some((x) => x.id === k.preset), k.preset).toBe(true);
+  });
+
   it('every iconic preset carries the Iconic tag', () => {
     for (const s of [...cov.iconic, ...cov.targets]) expect(lib.find((x) => x.id === s.preset)!.patch.meta.iconic, s.preset).toBe(true);
     for (const s of cov.iconic2) expect(lib.find((x) => x.id === s.preset)!.patch.meta.iconic, s.preset).toBe(2);

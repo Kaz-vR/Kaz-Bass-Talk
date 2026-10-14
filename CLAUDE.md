@@ -1,6 +1,6 @@
 # CLAUDE.md — Low Talk
 
-Low Talk is a dark, cinematic synth in the style of LORN: saturated, tape-worn, wide above a clean low end, sitting in a dark space, and always **alive** (many small, independent, non-repeating motions). It ships with a **preset bank** of hand-designed sounds across 14 categories, every one of them finished, complex and unmistakably in that style. There is no typing.
+Low Talk is a dark, cinematic synth in the style of LORN: saturated, tape-worn, wide above a clean low end, sitting in a dark space, and always **alive** (many small, independent, non-repeating motions). It ships with a **preset bank** of hand-designed sounds across 14 categories (13 shelves in the browser: Pluck and Arp / Sequence share one), every one of them finished, complex and unmistakably in that style, and together covering every role a sound can play in a track. There is no typing.
 
 1. **Browse** the bank by category and play.
 2. **Dial in** with every control on one page (no macro knobs: the repo owner prefers adjusting anything directly), plus the **mod wheel**: one connected move per preset (several real parameters moving together, like playing an instrument harder), switchable between 8 moves, every wheel position sounding right.
@@ -29,7 +29,7 @@ Read this whole file before starting any task. When something here conflicts wit
   BROWSE                  DIAL IN                       CREATE (extra)
   Preset bank        ──▶  All controls on one     ◀──  Generator: recombine recipes from
   14 categories           page + mod wheel (8           the bank, re-roll movement, nudge in
-  ~10-12 each             connected moves) + wobble     safe regions, reject near-duplicates
+  up to 35 each           connected moves) + wobble     safe regions, reject near-duplicates
                                                         Sound Tree: explore around a sound
         │ every preset / generated sound / wheel position
         ▼
@@ -59,6 +59,15 @@ What makes the bank sound like one instrument. Each category has its own version
 
 ---
 
+## The producer range (every category)
+
+A producer opens a category looking for a part for a specific moment, so every category covers the roles a sound plays in a track (bed, support, hook, rhythm, accent, texture, as far as they fit the category) and varies on what the mix can't change later:
+
+- **softness:** attack (swell, felt, pluck, snap) and grit, from soft to harsh, roughly a third soft, a third in between, a third hard;
+- **length** (short to ringing), **thickness** (thin to thick), **pitch stability** (steady to wobbly), **movement** (nearly still to moving), **touch** (playing harder is louder and brighter on playable categories), **tone colour** (pure, round, rich, vocal, metallic, breathy, not saw everywhere) and **mood** (tender to menacing).
+
+LORN is the treatment (dark top, wear, slow life, dark space), not grit on everything: soft sounds get their wear from tape, dust and air; drive and distortion belong to the hard end. Width, reverb amount and EQ are mix decisions, not bank coverage. Every shelf holds at most 35 presets: near-duplicates go first; the original LORN presets, the staples (sounds iconic because they're everywhere) and any preset carrying a colour nothing else on its shelf has are kept. `data/coverage.json` `keep` lists presets the owner uses as they are (Midnight Upright): never changed, re-tuned or removed.
+
 ## Components
 
 ### 1. Synth engine
@@ -83,7 +92,7 @@ The 14 categories of the bank: **Bass, Lead, Pad, Keys, Pluck, Arp / Sequence, S
 The bass **directory** (`data/directory.json`, 51 bass types across genres and history) stays as the coverage map for the **Bass Atlas**, a secondary collection of one patch per bass type.
 
 ### 4. Preset bank — `data/library/*.json`
-Hand-designed presets, about 10–12 per category (the 13 Terror basses count toward Bass), each with `name`, `description` (one sentence), `tags`, `category`, `family`, `collection`, `features` (precomputed). Built by dev tools under `tools/` (e.g. `build-terror.ts`, `build-bank.ts`). Quality bar: finished, release-quality, as good as the best factory presets of Diva / Serum / Phase Plant, and in the LORN style. Every preset passes every check below.
+Hand-designed presets, at most 35 per shelf (Pluck and Arp count together; the 13 Terror basses count toward Bass), each with `name`, `description` (one sentence), `tags`, `category`, `family`, `collection`, `features` (precomputed). Built by dev tools under `tools/` (e.g. `build-terror.ts`, `build-bank.ts`). Quality bar: finished, release-quality, as good as the best factory presets of Diva / Serum / Phase Plant, and in the LORN style. Every preset passes every check below.
 
 The Bass Atlas patches (`tools/build-library.ts`) are not held to the style checks.
 
@@ -125,7 +134,7 @@ A tree of patch snapshots. Every preset load, generation, tree step and edit cre
 Keeps the visual style of the approved mockup. No text input.
 
 - **Header:** play/pause audition loop, loop selector (built-in riffs or host MIDI), current preset name with ‹ › to step through its category, "low end mono · limiter on" indicator.
-- **Browser (main focus at the start):** the 14 categories, the presets in the selected one (name, one-line description, tags), instant audition. Secondary collections (Bass Atlas) behind a toggle.
+- **Browser (main focus at the start):** the 13 shelves (Pluck / Sequence holds both plucks and arps, each previewed with its own loop), the presets in the selected one (name, one-line description, tags), instant audition. Secondary collections (Bass Atlas) behind a toggle.
 - **All controls on one page**, grouped in boxes: the first box after Voice is the **Mod wheel** (move dropdown + an always-visible wheel that follows the hardware wheel); every LFO / envelope box shows where it is routed ("→ cutoff +14%"), an "Other sources" box covers drift, drift slow, random, velocity, mod wheel, keytrack; LFOs have a Hz | Sync switch showing only the control in use; the **Wobble** box; the 12-slot mod matrix.
 - **Create:** "Create presets" in the current category (and the Sound Tree for exploring around the current sound); generated presets can be kept or discarded.
 - **Secondary tools:** A/B against any history step, spectrum view, history strip.
@@ -174,7 +183,7 @@ Finish each phase, with its tests passing, before starting the next. At the end 
 4. **Bass library.** The 51-type Bass Atlas and the 13 Terror basses, with movement additions (4 LFOs, wander, env 2, 12 slots, FX mod targets), the alive check and texture beds. *(Done.)*
 5. **Polyphony + instrument additions.** 8 voices with voice stealing (mono mode unchanged), delayed vibrato, breath attack, richer vowels, bell partials, long riser/fall envelopes; CPU within budget. *(Done.)*
 6. **Style checks.** `data/categories.json`, per-category critic limits, earns-its-place, LORN fingerprint, bank consistency. *(Done.)*
-7. **Preset bank.** ~10-12 presets in each of the 14 categories, all passing every check. *(Done.)*
+7. **Preset bank.** Every category covering the producer range (below), at most 35 per shelf, all passing every check. *(Done; widened to the producer range afterwards.)*
 8. **UI.** Category browser in the mockup's style, all controls on one page. *(Done; the create area follows its phase.)*
 9. **Expression.** Mod wheel moves, wobble, pump rate, texture before/after dynamics. *(Done.)*
 10. **Generator + Sound Tree.** Create presets per category; exploration rounds; taste learning.
