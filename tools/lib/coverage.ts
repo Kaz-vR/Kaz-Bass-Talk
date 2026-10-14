@@ -75,6 +75,9 @@ export const INGREDIENTS: Record<string, (p: Patch) => boolean> = {
   'pump:strong': (p) => num(p, 'comp.pump') >= 0.4,
   'pump:other-rate': (p) => num(p, 'comp.pump') > 0.1 && p['comp.pump_rate'] !== '1/4',
   'velocity:strong': (p) => num(p, 'voice.velocity') >= 0.75,
+  supersaw: (p) => used(p, 1) && p['osc1.wave'] === 'saw' && num(p, 'osc1.unison_voices') >= 6 && num(p, 'osc1.unison_detune') >= 20,
+  'delay:feedback': (p) => num(p, 'delay.mix') > 0.05 && num(p, 'delay.feedback') >= 0.65,
+  'release:long': (p) => num(p, 'amp_env.release') >= 1800,
   'texture:crackle': (p) => num(p, 'texture.level') > 0.05 && p['texture.type'] === 'crackle',
   'texture:dust': (p) => num(p, 'texture.level') > 0.05 && p['texture.type'] === 'dust',
   'texture:rumble': (p) => num(p, 'texture.level') > 0.05 && p['texture.type'] === 'rumble',
@@ -88,6 +91,8 @@ export interface Coverage {
   categories: Record<string, string[]>;
   iconic: Iconic[];
   targets: Iconic[];
+  /** The second wave of must-have sounds (keys, plucks, leads, arps): tagged "Iconic II". */
+  iconic2: Iconic[];
 }
 
 /** Ingredients a category should use that no preset in it uses yet. */

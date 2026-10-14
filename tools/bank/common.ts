@@ -22,8 +22,8 @@ export interface PresetDef {
   texture?: [type: string, level: number, tone: number, tail: number];
   /** Audition loop for this preset, when the category's doesn't show it off (e.g. a short bass). */
   audition?: string;
-  /** A must-have iconic sound (data/coverage.json): tagged so it can be spotted. */
-  iconic?: boolean;
+  /** A must-have iconic sound (data/coverage.json): tagged so it can be spotted. 2 = the second wave ("Iconic II"). */
+  iconic?: boolean | 2;
   /** Written exceptions to the style limits for this preset (tools/lib/allow.ts). */
   allow?: Record<string, { min?: number; max?: number; why: string }>;
 }
@@ -105,9 +105,9 @@ export function buildPreset(cat: CategoryDef, def: PresetDef, audition: string):
   if (mods.length > 12) throw new Error(`${cat.category}/${def.id}: more than 12 mod slots`);
   const raw: Record<string, unknown> = {
     meta: {
-      name: def.name, description: def.description, tags: def.iconic ? [...def.tags, 'iconic'] : def.tags, category: cat.category,
+      name: def.name, description: def.description, tags: def.iconic ? [...def.tags, def.iconic === 2 ? 'iconic-ii' : 'iconic'] : def.tags, category: cat.category,
       family: cat.category, collection: 'bank', audition: def.audition ?? audition,
-      ...(def.iconic ? { iconic: true } : {}),
+      ...(def.iconic ? { iconic: def.iconic } : {}),
       ...(def.allow ? { allow: def.allow } : {}),
     },
     'wheel.preset': wheelDefault(cat.category),

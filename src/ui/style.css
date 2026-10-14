@@ -127,3 +127,4 @@ body.randomizing .group.locked { box-shadow: inset 0 0 0 1px #6f78ff; }
 .preset.roll .drop:hover { color: var(--warn); }
 .user-empty { grid-column: 1 / -1; }
 .iconic-tag { font-style: normal; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #1a1300; background: #e8c547; border-radius: 3px; padding: 0 5px; margin-left: 6px; vertical-align: 1px; }
+.iconic-tag.ii { background: #a57cf2; color: #150a26; }

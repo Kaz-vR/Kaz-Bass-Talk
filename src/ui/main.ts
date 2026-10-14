@@ -119,10 +119,13 @@ function renderBrowser(): void {
     const name = document.createElement('b');
     name.textContent = p.meta.name;
     if (p.meta.iconic) {
+      const second = p.meta.iconic === 2;
       const tag = document.createElement('em');
-      tag.className = 'iconic-tag';
-      tag.textContent = 'Iconic';
-      tag.title = 'A LORN version of an iconic sound from synthwave, cyberpunk, Vangelis or Stranger Things';
+      tag.className = 'iconic-tag' + (second ? ' ii' : '');
+      tag.textContent = second ? 'Iconic II' : 'Iconic';
+      tag.title = second
+        ? 'A LORN version of an iconic or deeply satisfying key, pluck, lead or arp sound (second wave)'
+        : 'A LORN version of an iconic sound from synthwave, cyberpunk, Vangelis or Stranger Things';
       name.append(tag);
     }
     const desc = document.createElement('span');

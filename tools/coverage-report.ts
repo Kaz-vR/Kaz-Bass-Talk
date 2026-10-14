@@ -18,7 +18,7 @@ for (const c of Object.keys(cov.categories)) {
   console.log(`  ${c.padEnd(8)} ${m.length ? m.join(', ') : '-'}`);
 }
 console.log('\nMust-have sounds:');
-for (const s of [...cov.iconic, ...cov.targets]) {
+for (const s of [...cov.iconic, ...cov.targets, ...(cov.iconic2 ?? [])]) {
   const e = lib.find((x) => x.file === s.preset);
   const lost = e ? s.requires.filter((r) => !INGREDIENTS[r](e.patch)) : [];
   const state = !e ? 'not built' : lost.length ? `identity missing: ${lost.join(', ')}` : 'ok';

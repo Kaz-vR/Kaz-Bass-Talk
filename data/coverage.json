@@ -680,5 +680,815 @@
         "amp:pluck"
       ]
     }
+  ],
+  "iconic2": [
+    {
+      "id": "neon-snap",
+      "name": "80s analog filter pluck",
+      "category": "pluck",
+      "preset": "pluck-neon-snap",
+      "identity": "A warm saw pluck with a quick, slightly resonant filter snap and a classic chorus.",
+      "requires": [
+        "wave:saw",
+        "modenv:snappy",
+        "amp:pluck"
+      ]
+    },
+    {
+      "id": "slow-strobe",
+      "name": "\"Strobe\" pluck",
+      "category": "pluck",
+      "preset": "pluck-slow-strobe",
+      "identity": "A soft, round saw pluck whose filter opens very slowly over the bars.",
+      "requires": [
+        "move:bloom",
+        "amp:pluck"
+      ]
+    },
+    {
+      "id": "hollow-euphoria",
+      "name": "Trance supersaw pluck",
+      "category": "pluck",
+      "preset": "pluck-hollow-euphoria",
+      "identity": "Seven detuned saws in a bright, fast pluck with a big delay.",
+      "requires": [
+        "supersaw",
+        "amp:pluck"
+      ]
+    },
+    {
+      "id": "paper-koto",
+      "name": "FM koto",
+      "category": "pluck",
+      "preset": "pluck-paper-koto",
+      "identity": "A two-operator FM koto: a bright, twangy strike that decays quickly.",
+      "requires": [
+        "fm",
+        "amp:pluck"
+      ]
+    },
+    {
+      "id": "night-lights",
+      "name": "Bright 80s riff pluck",
+      "category": "pluck",
+      "preset": "pluck-night-lights",
+      "identity": "A bright, punchy detuned-saw pluck with an octave on top: built for a hook.",
+      "requires": [
+        "wave:saw",
+        "osc2-layer",
+        "amp:pluck"
+      ]
+    },
+    {
+      "id": "berlin-wire",
+      "name": "Berlin-school sequencer pluck",
+      "category": "pluck",
+      "preset": "pluck-berlin-wire",
+      "identity": "A single resonant saw pluck whose filter drifts very slowly, made for endless sequences.",
+      "requires": [
+        "res:high",
+        "amp:pluck"
+      ]
+    },
+    {
+      "id": "palm-glass",
+      "name": "Future bass marimba pluck",
+      "category": "pluck",
+      "preset": "pluck-palm-glass",
+      "identity": "A soft FM marimba: a round wooden knock with a little shimmer.",
+      "requires": [
+        "wave:sine",
+        "amp:pluck"
+      ]
+    },
+    {
+      "id": "drip",
+      "name": "Water-drop pluck",
+      "category": "pluck",
+      "preset": "pluck-drip",
+      "identity": "A sine whose pitch flicks up at the start: the plip of a drop hitting water.",
+      "requires": [
+        "pitch-env",
+        "amp:pluck"
+      ]
+    },
+    {
+      "id": "dead-strings",
+      "name": "Muted guitar pluck",
+      "category": "pluck",
+      "preset": "pluck-dead-strings",
+      "identity": "A palm-muted plucked string: tight, woody and short.",
+      "requires": [
+        "wave:string",
+        "amp:pluck"
+      ]
+    },
+    {
+      "id": "pizz-dust",
+      "name": "Pizzicato pluck",
+      "category": "pluck",
+      "preset": "pluck-pizz-dust",
+      "identity": "A string section plucked short: two detuned saw layers with a fast filter snap.",
+      "requires": [
+        "osc2-layer",
+        "amp:pluck"
+      ]
+    },
+    {
+      "id": "pew",
+      "name": "\"Pew\" pitch-drop pluck",
+      "category": "pluck",
+      "preset": "pluck-pew",
+      "identity": "A sine dropping steeply in pitch: a short laser \"pew\".",
+      "requires": [
+        "pitch-env",
+        "wave:sine"
+      ]
+    },
+    {
+      "id": "glass-ping",
+      "name": "Ping-pong glass pluck",
+      "category": "pluck",
+      "preset": "pluck-glass-ping",
+      "identity": "A clean glassy FM pluck bouncing side to side in a straight echo.",
+      "requires": [
+        "fm",
+        "delay:straight"
+      ]
+    },
+    {
+      "id": "bent-koto",
+      "name": "Koto bend pluck",
+      "category": "pluck",
+      "preset": "pluck-bent-koto",
+      "identity": "A plucked string that bends up into its note, like a koto string pressed behind the bridge.",
+      "requires": [
+        "wave:string",
+        "pitch-env"
+      ]
+    },
+    {
+      "id": "black-stab",
+      "name": "Dark chord stab",
+      "category": "pluck",
+      "preset": "pluck-black-stab",
+      "identity": "Detuned saws with an octave below in a short stab, made for minor chords.",
+      "requires": [
+        "osc2-layer",
+        "amp:pluck"
+      ]
+    },
+    {
+      "id": "sun-warp",
+      "name": "Tape-warped detuned pluck",
+      "category": "pluck",
+      "preset": "pluck-sun-warp",
+      "identity": "A detuned pluck on badly warped tape: the pitch sags and drifts.",
+      "requires": [
+        "tape:heavy",
+        "amp:pluck"
+      ]
+    },
+    {
+      "id": "dub-echo",
+      "name": "Space-echo pluck",
+      "category": "pluck",
+      "preset": "pluck-dub-echo",
+      "identity": "A short pluck into a tape echo fed back so far it swirls and smears.",
+      "requires": [
+        "delay:feedback",
+        "amp:pluck"
+      ]
+    },
+    {
+      "id": "long-glass",
+      "name": "Glassy pluck with long delay",
+      "category": "pluck",
+      "preset": "pluck-long-glass",
+      "identity": "A glassy FM pluck with a long echo and a huge space.",
+      "requires": [
+        "fm",
+        "reverb:huge"
+      ]
+    },
+    {
+      "id": "soft-harp",
+      "name": "Soft harp-like pluck",
+      "category": "pluck",
+      "preset": "pluck-soft-harp",
+      "identity": "A gentle plucked string with a chorus, floating in a big room.",
+      "requires": [
+        "wave:string"
+      ]
+    },
+    {
+      "id": "vox-dust",
+      "name": "Combo organ",
+      "category": "keys",
+      "preset": "keys-vox-dust",
+      "identity": "A bright transistor combo organ with its own vibrato: sixties garage and psychedelia.",
+      "requires": [
+        "amp:short-sustain",
+        "vibrato"
+      ]
+    },
+    {
+      "id": "pump-breath",
+      "name": "Harmonium",
+      "category": "keys",
+      "preset": "keys-pump-breath",
+      "identity": "Reedy pulse tones with the bellows audible, swelling slightly as they breathe.",
+      "requires": [
+        "layer:breath"
+      ]
+    },
+    {
+      "id": "saloon-rot",
+      "name": "Detuned honky-tonk upright",
+      "category": "keys",
+      "preset": "keys-saloon-rot",
+      "identity": "Two detuned piano-like layers beating against each other: a saloon piano gone wrong.",
+      "requires": [
+        "osc2-layer"
+      ]
+    },
+    {
+      "id": "bell-piano",
+      "name": "Piano + bell layer",
+      "category": "keys",
+      "preset": "keys-bell-piano",
+      "identity": "An FM piano with a glassy bell an octave and more above: the eighties layered piano.",
+      "requires": [
+        "fm",
+        "osc2-layer"
+      ]
+    },
+    {
+      "id": "velvet-squares",
+      "name": "Soft poly synth keys",
+      "category": "keys",
+      "preset": "keys-velvet-squares",
+      "identity": "Round square-wave chord keys with a soft filter and a classic chorus.",
+      "requires": [
+        "wave:pulse"
+      ]
+    },
+    {
+      "id": "stage-phase",
+      "name": "Phaser Rhodes",
+      "category": "keys",
+      "preset": "keys-stage-phase",
+      "identity": "A tine electric piano through a swirling stage phaser.",
+      "requires": [
+        "fm",
+        "phaser"
+      ]
+    },
+    {
+      "id": "small-hours",
+      "name": "Celesta",
+      "category": "keys",
+      "preset": "keys-small-hours",
+      "identity": "Tiny glassy keyboard bells: sweet and fragile.",
+      "requires": [
+        "wave:sine",
+        "fm"
+      ]
+    },
+    {
+      "id": "wobble-box",
+      "name": "Wonky tape keys",
+      "category": "keys",
+      "preset": "keys-wobble-box",
+      "identity": "Soft keys on a badly worn tape: the pitch wobbles and drifts.",
+      "requires": [
+        "tape:heavy",
+        "move:pitch"
+      ]
+    },
+    {
+      "id": "lucid-keys",
+      "name": "Chorus-drenched poly keys",
+      "category": "keys",
+      "preset": "keys-lucid-keys",
+      "identity": "Filtered saw chord keys drowned in a deep chorus: psychedelic and warm.",
+      "requires": [
+        "chorus:classic",
+        "wave:saw"
+      ]
+    },
+    {
+      "id": "funk-ghost",
+      "name": "Envelope-filter clav",
+      "category": "keys",
+      "preset": "keys-funk-ghost",
+      "identity": "A clavinet-like pulse whose resonant filter quacks open on every note.",
+      "requires": [
+        "modenv:snappy",
+        "res:high"
+      ]
+    },
+    {
+      "id": "casio-dream",
+      "name": "Toy keyboard with long release",
+      "category": "keys",
+      "preset": "keys-casio-dream",
+      "identity": "A cheap, thin toy-keyboard tone whose notes ring on long after release.",
+      "requires": [
+        "wave:pulse",
+        "release:long"
+      ]
+    },
+    {
+      "id": "dream-organ",
+      "name": "Warm dreamy combo organ",
+      "category": "keys",
+      "preset": "keys-dream-organ",
+      "identity": "A soft combo organ, chorused, floating in a vast room: dream pop.",
+      "requires": [
+        "amp:short-sustain",
+        "reverb:huge"
+      ]
+    },
+    {
+      "id": "shimmer-tines",
+      "name": "Rhodes with tremolo and shimmer",
+      "category": "keys",
+      "preset": "keys-shimmer-tines",
+      "identity": "A tine electric piano with a pulsing tremolo, shimmering in a huge reverb.",
+      "requires": [
+        "fm",
+        "move:fast",
+        "reverb:huge"
+      ]
+    },
+    {
+      "id": "shine-solo",
+      "name": "Minimoog solo lead",
+      "category": "lead",
+      "preset": "lead-shine-solo",
+      "identity": "Three fat saws (one an octave down) through a singing ladder filter, gliding.",
+      "requires": [
+        "wave:saw",
+        "osc2-layer",
+        "glide"
+      ]
+    },
+    {
+      "id": "staccato-cop",
+      "name": "\"Axel F\" lead",
+      "category": "lead",
+      "preset": "lead-staccato-cop",
+      "identity": "Punchy, short square-and-saw notes with a snappy filter: a bouncing staccato hook.",
+      "requires": [
+        "modenv:snappy",
+        "amp:short-sustain"
+      ]
+    },
+    {
+      "id": "vice-night",
+      "name": "\"Crockett's Theme\" lead",
+      "category": "lead",
+      "preset": "lead-vice-night",
+      "identity": "An expressive, chorused lead with a deep vibrato and glides: mid-eighties TV noir.",
+      "requires": [
+        "vibrato",
+        "glide",
+        "chorus:classic"
+      ]
+    },
+    {
+      "id": "oxygen-drift",
+      "name": "Jarre \"Oxygène\" lead",
+      "category": "lead",
+      "preset": "lead-oxygen-drift",
+      "identity": "A thin, whistling lead swirling through a slow phaser.",
+      "requires": [
+        "phaser",
+        "wave:pulse"
+      ]
+    },
+    {
+      "id": "sunset-whine",
+      "name": "G-funk whistle lead",
+      "category": "lead",
+      "preset": "lead-sunset-whine",
+      "identity": "A high sine an octave up, sliding between notes with a fast vibrato.",
+      "requires": [
+        "wave:sine",
+        "glide",
+        "vibrato"
+      ]
+    },
+    {
+      "id": "acid-rain",
+      "name": "TB-303 acid lead",
+      "category": "lead",
+      "preset": "lead-acid-rain",
+      "identity": "A saw through a screaming resonant diode filter, accented and sliding.",
+      "requires": [
+        "filter:diode",
+        "res:high",
+        "glide"
+      ]
+    },
+    {
+      "id": "ascend-saw",
+      "name": "Supersaw trance lead",
+      "category": "lead",
+      "preset": "lead-ascend-saw",
+      "identity": "A wall of seven detuned saws with an octave on top, in a big echo.",
+      "requires": [
+        "supersaw"
+      ]
+    },
+    {
+      "id": "kernel",
+      "name": "\"Popcorn\" square lead",
+      "category": "lead",
+      "preset": "lead-kernel",
+      "identity": "A bouncing, plucky square lead with a snappy filter.",
+      "requires": [
+        "wave:pulse",
+        "amp:pluck"
+      ]
+    },
+    {
+      "id": "ether-wave",
+      "name": "Theremin / sci-fi sine lead",
+      "category": "lead",
+      "preset": "lead-ether-wave",
+      "identity": "A pure sine sliding slowly between notes with a wide, constant vibrato.",
+      "requires": [
+        "wave:sine",
+        "glide",
+        "vibrato"
+      ]
+    },
+    {
+      "id": "scream-saw",
+      "name": "Screaming distorted saw lead",
+      "category": "lead",
+      "preset": "lead-scream-saw",
+      "identity": "Saws driven into hard clipping, cutting and nearly out of control.",
+      "requires": [
+        "dist:hard"
+      ]
+    },
+    {
+      "id": "mouth-lead",
+      "name": "Talking formant lead",
+      "category": "lead",
+      "preset": "lead-mouth-lead",
+      "identity": "A lead whose vowel slowly shifts as it plays: it seems to talk.",
+      "requires": [
+        "filter:formant"
+      ]
+    },
+    {
+      "id": "velvet-pulse",
+      "name": "PWM soft lead",
+      "category": "lead",
+      "preset": "lead-velvet-pulse",
+      "identity": "A warm, hollow pulse whose width slowly breathes.",
+      "requires": [
+        "wave:pwm"
+      ]
+    },
+    {
+      "id": "lone-square",
+      "name": "Square lead with delay",
+      "category": "lead",
+      "preset": "lead-lone-square",
+      "identity": "A simple square melody echoing in dotted time.",
+      "requires": [
+        "wave:pulse",
+        "delay:dotted"
+      ]
+    },
+    {
+      "id": "byte-ghost",
+      "name": "Bitcrushed lead",
+      "category": "lead",
+      "preset": "lead-byte-ghost",
+      "identity": "A lead crushed into a broken digital signal.",
+      "requires": [
+        "crush"
+      ]
+    },
+    {
+      "id": "glass-bell-lead",
+      "name": "FM bell lead",
+      "category": "lead",
+      "preset": "lead-glass-bell-lead",
+      "identity": "A glassy, bell-like FM melody voice.",
+      "requires": [
+        "fm"
+      ]
+    },
+    {
+      "id": "zap-line",
+      "name": "Laser / zap lead",
+      "category": "lead",
+      "preset": "lead-zap-line",
+      "identity": "A saw lead that zaps down in pitch on every note.",
+      "requires": [
+        "pitch-env"
+      ]
+    },
+    {
+      "id": "lucid-glide",
+      "name": "Gliding wobbly psych lead",
+      "category": "lead",
+      "preset": "lead-lucid-glide",
+      "identity": "Detuned saws gliding slowly between notes, wobbling through a phaser.",
+      "requires": [
+        "glide",
+        "phaser"
+      ]
+    },
+    {
+      "id": "space-squiggle",
+      "name": "Squiggly space-rock lead",
+      "category": "lead",
+      "preset": "lead-space-squiggle",
+      "identity": "A resonant saw whose filter squiggles fast while the pitch drifts.",
+      "requires": [
+        "res:high",
+        "move:fast"
+      ]
+    },
+    {
+      "id": "warp-line",
+      "name": "Tape-warped lead",
+      "category": "lead",
+      "preset": "lead-warp-line",
+      "identity": "A lead on badly warped tape: the pitch wanders and sags.",
+      "requires": [
+        "tape:heavy",
+        "move:pitch"
+      ]
+    },
+    {
+      "id": "city-rush",
+      "name": "\"Midnight City\" lead",
+      "category": "lead",
+      "preset": "lead-city-rush",
+      "identity": "A big, bright, detuned saw riff lead with an octave on top: euphoric.",
+      "requires": [
+        "wave:saw",
+        "osc2-layer"
+      ]
+    },
+    {
+      "id": "warm-coast",
+      "name": "Warm chorused saw lead",
+      "category": "lead",
+      "preset": "lead-warm-coast",
+      "identity": "A soft, warm saw lead, chorused and echoing: sunset, not midnight.",
+      "requires": [
+        "chorus:classic",
+        "wave:saw"
+      ]
+    },
+    {
+      "id": "far-whistle",
+      "name": "Soft sine whistle with long delay",
+      "category": "lead",
+      "preset": "lead-far-whistle",
+      "identity": "A soft sine whistle with a long echo in a vast space.",
+      "requires": [
+        "wave:sine",
+        "reverb:huge"
+      ]
+    },
+    {
+      "id": "love-machine",
+      "name": "\"I Feel Love\" sequence",
+      "category": "arp",
+      "preset": "arp-love-machine",
+      "identity": "A low saw sequence with a short, snappy filter: driving sixteenths an octave apart.",
+      "requires": [
+        "modenv:snappy"
+      ]
+    },
+    {
+      "id": "berlin-hours",
+      "name": "Berlin-school evolving sequence",
+      "category": "arp",
+      "preset": "arp-berlin-hours",
+      "identity": "A resonant sequence whose filter drifts very slowly, so the pattern evolves over minutes.",
+      "requires": [
+        "res:high",
+        "move:bloom"
+      ]
+    },
+    {
+      "id": "equinox-bubbles",
+      "name": "Jarre \"Équinoxe\" sequence",
+      "category": "arp",
+      "preset": "arp-equinox-bubbles",
+      "identity": "A bubbly pulse sequence swirling through a phaser.",
+      "requires": [
+        "phaser",
+        "wave:pulse"
+      ]
+    },
+    {
+      "id": "cold-monday",
+      "name": "\"Blue Monday\" sequence",
+      "category": "arp",
+      "preset": "arp-cold-monday",
+      "identity": "A cold square sequence stuttering in sixteenths.",
+      "requires": [
+        "move:synced",
+        "wave:pulse"
+      ]
+    },
+    {
+      "id": "field-organ",
+      "name": "\"Baba O'Riley\" organ arp",
+      "category": "arp",
+      "preset": "arp-field-organ",
+      "identity": "A hypnotic organ pattern with a fast tremolo.",
+      "requires": [
+        "amp:short-sustain",
+        "move:fast"
+      ]
+    },
+    {
+      "id": "grid-gate",
+      "name": "Tron Legacy gated arp",
+      "category": "arp",
+      "preset": "arp-grid-gate",
+      "identity": "A tight, hard-clipped saw arp gated in sixteenths.",
+      "requires": [
+        "move:synced",
+        "dist:hard"
+      ]
+    },
+    {
+      "id": "dream-children",
+      "name": "\"Children\" pluck arp",
+      "category": "arp",
+      "preset": "arp-dream-children",
+      "identity": "A soft piano-like FM arp with a long echo in a huge space.",
+      "requires": [
+        "fm",
+        "reverb:huge"
+      ]
+    },
+    {
+      "id": "glass-steps",
+      "name": "Minimalist interlocking arp",
+      "category": "arp",
+      "preset": "arp-glass-steps",
+      "identity": "Two soft voices an octave apart in an interlocking, triplet-echoing pattern.",
+      "requires": [
+        "wave:triangle",
+        "osc2-layer"
+      ]
+    },
+    {
+      "id": "squelch-line",
+      "name": "Squelchy acid sequence",
+      "category": "arp",
+      "preset": "arp-squelch-line",
+      "identity": "A heavily accented diode-filter sequence, squelching and biting.",
+      "requires": [
+        "filter:diode",
+        "res:high"
+      ]
+    },
+    {
+      "id": "glass-pulse",
+      "name": "Glassy FM sequence",
+      "category": "arp",
+      "preset": "arp-glass-pulse",
+      "identity": "A glassy FM sequence echoing in straight eighths.",
+      "requires": [
+        "fm",
+        "delay:straight"
+      ]
+    },
+    {
+      "id": "three-over-four",
+      "name": "Polyrhythmic arp",
+      "category": "arp",
+      "preset": "arp-three-over-four",
+      "identity": "A sixteenth pattern against a triplet echo: the rhythm keeps shifting.",
+      "requires": [
+        "delay:triplet"
+      ]
+    },
+    {
+      "id": "chord-gate",
+      "name": "Gated chord sequence",
+      "category": "arp",
+      "preset": "arp-chord-gate",
+      "identity": "Sustained saw chords sliced into a sixteenth gate.",
+      "requires": [
+        "move:synced",
+        "amp:short-sustain"
+      ]
+    },
+    {
+      "id": "bloop",
+      "name": "Octave \"bloop\" arp",
+      "category": "arp",
+      "preset": "arp-bloop",
+      "identity": "Round triangle notes with a resonant filter \"bloop\" on each one.",
+      "requires": [
+        "modenv:snappy",
+        "wave:triangle"
+      ]
+    },
+    {
+      "id": "random-bleeps",
+      "name": "Sample-and-hold bleeps",
+      "category": "arp",
+      "preset": "arp-random-bleeps",
+      "identity": "A resonant filter jumping to a random step on every sixteenth: computer bleeps.",
+      "requires": [
+        "move:synced",
+        "res:high"
+      ]
+    },
+    {
+      "id": "bell-cloud",
+      "name": "Bell arp with long tails",
+      "category": "arp",
+      "preset": "arp-bell-cloud",
+      "identity": "FM bell notes ringing long and overlapping into a shimmering cloud.",
+      "requires": [
+        "fm",
+        "reverb:huge"
+      ]
+    },
+    {
+      "id": "stutter-code",
+      "name": "Glitch / stutter sequence",
+      "category": "arp",
+      "preset": "arp-stutter-code",
+      "identity": "A crushed sequence chopped in thirty-seconds on every note.",
+      "requires": [
+        "crush",
+        "move:synced"
+      ]
+    },
+    {
+      "id": "run-sequence",
+      "name": "\"On the Run\" sequence",
+      "category": "arp",
+      "preset": "arp-run-sequence",
+      "identity": "A frantic saw sequence sweeping through a phaser and a flanger.",
+      "requires": [
+        "phaser",
+        "flanger"
+      ]
+    },
+    {
+      "id": "lofi-lucid",
+      "name": "Lo-fi chorus arp",
+      "category": "arp",
+      "preset": "arp-lofi-lucid",
+      "identity": "A warm saw arp drowned in a deep chorus on worn tape.",
+      "requires": [
+        "chorus:classic"
+      ]
+    },
+    {
+      "id": "warp-steps",
+      "name": "Tape-wobbled arp",
+      "category": "arp",
+      "preset": "arp-warp-steps",
+      "identity": "An arp on badly warped tape: the pitch wobbles under every note.",
+      "requires": [
+        "tape:heavy",
+        "move:pitch"
+      ]
+    },
+    {
+      "id": "rings-into-rings",
+      "name": "Thin pulse arp with long release",
+      "category": "arp",
+      "preset": "arp-rings-into-rings",
+      "identity": "A thin pulse arp whose notes ring on and blur into each other.",
+      "requires": [
+        "wave:pulse",
+        "release:long"
+      ]
+    },
+    {
+      "id": "coastline",
+      "name": "Warm chorused arp",
+      "category": "arp",
+      "preset": "arp-coastline",
+      "identity": "A warm, chorused saw arp with a lazy dotted echo.",
+      "requires": [
+        "chorus:classic",
+        "wave:saw"
+      ]
+    }
   ]
 }

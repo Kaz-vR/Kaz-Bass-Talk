@@ -16,7 +16,7 @@ describe('coverage', () => {
     expect(missing(cov, c, lib.filter((e) => e.patch.meta.category === c).map((e) => e.patch))).toEqual([]);
   });
 
-  it.each([...cov.iconic, ...cov.targets].map((s) => [s.name, s]))('%s exists and keeps its identity', (_n, s) => {
+  it.each([...cov.iconic, ...cov.targets, ...cov.iconic2].map((s) => [s.name, s]))('%s exists and keeps its identity', (_n, s) => {
     const e = lib.find((x) => x.id === s.preset);
     expect(e, `${s.preset} is missing`).toBeTruthy();
     expect(e!.patch.meta.category).toBe(s.category);
@@ -25,5 +25,6 @@ describe('coverage', () => {
 
   it('every iconic preset carries the Iconic tag', () => {
     for (const s of [...cov.iconic, ...cov.targets]) expect(lib.find((x) => x.id === s.preset)!.patch.meta.iconic, s.preset).toBe(true);
+    for (const s of cov.iconic2) expect(lib.find((x) => x.id === s.preset)!.patch.meta.iconic, s.preset).toBe(2);
   });
 });
