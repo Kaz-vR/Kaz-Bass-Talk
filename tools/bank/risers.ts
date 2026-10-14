@@ -136,6 +136,7 @@ const def: CategoryDef = {
         'osc1.wave': 'pulse', 'osc1.pulse_width': 0.3, 'fm.amount': 0.15, 'fm.ratio': 2.76, 'filter.type': 'bandpass', 'filter.cutoff': 110,
         'filter.resonance': 0.35, 'filter.keytrack': 1, 'crush.mix': 0.2, 'crush.bits': 7, 'crush.rate': 5, 'eq.highcut': 5000,
       },
+      allow: { 'consistency:brightOct': { why: 'its bright metal/noise top is the identity; the soft Iconic II sounds narrowed the bank spread' } },
     },
   ],
 };

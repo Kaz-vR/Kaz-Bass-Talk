@@ -177,8 +177,8 @@ const def: CategoryDef = {
       description: "A long, hypnotic sequence whose resonant filter drifts for minutes: a seventies modular left running through the night.",
       tags: ['arp', 'berlin', 'evolving', 'resonant', 'hypnotic', 'seventies', 'lorn'],
       texture: ['dust', 0.3, 0.35, 600],
-      set: { 'filter.resonance': 0.4, 'lfo3.rate': 0.03, 'env2.attack': 10000, 'env2.sustain': 1 },
-      mods: kit(ARP_KIT, [], { 'lfo3>unison_detune': ['lfo3', 'filter_cutoff', 0.35], 'random>drive': ['env2', 'filter_cutoff', 0.25] }),
+      set: { 'filter.resonance': 0.4, 'lfo3.rate': 0.03, 'env2.attack': 4000, 'env2.sustain': 1 },
+      mods: kit(ARP_KIT, [['random', 'filter_cutoff', 0.25]], { 'lfo3>unison_detune': ['lfo3', 'filter_cutoff', 0.35], 'random>drive': ['env2', 'filter_cutoff', 0.45] }),
     },
     {
       id: 'equinox-bubbles', name: 'Equinox Bubbles', iconic: 2,
@@ -193,7 +193,7 @@ const def: CategoryDef = {
       tags: ['arp', 'stutter', 'cold', 'mechanical', 'eighties', 'square', 'lorn'],
       texture: ['dust', 0.3, 0.35, 600],
       set: { 'osc1.wave': 'pulse', 'osc1.pulse_width': 0.5, 'chorus.mix': 0, 'lfo2.sync': '1/16', 'lfo2.shape': 'square' },
-      mods: kit(ARP_KIT, [], { 'lfo2>filter_cutoff': ['lfo2', 'amp', -0.4] }),
+      mods: kit(ARP_KIT, [], { 'lfo2>filter_cutoff': ['lfo2', 'amp', -0.4], 'lfo4>chorus_depth': ['lfo4', 'tape_wow', 0.3] }),
     },
     {
       id: 'field-organ', name: 'Field Organ', iconic: 2,
@@ -224,7 +224,7 @@ const def: CategoryDef = {
       description: "A minimalist pattern of soft voices interlocking with their own triplet echo, hypnotic and glassy.",
       tags: ['arp', 'minimalist', 'interlocking', 'soft', 'hypnotic', 'triplet', 'lorn'],
       texture: ['dust', 0.3, 0.3, 700],
-      set: { 'osc1.wave': 'triangle', 'osc2.wave': 'sine', 'osc2.semi': 12, 'osc2.level': 0.3, 'amp_env.decay': 300, 'delay.time': '1/8T' },
+      set: { 'osc1.wave': 'triangle', 'osc2.wave': 'sine', 'osc2.semi': 12, 'osc2.level': 0.3, 'amp_env.decay': 300, 'delay.time': '1/8T', 'reverb.mix': 0.32, 'delay.mix': 0.3 },
       mods: SOFT_ARP_KIT,
     },
     {
@@ -232,14 +232,14 @@ const def: CategoryDef = {
       description: "A squelching acid sequence: every accent bites through a screaming diode filter.",
       tags: ['arp', 'acid', 'squelch', 'diode', 'accent', 'resonant', 'lorn'],
       texture: ['dust', 0.3, 0.35, 600],
-      set: { 'osc1.unison_voices': 1, 'filter.type': 'diode', 'filter.cutoff': 500, 'filter.resonance': 0.7, 'filter.env_amount': 0.6, 'filter.accent': 0.7, 'mod_env.decay': 180 },
+      set: { 'osc1.unison_voices': 1, 'filter.type': 'diode', 'filter.cutoff': 500, 'filter.resonance': 0.7, 'filter.env_amount': 0.6, 'filter.accent': 0.7, 'mod_env.decay': 180, 'eq.highcut': 4000 },
     },
     {
       id: 'glass-pulse', name: 'Glass Pulse', iconic: 2,
       description: "A glassy FM sequence plinking in straight echoes, bright and cold.",
       tags: ['arp', 'fm', 'glassy', 'plinky', 'echo', 'cold', 'lorn'],
       texture: ['dust', 0.3, 0.35, 700],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.3, 'fm.ratio': 3.5, 'fm.punch': 0.6, 'delay.time': '1/8', 'delay.mix': 0.35 },
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.22, 'fm.ratio': 3.5, 'fm.punch': 0.6, 'delay.time': '1/8', 'delay.mix': 0.35, 'filter.cutoff': 1200, 'eq.highcut': 4500 },
       mods: SOFT_ARP_KIT,
     },
     {
@@ -330,7 +330,7 @@ const def: CategoryDef = {
       description: "A slow, soft sine-bell arpeggio rocking back and forth like a cradle.",
       tags: ['arp', 'soft', 'lullaby', 'bell', 'gentle', 'sine', 'lorn'],
       texture: ['air', 0.3, 0.35, 1000],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'comp.pump': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.1, 'fm.ratio': 3, 'fm.punch': 0.3, 'fm.decay': 200, 'amp_env.decay': 500, 'amp_env.release': 500, 'filter.cutoff': 3000, 'filter.env_amount': 0.05 },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'comp.pump': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.1, 'fm.ratio': 3, 'fm.punch': 0.3, 'fm.decay': 200, 'amp_env.decay': 500, 'amp_env.release': 500, 'filter.cutoff': 1500, 'filter.env_amount': 0, 'eq.highcut': 4500 },
       mods: SOFT_ARP_KIT,
     },
     {
@@ -354,7 +354,7 @@ const def: CategoryDef = {
       description: "A glassy music-box arpeggio, small and sweet, ringing in a big quiet room.",
       tags: ['arp', 'glass', 'music-box', 'lullaby', 'soft', 'sweet', 'lorn'],
       texture: ['air', 0.3, 0.35, 1200],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'comp.pump': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'voice.octave': 1, 'fm.amount': 0.12, 'fm.ratio': 4, 'fm.punch': 0.4, 'fm.decay': 120, 'amp_env.decay': 600, 'amp_env.release': 700, 'filter.cutoff': 4000, 'filter.env_amount': 0.05, 'reverb.size': 0.9, 'reverb.mix': 0.4 },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'comp.pump': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'voice.octave': 1, 'fm.amount': 0.12, 'fm.ratio': 4, 'fm.punch': 0.4, 'fm.decay': 120, 'amp_env.decay': 600, 'amp_env.release': 700, 'filter.cutoff': 1600, 'filter.env_amount': 0, 'reverb.size': 0.9, 'reverb.mix': 0.4, 'eq.highcut': 4500 },
       mods: SOFT_ARP_KIT,
     },
     {

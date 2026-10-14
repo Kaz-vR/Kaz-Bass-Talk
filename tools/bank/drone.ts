@@ -119,6 +119,7 @@ const def: CategoryDef = {
       tags: ['drone', 'pump', 'sidechain', 'dark', 'cyberpunk', 'breathing', 'lorn'],
       texture: ['rumble', 0.45, 0.35, 2500],
       set: { 'comp.amount': 0.6, 'comp.pump': 0.7, 'comp.pump_rate': '1/4', 'dist.type': 'fold', 'dist.drive': 0.3 },
+      allow: { 'consistency:brightOct': { why: 'its bright metal/noise top is the identity; the soft Iconic II sounds narrowed the bank spread' } },
     },
     {
       id: 'city-below', name: 'City Below', iconic: true,

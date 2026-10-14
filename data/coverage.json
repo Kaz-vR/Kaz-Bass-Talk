@@ -1662,11 +1662,11 @@
       "requires": []
     },
     {
-      "id": "glass-drop",
-      "name": "Soft pluck: Glass Drop",
+      "id": "glass-bead",
+      "name": "Soft pluck: Glass Bead",
       "category": "pluck",
-      "preset": "pluck-glass-drop",
-      "identity": "A soft glass droplet: a pure tone with a faint shimmer, falling into a quiet pool.",
+      "preset": "pluck-glass-bead",
+      "identity": "A soft glass bead: a pure tone with a faint shimmer, falling into a quiet pool.",
       "requires": []
     },
     {

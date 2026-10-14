@@ -74,10 +74,10 @@
   "drive.amount": 0.3,
   "filter.on": true,
   "filter.type": "lowpass",
-  "filter.cutoff": 3000,
+  "filter.cutoff": 1600,
   "filter.resonance": 0.18,
   "filter.keytrack": 0.5,
-  "filter.env_amount": 0.05,
+  "filter.env_amount": 0,
   "filter.vowel": 0,
   "filter.accent": 0,
   "dist.on": true,
@@ -217,7 +217,7 @@
   "eq.mid_gain": -2,
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
-  "eq.highcut": 7000,
+  "eq.highcut": 4500,
   "output.gain": 0,
   "output.crossover": 120
 }

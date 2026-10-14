@@ -16,42 +16,7 @@
     "family": "lead",
     "collection": "bank",
     "audition": "lead-line",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 0.86,
-      "airDb": -22.8,
-      "dirt": 0.42,
-      "widthDb": -14.9,
-      "tailDb": -17.1
-    },
-    "checks": {
-      "hash": "1ee4dd0c",
-      "audio": "60c9e2d9",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "off-style air above 6 kHz: -22.8 dB (limit -26.0 dB)",
-        "Mod 5 → unison_detune does nothing: no oscillator uses unison."
-      ],
-      "earns": false,
-      "weakest": "mod 5 (lfo3 → unison_detune) 0.00 dB",
-      "failing": [
-        "mod 5 (lfo3 → unison_detune) 0.00 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.602,
-      "highEnergy": 0.807,
-      "sub": 0.018,
-      "lowMid": 0.012,
-      "dirt": 0.418,
-      "width": 0.628,
-      "attack": 0.1,
-      "decay": 0.945,
-      "sustain": 0.92,
-      "release": 0.773,
-      "movement": 0.094
-    }
+    "iconic": 2
   },
   "voice.polyphony": 1,
   "voice.legato": true,
@@ -197,8 +162,8 @@
   "mod4.dest": "drive",
   "mod4.amount": 0.15,
   "mod5.source": "lfo3",
-  "mod5.dest": "unison_detune",
-  "mod5.amount": 0.06,
+  "mod5.dest": "tape_wow",
+  "mod5.amount": 0.3,
   "mod6.source": "lfo4",
   "mod6.dest": "width",
   "mod6.amount": 0.35,
@@ -252,7 +217,7 @@
   "eq.mid_gain": -2,
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
-  "eq.highcut": 7000,
+  "eq.highcut": 4200,
   "output.gain": -5,
   "output.crossover": 120
 }

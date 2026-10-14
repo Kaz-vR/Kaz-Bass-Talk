@@ -16,40 +16,7 @@
     "family": "lead",
     "collection": "bank",
     "audition": "lead-line",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 0.73,
-      "airDb": -34.2,
-      "dirt": 0.33,
-      "widthDb": -4.1,
-      "tailDb": -17.9
-    },
-    "checks": {
-      "hash": "0258da4e",
-      "audio": "dcead0c4",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "weak fundamental: -16.1 dB (limit -15.0 dB)",
-        "off-style dirt (too clean or too broken): 0.3332 (limit 0.3500)"
-      ],
-      "earns": true,
-      "weakest": "mod 10 (lfo4 → chorus_depth) 0.34 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.581,
-      "highEnergy": 0.748,
-      "sub": 0.012,
-      "lowMid": 0.022,
-      "dirt": 0.333,
-      "width": 0.896,
-      "attack": 0.1,
-      "decay": 0.866,
-      "sustain": 0.96,
-      "release": 0.773,
-      "movement": 0.085
-    }
+    "iconic": 2
   },
   "voice.polyphony": 1,
   "voice.legato": true,
@@ -92,10 +59,10 @@
   "shepard.rate": -0.3,
   "sub.wave": "sine",
   "sub.octave": -1,
-  "sub.level": 0,
+  "sub.level": 0.25,
   "noise.level": 0,
   "texture.type": "dust",
-  "texture.level": 0.4,
+  "texture.level": 0.5,
   "texture.tone": 0.35,
   "texture.tail": 1200,
   "texture.position": "before dynamics",

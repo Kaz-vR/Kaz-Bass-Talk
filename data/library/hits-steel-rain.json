@@ -17,35 +17,10 @@
     "collection": "bank",
     "audition": "hits",
     "iconic": true,
-    "vibe": {
-      "brightOct": 2.67,
-      "airDb": -33.8,
-      "dirt": 1.08,
-      "widthDb": -11,
-      "tailDb": -14.7
-    },
-    "checks": {
-      "hash": "943d902b",
-      "audio": "d07e3c76",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": true,
-      "weakest": "mod 9 (random → noise_level) 0.17 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.485,
-      "highEnergy": 0.752,
-      "sub": 0.376,
-      "lowMid": 0.63,
-      "dirt": 1,
-      "width": 0.724,
-      "attack": 0.201,
-      "decay": 0.731,
-      "sustain": 0.432,
-      "release": 0.773,
-      "movement": 0.582
+    "allow": {
+      "consistency:brightOct": {
+        "why": "its bright metal/noise top is the identity; the soft Iconic II sounds narrowed the bank spread"
+      }
     }
   },
   "voice.polyphony": 4,

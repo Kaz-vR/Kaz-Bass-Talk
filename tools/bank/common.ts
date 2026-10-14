@@ -119,7 +119,9 @@ export function buildPreset(cat: CategoryDef, def: PresetDef, audition: string):
     const [type, level, tone, tail] = def.texture;
     Object.assign(raw, { 'texture.type': type, 'texture.level': level, 'texture.tone': tone, 'texture.tail': tail });
   }
-  mods.forEach(([src, dst, amt], i) => {
+  // A detune wobble does nothing without unison: move that slot to the tape instead.
+  const unison = [1, 2].some((o) => Number(raw[`osc${o}.level`] ?? 0) > 0.1 && Number(raw[`osc${o}.unison_voices`] ?? 1) > 1 && Number(raw[`osc${o}.unison_detune`] ?? 0) > 4);
+  mods.map(([src, dst, amt]): Mod => (dst === 'unison_detune' && !unison ? [src, 'tape_wow', 0.3] : [src, dst, amt])).forEach(([src, dst, amt], i) => {
     raw[`mod${i + 1}.source`] = src;
     raw[`mod${i + 1}.dest`] = dst;
     raw[`mod${i + 1}.amount`] = amt;

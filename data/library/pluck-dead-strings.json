@@ -16,39 +16,7 @@
     "family": "pluck",
     "collection": "bank",
     "audition": "arp-line",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 1.83,
-      "airDb": -33,
-      "dirt": 0.84,
-      "widthDb": -14.2,
-      "tailDb": -26.5
-    },
-    "checks": {
-      "hash": "b65aa3d4",
-      "audio": "89fef71a",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "weak fundamental: -27.5 dB (limit -15.0 dB)"
-      ],
-      "earns": true,
-      "weakest": "mod 7 (drift → pitch) 0.20 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.634,
-      "highEnergy": 0.832,
-      "sub": 0.08,
-      "lowMid": 0.383,
-      "dirt": 0.836,
-      "width": 0.644,
-      "attack": 0.1,
-      "decay": 0.392,
-      "sustain": 0.227,
-      "release": 0.773,
-      "movement": 0.692
-    }
+    "iconic": 2
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -67,7 +35,7 @@
   "osc1.unison_detune": 8,
   "osc1.unison_spread": 0.5,
   "osc1.level": 0.6,
-  "osc2.wave": "saw",
+  "osc2.wave": "sine",
   "osc2.semi": 0,
   "osc2.fine": 0,
   "osc2.pulse_width": 0.5,
@@ -75,7 +43,7 @@
   "osc2.unison_voices": 1,
   "osc2.unison_detune": 15,
   "osc2.unison_spread": 0.5,
-  "osc2.level": 0,
+  "osc2.level": 0.45,
   "osc2.sync": false,
   "fm.on": true,
   "fm.amount": 0,

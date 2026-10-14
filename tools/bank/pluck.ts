@@ -161,8 +161,8 @@ const def: CategoryDef = {
       description: "A soft, round pluck whose filter opens slowly over many bars, glowing brighter in a long echo.",
       tags: ['pluck', 'soft', 'slow-open', 'progressive', 'glowing', 'echo', 'lorn'],
       texture: ['dust', 0.3, 0.3, 900],
-      set: { 'filter.cutoff': 400, 'filter.env_amount': 0.35, 'mod_env.decay': 350, 'amp_env.decay': 600, 'env2.attack': 8000, 'env2.sustain': 1, 'delay.mix': 0.3, 'reverb.mix': 0.35, 'reverb.size': 0.85 },
-      mods: kit(PLUCK_KIT, [], { 'random>drive': ['env2', 'filter_cutoff', 0.4] }),
+      set: { 'filter.cutoff': 400, 'filter.env_amount': 0.35, 'mod_env.decay': 350, 'amp_env.decay': 600, 'env2.attack': 5000, 'env2.sustain': 1, 'delay.mix': 0.3, 'reverb.mix': 0.35, 'reverb.size': 0.85 },
+      mods: kit(PLUCK_KIT, [], { 'random>drive': ['env2', 'filter_cutoff', 0.6] }),
     },
     {
       id: 'hollow-euphoria', name: 'Hollow Euphoria', iconic: 2,
@@ -176,7 +176,7 @@ const def: CategoryDef = {
       description: "An FM koto: a bright, twanging strike fading fast, like a koto played in a paper house at night.",
       tags: ['pluck', 'koto', 'fm', 'eighties', 'twang', 'oriental', 'lorn'],
       texture: ['dust', 0.3, 0.35, 900],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.4, 'fm.ratio': 3, 'fm.punch': 0.7, 'fm.decay': 150, 'amp_env.decay': 700, 'filter.cutoff': 3000, 'filter.env_amount': 0.1 },
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.3, 'fm.ratio': 3, 'fm.punch': 0.7, 'fm.decay': 150, 'amp_env.decay': 700, 'filter.cutoff': 1600, 'filter.env_amount': 0.1, 'eq.highcut': 4500 },
       mods: SOFT_PLUCK_KIT,
     },
     {
@@ -199,7 +199,7 @@ const def: CategoryDef = {
       description: "A soft, round marimba pluck with a little glassy shimmer, warm wood under a cold night sky.",
       tags: ['pluck', 'marimba', 'soft', 'wooden', 'tropical', 'round', 'lorn'],
       texture: ['dust', 0.3, 0.3, 800],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.2, 'fm.ratio': 4, 'fm.punch': 0.5, 'fm.decay': 100, 'amp_env.decay': 450, 'filter.cutoff': 3500, 'filter.env_amount': 0.05 },
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.15, 'fm.ratio': 4, 'fm.punch': 0.5, 'fm.decay': 100, 'amp_env.decay': 450, 'filter.cutoff': 1800, 'filter.env_amount': 0.05, 'eq.highcut': 5000 },
       mods: SOFT_PLUCK_KIT,
     },
     {
@@ -207,7 +207,7 @@ const def: CategoryDef = {
       description: "A water drop: a sine that flicks up in pitch as it lands, plipping into a dark, wet cave.",
       tags: ['pluck', 'water', 'drop', 'sine', 'plip', 'cave', 'lorn'],
       texture: ['dust', 0.3, 0.3, 900],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'pitch_env.amount': 12, 'pitch_env.decay': 40, 'amp_env.decay': 300, 'filter.cutoff': 3500, 'filter.env_amount': 0.05, 'reverb.mix': 0.35 },
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'pitch_env.amount': 12, 'pitch_env.decay': 40, 'amp_env.decay': 300, 'filter.cutoff': 3500, 'filter.env_amount': 0, 'reverb.mix': 0.35 },
       mods: SOFT_PLUCK_KIT,
     },
     {
@@ -215,7 +215,7 @@ const def: CategoryDef = {
       description: "A palm-muted guitar string: tight, woody and dead short, picked in an empty room.",
       tags: ['pluck', 'guitar', 'muted', 'string', 'tight', 'woody', 'lorn'],
       texture: ['dust', 0.3, 0.35, 600],
-      set: { 'osc1.wave': 'string', 'string.tone': 0.3, 'string.decay': 0.25, 'osc1.unison_voices': 1, 'filter.cutoff': 1500, 'filter.env_amount': 0.15, 'amp_env.decay': 300 },
+      set: { 'osc1.wave': 'string', 'string.tone': 0.3, 'string.decay': 0.25, 'osc1.unison_voices': 1, 'filter.cutoff': 1500, 'filter.env_amount': 0.15, 'amp_env.decay': 300, 'osc2.wave': 'sine', 'osc2.level': 0.45 },
       mods: SOFT_PLUCK_KIT,
     },
     {
@@ -230,7 +230,7 @@ const def: CategoryDef = {
       description: "A laser \"pew\": a sine diving down in pitch in an instant, echoing down a dark corridor.",
       tags: ['pluck', 'pew', 'laser', 'pitch-drop', 'sci-fi', 'short', 'lorn'],
       texture: ['dust', 0.3, 0.35, 700],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'pitch_env.amount': 24, 'pitch_env.decay': 60, 'amp_env.decay': 250, 'filter.cutoff': 4000, 'filter.env_amount': 0.05 },
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'pitch_env.amount': 24, 'pitch_env.decay': 60, 'amp_env.decay': 250, 'filter.cutoff': 4000, 'filter.env_amount': 0},
       mods: SOFT_PLUCK_KIT,
     },
     {
@@ -238,7 +238,7 @@ const def: CategoryDef = {
       description: "A clean glass ping bouncing from side to side in a straight echo, each bounce a little darker.",
       tags: ['pluck', 'glass', 'fm', 'ping-pong', 'echo', 'wide', 'lorn'],
       texture: ['dust', 0.3, 0.35, 800],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.25, 'fm.ratio': 3.5, 'fm.punch': 0.5, 'fm.decay': 200, 'delay.time': '1/8', 'delay.mix': 0.4, 'delay.feedback': 0.55, 'filter.cutoff': 4000, 'filter.env_amount': 0.05 },
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.18, 'fm.ratio': 3.5, 'fm.punch': 0.5, 'fm.decay': 200, 'delay.time': '1/8', 'delay.mix': 0.4, 'delay.feedback': 0.55, 'filter.cutoff': 1700, 'filter.env_amount': 0.05, 'eq.highcut': 4500 },
       mods: SOFT_PLUCK_KIT.map((m) => (m[0] === 'lfo4' && m[1] === 'width' ? (['lfo4', 'width', 0.6] as Mod) : m)),
     },
     {
@@ -246,7 +246,7 @@ const def: CategoryDef = {
       description: "A plucked string that bends up into every note, like a koto pressed behind the bridge, in a cold wooden hall.",
       tags: ['pluck', 'koto', 'bend', 'string', 'expressive', 'wooden', 'lorn'],
       texture: ['dust', 0.3, 0.35, 900],
-      set: { 'osc1.wave': 'string', 'string.tone': 0.55, 'string.decay': 0.5, 'osc1.unison_voices': 1, 'pitch_env.amount': -2, 'pitch_env.decay': 140, 'filter.cutoff': 2500, 'filter.env_amount': 0.1 },
+      set: { 'osc1.wave': 'string', 'string.tone': 0.55, 'string.decay': 0.5, 'osc1.unison_voices': 1, 'pitch_env.amount': -2, 'pitch_env.decay': 140, 'filter.cutoff': 1800, 'filter.env_amount': 0.1, 'osc2.wave': 'sine', 'osc2.level': 0.3 },
       mods: SOFT_PLUCK_KIT,
     },
     {
@@ -276,15 +276,15 @@ const def: CategoryDef = {
       description: "A glassy pluck that keeps ringing in a long echo and a huge space, like light on wet glass.",
       tags: ['pluck', 'glass', 'fm', 'long-delay', 'shimmer', 'dreamy', 'lorn'],
       texture: ['air', 0.3, 0.35, 1200],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.22, 'fm.ratio': 3.5, 'fm.punch': 0.4, 'fm.decay': 250, 'delay.time': '1/4', 'delay.mix': 0.45, 'delay.feedback': 0.6, 'reverb.size': 0.93, 'reverb.mix': 0.4, 'filter.cutoff': 4000, 'filter.env_amount': 0.05 },
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.16, 'fm.ratio': 3.5, 'fm.punch': 0.4, 'fm.decay': 250, 'delay.time': '1/4', 'delay.mix': 0.45, 'delay.feedback': 0.6, 'reverb.size': 0.93, 'reverb.mix': 0.4, 'filter.cutoff': 1700, 'filter.env_amount': 0.05, 'eq.highcut': 4500 },
       mods: SOFT_PLUCK_KIT,
     },
     {
       id: 'soft-harp', name: 'Soft Harp', iconic: 2,
       description: "A gentle harp, plucked softly and left to float in a big, quiet room.",
       tags: ['pluck', 'harp', 'soft', 'string', 'dreamy', 'floating', 'lorn'],
-      texture: ['air', 0.3, 0.35, 1200],
-      set: { 'osc1.wave': 'string', 'string.tone': 0.6, 'string.decay': 0.7, 'osc1.unison_voices': 1, 'filter.cutoff': 3000, 'filter.env_amount': 0.05, 'chorus.mix': 0.3, 'reverb.size': 0.9, 'reverb.mix': 0.4 },
+      texture: ['air', 0.25, 0.35, 1200],
+      set: { 'osc1.wave': 'string', 'string.tone': 0.6, 'string.decay': 0.7, 'osc1.unison_voices': 1, 'filter.cutoff': 1800, 'filter.env_amount': 0.05, 'chorus.mix': 0.3, 'reverb.size': 0.9, 'reverb.mix': 0.4, 'osc2.wave': 'sine', 'osc2.level': 0.35 },
       mods: SOFT_PLUCK_KIT,
     },
     // ------------------------------------------------ iconic II: missing keys and soft sounds
@@ -301,7 +301,7 @@ const def: CategoryDef = {
       description: "A soft thumb piano, small round tines plucked slowly to sleep.",
       tags: ['pluck', 'kalimba', 'soft', 'tine', 'lullaby', 'gentle', 'lorn'],
       texture: ['air', 0.3, 0.35, 1000],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.12, 'fm.ratio': 5, 'fm.punch': 0.4, 'fm.decay': 80, 'filter.cutoff': 3000, 'filter.env_amount': 0.05, 'amp_env.decay': 700 },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.12, 'fm.ratio': 5, 'fm.punch': 0.4, 'fm.decay': 80, 'filter.cutoff': 1600, 'filter.env_amount': 0, 'amp_env.decay': 700, 'eq.highcut': 4500 },
       mods: SOFT_PLUCK_KIT,
     },
     {
@@ -309,7 +309,7 @@ const def: CategoryDef = {
       description: "A nylon string plucked softly with the thumb, warm and close at night.",
       tags: ['pluck', 'nylon', 'guitar', 'string', 'soft', 'warm', 'lorn'],
       texture: ['dust', 0.3, 0.3, 800],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'string', 'string.tone': 0.35, 'string.decay': 0.5, 'osc1.unison_voices': 1, 'filter.cutoff': 2200, 'filter.env_amount': 0.05, 'chorus.mix': 0.2 },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'string', 'string.tone': 0.35, 'string.decay': 0.5, 'osc1.unison_voices': 1, 'filter.cutoff': 2200, 'filter.env_amount': 0, 'chorus.mix': 0.2, 'osc2.wave': 'sine', 'osc2.level': 0.35 },
       mods: SOFT_PLUCK_KIT,
     },
     {
@@ -317,7 +317,7 @@ const def: CategoryDef = {
       description: "A muted, papery string pluck: barely there, dry and gentle.",
       tags: ['pluck', 'muted', 'string', 'soft', 'papery', 'dry', 'lorn'],
       texture: ['dust', 0.35, 0.3, 500],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'string', 'string.tone': 0.25, 'string.decay': 0.3, 'osc1.unison_voices': 1, 'filter.cutoff': 1500, 'filter.env_amount': 0.05, 'delay.mix': 0.15, 'reverb.mix': 0.18 },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'string', 'string.tone': 0.25, 'string.decay': 0.3, 'osc1.unison_voices': 1, 'filter.cutoff': 1500, 'filter.env_amount': 0, 'delay.mix': 0.15, 'reverb.mix': 0.18, 'osc2.wave': 'sine', 'osc2.level': 0.35 },
       mods: SOFT_PLUCK_KIT,
     },
     {
@@ -329,11 +329,11 @@ const def: CategoryDef = {
       mods: kit(PLUCK_KIT, [['lfo1', 'filter_cutoff', 0.15]]),
     },
     {
-      id: 'glass-drop', name: 'Glass Drop', iconic: 2,
-      description: "A soft glass droplet: a pure tone with a faint shimmer, falling into a quiet pool.",
+      id: 'glass-bead', name: 'Glass Bead', iconic: 2,
+      description: "A soft glass bead: a pure tone with a faint shimmer, dropping into a quiet pool.",
       tags: ['pluck', 'glass', 'soft', 'droplet', 'pure', 'fm', 'lorn'],
       texture: ['air', 0.3, 0.35, 1000],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.1, 'fm.ratio': 2, 'fm.punch': 0.3, 'fm.decay': 400, 'filter.cutoff': 3000, 'filter.env_amount': 0.05, 'amp_env.decay': 900 },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.1, 'fm.ratio': 2, 'fm.punch': 0.3, 'fm.decay': 400, 'filter.cutoff': 1500, 'filter.env_amount': 0, 'amp_env.decay': 900, 'eq.highcut': 4500 },
       mods: SOFT_PLUCK_KIT,
     },
     {
@@ -349,7 +349,7 @@ const def: CategoryDef = {
       description: "A soft wooden mallet on a marimba bar: a warm knock that fades fast.",
       tags: ['pluck', 'marimba', 'wood', 'mallet', 'soft', 'warm', 'lorn'],
       texture: ['dust', 0.3, 0.3, 600],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.15, 'fm.ratio': 4, 'fm.punch': 0.5, 'fm.decay': 60, 'filter.cutoff': 2500, 'filter.env_amount': 0.05, 'amp_env.decay': 400 },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.15, 'fm.ratio': 4, 'fm.punch': 0.5, 'fm.decay': 60, 'filter.cutoff': 1600, 'filter.env_amount': 0, 'amp_env.decay': 400, 'eq.highcut': 4500 },
       mods: SOFT_PLUCK_KIT,
     },
   ],

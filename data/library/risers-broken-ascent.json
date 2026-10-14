@@ -15,35 +15,10 @@
     "family": "risers",
     "collection": "bank",
     "audition": "swell",
-    "vibe": {
-      "brightOct": 2.84,
-      "airDb": -42.8,
-      "dirt": 0.66,
-      "widthDb": -2.9,
-      "tailDb": -8.2
-    },
-    "checks": {
-      "hash": "71be4be3",
-      "audio": "c563235d",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": true,
-      "weakest": "bitcrusher 0.29 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.598,
-      "highEnergy": 0.723,
-      "sub": 0.038,
-      "lowMid": 0.483,
-      "dirt": 0.657,
-      "width": 0.928,
-      "attack": 1,
-      "decay": 1,
-      "sustain": 0.944,
-      "release": 0.773,
-      "movement": 0.943
+    "allow": {
+      "consistency:brightOct": {
+        "why": "its bright metal/noise top is the identity; the soft Iconic II sounds narrowed the bank spread"
+      }
     }
   },
   "voice.polyphony": 2,

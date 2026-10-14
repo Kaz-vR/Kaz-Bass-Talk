@@ -16,43 +16,7 @@
     "family": "keys",
     "collection": "bank",
     "audition": "chords",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 1.2,
-      "airDb": -33.8,
-      "dirt": 0.49,
-      "widthDb": -18.3,
-      "tailDb": -7.4
-    },
-    "checks": {
-      "hash": "4de5ecf0",
-      "audio": "6fbd3cd0",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "off-style stereo width: -18.3 dB (limit -18.0 dB)"
-      ],
-      "earns": false,
-      "weakest": "mod 4 (drift_slow → filter_cutoff) 0.09 dB",
-      "failing": [
-        "mod 1 (lfo1 → filter_cutoff) 0.15 dB",
-        "mod 4 (drift_slow → filter_cutoff) 0.09 dB",
-        "mod 12 (random → filter_cutoff) 0.14 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.502,
-      "highEnergy": 0.746,
-      "sub": 0.062,
-      "lowMid": 0.648,
-      "dirt": 0.493,
-      "width": 0.542,
-      "attack": 0.1,
-      "decay": 0.862,
-      "sustain": 0.72,
-      "release": 0.773,
-      "movement": 0.077
-    }
+    "iconic": 2
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -110,7 +74,7 @@
   "drive.amount": 0.5,
   "filter.on": true,
   "filter.type": "lowpass",
-  "filter.cutoff": 2500,
+  "filter.cutoff": 1300,
   "filter.resonance": 0.18,
   "filter.keytrack": 0.5,
   "filter.env_amount": 0,
@@ -187,7 +151,7 @@
   "mod.on": true,
   "mod1.source": "lfo1",
   "mod1.dest": "filter_cutoff",
-  "mod1.amount": 0.2,
+  "mod1.amount": 0.3,
   "mod2.source": "lfo2",
   "mod2.dest": "amp",
   "mod2.amount": -0.12,
@@ -196,7 +160,7 @@
   "mod3.amount": 0.15,
   "mod4.source": "drift_slow",
   "mod4.dest": "filter_cutoff",
-  "mod4.amount": 0.12,
+  "mod4.amount": 0.25,
   "mod5.source": "lfo3",
   "mod5.dest": "tape_wow",
   "mod5.amount": 0.3,
@@ -220,7 +184,7 @@
   "mod11.amount": 0.2,
   "mod12.source": "random",
   "mod12.dest": "filter_cutoff",
-  "mod12.amount": 0.1,
+  "mod12.amount": 0.2,
   "dynamics.on": true,
   "comp.amount": 0.35,
   "comp.speed": 0.4,
@@ -228,7 +192,7 @@
   "comp.pump_rate": "1/4",
   "ott.amount": 0.15,
   "chorus.on": true,
-  "chorus.mix": 0.22,
+  "chorus.mix": 0.35,
   "chorus.depth": 0.45,
   "chorus.mode": "classic",
   "phaser.on": true,

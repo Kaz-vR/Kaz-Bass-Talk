@@ -16,39 +16,7 @@
     "family": "keys",
     "collection": "bank",
     "audition": "chords",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 0.15,
-      "airDb": -49.2,
-      "dirt": 0.4,
-      "widthDb": -7.3,
-      "tailDb": -17.5
-    },
-    "checks": {
-      "hash": "76311ae4",
-      "audio": "0615b5c6",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": false,
-      "weakest": "mod 4 (drift_slow → filter_cutoff) 0.12 dB",
-      "failing": [
-        "mod 4 (drift_slow → filter_cutoff) 0.12 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.344,
-      "highEnergy": 0.567,
-      "sub": 0.058,
-      "lowMid": 0.927,
-      "dirt": 0.396,
-      "width": 0.817,
-      "attack": 0.382,
-      "decay": 0.999,
-      "sustain": 0.962,
-      "release": 0.773,
-      "movement": 0.324
-    }
+    "iconic": 2
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -192,7 +160,7 @@
   "mod3.amount": 0.15,
   "mod4.source": "drift_slow",
   "mod4.dest": "filter_cutoff",
-  "mod4.amount": 0.12,
+  "mod4.amount": 0.25,
   "mod5.source": "lfo3",
   "mod5.dest": "tape_wow",
   "mod5.amount": 0.3,

@@ -16,42 +16,7 @@
     "family": "lead",
     "collection": "bank",
     "audition": "lead-line",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 0.65,
-      "airDb": -30.4,
-      "dirt": 0.44,
-      "widthDb": -14.1,
-      "tailDb": -17.4
-    },
-    "checks": {
-      "hash": "763f3db7",
-      "audio": "d66541ad",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "lifeSlowDb: 0.2 dB (limit 0.5 dB)",
-        "Mod 5 → unison_detune does nothing: no oscillator uses unison."
-      ],
-      "earns": false,
-      "weakest": "mod 5 (lfo3 → unison_detune) 0.00 dB",
-      "failing": [
-        "mod 5 (lfo3 → unison_detune) 0.00 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.57,
-      "highEnergy": 0.774,
-      "sub": 0.005,
-      "lowMid": 0.016,
-      "dirt": 0.442,
-      "width": 0.647,
-      "attack": 0.1,
-      "decay": 0.623,
-      "sustain": 0.634,
-      "release": 0.773,
-      "movement": 0.176
-    }
+    "iconic": 2
   },
   "voice.polyphony": 1,
   "voice.legato": false,
@@ -109,7 +74,7 @@
   "drive.amount": 0.55,
   "filter.on": true,
   "filter.type": "lowpass",
-  "filter.cutoff": 1000,
+  "filter.cutoff": 700,
   "filter.resonance": 0.18,
   "filter.keytrack": 0.3,
   "filter.env_amount": 0.35,
@@ -186,7 +151,7 @@
   "mod.on": true,
   "mod1.source": "lfo1",
   "mod1.dest": "filter_cutoff",
-  "mod1.amount": 0.22,
+  "mod1.amount": 0.32,
   "mod2.source": "lfo2",
   "mod2.dest": "amp",
   "mod2.amount": -0.16,
@@ -197,8 +162,8 @@
   "mod4.dest": "drive",
   "mod4.amount": 0.15,
   "mod5.source": "lfo3",
-  "mod5.dest": "unison_detune",
-  "mod5.amount": 0.06,
+  "mod5.dest": "tape_wow",
+  "mod5.amount": 0.3,
   "mod6.source": "lfo4",
   "mod6.dest": "width",
   "mod6.amount": 0.35,

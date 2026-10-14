@@ -16,40 +16,7 @@
     "family": "keys",
     "collection": "bank",
     "audition": "chords",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 0.74,
-      "airDb": -32.5,
-      "dirt": 0.5,
-      "widthDb": -16.2,
-      "tailDb": -20.8
-    },
-    "checks": {
-      "hash": "e942c517",
-      "audio": "a93084a7",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": false,
-      "weakest": "mod 4 (drift_slow → drive) 0.09 dB",
-      "failing": [
-        "mod 3 (env2 → drive) 0.13 dB",
-        "mod 4 (drift_slow → drive) 0.09 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.584,
-      "highEnergy": 0.8,
-      "sub": 0.06,
-      "lowMid": 0.477,
-      "dirt": 0.498,
-      "width": 0.596,
-      "attack": 0.201,
-      "decay": 0.71,
-      "sustain": 0.257,
-      "release": 0.773,
-      "movement": 0.506
-    }
+    "iconic": 2
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -104,7 +71,7 @@
   "click.decay": 15,
   "click.tone": 2500,
   "drive.on": true,
-  "drive.amount": 0.5,
+  "drive.amount": 0.7,
   "filter.on": true,
   "filter.type": "lowpass",
   "filter.cutoff": 2400,
@@ -190,10 +157,10 @@
   "mod2.amount": -0.12,
   "mod3.source": "env2",
   "mod3.dest": "drive",
-  "mod3.amount": 0.2,
+  "mod3.amount": 0.35,
   "mod4.source": "drift_slow",
   "mod4.dest": "drive",
-  "mod4.amount": 0.2,
+  "mod4.amount": 0.35,
   "mod5.source": "lfo3",
   "mod5.dest": "tape_wow",
   "mod5.amount": 0.3,

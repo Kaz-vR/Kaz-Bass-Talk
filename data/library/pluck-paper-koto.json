@@ -16,40 +16,7 @@
     "family": "pluck",
     "collection": "bank",
     "audition": "arp-line",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 2.5,
-      "airDb": -23.6,
-      "dirt": 1.33,
-      "widthDb": -15,
-      "tailDb": -24.2
-    },
-    "checks": {
-      "hash": "a672f3fe",
-      "audio": "3f5953e3",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "harsh 2–5 kHz: -4.8 dB (limit -8.0 dB)",
-        "off-style air above 6 kHz: -23.6 dB (limit -24.0 dB)"
-      ],
-      "earns": true,
-      "weakest": "mod 4 (drift_slow → drive) 0.16 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.735,
-      "highEnergy": 0.9,
-      "sub": 0.069,
-      "lowMid": 0.312,
-      "dirt": 1,
-      "width": 0.624,
-      "attack": 0,
-      "decay": 0.567,
-      "sustain": 0.224,
-      "release": 0.773,
-      "movement": 0.382
-    }
+    "iconic": 2
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -79,7 +46,7 @@
   "osc2.level": 0,
   "osc2.sync": false,
   "fm.on": true,
-  "fm.amount": 0.4,
+  "fm.amount": 0.3,
   "fm.ratio": 3,
   "fm.punch": 0.7,
   "fm.decay": 150,
@@ -107,7 +74,7 @@
   "drive.amount": 0.5,
   "filter.on": true,
   "filter.type": "lowpass",
-  "filter.cutoff": 3000,
+  "filter.cutoff": 1600,
   "filter.resonance": 0.18,
   "filter.keytrack": 0.5,
   "filter.env_amount": 0.1,
@@ -250,7 +217,7 @@
   "eq.mid_gain": -2,
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
-  "eq.highcut": 7000,
+  "eq.highcut": 4500,
   "output.gain": -3.1,
   "output.crossover": 120
 }

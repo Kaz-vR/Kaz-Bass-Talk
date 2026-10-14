@@ -16,40 +16,7 @@
     "family": "keys",
     "collection": "bank",
     "audition": "chords",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 0.92,
-      "airDb": -36.6,
-      "dirt": 0.68,
-      "widthDb": -7.2,
-      "tailDb": -28.1
-    },
-    "checks": {
-      "hash": "97790a81",
-      "audio": "0a07d889",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": false,
-      "weakest": "texture bed 0.06 dB",
-      "failing": [
-        "mod 4 (drift_slow → filter_cutoff) 0.13 dB",
-        "texture bed 0.06 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.461,
-      "highEnergy": 0.722,
-      "sub": 0.038,
-      "lowMid": 0.806,
-      "dirt": 0.682,
-      "width": 0.819,
-      "attack": 0.259,
-      "decay": 0.999,
-      "sustain": 0.874,
-      "release": 0.773,
-      "movement": 0.48
-    }
+    "iconic": 2
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -95,7 +62,7 @@
   "sub.level": 0,
   "noise.level": 0,
   "texture.type": "dust",
-  "texture.level": 0.35,
+  "texture.level": 0.6,
   "texture.tone": 0.35,
   "texture.tail": 600,
   "texture.position": "before dynamics",
@@ -193,7 +160,7 @@
   "mod3.amount": 0.15,
   "mod4.source": "drift_slow",
   "mod4.dest": "filter_cutoff",
-  "mod4.amount": 0.12,
+  "mod4.amount": 0.25,
   "mod5.source": "lfo3",
   "mod5.dest": "tape_wow",
   "mod5.amount": 0.3,

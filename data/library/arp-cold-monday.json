@@ -16,41 +16,7 @@
     "family": "arp",
     "collection": "bank",
     "audition": "arp-line",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 0.66,
-      "airDb": -33.6,
-      "dirt": 0.88,
-      "widthDb": -1.7,
-      "tailDb": -26.3
-    },
-    "checks": {
-      "hash": "b5838904",
-      "audio": "f9bdba2c",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "Mod 10 → chorus_depth does nothing: chorus mix is 0."
-      ],
-      "earns": false,
-      "weakest": "mod 10 (lfo4 → chorus_depth) 0.00 dB",
-      "failing": [
-        "mod 10 (lfo4 → chorus_depth) 0.00 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.459,
-      "highEnergy": 0.71,
-      "sub": 0.108,
-      "lowMid": 0.814,
-      "dirt": 0.883,
-      "width": 0.958,
-      "attack": 0.1,
-      "decay": 0.526,
-      "sustain": 0.791,
-      "release": 0.773,
-      "movement": 0.288
-    }
+    "iconic": 2
   },
   "voice.polyphony": 4,
   "voice.legato": false,
@@ -211,8 +177,8 @@
   "mod9.dest": "reverb_mix",
   "mod9.amount": 0.2,
   "mod10.source": "lfo4",
-  "mod10.dest": "chorus_depth",
-  "mod10.amount": 0.25,
+  "mod10.dest": "tape_wow",
+  "mod10.amount": 0.3,
   "mod11.source": "velocity",
   "mod11.dest": "filter_cutoff",
   "mod11.amount": 0.2,

@@ -16,41 +16,7 @@
     "family": "arp",
     "collection": "bank",
     "audition": "arp-line",
-    "iconic": 2,
-    "vibe": {
-      "brightOct": 0.74,
-      "airDb": -33.1,
-      "dirt": 0.94,
-      "widthDb": -5,
-      "tailDb": -27.9
-    },
-    "checks": {
-      "hash": "f5d3cdda",
-      "audio": "c7146513",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "lifeRepeat: 0.6423 (limit 0.6000)"
-      ],
-      "earns": false,
-      "weakest": "mod 3 (env2 → filter_cutoff) 0.05 dB",
-      "failing": [
-        "mod 3 (env2 → filter_cutoff) 0.05 dB"
-      ]
-    },
-    "features": {
-      "brightness": 0.471,
-      "highEnergy": 0.726,
-      "sub": 0.127,
-      "lowMid": 0.773,
-      "dirt": 0.938,
-      "width": 0.875,
-      "attack": 0.1,
-      "decay": 0.419,
-      "sustain": 0.601,
-      "release": 0.773,
-      "movement": 0.704
-    }
+    "iconic": 2
   },
   "voice.polyphony": 4,
   "voice.legato": false,
@@ -137,7 +103,7 @@
   "mod_env.decay": 150,
   "mod_env.sustain": 0,
   "mod_env.release": 120,
-  "env2.attack": 10000,
+  "env2.attack": 4000,
   "env2.decay": 5000,
   "env2.sustain": 1,
   "env2.release": 1500,
@@ -191,7 +157,7 @@
   "mod2.amount": 0.12,
   "mod3.source": "env2",
   "mod3.dest": "filter_cutoff",
-  "mod3.amount": 0.25,
+  "mod3.amount": 0.45,
   "mod4.source": "drift_slow",
   "mod4.dest": "drive",
   "mod4.amount": 0.15,
@@ -218,7 +184,7 @@
   "mod11.amount": 0.2,
   "mod12.source": "random",
   "mod12.dest": "filter_cutoff",
-  "mod12.amount": 0.15,
+  "mod12.amount": 0.25,
   "dynamics.on": true,
   "comp.amount": 0.4,
   "comp.speed": 0.4,

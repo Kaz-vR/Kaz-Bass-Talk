@@ -104,6 +104,7 @@ const def: CategoryDef = {
       texture: ['crackle', 0.3, 0.4, 2000],
       set: { 'fm.amount': 0.3, 'fm.ratio': 3.7, 'fm.punch': 0.8, 'fm.decay': 400, 'noise.level': 0.2, 'crush.mix': 0.25, 'crush.bits': 6, 'crush.rate': 7 },
       mods: HIT_KIT.map((m) => (m[0] === 'lfo1' ? (['lfo1', 'fm_amount', 0.12] as Mod) : m)),
+      allow: { 'consistency:brightOct': { why: 'its bright metal/noise top is the identity; the soft Iconic II sounds narrowed the bank spread' } },
     },
     {
       id: 'engine-stop', name: 'Engine Stop',
@@ -125,6 +126,7 @@ const def: CategoryDef = {
       texture: ['crackle', 0.3, 0.4, 2000],
       set: { 'fm.amount': 0.45, 'fm.ratio': 3.7, 'fm.punch': 0.9, 'fm.decay': 200, 'pitch_env.amount': 18, 'pitch_env.decay': 150, 'noise.level': 0.2, 'dist.type': 'hard', 'dist.drive': 0.35 },
       mods: HIT_KIT.map((m) => (m[0] === 'lfo1' ? (['lfo1', 'fm_amount', 0.12] as Mod) : m)),
+      allow: { 'consistency:brightOct': { why: 'its bright metal/noise top is the identity; the soft Iconic II sounds narrowed the bank spread' } },
     },
   ],
 };

@@ -188,9 +188,9 @@ const def: CategoryDef = {
       id: 'vox-dust', name: 'Vox Dust', iconic: 2,
       description: "A sixties transistor combo organ, bright and buzzy with its own wobbling vibrato, coated in dust.",
       tags: ['keys', 'organ', 'combo', 'sixties', 'psychedelic', 'vibrato', 'lorn'],
-      texture: ['dust', 0.35, 0.35, 600],
+      texture: ['dust', 0.6, 0.35, 600],
       set: { 'osc1.wave': 'pulse', 'osc1.pulse_width': 0.5, 'osc2.wave': 'saw', 'osc2.semi': 12, 'osc2.level': 0.3, 'fm.amount': 0, 'fm.punch': 0, 'amp_env.attack': 5, 'amp_env.decay': 100, 'amp_env.sustain': 1, 'amp_env.release': 80, 'vibrato.depth': 10, 'vibrato.rate': 6.5, 'vibrato.delay': 0, 'vibrato.fade': 1, 'filter.cutoff': 2200 },
-      mods: FILTER_KEYS_KIT,
+      mods: kit(FILTER_KEYS_KIT, [['drift_slow', 'filter_cutoff', 0.25]]),
     },
     {
       id: 'pump-breath', name: 'Pump Breath', iconic: 2,
@@ -234,7 +234,8 @@ const def: CategoryDef = {
       description: "A celesta in the small hours: tiny, sweet, glassy bells, a little out of reach.",
       tags: ['keys', 'celesta', 'bells', 'sweet', 'fragile', 'glassy', 'lorn'],
       texture: ['dust', 0.3, 0.35, 1200],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'voice.octave': 1, 'fm.amount': 0.15, 'fm.ratio': 4, 'fm.punch': 0.5, 'fm.decay': 120, 'amp_env.decay': 1500, 'amp_env.sustain': 0 },
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'voice.octave': 1, 'fm.amount': 0.15, 'fm.ratio': 4, 'fm.punch': 0.5, 'fm.decay': 120, 'amp_env.decay': 1500, 'amp_env.sustain': 0, 'drive.amount': 0.7 },
+      mods: kit(KEYS_KIT, [['env2', 'drive', 0.35], ['drift_slow', 'drive', 0.35]]),
     },
     {
       id: 'wobble-box', name: 'Wobble Box', iconic: 2,
@@ -265,8 +266,8 @@ const def: CategoryDef = {
       description: "A cheap toy keyboard with its sustain switched on: thin tones that ring on and blur into each other, dreamy and small.",
       tags: ['keys', 'toy', 'cheap', 'dreamy', 'long-release', 'lo-fi', 'lorn'],
       texture: ['dust', 0.35, 0.35, 2000],
-      set: { 'osc1.wave': 'pulse', 'osc1.pulse_width': 0.15, 'osc1.unison_voices': 1, 'fm.amount': 0, 'fm.punch': 0, 'amp_env.decay': 2000, 'amp_env.sustain': 0.3, 'amp_env.release': 2500, 'filter.cutoff': 2500 },
-      mods: FILTER_KEYS_KIT,
+      set: { 'osc1.wave': 'pulse', 'osc1.pulse_width': 0.15, 'osc1.unison_voices': 1, 'fm.amount': 0, 'fm.punch': 0, 'amp_env.decay': 2000, 'amp_env.sustain': 0.3, 'amp_env.release': 2500, 'filter.cutoff': 1300, 'chorus.mix': 0.35 },
+      mods: kit(FILTER_KEYS_KIT, [['lfo1', 'filter_cutoff', 0.3], ['drift_slow', 'filter_cutoff', 0.25], ['random', 'filter_cutoff', 0.2]]),
     },
     {
       id: 'dream-organ', name: 'Dream Organ', iconic: 2,
@@ -274,7 +275,7 @@ const def: CategoryDef = {
       tags: ['keys', 'organ', 'dreamy', 'soft', 'dream-pop', 'warm', 'lorn'],
       texture: ['air', 0.35, 0.35, 1500],
       set: { 'osc1.wave': 'triangle', 'osc2.wave': 'pulse', 'osc2.pulse_width': 0.4, 'osc2.level': 0.25, 'fm.amount': 0, 'fm.punch': 0, 'amp_env.attack': 10, 'amp_env.sustain': 1, 'amp_env.release': 180, 'filter.cutoff': 1200, 'chorus.mix': 0.4, 'reverb.size': 0.93, 'reverb.mix': 0.45 },
-      mods: FILTER_KEYS_KIT,
+      mods: kit(FILTER_KEYS_KIT, [['drift_slow', 'filter_cutoff', 0.25]]),
     },
     {
       id: 'shimmer-tines', name: 'Shimmer Tines', iconic: 2,
@@ -314,7 +315,7 @@ const def: CategoryDef = {
       description: "Late-eighties digital keys: a glassy bell strikes on top while a soft pad body sustains underneath, chorused and faded.",
       tags: ['keys', 'digital', 'bell', 'fm', 'pad', 'eighties', 'lorn'],
       texture: ['dust', 0.35, 0.35, 1200],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.3, 'fm.ratio': 3.5, 'fm.punch': 0.7, 'fm.decay': 300, 'fm2.amount': 0.08, 'fm2.ratio': 7, 'osc2.wave': 'saw', 'osc2.level': 0.3, 'osc2.unison_voices': 3, 'osc2.unison_detune': 12, 'amp_env.decay': 3000, 'amp_env.sustain': 0.6, 'amp_env.release': 1200, 'filter.cutoff': 2200, 'chorus.mix': 0.4, 'chorus.mode': 'classic' },
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.3, 'fm.ratio': 3.5, 'fm.punch': 0.7, 'fm.decay': 300, 'fm2.amount': 0.08, 'fm2.ratio': 7, 'osc2.wave': 'saw', 'osc2.level': 0.3, 'osc2.unison_voices': 3, 'osc2.unison_detune': 12, 'amp_env.decay': 3000, 'amp_env.sustain': 0.6, 'amp_env.release': 1200, 'filter.cutoff': 1600, 'chorus.mix': 0.4, 'chorus.mode': 'classic', 'eq.highcut': 4500 },
     },
     {
       id: 'night-stab', name: 'Night Stab', iconic: 2, audition: 'chords',
@@ -351,7 +352,7 @@ const def: CategoryDef = {
       description: "A soft vibraphone with a slow tremolo, hit with yarn mallets in a dim room.",
       tags: ['keys', 'vibraphone', 'mallet', 'tremolo', 'soft', 'warm', 'lorn'],
       texture: ['air', 0.3, 0.35, 1500],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 12, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.1, 'fm.ratio': 4, 'fm.punch': 0.4, 'fm.decay': 150, 'amp_env.decay': 3000, 'amp_env.sustain': 0.1, 'lfo2.rate': 4.2, 'lfo2.shape': 'sine' },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 12, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.1, 'fm.ratio': 4, 'fm.punch': 0.4, 'fm.decay': 150, 'amp_env.decay': 3000, 'amp_env.sustain': 0.1, 'lfo2.rate': 4.2, 'lfo2.shape': 'sine', 'filter.cutoff': 1600, 'eq.highcut': 4500 },
       mods: KEYS_KIT.map((m) => (m[0] === 'lfo2' ? (['lfo2', 'amp', -0.25] as Mod) : m)),
     },
     {
@@ -375,7 +376,7 @@ const def: CategoryDef = {
       description: "Soft glass keys, small and pure, ringing gently far away.",
       tags: ['keys', 'glass', 'soft', 'pure', 'fragile', 'distant', 'lorn'],
       texture: ['air', 0.3, 0.35, 1500],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 12, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.08, 'fm.ratio': 3, 'fm.punch': 0.3, 'fm.decay': 200, 'amp_env.decay': 2500, 'amp_env.sustain': 0.05, 'reverb.size': 0.9, 'reverb.mix': 0.42 },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 12, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.08, 'fm.ratio': 3, 'fm.punch': 0.3, 'fm.decay': 200, 'amp_env.decay': 2500, 'amp_env.sustain': 0.05, 'reverb.size': 0.9, 'reverb.mix': 0.42, 'filter.cutoff': 1500, 'eq.highcut': 4500 },
     },
     {
       id: 'breath-keys', name: 'Breath Keys', iconic: 2,
