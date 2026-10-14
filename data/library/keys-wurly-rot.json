@@ -14,7 +14,37 @@
     "category": "keys",
     "family": "keys",
     "collection": "bank",
-    "audition": "chords"
+    "audition": "chords",
+    "vibe": {
+      "brightOct": 0.77,
+      "airDb": -37.5,
+      "dirt": 0.54,
+      "widthDb": -9.3,
+      "tailDb": -17.8
+    },
+    "checks": {
+      "hash": "5fe43115",
+      "audio": "0f8915d7",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "mod 10 (lfo4 → chorus_depth) 0.18 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.438,
+      "highEnergy": 0.697,
+      "sub": 0.065,
+      "lowMid": 0.817,
+      "dirt": 0.543,
+      "width": 0.767,
+      "attack": 0.1,
+      "decay": 0.892,
+      "sustain": 0.687,
+      "release": 0.773,
+      "movement": 0.433
+    }
   },
   "voice.polyphony": 8,
   "voice.legato": false,

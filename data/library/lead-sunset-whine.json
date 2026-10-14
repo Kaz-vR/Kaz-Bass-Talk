@@ -22,6 +22,36 @@
         "min": 0.2,
         "why": "a pure whistle: its wear is tape, crackle and breath, not grit in the tone"
       }
+    },
+    "vibe": {
+      "brightOct": 0.29,
+      "airDb": -30.8,
+      "dirt": 0.29,
+      "widthDb": -13.3,
+      "tailDb": -16.5
+    },
+    "checks": {
+      "hash": "7dabe613",
+      "audio": "468f4367",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "mod 3 (env2 → drive) 0.20 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.667,
+      "highEnergy": 0.809,
+      "sub": 0.016,
+      "lowMid": 0.025,
+      "dirt": 0.293,
+      "width": 0.668,
+      "attack": 0.85,
+      "decay": 0.881,
+      "sustain": 0.934,
+      "release": 0.773,
+      "movement": 0.042
     }
   },
   "voice.polyphony": 1,

@@ -16,7 +16,37 @@
     "family": "keys",
     "collection": "bank",
     "audition": "chords",
-    "iconic": 2
+    "iconic": 2,
+    "vibe": {
+      "brightOct": 0.3,
+      "airDb": -44.5,
+      "dirt": 0.3,
+      "widthDb": -8.4,
+      "tailDb": -26.3
+    },
+    "checks": {
+      "hash": "b12a52bd",
+      "audio": "59dded64",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "mod 4 (drift_slow → amp) 0.18 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.367,
+      "highEnergy": 0.524,
+      "sub": 0.039,
+      "lowMid": 0.854,
+      "dirt": 0.304,
+      "width": 0.791,
+      "attack": 0.472,
+      "decay": 0.997,
+      "sustain": 0.94,
+      "release": 0.773,
+      "movement": 0.243
+    }
   },
   "voice.polyphony": 8,
   "voice.legato": false,
