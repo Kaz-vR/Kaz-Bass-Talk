@@ -75,7 +75,6 @@ export class Synth {
   private readonly lfoValue = new Float64Array(LFO_COUNT);
   private readonly lfoHold = new Float64Array(LFO_COUNT); // current random value (S&H; wander end point)
   private readonly lfoPrev = new Float64Array(LFO_COUNT); // previous random value (wander start point)
-  private readonly lfoFade = new Float64Array(LFO_COUNT).fill(1);
   private readonly gsrc = new Float64Array(SRC_COUNT);
   private readonly rng = new Rng(0x1234567);
   // Slow random 'drift' modulation source.
@@ -321,16 +320,14 @@ export class Synth {
     if (fresh) v.control(this.gsrc, this.bend);
   }
 
-  /** A note (re)started its envelopes: retrigger LFOs that ask for it and restart fade-ins. */
+  /** A note (re)started its envelopes: retrigger LFOs that ask for it (fade-ins are per voice, see Voice). */
   private onTrigger(): void {
     for (let l = 0; l < LFO_COUNT; l++) {
-      const lp = P.lfo[l];
-      if (this.cur[lp.retrig] > 0.5) {
+      if (this.cur[P.lfo[l].retrig] > 0.5) {
         this.lfoPhase[l] = 0;
         this.lfoPrev[l] = this.lfoHold[l];
         this.lfoHold[l] = this.rng.next();
       }
-      if (this.cur[lp.fade] > 0) this.lfoFade[l] = 0;
     }
   }
 
@@ -518,12 +515,7 @@ export class Synth {
         this.lfoHold[l] = cur[lp.shape] === K.LFO_WANDER ? this.wanderStep(this.lfoHold[l]) : this.rng.next();
       }
       this.lfoPhase[l] = ph;
-      // Fade-in after each note start (lfoN.fade).
-      if (this.lfoFade[l] < 1) {
-        const fadeMs = cur[lp.fade];
-        this.lfoFade[l] = fadeMs > 0 ? Math.min(1, this.lfoFade[l] + (BLOCK * 1000) / (fadeMs * fs)) : 1;
-      }
-      this.lfoValue[l] = this.lfoShape(cur[lp.shape], ph, this.lfoHold[l], this.lfoPrev[l]) * this.lfoFade[l];
+      this.lfoValue[l] = this.lfoShape(cur[lp.shape], ph, this.lfoHold[l], this.lfoPrev[l]);
     }
 
     // Texture bed.

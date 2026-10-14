@@ -26,6 +26,11 @@ export class Chorus {
   private dr = 0;
   private stepL = 0;
   private stepR = 0;
+  // Analog-style rate drift (±40%, wandering every ~1-2 s): a perfectly steady chorus LFO ticks like a clock.
+  private readonly rng = new Rng(0xc0c0a);
+  private drift = 0;
+  private driftTarget = 0;
+  private driftCount = 0;
 
   constructor(fs: number) {
     this.fs = fs;
@@ -39,6 +44,17 @@ export class Chorus {
   reset(): void {
     this.bufL.fill(0);
     this.bufR.fill(0);
+  }
+
+  /** Advance the rate drift by 16 samples; returns the rate multiplier. */
+  private driftStep(): number {
+    this.driftCount -= 16;
+    if (this.driftCount <= 0) {
+      this.driftTarget = this.rng.next();
+      this.driftCount = Math.round((1 + 0.5 * (this.rng.next() + 1)) * this.fs);
+    }
+    this.drift += (this.driftTarget - this.drift) * (16 / (0.6 * this.fs));
+    return 1 + 0.4 * this.drift;
   }
 
   private read(buf: Float32Array, delaySamples: number): number {
@@ -66,7 +82,7 @@ export class Chorus {
     this.bufR[this.w & mask] = r;
     if (this.count-- <= 0) {
       this.count = 15;
-      const rate = 0.25 + depth * 0.9;
+      const rate = (0.25 + depth * 0.9) * this.driftStep();
       this.phase += (16 * rate) / this.fs;
       if (this.phase >= 1) this.phase -= 1;
       const base = 0.007 * this.fs;
@@ -86,13 +102,18 @@ export class Chorus {
   }
 
   private ensPhase = 0;
+  private ensRate = 0.75;
   private shimmer = 0;
 
   private processEnsemble(l: number, r: number, mix: number, depth: number, out: Float64Array): void {
     const mask = this.size - 1;
     this.bufL[this.w & mask] = l;
     this.bufR[this.w & mask] = r;
-    this.ensPhase += (0.55 + 0.4 * depth) / this.fs;
+    if (this.count-- <= 0) {
+      this.count = 15;
+      this.ensRate = (0.55 + 0.4 * depth) * this.driftStep();
+    }
+    this.ensPhase += this.ensRate / this.fs;
     if (this.ensPhase >= 1) this.ensPhase -= 1;
     this.shimmer += 6.1 / this.fs;
     if (this.shimmer >= 1) this.shimmer -= 1;
@@ -526,7 +547,8 @@ export class Tape {
       if (this.count-- <= 0) {
         // Modulation computed every 16 samples, interpolated in between.
         this.count = 15;
-        this.wowPh += (16 * (0.55 + 0.3 * this.drift)) / this.fs;
+        // The wow rate wanders widely (worn capstans and stretched tape never turn evenly).
+        this.wowPh += (16 * (0.55 * (1 + 0.5 * this.drift))) / this.fs;
         if (this.wowPh >= 1) this.wowPh -= 1;
         this.flutPh += (16 * 7.3) / this.fs;
         if (this.flutPh >= 1) this.flutPh -= 1;

@@ -102,6 +102,9 @@ export class Voice {
   private readonly env2 = new Envelope(); // slow 'bloom' envelope, ticked at control rate
   private pitchEnvLevel = 0;
   private readonly src = new Float64Array(SRC_COUNT);
+  // LFO fade-in per voice, from this note's start: a shared fade would restart on every new
+  // note and, in a fast arp or a chord, never get to fade in.
+  private readonly lfoFade = new Float64Array(4).fill(1);
   /** Mod matrix result for this voice (the Synth reads the newest voice's FX targets). */
   readonly dst = new Float64Array(DEST_COUNT);
 
@@ -300,6 +303,7 @@ export class Voice {
     this.env2.trigger();
     this.pitchEnvLevel = 1;
     this.noteRandom = this.rng.next();
+    for (let l = 0; l < 4; l++) this.lfoFade[l] = cur[P.lfo[l].fade] > 0 ? 0 : 1;
     this.noteTime = 0;
     this.vibPhase = 0.5 * (this.rng.next() + 1);
     this.vibRate = cur[P.vibRate] * (1 + 0.05 * this.rng.next());
@@ -400,6 +404,17 @@ export class Voice {
     // Mod matrix: global sources plus this voice's own.
     const src = this.src;
     src.set(gsrc);
+    for (let l = 0; l < 4; l++) {
+      if (this.lfoFade[l] < 1) {
+        const fadeMs = cur[P.lfo[l].fade];
+        this.lfoFade[l] = fadeMs > 0 ? Math.min(1, this.lfoFade[l] + (CONTROL_BLOCK * 1000) / (fadeMs * fs)) : 1;
+      }
+    }
+    src[K.SRC_LFO1] *= this.lfoFade[0];
+    src[K.SRC_LFO2] *= this.lfoFade[1];
+    src[K.SRC_LFO3] *= this.lfoFade[2];
+    src[K.SRC_LFO4] *= this.lfoFade[3];
+    src[K.SRC_PRODUCT] = src[K.SRC_LFO1] * src[K.SRC_LFO2];
     src[K.SRC_MOD_ENV] = this.modEnv.level;
     src[K.SRC_AMP_ENV] = this.ampEnv.level;
     src[K.SRC_VEL] = this.velocity;
