@@ -24,15 +24,13 @@
     },
     "checks": {
       "hash": "75e1f107",
-      "audio": "f374fb92",
-      "judge": "e6948739",
+      "audio": "796a12ae",
+      "judge": "6956165c",
       "critic": true,
       "issues": [],
       "earns": true,
       "weakest": "bitcrusher 0.19 dB",
-      "failing": [],
-      "wheel": true,
-      "wheelIssues": []
+      "failing": []
     },
     "features": {
       "brightness": 0.477,
