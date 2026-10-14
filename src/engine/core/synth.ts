@@ -52,6 +52,12 @@ export class Synth {
   // Parameters: target (from patch), current (smoothed / applied).
   private readonly target = new Float64Array(PARAM_COUNT);
   private readonly cur = new Float64Array(PARAM_COUNT);
+  /** The patch as set; `target` is it after the power switches and solo/mute (see resolve()). */
+  private readonly raw = new Float64Array(PARAM_COUNT);
+  /** Mod destinations a switched-off block or a muted layer ignores (0 = blocked), shared with the voices. */
+  private readonly dstMask = new Float64Array(K.DEST_COUNT).fill(1);
+  private monitorSolo: readonly string[] = [];
+  private monitorMute: readonly string[] = [];
   private readonly isLog = new Uint8Array(PARAM_COUNT);
   private readonly isDiscrete = new Uint8Array(PARAM_COUNT);
   private readonly smoothCoef: number;
@@ -70,9 +76,7 @@ export class Synth {
   private modWheel = 0;
   /** The mod wheel, smoothed (~20 ms) so a fast move never zips. */
   private wheel = 0;
-  // Texture solo / mute (a listening aid, not part of the patch), faded over ~5 ms.
-  private voiceMon = 1;
-  private voiceMonTarget = 1;
+  // Texture bed solo / mute (a listening aid, not part of the patch), faded over ~5 ms.
   private texMon = 1;
   private texMonTarget = 1;
   /** Analysis only: the wheel's move without its moving/noisy parts (see WHEEL_MOVING_DESTS). */
@@ -184,10 +188,10 @@ export class Synth {
       this.isDiscrete[i] = p.type === 'float' ? 0 : 1;
       const d = p.default;
       const v = p.type === 'enum' ? p.options!.indexOf(d as string) : p.type === 'bool' ? (d ? 1 : 0) : (d as number);
-      this.target[i] = this.cur[i] = v;
+      this.raw[i] = this.target[i] = this.cur[i] = v;
     });
     const table = getWavetable().data;
-    for (let i = 0; i < MAX_VOICES; i++) this.voices.push(new Voice(sampleRate, this.cur, table, 0x2468ace + 0x9e3779b * i));
+    for (let i = 0; i < MAX_VOICES; i++) this.voices.push(new Voice(sampleRate, this.cur, table, 0x2468ace + 0x9e3779b * i, this.dstMask));
     this.chorus = new Chorus(sampleRate);
     this.phaser = new Phaser(sampleRate);
     this.reverb = new Reverb(sampleRate);
@@ -239,15 +243,17 @@ export class Synth {
    * (use when loading while silent).
    */
   setParams(values: ArrayLike<number>, immediate = false): void {
-    for (let i = 0; i < N_PARAMS; i++) this.target[i] = values[i];
+    for (let i = 0; i < N_PARAMS; i++) this.raw[i] = values[i];
+    this.resolve();
     if (immediate || !this.anyActive()) {
-      for (let i = 0; i < N_PARAMS; i++) this.cur[i] = values[i];
+      for (let i = 0; i < N_PARAMS; i++) this.cur[i] = this.target[i];
       this.applyDiscrete();
     }
   }
 
   setParam(index: number, value: number): void {
-    this.target[index] = value;
+    this.raw[index] = value;
+    this.resolve();
   }
 
   setTempo(bpm: number): void {
@@ -263,10 +269,66 @@ export class Synth {
     this.bend = clamp(v, -1, 1);
   }
 
-  /** Hear the texture bed alone ('solo'), the sound without it ('mute'), or both ('normal'). */
-  setTextureMonitor(mode: 'normal' | 'solo' | 'mute'): void {
-    this.voiceMonTarget = mode === 'solo' ? 0 : 1;
-    this.texMonTarget = mode === 'mute' ? 0 : 1;
+  /**
+   * Solo / mute sound layers (osc1, osc2, sub, noise, click, breath, texture):
+   * a listening aid, not part of the patch. With any solo, only soloed layers play.
+   */
+  setMonitor(solo: readonly string[], mute: readonly string[]): void {
+    this.monitorSolo = solo;
+    this.monitorMute = mute;
+    this.resolve();
+    if (!this.anyActive()) {
+      // Nothing sounding: apply at once (no fade needed).
+      this.cur.set(this.target);
+      this.applyDiscrete();
+      this.texMon = this.texMonTarget;
+    }
+  }
+
+  /**
+   * Target values = the patch, with switched-off blocks zeroed (and their mod
+   * destinations blocked) and silenced layers turned down. Everything goes
+   * through the usual smoothing, so switching never clicks.
+   */
+  private resolve(): void {
+    const r = this.raw, t = this.target, m = this.dstMask;
+    t.set(r);
+    m.fill(1);
+    const off = (flag: number) => r[flag] < 0.5;
+    const zero = (...ix: number[]) => { for (const i of ix) t[i] = 0; };
+    const block = (...ds: number[]) => { for (const d of ds) m[d] = 0; };
+    if (off(P.fmOn)) { zero(P.fmAmount, P.fm2Amount); block(K.D_FM, K.D_FM2); }
+    if (off(P.driveOn)) { zero(P.drive); block(K.D_DRIVE); }
+    if (off(P.filterOn)) {
+      // Wide open: a plain low-pass at the top of the range.
+      t[P.cutoff] = 20000;
+      t[P.fType] = K.FILTER_LP;
+      zero(P.res, P.envAmt, P.keytrack, P.accent, P.vowel);
+      block(K.D_CUTOFF, K.D_RES, K.D_VOWEL);
+    }
+    if (off(P.distOn)) { zero(P.dMix); block(K.D_DIST_MIX, K.D_DIST_DRIVE, K.D_DIST_TONE); }
+    if (off(P.crushOn)) { zero(P.crushMix); block(K.D_CRUSH); }
+    if (off(P.tapeOn)) { zero(P.tapeDrive, P.tapeWow, P.tapeAge); block(K.D_TAPE_WOW); }
+    if (off(P.vibOn)) { zero(P.vibDepth); block(K.D_VIBRATO); }
+    if (off(P.wobOn)) zero(P.wobDepth);
+    if (off(P.modOn)) for (const s of P.slots) t[s.amt] = 0;
+    if (off(P.dynOn)) zero(P.compAmount, P.compPump, P.ott);
+    if (off(P.eqOn)) { zero(P.eqLow, P.eqMid, P.eqHigh); t[P.eqHighcut] = 20000; }
+    if (off(P.chorusOn)) { zero(P.chorusMix); block(K.D_CHORUS_DEPTH); }
+    if (off(P.flangerOn)) zero(P.flangerMix);
+    if (off(P.phaserOn)) { zero(P.phaserMix); block(K.D_PHASER_MIX); }
+    if (off(P.delayOn)) { zero(P.delayMix); block(K.D_DELAY_MIX, K.D_DELAY_TIME); }
+    if (off(P.reverbOn)) { zero(P.reverbMix); block(K.D_REVERB_MIX); }
+
+    const solo = this.monitorSolo, mute = this.monitorMute;
+    const hear = (layer: string) => !mute.includes(layer) && (solo.length === 0 || solo.includes(layer));
+    if (!hear('osc1')) { zero(P.osc[0].level); block(K.D_OSC1_LEVEL); }
+    if (!hear('osc2')) { zero(P.osc[1].level); block(K.D_OSC2_LEVEL); }
+    if (!hear('sub')) { zero(P.subLevel); block(K.D_SUB); }
+    if (!hear('noise')) { zero(P.noise); block(K.D_NOISE); }
+    if (!hear('click')) zero(P.clickLevel);
+    if (!hear('breath')) { zero(P.breath, P.chiff); block(K.D_BREATH); }
+    this.texMonTarget = hear('texture') ? 1 : 0;
   }
 
   setModWheel(v: number): void {
@@ -536,10 +598,11 @@ export class Synth {
     // Shared mod sources (per-voice ones are filled in by each voice).
     const src = this.gsrc;
     src[0] = 0;
-    src[K.SRC_LFO1] = this.lfoValue[0];
-    src[K.SRC_LFO2] = this.lfoValue[1];
-    src[K.SRC_LFO3] = this.lfoValue[2];
-    src[K.SRC_LFO4] = this.lfoValue[3];
+    // A switched-off LFO outputs nothing, wherever it's routed.
+    src[K.SRC_LFO1] = this.lfoValue[0] * cur[P.lfoOn[0]];
+    src[K.SRC_LFO2] = this.lfoValue[1] * cur[P.lfoOn[1]];
+    src[K.SRC_LFO3] = this.lfoValue[2] * cur[P.lfoOn[2]];
+    src[K.SRC_LFO4] = this.lfoValue[3] * cur[P.lfoOn[3]];
     this.wheel += (this.modWheel - this.wheel) * (1 - Math.exp(-BLOCK / (0.02 * fs)));
     src[K.SRC_MODWHEEL] = this.wheel;
     this.extraModulation();
@@ -549,7 +612,7 @@ export class Synth {
     }
     this.driftVal += (this.driftTarget - this.driftVal) * 0.004;
     src[K.SRC_DRIFT] = this.driftVal;
-    src[K.SRC_PRODUCT] = this.lfoValue[0] * this.lfoValue[1];
+    src[K.SRC_PRODUCT] = src[K.SRC_LFO1] * src[K.SRC_LFO2];
     if (this.slowPos >= 1) {
       this.slowA = this.slowB;
       this.slowB = this.wanderStep(this.slowA);
@@ -744,14 +807,9 @@ export class Synth {
         }
       }
 
-      if (this.voiceMon !== this.voiceMonTarget || this.texMon !== this.texMonTarget) {
+      if (this.texMon !== this.texMonTarget) {
         const k = 1 / (0.005 * this.sampleRate);
-        this.voiceMon += Math.max(-k, Math.min(k, this.voiceMonTarget - this.voiceMon));
         this.texMon += Math.max(-k, Math.min(k, this.texMonTarget - this.texMon));
-      }
-      if (this.voiceMon !== 1) {
-        l *= this.voiceMon;
-        r *= this.voiceMon;
       }
       let texL = 0, texR = 0;
       // Texture bed (swells in with the notes, lingers for its tail, silent otherwise).

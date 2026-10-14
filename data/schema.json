@@ -334,6 +334,14 @@
       "describes": "Oscillator volume into the filter."
     },
     {
+      "id": "fm.on",
+      "label": "FM on",
+      "type": "bool",
+      "default": true,
+      "group": "fm",
+      "describes": "Switches FM on or off without losing its settings. Off also saves CPU."
+    },
+    {
       "id": "fm.amount",
       "label": "FM amount",
       "type": "float",
@@ -629,6 +637,14 @@
       "describes": "Brightness of noise/click, or the start pitch of a knock/kick."
     },
     {
+      "id": "drive.on",
+      "label": "Drive on",
+      "type": "bool",
+      "default": true,
+      "group": "drive",
+      "describes": "Switches Drive on or off without losing its settings. Off also saves CPU."
+    },
+    {
       "id": "drive.amount",
       "label": "Pre-filter drive",
       "type": "float",
@@ -639,6 +655,14 @@
       "unit": "",
       "group": "drive",
       "describes": "Warm saturation before the filter. Adds harmonics and thickness; the filter then rounds them off."
+    },
+    {
+      "id": "filter.on",
+      "label": "Filter on",
+      "type": "bool",
+      "default": true,
+      "group": "filter",
+      "describes": "Switches Filter on or off without losing its settings. Off also saves CPU."
     },
     {
       "id": "filter.type",
@@ -730,6 +754,14 @@
       "describes": "303-style accent: hard-played notes open the filter further, resonate more and hit louder."
     },
     {
+      "id": "dist.on",
+      "label": "Distortion on",
+      "type": "bool",
+      "default": true,
+      "group": "dist",
+      "describes": "Switches Distortion on or off without losing its settings. Off also saves CPU."
+    },
+    {
       "id": "dist.type",
       "label": "Distortion type",
       "type": "enum",
@@ -792,6 +824,14 @@
       "describes": "Everything below this frequency bypasses the distortion, so the low end stays clean and tight while the mids get dirty. 20 Hz distorts everything; 100-200 Hz is the classic modern \"clean sub, dirty mids\" bass."
     },
     {
+      "id": "crush.on",
+      "label": "Bitcrusher on",
+      "type": "bool",
+      "default": true,
+      "group": "crush",
+      "describes": "Switches Bitcrusher on or off without losing its settings. Off also saves CPU."
+    },
+    {
       "id": "crush.mix",
       "label": "Bitcrusher mix",
       "type": "float",
@@ -826,6 +866,14 @@
       "unit": "x",
       "group": "crush",
       "describes": "Sample-rate reduction factor. 1 is off; 2-4 adds a metallic, aliased edge; above 10 sounds like a broken toy."
+    },
+    {
+      "id": "tape.on",
+      "label": "Tape on",
+      "type": "bool",
+      "default": true,
+      "group": "tape",
+      "describes": "Switches Tape on or off without losing its settings. Off also saves CPU."
     },
     {
       "id": "tape.drive",
@@ -1045,6 +1093,14 @@
       "describes": "How quickly the pitch envelope falls back to the played note."
     },
     {
+      "id": "vibrato.on",
+      "label": "Vibrato on",
+      "type": "bool",
+      "default": true,
+      "group": "vibrato",
+      "describes": "Switches Vibrato on or off without losing its settings. Off also saves CPU."
+    },
+    {
       "id": "vibrato.depth",
       "label": "Vibrato depth",
       "type": "float",
@@ -1141,6 +1197,14 @@
       "describes": "Where the breath noise sits: dark (0, ~500 Hz) to airy (1, ~8 kHz)."
     },
     {
+      "id": "lfo1.on",
+      "label": "LFO 1 on",
+      "type": "bool",
+      "default": true,
+      "group": "lfo1",
+      "describes": "Switches LFO 1 on or off without losing its settings. Off also saves CPU."
+    },
+    {
       "id": "lfo1.shape",
       "label": "LFO 1 shape",
       "type": "enum",
@@ -1214,6 +1278,14 @@
       "unit": "ms",
       "group": "lfo1",
       "describes": "Time for the LFO to fade in after each note starts. Lets a note hit clean, then come alive."
+    },
+    {
+      "id": "lfo2.on",
+      "label": "LFO 2 on",
+      "type": "bool",
+      "default": true,
+      "group": "lfo2",
+      "describes": "Switches LFO 2 on or off without losing its settings. Off also saves CPU."
     },
     {
       "id": "lfo2.shape",
@@ -1291,6 +1363,14 @@
       "describes": "Time for the LFO to fade in after each note starts. Lets a note hit clean, then come alive."
     },
     {
+      "id": "lfo3.on",
+      "label": "LFO 3 on",
+      "type": "bool",
+      "default": true,
+      "group": "lfo3",
+      "describes": "Switches LFO 3 on or off without losing its settings. Off also saves CPU."
+    },
+    {
       "id": "lfo3.shape",
       "label": "LFO 3 shape",
       "type": "enum",
@@ -1364,6 +1444,14 @@
       "unit": "ms",
       "group": "lfo3",
       "describes": "Time for the LFO to fade in after each note starts. Lets a note hit clean, then come alive."
+    },
+    {
+      "id": "lfo4.on",
+      "label": "LFO 4 on",
+      "type": "bool",
+      "default": true,
+      "group": "lfo4",
+      "describes": "Switches LFO 4 on or off without losing its settings. Off also saves CPU."
     },
     {
       "id": "lfo4.shape",
@@ -1441,6 +1529,14 @@
       "describes": "Time for the LFO to fade in after each note starts. Lets a note hit clean, then come alive."
     },
     {
+      "id": "wobble.on",
+      "label": "Wobble on",
+      "type": "bool",
+      "default": true,
+      "group": "wobble",
+      "describes": "Switches Wobble on or off without losing its settings. Off also saves CPU."
+    },
+    {
       "id": "wobble.depth",
       "label": "Wobble depth",
       "type": "float",
@@ -1507,6 +1603,14 @@
       "unit": "",
       "group": "wobble",
       "describes": "How differently each wobble comes out: depth and brightness change a little every cycle, so it never sounds like a clock. 0 is machine-exact."
+    },
+    {
+      "id": "mod.on",
+      "label": "Mod matrix on",
+      "type": "bool",
+      "default": true,
+      "group": "mod",
+      "describes": "Switches Mod matrix on or off without losing its settings. Off also saves CPU."
     },
     {
       "id": "mod1.source",
@@ -2529,6 +2633,14 @@
       "describes": "Depth and direction of this modulation."
     },
     {
+      "id": "dynamics.on",
+      "label": "Dynamics on",
+      "type": "bool",
+      "default": true,
+      "group": "dynamics",
+      "describes": "Switches Dynamics on or off without losing its settings. Off also saves CPU."
+    },
+    {
       "id": "comp.amount",
       "label": "Compressor",
       "type": "float",
@@ -2592,6 +2704,14 @@
       "describes": "Three-band upward and downward compression: pulls up quiet detail and squashes peaks for a dense, polished, \"expensive\" modern tone. Low band is protected. Above 0.5 gets hyped and aggressive."
     },
     {
+      "id": "chorus.on",
+      "label": "Chorus on",
+      "type": "bool",
+      "default": true,
+      "group": "fx",
+      "describes": "Switches Chorus on or off without losing its settings. Off also saves CPU."
+    },
+    {
       "id": "chorus.mix",
       "label": "Chorus mix",
       "type": "float",
@@ -2628,6 +2748,14 @@
       "describes": "Classic is a two-voice stereo chorus; ensemble is a lush three-voice string-machine/Juno-style chorus (the hoover sound)."
     },
     {
+      "id": "phaser.on",
+      "label": "Phaser on",
+      "type": "bool",
+      "default": true,
+      "group": "fx",
+      "describes": "Switches Phaser on or off without losing its settings. Off also saves CPU."
+    },
+    {
       "id": "phaser.mix",
       "label": "Phaser mix",
       "type": "float",
@@ -2650,6 +2778,14 @@
       "unit": "Hz",
       "group": "fx",
       "describes": "Speed of the phaser sweep."
+    },
+    {
+      "id": "flanger.on",
+      "label": "Flanger on",
+      "type": "bool",
+      "default": true,
+      "group": "fx",
+      "describes": "Switches Flanger on or off without losing its settings. Off also saves CPU."
     },
     {
       "id": "flanger.mix",
@@ -2686,6 +2822,14 @@
       "unit": "",
       "group": "fx",
       "describes": "Higher makes the flanger more resonant and metallic."
+    },
+    {
+      "id": "delay.on",
+      "label": "Delay on",
+      "type": "bool",
+      "default": true,
+      "group": "fx",
+      "describes": "Switches Delay on or off without losing its settings. Off also saves CPU."
     },
     {
       "id": "delay.mix",
@@ -2747,6 +2891,14 @@
       "describes": "Brightness of the repeats. Low is dark, dubby and distant; high is bright and present."
     },
     {
+      "id": "reverb.on",
+      "label": "Reverb on",
+      "type": "bool",
+      "default": true,
+      "group": "fx",
+      "describes": "Switches Reverb on or off without losing its settings. Off also saves CPU."
+    },
+    {
       "id": "reverb.mix",
       "label": "Reverb mix",
       "type": "float",
@@ -2793,6 +2945,14 @@
       "unit": "Hz",
       "group": "fx",
       "describes": "Effects (chorus, phaser, reverb) only process content above this frequency, keeping the low end clean and centred."
+    },
+    {
+      "id": "eq.on",
+      "label": "EQ on",
+      "type": "bool",
+      "default": true,
+      "group": "eq",
+      "describes": "Switches EQ on or off without losing its settings. Off also saves CPU."
     },
     {
       "id": "eq.low_gain",

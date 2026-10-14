@@ -41,7 +41,7 @@ const panel = new ParamsPanel(
     host?.setParam(id, value);
   },
   (v) => host?.modWheel(v),
-  (mode) => host?.textureMonitor(mode),
+  (solo, mute) => host?.monitor(solo, mute),
 );
 
 function showPatchInfo(p: Patch): void {

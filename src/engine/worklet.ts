@@ -23,7 +23,7 @@ class LowTalkProcessor extends AudioWorkletProcessor {
       case 'noteOff': this.synth.noteOff(m.note); break;
       case 'bend': this.synth.pitchBend(m.value); break;
       case 'modwheel': this.synth.setModWheel(m.value); break;
-      case 'textureMonitor': this.synth.setTextureMonitor(m.mode); break;
+      case 'monitor': this.synth.setMonitor(m.solo, m.mute); break;
       case 'loop': this.player.setLoop(m.loop); break;
       case 'play': this.player.start(); break;
       case 'stop': this.player.stop(); break;

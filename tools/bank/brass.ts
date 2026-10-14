@@ -59,7 +59,7 @@ const def: CategoryDef = {
       id: 'signal-horn', name: 'Signal Horn',
       description: 'A single horn calling across a ruined landscape: it scoops up into each note and glides between them.',
       tags: ['brass', 'horn', 'solo', 'glide', 'call', 'mono', 'lorn'],
-      texture: ['air', 0.45, 0.3, 1500],
+      texture: ['air', 0.6, 0.3, 1500],
       set: { 'voice.polyphony': 1, 'voice.legato': true, 'voice.glide': 60, 'pitch_env.amount': -3, 'pitch_env.decay': 120, 'voice.octave': 1 },
     },
     {

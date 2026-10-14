@@ -65,9 +65,9 @@ export class EngineHost {
     this.post({ type: 'modwheel', value });
   }
 
-  /** Listening aid, not part of the patch: hear the texture bed alone, or without it. */
-  textureMonitor(mode: 'normal' | 'solo' | 'mute'): void {
-    this.post({ type: 'textureMonitor', mode });
+  /** Listening aid, not part of the patch: solo / mute sound layers. */
+  monitor(solo: string[], mute: string[]): void {
+    this.post({ type: 'monitor', solo, mute });
   }
 
   setLoop(loop: Loop | null): void {

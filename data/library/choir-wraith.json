@@ -16,36 +16,34 @@
     "collection": "bank",
     "audition": "chords",
     "vibe": {
-      "brightOct": 0.45,
-      "airDb": -34.4,
+      "brightOct": 0.44,
+      "airDb": -34.5,
       "dirt": 0.42,
       "widthDb": -3,
       "tailDb": -6.3
     },
     "checks": {
-      "hash": "d6416283",
-      "audio": "da77f26c",
+      "hash": "ead37636",
+      "audio": "2fe48787",
       "judge": "6956165c",
       "critic": true,
       "issues": [],
-      "earns": false,
-      "weakest": "mod 10 (lfo4 → chorus_depth) 0.15 dB",
-      "failing": [
-        "mod 10 (lfo4 → chorus_depth) 0.15 dB"
-      ]
+      "earns": true,
+      "weakest": "mod 10 (lfo4 → chorus_depth) 0.24 dB",
+      "failing": []
     },
     "features": {
-      "brightness": 0.539,
-      "highEnergy": 0.753,
+      "brightness": 0.538,
+      "highEnergy": 0.752,
       "sub": 0.006,
-      "lowMid": 0.11,
-      "dirt": 0.422,
+      "lowMid": 0.112,
+      "dirt": 0.423,
       "width": 0.925,
       "attack": 0.876,
       "decay": 1,
-      "sustain": 0.928,
+      "sustain": 0.929,
       "release": 0.773,
-      "movement": 0.204
+      "movement": 0.206
     }
   },
   "voice.polyphony": 8,
@@ -197,7 +195,7 @@
   "comp.speed": 0.4,
   "comp.pump": 0,
   "ott.amount": 0.15,
-  "chorus.mix": 0.1,
+  "chorus.mix": 0.16,
   "chorus.depth": 0.45,
   "chorus.mode": "ensemble",
   "phaser.mix": 0,

@@ -98,3 +98,9 @@ kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 
 .mon { background: var(--panel-2); border: 1px solid var(--line); color: var(--dim); border-radius: 4px; font-size: 10px; font-weight: 700; padding: 0 6px; line-height: 16px; cursor: pointer; }
 .mon.solo.on { background: #e8c547; border-color: #e8c547; color: #1a1600; }
 .mon.mute.on { background: var(--warn); border-color: var(--warn); color: #1f1300; }
+.power { background: var(--panel-2); border: 1px solid var(--line); color: var(--dim); border-radius: 50%; width: 18px; height: 18px; padding: 0; margin-right: 6px; font-size: 11px; line-height: 16px; cursor: pointer; vertical-align: middle; }
+.power.on { color: var(--accent); border-color: var(--accent); }
+.group.off > :not(h3), .fx-section.off > :not(.fx-title) { opacity: 0.35; }
+.fx-section { border-top: 1px solid var(--line); padding-top: 6px; margin-top: 6px; }
+.fx-section:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+.fx-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dim); margin-bottom: 4px; }

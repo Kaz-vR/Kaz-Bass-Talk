@@ -88,7 +88,8 @@ describe('pump rate and texture position', () => {
 
 describe('texture solo / mute', () => {
   const p = { ...base, 'texture.type': 'dust' };
-  const render = (mode?: 'solo' | 'mute', q: object = p) => renderPatch(q, heldNote(45, 1), { seconds: 0.5, textureMonitor: mode }).left;
+  const render = (mode?: 'solo' | 'mute', q: object = p) =>
+    renderPatch(q, heldNote(45, 1), { seconds: 0.5, monitor: mode ? { [mode]: ['texture'] } : undefined }).left;
 
   it('mute plays the sound without the bed', () => {
     const muted = render('mute'), none = render(undefined, { ...p, 'texture.level': 0 });

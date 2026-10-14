@@ -61,7 +61,7 @@ const def: CategoryDef = {
       description: 'A thin, high voice singing "ee" from very far away: cold and unsettling.',
       tags: ['choir', 'vocal', 'high', 'thin', 'ee', 'eerie', 'lorn'],
       texture: ['air', 0.5, 0.45, 2500],
-      set: { 'voice.octave': 1, 'filter.vowel': 0.45, 'filter.cutoff': 2600, 'eq.highcut': 8000, 'osc1.unison_voices': 2, 'osc1.unison_spread': 0.6, 'chorus.mix': 0.1 },
+      set: { 'voice.octave': 1, 'filter.vowel': 0.45, 'filter.cutoff': 2600, 'eq.highcut': 8000, 'osc1.unison_voices': 2, 'osc1.unison_spread': 0.6, 'chorus.mix': 0.16 },
       mods: kit(VOICE_KIT, [['lfo1', 'filter_vowel', 0.09]]),
     },
     {

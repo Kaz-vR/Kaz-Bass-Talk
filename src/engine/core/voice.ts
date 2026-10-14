@@ -227,7 +227,7 @@ export class Voice {
   private velGain = 1;
   private readonly tmp = new Float64Array(2);
 
-  constructor(fs: number, cur: Float64Array, table: Float32Array, seed: number) {
+  constructor(fs: number, cur: Float64Array, table: Float32Array, seed: number, private readonly dstMask?: Float64Array) {
     this.fs = fs;
     this.cur = cur;
     this.table = table;
@@ -428,6 +428,9 @@ export class Voice {
       const d = cur[slot.dst];
       if (d > 0) dst[d] += cur[slot.amt] * src[cur[slot.src]];
     }
+    // Switched-off blocks and muted layers ignore their modulation.
+    const mask = this.dstMask;
+    if (mask) for (let d = 1; d < dst.length; d++) dst[d] *= mask[d];
 
     this.analog = cur[P.analog];
 

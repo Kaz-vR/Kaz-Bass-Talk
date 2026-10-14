@@ -5,7 +5,10 @@ import {
 
 type OnChange = (id: string, value: ParamValue) => void;
 type OnWheel = (value: number) => void;
-type OnTextureMonitor = (mode: 'normal' | 'solo' | 'mute') => void;
+type OnMonitor = (solo: string[], mute: string[]) => void;
+
+/** Sound layers with solo / mute, by box. */
+const LAYERS: Record<string, string> = { osc1: 'osc1', osc2: 'osc2', sub: 'sub', noise: 'noise', click: 'click', breath: 'breath', texture: 'texture' };
 
 const GROUP_TITLES: Record<string, string> = {
   voice: 'Voice', osc1: 'Oscillator 1', osc2: 'Oscillator 2', fm: 'FM', sub: 'Sub', noise: 'Noise', texture: 'Texture', drive: 'Drive',
@@ -53,7 +56,7 @@ export class ParamsPanel {
   private wheelSlider: HTMLInputElement | null = null;
   private wheelVal: HTMLElement | null = null;
 
-  constructor(private root: HTMLElement, private onChange: OnChange, private onWheel: OnWheel = () => {}, private onTextureMonitor: OnTextureMonitor = () => {}) {
+  constructor(private root: HTMLElement, private onChange: OnChange, private onWheel: OnWheel = () => {}, private onMonitor: OnMonitor = () => {}) {
     this.build();
   }
 
@@ -139,12 +142,16 @@ export class ParamsPanel {
       h.textContent = GROUP_TITLES[g] ?? g;
       box.append(h);
       if (Object.values(SOURCE_BOX).includes(g) || g === 'pitch_env') box.append(this.routeEl(g));
-      if (g === 'texture') h.append(this.textureMonitorButtons());
+      if (LAYERS[g]) h.append(this.monitorButtons(LAYERS[g]));
+      const power = ps.find((p) => p.id === `${g}.on`);
+      if (power) h.prepend(this.powerButton(power, box));
+      const rest = ps.filter((p) => p !== power);
       if (g === 'mod') this.root.append(this.buildOtherSources());
-      if (g === 'mod') this.buildMatrix(box, ps);
-      else if (/^lfo\d$/.test(g)) this.buildLfo(box, g, ps);
-      else if (g === 'wheel') this.buildWheel(box, ps);
-      else for (const p of ps) box.append(this.buildControl(p));
+      if (g === 'mod') this.buildMatrix(box, rest);
+      else if (/^lfo\d$/.test(g)) this.buildLfo(box, g, rest);
+      else if (g === 'wheel') this.buildWheel(box, rest);
+      else if (g === 'fx') this.buildEffects(box, rest);
+      else for (const p of rest) box.append(this.buildControl(p));
       this.root.append(box);
     }
   }
@@ -329,28 +336,81 @@ export class ParamsPanel {
     box.append(row);
   }
 
-  /** Solo / mute for listening to the texture bed (not saved in the preset). */
-  private textureMonitorButtons(): HTMLElement {
+  /** A block's power switch (saved in the preset); `dim` greys out while it's off. */
+  private powerButton(p: ParamDef, dim: HTMLElement): HTMLElement {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'power';
+    b.textContent = '⏻';
+    b.title = p.describes;
+    let on = true;
+    const view = () => {
+      b.classList.toggle('on', on);
+      dim.classList.toggle('off', !on);
+    };
+    b.onclick = () => {
+      on = !on;
+      view();
+      this.emit(p.id, on);
+    };
+    this.controls.set(p.id, {
+      p,
+      set: (v) => {
+        on = !!v;
+        view();
+      },
+    });
+    view();
+    return b;
+  }
+
+  /** The effects box: each effect gets its own row with a power switch. */
+  private buildEffects(box: HTMLElement, ps: ParamDef[]): void {
+    let section: HTMLElement = box;
+    for (const p of ps) {
+      if (p.id.endsWith('.on')) {
+        section = document.createElement('div');
+        section.className = 'fx-section';
+        const title = document.createElement('div');
+        title.className = 'fx-title';
+        title.append(this.powerButton(p, section), p.label.replace(/ on$/, ''));
+        section.append(title);
+        box.append(section);
+      } else {
+        section.append(this.buildControl(p));
+      }
+    }
+  }
+
+  // Solo / mute: listening aids, not saved in the preset. Several layers can be soloed at once.
+  private readonly solo = new Set<string>();
+  private readonly mute = new Set<string>();
+  private readonly monitorViews: (() => void)[] = [];
+
+  private monitorButtons(layer: string): HTMLElement {
     const wrap = document.createElement('span');
     wrap.className = 'monitor';
-    let mode: 'normal' | 'solo' | 'mute' = 'normal';
-    const mk = (text: string, which: 'solo' | 'mute', title: string) => {
+    const mk = (text: string, set: Set<string>, title: string) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = `mon ${which}`;
+      b.className = `mon ${text === 'S' ? 'solo' : 'mute'}`;
       b.textContent = text;
       b.title = title;
       b.onclick = () => {
-        mode = mode === which ? 'normal' : which;
-        solo.classList.toggle('on', mode === 'solo');
-        mute.classList.toggle('on', mode === 'mute');
-        this.onTextureMonitor(mode);
+        if (set.has(layer)) set.delete(layer);
+        else set.add(layer);
+        for (const v of this.monitorViews) v();
+        this.onMonitor([...this.solo], [...this.mute]);
       };
       wrap.append(b);
       return b;
     };
-    const solo = mk('S', 'solo', 'Solo: hear only the texture bed (listening aid, not saved)');
-    const mute = mk('M', 'mute', 'Mute: hear the sound without the texture bed (listening aid, not saved)');
+    const solo = mk('S', this.solo, 'Solo: hear only this layer (and any other soloed ones). A listening aid, not saved.');
+    const mute = mk('M', this.mute, 'Mute: hear the sound without this layer. A listening aid, not saved.');
+    this.monitorViews.push(() => {
+      solo.classList.toggle('on', this.solo.has(layer));
+      mute.classList.toggle('on', this.mute.has(layer));
+    });
     return wrap;
   }
 
