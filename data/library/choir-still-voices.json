@@ -58,7 +58,7 @@
   "shepard.rate": -0.3,
   "sub.wave": "sine",
   "sub.octave": -1,
-  "sub.level": 0,
+  "sub.level": 0.1,
   "noise.level": 0,
   "texture.type": "air",
   "texture.level": 0.5,

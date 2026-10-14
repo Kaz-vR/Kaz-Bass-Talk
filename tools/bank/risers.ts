@@ -162,7 +162,7 @@ const def: CategoryDef = {
       tags: ['risers', 'fall', 'impact', 'hard-start', 'downlifter', 'dark', 'lorn', 'new'],
       texture: ['crackle', 0.5, 0.35, 2000],
       set: { 'amp_env.attack': 2, 'env2.attack': 4000, 'click.type': 'kick', 'click.level': 0, 'filter.cutoff': 1500 },
-      mods: kit(RISE_KIT, [['env2', 'pitch', -1], ['env2', 'filter_cutoff', -0.4], ['lfo1', 'filter_cutoff', 0.25]], { 'env2>noise_level': ['env2', 'amp', -0.5] }),
+      mods: kit(RISE_KIT, [['env2', 'pitch', -1], ['env2', 'filter_cutoff', -0.4], ['lfo1', 'filter_cutoff', 0.4], ['drift_slow', 'drive', 0.35]], { 'env2>noise_level': ['env2', 'amp', -0.5] }),
     },
     {
       id: 'glass-rise', name: 'Glass Rise',
@@ -171,14 +171,6 @@ const def: CategoryDef = {
       texture: ['air', 0.5, 0.35, 2000],
       set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.1, 'fm.ratio': 3.5, 'fm.punch': 0, 'filter.cutoff': 1200 },
       mods: kit(RISE_KIT, [], { 'env2>noise_level': ['env2', 'fm_amount', 0.3], 'lfo4>unison_detune': ['lfo4', 'fm_amount', 0.05], 'lfo1>filter_cutoff': ['lfo1', 'fm_amount', 0.1] }),
-    },
-    {
-      id: 'breath-rise', name: 'Breath Rise',
-      description: "A soft rise made of breath: air slowly filling the room, gentle and clean.",
-      tags: ['risers', 'soft', 'breath', 'air', 'gentle', 'clean', 'lorn', 'new'],
-      texture: ['air', 0.35, 0.35, 2000],
-      set: { 'osc1.wave': 'triangle', 'osc1.unison_voices': 2, 'breath.level': 0.18, 'breath.tone': 0.45, 'drive.amount': 0.3, 'dist.drive': 0.1 },
-      mods: kit(RISE_KIT, [['lfo1', 'filter_cutoff', 0.25]], { 'env2>noise_level': ['env2', 'breath_level', 0.4] }),
     },
   ],
 };

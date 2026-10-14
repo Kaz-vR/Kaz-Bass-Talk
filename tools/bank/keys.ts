@@ -227,7 +227,7 @@ const def: CategoryDef = {
       id: 'bell-piano', name: 'Bell Piano', iconic: 2,
       description: "The eighties layered piano: a soft FM piano with a glassy bell ringing above it, faded on old tape.",
       tags: ['keys', 'piano', 'bell', 'fm', 'eighties', 'layered', 'lorn'],
-      texture: ['dust', 0.55, 0.35, 900],
+      texture: ['dust', 0.7, 0.35, 900],
       set: { 'fm.amount': 0.25, 'fm2.amount': 0.12, 'fm2.ratio': 14, 'osc2.wave': 'sine', 'osc2.semi': 24, 'osc2.level': 0.15, 'tape.age': 0.6 },
     },
     {
@@ -275,7 +275,7 @@ const def: CategoryDef = {
       id: 'backwards-room', name: 'Backwards Room', iconic: 2, audition: 'chords',
       description: "Keys played backwards: each note swells in out of nothing, opens up and is cut off, leaving only the room.",
       tags: ['keys', 'reversed', 'swell', 'backwards', 'eerie', 'tape', 'lorn'],
-      texture: ['dust', 0.55, 0.35, 900],
+      texture: ['dust', 0.65, 0.35, 900],
       set: { 'fm.amount': 0, 'fm.punch': 0, 'osc1.wave': 'triangle', 'osc2.wave': 'saw', 'osc2.level': 0.2, 'amp_env.attack': 700, 'amp_env.decay': 4000, 'amp_env.sustain': 1, 'amp_env.release': 40, 'filter.cutoff': 700, 'filter.env_amount': 0.35, 'mod_env.attack': 800, 'mod_env.decay': 2000, 'mod_env.sustain': 1, 'mod_env.release': 40, 'reverb.mix': 0.4, 'reverb.size': 0.85, 'tape.age': 0.6 },
       mods: SOFT_KEYS_KIT,
     },

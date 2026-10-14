@@ -182,6 +182,7 @@ const def: CategoryDef = {
       tags: ['pad', 'fold', 'metallic', 'pumping', 'harsh', 'industrial', 'lorn', 'new'],
       texture: ['dust', 0.55, 0.4, 2500],
       set: { 'dist.type': 'fold', 'dist.drive': 0.45, 'dist.mix': 0.6, 'dist.clean_below': 150, 'filter.cutoff': 900, 'comp.amount': 0.55, 'comp.pump': 0.45, 'osc1.unison_spread': 0.45, 'chorus.mix': 0.08 },
+      mods: kit(ALIVE, [], { 'lfo4>chorus_depth': ['lfo4', 'tape_wow', 0.3] }),
     },
     {
       id: 'instant-fog', name: 'Instant Fog',
@@ -211,7 +212,7 @@ const def: CategoryDef = {
       tags: ['pad', 'thin', 'glassy', 'fm', 'steady', 'still', 'lorn', 'new'],
       texture: ['air', 0.55, 0.35, 2500],
       set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.12, 'fm.ratio': 2, 'fm.punch': 0, 'filter.cutoff': 2500, 'chorus.mix': 0.45, 'chorus.depth': 0.6, 'tape.wow': 0.05, 'eq.highcut': 5000 },
-      mods: kit(ALIVE, [], { 'lfo1>filter_cutoff': ['lfo1', 'fm_amount', 0.25], 'lfo2>filter_cutoff': ['lfo2', 'amp', -0.2], 'env2>filter_cutoff': ['env2', 'fm_amount', 0.12], 'random>filter_cutoff': ['random', 'fm_amount', 0.12], 'velocity>filter_cutoff': ['velocity', 'amp', 0.2] }),
+      mods: kit(ALIVE, [], { 'lfo1>filter_cutoff': ['lfo1', 'fm_amount', 0.25], 'lfo2>filter_cutoff': ['lfo2', 'amp', -0.3], 'env2>filter_cutoff': ['env2', 'fm_amount', 0.12], 'random>filter_cutoff': ['random', 'fm_amount', 0.12], 'velocity>filter_cutoff': ['velocity', 'amp', 0.2] }),
       allow: { vibeWidth: { min: -20, why: 'a thin, single sheet of tone by design' } },
     },
     {

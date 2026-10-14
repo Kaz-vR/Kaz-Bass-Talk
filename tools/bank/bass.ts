@@ -182,7 +182,7 @@ const def: CategoryDef = {
       id: 'tape-sub', name: 'Tape Sub', audition: 'dread',
       description: "A warm sine sub warmed by tape until it's heard on small speakers too: soft, deep and steady.",
       tags: ['bass', 'sub', 'sine', 'warm', 'soft', 'deep', 'lorn', 'new'],
-      texture: ['dust', 0.7, 0.35, 500],
+      texture: ['dust', 0.8, 0.35, 500],
       set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'osc2.wave': 'triangle', 'osc2.semi': 12, 'osc2.fine': 0, 'osc2.level': 0.25, 'sub.level': 0.3, 'amp_env.attack': 30, 'amp_env.sustain': 0.9, 'amp_env.release': 300, 'drive.amount': 0.5, 'dist.drive': 0, 'tape.drive': 0.6, 'tape.age': 0.7, 'filter.cutoff': 1200, 'filter.env_amount': 0, 'reverb.mix': 0.38, 'delay.mix': 0.22 },
       mods: kit(BASS_KIT, [], { 'lfo1>filter_cutoff': ['lfo1', 'osc2_level', 0.3], 'random>filter_cutoff': ['random', 'osc2_level', 0.12], 'velocity>filter_cutoff': ['velocity', 'amp', 0.25], 'env2>filter_cutoff': ['env2', 'drive', 0.2] }),
     },

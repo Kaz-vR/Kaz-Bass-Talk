@@ -176,8 +176,8 @@
   "mod9.dest": "reverb_mix",
   "mod9.amount": 0.2,
   "mod10.source": "lfo4",
-  "mod10.dest": "chorus_depth",
-  "mod10.amount": 0.25,
+  "mod10.dest": "tape_wow",
+  "mod10.amount": 0.3,
   "mod11.source": "velocity",
   "mod11.dest": "filter_cutoff",
   "mod11.amount": 0.15,
@@ -217,6 +217,6 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 6500,
-  "output.gain": -0.6,
+  "output.gain": -1.1,
   "output.crossover": 120
 }

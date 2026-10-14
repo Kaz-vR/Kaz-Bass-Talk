@@ -15,7 +15,37 @@
     "category": "pad",
     "family": "pad",
     "collection": "bank",
-    "audition": "chords"
+    "audition": "chords",
+    "vibe": {
+      "brightOct": 0.81,
+      "airDb": -41.2,
+      "dirt": 0.6,
+      "widthDb": -3.8,
+      "tailDb": -4.7
+    },
+    "checks": {
+      "hash": "33c3c1bd",
+      "audio": "555bff55",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "delay 0.20 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.444,
+      "highEnergy": 0.661,
+      "sub": 0.043,
+      "lowMid": 0.794,
+      "dirt": 0.597,
+      "width": 0.906,
+      "attack": 0.974,
+      "decay": 0.965,
+      "sustain": 0.937,
+      "release": 0.773,
+      "movement": 0.486
+    }
   },
   "voice.polyphony": 8,
   "voice.legato": false,

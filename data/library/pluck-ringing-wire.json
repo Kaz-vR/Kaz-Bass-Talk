@@ -15,7 +15,37 @@
     "category": "pluck",
     "family": "pluck",
     "collection": "bank",
-    "audition": "arp-line"
+    "audition": "arp-line",
+    "vibe": {
+      "brightOct": 0.32,
+      "airDb": -38.9,
+      "dirt": 0.56,
+      "widthDb": -16.6,
+      "tailDb": -13.3
+    },
+    "checks": {
+      "hash": "868838b1",
+      "audio": "2d201587",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "mod 2 (lfo2 → amp) 0.24 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.408,
+      "highEnergy": 0.612,
+      "sub": 0.03,
+      "lowMid": 0.842,
+      "dirt": 0.563,
+      "width": 0.584,
+      "attack": 0.201,
+      "decay": 0.75,
+      "sustain": 0.629,
+      "release": 0.773,
+      "movement": 0.055
+    }
   },
   "voice.polyphony": 8,
   "voice.legato": false,

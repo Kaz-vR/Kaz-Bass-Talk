@@ -15,7 +15,37 @@
     "category": "choir",
     "family": "choir",
     "collection": "bank",
-    "audition": "arp-line"
+    "audition": "arp-line",
+    "vibe": {
+      "brightOct": 1.41,
+      "airDb": -30.2,
+      "dirt": 0.8,
+      "widthDb": -3.5,
+      "tailDb": -20.1
+    },
+    "checks": {
+      "hash": "aa957705",
+      "audio": "31f1a037",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "mod 10 (lfo4 → chorus_depth) 0.36 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.534,
+      "highEnergy": 0.799,
+      "sub": 0.014,
+      "lowMid": 0.469,
+      "dirt": 0.799,
+      "width": 0.913,
+      "attack": 0.201,
+      "decay": 1,
+      "sustain": 0.793,
+      "release": 0.773,
+      "movement": 0.233
+    }
   },
   "voice.polyphony": 8,
   "voice.legato": false,
@@ -217,6 +247,6 @@
   "eq.mid_freq": 300,
   "eq.high_gain": -2,
   "eq.highcut": 7000,
-  "output.gain": -4.1,
+  "output.gain": -1.6,
   "output.crossover": 120
 }

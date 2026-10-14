@@ -62,7 +62,7 @@
   "sub.level": 0,
   "noise.level": 0,
   "texture.type": "dust",
-  "texture.level": 0.55,
+  "texture.level": 0.7,
   "texture.tone": 0.35,
   "texture.tail": 900,
   "texture.position": "before dynamics",
@@ -218,6 +218,6 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 6500,
-  "output.gain": -3.2,
+  "output.gain": -2.9,
   "output.crossover": 120
 }

@@ -159,7 +159,7 @@
   "mod1.amount": 0.25,
   "mod2.source": "lfo2",
   "mod2.dest": "amp",
-  "mod2.amount": -0.2,
+  "mod2.amount": -0.3,
   "mod3.source": "env2",
   "mod3.dest": "fm_amount",
   "mod3.amount": 0.12,

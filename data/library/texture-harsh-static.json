@@ -150,7 +150,7 @@
   "mod.on": true,
   "mod1.source": "lfo1",
   "mod1.dest": "texture_level",
-  "mod1.amount": 0.4,
+  "mod1.amount": 0.7,
   "mod2.source": "lfo2",
   "mod2.dest": "breath_level",
   "mod2.amount": 0.25,
@@ -179,8 +179,8 @@
   "mod10.dest": "reverb_mix",
   "mod10.amount": 0.2,
   "mod11.source": "lfo4",
-  "mod11.dest": "chorus_depth",
-  "mod11.amount": 0.25,
+  "mod11.dest": "crush_mix",
+  "mod11.amount": 0.2,
   "mod12.source": "velocity",
   "mod12.dest": "texture_level",
   "mod12.amount": 0.15,
@@ -217,6 +217,6 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 5500,
-  "output.gain": -6.2,
+  "output.gain": -7.2,
   "output.crossover": 120
 }

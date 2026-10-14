@@ -62,7 +62,7 @@
   "sub.level": 0,
   "noise.level": 0,
   "texture.type": "dust",
-  "texture.level": 0.55,
+  "texture.level": 0.65,
   "texture.tone": 0.35,
   "texture.tail": 900,
   "texture.position": "before dynamics",

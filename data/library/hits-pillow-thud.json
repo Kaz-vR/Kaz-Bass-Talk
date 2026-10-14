@@ -207,7 +207,7 @@
   "delay.feedback": 0.4,
   "delay.tone": 0.25,
   "reverb.on": true,
-  "reverb.mix": 0.5,
+  "reverb.mix": 0.6,
   "reverb.size": 0.9,
   "reverb.tone": 0.85,
   "fx.lowcut": 200,
@@ -217,6 +217,6 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 3000,
-  "output.gain": -1.2,
+  "output.gain": -0.5,
   "output.crossover": 120
 }

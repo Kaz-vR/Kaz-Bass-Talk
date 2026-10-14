@@ -187,8 +187,8 @@ const def: CategoryDef = {
       description: "One muted trumpet far down the street: thin, breathy and alone.",
       tags: ['brass', 'trumpet', 'solo', 'thin', 'lonely', 'breathy', 'lorn', 'new'],
       texture: ['dust', 0.45, 0.3, 1500],
-      set: { 'osc1.unison_voices': 1, 'osc2.level': 0, 'breath.level': 0.2, 'filter.cutoff': 700, 'vibrato.depth': 14 },
-      mods: kit(BREATH_KIT, [['lfo1', 'filter_cutoff', 0.35]], { 'lfo2>amp': ['lfo2', 'amp', -0.2] }),
+      set: { 'osc1.unison_voices': 3, 'osc2.level': 0, 'breath.level': 0.2, 'filter.cutoff': 700, 'vibrato.depth': 14, 'osc1.unison_detune': 5, 'tape.wow': 0.35, 'env2.attack': 2500, 'env2.sustain': 1 },
+      mods: kit(BREATH_KIT, [['lfo1', 'filter_cutoff', 0.35], ['env2', 'filter_cutoff', 0.3]], { 'lfo2>amp': ['lfo2', 'amp', -0.25] }),
       allow: { vibeWidth: { min: -23, why: 'a solo instrument: thin and centred is its identity' } },
     },
     {

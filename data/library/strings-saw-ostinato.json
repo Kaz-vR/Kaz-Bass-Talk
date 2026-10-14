@@ -15,7 +15,37 @@
     "category": "strings",
     "family": "strings",
     "collection": "bank",
-    "audition": "arp-line"
+    "audition": "arp-line",
+    "vibe": {
+      "brightOct": 0.87,
+      "airDb": -36.3,
+      "dirt": 0.67,
+      "widthDb": -1.9,
+      "tailDb": -24.7
+    },
+    "checks": {
+      "hash": "c7ed8491",
+      "audio": "71b23f57",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "mod 2 (lfo2 → amp) 0.23 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.452,
+      "highEnergy": 0.717,
+      "sub": 0.058,
+      "lowMid": 0.797,
+      "dirt": 0.67,
+      "width": 0.953,
+      "attack": 0.1,
+      "decay": 1,
+      "sustain": 0.738,
+      "release": 0.773,
+      "movement": 0.427
+    }
   },
   "voice.polyphony": 8,
   "voice.legato": false,

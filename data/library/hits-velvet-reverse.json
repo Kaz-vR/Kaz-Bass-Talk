@@ -15,7 +15,37 @@
     "category": "hits",
     "family": "hits",
     "collection": "bank",
-    "audition": "hits"
+    "audition": "hits",
+    "vibe": {
+      "brightOct": -0.11,
+      "airDb": -54.2,
+      "dirt": 1.34,
+      "widthDb": -9.8,
+      "tailDb": -24.3
+    },
+    "checks": {
+      "hash": "0afbab5c",
+      "audio": "fa85176b",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "mod 10 (velocity → filter_cutoff) 0.42 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.067,
+      "highEnergy": 0.508,
+      "sub": 0.98,
+      "lowMid": 0.177,
+      "dirt": 1,
+      "width": 0.755,
+      "attack": 0.929,
+      "decay": 0.955,
+      "sustain": 0.994,
+      "release": 0.773,
+      "movement": 0.016
+    }
   },
   "voice.polyphony": 4,
   "voice.legato": false,

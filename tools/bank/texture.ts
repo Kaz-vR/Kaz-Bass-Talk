@@ -146,27 +146,11 @@ const def: CategoryDef = {
     },
     // ------------------------------------------------ producer range: the roles this category was missing
     {
-      id: 'clean-air', name: 'Clean Air',
-      description: "Clean, soft air moving through an open window: no grit, just the room breathing.",
-      tags: ['texture', 'air', 'clean', 'soft', 'open', 'calm', 'lorn', 'new'],
-      texture: ['air', 0.6, 0.3, 3000],
-      set: { 'breath.level': 0.25, 'breath.tone': 0.5, 'drive.amount': 0.3, 'eq.highcut': 3500, 'chorus.mix': 0 },
-      mods: kit(TEXTURE_KIT, [['lfo2', 'breath_level', 0.35], ['random', 'breath_level', 0.2], ['lfo4', 'width', 0.1]]),
-    },
-    {
-      id: 'room-tone', name: 'Room Tone',
-      description: "The low, soft hum of an empty room at night: barely there, but you'd miss it.",
-      tags: ['texture', 'room', 'soft', 'low', 'hum', 'quiet', 'lorn', 'new'],
-      texture: ['rumble', 0.6, 0.3, 3000],
-      set: { 'breath.level': 0.3, 'breath.tone': 0.5, 'drive.amount': 0.3, 'filter.cutoff': 900 },
-      mods: kit(TEXTURE_KIT, [['lfo1', 'texture_level', 0.6]]),
-    },
-    {
       id: 'soft-rain', name: 'Soft Rain',
       description: "Fine, soft rain on a window: gentle grain with no crackle, a calm bed under everything.",
       tags: ['texture', 'rain', 'soft', 'fine', 'calm', 'grain', 'lorn', 'new'],
-      texture: ['dust', 0.65, 0.2, 3000],
-      set: { 'drive.amount': 0.3, 'breath.level': 0.1 },
+      texture: ['dust', 0.5, 0.2, 3000],
+      set: { 'drive.amount': 0.3, 'breath.level': 0.1, 'eq.highcut': 4500 },
     },
     {
       id: 'harsh-static', name: 'Harsh Static',
@@ -174,6 +158,7 @@ const def: CategoryDef = {
       tags: ['texture', 'static', 'harsh', 'crushed', 'noise', 'broken', 'lorn', 'new'],
       texture: ['crackle', 0.8, 0.6, 2500],
       set: { 'crush.mix': 0.5, 'crush.bits': 4, 'crush.rate': 10, 'dist.type': 'hard', 'dist.drive': 0.4, 'dist.mix': 0.6, 'drive.amount': 0.6, 'osc1.unison_spread': 0.45, 'chorus.mix': 0.08 },
+      mods: kit(TEXTURE_KIT, [['lfo1', 'texture_level', 0.7]], { 'lfo4>chorus_depth': ['lfo4', 'crush_mix', 0.2] }),
     },
   ],
 };
