@@ -207,15 +207,6 @@ const def: CategoryDef = {
       mods: kit(ALIVE, [['drift', 'pitch', 0.006]]),
     },
     {
-      id: 'glass-sheet', name: 'Glass Sheet',
-      description: "A thin, steady sheet of glassy FM tone: no thickness, just a pale, still shimmer above the mix.",
-      tags: ['pad', 'thin', 'glassy', 'fm', 'steady', 'still', 'lorn', 'new'],
-      texture: ['air', 0.55, 0.35, 2500],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.12, 'fm.ratio': 2, 'fm.punch': 0, 'filter.cutoff': 2500, 'chorus.mix': 0.45, 'chorus.depth': 0.6, 'tape.wow': 0.05, 'eq.highcut': 5000 },
-      mods: kit(ALIVE, [], { 'lfo1>filter_cutoff': ['lfo1', 'fm_amount', 0.25], 'lfo2>filter_cutoff': ['lfo2', 'amp', -0.3], 'env2>filter_cutoff': ['env2', 'fm_amount', 0.12], 'random>filter_cutoff': ['random', 'fm_amount', 0.12], 'velocity>filter_cutoff': ['velocity', 'amp', 0.2] }),
-      allow: { vibeWidth: { min: -20, why: 'a thin, single sheet of tone by design' } },
-    },
-    {
       id: 'held-breath', name: 'Held Breath',
       description: "A tense pad with a rub in the middle of it: two voices a semitone apart, waiting for something to happen.",
       tags: ['pad', 'tense', 'dissonant', 'dark', 'uneasy', 'cinematic', 'lorn', 'new'],

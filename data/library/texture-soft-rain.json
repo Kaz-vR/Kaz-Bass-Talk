@@ -15,7 +15,42 @@
     "category": "texture",
     "family": "texture",
     "collection": "bank",
-    "audition": "swell"
+    "audition": "swell",
+    "allow": {
+      "consistency:dirt": {
+        "why": "a rain bed: fine grain is its whole sound"
+      }
+    },
+    "vibe": {
+      "brightOct": -0.62,
+      "airDb": -32.2,
+      "dirt": 1.71,
+      "widthDb": -2.4,
+      "tailDb": -9.8
+    },
+    "checks": {
+      "hash": "85830a64",
+      "audio": "957363a8",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "mod 11 (lfo4 → chorus_depth) 0.24 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.228,
+      "highEnergy": 0.64,
+      "sub": 0.024,
+      "lowMid": 0.987,
+      "dirt": 1,
+      "width": 0.94,
+      "attack": 1,
+      "decay": 0.826,
+      "sustain": 0.951,
+      "release": 0.773,
+      "movement": 0.221
+    }
   },
   "voice.polyphony": 4,
   "voice.legato": false,

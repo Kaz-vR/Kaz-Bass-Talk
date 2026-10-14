@@ -18,9 +18,17 @@ for (const f of readdirSync(join(ROOT, 'tools/bank')).filter((f) => f.endsWith('
     if (existsSync(file)) {
       const old = JSON.parse(readFileSync(file, 'utf8'));
       // Parameters added to the schema after a file was written read as their defaults; output.gain is the levelling.
-      const same = Object.keys(next).every((k) => k === 'meta' || k === 'output.gain' || !(k in old) || JSON.stringify(old[k]) === JSON.stringify(next[k]))
-        && ['name', 'description', 'tags', 'audition', 'allow'].every((k) => JSON.stringify(old.meta?.[k]) === JSON.stringify(next.meta[k]));
-      if (same) continue;
+      const sameSound = Object.keys(next).every((k) => k === 'meta' || k === 'output.gain' || !(k in old) || JSON.stringify(old[k]) === JSON.stringify(next[k]));
+      const metaKeys = ['name', 'description', 'tags', 'audition', 'allow'];
+      const sameMeta = metaKeys.every((k) => JSON.stringify(old.meta?.[k]) === JSON.stringify(next.meta[k]));
+      if (sameSound && sameMeta) continue;
+      if (sameSound) {
+        // Only the words changed (a tag, a description, a written exception): keep the check results.
+        for (const k of metaKeys) if (next.meta[k] === undefined) delete old.meta[k]; else old.meta[k] = next.meta[k];
+        writeFileSync(file, JSON.stringify(old, null, 2) + '\n');
+        changed.push(`${def.category}-${p.id}.json (words only)`);
+        continue;
+      }
     }
     if (existsSync(file)) next['output.gain'] = JSON.parse(readFileSync(file, 'utf8'))['output.gain'];
     writeFileSync(file, JSON.stringify(next, null, 2) + '\n');

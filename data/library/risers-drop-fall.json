@@ -15,7 +15,37 @@
     "category": "risers",
     "family": "risers",
     "collection": "bank",
-    "audition": "swell"
+    "audition": "swell",
+    "vibe": {
+      "brightOct": 0.04,
+      "airDb": -41.4,
+      "dirt": 0.93,
+      "widthDb": -1.7,
+      "tailDb": -5.7
+    },
+    "checks": {
+      "hash": "c76cacab",
+      "audio": "82c39be3",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "chorus 0.30 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.177,
+      "highEnergy": 0.563,
+      "sub": 0.765,
+      "lowMid": 0.599,
+      "dirt": 0.93,
+      "width": 0.957,
+      "attack": 0.1,
+      "decay": 1,
+      "sustain": 0.856,
+      "release": 0.773,
+      "movement": 0.26
+    }
   },
   "voice.polyphony": 2,
   "voice.legato": false,

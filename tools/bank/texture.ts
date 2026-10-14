@@ -1,7 +1,7 @@
 // DEV ONLY. Texture: noise, dust, air and hum shaped into playable beds, the
 // grain under everything. The texture bed and breath are the main voice; a
 // faint tonal body underneath keeps them playable.
-import { kit, type CategoryDef, type Mod } from './common';
+import { type CategoryDef, type Mod } from './common';
 
 const base = {
   'voice.polyphony': 4,
@@ -151,14 +151,7 @@ const def: CategoryDef = {
       tags: ['texture', 'rain', 'soft', 'fine', 'calm', 'grain', 'lorn', 'new'],
       texture: ['dust', 0.5, 0.2, 3000],
       set: { 'drive.amount': 0.3, 'breath.level': 0.1, 'eq.highcut': 4500 },
-    },
-    {
-      id: 'harsh-static', name: 'Harsh Static',
-      description: "Loud, ugly static from a broken receiver: crushed crackle and hiss, harsh on purpose.",
-      tags: ['texture', 'static', 'harsh', 'crushed', 'noise', 'broken', 'lorn', 'new'],
-      texture: ['crackle', 0.8, 0.6, 2500],
-      set: { 'crush.mix': 0.5, 'crush.bits': 4, 'crush.rate': 10, 'dist.type': 'hard', 'dist.drive': 0.4, 'dist.mix': 0.6, 'drive.amount': 0.6, 'osc1.unison_spread': 0.45, 'chorus.mix': 0.08 },
-      mods: kit(TEXTURE_KIT, [['lfo1', 'texture_level', 0.7]], { 'lfo4>chorus_depth': ['lfo4', 'crush_mix', 0.2] }),
+      allow: { 'consistency:dirt': { why: 'a rain bed: fine grain is its whole sound' } },
     },
   ],
 };

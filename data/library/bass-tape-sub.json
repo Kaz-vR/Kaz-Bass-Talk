@@ -15,7 +15,37 @@
     "category": "bass",
     "family": "bass",
     "collection": "bank",
-    "audition": "dread"
+    "audition": "dread",
+    "vibe": {
+      "brightOct": 0.32,
+      "airDb": -40.6,
+      "dirt": 0.52,
+      "widthDb": -14.6,
+      "tailDb": -31.7
+    },
+    "checks": {
+      "hash": "bd7351ec",
+      "audio": "64531404",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "pump 0.35 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.22,
+      "highEnergy": 0.504,
+      "sub": 0.329,
+      "lowMid": 0.91,
+      "dirt": 0.521,
+      "width": 0.635,
+      "attack": 0.434,
+      "decay": 0.9,
+      "sustain": 0.909,
+      "release": 0.763,
+      "movement": 0.026
+    }
   },
   "voice.polyphony": 1,
   "voice.legato": false,

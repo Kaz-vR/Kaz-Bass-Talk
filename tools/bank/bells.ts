@@ -160,13 +160,6 @@ const def: CategoryDef = {
       set: { 'osc1.wave': 'triangle', 'amp_env.attack': 15, 'fm.amount': 0.06, 'fm.ratio': 2.8, 'fm.punch': 0.2, 'chorus.mix': 0.35, 'drive.amount': 0.3, 'dist.drive': 0.1 },
     },
     {
-      id: 'tick-bell', name: 'Tick Bell', audition: 'arp-line',
-      description: "A tiny, short bell tick: a bright point of sound that's gone in a moment, for rhythms and accents.",
-      tags: ['bells', 'short', 'tick', 'percussive', 'rhythmic', 'tiny', 'lorn', 'new'],
-      texture: ['dust', 0.2, 0.35, 600],
-      set: { 'amp_env.decay': 250, 'amp_env.release': 200, 'fm.ratio': 5, 'fm.punch': 0.6, 'fm.decay': 100, 'reverb.mix': 0.3 },
-    },
-    {
       id: 'worn-glock', name: 'Worn Glock',
       description: "An old glockenspiel with tired bars: the ring is still sweet, but worn and dusty, not broken.",
       tags: ['bells', 'glockenspiel', 'worn', 'sweet', 'dusty', 'nostalgic', 'lorn', 'new'],

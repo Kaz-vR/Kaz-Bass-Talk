@@ -153,14 +153,6 @@ const def: CategoryDef = {
       set: { 'drive.amount': 0.8, 'dist.type': 'hard', 'dist.drive': 0.5, 'dist.mix': 0.7, 'dist.clean_below': 120, 'crush.mix': 0.3, 'crush.bits': 8, 'crush.rate': 6, 'filter.cutoff': 700 },
     },
     {
-      id: 'broken-engine', name: 'Broken Engine',
-      description: "A broken engine idling: folded metal, a stuttering filter and crushed sparks, never quite running right.",
-      tags: ['drone', 'broken', 'machine', 'fold', 'stutter', 'industrial', 'lorn', 'new'],
-      texture: ['dust', 0.55, 0.4, 2500],
-      set: { 'dist.type': 'fold', 'dist.drive': 0.45, 'dist.mix': 0.6, 'crush.mix': 0.25, 'crush.bits': 6, 'crush.rate': 8, 'lfo2.shape': 'sample_hold', 'lfo2.rate': 6, 'osc1.unison_spread': 0.45, 'chorus.mix': 0.08, 'dist.post_tone': 0.25, 'eq.highcut': 3500},
-      mods: kit(DRONE_KIT, [['lfo2', 'filter_cutoff', 0.22]], { 'lfo4>chorus_depth': ['lfo4', 'tape_wow', 0.3] }),
-    },
-    {
       id: 'chapel-drone', name: 'Chapel Drone',
       description: "A quiet organ drone in an empty chapel: clean, round and steady, only air moving around it.",
       tags: ['drone', 'organ', 'clean', 'calm', 'steady', 'sacred', 'lorn', 'new'],

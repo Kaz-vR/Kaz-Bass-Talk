@@ -21,6 +21,36 @@
         "min": -23,
         "why": "a solo instrument: thin and centred is its identity"
       }
+    },
+    "vibe": {
+      "brightOct": 1.12,
+      "airDb": -35.7,
+      "dirt": 0.78,
+      "widthDb": -3.3,
+      "tailDb": -23.1
+    },
+    "checks": {
+      "hash": "9965f41b",
+      "audio": "7514bc8a",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "mod 12 (random → filter_cutoff) 0.19 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.441,
+      "highEnergy": 0.718,
+      "sub": 0.029,
+      "lowMid": 0.841,
+      "dirt": 0.782,
+      "width": 0.918,
+      "attack": 0.634,
+      "decay": 0.427,
+      "sustain": 0.969,
+      "release": 0.773,
+      "movement": 0.09
     }
   },
   "voice.polyphony": 6,
@@ -223,6 +253,6 @@
   "eq.mid_freq": 350,
   "eq.high_gain": -2,
   "eq.highcut": 6500,
-  "output.gain": -5.1,
+  "output.gain": -3.8,
   "output.crossover": 120
 }
