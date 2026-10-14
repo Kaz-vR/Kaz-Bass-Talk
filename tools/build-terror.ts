@@ -22,6 +22,7 @@
 import { mkdirSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { params, validatePatch } from '../src/schema';
+import { wheelDefault } from '../src/quality/categories';
 import { ROOT } from './lib/data';
 
 type Mod = [source: string, dest: string, amount: number];
@@ -296,6 +297,7 @@ function build(def: Def): Record<string, unknown> {
       name: def.name, description: def.description, tags: def.tags, directory: def.dir, family: 'terror',
       category: 'bass', collection: 'terror', audition: 'dread',
     },
+    'wheel.preset': wheelDefault('bass'),
     ...TERROR_BASE,
     ...def.set,
   };

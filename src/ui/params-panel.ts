@@ -4,11 +4,12 @@ import {
 } from '../schema';
 
 type OnChange = (id: string, value: ParamValue) => void;
+type OnWheel = (value: number) => void;
 
 const GROUP_TITLES: Record<string, string> = {
   voice: 'Voice', osc1: 'Oscillator 1', osc2: 'Oscillator 2', fm: 'FM', sub: 'Sub', noise: 'Noise', texture: 'Texture', drive: 'Drive',
   string: 'String / Shepard', click: 'Transient', vibrato: 'Vibrato', breath: 'Breath', filter: 'Filter', dist: 'Distortion', crush: 'Bitcrusher', tape: 'Tape', dynamics: 'Dynamics', amp_env: 'Amp envelope', mod_env: 'Mod envelope', pitch_env: 'Pitch envelope',
-  env2: 'Env 2 (bloom)', lfo1: 'LFO 1', lfo2: 'LFO 2', lfo3: 'LFO 3', lfo4: 'LFO 4', mod: 'Mod matrix', fx: 'Effects', eq: 'EQ', output: 'Output',
+  env2: 'Env 2 (bloom)', wheel: 'Mod wheel', wobble: 'Wobble', lfo1: 'LFO 1', lfo2: 'LFO 2', lfo3: 'LFO 3', lfo4: 'LFO 4', mod: 'Mod matrix', fx: 'Effects', eq: 'EQ', output: 'Output',
 };
 
 export function formatValue(p: ParamDef, v: ParamValue): string {
@@ -48,7 +49,10 @@ export class ParamsPanel {
   /** Routing readouts: group (or 'other:<source>') → element. */
   private routes = new Map<string, HTMLElement>();
 
-  constructor(private root: HTMLElement, private onChange: OnChange) {
+  private wheelSlider: HTMLInputElement | null = null;
+  private wheelVal: HTMLElement | null = null;
+
+  constructor(private root: HTMLElement, private onChange: OnChange, private onWheel: OnWheel = () => {}) {
     this.build();
   }
 
@@ -137,6 +141,7 @@ export class ParamsPanel {
       if (g === 'mod') this.root.append(this.buildOtherSources());
       if (g === 'mod') this.buildMatrix(box, ps);
       else if (/^lfo\d$/.test(g)) this.buildLfo(box, g, ps);
+      else if (g === 'wheel') this.buildWheel(box, ps);
       else for (const p of ps) box.append(this.buildControl(p));
       this.root.append(box);
     }
@@ -255,6 +260,78 @@ export class ParamsPanel {
       else if (p.id !== `${g}.rate` && p.id !== `${g}.sync`) box.append(this.buildControl(p));
     }
     view(String(syncP.default));
+  }
+
+  /**
+   * The mod wheel: which connected move it plays (the preset's own by
+   * default, named in the list) and a wheel you can drag, which also follows
+   * a hardware mod wheel.
+   */
+  private buildWheel(box: HTMLElement, ps: ParamDef[]): void {
+    const moveP = ps.find((p) => p.id === 'wheel.move')!;
+    const presetP = ps.find((p) => p.id === 'wheel.preset')!;
+    const nice = (o: string) => o.charAt(0).toUpperCase() + o.slice(1);
+    const row = document.createElement('div');
+    row.className = 'wheel-row';
+    const left = document.createElement('div');
+    left.className = 'wheel-left';
+    const sel = document.createElement('select');
+    sel.title = moveP.describes;
+    for (const o of moveP.options!) sel.append(new Option(nice(o), o));
+    const def = sel.options[0];
+    sel.onchange = () => this.emit(moveP.id, sel.value);
+    const hint = document.createElement('p');
+    hint.className = 'wheel-hint';
+    const describe = () => {
+      const m = sel.value === 'preset default' ? String(this.current['wheel.preset'] ?? presetP.default) : sel.value;
+      const text = moveP.describes.match(new RegExp(`${nice(m)}: ([^.]*)\\.`))?.[1] ?? '';
+      hint.textContent = text.charAt(0).toUpperCase() + text.slice(1);
+    };
+    sel.addEventListener('change', describe);
+    this.controls.set(moveP.id, { p: moveP, set: (v) => { sel.value = String(v); describe(); } });
+    this.controls.set(presetP.id, {
+      p: presetP,
+      set: (v) => {
+        def.textContent = `Preset default (${nice(String(v))})`;
+        describe();
+      },
+    });
+    left.append(sel, hint);
+
+    const wheel = document.createElement('div');
+    wheel.className = 'wheel';
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = '0';
+    slider.max = '1';
+    slider.step = '0.001';
+    slider.value = '0';
+    slider.className = 'wheel-slider';
+    slider.title = 'Mod wheel (follows your keyboard\'s wheel; drag to try it). Double-click to reset.';
+    const val = document.createElement('span');
+    val.className = 'val';
+    val.textContent = '0%';
+    const move = () => {
+      val.textContent = `${Math.round(Number(slider.value) * 100)}%`;
+      this.onWheel(Number(slider.value));
+    };
+    slider.oninput = move;
+    slider.ondblclick = () => {
+      slider.value = '0';
+      move();
+    };
+    this.wheelSlider = slider;
+    this.wheelVal = val;
+    wheel.append(slider, val);
+    row.append(left, wheel);
+    box.append(row);
+  }
+
+  /** A hardware mod wheel moved: show it. */
+  setWheel(v: number): void {
+    if (!this.wheelSlider || !this.wheelVal) return;
+    this.wheelSlider.value = String(v);
+    this.wheelVal.textContent = `${Math.round(v * 100)}%`;
   }
 
   private buildMatrix(box: HTMLElement, ps: ParamDef[]): void {

@@ -34,10 +34,14 @@ library.forEach((p, i) => {
 let currentIndex = groups[0].items[0] ?? 0;
 let currentGroup = groups[0];
 
-const panel = new ParamsPanel($('params'), (id: string, value: ParamValue) => {
-  current[id] = value;
-  host?.setParam(id, value);
-});
+const panel = new ParamsPanel(
+  $('params'),
+  (id: string, value: ParamValue) => {
+    current[id] = value;
+    host?.setParam(id, value);
+  },
+  (v) => host?.modWheel(v),
+);
 
 function showPatchInfo(p: Patch): void {
   $('patch-name').textContent = p.meta.name;
@@ -172,7 +176,10 @@ $('start').querySelector('button')!.addEventListener('click', async () => {
     noteOn: (n, v) => { host?.noteOn(n, v); keyboard.mark(n, true); },
     noteOff: (n) => { host?.noteOff(n); keyboard.mark(n, false); },
     pitchBend: (v) => host?.pitchBend(v),
-    modWheel: (v) => host?.modWheel(v),
+    modWheel: (v) => {
+      host?.modWheel(v);
+      panel.setWheel(v);
+    },
     allNotesOff: () => host?.panic(),
     status: (t) => {
       $('midi').textContent = t;

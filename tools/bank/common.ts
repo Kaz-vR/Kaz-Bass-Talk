@@ -5,6 +5,7 @@
 // several time scales), dark and worn, space, glue.
 
 import { params, validatePatch } from '../../src/schema';
+import { wheelDefault } from '../../src/quality/categories';
 
 export type Mod = [source: string, dest: string, amount: number];
 export type Settings = Record<string, number | string | boolean>;
@@ -101,6 +102,7 @@ export function buildPreset(cat: CategoryDef, def: PresetDef, audition: string):
       name: def.name, description: def.description, tags: def.tags, category: cat.category, family: cat.category,
       collection: 'bank', audition,
     },
+    'wheel.preset': wheelDefault(cat.category),
     ...LORN_BASE,
     ...cat.base,
     ...def.set,

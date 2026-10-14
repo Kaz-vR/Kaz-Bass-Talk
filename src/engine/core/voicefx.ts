@@ -300,6 +300,10 @@ export class Texture {
   private wander = 0;
   private wanderTarget = 0;
   private wanderCount = 0;
+  // Air breathes on its own, slower and shallower clock (breath, not gusts).
+  private breath = 0;
+  private breathTarget = 0;
+  private breathCount = 0;
 
   reset(): void {
     this.svfL.reset();
@@ -354,12 +358,19 @@ export class Texture {
         break;
       }
       default: {
-        // Air: a broad band of breathy noise that swells and fades.
+        // Air: a broad band of breathy noise that swells and fades like slow
+        // breathing: a new target every 2-5 s, glided to, about ±4 dB.
+        if (--this.breathCount <= 0) {
+          this.breathTarget = this.rngW.next();
+          this.breathCount = Math.round((2 + 1.5 * (this.rngW.next() + 1)) * fs);
+        }
+        this.breath += (this.breathTarget - this.breath) * (1.5 / fs);
+        const b = Math.exp(0.46 * this.breath);
         const g = Math.tan((Math.PI * Math.min(1000 * Math.pow(6, tone), fs * 0.4)) / fs);
         this.svfL.process(this.rngL.next(), g, 1.5);
         this.svfR.process(this.rngR.next(), g, 1.5);
-        l = 4 * this.svfL.bp * w * w;
-        r = 4 * this.svfR.bp * w * w;
+        l = 4 * this.svfL.bp * b;
+        r = 4 * this.svfR.bp * b;
       }
     }
     out[0] = l;

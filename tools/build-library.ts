@@ -14,6 +14,7 @@
 import { mkdirSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { params, validatePatch } from '../src/schema';
+import { wheelDefault } from '../src/quality/categories';
 import { ROOT } from './lib/data';
 
 type Mod = [source: string, dest: string, amount: number];
@@ -757,6 +758,7 @@ function build(def: Def): Record<string, unknown> {
   if (def.mods.length > 12) throw new Error(`${def.dir}: more than 12 mod slots`);
   const raw: Record<string, unknown> = {
     meta: { name: def.name, description: def.description, tags: def.tags, directory: def.dir, family: def.family },
+    'wheel.preset': wheelDefault(undefined),
     ...BASE,
     ...def.set,
   };

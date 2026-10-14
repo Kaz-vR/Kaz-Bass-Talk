@@ -382,7 +382,7 @@ export class Voice {
    * Per-block update: envelopes, glide, this voice's mod matrix (global
    * sources from `gsrc`, per-voice ones filled in here) and every coefficient.
    */
-  control(gsrc: Float64Array, bend: number): void {
+  control(gsrc: Float64Array, bend: number, xdst: Float64Array): void {
     const fs = this.fs;
     const cur = this.cur;
 
@@ -422,7 +422,7 @@ export class Voice {
     src[K.SRC_RANDOM] = this.noteRandom;
     src[K.SRC_ENV2] = this.env2.level;
     const dst = this.dst;
-    dst.fill(0);
+    dst.set(xdst); // the mod wheel's move and the wobble, shared by all voices
     for (let s = 0; s < SLOT_COUNT; s++) {
       const slot = P.slots[s];
       const d = cur[slot.dst];

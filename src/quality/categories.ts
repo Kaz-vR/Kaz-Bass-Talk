@@ -27,6 +27,11 @@ export interface Category {
 
 export const categories: Category[] = (categoriesJson as unknown as { categories: Category[] }).categories;
 
+/** The mod wheel move a preset is designed with: its category's, or snarl for the bass collections. */
+export function wheelDefault(category: string | undefined): string {
+  return (categoryById(category) as { wheel?: string } | undefined)?.wheel ?? 'snarl';
+}
+
 export function categoryById(id: string | undefined): Category | undefined {
   return id ? categories.find((c) => c.id === id) : undefined;
 }

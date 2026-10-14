@@ -68,6 +68,16 @@ export class Synth {
   private stackLen = 0;
   private bend = 0;
   private modWheel = 0;
+  /** The mod wheel, smoothed (~20 ms) so a fast move never zips. */
+  private wheel = 0;
+  /** Extra modulation shared by every voice: the wheel move and the wobble. */
+  private readonly xdst = new Float64Array(K.DEST_COUNT);
+  // Wobble: its own random source, so switching it on doesn't change anything else.
+  private readonly wobRng = new Rng(0x60bb1e);
+  private wobCycle = -1;
+  private wobScale = 1;
+  private wobBright = 0;
+  private wobBrightTarget = 0;
   private tempo = 120;
 
   // Shared modulation.
@@ -290,7 +300,7 @@ export class Synth {
     const fresh = !pick.active;
     pick.start(note, velocity, false, true, ++this.order);
     this.onTrigger();
-    if (fresh) pick.control(this.gsrc, this.bend);
+    if (fresh) pick.control(this.gsrc, this.bend, this.xdst);
   }
 
   noteOff(note: number): void {
@@ -318,7 +328,7 @@ export class Synth {
     v.start(note, velocity, glide && !(legato && !overlapping), retrigger, ++this.order);
     if (retrigger) this.onTrigger();
     // A voice waking from silence gets its coefficients now, not at the next block.
-    if (fresh) v.control(this.gsrc, this.bend);
+    if (fresh) v.control(this.gsrc, this.bend, this.xdst);
   }
 
   /** A note (re)started its envelopes: retrigger LFOs that ask for it (fade-ins are per voice, see Voice). */
@@ -360,6 +370,9 @@ export class Synth {
     }
     this.texture.reset();
     this.texEnv = this.texLpL = this.texLpR = 0;
+    this.wobCycle = -1;
+    this.wobScale = 1;
+    this.wobBright = this.wobBrightTarget = 0;
     this.hcL.reset();
     this.hcR.reset();
     this.comp.reset();
@@ -444,6 +457,57 @@ export class Synth {
     }
   }
 
+  /** The mod wheel's move and the wobble, as offsets every voice adds to its mod matrix. */
+  private extraModulation(): void {
+    const cur = this.cur;
+    const x = this.xdst;
+    x.fill(0);
+    const w = this.wheel;
+    if (w > 1e-4) {
+      const sel = Math.round(cur[P.wheelMove]);
+      const move = K.WHEEL_MOVES[sel > 0 ? sel - 1 : Math.round(cur[P.wheelPreset])];
+      for (const [d, a] of move) x[d] += a * w;
+    }
+    const depth = cur[P.wobDepth];
+    if (depth > 1e-4) {
+      // Locked to the bar (the same clock as the pump).
+      const cycle = K.WOBBLE_BEATS[Math.round(cur[P.wobRate])] ?? 0.5;
+      const n = Math.floor(this.beatPos / cycle);
+      const p = (this.beatPos - n * cycle) / cycle;
+      if (n !== this.wobCycle) {
+        // Life: every cycle swings a little deeper or shallower and sits a little brighter or darker.
+        this.wobCycle = n;
+        const life = cur[P.wobLife];
+        this.wobScale = 1 + 0.45 * life * this.wobRng.next();
+        this.wobBrightTarget = 0.05 * life * this.wobRng.next();
+      }
+      this.wobBright += (this.wobBrightTarget - this.wobBright) * 0.05;
+      let v: number;
+      switch (Math.round(cur[P.wobShape])) {
+        case K.WOB_TRI: v = p < 0.5 ? 2 * p : 2 - 2 * p; break;
+        // Opens hard and falls; the last 5% ramps back up so the wrap doesn't click.
+        case K.WOB_SAW_DOWN: v = p < 0.95 ? 1 - p / 0.95 : (p - 0.95) / 0.05; break;
+        // Soft-edged square.
+        case K.WOB_SQUARE: v = 0.5 + 0.5 * Math.tanh(6 * Math.sin(TWO_PI * p)); break;
+        default: v = 0.5 - 0.5 * Math.cos(TWO_PI * p);
+      }
+      const a = depth * v * this.wobScale;
+      switch (Math.round(cur[P.wobTarget])) {
+        case K.WOB_FILTER_DRIVE:
+          x[K.D_CUTOFF] += 0.55 * a + this.wobBright;
+          x[K.D_DRIVE] += 0.35 * a;
+          x[K.D_DIST_DRIVE] += 0.2 * a;
+          break;
+        case K.WOB_VOWEL:
+          x[K.D_VOWEL] += 0.85 * a;
+          x[K.D_CUTOFF] += 0.15 * a + this.wobBright;
+          break;
+        default:
+          x[K.D_CUTOFF] += 0.7 * a + this.wobBright;
+      }
+    }
+  }
+
   private control(): void {
     const fs = this.sampleRate;
     const cur = this.cur;
@@ -456,7 +520,9 @@ export class Synth {
     src[K.SRC_LFO2] = this.lfoValue[1];
     src[K.SRC_LFO3] = this.lfoValue[2];
     src[K.SRC_LFO4] = this.lfoValue[3];
-    src[K.SRC_MODWHEEL] = this.modWheel;
+    this.wheel += (this.modWheel - this.wheel) * (1 - Math.exp(-BLOCK / (0.02 * fs)));
+    src[K.SRC_MODWHEEL] = this.wheel;
+    this.extraModulation();
     if (--this.driftCount <= 0) {
       this.driftTarget = this.rng.next();
       this.driftCount = Math.round(((0.4 + 1.2 * (0.5 + 0.5 * this.rng.next())) * fs) / BLOCK);
@@ -488,7 +554,7 @@ export class Synth {
         anyGate = true;
         if (!lowest || v.note < lowest.note) lowest = v;
       }
-      if (v.active || v.gate) v.control(src, this.bend);
+      if (v.active || v.gate) v.control(src, this.bend, this.xdst);
     }
     this.anyGate = anyGate;
     if (this.poly > 1) {

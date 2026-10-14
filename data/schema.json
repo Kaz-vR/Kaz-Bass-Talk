@@ -71,6 +71,43 @@
       "describes": "Analog character: each unison voice drifts slightly in pitch, unison phases start free, and the filter varies a touch per note. 0 is perfectly digital and static; 0.2-0.4 is a warm vintage synth; higher is loose and wobbly."
     },
     {
+      "id": "wheel.move",
+      "label": "Mod wheel move",
+      "type": "enum",
+      "options": [
+        "preset default",
+        "pressure",
+        "snarl",
+        "open",
+        "choke",
+        "vibrato",
+        "unstable",
+        "decay",
+        "bloom"
+      ],
+      "default": "preset default",
+      "group": "wheel",
+      "describes": "What the mod wheel does, each move turning several connected things together. Pressure: like playing harder (louder, brighter, grittier, a little breath). Snarl: aggression (distortion, resonance and bite). Open: light comes in (filter and top open). Choke: darker, tighter, drier, narrower. Vibrato: a human vibrato. Unstable: a dying machine (wobble, detune, sag). Decay: the sound falls apart (wear, crush, grain). Bloom: it drifts away (reverb, delay, width, texture)."
+    },
+    {
+      "id": "wheel.preset",
+      "label": "Preset's own move",
+      "type": "enum",
+      "options": [
+        "pressure",
+        "snarl",
+        "open",
+        "choke",
+        "vibrato",
+        "unstable",
+        "decay",
+        "bloom"
+      ],
+      "default": "pressure",
+      "group": "wheel",
+      "describes": "The move this preset was designed with; used when the mod wheel move is set to preset default."
+    },
+    {
       "id": "osc1.wave",
       "label": "Osc 1 wave",
       "type": "enum",
@@ -1402,6 +1439,75 @@
       "unit": "ms",
       "group": "lfo4",
       "describes": "Time for the LFO to fade in after each note starts. Lets a note hit clean, then come alive."
+    },
+    {
+      "id": "wobble.depth",
+      "label": "Wobble depth",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "How far the wobble swings. 0 is off. It moves the tone before the distortion, so the sound growls rather than just pulsing in level."
+    },
+    {
+      "id": "wobble.rate",
+      "label": "Wobble rate",
+      "type": "enum",
+      "options": [
+        "1/2",
+        "1/4",
+        "1/4T",
+        "1/8",
+        "1/8T",
+        "1/16",
+        "1/16T",
+        "1/32"
+      ],
+      "default": "1/8",
+      "group": "wobble",
+      "describes": "How often it wobbles, locked to the tempo and the bar: 1/8 is the classic wobble, 1/16 a fast growl, 1/4T and 1/8T triplet swing."
+    },
+    {
+      "id": "wobble.target",
+      "label": "Wobble target",
+      "type": "enum",
+      "options": [
+        "filter",
+        "filter + drive",
+        "vowel"
+      ],
+      "default": "filter",
+      "group": "wobble",
+      "describes": "Filter: the classic wub. Filter + drive: the filter and the dirt open together, a growl. Vowel: a talking yoy-yoy wobble (works best with the formant filter, but colors any filter)."
+    },
+    {
+      "id": "wobble.shape",
+      "label": "Wobble shape",
+      "type": "enum",
+      "options": [
+        "sine",
+        "triangle",
+        "saw down",
+        "square"
+      ],
+      "default": "sine",
+      "group": "wobble",
+      "describes": "Sine is smooth, triangle more even, saw down opens hard and falls (a zap), square chops between closed and open."
+    },
+    {
+      "id": "wobble.life",
+      "label": "Wobble life",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.3,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "How differently each wobble comes out: depth and brightness change a little every cycle, so it never sounds like a clock. 0 is machine-exact."
     },
     {
       "id": "mod1.source",

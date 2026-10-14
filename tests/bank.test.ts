@@ -8,9 +8,9 @@ import { earnsItsPlace } from '../src/quality/ablation';
 import { analysisSetup, categories } from '../src/quality/categories';
 import { outliers, type Vibe } from '../src/quality/consistency';
 import { judge } from '../src/quality/critic';
-import { paramHash } from '../src/quality/stamp';
+import { audioFingerprint } from '../src/quality/stamp';
 import { validatePatch } from '../src/schema';
-import { codeHash } from '../tools/lib/codehash';
+import { judgeHash } from '../tools/lib/codehash';
 import { libraryPatches, loop } from './helpers/audio';
 
 const bank = libraryPatches().filter(({ json }) => json.meta.category);
@@ -27,15 +27,18 @@ describe('preset bank', () => {
     }
   });
 
-  it.each(bank.map((e) => [e.file, e.json]))('%s passes every check (stamp matches the sound and the code)', (_f, json) => {
+  it.each(bank.map((e) => [e.file, e.json]))('%s passes every check (stamp matches the sound and the judges)', (_f, json) => {
     const checks = json.meta.checks;
     expect(checks, 'run tools/analyze-parallel.ts').toBeTruthy();
-    expect(checks.hash, 'sound changed since the check: re-run the analysis').toBe(paramHash(validatePatch(json).patch));
-    expect(checks.code, 'engine/analysis/critic code or data changed since the check: re-run the analysis').toBe(codeHash());
+    expect(checks.judge, 'analysis/critic code or limits changed since the check: re-run tools/analyze-parallel.ts').toBe(judgeHash());
+    const setup = analysisSetup(json.meta);
+    const fp = audioFingerprint(validatePatch(json).patch, loop(setup.loop), setup.opts);
+    expect(checks.audio, 'the sound changed since the check: re-run tools/analyze-parallel.ts').toBe(fp);
     expect(checks.issues).toEqual([]);
     expect(checks.critic).toBe(true);
     expect(checks.failing).toEqual([]);
     expect(checks.earns).toBe(true);
+    expect(checks.wheel, `mod wheel fully up: ${checks.wheelIssues?.join('; ')}`).toBe(true);
   });
 
   it('every preset sits with the rest of the bank', () => {

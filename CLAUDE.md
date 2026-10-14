@@ -3,10 +3,10 @@
 Low Talk is a dark, cinematic synth in the style of LORN: saturated, tape-worn, wide above a clean low end, sitting in a dark space, and always **alive** (many small, independent, non-repeating motions). It ships with a **preset bank** of hand-designed sounds across 14 categories, every one of them finished, complex and unmistakably in that style. There is no typing.
 
 1. **Browse** the bank by category and play.
-2. **Dial in** with **4 generated macro knobs**: recipes that each move several real parameters, chosen for this preset by how much they audibly change it, with ranges tuned so the whole knob travel sounds good.
+2. **Dial in** with every control on one page (no macro knobs: the repo owner prefers adjusting anything directly), plus the **mod wheel**: one connected move per preset (several real parameters moving together, like playing an instrument harder), switchable between 8 moves, every wheel position sounding right.
 3. **Create** (the extra): a button that generates new presets in a category, built the same way the hand-made ones are and held to the same checks, different enough from everything in the bank to be worth having. The **Sound Tree** (explore around a sound in rounds of 4) is part of creating.
 
-Every sound the user can hear (bank preset, generated preset, Sound Tree option, macro position) must sound like a finished, expensive patch in the bank's style. Quality and style are enforced automatically (sound-design rules + quality critic + style checks), because nobody can listen to everything the system generates.
+Every sound the user can hear (bank preset, generated preset, Sound Tree option, mod wheel position) must sound like a finished, expensive patch in the bank's style. Quality and style are enforced automatically (sound-design rules + quality critic + style checks), because nobody can listen to everything the system generates.
 
 Read this whole file before starting any task. When something here conflicts with a request in a session, ask before deviating.
 
@@ -17,9 +17,9 @@ Read this whole file before starting any task. When something here conflicts wit
 1. **No AI at runtime.** The shipped plugin contains no language model, no embedding model and no neural network of any kind. All behavior comes from data files and plain code.
 2. **Fully offline.** The plugin never makes network requests. No API keys, no servers, no telemetry.
 3. **Lightweight.** Total install size under 25 MB including all data. No GPU use. The synth should stay under ~3% CPU per voice at 48 kHz (a full 8-voice pad under ~20%). Generating a preset must feel instant (a batch in a second or two). No sample libraries: every sound is synthesized. *(Planned, approved in principle by the repo owner, not built yet: a few short own/CC0 recordings for texture beds only, looped seamlessly with random start points.)*
-4. **Real-time safety.** Nothing on the audio thread allocates memory, locks, or runs analysis, generator, tree or macro-selection code. Patch changes are handed to the audio thread and applied with parameter smoothing (no clicks).
+4. **Real-time safety.** Nothing on the audio thread allocates memory, locks, or runs analysis, generator or tree code. Patch changes are handed to the audio thread and applied with parameter smoothing (no clicks).
 5. **The low end is protected.** Regardless of any patch, the low end stays mono and phase-stable, there's no DC offset, and a transparent output limiter is always on.
-6. **AI is a development tool only.** Claude may be used during development to generate and expand data (presets, macro recipes, descriptions, quality rules). Anything under `tools/` is dev-only and must never be shipped or imported by runtime code.
+6. **AI is a development tool only.** Claude may be used during development to generate and expand data (presets, mod wheel moves, descriptions, quality rules). Anything under `tools/` is dev-only and must never be shipped or imported by runtime code.
 
 ---
 
@@ -27,11 +27,11 @@ Read this whole file before starting any task. When something here conflicts wit
 
 ```
   BROWSE                  DIAL IN                       CREATE (extra)
-  Preset bank        ──▶  4 macros (family pool,   ◀──  Generator: recombine recipes from
-  14 categories           best 4 by audible impact,     the bank, re-roll movement, nudge in
-  ~10-12 each             ranges tuned per preset)      safe regions, reject near-duplicates
+  Preset bank        ──▶  All controls on one     ◀──  Generator: recombine recipes from
+  14 categories           page + mod wheel (8           the bank, re-roll movement, nudge in
+  ~10-12 each             connected moves) + wobble     safe regions, reject near-duplicates
                                                         Sound Tree: explore around a sound
-        │ every preset / generated sound / knob position
+        │ every preset / generated sound / wheel position
         ▼
   Sound-design rules ─▶ Quality critic ─▶ Style checks (alive, earns its place,
                                           LORN fingerprint, bank consistency)
@@ -42,7 +42,7 @@ Read this whole file before starting any task. When something here conflicts wit
   Synth engine: up to 8 voices, plays the current patch in real time
 ```
 
-The **measured feature space** is the map: the generator and Sound Tree walk it, macros are judged by how far they move a sound through it, the critic and style checks judge positions in it.
+The **measured feature space** is the map: the generator and Sound Tree walk it, the critic and style checks judge positions in it.
 
 ---
 
@@ -70,12 +70,12 @@ Up to 8 voices (`voice.polyphony`: 1 = monophonic with legato/glide, the bass de
 - Amp, mod and pitch envelopes, a slow bloom envelope (env 2); per-note random, analog drift, free unison phases
 - Instrument additions (phase 5): delayed vibrato, breath/noise attack, richer formant vowels, inharmonic bell partials with separate decays, long riser/fall envelopes
 
-Shared by all voices: 4 LFOs (tempo-sync, shapes incl. smooth random "wander", retrigger, fade-in), two drift sources, the 12-slot mod matrix (per-voice sources are evaluated per voice; FX targets follow the newest voice), the texture bed (crackle, dust, rumble, air; follows the notes with its own tail, silent between notes), and the FX in a **fixed order**: compressor (tempo pump) → multiband "OTT" → chorus → flanger → phaser → delay → reverb (these five only above the FX low cut) → EQ + high cut → subsonic/DC filter → mono below crossover → output limiter → mono below crossover again.
+Shared by all voices: 4 LFOs (tempo-sync, shapes incl. smooth random "wander", retrigger, fade-in), two drift sources, the 12-slot mod matrix (per-voice sources are evaluated per voice; FX targets follow the newest voice), the **mod wheel moves** (8 connected recipes, `WHEEL_MOVES` in `src/engine/core/params.ts`; each preset names its own in `wheel.preset`, by category in `data/categories.json`), the **wobble** (its own bar-locked clock: rate, depth, target filter / filter + drive / vowel, shape, life = per-cycle variation; before the distortion; never uses LFOs or mod slots), the texture bed (crackle, dust, rumble, air; follows the notes with its own tail, silent between notes; before or after dynamics), and the FX in a **fixed order**: compressor (tempo pump at 1/1, 1/2, 1/4 or 1/8, locked to the bar) → multiband "OTT" → chorus → flanger → phaser → delay → reverb (these five only above the FX low cut) → EQ + high cut → subsonic/DC filter → mono below crossover → output limiter → mono below crossover again.
 
-Quality: band-limited oscillators, oversampled anti-aliased nonlinear stages. Expensive-sounding, never "chiptune" unless deliberate. Every parameter is defined in the patch schema (~165 today).
+Quality: band-limited oscillators, oversampled anti-aliased nonlinear stages. Expensive-sounding, never "chiptune" unless deliberate. Every parameter is defined in the patch schema (~180 today).
 
 ### 2. Patch schema — `data/schema.json`
-The single source of truth shared by the engine, analysis, generator, tree, macros and UI. Each parameter has id, label, type (`float`, `int`, `enum`, `bool`), range/options, default, curve, unit, group and a plain `describes`. A patch is a flat JSON object `{ "<param id>": value, ... }` plus `meta`. Any patch loaded from anywhere is validated and clamped against the schema.
+The single source of truth shared by the engine, analysis, generator, tree and UI. Each parameter has id, label, type (`float`, `int`, `enum`, `bool`), range/options, default, curve, unit, group and a plain `describes`. A patch is a flat JSON object `{ "<param id>": value, ... }` plus `meta`. Any patch loaded from anywhere is validated and clamped against the schema.
 
 ### 3. Categories — `data/categories.json`
 The 14 categories of the bank: **Bass, Lead, Pad, Keys, Pluck, Arp / Sequence, Strings, Brass / Horns, Choir / Vocal, Bells / Mallets, Hits / Impacts, Risers & Falls, Drone / FX, Texture.** Each entry has the category's identity, its version of the LORN recipe, its default polyphony and audition loop, its critic limits and its style-fingerprint zone. Chords and Drums are not in the bank (Drums may become its own mode later).
@@ -83,12 +83,12 @@ The 14 categories of the bank: **Bass, Lead, Pad, Keys, Pluck, Arp / Sequence, S
 The bass **directory** (`data/directory.json`, 51 bass types across genres and history) stays as the coverage map for the **Bass Atlas**, a secondary collection of one patch per bass type.
 
 ### 4. Preset bank — `data/library/*.json`
-Hand-designed presets, about 10–12 per category (the 13 Terror basses count toward Bass), each with `name`, `description` (one sentence), `tags`, `category`, `family` (its macro pool), `collection`, `features` (precomputed). Built by dev tools under `tools/` (e.g. `build-terror.ts`, `build-bank.ts`). Quality bar: finished, release-quality, as good as the best factory presets of Diva / Serum / Phase Plant, and in the LORN style. Every preset passes every check below.
+Hand-designed presets, about 10–12 per category (the 13 Terror basses count toward Bass), each with `name`, `description` (one sentence), `tags`, `category`, `family`, `collection`, `features` (precomputed). Built by dev tools under `tools/` (e.g. `build-terror.ts`, `build-bank.ts`). Quality bar: finished, release-quality, as good as the best factory presets of Diva / Serum / Phase Plant, and in the LORN style. Every preset passes every check below.
 
 The Bass Atlas patches (`tools/build-library.ts`) are not held to the style checks.
 
 ### 5. Sound-design rules — `src/quality/rules`
-The logic of good sound, as code and data, applied to every preset, generated sound and macro range: layering; a clean low end (distortion and stereo effects stay above the sub); coupled parameters (more drive → darker tone; high resonance → tamed level; dirt before a moving filter; envelope times fit the category); movement (sustained sounds are never static unless deliberately); **safe regions** (generated sounds only move parameters within ranges taken from good presets, per category/family).
+The logic of good sound, as code and data, applied to every preset, generated sound and mod wheel move: layering; a clean low end (distortion and stereo effects stay above the sub); coupled parameters (more drive → darker tone; high resonance → tamed level; dirt before a moving filter; envelope times fit the category); movement (sustained sounds are never static unless deliberately); **safe regions** (generated sounds only move parameters within ranges taken from good presets, per category/family).
 
 ### 6. Analysis, quality critic and style checks — `src/analysis`, `src/quality`
 **Analysis** renders a sound offline (the audition loop plus low / mid / high held notes, and a long held note when life is checked) and measures brightness, high-frequency energy, sub and low-mid energy, attack, decay, release, movement, life (slow / fast / repetition), stereo width, mono low end, texture level, peak, DC. Features are normalized (documented scale per feature) and precomputed for every preset.
@@ -107,13 +107,13 @@ These checks prove the ingredients are there, audible and in the right zone; the
 The "create presets" button. Not random settings: presets are built from recipes the way the bank is (body, dirt chain, filter, movement kit, texture, space), by recombining parts of bank presets in the category, re-rolling movement rates and amounts, and nudging parameters inside the safe regions, with the sound-design rules applied as code. Each request renders a batch of candidates offline, keeps only those that pass the critic and all style checks, rejects near-duplicates of the bank and of earlier generations (feature distance), favors unexplored parts of the category's zone, levels them, and names them from a word bank plus their measured character. Local taste learning: presets the user keeps or deletes shift future generations (plain code, stored locally).
 
 ### 8. Sound Tree — `src/tree`
-Exploration around a sound: rounds of 4 (3 near the current lean + 1 wildcard), picks are leans, options generated by the same machinery as the generator, "none of these", "between these two" blends, breadcrumb, instant audition, critic and style checks on every option. Small descriptor vocabulary (`data/vocabulary.json`) used only to name macros and read leans; no text input.
+Exploration around a sound: rounds of 4 (3 near the current lean + 1 wildcard), picks are leans, options generated by the same machinery as the generator, "none of these", "between these two" blends, breadcrumb, instant audition, critic and style checks on every option. Small descriptor vocabulary (`data/vocabulary.json`) used only to name generated presets and read leans; no text input.
 
-### 9. Macros — `src/macros`, `data/macros/`
-4 knobs, precise and predictable. Each family has a pool of 8-12 recipes (name + `{ param, from, to, curve }` mappings). The 4 with the most audible impact on this preset are shown (knobs appear only once ready, no placeholders); ranges tuned per preset so every position passes the critic and safety rules; leans raise priority; click a name to swap; stable and automatable. Texture gets a macro in every family that uses it.
+### 9. Mod wheel and expression
+*(Macros were dropped: all controls stay on one page.)* The mod wheel plays one **connected move** per preset: Pressure (louder, brighter, grittier, a little breath), Snarl (distortion, resonance, bite), Open (filter and top open), Choke (darker, tighter, drier, narrower), Vibrato, Unstable (wobble, detune, sag), Decay (wear, crush, grain), Bloom (reverb, delay, width, texture). Wheel at 0 = the preset exactly as designed. The preset's own move (by category) is the default; a dropdown switches it. Every preset's own move fully up passes the critic's quality and safety checks (stamped); a sample of presets is checked with every move. Aftertouch is not used (rare on keyboards and easily triggered by accident); MPE comes with the plugin.
 
 ### 10. History — `src/history`
-A tree of patch snapshots. Every preset load, generation, tree step and macro change creates a node; jump, branch, A/B, morph (interpolate continuous params; switch enums/ints at the midpoint).
+A tree of patch snapshots. Every preset load, generation, tree step and edit creates a node; jump, branch, A/B, morph (interpolate continuous params; switch enums/ints at the midpoint).
 
 ---
 
@@ -121,19 +121,19 @@ A tree of patch snapshots. Every preset load, generation, tree step and macro ch
 
 Keeps the visual style of the approved mockup. No text input.
 
-- **Header:** play/pause audition loop, loop selector (built-in riffs or host MIDI), current preset name, "low end mono · limiter on" indicator.
+- **Header:** play/pause audition loop, loop selector (built-in riffs or host MIDI), current preset name with ‹ › to step through its category, "low end mono · limiter on" indicator.
 - **Browser (main focus at the start):** the 14 categories, the presets in the selected one (name, one-line description, tags), instant audition. Secondary collections (Bass Atlas) behind a toggle.
-- **Dial-in area:** 4 large macro knobs; click a knob's name to swap it from the family pool.
+- **All controls on one page**, grouped in boxes: the first box after Voice is the **Mod wheel** (move dropdown + an always-visible wheel that follows the hardware wheel); every LFO / envelope box shows where it is routed ("→ cutoff +14%"), an "Other sources" box covers drift, drift slow, random, velocity, mod wheel, keytrack; LFOs have a Hz | Sync switch showing only the control in use; the **Wobble** box; the 12-slot mod matrix.
 - **Create:** "Create presets" in the current category (and the Sound Tree for exploring around the current sound); generated presets can be kept or discarded.
-- **Secondary tools:** A/B against any history step, spectrum view, the full parameter view behind a button, history strip.
+- **Secondary tools:** A/B against any history step, spectrum view, history strip.
 
 ---
 
 ## Tech stack
 
 - **Phase A (prototype):** TypeScript + Vite, Web Audio with an AudioWorklet for the synth engine. Runs in the browser, no backend.
-- **Phase B (plugin):** C++ with JUCE, VST3 + AU (and standalone app). The DSP is ported from the prototype; schema, categories, bank, macro pools, rules and vocabulary are reused.
-- `data/` is plain JSON shared by both phases. Keep analysis, quality, generator, tree, macro and history code free of browser APIs.
+- **Phase B (plugin):** C++ with JUCE, VST3 + AU (and standalone app). The DSP is ported from the prototype; schema, categories, bank, wheel moves, rules and vocabulary are reused.
+- `data/` is plain JSON shared by both phases. Keep analysis, quality, generator, tree and history code free of browser APIs.
 
 ## Repository layout
 
@@ -143,9 +143,8 @@ Keeps the visual style of the approved mockup. No text input.
   categories.json the 14 categories (identity, recipe, limits, style zone)
   directory.json  bass types (coverage map for the Bass Atlas)
   quality.json    critic limits
-  vocabulary.json descriptor words (naming macros and generated presets, reading leans)
+  vocabulary.json descriptor words (naming generated presets, reading leans)
   /library        presets (bank + Bass Atlas)
-  /macros         macro pools, one file per family
   /loops          audition MIDI riffs
 /src
   /engine         synth DSP + AudioWorklet
@@ -153,7 +152,6 @@ Keeps the visual style of the approved mockup. No text input.
   /quality        rules, critic, style checks
   /generator      preset generator
   /tree           Sound Tree
-  /macros         impact ranking, per-preset range tuning
   /history
   /ui
 /plugin           JUCE project (Phase B)
@@ -173,12 +171,14 @@ Finish each phase, with its tests passing, before starting the next. At the end 
 4. **Bass library.** The 51-type Bass Atlas and the 13 Terror basses, with movement additions (4 LFOs, wander, env 2, 12 slots, FX mod targets), the alive check and texture beds. *(Done.)*
 5. **Polyphony + instrument additions.** 8 voices with voice stealing (mono mode unchanged), delayed vibrato, breath attack, richer vowels, bell partials, long riser/fall envelopes; CPU within budget. *(Done.)*
 6. **Style checks.** `data/categories.json`, per-category critic limits, earns-its-place, LORN fingerprint, bank consistency. *(Done.)*
-7. **Preset bank.** ~10-12 presets in each of the 14 categories, all passing every check.
-8. **UI.** Category browser in the mockup's style (macros and create area follow their phases).
-9. **Macros.** Family pools, impact ranking, per-preset range tuning, swapping.
+7. **Preset bank.** ~10-12 presets in each of the 14 categories, all passing every check. *(Done.)*
+8. **UI.** Category browser in the mockup's style, all controls on one page. *(Done; the create area follows its phase.)*
+9. **Expression.** Mod wheel moves, wobble, pump rate, texture before/after dynamics. *(Done.)*
 10. **Generator + Sound Tree.** Create presets per category; exploration rounds; taste learning.
 11. **History + A/B + morphing.**
-12. **JUCE plugin port.** Same data, same behavior, host MIDI, macros as automatable host parameters, preset save/load.
+12. **JUCE plugin port.** Same data, same behavior, host MIDI, every parameter and the mod wheel as automatable host parameters, preset save/load. Also at the port: the pump and wobble locked to the host's transport (essential, or they pump off the beat); **MPE** (per-note bend, pressure, slide, drawable in Ableton/Bitwig); **loading your own texture recordings** (seamless loop, random start, kept off the low end, auto-levelled, stored with the preset) plus a few built-in CC0/own recordings. Port the engine once to C++ and compile it to WebAssembly for the browser prototype, so engine changes are made once.
+
+**Later experiments (agreed in principle, not scheduled):** a "performer" layer (a few hidden slowly-wandering states such as effort, breath supply and an unsteady hand, each driving several parameters together the way a player does), tried on ~2 presets in a few categories first; a LORN-style rhythmic wobble bass; trying "varied sound first, then lornify" on one category, with the "never like a clock" rule relaxed to allow deliberate rhythm with irregular life on top.
 
 ## Testing rules
 
@@ -188,7 +188,8 @@ Finish each phase, with its tests passing, before starting the next. At the end 
 - **Coverage:** every category has its presets; every Bass Atlas type has a patch; every preset's category/family exists.
 - **Polyphony:** chords render each note at the right pitch; voice stealing never clicks; mono mode behaves as before; 8 voices stay within the CPU budget.
 - **Generator / Sound Tree:** every generated sound passes all checks; generated presets keep a minimum feature distance from the bank and from each other; a simulated user who always picks the option nearest a hidden target lands near it in 3 rounds for most targets.
-- **Macros:** every macro shown has a measurable effect; every position passes the critic and safety rules; same macro + same preset → same parameter values.
+- **Mod wheel / wobble:** at rest they change nothing; every move and the wobble change the sound measurably; every preset's own move fully up passes quality and safety; the wobble repeats with the tempo and its life varies each cycle.
+- **Stamps:** each preset's check results carry an audio fingerprint and the judge hash (`src/quality/stamp.ts`, `tools/lib/codehash.ts`). While both match, results are kept without re-analysis, so code changes that don't change a sound don't trigger a full re-check.
 - **Performance:** a generation batch and a Sound Tree round respond fast enough to feel instant (target < 300 ms per round); the engine stays within the CPU budget.
 
 ## Working style for Claude Code

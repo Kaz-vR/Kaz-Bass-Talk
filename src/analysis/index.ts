@@ -158,6 +158,8 @@ export interface AnalyzeOptions {
   holdSeconds?: number;
   /** Probe notes (MIDI) for the low / mid / high tests; defaults to the bass register (A1, A2, A3). */
   probes?: { low: number; mid: number; high: number };
+  /** Mod wheel position held for every render (0 = at rest). */
+  modWheel?: number;
 }
 
 // --------------------------------------------------------------- helpers
@@ -434,6 +436,7 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
   const hold = opts.holdSeconds ?? 1.2;
   const PROBE_NOTES = opts.probes ?? DEFAULT_PROBES;
   const after = 0.6;
+  const modWheel = opts.modWheel ?? 0;
   let peak = 0, minGain = 1;
   const track = (r: { left: Float32Array; right: Float32Array; limiterMinGain: number }) => {
     for (let i = 0; i < r.left.length; i++) peak = Math.max(peak, Math.abs(r.left[i]), Math.abs(r.right[i]));
@@ -441,7 +444,7 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
   };
 
   // 1. Loop.
-  const lr = renderPatch(p, loop, { sampleRate: fs, seconds: loopSeconds, tail: TAIL_SECONDS });
+  const lr = renderPatch(p, loop, { sampleRate: fs, modWheel, seconds: loopSeconds, tail: TAIL_SECONDS });
   track(lr);
   const loopEnd = Math.round(loopSeconds * fs);
   const mAll = mono(lr.left, lr.right);
@@ -458,7 +461,7 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
 
   // 2. Probe notes.
   const probe = (note: number) => {
-    const r = renderPatch(p, heldLoop(note, hold), { sampleRate: fs, seconds: hold + after });
+    const r = renderPatch(p, heldLoop(note, hold), { sampleRate: fs, modWheel, seconds: hold + after });
     track(r);
     return mono(r.left, r.right);
   };
@@ -495,7 +498,7 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
   // 3. Frozen renders for aliasing and whistle.
   const fz = frozen(p);
   const frozenSpec = (note: number) => {
-    const r = renderPatch(fz, heldLoop(note, hold), { sampleRate: fs, seconds: hold });
+    const r = renderPatch(fz, heldLoop(note, hold), { sampleRate: fs, modWheel, seconds: hold });
     return powerSpectrum(mono(r.left, r.right), fs, settle, holdEnd, 32768);
   };
   const fzMid = frozenSpec(PROBE_NOTES.mid);
@@ -533,7 +536,7 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
     tailDb,
   };
   if (hasTexture) {
-    const r = renderPatch(noTex, heldLoop(PROBE_NOTES.mid, hold), { sampleRate: fs, seconds: hold + after });
+    const r = renderPatch(noTex, heldLoop(PROBE_NOTES.mid, hold), { sampleRate: fs, modWheel, seconds: hold + after });
     const bare = mono(r.left, r.right);
     let e = 0, d = 0;
     for (let i = Math.round(0.05 * fs); i < holdEnd; i++) {
@@ -546,7 +549,7 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
     // Life is judged on the sound itself: a crackle bed must not make a static sound pass as alive.
     // Two held notes, averaged, so one lucky or unlucky random realization doesn't decide.
     const lives = [PROBE_NOTES.mid, PROBE_NOTES.mid - 5].map((note) => {
-      const r = renderPatch(noTex, heldLoop(note, LIFE_HOLD_SECONDS), { sampleRate: fs, seconds: LIFE_HOLD_SECONDS });
+      const r = renderPatch(noTex, heldLoop(note, LIFE_HOLD_SECONDS), { sampleRate: fs, modWheel, seconds: LIFE_HOLD_SECONDS });
       track(r);
       return measureLife(mono(r.left, r.right), fs, Math.round(0.5 * fs), Math.round(LIFE_HOLD_SECONDS * fs));
     });

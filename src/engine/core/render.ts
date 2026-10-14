@@ -9,6 +9,8 @@ export interface RenderOptions {
   seconds?: number;
   /** Seconds of silence-tail after the loop is stopped (release, reverb). */
   tail?: number;
+  /** Mod wheel position 0..1, held for the whole render. */
+  modWheel?: number;
 }
 
 export interface RenderResult {
@@ -28,6 +30,7 @@ export function renderPatch(patch: unknown, loop: Loop, opts: RenderOptions = {}
   const tail = opts.tail ?? 0;
   const synth = new Synth(sampleRate);
   synth.setParams(patchToArray(validatePatch(patch).patch), true);
+  if (opts.modWheel) synth.setModWheel(opts.modWheel);
   const player = new LoopPlayer(synth);
   player.setLoop(compileLoop(loop));
   player.start();

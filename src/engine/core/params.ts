@@ -63,6 +63,36 @@ export const D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_O
   D_VIBRATO = 36, D_BREATH = 37;
 export const DEST_COUNT = 38;
 export const TEXTURE_GAIN = 0.5;
+
+/** Beats per wobble cycle, by wobble.rate option (1/2 … 1/32); all divide a 4-beat bar. */
+export const WOBBLE_BEATS = [2, 1, 2 / 3, 0.5, 1 / 3, 0.25, 1 / 6, 0.125];
+export const WOB_FILTER = 0, WOB_FILTER_DRIVE = 1, WOB_VOWEL = 2;
+export const WOB_SINE = 0, WOB_TRI = 1, WOB_SAW_DOWN = 2, WOB_SQUARE = 3;
+
+/**
+ * Mod wheel moves (wheel.preset option order): what a fully raised wheel adds
+ * to each mod destination, in mod-matrix units (cutoff 1 = 6 octaves, pitch
+ * 1 = 24 semitones, amp 1 = double level, the rest 0..1 of their range).
+ * Several connected things move together, like an instrument played harder.
+ */
+export const WHEEL_MOVES: [dest: number, amount: number][][] = [
+  // pressure: louder, brighter, grittier, a little breath and sharpness
+  [[D_AMP, 0.2], [D_CUTOFF, 0.22], [D_DRIVE, 0.25], [D_NOISE, 0.04], [D_BREATH, 0.12], [D_PITCH, 0.0008]],
+  // snarl: distortion, resonance and bite
+  [[D_DIST_DRIVE, 0.4], [D_DRIVE, 0.3], [D_RES, 0.22], [D_DIST_TONE, 0.15], [D_CUTOFF, 0.08], [D_AMP, -0.15]],
+  // open: light comes in
+  [[D_CUTOFF, 0.42], [D_DIST_TONE, 0.15], [D_RES, 0.05], [D_WIDTH, 0.15]],
+  // choke: darker, tighter, drier, narrower
+  [[D_CUTOFF, -0.38], [D_WIDTH, -0.5], [D_REVERB_MIX, -0.2], [D_DELAY_MIX, -0.15], [D_RES, 0.1], [D_AMP, -0.1]],
+  // vibrato: a human vibrato, with a breath of air
+  [[D_VIBRATO, 0.4], [D_BREATH, 0.05], [D_CUTOFF, 0.03]],
+  // unstable: a dying machine
+  [[D_TAPE_WOW, 0.6], [D_DETUNE, 0.15], [D_CHORUS_DEPTH, 0.3], [D_PITCH, -0.002], [D_LFO2_RATE, 0.3]],
+  // decay: the sound falls apart
+  [[D_TAPE_WOW, 0.3], [D_CRUSH, 0.3], [D_TEXTURE, 0.3], [D_DIST_TONE, -0.15], [D_CUTOFF, -0.12]],
+  // bloom: it drifts away
+  [[D_REVERB_MIX, 0.35], [D_DELAY_MIX, 0.25], [D_WIDTH, 0.4], [D_TEXTURE, 0.25], [D_CHORUS_DEPTH, 0.2]],
+];
 export const LFO_RATE_DEST = [D_LFO1_RATE, D_LFO2_RATE, D_LFO3_RATE, D_LFO4_RATE];
 
 // Formant table (Hz) for vowels A E I O U: F1, F2, F3.
@@ -100,7 +130,9 @@ export const P = {
   dType: ix('dist.type'), dDrive: ix('dist.drive'), dMix: ix('dist.mix'), dTone: ix('dist.post_tone'), dSplit: ix('dist.clean_below'),
   crushMix: ix('crush.mix'), crushBits: ix('crush.bits'), crushRate: ix('crush.rate'),
   tapeDrive: ix('tape.drive'), tapeWow: ix('tape.wow'), tapeAge: ix('tape.age'),
-  compAmount: ix('comp.amount'), compSpeed: ix('comp.speed'), compPump: ix('comp.pump'), compPumpRate: ix('comp.pump_rate'), ott: ix('ott.amount'),
+  compAmount: ix('comp.amount'), compSpeed: ix('comp.speed'), compPump: ix('comp.pump'), compPumpRate: ix('comp.pump_rate'),
+  wheelMove: ix('wheel.move'), wheelPreset: ix('wheel.preset'),
+  wobDepth: ix('wobble.depth'), wobRate: ix('wobble.rate'), wobTarget: ix('wobble.target'), wobShape: ix('wobble.shape'), wobLife: ix('wobble.life'), ott: ix('ott.amount'),
   flangerMix: ix('flanger.mix'), flangerRate: ix('flanger.rate'), flangerFb: ix('flanger.feedback'),
   delayMix: ix('delay.mix'), delayTime: ix('delay.time'), delayFb: ix('delay.feedback'), delayTone: ix('delay.tone'),
   reverbTone: ix('reverb.tone'), eqHighcut: ix('eq.highcut'),

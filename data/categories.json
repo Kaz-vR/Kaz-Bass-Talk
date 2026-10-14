@@ -39,7 +39,8 @@
           "min": -35,
           "max": -6
         }
-      }
+      },
+      "wheel": "snarl"
     },
     {
       "id": "lead",
@@ -94,7 +95,8 @@
           "min": -35,
           "max": -6
         }
-      }
+      },
+      "wheel": "vibrato"
     },
     {
       "id": "pad",
@@ -152,7 +154,8 @@
           "min": -30,
           "max": -3
         }
-      }
+      },
+      "wheel": "bloom"
     },
     {
       "id": "keys",
@@ -202,7 +205,8 @@
           "min": -35,
           "max": -3
         }
-      }
+      },
+      "wheel": "open"
     },
     {
       "id": "pluck",
@@ -252,7 +256,8 @@
           "min": -38,
           "max": -3
         }
-      }
+      },
+      "wheel": "open"
     },
     {
       "id": "arp",
@@ -302,7 +307,8 @@
           "min": -38,
           "max": -3
         }
-      }
+      },
+      "wheel": "open"
     },
     {
       "id": "strings",
@@ -360,7 +366,8 @@
           "min": -30,
           "max": -3
         }
-      }
+      },
+      "wheel": "pressure"
     },
     {
       "id": "brass",
@@ -421,7 +428,8 @@
           "min": -32,
           "max": -3
         }
-      }
+      },
+      "wheel": "pressure"
     },
     {
       "id": "choir",
@@ -482,7 +490,8 @@
           "min": -30,
           "max": -3
         }
-      }
+      },
+      "wheel": "pressure"
     },
     {
       "id": "bells",
@@ -541,7 +550,8 @@
           "min": -30,
           "max": -3
         }
-      }
+      },
+      "wheel": "bloom"
     },
     {
       "id": "hits",
@@ -594,7 +604,8 @@
           "min": -30,
           "max": -3
         }
-      }
+      },
+      "wheel": "snarl"
     },
     {
       "id": "risers",
@@ -655,7 +666,8 @@
           "min": -30,
           "max": 0
         }
-      }
+      },
+      "wheel": "unstable"
     },
     {
       "id": "drone",
@@ -716,7 +728,8 @@
           "min": -30,
           "max": 0
         }
-      }
+      },
+      "wheel": "unstable"
     },
     {
       "id": "texture",
@@ -783,7 +796,9 @@
           "min": -30,
           "max": 0
         }
-      }
+      },
+      "wheel": "decay"
     }
-  ]
+  ],
+  "$comment_wheel": "wheel: the mod wheel move each category's presets are designed with (data/schema.json wheel.preset)."
 }
