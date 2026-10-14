@@ -18,34 +18,32 @@
     "collection": "terror",
     "audition": "dread",
     "vibe": {
-      "brightOct": 0.81,
-      "airDb": -40.6,
-      "dirt": 0.84,
-      "widthDb": -4.1,
-      "tailDb": -10.7
+      "brightOct": 0.72,
+      "airDb": -44.9,
+      "dirt": 0.64,
+      "widthDb": -4.2,
+      "tailDb": -10.8
     },
     "checks": {
       "hash": "a59ad246",
-      "audio": "20e5b697",
-      "judge": "e6948739",
+      "audio": "13de0ef3",
+      "judge": "6956165c",
       "critic": true,
       "issues": [],
       "earns": true,
-      "weakest": "mod 2 (lfo2 → filter_cutoff) 0.17 dB",
-      "failing": [],
-      "wheel": true,
-      "wheelIssues": []
+      "weakest": "mod 2 (lfo2 → filter_cutoff) 0.19 dB",
+      "failing": []
     },
     "features": {
-      "brightness": 0.293,
-      "highEnergy": 0.635,
-      "sub": 0.577,
-      "lowMid": 0.732,
-      "dirt": 0.838,
-      "width": 0.898,
-      "attack": 0.434,
+      "brightness": 0.28,
+      "highEnergy": 0.592,
+      "sub": 0.578,
+      "lowMid": 0.734,
+      "dirt": 0.643,
+      "width": 0.895,
+      "attack": 0.418,
       "decay": 0.9,
-      "sustain": 0.859,
+      "sustain": 0.862,
       "release": 0.773,
       "movement": 0.228
     }

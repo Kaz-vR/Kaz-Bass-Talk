@@ -26,15 +26,13 @@
     },
     "checks": {
       "hash": "a6306d45",
-      "audio": "fb600acb",
-      "judge": "e6948739",
+      "audio": "b6aa858c",
+      "judge": "6956165c",
       "critic": true,
       "issues": [],
       "earns": true,
       "weakest": "mod 2 (lfo2 → filter_cutoff) 0.16 dB",
-      "failing": [],
-      "wheel": true,
-      "wheelIssues": []
+      "failing": []
     },
     "features": {
       "brightness": 0.225,

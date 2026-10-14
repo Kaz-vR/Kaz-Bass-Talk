@@ -17,36 +17,32 @@
     "collection": "terror",
     "audition": "dread",
     "vibe": {
-      "brightOct": 1.01,
-      "airDb": -40.3,
-      "dirt": 0.75,
-      "widthDb": -4.4,
-      "tailDb": -30.5
+      "brightOct": 0.97,
+      "airDb": -44.2,
+      "dirt": 0.64,
+      "widthDb": -4.5,
+      "tailDb": -30.7
     },
     "checks": {
-      "hash": "fdd84cc1",
-      "audio": "c976622a",
-      "judge": "e6948739",
+      "hash": "27202655",
+      "audio": "36824f5a",
+      "judge": "6956165c",
       "critic": true,
       "issues": [],
-      "earns": false,
-      "weakest": "mod 2 (lfo2 \u2192 filter_cutoff) 0.15 dB",
-      "failing": [
-        "mod 2 (lfo2 \u2192 filter_cutoff) 0.15 dB"
-      ],
-      "wheel": true,
-      "wheelIssues": []
+      "earns": true,
+      "weakest": "mod 10 (lfo4 → chorus_depth) 0.25 dB",
+      "failing": []
     },
     "features": {
-      "brightness": 0.323,
-      "highEnergy": 0.634,
-      "sub": 0.596,
-      "lowMid": 0.662,
-      "dirt": 0.751,
-      "width": 0.89,
+      "brightness": 0.317,
+      "highEnergy": 0.611,
+      "sub": 0.597,
+      "lowMid": 0.663,
+      "dirt": 0.643,
+      "width": 0.888,
       "attack": 0.201,
       "decay": 0.903,
-      "sustain": 0.846,
+      "sustain": 0.842,
       "release": 0.77,
       "movement": 0.407
     }

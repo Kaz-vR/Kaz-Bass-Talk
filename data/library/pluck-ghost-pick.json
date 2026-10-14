@@ -24,17 +24,13 @@
     },
     "checks": {
       "hash": "e3254280",
-      "audio": "78ee1440",
-      "judge": "e6948739",
+      "audio": "707371d3",
+      "judge": "6956165c",
       "critic": true,
       "issues": [],
       "earns": true,
       "weakest": "texture bed 0.43 dB",
-      "failing": [],
-      "wheel": false,
-      "wheelIssues": [
-        "harsh 2–5 kHz: -0.1 dB (limit -8.0 dB)"
-      ]
+      "failing": []
     },
     "features": {
       "brightness": 0.682,

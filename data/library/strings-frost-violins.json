@@ -16,38 +16,34 @@
     "collection": "bank",
     "audition": "chords",
     "vibe": {
-      "brightOct": 0.6,
-      "airDb": -30,
-      "dirt": 0.47,
+      "brightOct": 0.58,
+      "airDb": -30.6,
+      "dirt": 0.39,
       "widthDb": -2.6,
       "tailDb": -8.2
     },
     "checks": {
       "hash": "55514ff2",
-      "audio": "fa4f0306",
-      "judge": "e6948739",
+      "audio": "d7e5c883",
+      "judge": "6956165c",
       "critic": true,
       "issues": [],
       "earns": true,
-      "weakest": "mod 12 (random → filter_cutoff) 0.17 dB",
-      "failing": [],
-      "wheel": false,
-      "wheelIssues": [
-        "digital fizz (aliasing): -22.2 dB (limit -55.0 dB)"
-      ]
+      "weakest": "mod 12 (random → filter_cutoff) 0.18 dB",
+      "failing": []
     },
     "features": {
-      "brightness": 0.562,
-      "highEnergy": 0.768,
+      "brightness": 0.56,
+      "highEnergy": 0.764,
       "sub": 0.002,
-      "lowMid": 0.42,
-      "dirt": 0.467,
+      "lowMid": 0.421,
+      "dirt": 0.393,
       "width": 0.934,
-      "attack": 0.947,
-      "decay": 0.977,
-      "sustain": 0.939,
+      "attack": 0.948,
+      "decay": 0.976,
+      "sustain": 0.927,
       "release": 0.773,
-      "movement": 0.169
+      "movement": 0.167
     }
   },
   "voice.polyphony": 8,
