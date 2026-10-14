@@ -11,7 +11,11 @@
     <header class="topbar">
       <button id="play" class="btn primary" title="Play / stop the audition loop (Space)">▶ Play</button>
       <label class="field">Loop <select id="loop"></select></label>
-      <span id="patch-name" class="patch-name"></span>
+      <span class="preset-nav">
+        <button id="prev-preset" class="btn nav" title="Previous preset in this category">‹</button>
+        <span id="patch-name" class="patch-name"></span>
+        <button id="next-preset" class="btn nav" title="Next preset in this category">›</button>
+      </span>
       <span class="spacer"></span>
       <span class="pill" title="The low end is always mono and phase-stable; a transparent output limiter is always on.">low end mono · limiter on</span>
       <span id="midi" class="pill dim">MIDI: –</span>

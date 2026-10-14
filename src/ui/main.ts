@@ -123,6 +123,14 @@ window.addEventListener('keydown', (e) => {
 });
 
 $<HTMLButtonElement>('revert').onclick = () => loadPatch(currentIndex);
+/** Step through the current category, wrapping around at either end. */
+function stepPreset(dir: number): void {
+  const items = currentGroup.items;
+  const at = items.indexOf(currentIndex);
+  loadPatch(items[(at + dir + items.length) % items.length]);
+}
+$<HTMLButtonElement>('prev-preset').onclick = () => stepPreset(-1);
+$<HTMLButtonElement>('next-preset').onclick = () => stepPreset(1);
 $<HTMLButtonElement>('panic').onclick = () => {
   setPlaying(false);
   host?.panic();

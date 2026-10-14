@@ -23,8 +23,8 @@
       "tailDb": -5.1
     },
     "checks": {
-      "hash": "f5557b75",
-      "code": "02096e9d",
+      "hash": "96817ba6",
+      "code": "f2a012d0",
       "earns": true,
       "weakest": "delay 0.23 dB",
       "failing": [],

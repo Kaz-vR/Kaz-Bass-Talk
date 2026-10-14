@@ -23,7 +23,9 @@ select { background: var(--panel-2); border: 1px solid var(--line); border-radiu
 .btn.big { font-size: 18px; padding: 12px 22px; }
 .pill { border: 1px solid var(--accent); color: var(--accent); border-radius: 999px; padding: 2px 10px; font-size: 12px; white-space: nowrap; }
 .pill.dim { border-color: var(--line); color: var(--dim); }
-.patch-name { font-weight: 600; }
+.patch-name { font-weight: 600; min-width: 140px; text-align: center; }
+.preset-nav { display: inline-flex; align-items: center; gap: 6px; }
+.btn.nav { padding: 2px 10px; font-size: 16px; line-height: 1.2; }
 .layout { display: grid; grid-template-columns: minmax(280px, 380px) 1fr; gap: 16px; padding: 16px; }
 @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; }

@@ -23,8 +23,8 @@
       "tailDb": -4.8
     },
     "checks": {
-      "hash": "3f56c565",
-      "code": "02096e9d",
+      "hash": "0084f1a6",
+      "code": "f2a012d0",
       "earns": true,
       "weakest": "mod 4 (drift_slow → drive) 0.25 dB",
       "failing": [],
