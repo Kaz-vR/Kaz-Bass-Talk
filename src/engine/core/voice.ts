@@ -60,6 +60,8 @@ interface OscState {
   lastVoices: number;
   baseSaw: number; // mip-mapped saw table offset for this block
   drift: Float64Array; // analog pitch drift per unison voice (-1..1)
+  /** Hard sync: the slave's previous sample, held back one sample so a reset can be smoothed on both sides (polyBLEP). */
+  held: Float64Array;
   driftTarget: Float64Array;
 }
 
@@ -70,7 +72,7 @@ function makeOsc(): OscState {
     panL: new Float64Array(MAX_UNISON),
     panR: new Float64Array(MAX_UNISON),
     voices: 1, gain: 0, wave: WAVE_SAW, baseA: 0, baseB: 0, baseSaw: 0, frac: 0, pw: 0.5, lastSpread: -1, lastVoices: -1,
-    drift: new Float64Array(MAX_UNISON), driftTarget: new Float64Array(MAX_UNISON),
+    drift: new Float64Array(MAX_UNISON), driftTarget: new Float64Array(MAX_UNISON), held: new Float64Array(MAX_UNISON),
   };
 }
 
@@ -146,6 +148,10 @@ export class Voice {
   private breathOn = false;
   private accentAmt = 0;
   private subPhase = 0;
+  // Hard sync: the master's phase and increment (oscillator 1's pitch, no unison), and whether it's on.
+  private syncPhase = 0;
+  private syncInc = 0;
+  private syncOn = false;
   // Delays the sub by the oversampler latency so it stays phase-aligned with the voice.
   private readonly subDelay = new Float64Array(32);
   private subDelayPos = 0;
@@ -274,6 +280,8 @@ export class Voice {
         }
       }
       this.subPhase = 0;
+      this.syncPhase = 0;
+      this.osc[1].held.fill(0);
       this.fmPhase = 0;
       this.pmPrev = 0;
       this.ladL.reset();
@@ -433,6 +441,8 @@ export class Voice {
     if (mask) for (let d = 1; d < dst.length; d++) dst[d] *= mask[d];
 
     this.analog = cur[P.analog];
+    // Sync needs a table oscillator on osc 2 (not string or shepard).
+    this.syncOn = cur[P.osc2Sync] > 0.5;
 
     // Delayed vibrato: the note starts straight, then sings.
     this.noteTime += CONTROL_BLOCK / fs;
@@ -458,6 +468,7 @@ export class Voice {
       // Fold up by octaves below 20 Hz (e.g. during deep pitch dives): inaudible, only eats headroom.
       let center = this.toInc(pitch);
       while (center < 20 / fs) center *= 2;
+      if (n === 0) this.syncInc = center;
       const voices = o.voices;
       const detune = clamp(cur[op.detune] + 100 * dst[D.DETUNE], 0, 100);
       const spread = cur[op.spread];
@@ -881,6 +892,38 @@ export class Voice {
         const s = this.specialOsc(1, o2) * o2.gain;
         l += s;
         r += s;
+      } else if (o2.gain > 0 && this.syncOn) {
+        // Hard sync: a master at oscillator 1's pitch restarts every slave voice.
+        // The jump at each restart is band-limited with a two-sample polyBLEP
+        // (the slave runs one sample late so the sample before can be corrected).
+        let mp = this.syncPhase + this.syncInc;
+        const wrapped = mp >= 1;
+        let x = 0;
+        if (wrapped) {
+          mp -= 1;
+          x = mp / this.syncInc; // how far past the restart this sample is (0..1)
+        }
+        this.syncPhase = mp;
+        for (let j = 0; j < o2.voices; j++) {
+          const inc = o2.inc[j];
+          let ph = o2.phase[j] + inc;
+          let corr = 0;
+          if (wrapped) {
+            let at = ph - x * inc; // slave phase at the moment of the restart
+            at -= Math.floor(at);
+            const jump = this.oscSample(o2, 0) - this.oscSample(o2, at);
+            o2.held[j] += 0.5 * jump * x * x;
+            corr = -0.5 * jump * (1 - x) * (1 - x);
+            ph = x * inc;
+          }
+          ph -= Math.floor(ph);
+          o2.phase[j] = ph;
+          const now = this.oscSample(o2, ph) + corr;
+          const s = o2.held[j] * o2.gain;
+          o2.held[j] = now;
+          l += s * o2.panL[j];
+          r += s * o2.panR[j];
+        }
       } else if (o2.gain > 0) {
         for (let j = 0; j < o2.voices; j++) {
           let ph = o2.phase[j] + o2.inc[j];

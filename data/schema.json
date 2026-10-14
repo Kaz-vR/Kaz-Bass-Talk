@@ -334,6 +334,14 @@
       "describes": "Oscillator volume into the filter."
     },
     {
+      "id": "osc2.sync",
+      "label": "Osc 2 hard sync",
+      "type": "bool",
+      "default": false,
+      "group": "osc2",
+      "describes": "Hard sync: oscillator 2 restarts its cycle every time oscillator 1 starts one. Tune or sweep oscillator 2's pitch above oscillator 1 for the classic tearing, vocal sync lead."
+    },
+    {
       "id": "fm.on",
       "label": "FM on",
       "type": "bool",

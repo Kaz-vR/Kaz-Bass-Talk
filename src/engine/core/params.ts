@@ -141,6 +141,7 @@ export const P = {
   crushMix: ix('crush.mix'), crushBits: ix('crush.bits'), crushRate: ix('crush.rate'),
   tapeDrive: ix('tape.drive'), tapeWow: ix('tape.wow'), tapeAge: ix('tape.age'),
   compAmount: ix('comp.amount'), compSpeed: ix('comp.speed'), compPump: ix('comp.pump'), compPumpRate: ix('comp.pump_rate'),
+  osc2Sync: ix('osc2.sync'),
   fmOn: ix('fm.on'), driveOn: ix('drive.on'), filterOn: ix('filter.on'), distOn: ix('dist.on'), crushOn: ix('crush.on'),
   tapeOn: ix('tape.on'), vibOn: ix('vibrato.on'), lfoOn: [1, 2, 3, 4].map((n) => ix(`lfo${n}.on`)), wobOn: ix('wobble.on'),
   modOn: ix('mod.on'), dynOn: ix('dynamics.on'), eqOn: ix('eq.on'), chorusOn: ix('chorus.on'), flangerOn: ix('flanger.on'),
