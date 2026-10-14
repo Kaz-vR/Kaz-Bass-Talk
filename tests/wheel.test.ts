@@ -86,7 +86,7 @@ describe('wobble', () => {
 
   it('depth 0 is off: nothing changes', () => {
     const a = renderPatch({ ...base }, heldNote(45, 4), { seconds: 2, sampleRate: FS }).left;
-    const b = renderPatch({ ...base, 'wobble.rate': '1/16', 'wobble.target': 'vowel' }, heldNote(45, 4), { seconds: 2, sampleRate: FS }).left;
+    const b = renderPatch({ ...base, 'wobble.rate': '1/16', 'wobble.target': 'filter + drive' }, heldNote(45, 4), { seconds: 2, sampleRate: FS }).left;
     expect(diffDb(a, b)).toBeLessThan(-200);
   });
 
@@ -112,16 +112,9 @@ describe('wobble', () => {
     expect(corr(b.slice(0, 16), b.slice(4, 20))).toBeLessThan(0.5);
   });
 
-  it('vowel: clearly changes the sound (a vowel shift moves formants rather than brightness)', () => {
-    const p = { ...wob, 'wobble.target': 'vowel', 'filter.type': 'formant' };
-    const on = renderPatch(p, heldNote(57, 4), { seconds: 1, sampleRate: FS }).left;
-    const off = renderPatch({ ...p, 'wobble.depth': 0 }, heldNote(57, 4), { seconds: 1, sampleRate: FS }).left;
-    expect(diffDb(off, on)).toBeGreaterThan(-6);
-  });
-
   it('life makes each cycle a little different; 0 repeats exactly', () => {
     const peaks = (life: number) => {
-      const x = renderPatch({ ...wob, 'wobble.life': life }, heldNote(45, 8), { seconds: 4, sampleRate: FS }).left;
+      const x = renderPatch({ ...wob, 'wobble.life': life }, heldNote(57, 8), { seconds: 4, sampleRate: FS }).left;
       const b = brightness(x, (0.25 * FS) / 8, 128);
       // Each cycle's average brightness.
       return Array.from({ length: 12 }, (_, c) => b.slice(8 * (c + 2), 8 * (c + 3)).reduce((s, v) => s + v, 0) / 8);

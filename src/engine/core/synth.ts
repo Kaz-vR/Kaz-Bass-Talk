@@ -521,10 +521,6 @@ export class Synth {
           x[K.D_DRIVE] += 0.4 * a;
           x[K.D_DIST_DRIVE] += 0.1 * a;
           break;
-        case K.WOB_VOWEL:
-          x[K.D_VOWEL] += 0.85 * a;
-          x[K.D_CUTOFF] += 0.1 * swing + this.wobBright;
-          break;
         default:
           x[K.D_CUTOFF] += 0.42 * swing + this.wobBright;
           x[K.D_RES] += 0.15 * depth;

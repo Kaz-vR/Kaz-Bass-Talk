@@ -1476,12 +1476,11 @@
       "type": "enum",
       "options": [
         "filter",
-        "filter + drive",
-        "vowel"
+        "filter + drive"
       ],
       "default": "filter",
       "group": "wobble",
-      "describes": "Filter: the classic wub. Filter + drive: the filter and the dirt open together, a growl. Vowel: a talking yoy-yoy wobble (works best with the formant filter, but colors any filter)."
+      "describes": "Filter: the classic wub (the filter swings shut and wide open with a resonant peak). Filter + drive: the same wub with the drive in front of the filter pulsing along, so it growls."
     },
     {
       "id": "wobble.shape",

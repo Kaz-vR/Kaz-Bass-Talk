@@ -66,7 +66,7 @@ export const TEXTURE_GAIN = 0.5;
 
 /** Beats per wobble cycle, by wobble.rate option (1/2 … 1/32); all divide a 4-beat bar. */
 export const WOBBLE_BEATS = [2, 1, 2 / 3, 0.5, 1 / 3, 0.25, 1 / 6, 0.125];
-export const WOB_FILTER = 0, WOB_FILTER_DRIVE = 1, WOB_VOWEL = 2;
+export const WOB_FILTER = 0, WOB_FILTER_DRIVE = 1;
 export const WOB_SINE = 0, WOB_TRI = 1, WOB_SAW_DOWN = 2, WOB_SQUARE = 3;
 
 /**

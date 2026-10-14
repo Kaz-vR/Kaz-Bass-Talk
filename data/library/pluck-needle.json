@@ -24,15 +24,13 @@
     },
     "checks": {
       "hash": "7842a1b1",
-      "audio": "983d1c1b",
-      "judge": "e6948739",
+      "audio": "f829f5bb",
+      "judge": "6956165c",
       "critic": true,
       "issues": [],
       "earns": true,
       "weakest": "mod 3 (random → drive) 0.34 dB",
-      "failing": [],
-      "wheel": true,
-      "wheelIssues": []
+      "failing": []
     },
     "features": {
       "brightness": 0.45,
