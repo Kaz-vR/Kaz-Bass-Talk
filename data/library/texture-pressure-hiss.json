@@ -23,8 +23,8 @@
       "tailDb": -5.8
     },
     "checks": {
-      "hash": "a3e876a7",
-      "code": "02096e9d",
+      "hash": "04c38cac",
+      "code": "f2a012d0",
       "earns": true,
       "weakest": "mod 11 (lfo4 → chorus_depth) 0.24 dB",
       "failing": [],
@@ -216,5 +216,6 @@
   "eq.high_gain": -2,
   "eq.highcut": 5500,
   "output.gain": -3.8,
-  "output.crossover": 120
+  "output.crossover": 120,
+  "wheel.preset": "decay"
 }

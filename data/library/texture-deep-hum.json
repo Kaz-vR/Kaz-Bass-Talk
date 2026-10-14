@@ -23,8 +23,8 @@
       "tailDb": -6.4
     },
     "checks": {
-      "hash": "18f6dc1a",
-      "code": "02096e9d",
+      "hash": "d3195293",
+      "code": "f2a012d0",
       "earns": true,
       "weakest": "delay 0.31 dB",
       "failing": [],
@@ -216,5 +216,6 @@
   "eq.high_gain": -2,
   "eq.highcut": 5500,
   "output.gain": -5,
-  "output.crossover": 120
+  "output.crossover": 120,
+  "wheel.preset": "decay"
 }

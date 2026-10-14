@@ -216,5 +216,6 @@
   "eq.high_gain": -2,
   "eq.highcut": 6500,
   "output.gain": -6.5,
-  "output.crossover": 120
+  "output.crossover": 120,
+  "wheel.preset": "open"
 }

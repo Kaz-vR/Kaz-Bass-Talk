@@ -25,8 +25,8 @@
       "tailDb": -31.7
     },
     "checks": {
-      "hash": "32ddafb5",
-      "code": "02096e9d",
+      "hash": "e84e9382",
+      "code": "f2a012d0",
       "earns": true,
       "weakest": "mod 2 (lfo2 → filter_cutoff) 0.20 dB",
       "failing": [],
@@ -218,5 +218,6 @@
   "eq.high_gain": -2,
   "eq.highcut": 5000,
   "output.gain": -3.5,
-  "output.crossover": 120
+  "output.crossover": 120,
+  "wheel.preset": "snarl"
 }

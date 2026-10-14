@@ -200,5 +200,6 @@
   "eq.high_gain": 1.5,
   "eq.highcut": 14000,
   "output.gain": -0.7,
-  "output.crossover": 120
+  "output.crossover": 120,
+  "wheel.preset": "snarl"
 }
