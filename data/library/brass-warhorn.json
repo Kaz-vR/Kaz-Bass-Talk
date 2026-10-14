@@ -23,8 +23,8 @@
       "tailDb": -19.7
     },
     "checks": {
-      "hash": "501826a1",
-      "code": "02096e9d",
+      "hash": "414b62f6",
+      "code": "f2a012d0",
       "earns": true,
       "weakest": "mod 2 (lfo2 → amp) 0.17 dB",
       "failing": [],
