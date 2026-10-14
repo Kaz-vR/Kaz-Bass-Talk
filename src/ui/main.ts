@@ -31,8 +31,8 @@ const SHELF: Record<string, string> = { arp: 'pluck' };
 const groups: Group[] = categories.filter((c) => !SHELF[c.id]).map((c) =>
   c.id === 'pluck'
     ? { id: c.id, name: 'Pluck / Sequence', description: 'Short, defined sounds to play as notes, chords or patterns: soft and round to hard and driving.', audition: c.audition, items: [] }
-    : { id: c.id, name: c.name, description: c.description, audition: c.audition, items: [] });
-groups.push({ id: ATLAS, name: 'Bass Atlas', description: 'One patch for each of 51 synth bass types across genres and history (outside the LORN style).', items: [] });
+    : { id: c.id, name: c.id === 'bass' ? 'Dark Basses' : c.name, description: c.description, audition: c.audition, items: [] });
+groups.push({ id: ATLAS, name: 'Classic Basses', description: 'One patch for each of 51 well-known synth bass types across genres and history (outside the LORN style).', items: [] });
 // The randomizer: its own tab after the categories (rolls, not presets).
 const RANDOMIZER = 'randomizer';
 groups.push({ id: RANDOMIZER, name: '🎲 Randomizer', description: "Roll new sounds from the bank's own parts: tame cousins of a category, or weird collisions.", items: [] });
