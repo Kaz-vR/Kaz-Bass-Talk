@@ -19,6 +19,36 @@
       "consistency:brightOct": {
         "why": "a noise-based sound: its brightness comes from noise, which has no note to be dark against"
       }
+    },
+    "vibe": {
+      "brightOct": 2.47,
+      "airDb": -34.5,
+      "dirt": 0.89,
+      "widthDb": -2.8,
+      "tailDb": -6
+    },
+    "checks": {
+      "hash": "85231935",
+      "audio": "be18e13c",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "mod 7 (lfo2 → amp) 0.28 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.543,
+      "highEnergy": 0.761,
+      "sub": 0.019,
+      "lowMid": 0.505,
+      "dirt": 0.888,
+      "width": 0.929,
+      "attack": 1,
+      "decay": 1,
+      "sustain": 0.962,
+      "release": 0.773,
+      "movement": 0.679
     }
   },
   "voice.polyphony": 2,
