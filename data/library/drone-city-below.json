@@ -18,7 +18,7 @@
     "audition": "swell",
     "iconic": true,
     "vibe": {
-      "brightOct": 0.2,
+      "brightOct": 1.2,
       "airDb": -40.9,
       "dirt": 1.16,
       "widthDb": -1.8,
@@ -27,7 +27,7 @@
     "checks": {
       "hash": "3338d6de",
       "audio": "8d3617c2",
-      "judge": "b3d612c0",
+      "judge": "4fd998a0",
       "critic": true,
       "issues": [],
       "earns": true,

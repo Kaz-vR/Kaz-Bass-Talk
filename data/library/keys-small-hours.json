@@ -18,7 +18,7 @@
     "audition": "chords",
     "iconic": 2,
     "vibe": {
-      "brightOct": 1.48,
+      "brightOct": 0.48,
       "airDb": -38.7,
       "dirt": 0.35,
       "widthDb": -13.7,
@@ -27,12 +27,9 @@
     "checks": {
       "hash": "9de11ae9",
       "audio": "b13f226c",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "weak fundamental: -51.7 dB (limit -15.0 dB)",
-        "whistling resonance: 23.0 dB (limit 9.0 dB)"
-      ],
+      "judge": "4fd998a0",
+      "critic": true,
+      "issues": [],
       "earns": true,
       "weakest": "mod 4 (drift_slow → amp) 0.24 dB",
       "failing": []

@@ -24,7 +24,7 @@
       }
     },
     "vibe": {
-      "brightOct": 1.29,
+      "brightOct": 0.29,
       "airDb": -30.8,
       "dirt": 0.29,
       "widthDb": -13.3,
@@ -33,12 +33,9 @@
     "checks": {
       "hash": "83008bd5",
       "audio": "1f719cc5",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "weak fundamental: -26.1 dB (limit -15.0 dB)",
-        "whistling resonance: 13.6 dB (limit 9.0 dB)"
-      ],
+      "judge": "4fd998a0",
+      "critic": true,
+      "issues": [],
       "earns": true,
       "weakest": "mod 3 (env2 → drive) 0.20 dB",
       "failing": []
