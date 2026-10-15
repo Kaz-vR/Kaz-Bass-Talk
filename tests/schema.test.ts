@@ -4,9 +4,9 @@ import {
 } from '../src/schema';
 
 describe('schema', () => {
-  it('has around 160 parameters with unique ids', () => {
+  it('has around 200 parameters with unique ids', () => {
     expect(params.length).toBeGreaterThanOrEqual(75);
-    expect(params.length).toBeLessThanOrEqual(175);
+    expect(params.length).toBeLessThanOrEqual(220);
     expect(new Set(params.map((p) => p.id)).size).toBe(params.length);
   });
 
