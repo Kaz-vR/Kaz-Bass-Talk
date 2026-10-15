@@ -126,6 +126,8 @@ const def: CategoryDef = {
         'filter.env_amount': 0.4, 'mod_env.attack': 300, 'mod_env.decay': 2000, 'mod_env.sustain': 0.6, 'amp_env.attack': 120,
         'amp_env.decay': 4000, 'amp_env.sustain': 0.9, 'amp_env.release': 2500, 'reverb.size': 0.95, 'reverb.mix': 0.45, 'ott.amount': 0.35,
       },
+      // The OTT evens out a small swell: it needs a little more to be heard.
+      mods: kit(BREATH_KIT, [], { 'lfo2>amp': ['lfo2', 'amp', -0.18] }),
     },
     {
       id: 'rain-brass', name: 'Rain Brass', iconic: true,

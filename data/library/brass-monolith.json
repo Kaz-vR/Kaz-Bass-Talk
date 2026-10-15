@@ -20,34 +20,32 @@
     "vibe": {
       "brightOct": 1.56,
       "airDb": -44.2,
-      "dirt": 0.77,
+      "dirt": 0.76,
       "widthDb": -5.2,
-      "tailDb": -4.2
+      "tailDb": -4.1
     },
     "checks": {
-      "hash": "22f38472",
-      "audio": "bba5bd70",
+      "hash": "056a32d0",
+      "audio": "a23842e9",
       "judge": "4fd998a0",
       "critic": true,
       "issues": [],
-      "earns": false,
-      "weakest": "mod 2 (lfo2 → amp) 0.15 dB",
-      "failing": [
-        "mod 2 (lfo2 → amp) 0.15 dB"
-      ]
+      "earns": true,
+      "weakest": "delay 0.15 dB",
+      "failing": []
     },
     "features": {
       "brightness": 0.356,
       "highEnergy": 0.652,
-      "sub": 0.501,
+      "sub": 0.5,
       "lowMid": 0.735,
       "dirt": 0.765,
       "width": 0.87,
       "attack": 0.715,
       "decay": 0.784,
-      "sustain": 0.954,
+      "sustain": 0.958,
       "release": 0.773,
-      "movement": 0.425
+      "movement": 0.424
     }
   },
   "voice.polyphony": 4,
@@ -210,7 +208,7 @@
   "mod1.amount": 0.18,
   "mod2.source": "lfo2",
   "mod2.dest": "amp",
-  "mod2.amount": -0.1,
+  "mod2.amount": -0.18,
   "mod3.source": "env2",
   "mod3.dest": "filter_cutoff",
   "mod3.amount": 0.12,
