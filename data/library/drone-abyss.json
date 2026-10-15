@@ -16,7 +16,7 @@
     "collection": "bank",
     "audition": "swell",
     "vibe": {
-      "brightOct": 0.89,
+      "brightOct": 1.89,
       "airDb": -43.5,
       "dirt": 0.63,
       "widthDb": -6.3,
@@ -25,7 +25,7 @@
     "checks": {
       "hash": "8cc1334e",
       "audio": "e44d40f1",
-      "judge": "b3d612c0",
+      "judge": "4fd998a0",
       "critic": true,
       "issues": [],
       "earns": true,

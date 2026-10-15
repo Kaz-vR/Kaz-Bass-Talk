@@ -18,7 +18,7 @@
     "audition": "chords",
     "iconic": true,
     "vibe": {
-      "brightOct": 0.56,
+      "brightOct": 1.56,
       "airDb": -44.2,
       "dirt": 0.77,
       "widthDb": -5.2,
@@ -27,7 +27,7 @@
     "checks": {
       "hash": "22f38472",
       "audio": "bba5bd70",
-      "judge": "b3d612c0",
+      "judge": "4fd998a0",
       "critic": true,
       "issues": [],
       "earns": false,
