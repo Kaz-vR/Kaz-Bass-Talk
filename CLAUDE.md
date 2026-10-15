@@ -68,6 +68,22 @@ A producer opens a category looking for a part for a specific moment, so every c
 
 LORN is the treatment (dark top, wear, slow life, dark space), not grit on everything: soft sounds get their wear from tape, dust and air; drive and distortion belong to the hard end. Width, reverb amount and EQ are mix decisions, not bank coverage. Every shelf holds at most 35 presets: near-duplicates go first; the original LORN presets, the staples (sounds iconic because they're everywhere) and any preset carrying a colour nothing else on its shelf has are kept. `data/coverage.json` `keep` lists presets the owner uses as they are (Midnight Upright): never changed, re-tuned or removed.
 
+## Dark bass architecture (every dark bass)
+
+To keep the low end free of phase clashes and mud, every dark bass uses exactly one **octave template** for oscillator 1, oscillator 2 and the sub (`tools/bank/bass-templates.ts`, applied by both bass builders, tagged on each preset, enforced by `tests/bass-architecture.test.ts`):
+
+| Template | Sub | Osc 1 | Osc 2 |
+|---|---|---|---|
+| A Heavy Reese | -1 oct | root | root, slightly detuned (beating) |
+| B Cinematic Screamer | -1 oct | root | +12, 3-6 dB under osc 1 |
+| C Ominous Fifth | -1 oct | root | +7, dark filter, tape saturation |
+| D Deep Rumble | -2 oct | -12 | root, high-passed at 200 Hz |
+| E 808 / Thump | -1 oct, carries the note and its pitch drop | root, grit only | off |
+| F Single Body | -1 oct | root | off |
+| G Tritone Bass | -1 oct | root | +6 |
+
+The sub is a pure sine, mono, never through drive, filter, distortion, tape or effects, and its pitch follows only the played note (glide, bend, pitch envelope), never vibrato, drift or the mod matrix (an engine rule, every patch). Oscillators 1 and 2 carry the tape wobble and are high-passed before the drive (120-150 Hz; D: osc 1 at 60 Hz, osc 2 at 200 Hz). Stereo only above 250 Hz (mono crossover and effects low cut at 250 Hz). A new dark bass picks one template; no other octave relationships.
+
 ## Components
 
 ### 1. Synth engine
