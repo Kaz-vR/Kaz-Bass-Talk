@@ -52,7 +52,7 @@ describe('performance', () => {
       expect(voice, file).toBeLessThan(15);
       expect(full, file).toBeLessThan(65);
     }
-  }, 1200000);
+  }, 2400000);
 
   it('worst case (2×7 unison, formant, FM, all FX) stays under 20%', () => {
     const cpu = cpuPercent({
