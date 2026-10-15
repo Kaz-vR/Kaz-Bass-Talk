@@ -332,6 +332,12 @@ export class Synth {
     if (!hear('noise')) { zero(P.noise); block(K.D_NOISE); }
     if (!hear('click')) zero(P.clickLevel);
     if (!hear('breath')) { zero(P.breath, P.chiff); block(K.D_BREATH); }
+    // Tape age hisses on its own: with every layer of the oscillator path silent (e.g. the sub
+    // soloed), the tape goes quiet too, so a solo only plays what it names.
+    if (!hear('osc1') && !hear('osc2') && !hear('noise') && !hear('breath')) {
+      zero(P.tapeDrive, P.tapeWow, P.tapeAge);
+      block(K.D_TAPE_WOW);
+    }
     this.texMonTarget = hear('texture') ? 1 : 0;
   }
 
