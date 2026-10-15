@@ -18,7 +18,7 @@
     "audition": "arp-line",
     "iconic": 2,
     "vibe": {
-      "brightOct": 1.62,
+      "brightOct": 0.62,
       "airDb": -43.1,
       "dirt": 0.41,
       "widthDb": -10.7,
@@ -27,12 +27,9 @@
     "checks": {
       "hash": "05121de0",
       "audio": "e79e446b",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "weak fundamental: -40.5 dB (limit -15.0 dB)",
-        "whistling resonance: 26.5 dB (limit 9.0 dB)"
-      ],
+      "judge": "4fd998a0",
+      "critic": true,
+      "issues": [],
       "earns": true,
       "weakest": "mod 2 (lfo2 → amp) 0.25 dB",
       "failing": []

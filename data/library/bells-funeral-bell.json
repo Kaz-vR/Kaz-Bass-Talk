@@ -16,7 +16,7 @@
     "collection": "bank",
     "audition": "arp-line",
     "vibe": {
-      "brightOct": 0.99,
+      "brightOct": 1.99,
       "airDb": -31.5,
       "dirt": 0.98,
       "widthDb": -12.5,
@@ -25,7 +25,7 @@
     "checks": {
       "hash": "2cad9d05",
       "audio": "e9ac7b09",
-      "judge": "b3d612c0",
+      "judge": "4fd998a0",
       "critic": true,
       "issues": [],
       "earns": true,

@@ -18,7 +18,7 @@
     "audition": "arp-line",
     "iconic": 2,
     "vibe": {
-      "brightOct": -0.47,
+      "brightOct": 0.53,
       "airDb": -37.2,
       "dirt": 0.96,
       "widthDb": -4.5,
@@ -27,7 +27,7 @@
     "checks": {
       "hash": "f5880354",
       "audio": "c757f345",
-      "judge": "b3d612c0",
+      "judge": "4fd998a0",
       "critic": true,
       "issues": [],
       "earns": true,

@@ -16,7 +16,7 @@
     "collection": "bank",
     "audition": "chords",
     "vibe": {
-      "brightOct": 2.44,
+      "brightOct": 1.44,
       "airDb": -28.8,
       "dirt": 0.45,
       "widthDb": -5,
@@ -25,13 +25,9 @@
     "checks": {
       "hash": "42faecc4",
       "audio": "749ea5f3",
-      "judge": "b3d612c0",
-      "critic": false,
-      "issues": [
-        "weak fundamental: -44.4 dB (limit -15.0 dB)",
-        "whistling resonance: 13.3 dB (limit 9.0 dB)",
-        "off-style brightness (octaves above the note): 2.4 oct (limit 2.4 oct)"
-      ],
+      "judge": "4fd998a0",
+      "critic": true,
+      "issues": [],
       "earns": true,
       "weakest": "mod 12 (random → filter_cutoff) 0.16 dB",
       "failing": []
