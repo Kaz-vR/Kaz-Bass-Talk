@@ -24,6 +24,7 @@ import { join } from 'node:path';
 import { params, validatePatch } from '../src/schema';
 import { wheelDefault } from '../src/quality/categories';
 import { ROOT } from './lib/data';
+import { applyBassTemplate } from './bank/bass-templates';
 
 type Mod = [source: string, dest: string, amount: number];
 interface Def {
@@ -307,6 +308,7 @@ function build(def: Def): Record<string, unknown> {
     const [type, level, tone, tail] = def.texture;
     Object.assign(raw, { 'texture.type': type, 'texture.level': level, 'texture.tone': tone, 'texture.tail': tail });
   }
+  (raw.meta as { tags: string[] }).tags = applyBassTemplate(def.id, raw, def.tags);
   mods.forEach(([src, dst, amt], i) => {
     raw[`mod${i + 1}.source`] = src;
     raw[`mod${i + 1}.dest`] = dst;

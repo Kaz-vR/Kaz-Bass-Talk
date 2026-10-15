@@ -9,42 +9,13 @@
       "growl",
       "dark",
       "sub",
-      "lorn"
+      "lorn",
+      "deep-rumble"
     ],
     "category": "bass",
     "family": "bass",
     "collection": "bank",
-    "audition": "groove",
-    "vibe": {
-      "brightOct": 0.06,
-      "airDb": -50.3,
-      "dirt": 0.55,
-      "widthDb": -2.8,
-      "tailDb": -31.6
-    },
-    "checks": {
-      "hash": "1de2d73e",
-      "audio": "33f61325",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": true,
-      "weakest": "pump 0.19 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.331,
-      "highEnergy": 0.608,
-      "sub": 0.695,
-      "lowMid": 0.54,
-      "dirt": 0.554,
-      "width": 0.93,
-      "attack": 0.36,
-      "decay": 0.902,
-      "sustain": 0.825,
-      "release": 0.77,
-      "movement": 0.301
-    }
+    "audition": "groove"
   },
   "voice.polyphony": 1,
   "voice.legato": false,
@@ -55,7 +26,7 @@
   "wheel.move": "preset default",
   "wheel.preset": "snarl",
   "osc1.wave": "saw",
-  "osc1.semi": 0,
+  "osc1.semi": -12,
   "osc1.fine": 0,
   "osc1.pulse_width": 0.5,
   "osc1.wt_pos": 0,
@@ -63,8 +34,9 @@
   "osc1.unison_detune": 12,
   "osc1.unison_spread": 0.85,
   "osc1.level": 0.65,
+  "osc1.highpass": 60,
   "osc2.wave": "saw",
-  "osc2.semi": -12,
+  "osc2.semi": 0,
   "osc2.fine": -5,
   "osc2.pulse_width": 0.5,
   "osc2.wt_pos": 0,
@@ -72,6 +44,7 @@
   "osc2.unison_detune": 15,
   "osc2.unison_spread": 0.5,
   "osc2.level": 0.3,
+  "osc2.highpass": 200,
   "osc2.sync": false,
   "fm.on": true,
   "fm.amount": 0,
@@ -247,5 +220,5 @@
   "eq.high_gain": -2,
   "eq.highcut": 5000,
   "output.gain": -2.7,
-  "output.crossover": 120
+  "output.crossover": 250
 }

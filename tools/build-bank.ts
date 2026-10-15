@@ -11,7 +11,7 @@ import { categoryById } from '../src/quality/categories';
 import { buildPreset, type CategoryDef } from './bank/common';
 import { ROOT } from './lib/data';
 
-const files = readdirSync(join(ROOT, 'tools/bank')).filter((f) => f.endsWith('.ts') && f !== 'common.ts');
+const files = readdirSync(join(ROOT, 'tools/bank')).filter((f) => f.endsWith('.ts') && f !== 'common.ts' && f !== 'bass-templates.ts');
 const [onlyCat, onlyId] = process.argv.slice(2);
 const libDir = join(ROOT, 'data/library');
 let n = 0;

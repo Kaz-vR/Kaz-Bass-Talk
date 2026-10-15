@@ -106,7 +106,7 @@ inline int paramIndex(const char* id) {
 
 /** Parameter indices, resolved once from the generated schema. */
 struct ParamIndex {
-  struct Osc { int wave, semi, fine, pw, wt, voices, detune, spread, level; };
+  struct Osc { int wave, semi, fine, pw, wt, voices, detune, spread, level, hp; };
   struct Lfo { int shape, rate, sync, retrig, fade; };
   struct Slot { int src, dst, amt; };
   int legato, glide, octave, velocity, analog;
@@ -135,7 +135,7 @@ struct ParamIndex {
     for (int n = 0; n < 2; n++) {
       const std::string o = "osc" + std::to_string(n + 1) + ".";
       osc[n] = {ix(o + "wave"), ix(o + "semi"), ix(o + "fine"), ix(o + "pulse_width"), ix(o + "wt_pos"), ix(o + "unison_voices"),
-                ix(o + "unison_detune"), ix(o + "unison_spread"), ix(o + "level")};
+                ix(o + "unison_detune"), ix(o + "unison_spread"), ix(o + "level"), ix(o + "highpass")};
     }
     fmAmount = ix("fm.amount"); fmRatio = ix("fm.ratio"); fmPunch = ix("fm.punch"); fmDecay = ix("fm.decay"); fmFb = ix("fm.feedback");
     fm2Amount = ix("fm2.amount"); fm2Ratio = ix("fm2.ratio"); fmAlgo = ix("fm.algorithm");

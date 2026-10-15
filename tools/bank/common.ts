@@ -6,6 +6,7 @@
 
 import { params, validatePatch } from '../../src/schema';
 import { wheelDefault } from '../../src/quality/categories';
+import { applyBassTemplate } from './bass-templates';
 
 export type Mod = [source: string, dest: string, amount: number];
 export type Settings = Record<string, number | string | boolean>;
@@ -119,6 +120,8 @@ export function buildPreset(cat: CategoryDef, def: PresetDef, audition: string):
     const [type, level, tone, tail] = def.texture;
     Object.assign(raw, { 'texture.type': type, 'texture.level': level, 'texture.tone': tone, 'texture.tail': tail });
   }
+  // Dark basses: the owner's octave architecture (tools/bank/bass-templates.ts) wins over the preset's own settings.
+  if (cat.category === 'bass') (raw.meta as { tags: string[] }).tags = applyBassTemplate(def.id, raw, (raw.meta as { tags: string[] }).tags);
   // A detune wobble does nothing without unison: move that slot to the tape instead.
   const unison = [1, 2].some((o) => Number(raw[`osc${o}.level`] ?? 0) > 0.1 && Number(raw[`osc${o}.unison_voices`] ?? 1) > 1 && Number(raw[`osc${o}.unison_detune`] ?? 0) > 4);
   mods.map(([src, dst, amt]): Mod => (dst === 'unison_detune' && !unison ? [src, 'tape_wow', 0.3] : [src, dst, amt])).forEach(([src, dst, amt], i) => {

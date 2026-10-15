@@ -6,7 +6,7 @@ struct ParamSpec {
   const char* id; const char* label; PType type; double min, max, def; int curve; double exponent;
   const char* unit; const char* group; const char* options; const char* describes;
 };
-constexpr int PARAM_COUNT = 202;
+constexpr int PARAM_COUNT = 204;
 inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "voice.polyphony", "Polyphony", PType::Int, 1, 8, 1, 0, 3, "voices", "voice", "", "1 = monophonic (legato and glide work, the bass default). 2-8 = that many notes at once, for pads, keys and chords; the oldest note is taken over when more are played." },
   { "voice.legato", "Legato", PType::Bool, 0, 1, 0, 0, 3, "", "voice", "", "On: overlapping notes slide without retriggering the envelopes (303-style). Off: every note retriggers." },
@@ -25,6 +25,7 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "osc1.unison_detune", "Osc 1 unison detune", PType::Float, 0, 100, 15, 2, 2, "ct", "osc1", "", "Spread of the unison copies in cents. Low is subtle thickening; high is a dissonant, washy smear." },
   { "osc1.unison_spread", "Osc 1 stereo spread", PType::Float, 0, 1, 0.5, 0, 3, "", "osc1", "", "How far the unison copies are panned. Only affects content above the mono crossover." },
   { "osc1.level", "Osc 1 level", PType::Float, 0, 1, 0.8, 0, 3, "", "osc1", "", "Oscillator volume into the filter." },
+  { "osc1.highpass", "Osc 1 high-pass", PType::Float, 20, 400, 20, 1, 3, "Hz", "osc1", "", "Cuts oscillator 1 below this frequency before the drive, so its harmonics distort without muddying the sub's space (20 Hz = off)." },
   { "osc2.wave", "Osc 2 wave", PType::Enum, 0, 7, 2, 0, 3, "", "osc2", "sine|triangle|saw|pulse|wavetable|pwm_saw|string|shepard", "Sine is pure and round; triangle is soft with a little edge; saw is bright and buzzy; pulse is hollow and reedy; wavetable morphs with the position control; pwm_saw is the rave \"hoover\" saw-plus-pulse (move pulse width for the swirl); string is a plucked physical-model string (see String); shepard is an endless rising/falling octave illusion (see Shepard rate)." },
   { "osc2.semi", "Osc 2 semitones", PType::Int, -24, 24, 0, 0, 3, "st", "osc2", "", "Pitch offset in semitones. +12/-12 adds an octave layer; +7 adds a fifth for a harder, organ-like tone." },
   { "osc2.fine", "Osc 2 fine tune", PType::Float, -100, 100, 0, 0, 3, "ct", "osc2", "", "Fine detune in cents. Small offsets between the two oscillators cause slow beating (Reese movement)." },
@@ -34,6 +35,7 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "osc2.unison_detune", "Osc 2 unison detune", PType::Float, 0, 100, 15, 2, 2, "ct", "osc2", "", "Spread of the unison copies in cents. Low is subtle thickening; high is a dissonant, washy smear." },
   { "osc2.unison_spread", "Osc 2 stereo spread", PType::Float, 0, 1, 0.5, 0, 3, "", "osc2", "", "How far the unison copies are panned. Only affects content above the mono crossover." },
   { "osc2.level", "Osc 2 level", PType::Float, 0, 1, 0, 0, 3, "", "osc2", "", "Oscillator volume into the filter." },
+  { "osc2.highpass", "Osc 2 high-pass", PType::Float, 20, 400, 20, 1, 3, "Hz", "osc2", "", "Cuts oscillator 2 below this frequency before the drive, so its harmonics distort without muddying the sub's space (20 Hz = off)." },
   { "osc2.sync", "Osc 2 hard sync", PType::Bool, 0, 1, 0, 0, 3, "", "osc2", "", "Hard sync: oscillator 2 restarts its cycle every time oscillator 1 starts one. Tune or sweep oscillator 2's pitch above oscillator 1 for the classic tearing, vocal sync lead." },
   { "fm.on", "FM on", PType::Bool, 0, 1, 1, 0, 3, "", "fm", "", "Switches FM on or off without losing its settings. Off also saves CPU." },
   { "fm.amount", "FM amount", PType::Float, 0, 1, 0, 2, 2, "", "fm", "", "Steady FM depth: a sine operator phase-modulates osc 1. Low adds bell-like bite; high is metallic and aggressive." },

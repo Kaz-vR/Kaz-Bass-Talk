@@ -158,6 +158,10 @@ export class Voice {
   private subInc = 0;
   private subLevel = 0;
   private subWave = 0;
+  // Oscillator high-pass before the drive (24 dB/oct, per oscillator; 20 Hz = off).
+  private readonly oscHp = [0, 1].map(() => [new Biquad(), new Biquad(), new Biquad(), new Biquad()]);
+  private readonly oscHpOn = [false, false];
+  private readonly lastOscHp = [-1, -1];
   private noiseLevel = 0;
 
   // Drive + filter.
@@ -361,6 +365,7 @@ export class Voice {
     this.crusher.reset();
     this.tape.reset();
     this.subDelay.fill(0);
+    for (const hp of this.oscHp) for (const f of hp) f.reset();
     this.tail = 0;
   }
 
@@ -529,6 +534,18 @@ export class Voice {
       o.frac = fpos - fa;
       o.baseSaw = (SAW_FRAME * MIP_LEVELS + mip) * TABLE_SIZE;
     }
+    for (let n = 0; n < 2; n++) {
+      const hz = cur[P.osc[n].hp];
+      this.oscHpOn[n] = hz > 21;
+      if (this.oscHpOn[n] && hz !== this.lastOscHp[n]) {
+        const f = this.oscHp[n];
+        for (let i = 0; i < 2; i++) {
+          f[i].setHighpass(hz, K.SUBSONIC_Q[i], fs); // left: 4th-order Butterworth
+          f[2 + i].setHighpass(hz, K.SUBSONIC_Q[i], fs); // right
+        }
+        this.lastOscHp[n] = hz;
+      }
+    }
     this.strTone = cur[P.strTone];
     this.shepRate = (cur[P.shepRate] * 0.4) / fs; // octaves per sample (±0.4 oct/s)
 
@@ -550,7 +567,10 @@ export class Voice {
     this.clickLevel = cur[P.clickLevel];
 
     // Sub, folded up an octave at a time if it would fall below 20 Hz (inaudible, wastes headroom).
-    let subInc = this.toInc(basePitch + 12 * cur[P.subOct]);
+    // The sub follows the played note (glide, bend, pitch envelope) but never the
+    // pitch modulation (vibrato, drift, the mod matrix): it stays phase-locked under everything.
+    const subPitch = this.pitch + 12 * cur[P.octave] + 2 * bend + cur[P.peAmount] * this.pitchEnvLevel;
+    let subInc = this.toInc(subPitch + 12 * cur[P.subOct]);
     while (subInc < 20 / fs) subInc *= 2;
     this.subInc = subInc;
     this.subLevel = clamp(cur[P.subLevel] + dst[D.SUB], 0, 1) * SUB_GAIN;
@@ -888,6 +908,15 @@ export class Voice {
           o1.phase[j] = ph - Math.floor(ph);
         }
       }
+      if (this.oscHpOn[0]) {
+        const f = this.oscHp[0];
+        l = f[1].process(f[0].process(l));
+        r = f[3].process(f[2].process(r));
+      }
+      // Oscillator 2 sums on its own when it has a high-pass (otherwise straight into l/r as before).
+      const o2Hp = this.oscHpOn[1];
+      const preL = l, preR = r;
+      if (o2Hp) l = r = 0;
       if (o2.gain > 0 && o2.wave >= WAVE_STRING) {
         const s = this.specialOsc(1, o2) * o2.gain;
         l += s;
@@ -933,6 +962,11 @@ export class Voice {
           l += s * o2.panL[j];
           r += s * o2.panR[j];
         }
+      }
+      if (o2Hp) {
+        const f = this.oscHp[1];
+        l = preL + f[1].process(f[0].process(l));
+        r = preR + f[3].process(f[2].process(r));
       }
       if (this.noiseLevel > 0) {
         const nz = this.rng.next() * this.noiseLevel;

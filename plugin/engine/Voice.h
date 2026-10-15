@@ -158,6 +158,8 @@ class Voice {
     crusher.reset();
     tape.reset();
     subDelay.fill(0);
+    for (auto& hp : oscHp)
+      for (auto& f : hp) f.reset();
     tail = 0;
   }
 
@@ -300,6 +302,17 @@ class Voice {
       o.frac = fpos - fa;
       o.baseSaw = (SAW_FRAME * MIP_LEVELS + mip) * TABLE_SIZE;
     }
+    for (int n = 0; n < 2; n++) {
+      const double hz = cur[P.osc[n].hp];
+      oscHpOn[n] = hz > 21;
+      if (oscHpOn[n] && hz != lastOscHp[n]) {
+        for (int i = 0; i < 2; i++) {
+          oscHp[n][i].setHighpass(hz, SUBSONIC_Q[i], fs);
+          oscHp[n][2 + i].setHighpass(hz, SUBSONIC_Q[i], fs);
+        }
+        lastOscHp[n] = hz;
+      }
+    }
     strTone = cur[P.strTone];
     shepRate = (cur[P.shepRate] * 0.4) / fs;
 
@@ -317,7 +330,9 @@ class Voice {
     fm2Inc = std::fmin(0.45, carrier * cur[P.fm2Ratio]);
     clickLevel = cur[P.clickLevel];
 
-    double sInc = toInc(basePitch + 12 * cur[P.subOct]);
+    // The sub follows the played note (glide, bend, pitch envelope) but never the pitch modulation.
+    const double subPitch = pitch + 12 * cur[P.octave] + 2 * bend + mpeBend + cur[P.peAmount] * pitchEnvLevel;
+    double sInc = toInc(subPitch + 12 * cur[P.subOct]);
     while (sInc < 20 / fs) sInc *= 2;
     subInc = sInc;
     subLevel = clampd(cur[P.subLevel] + dst[D_SUB], 0, 1) * SUB_GAIN;
@@ -455,6 +470,14 @@ class Voice {
           o1.phase[j] = ph - std::floor(ph);
         }
       }
+      if (oscHpOn[0]) {
+        auto& f = oscHp[0];
+        l = f[1].process(f[0].process(l));
+        r = f[3].process(f[2].process(r));
+      }
+      const bool o2Hp = oscHpOn[1];
+      const double preL = l, preR = r;
+      if (o2Hp) l = r = 0;
       if (o2.gain > 0 && o2.wave >= WAVE_STRING) {
         const double s = specialOsc(1, o2) * o2.gain;
         l += s;
@@ -497,6 +520,11 @@ class Voice {
           l += s * o2.panL[j];
           r += s * o2.panR[j];
         }
+      }
+      if (o2Hp) {
+        auto& f = oscHp[1];
+        l = preL + f[1].process(f[0].process(l));
+        r = preR + f[3].process(f[2].process(r));
       }
       if (noiseLevel > 0) {
         const double nz = rng.next() * noiseLevel;
@@ -608,6 +636,9 @@ class Voice {
   int subDelayPos = 0;
   double subInc = 0, subLevel = 0;
   int subWave = 0;
+  Biquad oscHp[2][4];
+  bool oscHpOn[2] = {false, false};
+  double lastOscHp[2] = {-1, -1};
   double noiseLevel = 0;
 
   double driveMix = 0, driveGain = 1, driveComp = 1;

@@ -125,7 +125,7 @@ export const P = {
   osc: [1, 2].map((n) => ({
     wave: ix(`osc${n}.wave`), semi: ix(`osc${n}.semi`), fine: ix(`osc${n}.fine`), pw: ix(`osc${n}.pulse_width`),
     wt: ix(`osc${n}.wt_pos`), voices: ix(`osc${n}.unison_voices`), detune: ix(`osc${n}.unison_detune`),
-    spread: ix(`osc${n}.unison_spread`), level: ix(`osc${n}.level`),
+    spread: ix(`osc${n}.unison_spread`), level: ix(`osc${n}.level`), hp: ix(`osc${n}.highpass`),
   })),
   fmAmount: ix('fm.amount'), fmRatio: ix('fm.ratio'), fmPunch: ix('fm.punch'), fmDecay: ix('fm.decay'), fmFb: ix('fm.feedback'),
   fm2Amount: ix('fm2.amount'), fm2Ratio: ix('fm2.ratio'), fmAlgo: ix('fm.algorithm'),

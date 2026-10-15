@@ -221,6 +221,18 @@
       "describes": "Oscillator volume into the filter."
     },
     {
+      "id": "osc1.highpass",
+      "label": "Osc 1 high-pass",
+      "type": "float",
+      "min": 20,
+      "max": 400,
+      "default": 20,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "osc1",
+      "describes": "Cuts oscillator 1 below this frequency before the drive, so its harmonics distort without muddying the sub's space (20 Hz = off)."
+    },
+    {
       "id": "osc2.wave",
       "label": "Osc 2 wave",
       "type": "enum",
@@ -332,6 +344,18 @@
       "unit": "",
       "group": "osc2",
       "describes": "Oscillator volume into the filter."
+    },
+    {
+      "id": "osc2.highpass",
+      "label": "Osc 2 high-pass",
+      "type": "float",
+      "min": 20,
+      "max": 400,
+      "default": 20,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "osc2",
+      "describes": "Cuts oscillator 2 below this frequency before the drive, so its harmonics distort without muddying the sub's space (20 Hz = off)."
     },
     {
       "id": "osc2.sync",

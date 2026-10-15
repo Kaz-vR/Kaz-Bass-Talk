@@ -9,7 +9,7 @@ import { ROOT } from './lib/data';
 
 const libDir = join(ROOT, 'data/library');
 const changed: string[] = [];
-for (const f of readdirSync(join(ROOT, 'tools/bank')).filter((f) => f.endsWith('.ts') && f !== 'common.ts').sort()) {
+for (const f of readdirSync(join(ROOT, 'tools/bank')).filter((f) => f.endsWith('.ts') && f !== 'common.ts' && f !== 'bass-templates.ts').sort()) {
   const def = (await import(`./bank/${f}`)).default as CategoryDef;
   const cat = categoryById(def.category)!;
   for (const p of def.presets) {

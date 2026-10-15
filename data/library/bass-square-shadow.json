@@ -10,43 +10,14 @@
       "glide",
       "hollow",
       "lorn",
-      "iconic"
+      "iconic",
+      "heavy-reese"
     ],
     "category": "bass",
     "family": "bass",
     "collection": "bank",
     "audition": "funk-octaves",
-    "iconic": true,
-    "vibe": {
-      "brightOct": 0.78,
-      "airDb": -49.3,
-      "dirt": 0.5,
-      "widthDb": -2.6,
-      "tailDb": -32.5
-    },
-    "checks": {
-      "hash": "5d7b74d3",
-      "audio": "b59a38ba",
-      "judge": "b3d612c0",
-      "critic": true,
-      "issues": [],
-      "earns": true,
-      "weakest": "pump 0.17 dB",
-      "failing": []
-    },
-    "features": {
-      "brightness": 0.288,
-      "highEnergy": 0.581,
-      "sub": 0.587,
-      "lowMid": 0.708,
-      "dirt": 0.498,
-      "width": 0.934,
-      "attack": 0.382,
-      "decay": 0.901,
-      "sustain": 0.805,
-      "release": 0.773,
-      "movement": 0.379
-    }
+    "iconic": true
   },
   "voice.polyphony": 1,
   "voice.legato": true,
@@ -65,8 +36,9 @@
   "osc1.unison_detune": 12,
   "osc1.unison_spread": 0.45,
   "osc1.level": 0.65,
+  "osc1.highpass": 130,
   "osc2.wave": "pulse",
-  "osc2.semi": -12,
+  "osc2.semi": 0,
   "osc2.fine": -5,
   "osc2.pulse_width": 0.3,
   "osc2.wt_pos": 0,
@@ -74,6 +46,7 @@
   "osc2.unison_detune": 15,
   "osc2.unison_spread": 0.5,
   "osc2.level": 0.3,
+  "osc2.highpass": 130,
   "osc2.sync": false,
   "fm.on": true,
   "fm.amount": 0,
@@ -249,5 +222,5 @@
   "eq.high_gain": -2,
   "eq.highcut": 5000,
   "output.gain": -2.5,
-  "output.crossover": 120
+  "output.crossover": 250
 }
