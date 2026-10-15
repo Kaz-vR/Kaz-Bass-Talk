@@ -6,7 +6,7 @@ struct ParamSpec {
   const char* id; const char* label; PType type; double min, max, def; int curve; double exponent;
   const char* unit; const char* group; const char* options; const char* describes;
 };
-constexpr int PARAM_COUNT = 204;
+constexpr int PARAM_COUNT = 206;
 inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "voice.polyphony", "Polyphony", PType::Int, 1, 8, 1, 0, 3, "voices", "voice", "", "1 = monophonic (legato and glide work, the bass default). 2-8 = that many notes at once, for pads, keys and chords; the oldest note is taken over when more are played." },
   { "voice.legato", "Legato", PType::Bool, 0, 1, 0, 0, 3, "", "voice", "", "On: overlapping notes slide without retriggering the envelopes (303-style). Off: every note retriggers." },
@@ -52,6 +52,7 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "sub.wave", "Sub wave", PType::Enum, 0, 1, 0, 0, 3, "", "sub", "sine|triangle", "Sine is pure weight; triangle adds a little audible edge on small speakers." },
   { "sub.octave", "Sub octave", PType::Int, -2, -1, -1, 0, 3, "oct", "sub", "", "Sub pitch below the played note. -1 is the usual; -2 is very deep rumble." },
   { "sub.level", "Sub level", PType::Float, 0, 1, 0.5, 0, 3, "", "sub", "", "Clean mono sub that bypasses filter and distortion. More is heavier low end you feel more than hear." },
+  { "sub.clip", "Sub clip", PType::Float, 0, 12, 0, 0, 3, "dB", "sub", "", "Transparent soft clipper on the sub only: shaves its peaks (about 1.5 dB at 3, 2.5 dB at 6, 4 dB at 12) and adds density, while everything under the knee stays at the same level, so it sounds fuller, not louder. 0 = off." },
   { "noise.level", "Noise level", PType::Float, 0, 1, 0, 2, 2, "", "noise", "", "White noise into the filter for grit, breath and attack texture. Keep low." },
   { "texture.type", "Texture type", PType::Enum, 0, 3, 0, 0, 3, "", "texture", "crackle|dust|rumble|air", "Texture bed under the bass: crackle is vinyl pops, dust is fine grit, rumble is a low dark hum (kept above the sub), air is breathy noise." },
   { "texture.level", "Texture level", PType::Float, 0, 1, 0, 0, 3, "", "texture", "", "How loud the texture bed is. It swells in with each note and lingers for the tail; silent between notes." },
@@ -86,6 +87,7 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "tape.drive", "Tape saturation", PType::Float, 0, 1, 0, 0, 3, "", "tape", "", "Soft, slightly asymmetric tape compression and warmth. Thickens and glues; rounds off transients. Never touches the sub." },
   { "tape.wow", "Tape wow & flutter", PType::Float, 0, 1, 0, 2, 2, "", "tape", "", "Slow, wandering pitch wobble like an old tape machine. A little sounds vintage and alive; a lot sounds warped and seasick (cinematic, LORN-style)." },
   { "tape.age", "Tape age", PType::Float, 0, 1, 0, 0, 3, "", "tape", "", "Worn tape: dulls the top end and adds faint hiss. Dark, dusty, lo-fi." },
+  { "clip.mid", "Mid clip", PType::Float, 0, 12, 0, 0, 3, "dB", "clip", "", "Transparent soft clipper on oscillators 1 and 2 only (after the dirt chain and the amp, before the effects; the sub has its own): shaves spikes and adds density at the same level. 0 = off." },
   { "amp_env.attack", "Amp attack", PType::Float, 0.5, 20000, 2, 1, 3, "ms", "amp_env", "", "Fade-in time. Under 5 ms is punchy; longer is a swell." },
   { "amp_env.decay", "Amp decay", PType::Float, 1, 20000, 300, 1, 3, "ms", "amp_env", "", "Time to fall to the sustain level. Short with low sustain makes a pluck." },
   { "amp_env.sustain", "Amp sustain", PType::Float, 0, 1, 1, 0, 3, "", "amp_env", "", "Level while the key is held. 1 is a held organ-like bass; 0 is a pluck or 808 decay." },

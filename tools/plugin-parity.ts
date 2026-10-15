@@ -1,6 +1,6 @@
 // DEV ONLY. Proves the C++ engine (plugin/) sounds like the TypeScript one:
 // renders presets through both and compares them sample by sample.
-//   npx tsx tools/plugin-parity.ts <path to lowtalk_render> [filter] [--wheel=1]
+//   npx tsx tools/plugin-parity.ts <path to lowtalk_render> [filter] [--wheel=1] [--clip]
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -13,12 +13,15 @@ import { loadLibrary, loadLoops } from './lib/data';
 
 const [bin, filter = ''] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const wheel = Number(process.argv.find((a) => a.startsWith('--wheel='))?.split('=')[1] ?? 0);
+// --clip: also turn both soft clippers up (they're off on most presets).
+const clip = process.argv.includes('--clip');
 const loops = loadLoops();
 const dir = mkdtempSync(join(tmpdir(), 'parity-'));
 const fs = 48000, seconds = 3, tail = 1;
 let worst = -Infinity, fails = 0;
 const lib = loadLibrary().filter((e) => e.file.includes(filter));
 for (const e of lib) {
+  if (clip) Object.assign(e.json, { 'sub.clip': 6, 'clip.mid': 9 });
   const setup = analysisSetup(e.json.meta);
   const loop = loops.get(setup.loop)!;
   const c = compileLoop(loop);

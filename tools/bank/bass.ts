@@ -200,6 +200,90 @@ const def: CategoryDef = {
       set: { 'drive.amount': 0.3, 'dist.drive': 0.1, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'osc2.level': 0, 'fm.amount': 0.25, 'fm.ratio': 1, 'fm.punch': 0.4, 'fm.decay': 200, 'amp_env.attack': 5, 'amp_env.sustain': 0.6, 'amp_env.release': 150, 'sub.level': 0.3, 'filter.cutoff': 1500, 'filter.env_amount': 0, 'voice.velocity': 0.75, 'tape.age': 0.7, 'eq.mid_freq': 300, 'eq.mid_gain': -4.5 },
       mods: kit(BASS_KIT, [], { 'lfo1>filter_cutoff': ['lfo1', 'fm_amount', 0.12], 'random>filter_cutoff': ['random', 'fm_amount', 0.08], 'velocity>filter_cutoff': ['velocity', 'fm_amount', 0.3], 'env2>filter_cutoff': ['env2', 'fm_amount', 0.1] }),
     },
+    // ------------------------------------------------ tone sources the shelf was missing: FM, folding, sync, rhythm, soft drop
+    {
+      id: 'cold-iron', name: 'Cold Iron', audition: 'groove',
+      description: 'A cold, piercing FM stab: an inharmonic clang on every hit over a clean sub, more struck metal than string.',
+      tags: ['bass', 'fm', 'metallic-fm', 'metallic', 'cold', 'stab', 'industrial', 'lorn', 'new'],
+      texture: ['crackle', 0.35, 0.35, 400],
+      set: {
+        'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.32, 'fm.ratio': 3.5, 'fm.punch': 0.7, 'fm.decay': 120, 'fm.feedback': 0.08,
+        'amp_env.attack': 1, 'amp_env.decay': 320, 'amp_env.sustain': 0.15, 'amp_env.release': 110, 'filter.cutoff': 800, 'filter.env_amount': 0.15, 'eq.highcut': 3800,
+        'drive.amount': 0.45, 'dist.type': 'tube', 'dist.drive': 0.3, 'sub.level': 0.5, 'voice.velocity': 0.7, 'clip.mid': 4, 'sub.clip': 3,
+        'chorus.mix': 0.15, 'eq.mid_freq': 300, 'eq.mid_gain': -3,
+      },
+      mods: kit(BASS_KIT, [], {
+        'lfo1>filter_cutoff': ['lfo1', 'fm_amount', 0.1], 'random>filter_cutoff': ['random', 'fm_amount', 0.08],
+        'velocity>filter_cutoff': ['velocity', 'fm_amount', 0.25], 'env2>filter_cutoff': ['env2', 'filter_cutoff', 0.1],
+      }),
+    },
+    {
+      id: 'fold-lung', name: 'Fold Lung', audition: 'dread',
+      description: 'A hollow, folded bass that breathes on its own: the folds open and close slowly, so the overtones keep turning over.',
+      tags: ['bass', 'fold', 'metallic-fm', 'hollow', 'moving', 'glassy', 'dark', 'lorn', 'new'],
+      texture: ['dust', 0.45, 0.35, 600],
+      set: {
+        'osc1.wave': 'triangle', 'osc1.unison_voices': 1, 'dist.type': 'fold', 'dist.drive': 0.45, 'dist.mix': 0.85, 'dist.post_tone': 0.3,
+        'filter.cutoff': 1100, 'filter.env_amount': 0.05, 'filter.resonance': 0.15, 'drive.amount': 0.35,
+        'amp_env.attack': 15, 'amp_env.decay': 800, 'amp_env.sustain': 0.9, 'amp_env.release': 350, 'sub.level': 0.5,
+        'lfo1.shape': 'wander', 'lfo1.rate': 0.23, 'lfo3.shape': 'wander', 'lfo3.rate': 1.7, 'clip.mid': 3, 'sub.clip': 3, 'eq.mid_freq': 300, 'eq.mid_gain': -3,
+      },
+      mods: kit(BASS_KIT, [], {
+        'lfo1>filter_cutoff': ['lfo1', 'dist_drive', 0.3], 'random>filter_cutoff': ['random', 'dist_drive', 0.1],
+        'velocity>filter_cutoff': ['velocity', 'dist_drive', 0.2], 'env2>filter_cutoff': ['lfo3', 'dist_drive', 0.08],
+      }),
+    },
+    {
+      id: 'grinder', name: 'Grinder', audition: 'groove',
+      description: 'An industrial feedback-FM grind with a tritone in its teeth: the hard, cold end of the shelf.',
+      tags: ['bass', 'fm', 'metallic-fm', 'industrial', 'grind', 'aggressive', 'harsh', 'lorn', 'new'],
+      texture: ['crackle', 0.4, 0.4, 500],
+      set: {
+        'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.55, 'fm.ratio': 1, 'fm.feedback': 0.55, 'fm.punch': 0.3, 'fm.decay': 200,
+        'osc2.wave': 'triangle', 'osc2.level': 0.18, 'filter.type': 'diode', 'filter.cutoff': 700, 'filter.resonance': 0.3, 'filter.env_amount': 0.3,
+        'drive.amount': 0.65, 'dist.type': 'hard', 'dist.drive': 0.38, 'dist.mix': 0.6, 'amp_env.sustain': 0.75, 'sub.level': 0.5, 'clip.mid': 6, 'sub.clip': 4,
+        'eq.mid_freq': 300, 'eq.mid_gain': -3.5,
+      },
+      mods: kit(BASS_KIT, [], { 'random>drive': ['random', 'fm_amount', 0.1], 'lfo4>chorus_depth': ['lfo3', 'fm_amount', 0.08] }),
+    },
+    {
+      id: 'tear-line', name: 'Tear Line', audition: 'groove',
+      description: 'A hard-sync bass that tears open on every note: a ripping, vocal sweep over a solid root and a clean sub.',
+      tags: ['bass', 'sync', 'tearing', 'aggressive', 'sweep', 'cyberpunk', 'lorn', 'new'],
+      texture: ['dust', 0.35, 0.4, 400],
+      set: {
+        'osc1.wave': 'pulse', 'osc1.pulse_width': 0.35, 'osc1.unison_voices': 1, 'osc1.level': 0.6, 'osc2.wave': 'saw', 'osc2.sync': true,
+        'filter.cutoff': 1300, 'filter.env_amount': 0.2, 'mod_env.decay': 260, 'mod_env.sustain': 0.15, 'drive.amount': 0.6, 'dist.drive': 0.32,
+        'amp_env.sustain': 0.7, 'sub.level': 0.5, 'clip.mid': 4, 'eq.mid_freq': 300, 'eq.mid_gain': -3,
+      },
+      mods: kit(BASS_KIT, [['velocity', 'filter_cutoff', 0.1]], {
+        'env2>filter_cutoff': ['mod_env', 'osc2_pitch', 0.45], 'lfo1>filter_cutoff': ['lfo1', 'osc2_pitch', 0.06],
+        'random>filter_cutoff': ['random', 'osc2_pitch', 0.05],
+      }),
+    },
+    {
+      id: 'rust-wobble', name: 'Rust Wobble', audition: 'groove',
+      description: 'A detuned reese that wobbles on the quarter notes with the pump: the swing is in time, every swing a little worn and different.',
+      tags: ['bass', 'wobble', 'rhythmic', 'reese', 'pumping', 'dark', 'lorn', 'new'],
+      texture: ['dust', 0.35, 0.35, 500],
+      set: {
+        'osc2.level': 0.4, 'osc2.fine': -9, 'filter.cutoff': 340, 'filter.env_amount': 0.1, 'amp_env.sustain': 0.9, 'amp_env.release': 200,
+        'wobble.depth': 0.55, 'wobble.rate': '1/4', 'wobble.shape': 'saw down', 'wobble.target': 'filter + drive + texture', 'wobble.life': 0.6,
+        'comp.pump': 0.35, 'comp.pump_rate': '1/4', 'sub.clip': 3, 'drive.amount': 0.72, 'dist.drive': 0.4, 'eq.mid_freq': 300, 'eq.mid_gain': -3,
+      },
+    },
+    {
+      id: 'soft-drop', name: 'Soft Drop', audition: 'funk-octaves',
+      description: 'A soft, round sub-pluck that drops gently into each note and is gone: the quiet end of the shelf.',
+      tags: ['bass', 'soft', 'sub', 'pluck', 'short', 'round', 'tender', 'lorn', 'new'],
+      texture: ['dust', 0.35, 0.3, 300],
+      set: {
+        'osc1.wave': 'triangle', 'osc1.unison_voices': 1, 'osc1.level': 0.4, 'drive.amount': 0.25, 'dist.drive': 0.05, 'pitch_env.amount': 5, 'pitch_env.decay': 45,
+        'amp_env.attack': 6, 'amp_env.decay': 280, 'amp_env.sustain': 0, 'amp_env.release': 160, 'filter.cutoff': 500, 'filter.env_amount': 0.2, 'mod_env.decay': 120,
+        'sub.level': 0.65, 'tape.age': 0.65, 'chorus.mix': 0.12, 'reverb.mix': 0.45, 'delay.mix': 0.24,
+      },
+      mods: kit(BASS_KIT, [], { 'lfo1>filter_cutoff': ['lfo1', 'drive', 0.15], 'velocity>filter_cutoff': ['velocity', 'amp', 0.2], 'env2>filter_cutoff': null }),
+    },
   ],
 };
 

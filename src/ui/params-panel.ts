@@ -12,7 +12,7 @@ const LAYERS: Record<string, string> = { osc1: 'osc1', osc2: 'osc2', sub: 'sub',
 
 const GROUP_TITLES: Record<string, string> = {
   voice: 'Voice', osc1: 'Oscillator 1', osc2: 'Oscillator 2', fm: 'FM', sub: 'Sub', noise: 'Noise', texture: 'Texture', drive: 'Drive',
-  string: 'String / Shepard', click: 'Transient', vibrato: 'Vibrato', breath: 'Breath', filter: 'Filter', dist: 'Distortion', crush: 'Bitcrusher', tape: 'Tape', dynamics: 'Dynamics', amp_env: 'Amp envelope', mod_env: 'Mod envelope', pitch_env: 'Pitch envelope',
+  string: 'String / Shepard', click: 'Transient', vibrato: 'Vibrato', breath: 'Breath', filter: 'Filter', dist: 'Distortion', crush: 'Bitcrusher', tape: 'Tape', clip: 'Mid clip', dynamics: 'Dynamics', amp_env: 'Amp envelope', mod_env: 'Mod envelope', pitch_env: 'Pitch envelope',
   env2: 'Env 2 (bloom)', wheel: 'Mod wheel', wobble: 'Wobble', lfo1: 'LFO 1', lfo2: 'LFO 2', lfo3: 'LFO 3', lfo4: 'LFO 4', mod: 'Mod matrix', fx: 'Effects', eq: 'EQ', output: 'Output',
 };
 
@@ -24,7 +24,7 @@ const GROUP_TIPS: Record<string, string> = {
   osc2: 'A second sound source, often an octave or a detuned layer on top of oscillator 1.',
   fm: 'Frequency modulation: one tone wobbling another very fast, for metallic, glassy, bell or growly edges.',
   string: 'Settings for the plucked-string and endless-glide (Shepard) waveforms; only used when an oscillator is set to string or shepard.',
-  sub: 'A clean sine or triangle one or two octaves below, always mono: the weight in the low end.',
+  sub: 'A clean sine or triangle one or two octaves below, always mono: the weight in the low end. Its own transparent clipper adds density without making it louder.',
   noise: 'White noise mixed in before the filter: air, grit and breath in the tone.',
   texture: 'A bed of crackle, dust, rumble or air that plays with the notes and lingers after them: the worn, recorded feel.',
   click: 'A short attack at the start of each note (click, knock, noise or kick) so it cuts through.',
@@ -33,6 +33,7 @@ const GROUP_TIPS: Record<string, string> = {
   dist: 'Distortion after the filter (soft, hard, fold, tube), optionally only on the mids so the low end stays clean.',
   crush: 'Bitcrusher: lowers bit depth and sample rate for digital grain and lo-fi grit.',
   tape: 'Tape machine: saturation, wow and flutter (pitch wobble) and age (a dull, worn top).',
+  clip: 'A transparent soft clipper on oscillators 1 and 2 (after the dirt chain, before the effects): shaves spikes and adds density at the same level. The sub has its own in the Sub box.',
   amp_env: 'Volume over time for each note: attack, decay, sustain and release.',
   mod_env: 'A second envelope that sweeps the filter on each note (set its depth in the Filter box), and a source for the mod matrix.',
   env2: 'A slow envelope for long changes while a note is held (blooming open, swelling grit). Does nothing until routed in the mod matrix.',
@@ -55,7 +56,7 @@ const GROUP_TIPS: Record<string, string> = {
 const SECTIONS: { id: string; title: string; hint: string; groups: string[] }[] = [
   { id: 'play', title: 'Play', hint: 'How it is played: voices, glide, touch, the mod wheel and a player\'s vibrato.', groups: ['voice', 'wheel', 'vibrato'] },
   { id: 'sources', title: 'Sources', hint: 'What makes the sound: oscillators, FM, sub, noise, breath, the attack transient and the pitch at the start of a note.', groups: ['osc1', 'osc2', 'string', 'fm', 'sub', 'noise', 'breath', 'click', 'pitch_env'] },
-  { id: 'tone', title: 'Tone and dirt', hint: 'The fixed chain, left to right: drive → filter → distortion → bitcrusher → tape.', groups: ['drive', 'filter', 'dist', 'crush', 'tape'] },
+  { id: 'tone', title: 'Tone and dirt', hint: 'The fixed chain, left to right: drive → filter → distortion → bitcrusher → tape → mid clip.', groups: ['drive', 'filter', 'dist', 'crush', 'tape', 'clip'] },
   { id: 'shape', title: 'Shape over time', hint: 'Per-note envelopes: volume, the filter sweep and the slow bloom.', groups: ['amp_env', 'mod_env', 'env2'] },
   { id: 'movement', title: 'Movement', hint: 'What keeps it alive: the wobble, four LFOs, the other sources and the matrix that routes them.', groups: ['wobble', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'other', 'mod'] },
   { id: 'space', title: 'Space and finish', hint: 'After the voices, in order: the texture bed, dynamics, effects (chorus → flanger → phaser → delay → reverb) and EQ.', groups: ['texture', 'dynamics', 'fx', 'eq'] },

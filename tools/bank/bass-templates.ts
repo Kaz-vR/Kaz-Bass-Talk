@@ -32,6 +32,7 @@ export const BASS_TEMPLATE: Record<string, BassTemplate> = {
   'tape-sub': 'B', 'hammer-stab': 'B', rebar: 'B', 'neon-octave': 'B', 'rubber-night': 'B',
   'basement-pulse': 'C',
   'iron-wobble': 'D',
+  'cold-iron': 'F', 'fold-lung': 'F', grinder: 'G', 'tear-line': 'B', 'rust-wobble': 'A', 'soft-drop': 'E',
   'kick-below': 'E',
   'upright-ghost': 'F', 'velvet-thump': 'F', 'felt-floor': 'F', 'round-pulse': 'F', 'glass-floor': 'F',
   // Terror (tools/build-terror.ts)

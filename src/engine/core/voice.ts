@@ -10,7 +10,7 @@
 // parameters, LFOs and drift sources, the texture bed and the FX chain.
 // Pure TypeScript, allocation-free after construction.
 
-import { Biquad, clamp, Envelope, Ladder, Rng, softClip, Svf, TWO_PI } from './dsp';
+import { Biquad, clamp, Clipper, Envelope, Ladder, Rng, Svf, TWO_PI } from './dsp';
 import { Crusher, Tape } from './fx';
 import { Downsampler2x, OVERSAMPLE_LATENCY, Upsampler2x } from './oversample';
 import * as K from './params';
@@ -160,8 +160,9 @@ export class Voice {
   private subLevel = 0;
   private subWave = 0;
   // Soft clippers (knee as a fraction of the nominal peak; 0 = off): sub only, and osc 1 + 2 only.
-  private subClipT = 0;
-  private midClipT = 0;
+  private readonly subClip: Clipper;
+  private readonly midClip: Clipper;
+  private readonly clipOut = new Float64Array(2);
   // Oscillator high-pass before the drive (24 dB/oct, per oscillator; 20 Hz = off).
   private readonly oscHp = [0, 1].map(() => [new Biquad(), new Biquad(), new Biquad(), new Biquad()]);
   private readonly oscHpOn = [false, false];
@@ -251,6 +252,8 @@ export class Voice {
     this.combR = new Comb(Math.ceil((fs * OS) / 20));
     this.strings = [new KarplusString(Math.ceil(fs / 15)), new KarplusString(Math.ceil(fs / 15))];
     this.tape = new Tape(fs);
+    this.subClip = new Clipper(fs);
+    this.midClip = new Clipper(fs);
     this.voiceDcL.setHighpass(VOICE_DC_HZ, Math.SQRT1_2, fs);
     this.voiceDcR.setHighpass(VOICE_DC_HZ, Math.SQRT1_2, fs);
   }
@@ -368,6 +371,8 @@ export class Voice {
     this.breathSvf.reset();
     this.crusher.reset();
     this.tape.reset();
+    this.subClip.reset();
+    this.midClip.reset();
     this.subDelay.fill(0);
     for (const hp of this.oscHp) for (const f of hp) f.reset();
     this.tail = 0;
@@ -665,9 +670,9 @@ export class Voice {
     }
 
     // Clippers: the drive (dB) lowers the knee; the curve above it is half as tall as the
-    // distance from the knee to the nominal peak (about 1.5 dB peak reduction at 3 dB drive).
-    this.subClipT = cur[P.subClip] > 0 ? Math.pow(10, -cur[P.subClip] / 20) : 0;
-    this.midClipT = cur[P.midClip] > 0 ? Math.pow(10, -cur[P.midClip] / 20) : 0;
+    // distance from the knee to the nominal peak; an automatic level match keeps the loudness.
+    this.subClip.setDrive(cur[P.subClip]);
+    this.midClip.setDrive(cur[P.midClip]);
 
     // Amp.
     const ampTarget = clamp(1 + dst[D.AMP], 0, 2);
@@ -1027,11 +1032,10 @@ export class Voice {
 
       // Mid clip (osc 1 + 2 only), against the voice's nominal peak (the dirt chain
       // typically peaks at 0.7-1 of the amp's gain, so 0.8 of it).
-      if (this.midClipT > 0) {
-        const c = MID_CLIP_REF * this.ampMod * VOICE_GAIN * this.velGain;
-        const t = this.midClipT * c, w = 0.5 * (c - t);
-        l = softClip(l, t, w);
-        r = softClip(r, t, w);
+      if (this.midClip.knee > 0) {
+        this.midClip.process(l, r, MID_CLIP_REF * this.ampMod * VOICE_GAIN * this.velGain, this.clipOut);
+        l = this.clipOut[0];
+        r = this.clipOut[1];
       }
 
       // Attack transient layer (bypasses the filter so it stays crisp).
@@ -1054,10 +1058,9 @@ export class Voice {
         else sub = sp < 0.25 ? 4 * sp : sp < 0.75 ? 2 - 4 * sp : 4 * sp - 4;
         sub *= this.subLevel * amp * this.subMix;
         // Sub clip, against the sub's nominal peak (its level at full envelope).
-        if (this.subClipT > 0) {
-          const c = this.subLevel * this.velGain;
-          const t = this.subClipT * c;
-          sub = softClip(sub, t, 0.5 * (c - t));
+        if (this.subClip.knee > 0) {
+          this.subClip.process(sub, 0, this.subLevel * this.velGain, this.clipOut);
+          sub = this.clipOut[0];
         }
       } else {
         this.subPhase += this.subInc;

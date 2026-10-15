@@ -136,6 +136,15 @@ function renderBrowser(): void {
         : 'A LORN version of an iconic sound from synthwave, cyberpunk, Vangelis or Stranger Things';
       name.append(tag);
     }
+    const tpl = (p.meta.tags as string[] | undefined)?.find((t) => t in BASS_TEMPLATES);
+    if (tpl) {
+      const [label, tip] = BASS_TEMPLATES[tpl];
+      const tag = document.createElement('em');
+      tag.className = 'iconic-tag tpl';
+      tag.textContent = label;
+      tag.title = tip;
+      name.append(tag);
+    }
     if ((p.meta.tags as string[] | undefined)?.includes('new')) {
       const tag = document.createElement('em');
       tag.className = 'iconic-tag new';
@@ -150,6 +159,17 @@ function renderBrowser(): void {
     list.append(card);
   }
 }
+
+/** The dark bass octave templates (tools/bank/bass-templates.ts), shown as a label next to the name. */
+const BASS_TEMPLATES: Record<string, [string, string]> = {
+  'heavy-reese': ['Heavy Reese', 'Template A: sub -1 oct, osc 1 and 2 at the root, slightly detuned so they beat'],
+  'cinematic-screamer': ['Cinematic Screamer', 'Template B: sub -1 oct, osc 1 at the root, osc 2 an octave up and a few dB under it'],
+  'ominous-fifth': ['Ominous Fifth', 'Template C: sub -1 oct, osc 1 at the root, osc 2 a fifth up, dark and tape-saturated'],
+  'deep-rumble': ['Deep Rumble', 'Template D: sub -2 oct, osc 1 an octave down, osc 2 at the root high-passed at 200 Hz'],
+  '808-thump': ['808 Thump', 'Template E: the sub carries the note and its pitch drop, osc 1 adds grit, osc 2 off'],
+  'single-body': ['Single Body', 'Template F: sub -1 oct and one oscillator at the root, osc 2 off'],
+  'tritone-bass': ['Tritone Bass', 'Template G: sub -1 oct, osc 1 at the root, osc 2 a tritone (+6) up'],
+};
 
 // ---------------------------------------------------------------- randomizer
 

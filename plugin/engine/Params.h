@@ -113,7 +113,7 @@ struct ParamIndex {
   Osc osc[2];
   int fmAmount, fmRatio, fmPunch, fmDecay, fmFb, fm2Amount, fm2Ratio, fmAlgo;
   int strTone, strDecay, shepRate, accent, ampCurve, chorusMode;
-  int clickType, clickLevel, clickDecay, clickTone, subWave, subOct, subLevel, noise, drive;
+  int clickType, clickLevel, clickDecay, clickTone, subWave, subOct, subLevel, subClip, midClip, noise, drive;
   int texType, texLevel, texTone, texTail, texPosition;
   int fType, cutoff, res, keytrack, envAmt, vowel;
   int dType, dDrive, dMix, dTone, dSplit, crushMix, crushBits, crushRate, tapeDrive, tapeWow, tapeAge;
@@ -142,7 +142,7 @@ struct ParamIndex {
     strTone = ix("string.tone"); strDecay = ix("string.decay"); shepRate = ix("shepard.rate");
     accent = ix("filter.accent"); ampCurve = ix("amp_env.attack_curve"); chorusMode = ix("chorus.mode");
     clickType = ix("click.type"); clickLevel = ix("click.level"); clickDecay = ix("click.decay"); clickTone = ix("click.tone");
-    subWave = ix("sub.wave"); subOct = ix("sub.octave"); subLevel = ix("sub.level"); noise = ix("noise.level"); drive = ix("drive.amount");
+    subWave = ix("sub.wave"); subOct = ix("sub.octave"); subLevel = ix("sub.level"); subClip = ix("sub.clip"); midClip = ix("clip.mid"); noise = ix("noise.level"); drive = ix("drive.amount");
     texType = ix("texture.type"); texLevel = ix("texture.level"); texTone = ix("texture.tone"); texTail = ix("texture.tail"); texPosition = ix("texture.position");
     fType = ix("filter.type"); cutoff = ix("filter.cutoff"); res = ix("filter.resonance"); keytrack = ix("filter.keytrack");
     envAmt = ix("filter.env_amount"); vowel = ix("filter.vowel");

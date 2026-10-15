@@ -16,6 +16,7 @@
 
 namespace lt {
 
+constexpr double MID_CLIP_REF = 0.8;
 constexpr double UNISON_SKEW[7] = {0, 0.19, -0.13, 0.08, -0.17, 0.11, 0};
 
 struct OscState {
@@ -49,7 +50,7 @@ class Voice {
   Voice(double fs_, const double* cur_, const float* table_, uint32_t seed, const double* dstMask_)
       : fs(fs_), cur(cur_), table(table_), rng(seed), dstMask(dstMask_),
         combL((int)std::ceil((fs_ * OS) / 20)), combR((int)std::ceil((fs_ * OS) / 20)),
-        strings{KarplusString((int)std::ceil(fs_ / 15)), KarplusString((int)std::ceil(fs_ / 15))}, tape(fs_) {
+        strings{KarplusString((int)std::ceil(fs_ / 15)), KarplusString((int)std::ceil(fs_ / 15))}, tape(fs_), subClip(fs_), midClip(fs_) {
     subRamp = 1 / (0.01 * fs);
     voiceDcL.setHighpass(VOICE_DC_HZ, SQRT1_2, fs);
     voiceDcR.setHighpass(VOICE_DC_HZ, SQRT1_2, fs);
@@ -157,6 +158,8 @@ class Voice {
     breathSvf.reset();
     crusher.reset();
     tape.reset();
+    subClip.reset();
+    midClip.reset();
     subDelay.fill(0);
     for (auto& hp : oscHp)
       for (auto& f : hp) f.reset();
@@ -416,6 +419,9 @@ class Voice {
       lastTapeAge = cur[P.tapeAge];
     }
 
+    subClip.setDrive(cur[P.subClip]);
+    midClip.setDrive(cur[P.midClip]);
+
     const double ampTarget = clampd(1 + dst[D_AMP], 0, 2);
     ampModStep = (ampTarget - ampMod) / CONTROL_BLOCK;
     velGain = (1 - cur[P.velocity] * (1 - velocity)) * (1 + 0.4 * accentAmt);
@@ -567,6 +573,13 @@ class Voice {
       l *= va;
       r *= va;
 
+      if (midClip.knee > 0) {
+        double co[2];
+        midClip.process(l, r, MID_CLIP_REF * ampMod * VOICE_GAIN * velGain, co);
+        l = co[0];
+        r = co[1];
+      }
+
       if (clickLevel > 0) {
         const double c = transient.process() * clickLevel * velGain * duck * VOICE_GAIN * 1.5;
         l += c;
@@ -584,6 +597,11 @@ class Voice {
         if (subWave == 0) sub = std::sin(TWO_PI * sp);
         else sub = sp < 0.25 ? 4 * sp : sp < 0.75 ? 2 - 4 * sp : 4 * sp - 4;
         sub *= subLevel * amp * subMix;
+        if (subClip.knee > 0) {
+          double co[2];
+          subClip.process(sub, 0, subLevel * velGain, co);
+          sub = co[0];
+        }
       } else {
         subPhase += subInc;
         if (subPhase >= 1) subPhase -= 1;
@@ -667,6 +685,7 @@ class Voice {
   Crusher crusher;
   double crushQ = 128, crushRate = 1, crushMix = 0;
   Tape tape;
+  Clipper subClip, midClip;
   double tapeWow = 0, lastTapeAge = -1;
   bool tapeOn = false;
 

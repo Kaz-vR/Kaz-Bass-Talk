@@ -226,7 +226,9 @@ const TP_TAPS: Float64Array[] = [0.25, 0.5, 0.75].map((f) => {
 
 export class Limiter {
   readonly ceiling: number;
+  /** Total delay through the limiter is lookahead - 1 samples (the detector's delay comes out of the window). */
   readonly lookahead: number;
+  private readonly win: number;
   // Last 8 inputs per channel for the true-peak detector.
   private histL = new Float64Array(8);
   private histR = new Float64Array(8);
@@ -254,8 +256,9 @@ export class Limiter {
 
   constructor(fs: number, ceilingDb = -1, lookaheadMs = 1.5, releaseMs = 150, holdMs = 55) {
     this.ceiling = Math.pow(10, ceilingDb / 20);
-    this.lookahead = Math.max(2, Math.round((lookaheadMs * fs) / 1000));
-    const L = this.lookahead;
+    this.lookahead = Math.max(2 + TP_DELAY, Math.round((lookaheadMs * fs) / 1000));
+    this.win = this.lookahead - TP_DELAY;
+    const L = this.win;
     this.delayL = new Float64Array(L + TP_DELAY);
     this.delayR = new Float64Array(L + TP_DELAY);
     this.qCap = L + 2;
@@ -273,14 +276,14 @@ export class Limiter {
     this.histL.fill(0);
     this.histR.fill(0);
     this.box.fill(1);
-    this.boxSum = this.lookahead;
+    this.boxSum = this.win;
     this.qHead = this.qTail = 0;
     this.gain = 1;
     this.holdCount = 0;
   }
 
   process(l: number, r: number, out: Float64Array): void {
-    const L = this.lookahead;
+    const L = this.win;
     // True peak: the sample TP_DELAY back and the three points interpolated after it,
     // so peaks between samples (which a DAC or a converter would reconstruct) are caught too.
     const hp = this.hPos;

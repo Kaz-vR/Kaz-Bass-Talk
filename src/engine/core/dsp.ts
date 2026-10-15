@@ -15,6 +15,42 @@ export function softClip(x: number, t: number, w: number): number {
   return x < 0 ? -y : y;
 }
 
+/**
+ * A transparent soft clipper with automatic level matching: it compares the loudness going in
+ * and coming out (300 ms power followers) and makes up the difference, so switching it on
+ * sounds denser and fuller, not quieter or louder. Knee = drive below the nominal peak.
+ */
+export class Clipper {
+  private pin = 1e-12;
+  private pout = 1e-12;
+  private readonly a: number;
+  knee = 0;
+
+  constructor(fs: number) {
+    this.a = 1 - Math.exp(-1 / (0.3 * fs));
+  }
+
+  setDrive(driveDb: number): void {
+    this.knee = driveDb > 0 ? Math.pow(10, -driveDb / 20) : 0;
+  }
+
+  reset(): void {
+    this.pin = this.pout = 1e-12;
+  }
+
+  /** Clip l/r against nominal peak c (mono power for the level match); writes into out. */
+  process(l: number, r: number, c: number, out: Float64Array): void {
+    const t = this.knee * c, w = 0.5 * (c - t);
+    const yl = softClip(l, t, w), yr = softClip(r, t, w);
+    this.pin += (l * l + r * r - this.pin) * this.a;
+    this.pout += (yl * yl + yr * yr - this.pout) * this.a;
+    let g = Math.sqrt(this.pin / this.pout);
+    g = g < 1 ? 1 : g > 2 ? 2 : g;
+    out[0] = yl * g;
+    out[1] = yr * g;
+  }
+}
+
 export function clamp(x: number, lo: number, hi: number): number {
   return x < lo ? lo : x > hi ? hi : x;
 }

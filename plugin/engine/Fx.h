@@ -171,7 +171,10 @@ class Phaser {
   double aL = 0, aR = 0, stepL = 0, stepR = 0;
 };
 
-/** Transparent look-ahead peak limiter (stereo-linked, always on). */
+/** Delay of the limiter's true-peak detector (samples). */
+constexpr int TP_DELAY = 4;
+
+/** Transparent look-ahead peak limiter (stereo-linked, always on), with true-peak detection. */
 class Limiter {
  public:
   double ceiling;
@@ -180,10 +183,23 @@ class Limiter {
 
   Limiter(double fs, double ceilingDb = -1, double lookaheadMs = 1.5, double releaseMs = 150, double holdMs = 55) {
     ceiling = std::pow(10.0, ceilingDb / 20);
-    lookahead = (int)std::fmax(2, jsRound((lookaheadMs * fs) / 1000));
-    const int L = lookahead;
-    delayL.assign(L, 0.0);
-    delayR.assign(L, 0.0);
+    lookahead = (int)std::fmax(2 + TP_DELAY, jsRound((lookaheadMs * fs) / 1000));
+    win = lookahead - TP_DELAY;
+    const int L = win;
+    delayL.assign(L + TP_DELAY, 0.0);
+    delayR.assign(L + TP_DELAY, 0.0);
+    const double fs3[3] = {0.25, 0.5, 0.75};
+    for (int p = 0; p < 3; p++) {
+      double sum = 0;
+      for (int i = 0; i < 8; i++) {
+        const double x = fs3[p] - (i - 3);
+        const double sinc = std::sin(PI * x) / (PI * x);
+        const double w = 0.5 + 0.5 * std::cos((PI * x) / 4.5);
+        taps[p][i] = sinc * w;
+        sum += taps[p][i];
+      }
+      for (int i = 0; i < 8; i++) taps[p][i] /= sum;
+    }
     qCap = L + 2;
     qVal.assign(qCap, 0.0);
     qIdx.assign(qCap, 0.0);
@@ -195,15 +211,32 @@ class Limiter {
   void reset() {
     std::fill(delayL.begin(), delayL.end(), 0.0);
     std::fill(delayR.begin(), delayR.end(), 0.0);
+    for (int i = 0; i < 8; i++) histL[i] = histR[i] = 0;
     std::fill(box.begin(), box.end(), 1.0);
-    boxSum = lookahead;
+    boxSum = win;
     qHead = qTail = 0;
     gain = 1;
     holdCount = 0;
   }
   void process(double l, double r, double* out) {
-    const int L = lookahead;
-    const double peak = std::fmax(std::fabs(l), std::fabs(r));
+    const int L = win;
+    const int hp = hPos;
+    histL[hp] = l;
+    histR[hp] = r;
+    hPos = (hp + 1) & 7;
+    double peak = std::fmax(std::fabs(histL[(hp + 4) & 7]), std::fabs(histR[(hp + 4) & 7]));
+    for (int ph = 0; ph < 3; ph++) {
+      double al = 0, ar = 0;
+      for (int i = 0; i < 8; i++) {
+        const int j = (hp + 1 + i) & 7;
+        al += taps[ph][i] * histL[j];
+        ar += taps[ph][i] * histR[j];
+      }
+      if (al < 0) al = -al;
+      if (ar < 0) ar = -ar;
+      if (al > peak) peak = al;
+      if (ar > peak) peak = ar;
+    }
     const double req = peak > ceiling ? ceiling / peak : 1;
     const int cap = qCap;
     while (qTail != qHead && qVal[(qTail - 1 + cap) % cap] >= req) qTail = (qTail - 1 + cap) % cap;
@@ -236,7 +269,7 @@ class Limiter {
     const double dr = delayR[dPos];
     delayL[dPos] = l;
     delayR[dPos] = r;
-    dPos = dPos + 1 == L - 1 ? 0 : dPos + 1;
+    dPos = dPos + 1 == L - 1 + TP_DELAY ? 0 : dPos + 1;
     const double c = ceiling;
     const double yl = dl * gain, yr = dr * gain;
     out[0] = yl > c ? c : yl < -c ? -c : yl;
@@ -244,6 +277,8 @@ class Limiter {
   }
  private:
   std::vector<double> delayL, delayR, qVal, qIdx, box;
+  double histL[8] = {}, histR[8] = {}, taps[3][8] = {};
+  int hPos = 0, win = 2;
   int dPos = 0, qHead = 0, qTail = 0, qCap = 0, boxPos = 0, holdSamples = 0, holdCount = 0;
   long long n = 0;
   double boxSum = 0, gain = 1, release = 0;

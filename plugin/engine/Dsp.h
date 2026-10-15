@@ -11,6 +11,36 @@ constexpr double TWO_PI = PI * 2;
 constexpr double SQRT2 = 1.4142135623730951;
 constexpr double SQRT1_2 = 0.7071067811865476;
 
+/** Transparent peak soft clipper: identity up to the knee t, then a tanh curve toward t + w. */
+inline double softClip(double x, double t, double w) {
+  const double a = x < 0 ? -x : x;
+  if (a <= t) return x;
+  const double y = t + w * std::tanh((a - t) / w);
+  return x < 0 ? -y : y;
+}
+
+/** Transparent soft clipper with automatic level matching (see dsp.ts Clipper). */
+class Clipper {
+ public:
+  double knee = 0;
+  explicit Clipper(double fs) : a(1 - std::exp(-1 / (0.3 * fs))) {}
+  void setDrive(double driveDb) { knee = driveDb > 0 ? std::pow(10.0, -driveDb / 20) : 0; }
+  void reset() { pin = pout = 1e-12; }
+  void process(double l, double r, double c, double* out) {
+    const double t = knee * c, w = 0.5 * (c - t);
+    const double yl = softClip(l, t, w), yr = softClip(r, t, w);
+    pin += (l * l + r * r - pin) * a;
+    pout += (yl * yl + yr * yr - pout) * a;
+    double g = std::sqrt(pin / pout);
+    g = g < 1 ? 1 : g > 2 ? 2 : g;
+    out[0] = yl * g;
+    out[1] = yr * g;
+  }
+
+ private:
+  double pin = 1e-12, pout = 1e-12, a;
+};
+
 inline double clampd(double x, double lo, double hi) { return x < lo ? lo : x > hi ? hi : x; }
 
 /** JavaScript Math.round: halves round up (towards +infinity). */
