@@ -239,6 +239,12 @@ export class Biquad {
     this.set((1 - c) / 2, 1 - c, (1 - c) / 2, 1 + al, -2 * c, 1 - al);
   }
 
+  setBandpass(fc: number, q: number, fs: number): void {
+    const w = (TWO_PI * fc) / fs;
+    const c = Math.cos(w), al = Math.sin(w) / (2 * q);
+    this.set(al, 0, -al, 1 + al, -2 * c, 1 - al);
+  }
+
   setLowShelf(fc: number, db: number, fs: number): void {
     const A = Math.pow(10, db / 40);
     const w = (TWO_PI * fc) / fs;
@@ -278,6 +284,70 @@ export class Biquad {
     this.set(1 + al * A, -2 * c, 1 - al * A, 1 + al / A, -2 * c, 1 - al / A);
   }
 }
+
+/** Filter kinds of a source's own filter slot. */
+export const SLOT_OFF = 0, SLOT_HP = 1, SLOT_LP = 2, SLOT_BP = 3;
+/** 4th-order Butterworth stage Qs (as the oscillator high-pass always used). */
+const BW4_Q = [0.5412, 1.3066];
+
+/**
+ * A source's own filter (oscillators, sub, texture bed): high-, low- or band-pass at 12 or
+ * 24 dB/oct, on 1 or 2 channels. It switches itself off where it would do nothing (a
+ * high-pass at 20 Hz, a low-pass at 20 kHz), so an unused slot costs nothing.
+ */
+export class SlotFilter {
+  active = false;
+  private readonly f: Biquad[];
+  private stages = 2;
+  private kind = SLOT_OFF;
+  private fc = -1;
+
+  constructor(private readonly channels: number) {
+    this.f = Array.from({ length: 2 * channels }, () => new Biquad());
+  }
+
+  reset(): void {
+    for (const b of this.f) b.reset();
+  }
+
+  set(kind: number, poles24: boolean, fc: number, fs: number): void {
+    const on = kind === SLOT_HP ? fc > 21 : kind === SLOT_LP ? fc < 19000 : kind === SLOT_BP;
+    if (!on) {
+      if (this.active) this.reset();
+      this.active = false;
+      this.fc = -1;
+      return;
+    }
+    const stages = kind === SLOT_BP ? 1 : poles24 ? 2 : 1;
+    if (this.active && kind === this.kind && stages === this.stages && fc === this.fc) return;
+    if (!this.active || kind !== this.kind) this.reset();
+    this.active = true;
+    this.kind = kind;
+    this.stages = stages;
+    this.fc = fc;
+    const f = Math.min(fc, fs * 0.45);
+    for (let ch = 0; ch < this.channels; ch++) {
+      for (let i = 0; i < stages; i++) {
+        const q = stages === 2 ? BW4_Q[i] : Math.SQRT1_2;
+        const b = this.f[2 * ch + i];
+        if (kind === SLOT_HP) b.setHighpass(f, q, fs);
+        else if (kind === SLOT_LP) b.setLowpass(f, q, fs);
+        else b.setBandpass(f, 1, fs);
+      }
+    }
+  }
+
+  process(x: number, ch = 0): number {
+    const b = 2 * ch;
+    x = this.f[b].process(x);
+    return this.stages === 2 ? this.f[b + 1].process(x) : x;
+  }
+}
+
+/** Slot kind and slope for the oscillators' filter types: high 24, high 12, low 24, low 12, band. */
+export const OSC_SLOT: [number, boolean][] = [[SLOT_HP, true], [SLOT_HP, false], [SLOT_LP, true], [SLOT_LP, false], [SLOT_BP, false]];
+/** ... and for the sub's and the texture bed's: off, low 12, low 24, high 12, high 24, band. */
+export const AUX_SLOT: [number, boolean][] = [[SLOT_OFF, false], [SLOT_LP, false], [SLOT_LP, true], [SLOT_HP, false], [SLOT_HP, true], [SLOT_BP, false]];
 
 /** ADSR with analog-style exponential segments. Times are in ms. */
 export class Envelope {

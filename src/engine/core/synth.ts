@@ -27,7 +27,7 @@
 // the mod matrix runs per voice, and FX targets follow the newest voice.
 
 import { PARAM_COUNT, params } from '../../schema';
-import { Biquad, clamp, Rng, TWO_PI } from './dsp';
+import { AUX_SLOT, Biquad, clamp, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
 import { Chorus, Compressor, Delay, Flanger, Limiter, Ott, Phaser, Reverb } from './fx';
 import { OVERSAMPLE_LATENCY } from './oversample';
 import * as K from './params';
@@ -115,6 +115,18 @@ export class Synth {
 
   // Texture bed: follows the notes with its own tail; added after the voices so it can outlast them.
   private readonly texture = new Texture();
+  // The bed's own filter, its copy of the main filter (N), pan and direct out.
+  private readonly texF = new SlotFilter(2);
+  private readonly texNL = new Svf();
+  private readonly texNR = new Svf();
+  private texRouteN = false;
+  private texNG = 0.1;
+  private texNK = 1.4;
+  private texNMode = 0; // 0 low, 1 band, 2 notch
+  private texPanOn = false;
+  private texPanL = 1;
+  private texPanR = 1;
+  private texDirect = false;
   private texEnv = 0;
   private texGain = 0;
   private texType = 0;
@@ -692,6 +704,33 @@ export class Synth {
     this.texAtk = 1 - Math.exp(-1 / (Math.max(0.03, cur[P.amp[0]] / 3000) * fs));
     this.texRel = Math.exp(-4.6 / ((cur[P.texTail] / 1000) * fs));
     this.texLpCoef = lead.tapeLpCoef;
+    {
+      const [kind, p24] = AUX_SLOT[cur[P.texFType]] ?? AUX_SLOT[0];
+      let hz = cur[P.texFCut];
+      if (cur[P.texFKey] > 0.5) hz *= Math.pow(2, (lead.pitch + 12 * cur[P.octave] - K.KEYTRACK_CENTER) / 12);
+      this.texF.set(kind, p24, hz, fs);
+    }
+    const routeN = cur[P.routeN] > 0.5;
+    if (routeN && !this.texRouteN) {
+      this.texNL.reset();
+      this.texNR.reset();
+    }
+    this.texRouteN = routeN;
+    if (routeN) {
+      // A copy of the main filter that follows the newest note (the bed is shared by all voices).
+      this.texNG = Math.tan((Math.PI * Math.min(lead.fcNow, fs * 0.45)) / fs);
+      this.texNK = 2 - 1.85 * lead.resNow;
+      const t = Math.round(cur[P.fType]);
+      this.texNMode = t === K.FILTER_BP || t === 2 ? 1 : t === K.FILTER_NOTCH ? 2 : 0;
+    }
+    const pan = cur[P.texPan];
+    this.texPanOn = pan !== 0;
+    if (this.texPanOn) {
+      const a = ((pan + 1) * Math.PI) / 4;
+      this.texPanL = Math.cos(a) * Math.SQRT2;
+      this.texPanR = Math.sin(a) * Math.SQRT2;
+    }
+    this.texDirect = cur[P.texDirect] > 0.5;
 
     // Dynamics: compressor with a tempo pump, then multiband OTT.
     this.beatPos += (this.tempo / 60) * (BLOCK / fs);
@@ -842,6 +881,22 @@ export class Synth {
           tl = this.texLpL;
           tr = this.texLpR;
         }
+        if (this.texF.active) {
+          tl = this.texF.process(tl, 0);
+          tr = this.texF.process(tr, 1);
+        }
+        if (this.texRouteN) {
+          const g = this.texNG, k = this.texNK;
+          this.texNL.process(tl, g, k);
+          this.texNR.process(tr, g, k);
+          const m = this.texNMode;
+          tl = m === 1 ? this.texNL.bp : m === 2 ? this.texNL.lp + this.texNL.hp : this.texNL.lp;
+          tr = m === 1 ? this.texNR.bp : m === 2 ? this.texNR.lp + this.texNR.hp : this.texNR.lp;
+        }
+        if (this.texPanOn) {
+          tl *= this.texPanL;
+          tr *= this.texPanR;
+        }
         const tg = this.texGain * this.texEnv * this.duckGain * this.texMon;
         texL = tl * tg;
         texR = tr * tg;
@@ -850,7 +905,9 @@ export class Synth {
       }
       // Before dynamics the bed is compressed and pumps with the sound; after, it stays steady.
       const texPost = cur[P.texPosition] > 0.5;
-      if (!texPost) {
+      // Direct out: the bed joins the clean sub after every effect.
+      const texDirect = this.texDirect;
+      if (!texDirect && !texPost) {
         l += texL;
         r += texR;
       }
@@ -866,7 +923,7 @@ export class Synth {
         l = out[0];
         r = out[1];
       }
-      if (texPost) {
+      if (texPost && !texDirect) {
         l += texL;
         r += texR;
       }
@@ -923,6 +980,10 @@ export class Synth {
       // The clean sub joins here, after every effect, before the output's safety stages.
       l += sub;
       r += sub;
+      if (texDirect) {
+        l += texL;
+        r += texR;
+      }
 
       // Subsonic / DC filter.
       l = this.dcL[1].process(this.dcL[0].process(l));

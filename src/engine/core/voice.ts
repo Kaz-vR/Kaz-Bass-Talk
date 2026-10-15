@@ -10,7 +10,7 @@
 // parameters, LFOs and drift sources, the texture bed and the FX chain.
 // Pure TypeScript, allocation-free after construction.
 
-import { Biquad, clamp, Clipper, Envelope, Ladder, Rng, Svf, TWO_PI } from './dsp';
+import { AUX_SLOT, Biquad, clamp, Clipper, Envelope, Ladder, OSC_SLOT, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
 import { Crusher, Tape } from './fx';
 import { Downsampler2x, OVERSAMPLE_LATENCY, Upsampler2x } from './oversample';
 import * as K from './params';
@@ -23,7 +23,21 @@ const P = K.P;
 const CONTROL_BLOCK = K.CONTROL_BLOCK, MAX_UNISON = K.MAX_UNISON, OS = K.OS, SAW_FRAME = K.SAW_FRAME;
 const KEYTRACK_CENTER = K.KEYTRACK_CENTER, VOICE_DC_HZ = K.VOICE_DC_HZ;
 const MID_CLIP_REF = 0.8;
+/** polyBLEP residual for a unit step at phase 0 (t in 0..1, dt = phase increment). */
+function polyBlep(t: number, dt: number): number {
+  if (t < dt) {
+    const x = t / dt;
+    return x + x - x * x - 1;
+  }
+  if (t > 1 - dt) {
+    const x = (t - 1) / dt;
+    return x * x + x + x + 1;
+  }
+  return 0;
+}
 const PRE_FILTER_GAIN = K.PRE_FILTER_GAIN, POST_FILTER_GAIN = K.POST_FILTER_GAIN, VOICE_GAIN = K.VOICE_GAIN, SUB_GAIN = K.SUB_GAIN;
+/** The sub routed into the main filter arrives at about the level the clean path would have had. */
+const SUB_ROUTE_GAIN = 1 / (VOICE_GAIN * PRE_FILTER_GAIN * POST_FILTER_GAIN);
 const WAVE_SINE = K.WAVE_SINE, WAVE_TRI = K.WAVE_TRI, WAVE_SAW = K.WAVE_SAW, WAVE_PULSE = K.WAVE_PULSE, WAVE_PWMSAW = K.WAVE_PWMSAW;
 const WAVE_STRING = K.WAVE_STRING, WAVE_SHEPARD = K.WAVE_SHEPARD;
 const FILTER_LP = K.FILTER_LP, FILTER_BP = K.FILTER_BP, FILTER_DIODE = K.FILTER_DIODE, FILTER_NOTCH = K.FILTER_NOTCH;
@@ -90,6 +104,9 @@ export class Voice {
   gate = false;
   /** Trigger order (higher = newer), for voice stealing and "newest voice" FX targets. */
   order = 0;
+  /** The main filter's current cutoff (Hz) and resonance, for the texture bed's copy of it. */
+  fcNow = 1000;
+  resNow = 0;
   /** Samples left to drain the sub delay line after the amp envelope ends. */
   tail = 0;
   private hasPlayed = false;
@@ -164,9 +181,23 @@ export class Voice {
   private readonly midClip: Clipper;
   private readonly clipOut = new Float64Array(2);
   // Oscillator high-pass before the drive (24 dB/oct, per oscillator; 20 Hz = off).
-  private readonly oscHp = [0, 1].map(() => [new Biquad(), new Biquad(), new Biquad(), new Biquad()]);
-  private readonly oscHpOn = [false, false];
-  private readonly lastOscHp = [-1, -1];
+  // Each oscillator's own filter slot (high-pass by default), the sub's, and the routing into the main filter.
+  private readonly oscF = [new SlotFilter(2), new SlotFilter(2)];
+  private readonly subF = new SlotFilter(1);
+  private routeA = true;
+  private routeB = true;
+  private routeS = false;
+  private subDirect = true;
+  /** Some source skips the drive and main filter: it gets its own oversampled path. */
+  private bypassOn = false;
+  private readonly upBL = new Upsampler2x();
+  private readonly upBR = new Upsampler2x();
+  // Filter fat (low shelf + saturation after the filter) and mix (dry/filtered).
+  private fat = 0;
+  private fatDrive = 1;
+  private fMix = 1;
+  private readonly fatL = new Biquad();
+  private readonly fatR = new Biquad();
   private noiseLevel = 0;
 
   // Drive + filter.
@@ -374,7 +405,12 @@ export class Voice {
     this.subClip.reset();
     this.midClip.reset();
     this.subDelay.fill(0);
-    for (const hp of this.oscHp) for (const f of hp) f.reset();
+    for (const f of this.oscF) f.reset();
+    this.subF.reset();
+    this.upBL.reset();
+    this.upBR.reset();
+    this.fatL.reset();
+    this.fatR.reset();
     this.tail = 0;
   }
 
@@ -544,16 +580,26 @@ export class Voice {
       o.baseSaw = (SAW_FRAME * MIP_LEVELS + mip) * TABLE_SIZE;
     }
     for (let n = 0; n < 2; n++) {
-      const hz = cur[P.osc[n].hp];
-      this.oscHpOn[n] = hz > 21;
-      if (this.oscHpOn[n] && hz !== this.lastOscHp[n]) {
-        const f = this.oscHp[n];
-        for (let i = 0; i < 2; i++) {
-          f[i].setHighpass(hz, K.SUBSONIC_Q[i], fs); // left: 4th-order Butterworth
-          f[2 + i].setHighpass(hz, K.SUBSONIC_Q[i], fs); // right
-        }
-        this.lastOscHp[n] = hz;
-      }
+      const [kind, p24] = OSC_SLOT[cur[P.osc[n].fType]] ?? OSC_SLOT[0];
+      let hz = cur[P.osc[n].hp];
+      if (cur[P.osc[n].fKey] > 0.5) hz *= Math.pow(2, (this.pitch + 12 * cur[P.octave] - KEYTRACK_CENTER) / 12);
+      this.oscF[n].set(kind, p24, hz, fs);
+    }
+    this.routeA = cur[P.routeA] > 0.5;
+    this.routeB = cur[P.routeB] > 0.5;
+    this.routeS = cur[P.routeS] > 0.5;
+    this.subDirect = cur[P.subDirect] > 0.5;
+    const bypass = !this.routeA || !this.routeB;
+    if (bypass && !this.bypassOn) {
+      this.upBL.reset();
+      this.upBR.reset();
+    }
+    this.bypassOn = bypass;
+    {
+      const [kind, p24] = AUX_SLOT[cur[P.subFType]] ?? AUX_SLOT[0];
+      let hz = cur[P.subFCut];
+      if (cur[P.subFKey] > 0.5) hz *= Math.pow(2, (this.pitch + 12 * cur[P.octave] - KEYTRACK_CENTER) / 12);
+      this.subF.set(kind, p24, hz, fs);
     }
     this.strTone = cur[P.strTone];
     this.shepRate = (cur[P.shepRate] * 0.4) / fs; // octaves per sample (±0.4 oct/s)
@@ -609,6 +655,19 @@ export class Voice {
     if (this.filterType === FILTER_LPG) octs += 1.5 * Math.log2(Math.max(this.ampEnv.level, 0.002));
     const fc = clamp(cur[P.cutoff] * Math.pow(2, octs), 20, Math.min(20000, fs * 0.45));
     const gTarget = Math.tan((Math.PI * fc) / fsOs);
+    this.fcNow = fc;
+    this.resNow = res;
+    // Fat: a low shelf below the cutoff that grows with the resonance (it gives back the body
+    // the resonance takes) and saturation, both after the filter.
+    this.fat = cur[P.fat];
+    this.fMix = cur[P.fMix];
+    if (this.fat > 0) {
+      const shelf = clamp(0.5 * fc, 40, 400);
+      const db = this.fat * (3 + 9 * res);
+      this.fatL.setLowShelf(shelf, db, fsOs);
+      this.fatR.setLowShelf(shelf, db, fsOs);
+      this.fatDrive = 1 + 2 * this.fat;
+    }
     if (this.gPrevTarget < 0) this.g = gTarget;
     this.gStep = (gTarget - this.g) / (CONTROL_BLOCK * OS);
     this.gPrevTarget = gTarget;
@@ -781,13 +840,14 @@ export class Voice {
   }
 
   /** One oversampled stereo sample through drive → filter → distortion into osOut[slot], osOut[slot + 1]. */
-  private nonlinear(l: number, r: number, slot: number): void {
+  private nonlinear(l: number, r: number, slot: number, bl: number, br: number): void {
     // Pre-filter drive.
     if (this.driveMix > 0) {
       const dc = this.driveComp, dm = this.driveMix;
       l += (this.driveShape(l, 0) * dc - l) * dm;
       r += (this.driveShape(r, 1) * dc - r) * dm;
     }
+    const dryL = l, dryR = r;
 
     // Filter (coefficients are for the oversampled rate).
     this.g += this.gStep;
@@ -835,8 +895,23 @@ export class Voice {
       l = fl * 2.2;
       r = fr * 2.2;
     }
+    // Mix (dry/filtered) and fat (body back below the cutoff, saturation).
+    if (this.fMix < 1) {
+      l = dryL + (l - dryL) * this.fMix;
+      r = dryR + (r - dryR) * this.fMix;
+    }
+    if (this.fat > 0) {
+      const d = this.fatDrive;
+      l = Math.tanh(this.fatL.process(l) * d) / d;
+      r = Math.tanh(this.fatR.process(r) * d) / d;
+    }
     l *= POST_FILTER_GAIN;
     r *= POST_FILTER_GAIN;
+    // Sources that skip the drive and filter rejoin here.
+    if (this.bypassOn) {
+      l += bl * POST_FILTER_GAIN;
+      r += br * POST_FILTER_GAIN;
+    }
 
     // Distortion, optionally on the mids only (below dist.clean_below stays clean).
     if (this.distAmt > 0) {
@@ -922,15 +997,16 @@ export class Voice {
           o1.phase[j] = ph - Math.floor(ph);
         }
       }
-      if (this.oscHpOn[0]) {
-        const f = this.oscHp[0];
-        l = f[1].process(f[0].process(l));
-        r = f[3].process(f[2].process(r));
+      if (this.oscF[0].active) {
+        const f = this.oscF[0];
+        l = f.process(l, 0);
+        r = f.process(r, 1);
       }
-      // Oscillator 2 sums on its own when it has a high-pass (otherwise straight into l/r as before).
-      const o2Hp = this.oscHpOn[1];
+      // Oscillator 2 sums on its own when it has a filter or a different routing (otherwise
+      // straight into l/r).
+      const sepB = this.oscF[1].active || this.routeA !== this.routeB;
       const preL = l, preR = r;
-      if (o2Hp) l = r = 0;
+      if (sepB) l = r = 0;
       if (o2.gain > 0 && o2.wave >= WAVE_STRING) {
         const s = this.specialOsc(1, o2) * o2.gain;
         l += s;
@@ -977,10 +1053,29 @@ export class Voice {
           r += s * o2.panR[j];
         }
       }
-      if (o2Hp) {
-        const f = this.oscHp[1];
-        l = preL + f[1].process(f[0].process(l));
-        r = preR + f[3].process(f[2].process(r));
+      // Routing: what goes through the drive and main filter, and what skips them.
+      let byL = 0, byR = 0;
+      if (sepB) {
+        let bl = l, br = r;
+        if (this.oscF[1].active) {
+          const f = this.oscF[1];
+          bl = f.process(bl, 0);
+          br = f.process(br, 1);
+        }
+        if (this.routeA && this.routeB) {
+          l = preL + bl;
+          r = preR + br;
+        } else {
+          l = (this.routeA ? preL : 0) + (this.routeB ? bl : 0);
+          r = (this.routeA ? preR : 0) + (this.routeB ? br : 0);
+          byL = (this.routeA ? 0 : preL) + (this.routeB ? 0 : bl);
+          byR = (this.routeA ? 0 : preR) + (this.routeB ? 0 : br);
+        }
+      } else if (this.bypassOn) {
+        // Neither oscillator goes into the filter.
+        byL = l;
+        byR = r;
+        l = r = 0;
       }
       if (this.noiseLevel > 0) {
         const nz = this.rng.next() * this.noiseLevel;
@@ -995,14 +1090,61 @@ export class Voice {
         l += b;
         r += b;
       }
+      // Sub: clean, mono, phase-stable (in poly mode only the lowest note carries it). Its own
+      // filter and clip shape it; with "sub into filter" (S) it joins the oscillators instead.
+      const amp = env * this.velGain * duck;
+      let sub = 0;
+      this.subMix += this.subMix < this.subOn ? this.subRamp : this.subMix > this.subOn ? -this.subRamp : 0;
+      if (this.subMix < 0) this.subMix = 0;
+      else if (this.subMix > 1) this.subMix = 1;
+      if (this.subLevel > 0 && this.subMix > 0) {
+        let sp = this.subPhase + this.subInc;
+        if (sp >= 1) sp -= 1;
+        this.subPhase = sp;
+        if (this.subWave === 0) sub = Math.sin(TWO_PI * sp);
+        else if (this.subWave === 1) sub = sp < 0.25 ? 4 * sp : sp < 0.75 ? 2 - 4 * sp : 4 * sp - 4;
+        else {
+          // Square, band-limited with polyBLEP at both edges.
+          const dt = this.subInc;
+          let sp2 = sp + 0.5;
+          if (sp2 >= 1) sp2 -= 1;
+          sub = (sp < 0.5 ? 1 : -1) + polyBlep(sp, dt) - polyBlep(sp2, dt);
+        }
+        if (this.subF.active) sub = this.subF.process(sub);
+        if (this.routeS) {
+          // Into the main filter at the level the clean path would have had.
+          const s = sub * this.subLevel * this.subMix * SUB_ROUTE_GAIN;
+          l += s;
+          r += s;
+          sub = 0;
+        } else {
+          sub *= this.subLevel * amp * this.subMix;
+          // Sub clip, against the sub's nominal peak (its level at full envelope).
+          if (this.subClip.knee > 0) {
+            this.subClip.process(sub, 0, this.subLevel * this.velGain, this.clipOut);
+            sub = this.clipOut[0];
+          }
+        }
+      } else {
+        this.subPhase += this.subInc;
+        if (this.subPhase >= 1) this.subPhase -= 1;
+      }
+
       l *= PRE_FILTER_GAIN;
       r *= PRE_FILTER_GAIN;
 
       // 2× oversampled nonlinear section.
       this.upL.process(l);
       this.upR.process(r);
-      this.nonlinear(this.upL.out0, this.upR.out0, 0);
-      this.nonlinear(this.upL.out1, this.upR.out1, 2);
+      if (this.bypassOn) {
+        this.upBL.process(byL * PRE_FILTER_GAIN);
+        this.upBR.process(byR * PRE_FILTER_GAIN);
+        this.nonlinear(this.upL.out0, this.upR.out0, 0, this.upBL.out0, this.upBR.out0);
+        this.nonlinear(this.upL.out1, this.upR.out1, 2, this.upBL.out1, this.upBR.out1);
+      } else {
+        this.nonlinear(this.upL.out0, this.upR.out0, 0, 0, 0);
+        this.nonlinear(this.upL.out1, this.upR.out1, 2, 0, 0);
+      }
       l = this.dnL.process(os[0], os[2]);
       r = this.dnR.process(os[1], os[3]);
 
@@ -1025,7 +1167,6 @@ export class Voice {
       r = this.voiceDcR.process(r);
 
       // Amp.
-      const amp = env * this.velGain * duck;
       const va = amp * this.ampMod * VOICE_GAIN;
       l *= va;
       r *= va;
@@ -1045,27 +1186,6 @@ export class Voice {
         r += c;
       }
 
-      // Sub: clean, mono, phase-stable (in poly mode only the lowest note carries it).
-      let sub = 0;
-      this.subMix += this.subMix < this.subOn ? this.subRamp : this.subMix > this.subOn ? -this.subRamp : 0;
-      if (this.subMix < 0) this.subMix = 0;
-      else if (this.subMix > 1) this.subMix = 1;
-      if (this.subLevel > 0 && this.subMix > 0) {
-        let sp = this.subPhase + this.subInc;
-        if (sp >= 1) sp -= 1;
-        this.subPhase = sp;
-        if (this.subWave === 0) sub = Math.sin(TWO_PI * sp);
-        else sub = sp < 0.25 ? 4 * sp : sp < 0.75 ? 2 - 4 * sp : 4 * sp - 4;
-        sub *= this.subLevel * amp * this.subMix;
-        // Sub clip, against the sub's nominal peak (its level at full envelope).
-        if (this.subClip.knee > 0) {
-          this.subClip.process(sub, 0, this.subLevel * this.velGain, this.clipOut);
-          sub = this.clipOut[0];
-        }
-      } else {
-        this.subPhase += this.subInc;
-        if (this.subPhase >= 1) this.subPhase -= 1;
-      }
       this.subDelay[this.subDelayPos] = sub;
     } else {
       this.subDelay[this.subDelayPos] = 0;
@@ -1075,9 +1195,16 @@ export class Voice {
     if (rp < 0) rp += 32;
     const sub = this.subDelay[rp];
     this.subDelayPos = (this.subDelayPos + 1) & 31;
-    // The sub leaves on its own (out[2]): the synth adds it after every effect.
-    out[0] = l;
-    out[1] = r;
-    out[2] = sub;
+    // The sub leaves on its own (out[2]) and the synth adds it after every effect; with
+    // direct out off it joins the voice and goes through the dynamics, effects and EQ.
+    if (this.subDirect) {
+      out[0] = l;
+      out[1] = r;
+      out[2] = sub;
+    } else {
+      out[0] = l + sub;
+      out[1] = r + sub;
+      out[2] = 0;
+    }
   }
 }

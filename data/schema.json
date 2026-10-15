@@ -222,15 +222,38 @@
     },
     {
       "id": "osc1.highpass",
-      "label": "Osc 1 high-pass",
+      "label": "Osc 1 filter cutoff",
       "type": "float",
       "min": 20,
-      "max": 400,
+      "max": 20000,
       "default": 20,
       "curve": "log",
       "unit": "Hz",
       "group": "osc1",
-      "describes": "Cuts oscillator 1 below this frequency before the drive, so its harmonics distort without muddying the sub's space (20 Hz = off)."
+      "describes": "Cutoff of oscillator 1's own filter (its type is set next to it). As a high-pass (the default) it cuts the low end before the drive so the harmonics distort without muddying the sub's space; 20 Hz = off. As a low-pass, 20 kHz = open."
+    },
+    {
+      "id": "osc1.filter_type",
+      "label": "Osc 1 filter type",
+      "type": "enum",
+      "options": [
+        "high 24",
+        "high 12",
+        "low 24",
+        "low 12",
+        "band"
+      ],
+      "default": "high 24",
+      "group": "osc1",
+      "describes": "Oscillator 1's own filter before the main filter: high-pass (24 or 12 dB) thins the low end, low-pass (24 or 12 dB) darkens just this layer, band keeps a band around the cutoff."
+    },
+    {
+      "id": "osc1.filter_key",
+      "label": "Osc 1 filter keytrack",
+      "type": "bool",
+      "default": false,
+      "group": "osc1",
+      "describes": "On: the cutoff follows the played note (set for C3), so the layer keeps the same tone across the keyboard. Off: a fixed frequency."
     },
     {
       "id": "osc2.wave",
@@ -347,15 +370,38 @@
     },
     {
       "id": "osc2.highpass",
-      "label": "Osc 2 high-pass",
+      "label": "Osc 2 filter cutoff",
       "type": "float",
       "min": 20,
-      "max": 400,
+      "max": 20000,
       "default": 20,
       "curve": "log",
       "unit": "Hz",
       "group": "osc2",
-      "describes": "Cuts oscillator 2 below this frequency before the drive, so its harmonics distort without muddying the sub's space (20 Hz = off)."
+      "describes": "Cutoff of oscillator 2's own filter (its type is set next to it). As a high-pass (the default) it cuts the low end before the drive so the harmonics distort without muddying the sub's space; 20 Hz = off. As a low-pass, 20 kHz = open."
+    },
+    {
+      "id": "osc2.filter_type",
+      "label": "Osc 2 filter type",
+      "type": "enum",
+      "options": [
+        "high 24",
+        "high 12",
+        "low 24",
+        "low 12",
+        "band"
+      ],
+      "default": "high 24",
+      "group": "osc2",
+      "describes": "Oscillator 2's own filter before the main filter: high-pass (24 or 12 dB) thins the low end, low-pass (24 or 12 dB) darkens just this layer, band keeps a band around the cutoff."
+    },
+    {
+      "id": "osc2.filter_key",
+      "label": "Osc 2 filter keytrack",
+      "type": "bool",
+      "default": false,
+      "group": "osc2",
+      "describes": "On: the cutoff follows the played note (set for C3), so the layer keeps the same tone across the keyboard. Off: a fixed frequency."
     },
     {
       "id": "osc2.sync",
@@ -513,11 +559,12 @@
       "type": "enum",
       "options": [
         "sine",
-        "triangle"
+        "triangle",
+        "square"
       ],
       "default": "sine",
       "group": "sub",
-      "describes": "Sine is pure weight; triangle adds a little audible edge on small speakers."
+      "describes": "Sine is pure weight; triangle adds a little audible edge on small speakers; square is hollow, buzzy weight you hear on phones too (tame it with the sub filter)."
     },
     {
       "id": "sub.octave",
@@ -553,6 +600,50 @@
       "unit": "dB",
       "group": "sub",
       "describes": "Transparent soft clipper on the sub only: shaves its peaks (about 1.5 dB at 3, 2.5 dB at 6, 4 dB at 12) and adds density, while everything under the knee stays at the same level, so it sounds fuller, not louder. 0 = off."
+    },
+    {
+      "id": "sub.filter_type",
+      "label": "Sub filter type",
+      "type": "enum",
+      "options": [
+        "off",
+        "low 12",
+        "low 24",
+        "high 12",
+        "high 24",
+        "band"
+      ],
+      "default": "off",
+      "group": "sub",
+      "describes": "The sub's own filter: low-pass takes the edge off a triangle or square sub, high-pass trims the deepest rumble. Off = untouched."
+    },
+    {
+      "id": "sub.filter_cutoff",
+      "label": "Sub filter cutoff",
+      "type": "float",
+      "min": 20,
+      "max": 20000,
+      "default": 20000,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "sub",
+      "describes": "Cutoff of the sub's own filter."
+    },
+    {
+      "id": "sub.filter_key",
+      "label": "Sub filter keytrack",
+      "type": "bool",
+      "default": false,
+      "group": "sub",
+      "describes": "On: the sub filter's cutoff follows the played note (set for C3)."
+    },
+    {
+      "id": "sub.direct",
+      "label": "Sub direct out",
+      "type": "bool",
+      "default": true,
+      "group": "sub",
+      "describes": "On (the default): the sub skips dynamics, effects and EQ and only meets the output's safety stages. Off: it goes through the dynamics, effects and EQ with the rest."
     },
     {
       "id": "noise.level",
@@ -628,6 +719,62 @@
       "default": "before dynamics",
       "group": "texture",
       "describes": "Before dynamics: the bed is compressed and pumps with the sound, breathing as one. After dynamics: the bed skips the compressor, pump and OTT and stays steady underneath, like crackle on its own track."
+    },
+    {
+      "id": "texture.pan",
+      "label": "Texture pan",
+      "type": "float",
+      "min": -1,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "texture",
+      "describes": "Moves the texture bed left or right."
+    },
+    {
+      "id": "texture.direct",
+      "label": "Texture direct out",
+      "type": "bool",
+      "default": false,
+      "group": "texture",
+      "describes": "On: the bed skips dynamics, effects and EQ (dry, like a separate track). Off: it goes through them with the sound."
+    },
+    {
+      "id": "texture.filter_type",
+      "label": "Texture filter type",
+      "type": "enum",
+      "options": [
+        "off",
+        "low 12",
+        "low 24",
+        "high 12",
+        "high 24",
+        "band"
+      ],
+      "default": "off",
+      "group": "texture",
+      "describes": "The bed's own filter: high-pass keeps it out of the low end, low-pass darkens it, band narrows it to a band."
+    },
+    {
+      "id": "texture.filter_cutoff",
+      "label": "Texture filter cutoff",
+      "type": "float",
+      "min": 20,
+      "max": 20000,
+      "default": 1000,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "texture",
+      "describes": "Cutoff of the bed's own filter."
+    },
+    {
+      "id": "texture.filter_key",
+      "label": "Texture filter keytrack",
+      "type": "bool",
+      "default": false,
+      "group": "texture",
+      "describes": "On: the bed's filter follows the newest note (set for C3)."
     },
     {
       "id": "click.type",
@@ -796,6 +943,62 @@
       "unit": "",
       "group": "filter",
       "describes": "303-style accent: hard-played notes open the filter further, resonate more and hit louder."
+    },
+    {
+      "id": "filter.route_a",
+      "label": "Filter: osc 1 in",
+      "type": "bool",
+      "default": true,
+      "group": "filter",
+      "describes": "Oscillator 1 goes through the drive and the main filter. Off: it skips them (the distortion, tape and the rest still apply)."
+    },
+    {
+      "id": "filter.route_b",
+      "label": "Filter: osc 2 in",
+      "type": "bool",
+      "default": true,
+      "group": "filter",
+      "describes": "Oscillator 2 goes through the drive and the main filter. Off: it skips them."
+    },
+    {
+      "id": "filter.route_n",
+      "label": "Filter: texture in",
+      "type": "bool",
+      "default": false,
+      "group": "filter",
+      "describes": "The texture bed goes through a copy of the main filter that follows the newest note."
+    },
+    {
+      "id": "filter.route_s",
+      "label": "Filter: sub in",
+      "type": "bool",
+      "default": false,
+      "group": "filter",
+      "describes": "The sub goes through the drive and the main filter, and from there through the rest of the voice and the effects. Off (the default): the sub stays on its own clean path."
+    },
+    {
+      "id": "filter.fat",
+      "label": "Filter fat",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "filter",
+      "describes": "Brings back the body that resonance takes away and saturates inside the filter, so a resonant filter stays thick instead of thin and whistly."
+    },
+    {
+      "id": "filter.mix",
+      "label": "Filter mix",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "curve": "linear",
+      "unit": "",
+      "group": "filter",
+      "describes": "Blend of the unfiltered (driven) and the filtered sound. 1 = fully filtered."
     },
     {
       "id": "dist.on",
