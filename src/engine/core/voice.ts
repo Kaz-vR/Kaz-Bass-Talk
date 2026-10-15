@@ -349,7 +349,12 @@ export class Voice {
         this.strings[n].pluck(this.fs / hz);
       }
     }
-    if (cur[P.clickLevel] > 0) this.transient.trigger(cur[P.clickType], cur[P.clickDecay], cur[P.clickTone], noteHz, this.fs);
+    // The transient's pitch follows the sub's register (an 808's kick and sub are one thump):
+    // an octave above the sub, as at the default sub octave.
+    if (cur[P.clickLevel] > 0) {
+      const kickHz = noteHz * Math.pow(2, cur[P.subOct] + 1);
+      this.transient.trigger(cur[P.clickType], cur[P.clickDecay], cur[P.clickTone], kickHz, this.fs);
+    }
     this.ampEnv.trigger();
     this.modEnv.trigger();
     this.env2.trigger();

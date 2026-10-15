@@ -20,11 +20,15 @@ describe('dark bass architecture', () => {
     const t = byTag.get(tags[0])!;
     const e = EXPECT[t];
     expect(p['sub.wave']).toBe('sine');
-    expect(p['sub.octave']).toBe(e.sub);
-    expect(p['osc1.semi']).toBe(e.o1);
+    // A template is how the layers sit relative to each other; a preset may sit a whole octave
+    // up or down (shown as it is on the oscillators and sub: no hidden octave).
+    expect(p['voice.octave'] ?? 0, 'no hidden octave').toBe(0);
+    const shift = (p['sub.octave'] as number) - e.sub;
+    expect(Math.abs(shift)).toBeLessThanOrEqual(1);
+    expect(p['osc1.semi']).toBe(e.o1 + 12 * shift);
     if (e.o2Silent) expect(p['osc2.level']).toBe(0);
     else {
-      expect(p['osc2.semi']).toBe(e.o2);
+      expect(p['osc2.semi']).toBe(e.o2! + 12 * shift);
       expect(p['osc2.level'] as number).toBeGreaterThan(0);
       expect(p['osc2.highpass'] as number).toBeGreaterThanOrEqual(120);
     }

@@ -19,6 +19,7 @@
 //
 //   npm run build:terror   (then: npm run level:patches && npm run analyze:library)
 
+import { foldOctave } from './lib/octave';
 import { mkdirSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { params, validatePatch } from '../src/schema';
@@ -321,6 +322,7 @@ function build(def: Def): Record<string, unknown> {
     raw[`mod${i + 1}.dest`] = dst;
     raw[`mod${i + 1}.amount`] = amt;
   });
+  foldOctave(raw, def.id);
   const { patch, issues } = validatePatch(raw);
   if (issues.length) throw new Error(`${def.id}: ${JSON.stringify(issues)}`);
   const out: Record<string, unknown> = { meta: patch.meta };

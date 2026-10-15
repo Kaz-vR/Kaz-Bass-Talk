@@ -181,6 +181,8 @@ export class ParamsPanel {
   private build(): void {
     const groups = new Map<string, ParamDef[]>();
     for (const p of params) {
+      // No hidden octave: a sound's register shows on the oscillators and the sub.
+      if (p.id === 'voice.octave') continue;
       if (!groups.has(p.group)) groups.set(p.group, []);
       groups.get(p.group)!.push(p);
     }

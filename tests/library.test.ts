@@ -22,6 +22,10 @@ describe('patch library', () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
+  it('has no hidden octave: every register shows on the oscillators and the sub', () => {
+    expect(lib.filter(({ json }) => (json['voice.octave'] ?? 0) !== 0).map((e) => e.file)).toEqual([]);
+  });
+
   it('only references audition loops that exist', () => {
     const ids = new Set(loops().map((l) => l.id));
     for (const { json } of lib) if (json.meta.audition) expect(ids).toContain(json.meta.audition);

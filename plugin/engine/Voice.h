@@ -101,7 +101,8 @@ class Voice {
         strings[k].pluck(fs / hz);
       }
     }
-    if (cur[P.clickLevel] > 0) transient.trigger((int)cur[P.clickType], cur[P.clickDecay], cur[P.clickTone], noteHz, fs);
+    // The transient's pitch follows the sub's register (an octave above the sub, as at the default).
+    if (cur[P.clickLevel] > 0) transient.trigger((int)cur[P.clickType], cur[P.clickDecay], cur[P.clickTone], noteHz * std::pow(2.0, cur[P.subOct] + 1), fs);
     ampEnv.trigger();
     modEnv.trigger();
     env2.trigger();

@@ -115,6 +115,8 @@ Hand-designed presets, at most 35 per shelf (Pluck and Arp count together; the 1
 
 The Bass Atlas patches (`tools/build-library.ts`) are not held to the style checks.
 
+**No hidden octave (owner's rule):** every preset's register shows where the user sees it, on oscillator 1 and 2 and the sub. `voice.octave` stays 0 (the builders fold it in: `tools/lib/octave.ts`; the click layer's pitch follows the sub's octave), the old UI doesn't show it, and `tests/library.test.ts` enforces it.
+
 ### 5. Sound-design rules — `src/quality/rules`
 The logic of good sound, as code and data, applied to every preset, generated sound and mod wheel move: layering; a clean low end (distortion and stereo effects stay above the sub); coupled parameters (more drive → darker tone; high resonance → tamed level; dirt before a moving filter; envelope times fit the category); movement (sustained sounds are never static unless deliberately); **safe regions** (generated sounds only move parameters within ranges taken from good presets, per category/family).
 

@@ -473,7 +473,11 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
   const noTex: Patch = { ...p, meta: p.meta, 'texture.level': 0 };
   const holdEnd = Math.round(hold * fs);
   const settle = Math.round(0.25 * fs);
-  const f0 = (note: number) => 440 * Math.pow(2, (note + 12 * (p['voice.octave'] as number) - 69) / 12);
+  // The note the sound plays: the main oscillator's octave (osc 1, or osc 2 when osc 1 is silent) plus
+  // any global octave. No hidden octave: a preset an octave up shows it on its oscillators.
+  const mainOsc = (p['osc1.level'] as number) > 0 ? 1 : 2;
+  const register = (p['voice.octave'] as number) + Math.floor((p[`osc${mainOsc}.semi`] as number) / 12);
+  const f0 = (note: number) => 440 * Math.pow(2, (note + 12 * register - 69) / 12);
   const fund = (x: Float64Array, note: number) => {
     const s = powerSpectrum(x, fs, 0, holdEnd, 16384);
     return db(bandPower(s, 15, 1.5 * f0(note)) / (bandPower(s, 15, 20000) + 1e-30));
