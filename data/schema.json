@@ -87,7 +87,7 @@
       ],
       "default": "preset default",
       "group": "wheel",
-      "describes": "What the mod wheel does, each move turning several connected things together. Pressure: like playing harder (louder, brighter, grittier, a little breath). Snarl: aggression (distortion, resonance and bite). Open: light comes in (filter and top open). Choke: darker, tighter, drier, narrower. Vibrato: a human vibrato. Unstable: a dying machine (wobble, detune, sag). Decay: the sound falls apart (wear, crush, grain). Bloom: it drifts away (reverb, delay, width, texture)."
+      "describes": "What the mod wheel does, each move turning several connected things together. Pressure: like playing harder (louder, brighter, grittier, a little breath). Snarl: aggression (distortion, resonance and bite). Open: light comes in (filter and top open). Choke: darker, tighter, drier, narrower. Vibrato: a human vibrato. Unstable: a dying machine (wobble, detune, sag). Decay: the sound falls apart (wear, crush, grain). Bloom: it drifts away (reverb, delay, width, chorus)."
     },
     {
       "id": "wheel.preset",

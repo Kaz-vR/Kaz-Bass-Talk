@@ -58,7 +58,8 @@ describe('mod wheel', () => {
 
   // A few presets from across the bank, every move fully up: quality and safety hold.
   const bank = lib.filter(({ json }) => json.meta.category);
-  const sample = [0, 1, 2].map((k) => bank[(bank.length * (2 * k + 1) * 7 + 5) % bank.length]);
+  // Three presets spread across the bank (the shelves are in file order), moving as the bank grows.
+  const sample = [0, 1, 2].map((k) => bank[(Math.floor((bank.length * (2 * k + 1)) / 6) + bank.length) % bank.length]);
   it.each(sample.map((e) => [e.file, e.json]))('%s: every move, fully up, keeps quality and safety', (_f, json) => {
     const setup = analysisSetup(json.meta);
     const bad: string[] = [];

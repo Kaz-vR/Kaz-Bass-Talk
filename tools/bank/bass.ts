@@ -273,7 +273,7 @@ const def: CategoryDef = {
       },
     },
     {
-      id: 'soft-drop', name: 'Soft Drop', audition: 'funk-octaves',
+      id: 'soft-drop', name: 'Soft Sink', audition: 'funk-octaves',
       description: 'A soft, round sub-pluck that drops gently into each note and is gone: the quiet end of the shelf.',
       tags: ['bass', 'soft', 'sub', 'pluck', 'short', 'round', 'tender', 'lorn', 'new'],
       texture: ['dust', 0.35, 0.3, 300],

@@ -22,13 +22,13 @@
       "width": 0.902,
       "attack": 0.1,
       "decay": 0.903,
-      "sustain": 0.878,
+      "sustain": 0.879,
       "release": 0.466,
       "movement": 0.149
     },
     "checks": {
-      "hash": "3d4d823f",
-      "audio": "3a8cae8a",
+      "hash": "fe5fd5a8",
+      "audio": "54aa62ef",
       "judge": "b3d612c0",
       "critic": true,
       "issues": [],

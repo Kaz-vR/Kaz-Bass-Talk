@@ -93,15 +93,15 @@ export const WHEEL_MOVES: [dest: number, amount: number][][] = [
   // open: light comes in
   [[D_CUTOFF, 0.42], [D_DIST_TONE, 0.15], [D_RES, 0.05], [D_WIDTH, 0.15]],
   // choke: darker, tighter, drier, narrower
-  [[D_CUTOFF, -0.38], [D_WIDTH, -0.5], [D_REVERB_MIX, -0.2], [D_DELAY_MIX, -0.15], [D_RES, 0.1], [D_AMP, -0.1]],
+  [[D_CUTOFF, -0.26], [D_WIDTH, -0.5], [D_REVERB_MIX, -0.2], [D_DELAY_MIX, -0.15], [D_RES, 0.1], [D_AMP, -0.1]],
   // vibrato: a human vibrato, with a breath of air
   [[D_VIBRATO, 0.4], [D_BREATH, 0.05], [D_CUTOFF, 0.03]],
   // unstable: a dying machine
   [[D_TAPE_WOW, 0.6], [D_DETUNE, 0.15], [D_CHORUS_DEPTH, 0.3], [D_PITCH, -0.002], [D_LFO2_RATE, 0.3]],
   // decay: the sound falls apart
-  [[D_TAPE_WOW, 0.3], [D_CRUSH, 0.3], [D_TEXTURE, 0.3], [D_DIST_TONE, -0.15], [D_CUTOFF, -0.12]],
+  [[D_TAPE_WOW, 0.3], [D_CRUSH, 0.35], [D_DIST_TONE, -0.15], [D_CUTOFF, -0.12]],
   // bloom: it drifts away
-  [[D_REVERB_MIX, 0.35], [D_DELAY_MIX, 0.25], [D_WIDTH, 0.4], [D_TEXTURE, 0.25], [D_CHORUS_DEPTH, 0.2]],
+  [[D_REVERB_MIX, 0.55], [D_DELAY_MIX, 0.4], [D_WIDTH, 0.45], [D_CHORUS_DEPTH, 0.3]],
 ];
 export const LFO_RATE_DEST = [D_LFO1_RATE, D_LFO2_RATE, D_LFO3_RATE, D_LFO4_RATE];
 

@@ -20,7 +20,7 @@
       "sub": 0.618,
       "lowMid": 0.691,
       "dirt": 0.274,
-      "width": 0.834,
+      "width": 0.833,
       "attack": 0.36,
       "decay": 0.901,
       "sustain": 0.866,
@@ -28,8 +28,8 @@
       "movement": 0.22
     },
     "checks": {
-      "hash": "f68c2a0f",
-      "audio": "1e66b974",
+      "hash": "40298f06",
+      "audio": "01e09b99",
       "judge": "b3d612c0",
       "critic": true,
       "issues": [],
