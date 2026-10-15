@@ -1075,7 +1075,9 @@ export class Voice {
     if (rp < 0) rp += 32;
     const sub = this.subDelay[rp];
     this.subDelayPos = (this.subDelayPos + 1) & 31;
-    out[0] = l + sub;
-    out[1] = r + sub;
+    // The sub leaves on its own (out[2]): the synth adds it after every effect.
+    out[0] = l;
+    out[1] = r;
+    out[2] = sub;
   }
 }

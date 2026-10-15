@@ -12,11 +12,13 @@
 //
 // Signal path (fixed order):
 //   up to 8 voices (see voice.ts: oscillators → drive → filter → distortion
-//   → bitcrusher → tape → amp, + transient + clean mono sub), summed
+//   → bitcrusher → tape → amp, + transient), summed
 //   + texture bed
 //   → compressor (+ tempo pump) → multiband OTT
 //   → FX above fx.lowcut only (chorus → flanger → phaser → delay → reverb)
-//   → EQ → high cut → subsonic/DC filter → mono below crossover
+//   → EQ → high cut
+//   + the clean mono sub (its own path: only the Sub box touches it)
+//   → subsonic/DC filter → mono below crossover
 //   → output gain → look-ahead limiter (always on) → side high-pass again (mono below crossover)
 //
 // voice.polyphony = 1 is monophonic (note stack, legato, glide: the bass
@@ -174,7 +176,7 @@ export class Synth {
   private lastOutDb = NaN;
   private readonly lastFx = new Float64Array(8); // lowcut, eqLow, eqMid, eqMidFreq, eqHigh, crossover, highcut
   private readonly tmp = new Float64Array(2);
-  private readonly vout = new Float64Array(2);
+  private readonly vout = new Float64Array(3);
   private ctrlCount = 0;
 
   /** Peak of the last rendered output (for metering). */
@@ -804,6 +806,8 @@ export class Synth {
 
       let l = 0;
       let r = 0;
+      // The sub's own path: only what's in the Sub box touches it (no dynamics, effects or EQ).
+      let sub = 0;
       this.outGain += this.outGainStep;
       for (let i = 0; i < MAX_VOICES; i++) {
         const v = voices[i];
@@ -811,6 +815,7 @@ export class Synth {
           v.render(this.duckGain, vout);
           l += vout[0];
           r += vout[1];
+          sub += vout[2];
         }
       }
 
@@ -908,6 +913,10 @@ export class Synth {
         l = this.hcL.process(l);
         r = this.hcR.process(r);
       }
+
+      // The clean sub joins here, after every effect, before the output's safety stages.
+      l += sub;
+      r += sub;
 
       // Subsonic / DC filter.
       l = this.dcL[1].process(this.dcL[0].process(l));

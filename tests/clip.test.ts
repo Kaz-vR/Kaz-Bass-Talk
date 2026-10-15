@@ -66,3 +66,21 @@ describe('true-peak limiter', () => {
     expect(samplePeak / Math.SQRT1_2).toBeLessThanOrEqual(lim.ceiling * 1.01);
   });
 });
+
+describe('clean sub', () => {
+  it('the sub never goes through dynamics, effects or EQ', () => {
+    const soloSub = { ...sub, 'output.gain': -12 };
+    const wet = {
+      ...soloSub, 'dynamics.on': true, 'comp.amount': 0.8, 'comp.pump': 0.6, 'ott.amount': 0.6, 'reverb.on': true, 'reverb.mix': 0.6,
+      'delay.on': true, 'delay.mix': 0.5, 'chorus.on': true, 'chorus.mix': 0.5, 'eq.on': true, 'eq.low_gain': 6, 'eq.mid_gain': -6, 'fx.lowcut': 20,
+    };
+    const a = renderPatch(soloSub, heldNote(36), { sampleRate: FS, seconds: 1.5 }).left;
+    const b = renderPatch(wet, heldNote(36), { sampleRate: FS, seconds: 1.5 }).left;
+    let d = 0, e = 0;
+    for (let i = 0; i < a.length; i++) {
+      d += (a[i] - b[i]) ** 2;
+      e += a[i] ** 2;
+    }
+    expect(10 * Math.log10(d / e)).toBeLessThan(-100);
+  });
+});

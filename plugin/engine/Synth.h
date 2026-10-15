@@ -241,7 +241,7 @@ class Synth {
         }
       }
 
-      double l = 0, r = 0;
+      double l = 0, r = 0, sub = 0;
       outGain += outGainStep;
       for (int i = 0; i < MAX_VOICES; i++) {
         Voice& v = *voices[i];
@@ -249,6 +249,7 @@ class Synth {
           v.render(duckGain, vout);
           l += vout[0];
           r += vout[1];
+          sub += vout[2];
         }
       }
 
@@ -336,6 +337,8 @@ class Synth {
         l = hcL.process(l);
         r = hcR.process(r);
       }
+      l += sub;
+      r += sub;
       l = dcL[1].process(dcL[0].process(l));
       r = dcR[1].process(dcR[0].process(r));
 
@@ -429,7 +432,7 @@ class Synth {
   double outGain = 1, outGainStep = 0, postDcXL = 0, postDcYL = 0, postDcXR = 0, postDcYR = 0, postDcR = 0;
   double outTarget = 1, lastOutDb = std::nan("");
   std::array<double, 8> lastFx{};
-  double tmp[2] = {0, 0}, vout[2] = {0, 0};
+  double tmp[2] = {0, 0}, vout[3] = {0, 0, 0};
   int ctrlCount = 0;
 
   bool anyActive() const {

@@ -615,8 +615,9 @@ class Voice {
     if (rp < 0) rp += 32;
     const double subOut = subDelay[rp];
     subDelayPos = (subDelayPos + 1) & 31;
-    out[0] = l + subOut;
-    out[1] = r + subOut;
+    out[0] = l;
+    out[1] = r;
+    out[2] = subOut;
   }
 
  private:
