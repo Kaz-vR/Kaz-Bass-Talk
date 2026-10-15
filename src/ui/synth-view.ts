@@ -7,7 +7,7 @@ import { formatValue } from './params-panel';
 
 type OnChange = (id: string, value: ParamValue) => void;
 
-const DESIGN_WIDTH = 1500;
+const DESIGN_WIDTH = 1600;
 const FS = 48000;
 
 /** Tiny DOM helper. */
@@ -61,6 +61,80 @@ function response(stages: [Kind, number, number][], f: number): number {
   return m;
 }
 
+// ------------------------------------------------------------------ darkroom look
+// The page is a darkroom: deep red trays, red dials, round glowing lamps and every display a
+// small photo print (silver line on grainy dark paper, cream border from the CSS).
+const INK = '#e8e2d8';
+const FAINT = '#4a160e';
+const HI = '#ffd2c4';
+
+let grainPattern: HTMLCanvasElement | null = null;
+/** A small tile of film grain, made once and reused by every display. */
+function grain(): HTMLCanvasElement {
+  if (grainPattern) return grainPattern;
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d')!;
+  const img = g.createImageData(128, 128);
+  let seed = 7;
+  for (let i = 0; i < img.data.length; i += 4) {
+    seed = (seed * 16807) % 2147483647;
+    const v = 150 + (seed % 105);
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+    img.data[i + 3] = (seed >> 8) % 46;
+  }
+  g.putImageData(img, 0, 0);
+  grainPattern = c;
+  return c;
+}
+
+/** The dark photographic paper every display draws on. */
+function paper(g: CanvasRenderingContext2D, W: number, H: number): void {
+  g.clearRect(0, 0, W, H);
+  g.fillStyle = '#0e0d0c';
+  g.fillRect(0, 0, W, H);
+  g.fillStyle = g.createPattern(grain(), 'repeat')!;
+  g.fillRect(0, 0, W, H);
+}
+
+/** Vignette on top of a print. */
+function vignette(g: CanvasRenderingContext2D, W: number, H: number): void {
+  const v = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.62);
+  v.addColorStop(0, 'rgba(0,0,0,0)');
+  v.addColorStop(1, 'rgba(0,0,0,0.75)');
+  g.fillStyle = v;
+  g.fillRect(0, 0, W, H);
+}
+
+/** A silver line: a few faint ghost copies around a bright main line, like a long exposure. */
+function silver(g: CanvasRenderingContext2D, pts: [number, number][], on = true): void {
+  const col = on ? INK : '#5a524a';
+  for (let k = -3; k <= 3; k++) {
+    if (k === 0) continue;
+    g.strokeStyle = hexA(col, 0.1);
+    g.lineWidth = 0.8;
+    g.beginPath();
+    pts.forEach(([x, y], i) => {
+      const yy = y + k * 1.1 * Math.sin(x * 0.045 + k);
+      if (i) g.lineTo(x, yy);
+      else g.moveTo(x, yy);
+    });
+    g.stroke();
+  }
+  g.strokeStyle = hexA(col, 0.9);
+  g.lineWidth = 1.5;
+  g.beginPath();
+  pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  g.stroke();
+}
+
+/** A round glowing lamp (the darkroom's safelight) used for every on/off light. */
+function lamp(): HTMLElement {
+  const el = document.createElement('span');
+  el.className = 'lamp';
+  return el;
+}
+
 export class SynthView {
   readonly root: HTMLElement;
   private readonly page: HTMLElement;
@@ -71,6 +145,8 @@ export class SynthView {
   private meterG: CanvasRenderingContext2D | null = null;
   private readonly remembered = new Map<string, ParamValue>();
   onGear: () => void = () => {};
+  private readonly titleEl = h('span', 'v2-name');
+  private readonly subEl = h('span', 'v2-sub');
 
   constructor(root: HTMLElement, private readonly onChange: OnChange) {
     this.root = root;
@@ -96,6 +172,12 @@ export class SynthView {
     for (const v of this.allViews) v();
   }
 
+  /** The preset's name and where it lives (shelf · frame · template), shown like a print's caption. */
+  setTitle(name: string, sub: string): void {
+    this.titleEl.textContent = name;
+    this.subEl.textContent = sub.toUpperCase();
+  }
+
   /** One value changed elsewhere (the full parameter view). */
   setValue(id: string, v: ParamValue): void {
     this.values[id] = v;
@@ -113,18 +195,14 @@ export class SynthView {
       level = Math.max(pk, level * 0.92);
       const g = this.meterG;
       if (g) {
-        const H = 64, W = 14;
-        g.clearRect(0, 0, W, H);
-        g.fillStyle = '#0b0d0f';
-        g.fillRect(0, 0, W, H);
+        const H = 26, N = 16;
+        g.clearRect(0, 0, 96, H);
         const db = 20 * Math.log10(level + 1e-6);
-        const t = Math.max(0, Math.min(1, (db + 48) / 48));
-        const grd = g.createLinearGradient(0, H, 0, 0);
-        grd.addColorStop(0, '#3fbf6a');
-        grd.addColorStop(0.75, '#d9c843');
-        grd.addColorStop(1, '#e5534b');
-        g.fillStyle = grd;
-        g.fillRect(2, H - t * H, W - 4, t * H);
+        const lit = Math.round(Math.max(0, Math.min(1, (db + 48) / 48)) * N);
+        for (let i = 0; i < N; i++) {
+          g.fillStyle = i < lit ? hexA(i > 13 ? '#ff4f6a' : '#ff8f75', 0.35 + i * 0.04) : FAINT;
+          g.fillRect(i * 6, 0, 4, H);
+        }
       }
       requestAnimationFrame(draw);
     };
@@ -174,44 +252,49 @@ export class SynthView {
       const off = opts.disabled?.() ?? false;
       el.classList.toggle('off', off);
       val.textContent = fmt(v);
-      const r = px / 2, cx = r, cy = r;
+      const r = px / 2 - 1, cx = px / 2, cy = px / 2;
       g.clearRect(0, 0, px, px);
       const a0 = 0.75 * Math.PI, a1 = 2.25 * Math.PI;
-      // track
-      g.lineWidth = Math.max(2.5, px * 0.07);
-      g.lineCap = 'round';
-      g.strokeStyle = '#0a0b0d';
-      g.beginPath();
-      g.arc(cx, cy, r - g.lineWidth, a0, a1);
-      g.stroke();
-      // value arc
       const zero = bipolar ? a0 + (a1 - a0) * toNormalized(p, 0) : a0;
       const av = a0 + (a1 - a0) * n;
-      g.strokeStyle = off ? '#4a5058' : getComputedStyle(el).getPropertyValue('--knob-accent').trim() || '#7cf29a';
+      const accent = getComputedStyle(el).getPropertyValue('--knob-accent').trim() || '#ff8f75';
+      // dial face
+      g.fillStyle = '#120403';
+      g.strokeStyle = '#3a120c';
+      g.lineWidth = 1.5;
       g.beginPath();
-      g.arc(cx, cy, r - g.lineWidth, Math.min(zero, av), Math.max(zero, av) + 1e-3);
+      g.arc(cx, cy, r - 0.5, 0, 2 * Math.PI);
+      g.fill();
       g.stroke();
+      // ticks, lit up to the value
+      const ticks = px > 44 ? 20 : 12;
+      const lo = Math.min(zero, av) - 1e-6, hi = Math.max(zero, av) + 1e-6;
+      g.lineWidth = 1.3;
+      for (let i = 0; i <= ticks; i++) {
+        const t = a0 + ((a1 - a0) * i) / ticks;
+        const big = i % (ticks / 4) === 0;
+        g.strokeStyle = !off && t >= lo && t <= hi ? accent : FAINT;
+        g.beginPath();
+        g.moveTo(cx + Math.cos(t) * (r - 7), cy + Math.sin(t) * (r - 7));
+        g.lineTo(cx + Math.cos(t) * (r - (big ? 1.5 : 4)), cy + Math.sin(t) * (r - (big ? 1.5 : 4)));
+        g.stroke();
+      }
       // body
-      const br = r - g.lineWidth * 2.2;
-      const body = g.createRadialGradient(cx - br * 0.35, cy - br * 0.45, br * 0.1, cx, cy, br);
-      body.addColorStop(0, '#6d747d');
-      body.addColorStop(0.45, '#3a3f46');
-      body.addColorStop(1, '#16191d');
+      const br = r * 0.62;
+      const body = g.createRadialGradient(cx - br * 0.2, cy - br * 0.3, br * 0.05, cx, cy, br);
+      body.addColorStop(0, '#4a1a12');
+      body.addColorStop(1, '#1a0605');
       g.fillStyle = body;
       g.beginPath();
       g.arc(cx, cy, br, 0, 2 * Math.PI);
       g.fill();
-      g.strokeStyle = 'rgba(255,255,255,0.12)';
-      g.lineWidth = 1;
-      g.beginPath();
-      g.arc(cx, cy, br - 0.5, 1.1 * Math.PI, 1.9 * Math.PI);
-      g.stroke();
       // pointer
-      g.strokeStyle = off ? '#777' : '#f2f4f6';
-      g.lineWidth = Math.max(1.5, px * 0.045);
+      g.strokeStyle = off ? '#5a3a32' : HI;
+      g.lineWidth = px > 44 ? 3 : 2;
+      g.lineCap = 'round';
       g.beginPath();
-      g.moveTo(cx + Math.cos(av) * br * 0.3, cy + Math.sin(av) * br * 0.3);
-      g.lineTo(cx + Math.cos(av) * br * 0.9, cy + Math.sin(av) * br * 0.9);
+      g.moveTo(cx, cy);
+      g.lineTo(cx + Math.cos(av) * r * 0.56, cy + Math.sin(av) * r * 0.56);
       g.stroke();
     };
     const setN = (n: number) => {
@@ -244,6 +327,34 @@ export class SynthView {
     return el;
   }
 
+  /** A label and value you drag up/down (or scroll) to change, like the master level. */
+  private readout(id: string, label: string): HTMLElement {
+    const p = getParam(id)!;
+    const val = h('span', 'ro-val');
+    const el = h('div', 'readout', h('span', 'ro-label', label), val);
+    el.title = `${p.label}: ${p.describes}`;
+    let y0 = 0, n0 = 0;
+    el.addEventListener('pointerdown', (e) => {
+      el.setPointerCapture(e.pointerId);
+      y0 = e.clientY;
+      n0 = toNormalized(p, this.num(id));
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!el.hasPointerCapture(e.pointerId)) return;
+      const v = fromNormalized(p, Math.max(0, Math.min(1, n0 + (y0 - e.clientY) / (e.shiftKey ? 1000 : 200))));
+      this.set(id, Math.round(v * 10) / 10);
+    });
+    el.addEventListener('pointerup', (e) => el.releasePointerCapture(e.pointerId));
+    el.addEventListener('dblclick', () => this.set(id, p.default as ParamValue));
+    el.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const v = fromNormalized(p, Math.max(0, Math.min(1, toNormalized(p, this.num(id)) - Math.sign(e.deltaY) * 0.02)));
+      this.set(id, Math.round(v * 10) / 10);
+    }, { passive: false });
+    this.watch([id], () => { val.textContent = formatValue(p, this.num(id)); });
+    return el;
+  }
+
   /** ‹ name › selector for an enum parameter (the name is a dropdown too). */
   private selector(id: string, opts: { onPick?: (from: string, to: string) => void; label?: (o: string) => string } = {}): HTMLElement {
     const p = getParam(id)!;
@@ -273,7 +384,7 @@ export class SynthView {
   /** A small LED switch for a bool parameter. */
   private toggle(id: string, label: string, cls = ''): HTMLElement {
     const p = getParam(id)!;
-    const b = h('button', `led ${cls}`, h('span', 'dot'), label);
+    const b = h('button', `led ${cls}`, lamp(), label);
     b.title = `${p.label}: ${p.describes}`;
     b.onclick = () => this.set(id, !this.get(id));
     this.watch([id], () => b.classList.toggle('on', !!this.get(id)));
@@ -282,7 +393,7 @@ export class SynthView {
 
   /** Power LED in a card header that mutes a layer by its level (remembering the level). */
   private levelPower(levelId: string): HTMLElement {
-    const b = h('button', 'power');
+    const b = h('button', 'power', lamp());
     b.title = 'On / off (sets the level to 0 and back)';
     b.onclick = () => {
       const v = this.num(levelId);
@@ -297,7 +408,7 @@ export class SynthView {
 
   /** Power LED for a bool parameter. */
   private boolPower(id: string): HTMLElement {
-    const b = h('button', 'power');
+    const b = h('button', 'power', lamp());
     b.title = getParam(id)?.describes ?? '';
     b.onclick = () => this.set(id, !this.get(id));
     this.watch([id], () => b.classList.toggle('on', !!this.get(id)));
@@ -341,7 +452,7 @@ export class SynthView {
   // ------------------------------------------------------------------ displays
 
   private waveView(n: 1 | 2): HTMLElement {
-    const W = 256, H = 92;
+    const W = 260, H = 96;
     const [cv, g] = canvas(W, H, 'disp');
     const ids = [`osc${n}.wave`, `osc${n}.pulse_width`, `osc${n}.wt_pos`, `osc${n}.level`, `osc${n}.unison_voices`, `osc${n}.unison_detune`];
     const shape = (wave: string, x: number, pw: number, wt: number): number => {
@@ -365,46 +476,28 @@ export class SynthView {
       }
     };
     const draw = () => {
-      g.clearRect(0, 0, W, H);
-      g.fillStyle = '#0b0d0f';
-      g.fillRect(0, 0, W, H);
-      g.strokeStyle = 'rgba(255,255,255,0.06)';
-      g.beginPath();
-      g.moveTo(0, H / 2);
-      g.lineTo(W, H / 2);
-      g.stroke();
+      paper(g, W, H);
       const wave = String(this.get(`osc${n}.wave`));
       const pw = this.num(`osc${n}.pulse_width`), wt = this.num(`osc${n}.wt_pos`);
       const lvl = this.num(`osc${n}.level`);
       const pts: [number, number][] = [];
       for (let i = 0; i <= W; i++) {
         const x = ((i / W) * 1.5) % 1;
-        pts.push([i, H / 2 - shape(wave, x, pw, wt) * (H / 2 - 8)]);
+        pts.push([i, H / 2 - shape(wave, x, pw, wt) * (H / 2 - 14)]);
       }
-      g.fillStyle = lvl > 0 ? 'rgba(229,140,60,0.16)' : 'rgba(255,255,255,0.04)';
-      g.beginPath();
-      g.moveTo(0, H / 2);
-      for (const [x, y] of pts) g.lineTo(x, y);
-      g.lineTo(W, H / 2);
-      g.fill();
-      g.strokeStyle = lvl > 0 ? '#f0a24a' : '#555b63';
-      g.lineWidth = 2;
-      g.beginPath();
-      pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
-      g.stroke();
+      silver(g, pts, lvl > 0);
+      vignette(g, W, H);
     };
     this.watch(ids, draw);
     return cv;
   }
 
   /** Frequency response display: `stages` gives the filter for the current values. */
-  private curveView(ids: string[], stages: () => [Kind, number, number][] | 'comb' | 'formant', active: () => boolean, W = 144, H = 66, color = '#f0a24a'): HTMLElement {
+  private curveView(ids: string[], stages: () => [Kind, number, number][] | 'comb' | 'formant', active: () => boolean, W = 144, H = 66): HTMLElement {
     const [cv, g] = canvas(W, H, 'disp');
     const draw = () => {
-      g.clearRect(0, 0, W, H);
-      g.fillStyle = '#0b0d0f';
-      g.fillRect(0, 0, W, H);
-      g.strokeStyle = 'rgba(255,255,255,0.05)';
+      paper(g, W, H);
+      g.strokeStyle = 'rgba(232,226,216,0.04)';
       for (const f of [100, 1000, 10000]) {
         const x = (Math.log(f / 20) / Math.log(1000)) * W;
         g.beginPath();
@@ -414,7 +507,7 @@ export class SynthView {
       }
       const st = stages();
       const on = active();
-      const top = 18, bottom = -42;
+      const top = 24, bottom = -48;
       const ys: number[] = [];
       for (let i = 0; i <= W; i++) {
         const f = 20 * Math.pow(1000, i / W);
@@ -437,24 +530,15 @@ export class SynthView {
         const db = 20 * Math.log10(m + 1e-9);
         ys.push(H - ((Math.max(bottom, Math.min(top, db)) - bottom) / (top - bottom)) * H);
       }
-      g.fillStyle = on ? hexA(color, 0.18) : 'rgba(255,255,255,0.04)';
-      g.beginPath();
-      g.moveTo(0, H);
-      ys.forEach((y, i) => g.lineTo(i, y));
-      g.lineTo(W, H);
-      g.fill();
-      g.strokeStyle = on ? color : '#4a5058';
-      g.lineWidth = 2;
-      g.beginPath();
-      ys.forEach((y, i) => (i ? g.lineTo(i, y) : g.moveTo(i, y)));
-      g.stroke();
+      silver(g, ys.map((y, i) => [i, y] as [number, number]), on);
+      vignette(g, W, H);
     };
     this.watch(ids, draw);
     return cv;
   }
 
   /** ADSR display. */
-  private envView(prefix: string, color: string, W = 370, H = 112): HTMLElement {
+  private envView(prefix: string, W = 370, H = 112): HTMLElement {
     const [cv, g] = canvas(W, H, 'disp');
     const ids = ['attack', 'decay', 'sustain', 'release'].map((s) => `${prefix}.${s}`);
     const draw = () => {
@@ -463,13 +547,11 @@ export class SynthView {
       const total = a + d + hold + r;
       const span = total <= 1000 ? 1000 : total <= 4000 ? Math.ceil(total / 1000) * 1000 : total;
       const X = (t: number) => 6 + (t / span) * (W - 12);
-      const Y = (v: number) => H - 6 - v * (H - 16);
-      g.clearRect(0, 0, W, H);
-      g.fillStyle = '#0b0d0f';
-      g.fillRect(0, 0, W, H);
-      g.fillStyle = '#5b626c';
-      g.font = '10px system-ui';
-      g.strokeStyle = 'rgba(255,255,255,0.06)';
+      const Y = (v: number) => H - 10 - v * (H - 28);
+      paper(g, W, H);
+      g.fillStyle = 'rgba(232,226,216,0.3)';
+      g.font = '10px Inter, system-ui, sans-serif';
+      g.strokeStyle = 'rgba(232,226,216,0.04)';
       const stepMs = span <= 1000 ? 250 : 1000;
       for (let t = stepMs; t < span; t += stepMs) {
         g.beginPath();
@@ -484,24 +566,8 @@ export class SynthView {
       for (let i = 1; i <= N; i++) pts.push([X(a + (d * i) / N), Y(s + (1 - s) * Math.exp((-5 * i) / N))]);
       pts.push([X(a + d + hold), Y(s)]);
       for (let i = 1; i <= N; i++) pts.push([X(a + d + hold + (r * i) / N), Y(s * Math.exp((-5 * i) / N))]);
-      g.fillStyle = hexA(color, 0.18);
-      g.beginPath();
-      g.moveTo(X(0), Y(0));
-      for (const [x, y] of pts) g.lineTo(x, y);
-      g.lineTo(pts[pts.length - 1][0], Y(0));
-      g.fill();
-      g.strokeStyle = color;
-      g.lineWidth = 2;
-      g.beginPath();
-      pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
-      g.stroke();
-      g.fillStyle = '#e8eaed';
-      for (const t of [a, a + d, a + d + hold]) {
-        const v = t === a ? 1 : s;
-        g.beginPath();
-        g.arc(X(t), Y(v), 3, 0, 2 * Math.PI);
-        g.fill();
-      }
+      silver(g, [[X(0), Y(0)], ...pts]);
+      vignette(g, W, H);
     };
     this.watch(ids, draw);
     return cv;
@@ -605,7 +671,7 @@ export class SynthView {
   /** Distortion: type, a live transfer curve, drive, mix, tone and the clean low band. */
   private distCard(): HTMLElement {
     const [el, body] = this.card('DISTORTION', 'dirt', this.boolPower('dist.on'));
-    const W = 224, H = 96;
+    const W = 300, H = 105;
     const [cv, g] = canvas(W, H, 'disp');
     const shape = (type: string, x: number, d: number): number => {
       const k = 1 + 14 * d;
@@ -622,33 +688,21 @@ export class SynthView {
     const draw = () => {
       const on = !!this.get('dist.on');
       const type = String(this.get('dist.type')), d = this.num('dist.drive'), mix = this.num('dist.mix');
-      g.clearRect(0, 0, W, H);
-      g.fillStyle = '#0b0d0f';
-      g.fillRect(0, 0, W, H);
-      g.strokeStyle = 'rgba(255,255,255,0.07)';
-      g.beginPath();
-      g.moveTo(0, H / 2);
-      g.lineTo(W, H / 2);
-      g.moveTo(W / 2, 0);
-      g.lineTo(W / 2, H);
-      g.stroke();
-      g.strokeStyle = on ? '#c48be8' : '#4a5058';
-      g.lineWidth = 2;
-      g.beginPath();
+      paper(g, W, H);
+      const pts: [number, number][] = [];
       for (let i = 0; i <= W; i++) {
         const x = (i / W) * 2 - 1;
         const y = Math.max(-1.1, Math.min(1.1, mix * shape(type, x, d) + (1 - mix) * x));
-        const py = H / 2 - y * (H / 2 - 6);
-        if (i) g.lineTo(i, py);
-        else g.moveTo(i, py);
+        pts.push([i, H / 2 - y * (H / 2 - 12)]);
       }
-      g.stroke();
+      silver(g, pts, on);
+      vignette(g, W, H);
     };
     this.watch(['dist.on', 'dist.type', 'dist.drive', 'dist.mix'], draw);
     const low = this.knob('dist.clean_below', 'LOW', 'small', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
     low.title = 'Keeps everything below this frequency clean (the distortion only works on the part above it). Fully left = off.';
     body.append(this.selector('dist.type'), cv, h('div', 'knob-row tight',
-      this.knob('dist.drive', 'DRIVE', 'mid'),
+      this.knob('dist.drive', 'DRIVE', 'small'),
       this.knob('dist.mix', 'MIX', 'small'),
       this.knob('dist.post_tone', 'TONE', 'small'),
       low,
@@ -713,16 +767,30 @@ export class SynthView {
       waves.append(b);
     }
     const head = h('div', 'card-top', waves, this.toggle('sub.direct', 'DIRECT OUT', 'small'));
+    const W = 206, H = 58;
+    const [cv, g] = canvas(W, H, 'disp');
+    this.watch(['sub.wave', 'sub.level'], () => {
+      paper(g, W, H);
+      const w = String(this.get('sub.wave'));
+      const pts: [number, number][] = [];
+      for (let i = 0; i <= W; i++) {
+        const x = ((i / W) * 1.5) % 1;
+        const y = w === 'square' ? (x < 0.5 ? 0.8 : -0.8) : w === 'triangle' ? (x < 0.25 ? 4 * x : x < 0.75 ? 2 - 4 * x : 4 * x - 4) : Math.sin(2 * Math.PI * x);
+        pts.push([i, H / 2 - y * (H / 2 - 10)]);
+      }
+      silver(g, pts, this.num('sub.level') > 0);
+      vignette(g, W, H);
+    });
     const row = h('div', 'knob-row',
       this.stepper('OCTAVE', () => this.num('sub.octave'), (v) => this.set('sub.octave', v), -2, -1, ['sub.octave'], 'Sub octave'),
       this.knob('sub.level', 'LEVEL', 'small'),
       this.knob('sub.clip', 'CLIP', 'small'),
     );
-    body.append(head, row);
+    body.append(head, cv, row);
     return el;
   }
 
-  private envCard(prefix: 'amp_env' | 'mod_env', title: string, group: 'src' | 'flt', color: string, W = 370, H = 112): HTMLElement {
+  private envCard(prefix: 'amp_env' | 'mod_env', title: string, group: 'src' | 'flt', W = 370, H = 112): HTMLElement {
     const [el, body] = this.card(title, group);
     el.classList.add('env');
     const ms = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${v < 10 ? v.toFixed(1) : Math.round(v)} ms`);
@@ -733,7 +801,7 @@ export class SynthView {
       this.knob(`${prefix}.sustain`, 'SUSTAIN', 'mid', { fmt: sus }),
       this.knob(`${prefix}.release`, 'RELEASE', 'mid', { fmt: ms }),
     );
-    body.append(this.envView(prefix, color, W, H), row);
+    body.append(this.envView(prefix, W, H), row);
     return el;
   }
 
@@ -753,26 +821,28 @@ export class SynthView {
         default: return 'formant';
       }
     };
-    const curve = this.curveView(['filter.type', 'filter.cutoff', 'filter.resonance', 'filter.vowel', 'filter.on'], stages, () => !!this.get('filter.on'), 278, 120, '#5fd08a');
+    const curve = this.curveView(['filter.type', 'filter.cutoff', 'filter.resonance', 'filter.vowel', 'filter.on'], stages, () => !!this.get('filter.on'), 290, 130);
     const routes = h('div', 'routes-col',
       this.toggle('filter.route_a', 'A', 'route'),
       this.toggle('filter.route_b', 'B', 'route'),
       this.toggle('filter.route_n', 'N', 'route'),
       this.toggle('filter.route_s', 'S', 'route'),
     );
-    const driveKnob = this.knob('drive.amount', 'DRIVE', 'mid', { disabled: () => !this.get('drive.on'), deps: ['drive.on'] });
+    const driveKnob = this.knob('drive.amount', 'DRIVE', 'small', { disabled: () => !this.get('drive.on'), deps: ['drive.on'] });
     // Turning the drive up switches the drive stage on.
     driveKnob.addEventListener('pointerdown', () => { if (!this.get('drive.on')) this.set('drive.on', true); });
     const grid = h('div', 'flt-knobs',
-      this.knob('filter.cutoff', 'CUTOFF', 'big'),
+      this.knob('filter.cutoff', 'CUTOFF', 'mid'),
       this.knob('filter.resonance', 'RES', 'mid'),
       this.knob('filter.env_amount', 'ENV', 'mid'),
-      driveKnob,
-      this.knob('filter.fat', 'FAT', 'mid'),
-      this.knob('filter.mix', 'MIX', 'mid'),
     );
-    const key = this.knob('filter.keytrack', 'KEY', 'small');
-    body.append(this.selector('filter.type'), curve, h('div', 'flt-main', h('div', 'routes-wrap', routes, key), grid));
+    const row2 = h('div', 'knob-row tight flt-row2',
+      this.knob('filter.keytrack', 'KEY', 'small'),
+      driveKnob,
+      this.knob('filter.fat', 'FAT', 'small'),
+      this.knob('filter.mix', 'MIX', 'small'),
+    );
+    body.append(this.selector('filter.type'), curve, h('div', 'flt-main', h('div', 'routes-wrap', routes), grid), row2);
     return el;
   }
 
@@ -793,7 +863,7 @@ export class SynthView {
     const glideP = getParam('voice.glide')!;
     const track = h('div', 'glide-track', h('div', 'glide-fill'));
     const gval = h('span', 'glide-val');
-    const glide = h('div', 'glide', h('span', 'glide-label', 'Glide time'), gval, track);
+    const glide = h('div', 'glide', h('span', 'glide-label', 'GLIDE'), track, gval);
     glide.title = `${glideP.label}: ${glideP.describes}`;
     const setFromX = (x: number) => {
       const r = track.getBoundingClientRect();
@@ -810,17 +880,19 @@ export class SynthView {
       (track.firstChild as HTMLElement).style.width = `${toNormalized(glideP, v) * 100}%`;
       gval.textContent = formatValue(glideP, v);
     });
-    const gear = h('button', 'gear', h('span', 'gear-icon', '⚙'), h('span', 'gear-label', 'OPEN ALL'));
+    const gear = h('button', 'gear', h('span', 'gear-icon'), h('span', 'gear-label', 'OPEN ALL'));
     gear.title = 'Open every control (the full parameter view) under this page';
     gear.onclick = () => this.onGear();
-    const [meter, mg] = canvas(14, 64, 'meter');
+    const [meter, mg] = canvas(96, 26, 'meter');
     this.meterG = mg;
-    const master = h('div', 'master', this.knob('output.gain', 'MASTER', 'mid'), meter);
+    const master = h('div', 'master', this.readout('output.gain', 'MASTER'), meter);
+    const safelight = h('div', 'safelight', lamp(), h('div', 'safe-text', h('span', 'safe-label', 'SAFELIGHT'), h('span', 'safe-val', 'LOW END MONO · LIMITER ON')));
+    safelight.title = 'The low end is always mono and phase-stable; a transparent output limiter is always on.';
     return h('div', 'v2-bottom',
       h('div', 'seg-wrap', mono, poly),
       this.toggle('voice.legato', 'LEGATO'),
       glide,
-      h('span', 'v2-badge', 'low end mono · limiter on'),
+      safelight,
       gear,
       master,
     );
@@ -837,15 +909,15 @@ export class SynthView {
       tabs.append(b);
     }
     const oscRow = h('div', 'osc-row', this.oscCard(1), this.oscCard(2));
-    const sources = h('div', 'col-sources', oscRow, this.envCard('amp_env', 'AMP ENVELOPE', 'src', '#f0a24a', 526, 190));
+    const sources = h('div', 'col-sources', oscRow, this.envCard('amp_env', 'AMP ENVELOPE', 'src', 556, 270));
     const layers = h('div', 'col-layers', this.noiseCard(), this.breathCard(), this.clickCard(), this.subCard());
-    const filter = h('div', 'col-filter', this.mainFilterCard(), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', '#5fd08a', 278, 112));
+    const filter = h('div', 'col-filter', this.mainFilterCard(), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', 290, 125));
     const dirt = h('div', 'col-dirt', this.distCard(), this.crushCard(), this.tapeCard(), this.midClipCard());
-    const zoneSrc = h('div', 'zone zone-src', sources, layers);
-    const zoneFlt = h('div', 'zone zone-flt', filter);
-    const zoneDirt = h('div', 'zone zone-dirt', dirt);
-    const arrow = () => h('div', 'flow-arrow', '›');
-    this.page.append(h('div', 'v2-top', tabs), h('div', 'v2-main', zoneSrc, arrow(), zoneFlt, arrow(), zoneDirt), this.bottomBar());
+    const zone = (cls: string, cap: string, ...kids: HTMLElement[]) => h('div', `zone ${cls}`, h('div', 'zone-cap', cap), h('div', 'zone-body', ...kids));
+    const zoneSrc = zone('zone-src', 'SOURCES', sources, layers);
+    const zoneFlt = zone('zone-flt', 'FILTER', filter);
+    const zoneDirt = zone('zone-dirt', 'DIRT', dirt);
+    this.page.append(h('div', 'v2-top', h('div', 'v2-title', this.titleEl, this.subEl), tabs), h('div', 'v2-main', zoneSrc, zoneFlt, zoneDirt), this.bottomBar());
   }
 }
 

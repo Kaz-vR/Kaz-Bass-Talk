@@ -75,6 +75,7 @@ synth.onGear = () => {
 };
 
 function showPatchInfo(p: Patch): void {
+  synth.setTitle(p.meta.name, synthCaption(p));
   $('patch-name').textContent = p.meta.name;
   $('patch-title').textContent = p.meta.name;
   $('patch-desc').textContent = p.meta.description ?? '';
@@ -173,6 +174,19 @@ function renderBrowser(): void {
     card.onclick = () => loadPatch(i);
     list.append(card);
   }
+}
+
+/** The print caption on the synth page: shelf · frame number · bass template. */
+function synthCaption(p: Patch): string {
+  if (currentRoll) return 'Randomizer roll';
+  const cat = (p.meta.category as string | undefined) ?? ATLAS;
+  const g = groups.find((x) => x.id === (SHELF[cat] ?? cat));
+  const parts = [g?.name ?? ''];
+  const at = g ? g.items.indexOf(currentIndex) : -1;
+  if (at >= 0) parts.push(`Frame ${String(at + 1).padStart(2, '0')}`);
+  const tpl = (p.meta.tags as string[] | undefined)?.find((t) => t in BASS_TEMPLATES);
+  if (tpl) parts.push(BASS_TEMPLATES[tpl][0]);
+  return parts.filter(Boolean).join(' · ');
 }
 
 /** The dark bass octave templates (tools/bank/bass-templates.ts), shown as a label next to the name. */
