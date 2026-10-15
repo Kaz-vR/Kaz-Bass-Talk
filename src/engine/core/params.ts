@@ -101,7 +101,7 @@ export const WHEEL_MOVES: [dest: number, amount: number][][] = [
   // decay: the sound falls apart
   [[D_TAPE_WOW, 0.3], [D_CRUSH, 0.35], [D_DIST_TONE, -0.15], [D_CUTOFF, -0.12]],
   // bloom: it drifts away
-  [[D_REVERB_MIX, 0.55], [D_DELAY_MIX, 0.4], [D_WIDTH, 0.45], [D_CHORUS_DEPTH, 0.3]],
+  [[D_REVERB_MIX, 0.45], [D_DELAY_MIX, 0.3], [D_WIDTH, 0.45], [D_CHORUS_DEPTH, 0.3], [D_AMP, -0.2]],
 ];
 export const LFO_RATE_DEST = [D_LFO1_RATE, D_LFO2_RATE, D_LFO3_RATE, D_LFO4_RATE];
 

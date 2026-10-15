@@ -91,7 +91,7 @@ inline const WheelMove WHEEL_MOVES[8] = {
   {3, {{D_VIBRATO, 0.4}, {D_BREATH, 0.05}, {D_CUTOFF, 0.03}}},                                                       // vibrato
   {5, {{D_TAPE_WOW, 0.6}, {D_DETUNE, 0.15}, {D_CHORUS_DEPTH, 0.3}, {D_PITCH, -0.002}, {D_LFO2_RATE, 0.3}}},          // unstable
   {4, {{D_TAPE_WOW, 0.3}, {D_CRUSH, 0.35}, {D_DIST_TONE, -0.15}, {D_CUTOFF, -0.12}}},                               // decay
-  {4, {{D_REVERB_MIX, 0.55}, {D_DELAY_MIX, 0.4}, {D_WIDTH, 0.45}, {D_CHORUS_DEPTH, 0.3}}},        // bloom
+  {5, {{D_REVERB_MIX, 0.45}, {D_DELAY_MIX, 0.3}, {D_WIDTH, 0.45}, {D_CHORUS_DEPTH, 0.3}, {D_AMP, -0.2}}},        // bloom
 };
 constexpr int LFO_RATE_DEST[4] = {D_LFO1_RATE, D_LFO2_RATE, D_LFO3_RATE, D_LFO4_RATE};
 
