@@ -576,6 +576,13 @@ export class ParamsPanel {
     }
   }
 
+  /** One value changed elsewhere (the synth page above): show it without emitting. */
+  setValue(id: string, v: ParamValue): void {
+    this.current = { ...this.current, [id]: v };
+    this.controls.get(id)?.set(v);
+    if (/^mod\d+\./.test(id) || id === 'filter.env_amount' || id === 'pitch_env.amount') this.refreshRoutes();
+  }
+
   /** Show a patch. `reference` (the unedited version) highlights edited controls. */
   show(patch: Patch, reference: Patch = patch): void {
     this.reference = reference;

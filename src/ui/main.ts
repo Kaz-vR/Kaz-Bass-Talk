@@ -10,6 +10,7 @@ import { Keyboard } from './keyboard';
 import { initMidi } from './midi';
 import { ParamsPanel } from './params-panel';
 import { Scope } from './scope';
+import { SynthView } from './synth-view';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -54,10 +55,24 @@ const panel = new ParamsPanel(
   (id: string, value: ParamValue) => {
     current[id] = value;
     host?.setParam(id, value);
+    synth.setValue(id, value);
   },
   (v) => host?.modWheel(v),
   (solo, mute) => host?.monitor(solo, mute),
 );
+
+// The new synth page on top; the gear opens the full parameter view under it. Both edit the same patch.
+const synth = new SynthView($('synth-v2'), (id, value) => {
+  current[id] = value;
+  host?.setParam(id, value);
+  panel.setValue(id, value);
+});
+synth.onGear = () => {
+  const old = $('old-ui');
+  old.classList.toggle('hidden');
+  document.querySelector('.gear')?.classList.toggle('on', !old.classList.contains('hidden'));
+  if (!old.classList.contains('hidden')) old.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
 
 function showPatchInfo(p: Patch): void {
   $('patch-name').textContent = p.meta.name;
@@ -211,6 +226,7 @@ function loadRoll(e: RollEntry): void {
   current = structuredClone(reference);
   showPatchInfo(current);
   panel.show(current, reference);
+  synth.show(current);
   host?.setPatch(current);
   renderBrowser();
 }
@@ -348,6 +364,7 @@ function loadPatch(index: number): void {
   current = structuredClone(reference);
   showPatchInfo(current);
   panel.show(current, reference);
+  synth.show(current);
   host?.setPatch(current);
 }
 
@@ -420,6 +437,7 @@ $('start').querySelector('button')!.addEventListener('click', async () => {
   host.setPatch(current, true);
   host.setLoop(loops.find((l) => l.id === loopSel.value) ?? null);
   new Scope(host.analyser, $<HTMLCanvasElement>('scope'), $<HTMLCanvasElement>('spectrum'));
+  synth.setAnalyser(host.analyser);
   initMidi({
     noteOn: (n, v) => { host?.noteOn(n, v); keyboard.mark(n, true); },
     noteOff: (n) => { host?.noteOff(n); keyboard.mark(n, false); },
