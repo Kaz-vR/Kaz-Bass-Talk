@@ -19,34 +19,34 @@
     "collection": "terror",
     "audition": "dread",
     "vibe": {
-      "brightOct": 0.59,
-      "airDb": -54.4,
-      "dirt": 0.58,
-      "widthDb": -9.5,
-      "tailDb": -25.1
+      "brightOct": 1.58,
+      "airDb": -54.7,
+      "dirt": 0.56,
+      "widthDb": -9.3,
+      "tailDb": -26.3
     },
     "checks": {
-      "hash": "31752155",
-      "audio": "31aa6531",
-      "judge": "b3d612c0",
+      "hash": "396f3e39",
+      "audio": "e065e84f",
+      "judge": "4fd998a0",
       "critic": true,
       "issues": [],
       "earns": true,
-      "weakest": "mod 2 (lfo2 → filter_cutoff) 0.16 dB",
+      "weakest": "mod 2 (lfo2 → filter_cutoff) 0.17 dB",
       "failing": []
     },
     "features": {
-      "brightness": 0.26,
-      "highEnergy": 0.583,
-      "sub": 0.779,
-      "lowMid": 0.491,
-      "dirt": 0.576,
-      "width": 0.764,
-      "attack": 0.201,
-      "decay": 0.903,
-      "sustain": 0.908,
+      "brightness": 0.259,
+      "highEnergy": 0.58,
+      "sub": 0.78,
+      "lowMid": 0.49,
+      "dirt": 0.559,
+      "width": 0.767,
+      "attack": 0.721,
+      "decay": 0.835,
+      "sustain": 0.941,
       "release": 0.773,
-      "movement": 0.358
+      "movement": 0.359
     }
   },
   "voice.polyphony": 1,
