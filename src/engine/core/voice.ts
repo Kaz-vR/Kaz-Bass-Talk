@@ -184,6 +184,8 @@ export class Voice {
   // Each oscillator's own filter slot (high-pass by default), the sub's, and the routing into the main filter.
   private readonly oscF = [new SlotFilter(2), new SlotFilter(2)];
   private readonly subF = new SlotFilter(1);
+  /** The oscillators' low cut once more after the dirt (removes the rumble it created). */
+  private readonly postCut = new SlotFilter(2);
   private routeA = true;
   private routeB = true;
   private routeS = false;
@@ -407,6 +409,7 @@ export class Voice {
     this.subDelay.fill(0);
     for (const f of this.oscF) f.reset();
     this.subF.reset();
+    this.postCut.reset();
     this.upBL.reset();
     this.upBR.reset();
     this.fatL.reset();
@@ -588,6 +591,15 @@ export class Voice {
     this.routeA = cur[P.routeA] > 0.5;
     this.routeB = cur[P.routeB] > 0.5;
     this.routeS = cur[P.routeS] > 0.5;
+    {
+      let hz = Infinity;
+      for (let n = 0; n < 2; n++) {
+        const t = cur[P.osc[n].fType];
+        if (t <= 1 && cur[P.osc[n].hp] > 21) hz = Math.min(hz, cur[P.osc[n].hp]); // high 24 / high 12
+      }
+      const on = cur[P.postCut] > 0.5 && !this.routeS && hz < Infinity;
+      this.postCut.set(on ? 1 : 0, true, on ? hz : 20, fs);
+    }
     this.subDirect = cur[P.subDirect] > 0.5;
     const bypass = !this.routeA || !this.routeB;
     if (bypass && !this.bypassOn) {
@@ -1160,6 +1172,11 @@ export class Voice {
         this.tape.process(l, r, cur[P.tapeDrive], this.tapeWow, cur[P.tapeAge], this.tapeLpCoef, env, tmp);
         l = tmp[0];
         r = tmp[1];
+      }
+
+      if (this.postCut.active) {
+        l = this.postCut.process(l, 0);
+        r = this.postCut.process(r, 1);
       }
 
       // Remove DC from asymmetric stages (tube, tape) before the envelope shapes it.

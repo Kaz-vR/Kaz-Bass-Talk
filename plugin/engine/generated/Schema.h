@@ -6,7 +6,7 @@ struct ParamSpec {
   const char* id; const char* label; PType type; double min, max, def; int curve; double exponent;
   const char* unit; const char* group; const char* options; const char* describes;
 };
-constexpr int PARAM_COUNT = 225;
+constexpr int PARAM_COUNT = 226;
 inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "voice.polyphony", "Polyphony", PType::Int, 1, 8, 1, 0, 3, "voices", "voice", "", "1 = monophonic (legato and glide work, the bass default). 2-8 = that many notes at once, for pads, keys and chords; the oldest note is taken over when more are played." },
   { "voice.legato", "Legato", PType::Bool, 0, 1, 0, 0, 3, "", "voice", "", "On: overlapping notes slide without retriggering the envelopes (303-style). Off: every note retriggers." },
@@ -107,6 +107,7 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "tape.wow", "Tape wow & flutter", PType::Float, 0, 1, 0, 2, 2, "", "tape", "", "Slow, wandering pitch wobble like an old tape machine. A little sounds vintage and alive; a lot sounds warped and seasick (cinematic, LORN-style)." },
   { "tape.age", "Tape age", PType::Float, 0, 1, 0, 0, 3, "", "tape", "", "Worn tape: dulls the top end and adds faint hiss. Dark, dusty, lo-fi." },
   { "clip.mid", "Mid clip", PType::Float, 0, 12, 0, 0, 3, "dB", "clip", "", "Transparent soft clipper on oscillators 1 and 2 only (after the dirt chain and the amp, before the effects; the sub has its own): shaves spikes and adds density at the same level. 0 = off." },
+  { "clip.low_cut", "Clean lows after the dirt", PType::Bool, 0, 1, 0, 0, 3, "", "clip", "", "On: after the distortion, crush and tape, the oscillators get their low cut once more (at the lower of the two oscillators' low cuts), removing the rumble the dirt itself created. The sub is never touched." },
   { "amp_env.attack", "Amp attack", PType::Float, 0.5, 20000, 2, 1, 3, "ms", "amp_env", "", "Fade-in time. Under 5 ms is punchy; longer is a swell." },
   { "amp_env.decay", "Amp decay", PType::Float, 1, 20000, 300, 1, 3, "ms", "amp_env", "", "Time to fall to the sustain level. Short with low sustain makes a pluck." },
   { "amp_env.sustain", "Amp sustain", PType::Float, 0, 1, 1, 0, 3, "", "amp_env", "", "Level while the key is held. 1 is a held organ-like bass; 0 is a pluck or 808 decay." },

@@ -7,7 +7,7 @@ import { formatValue } from './params-panel';
 
 type OnChange = (id: string, value: ParamValue) => void;
 
-const DESIGN_WIDTH = 1240;
+const DESIGN_WIDTH = 1500;
 const FS = 48000;
 
 /** Tiny DOM helper. */
@@ -59,15 +59,6 @@ function response(stages: [Kind, number, number][], f: number): number {
     m *= biquadMag(b, f);
   }
   return m;
-}
-
-const BW = [0.5412, 1.3066];
-/** Stages of a source slot's filter type (oscillator or sub / texture naming). */
-function slotStages(type: string, fc: number): [Kind, number, number][] {
-  if (type === 'off') return [];
-  if (type === 'band') return [['bp', fc, 1]];
-  const kind: Kind = type.startsWith('high') ? 'hp' : 'lp';
-  return type.endsWith('24') ? [[kind, fc, BW[0]], [kind, fc, BW[1]]] : [[kind, fc, Math.SQRT1_2]];
 }
 
 export class SynthView {
@@ -340,7 +331,7 @@ export class SynthView {
     return el;
   }
 
-  private card(title: string, group: 'src' | 'flt', ...head: HTMLElement[]): [HTMLElement, HTMLElement] {
+  private card(title: string, group: 'src' | 'flt' | 'dirt', ...head: HTMLElement[]): [HTMLElement, HTMLElement] {
     const body = h('div', 'c-body');
     const hd = h('div', 'c-head', ...head, h('span', 'c-title', title));
     const el = h('div', `c c-${group}`, hd, body);
@@ -534,8 +525,8 @@ export class SynthView {
     const shapeId = () => (String(this.get(`${o}.wave`)) === 'wavetable' ? `${o}.wt_pos` : `${o}.pulse_width`);
     // Shape: pulse width on pulse / pwm saw, position on the wavetable, dimmed otherwise.
     const shapeWrap = h('div', 'shape-wrap');
-    const pwKnob = this.knob(`${o}.pulse_width`, 'SHAPE', 'mid', { disabled: () => !['pulse', 'pwm_saw'].includes(String(this.get(`${o}.wave`))), deps: [`${o}.wave`] });
-    const wtKnob = this.knob(`${o}.wt_pos`, 'SHAPE', 'mid');
+    const pwKnob = this.knob(`${o}.pulse_width`, 'SHAPE', 'small', { disabled: () => !['pulse', 'pwm_saw'].includes(String(this.get(`${o}.wave`))), deps: [`${o}.wave`] });
+    const wtKnob = this.knob(`${o}.wt_pos`, 'SHAPE', 'small');
     shapeWrap.append(pwKnob, wtKnob);
     this.watch([`${o}.wave`], () => {
       const wt = shapeId() === `${o}.wt_pos`;
@@ -545,51 +536,152 @@ export class SynthView {
     const uniOff = () => this.num(`${o}.unison_voices`) <= 1;
     const knobs = h('div', 'knob-row',
       this.stepper('UNISON', () => this.num(`${o}.unison_voices`), (v) => this.set(`${o}.unison_voices`, v), 1, 7, [`${o}.unison_voices`], 'Unison voices (stacked detuned copies)'),
-      this.knob(`${o}.unison_detune`, 'DETUNE', 'mid', { disabled: uniOff, deps: [`${o}.unison_voices`] }),
+      this.knob(`${o}.unison_detune`, 'DETUNE', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] }),
       shapeWrap,
-      this.knob(`${o}.unison_spread`, 'SPREAD', 'mid', { disabled: uniOff, deps: [`${o}.unison_voices`] }),
-      this.knob(`${o}.level`, 'LEVEL', 'mid'),
+      this.knob(`${o}.unison_spread`, 'SPREAD', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] }),
+      this.lowCut(`${o}.highpass`, `${o}.filter_type`),
+      this.knob(`${o}.level`, 'LEVEL', 'small'),
     );
     body.append(top, this.waveView(n), knobs);
     if (n === 2) body.append(h('div', 'sync-row', this.toggle('osc2.sync', 'SYNC')));
     return el;
   }
 
-  /** A source's own filter slot. */
-  private slotCard(title: string, src: 'osc1' | 'osc2' | 'sub' | 'texture'): HTMLElement {
-    const typeId = `${src}.filter_type`;
-    const cutId = src.startsWith('osc') ? `${src}.highpass` : `${src}.filter_cutoff`;
-    const keyId = `${src}.filter_key`;
-    const active = () => {
-      const t = String(this.get(typeId)), fc = this.num(cutId);
-      return t === 'off' ? false : t.startsWith('high') ? fc > 21 : t.startsWith('low') ? fc < 19000 : true;
-    };
-    const pw = h('button', 'power');
-    pw.title = 'On / off (opens the filter all the way, or brings back the last cutoff)';
-    pw.onclick = () => {
+  /**
+   * LOW CUT: a source's high-pass as one knob (fully left = off). On the oscillators it is their
+   * filter slot's cutoff (dimmed if that slot was set to another type in the full view); on the
+   * noise bed, turning it up switches the bed's own filter to a 24 dB high-pass.
+   */
+  private lowCut(cutId: string, typeId: string): HTMLElement {
+    const isOsc = cutId.startsWith('osc');
+    const p = getParam(cutId)!;
+    const OFF = 21;
+    const fmt = (v: number) => {
       const t = String(this.get(typeId));
-      if (active()) {
-        this.remembered.set(cutId, this.get(cutId));
-        this.set(cutId, t.startsWith('low') ? 20000 : t === 'off' ? this.num(cutId) : 20);
-      } else {
-        if (t === 'off') this.set(typeId, 'low 12');
-        const back = this.remembered.get(cutId);
-        this.set(cutId, back ?? (String(this.get(typeId)).startsWith('high') ? 130 : 1200));
+      if (!t.startsWith('high') || v <= OFF) return 'off';
+      return v >= 1000 ? `${(v / 1000).toFixed(1)} kHz` : `${Math.round(v)} Hz`;
+    };
+    const el = this.knob(cutId, 'LO CUT', 'small', {
+      fmt,
+      deps: [typeId],
+      disabled: () => (isOsc ? !String(this.get(typeId)).startsWith('high') : false),
+    });
+    el.title = `Low cut: ${isOsc ? 'cuts this oscillator below this frequency before the drive, so it stays out of the sub\'s space' : 'cuts the noise bed below this frequency so it stays out of the body of the sound'}. Fully left = off. ${p.label}.`;
+    if (!isOsc) {
+      // The bed's filter is off by default: the knob shows "off" at its far left and switches it on when turned up.
+      el.addEventListener('pointerdown', () => {
+        if (!String(this.get(typeId)).startsWith('high')) {
+          this.set(cutId, 20);
+          this.set(typeId, 'high 24');
+        }
+      }, true);
+    }
+    return el;
+  }
+
+  private breathCard(): HTMLElement {
+    const [el, body] = this.card('BREATH', 'src', this.levelPower('breath.level'));
+    el.classList.add('layer');
+    body.append(h('div', 'knob-row tight',
+      this.knob('breath.chiff', 'CHIFF', 'small'),
+      this.knob('breath.decay', 'DECAY', 'small'),
+      this.knob('breath.tone', 'TONE', 'small'),
+      this.knob('breath.level', 'LEVEL', 'small'),
+    ));
+    return el;
+  }
+
+  private clickCard(): HTMLElement {
+    const [el, body] = this.card('CLICK', 'src', this.levelPower('click.level'));
+    el.classList.add('layer');
+    body.append(h('div', 'card-top', this.selector('click.type')), h('div', 'knob-row tight',
+      this.knob('click.decay', 'DECAY', 'small'),
+      this.knob('click.tone', 'TONE', 'small'),
+      this.knob('click.level', 'LEVEL', 'small'),
+    ));
+    return el;
+  }
+
+  /** Distortion: type, a live transfer curve, drive, mix, tone and the clean low band. */
+  private distCard(): HTMLElement {
+    const [el, body] = this.card('DISTORTION', 'dirt', this.boolPower('dist.on'));
+    const W = 224, H = 96;
+    const [cv, g] = canvas(W, H, 'disp');
+    const shape = (type: string, x: number, d: number): number => {
+      const k = 1 + 14 * d;
+      switch (type) {
+        case 'hard': return Math.max(-1, Math.min(1, x * k));
+        case 'fold': return Math.sin((x * k * Math.PI) / 2);
+        case 'tube': {
+          const b = 0.25;
+          return (Math.tanh(x * k + b) - Math.tanh(b)) / (1 - Math.tanh(b) * 0.4);
+        }
+        default: return Math.tanh(x * k) / Math.tanh(Math.max(1, k * 0.6));
       }
     };
-    this.watch([typeId, cutId], () => pw.classList.toggle('on', active()));
-    const [el, body] = this.card(`FILTER · ${title}`, 'src', pw);
-    el.classList.add('slot');
-    // Switching between high- and low-pass starts the cutoff where the new type does nothing yet.
-    const sel = this.selector(typeId, {
-      onPick: (from, to) => {
-        const fam = (t: string) => (t.startsWith('high') ? 'h' : t.startsWith('low') ? 'l' : t);
-        if (fam(from) !== fam(to)) this.set(cutId, to.startsWith('high') ? 20 : to.startsWith('low') ? 20000 : to === 'band' ? 1000 : this.num(cutId));
-      },
-    });
-    const curve = this.curveView([typeId, cutId], () => slotStages(String(this.get(typeId)), this.num(cutId)), active);
-    const knobCol = h('div', 'slot-knob', this.knob(cutId, 'CUTOFF', 'mid'), this.toggle(keyId, 'KEY', 'small'));
-    body.append(h('div', 'slot-main', h('div', 'slot-left', sel, curve), knobCol));
+    const draw = () => {
+      const on = !!this.get('dist.on');
+      const type = String(this.get('dist.type')), d = this.num('dist.drive'), mix = this.num('dist.mix');
+      g.clearRect(0, 0, W, H);
+      g.fillStyle = '#0b0d0f';
+      g.fillRect(0, 0, W, H);
+      g.strokeStyle = 'rgba(255,255,255,0.07)';
+      g.beginPath();
+      g.moveTo(0, H / 2);
+      g.lineTo(W, H / 2);
+      g.moveTo(W / 2, 0);
+      g.lineTo(W / 2, H);
+      g.stroke();
+      g.strokeStyle = on ? '#c48be8' : '#4a5058';
+      g.lineWidth = 2;
+      g.beginPath();
+      for (let i = 0; i <= W; i++) {
+        const x = (i / W) * 2 - 1;
+        const y = Math.max(-1.1, Math.min(1.1, mix * shape(type, x, d) + (1 - mix) * x));
+        const py = H / 2 - y * (H / 2 - 6);
+        if (i) g.lineTo(i, py);
+        else g.moveTo(i, py);
+      }
+      g.stroke();
+    };
+    this.watch(['dist.on', 'dist.type', 'dist.drive', 'dist.mix'], draw);
+    const low = this.knob('dist.clean_below', 'LOW', 'small', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
+    low.title = 'Keeps everything below this frequency clean (the distortion only works on the part above it). Fully left = off.';
+    body.append(this.selector('dist.type'), cv, h('div', 'knob-row tight',
+      this.knob('dist.drive', 'DRIVE', 'mid'),
+      this.knob('dist.mix', 'MIX', 'small'),
+      this.knob('dist.post_tone', 'TONE', 'small'),
+      low,
+    ));
+    return el;
+  }
+
+  private crushCard(): HTMLElement {
+    const [el, body] = this.card('BITCRUSHER', 'dirt', this.boolPower('crush.on'));
+    body.append(h('div', 'knob-row tight',
+      this.knob('crush.mix', 'MIX', 'small'),
+      this.knob('crush.bits', 'BITS', 'small', { fmt: (v) => `${Math.round(v)} bit` }),
+      this.knob('crush.rate', 'RATE', 'small'),
+    ));
+    return el;
+  }
+
+  private tapeCard(): HTMLElement {
+    const [el, body] = this.card('TAPE', 'dirt', this.boolPower('tape.on'));
+    body.append(h('div', 'knob-row tight',
+      this.knob('tape.drive', 'DRIVE', 'small'),
+      this.knob('tape.wow', 'WOW', 'small'),
+      this.knob('tape.age', 'AGE', 'small'),
+    ));
+    return el;
+  }
+
+  private midClipCard(): HTMLElement {
+    const [el, body] = this.card('MID CLIP', 'dirt', this.levelPower('clip.mid'));
+    body.append(h('div', 'knob-row tight',
+      this.knob('clip.mid', 'CLIP', 'small'),
+      h('div', 'clip-led', this.toggle('clip.low_cut', 'CLEAN LOWS', 'small')),
+    ));
     return el;
   }
 
@@ -597,10 +689,11 @@ export class SynthView {
     const [el, body] = this.card('NOISE', 'src', this.levelPower('texture.level'));
     el.classList.add('noise');
     const head = h('div', 'card-top', this.selector('texture.type'), this.toggle('texture.direct', 'DIRECT OUT', 'small'));
-    const knobs = h('div', 'knob-grid',
+    const knobs = h('div', 'knob-row tight',
       this.knob('texture.tone', 'TONE', 'small'),
       this.knob('texture.tail', 'TAIL', 'small'),
       this.knob('texture.pan', 'PAN', 'small'),
+      this.lowCut('texture.filter_cutoff', 'texture.filter_type'),
       this.knob('texture.level', 'LEVEL', 'small'),
     );
     body.append(head, knobs);
@@ -744,18 +837,15 @@ export class SynthView {
       tabs.append(b);
     }
     const oscRow = h('div', 'osc-row', this.oscCard(1), this.oscCard(2));
-    const lower = h('div', 'lower-row', this.envCard('amp_env', 'AMP ENVELOPE', 'src', '#f0a24a', 358, 168), h('div', 'ns-col', this.noiseCard(), this.subCard()));
-    const sources = h('div', 'col-sources', oscRow, lower);
-    const slots = h('div', 'col-slots',
-      this.slotCard('OSC A', 'osc1'),
-      this.slotCard('OSC B', 'osc2'),
-      this.slotCard('NOISE', 'texture'),
-      this.slotCard('SUB', 'sub'),
-    );
+    const sources = h('div', 'col-sources', oscRow, this.envCard('amp_env', 'AMP ENVELOPE', 'src', '#f0a24a', 526, 190));
+    const layers = h('div', 'col-layers', this.noiseCard(), this.breathCard(), this.clickCard(), this.subCard());
     const filter = h('div', 'col-filter', this.mainFilterCard(), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', '#5fd08a', 278, 112));
-    const zoneSrc = h('div', 'zone zone-src', sources, slots);
+    const dirt = h('div', 'col-dirt', this.distCard(), this.crushCard(), this.tapeCard(), this.midClipCard());
+    const zoneSrc = h('div', 'zone zone-src', sources, layers);
     const zoneFlt = h('div', 'zone zone-flt', filter);
-    this.page.append(h('div', 'v2-top', tabs), h('div', 'v2-main', zoneSrc, zoneFlt), this.bottomBar());
+    const zoneDirt = h('div', 'zone zone-dirt', dirt);
+    const arrow = () => h('div', 'flow-arrow', '›');
+    this.page.append(h('div', 'v2-top', tabs), h('div', 'v2-main', zoneSrc, arrow(), zoneFlt, arrow(), zoneDirt), this.bottomBar());
   }
 }
 

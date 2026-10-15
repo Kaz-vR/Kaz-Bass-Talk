@@ -1172,6 +1172,14 @@
       "describes": "Transparent soft clipper on oscillators 1 and 2 only (after the dirt chain and the amp, before the effects; the sub has its own): shaves spikes and adds density at the same level. 0 = off."
     },
     {
+      "id": "clip.low_cut",
+      "label": "Clean lows after the dirt",
+      "type": "bool",
+      "default": false,
+      "group": "clip",
+      "describes": "On: after the distortion, crush and tape, the oscillators get their low cut once more (at the lower of the two oscillators' low cuts), removing the rumble the dirt itself created. The sub is never touched."
+    },
+    {
       "id": "amp_env.attack",
       "label": "Amp attack",
       "type": "float",
