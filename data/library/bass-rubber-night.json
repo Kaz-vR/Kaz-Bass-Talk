@@ -21,13 +21,13 @@
     "vibe": {
       "brightOct": 1.14,
       "airDb": -45.5,
-      "dirt": 0.61,
+      "dirt": 0.6,
       "widthDb": -7.8,
       "tailDb": -32.1
     },
     "checks": {
-      "hash": "1a977078",
-      "audio": "5065f721",
+      "hash": "34ba4854",
+      "audio": "09c3e340",
       "judge": "b3d612c0",
       "critic": true,
       "issues": [],
@@ -41,7 +41,7 @@
       "sub": 0.682,
       "lowMid": 0.515,
       "dirt": 0.605,
-      "width": 0.805,
+      "width": 0.804,
       "attack": 0.201,
       "decay": 0.615,
       "sustain": 0.589,
