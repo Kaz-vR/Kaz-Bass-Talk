@@ -3,6 +3,18 @@
 
 export const TWO_PI = Math.PI * 2;
 
+/**
+ * Transparent peak soft clipper: identity up to the knee t, then a tanh curve
+ * that eases toward t + w. Everything under the knee keeps its level, so the
+ * clipped sound is denser at the same loudness (no make-up gain needed).
+ */
+export function softClip(x: number, t: number, w: number): number {
+  const a = x < 0 ? -x : x;
+  if (a <= t) return x;
+  const y = t + w * Math.tanh((a - t) / w);
+  return x < 0 ? -y : y;
+}
+
 export function clamp(x: number, lo: number, hi: number): number {
   return x < lo ? lo : x > hi ? hi : x;
 }

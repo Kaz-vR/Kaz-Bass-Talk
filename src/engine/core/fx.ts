@@ -207,9 +207,30 @@ export class Phaser {
  * and release only ever lower the gain, so the guarantee holds. A final clamp
  * catches floating-point residue.
  */
+/** Delay of the limiter's true-peak detector (samples): it looks 4 samples ahead of the point it interpolates. */
+export const TP_DELAY = 4;
+/** 4x interpolation between samples for the true-peak detector: 8-tap Hann-windowed sinc per phase (1/4, 1/2, 3/4). */
+const TP_TAPS: Float64Array[] = [0.25, 0.5, 0.75].map((f) => {
+  const h = new Float64Array(8);
+  let sum = 0;
+  for (let i = 0; i < 8; i++) {
+    const x = f - (i - 3);
+    const sinc = Math.sin(Math.PI * x) / (Math.PI * x);
+    const w = 0.5 + 0.5 * Math.cos((Math.PI * x) / 4.5);
+    h[i] = sinc * w;
+    sum += h[i];
+  }
+  for (let i = 0; i < 8; i++) h[i] /= sum;
+  return h;
+});
+
 export class Limiter {
   readonly ceiling: number;
   readonly lookahead: number;
+  // Last 8 inputs per channel for the true-peak detector.
+  private histL = new Float64Array(8);
+  private histR = new Float64Array(8);
+  private hPos = 0;
   private delayL: Float64Array;
   private delayR: Float64Array;
   private dPos = 0;
@@ -235,8 +256,8 @@ export class Limiter {
     this.ceiling = Math.pow(10, ceilingDb / 20);
     this.lookahead = Math.max(2, Math.round((lookaheadMs * fs) / 1000));
     const L = this.lookahead;
-    this.delayL = new Float64Array(L);
-    this.delayR = new Float64Array(L);
+    this.delayL = new Float64Array(L + TP_DELAY);
+    this.delayR = new Float64Array(L + TP_DELAY);
     this.qCap = L + 2;
     this.qVal = new Float64Array(this.qCap);
     this.qIdx = new Float64Array(this.qCap);
@@ -249,6 +270,8 @@ export class Limiter {
   reset(): void {
     this.delayL.fill(0);
     this.delayR.fill(0);
+    this.histL.fill(0);
+    this.histR.fill(0);
     this.box.fill(1);
     this.boxSum = this.lookahead;
     this.qHead = this.qTail = 0;
@@ -258,7 +281,27 @@ export class Limiter {
 
   process(l: number, r: number, out: Float64Array): void {
     const L = this.lookahead;
-    const peak = Math.max(Math.abs(l), Math.abs(r));
+    // True peak: the sample TP_DELAY back and the three points interpolated after it,
+    // so peaks between samples (which a DAC or a converter would reconstruct) are caught too.
+    const hp = this.hPos;
+    this.histL[hp] = l;
+    this.histR[hp] = r;
+    this.hPos = (hp + 1) & 7;
+    const pl = this.histL[(hp + 4) & 7], pr = this.histR[(hp + 4) & 7];
+    let peak = Math.max(Math.abs(pl), Math.abs(pr));
+    for (let ph = 0; ph < 3; ph++) {
+      const h = TP_TAPS[ph];
+      let al = 0, ar = 0;
+      for (let i = 0; i < 8; i++) {
+        const j = (hp + 1 + i) & 7;
+        al += h[i] * this.histL[j];
+        ar += h[i] * this.histR[j];
+      }
+      if (al < 0) al = -al;
+      if (ar < 0) ar = -ar;
+      if (al > peak) peak = al;
+      if (ar > peak) peak = ar;
+    }
     const req = peak > this.ceiling ? this.ceiling / peak : 1;
 
     // Sliding minimum over the last L required gains.
@@ -297,12 +340,12 @@ export class Limiter {
     }
     if (this.gain < this.minGain) this.minGain = this.gain;
 
-    // Delay the signal by L-1 samples so the gain is applied ahead of peaks.
+    // Delay the signal by L-1 samples (plus the detector's delay) so the gain is applied ahead of peaks.
     const dl = this.delayL[this.dPos];
     const dr = this.delayR[this.dPos];
     this.delayL[this.dPos] = l;
     this.delayR[this.dPos] = r;
-    this.dPos = this.dPos + 1 === L - 1 ? 0 : this.dPos + 1;
+    this.dPos = this.dPos + 1 === L - 1 + TP_DELAY ? 0 : this.dPos + 1;
 
     const c = this.ceiling;
     const yl = dl * this.gain;

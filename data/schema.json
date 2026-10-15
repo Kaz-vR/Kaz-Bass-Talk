@@ -543,6 +543,18 @@
       "describes": "Clean mono sub that bypasses filter and distortion. More is heavier low end you feel more than hear."
     },
     {
+      "id": "sub.clip",
+      "label": "Sub clip",
+      "type": "float",
+      "min": 0,
+      "max": 12,
+      "default": 0,
+      "curve": "linear",
+      "unit": "dB",
+      "group": "sub",
+      "describes": "Transparent soft clipper on the sub only: shaves its peaks (about 1.5 dB at 3, 2.5 dB at 6, 4 dB at 12) and adds density, while everything under the knee stays at the same level, so it sounds fuller, not louder. 0 = off."
+    },
+    {
       "id": "noise.level",
       "label": "Noise level",
       "type": "float",
@@ -943,6 +955,18 @@
       "unit": "",
       "group": "tape",
       "describes": "Worn tape: dulls the top end and adds faint hiss. Dark, dusty, lo-fi."
+    },
+    {
+      "id": "clip.mid",
+      "label": "Mid clip",
+      "type": "float",
+      "min": 0,
+      "max": 12,
+      "default": 0,
+      "curve": "linear",
+      "unit": "dB",
+      "group": "clip",
+      "describes": "Transparent soft clipper on oscillators 1 and 2 only (after the dirt chain and the amp, before the effects; the sub has its own): shaves spikes and adds density at the same level. 0 = off."
     },
     {
       "id": "amp_env.attack",

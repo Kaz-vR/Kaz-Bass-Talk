@@ -26,7 +26,7 @@
 
 import { PARAM_COUNT, params } from '../../schema';
 import { Biquad, clamp, Rng, TWO_PI } from './dsp';
-import { Chorus, Compressor, Delay, Flanger, Limiter, Ott, Phaser, Reverb } from './fx';
+import { Chorus, Compressor, Delay, Flanger, Limiter, Ott, Phaser, Reverb, TP_DELAY } from './fx';
 import { OVERSAMPLE_LATENCY } from './oversample';
 import * as K from './params';
 import { Voice } from './voice';
@@ -229,7 +229,7 @@ export class Synth {
 
   /** Latency of the output limiter, in samples. */
   get latency(): number {
-    return this.limiter.lookahead - 1 + OVERSAMPLE_LATENCY;
+    return this.limiter.lookahead - 1 + TP_DELAY + OVERSAMPLE_LATENCY;
   }
 
   private anyActive(): boolean {

@@ -132,7 +132,7 @@ export const P = {
   strTone: ix('string.tone'), strDecay: ix('string.decay'), shepRate: ix('shepard.rate'),
   accent: ix('filter.accent'), ampCurve: ix('amp_env.attack_curve'), chorusMode: ix('chorus.mode'),
   clickType: ix('click.type'), clickLevel: ix('click.level'), clickDecay: ix('click.decay'), clickTone: ix('click.tone'),
-  subWave: ix('sub.wave'), subOct: ix('sub.octave'), subLevel: ix('sub.level'),
+  subWave: ix('sub.wave'), subOct: ix('sub.octave'), subLevel: ix('sub.level'), subClip: ix('sub.clip'), midClip: ix('clip.mid'),
   noise: ix('noise.level'), drive: ix('drive.amount'),
   texType: ix('texture.type'), texLevel: ix('texture.level'), texTone: ix('texture.tone'), texTail: ix('texture.tail'), texPosition: ix('texture.position'),
   fType: ix('filter.type'), cutoff: ix('filter.cutoff'), res: ix('filter.resonance'), keytrack: ix('filter.keytrack'),
