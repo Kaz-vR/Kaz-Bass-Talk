@@ -8,7 +8,6 @@
       "wave:wavetable",
       "fm",
       "osc2-layer",
-      "sub:triangle",
       "sub:2oct",
       "layer:click",
       "filter:lowpass",

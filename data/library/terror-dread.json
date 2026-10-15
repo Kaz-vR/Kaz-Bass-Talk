@@ -16,7 +16,37 @@
     "family": "terror",
     "category": "bass",
     "collection": "terror",
-    "audition": "dread"
+    "audition": "dread",
+    "vibe": {
+      "brightOct": 0.89,
+      "airDb": -57.6,
+      "dirt": 0.5,
+      "widthDb": -8.5,
+      "tailDb": -30.5
+    },
+    "checks": {
+      "hash": "dfe8c023",
+      "audio": "382c70a1",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "mod 2 (lfo2 → filter_cutoff) 0.20 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.305,
+      "highEnergy": 0.564,
+      "sub": 0.677,
+      "lowMid": 0.572,
+      "dirt": 0.504,
+      "width": 0.788,
+      "attack": 0.333,
+      "decay": 0.902,
+      "sustain": 0.91,
+      "release": 0.751,
+      "movement": 0.279
+    }
   },
   "voice.polyphony": 1,
   "voice.legato": false,
@@ -220,6 +250,6 @@
   "eq.mid_freq": 320,
   "eq.high_gain": -2,
   "eq.highcut": 5500,
-  "output.gain": 0,
+  "output.gain": -3.2,
   "output.crossover": 250
 }

@@ -17,7 +17,37 @@
     "family": "bass",
     "collection": "bank",
     "audition": "groove",
-    "iconic": true
+    "iconic": true,
+    "vibe": {
+      "brightOct": 0.93,
+      "airDb": -52.9,
+      "dirt": 0.5,
+      "widthDb": -8.4,
+      "tailDb": -32.4
+    },
+    "checks": {
+      "hash": "c445a8e1",
+      "audio": "b0b14898",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "pump 0.22 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.312,
+      "highEnergy": 0.55,
+      "sub": 0.608,
+      "lowMid": 0.638,
+      "dirt": 0.5,
+      "width": 0.789,
+      "attack": 0.333,
+      "decay": 0.902,
+      "sustain": 0.842,
+      "release": 0.773,
+      "movement": 0.169
+    }
   },
   "voice.polyphony": 1,
   "voice.legato": false,

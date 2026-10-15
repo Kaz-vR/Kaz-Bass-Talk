@@ -23,8 +23,8 @@
       "tailDb": -13.6
     },
     "checks": {
-      "hash": "41ba8b8c",
-      "audio": "4167ea0c",
+      "hash": "f6b9fe07",
+      "audio": "f3c7b8d0",
       "judge": "b3d612c0",
       "critic": true,
       "issues": [],
@@ -40,10 +40,10 @@
       "dirt": 0.926,
       "width": 0.652,
       "attack": 0.1,
-      "decay": 0.78,
-      "sustain": 0.264,
+      "decay": 0.795,
+      "sustain": 0.261,
       "release": 0.773,
-      "movement": 0.501
+      "movement": 0.5
     }
   },
   "voice.polyphony": 4,

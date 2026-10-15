@@ -136,6 +136,7 @@ const def: CategoryDef = {
       texture: ['dust', 0.25, 0.3, 2500],
       set: { 'amp_env.attack': 15, 'click.type': 'knock', 'click.level': 0.15, 'pitch_env.amount': 7, 'pitch_env.decay': 200, 'drive.amount': 0.35, 'dist.drive': 0.1, 'reverb.mix': 0.5, 'eq.highcut': 4000 },
       mods: kit(HIT_KIT, [], { 'lfo1>filter_cutoff': ['lfo1', 'reverb_mix', 0.3] }),
+      allow: { 'consistency:dirt': { why: 'a soft bed made of noise: its grain is the sound' } },
     },
     {
       id: 'soft-drop', name: 'Soft Drop',

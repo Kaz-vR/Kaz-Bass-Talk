@@ -44,6 +44,11 @@
       "sustain": 0.931,
       "release": 0.773,
       "movement": 0.212
+    },
+    "allow": {
+      "consistency:dirt": {
+        "why": "a soft bed made of noise: its grain is the sound"
+      }
     }
   },
   "voice.polyphony": 4,

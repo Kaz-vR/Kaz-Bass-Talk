@@ -16,7 +16,37 @@
     "category": "bass",
     "family": "bass",
     "collection": "bank",
-    "audition": "dread"
+    "audition": "dread",
+    "vibe": {
+      "brightOct": 0.72,
+      "airDb": -38.4,
+      "dirt": 0.47,
+      "widthDb": -9.8,
+      "tailDb": -30.2
+    },
+    "checks": {
+      "hash": "171f13b1",
+      "audio": "b46dd6a6",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "mod 11 (random → drive) 0.28 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.279,
+      "highEnergy": 0.551,
+      "sub": 0.686,
+      "lowMid": 0.587,
+      "dirt": 0.474,
+      "width": 0.754,
+      "attack": 0.638,
+      "decay": 0.867,
+      "sustain": 0.941,
+      "release": 0.773,
+      "movement": 0.269
+    }
   },
   "voice.polyphony": 1,
   "voice.legato": false,
@@ -64,7 +94,7 @@
   "sub.level": 0.5,
   "noise.level": 0,
   "texture.type": "dust",
-  "texture.level": 0.65,
+  "texture.level": 0.75,
   "texture.tone": 0.45,
   "texture.tail": 600,
   "texture.position": "before dynamics",
@@ -216,10 +246,10 @@
   "fx.lowcut": 250,
   "eq.on": true,
   "eq.low_gain": 0,
-  "eq.mid_gain": -2,
-  "eq.mid_freq": 320,
+  "eq.mid_gain": -4.5,
+  "eq.mid_freq": 300,
   "eq.high_gain": -2,
   "eq.highcut": 5000,
-  "output.gain": 0,
+  "output.gain": 0.9,
   "output.crossover": 250
 }

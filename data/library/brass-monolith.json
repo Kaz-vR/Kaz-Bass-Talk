@@ -25,8 +25,8 @@
       "tailDb": -3.7
     },
     "checks": {
-      "hash": "484c3637",
-      "audio": "589312b7",
+      "hash": "945b3138",
+      "audio": "8a599295",
       "judge": "b3d612c0",
       "critic": true,
       "issues": [],
@@ -35,17 +35,17 @@
       "failing": []
     },
     "features": {
-      "brightness": 0.373,
+      "brightness": 0.374,
       "highEnergy": 0.659,
-      "sub": 0.427,
+      "sub": 0.426,
       "lowMid": 0.767,
       "dirt": 0.765,
       "width": 0.869,
-      "attack": 0.597,
-      "decay": 0.968,
-      "sustain": 0.956,
+      "attack": 0.615,
+      "decay": 0.784,
+      "sustain": 0.937,
       "release": 0.773,
-      "movement": 0.411
+      "movement": 0.413
     }
   },
   "voice.polyphony": 4,

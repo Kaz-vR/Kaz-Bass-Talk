@@ -20,11 +20,11 @@
       "airDb": -47.2,
       "dirt": 0.72,
       "widthDb": -5.1,
-      "tailDb": -20.1
+      "tailDb": -20
     },
     "checks": {
-      "hash": "178fc05c",
-      "audio": "adfebcc6",
+      "hash": "ff399ffd",
+      "audio": "13192f68",
       "judge": "b3d612c0",
       "critic": true,
       "issues": [],
@@ -41,7 +41,7 @@
       "width": 0.874,
       "attack": 0.623,
       "decay": 0.993,
-      "sustain": 0.911,
+      "sustain": 0.906,
       "release": 0.773,
       "movement": 0.139
     }

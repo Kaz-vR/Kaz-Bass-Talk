@@ -23,25 +23,25 @@
       "tailDb": -17.3
     },
     "checks": {
-      "hash": "d273fc8d",
-      "audio": "833cd32b",
+      "hash": "e08a8286",
+      "audio": "486d405a",
       "judge": "b3d612c0",
       "critic": true,
       "issues": [],
       "earns": true,
-      "weakest": "mod 2 (lfo2 → amp) 0.27 dB",
+      "weakest": "mod 2 (lfo2 → amp) 0.26 dB",
       "failing": []
     },
     "features": {
       "brightness": 0.58,
       "highEnergy": 0.754,
       "sub": 0.011,
-      "lowMid": 0.166,
-      "dirt": 0.468,
+      "lowMid": 0.168,
+      "dirt": 0.469,
       "width": 0.901,
       "attack": 0.333,
       "decay": 0.924,
-      "sustain": 0.947,
+      "sustain": 0.946,
       "release": 0.773,
       "movement": 0.214
     }

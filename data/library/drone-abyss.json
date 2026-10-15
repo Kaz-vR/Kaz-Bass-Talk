@@ -20,11 +20,11 @@
       "airDb": -43.7,
       "dirt": 0.63,
       "widthDb": -6.3,
-      "tailDb": -4.1
+      "tailDb": -4.2
     },
     "checks": {
-      "hash": "78d29169",
-      "audio": "589db95f",
+      "hash": "a18eb506",
+      "audio": "89a6ce17",
       "judge": "b3d612c0",
       "critic": true,
       "issues": [],
@@ -36,12 +36,12 @@
       "brightness": 0.232,
       "highEnergy": 0.542,
       "sub": 0.676,
-      "lowMid": 0.668,
+      "lowMid": 0.667,
       "dirt": 0.631,
       "width": 0.842,
       "attack": 0.948,
       "decay": 1,
-      "sustain": 0.921,
+      "sustain": 0.923,
       "release": 0.773,
       "movement": 0.244
     }

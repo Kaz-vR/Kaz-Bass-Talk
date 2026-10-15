@@ -15,21 +15,21 @@
     "directory": "lorn-tape-flutter",
     "family": "terror",
     "features": {
-      "brightness": 0.377,
+      "brightness": 0.378,
       "highEnergy": 0.622,
-      "sub": 0.438,
-      "lowMid": 0.72,
+      "sub": 0.426,
+      "lowMid": 0.727,
       "dirt": 0.6,
       "width": 0.767,
       "attack": 0.36,
       "decay": 0.902,
-      "sustain": 0.879,
+      "sustain": 0.865,
       "release": 0.756,
-      "movement": 0.303
+      "movement": 0.242
     },
     "checks": {
-      "hash": "555a0504",
-      "audio": "259f4a5e",
+      "hash": "c0c8f243",
+      "audio": "6f335859",
       "judge": "b3d612c0",
       "critic": true,
       "issues": [],

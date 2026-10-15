@@ -60,8 +60,7 @@ const def: CategoryDef = {
       texture: ['crackle', 0.3, 0.4, 500],
       set: {
         'osc1.unison_voices': 3, 'osc1.unison_detune': 18, 'osc1.unison_spread': 0.6, 'dist.type': 'hard', 'dist.drive': 0.45, 'dist.mix': 0.7,
-        'dist.clean_below': 120, 'filter.cutoff': 600, 'filter.env_amount': 0.35, 'mod_env.decay': 260, 'amp_env.sustain': 0.85, 'comp.pump': 0.45,
-      },
+        'dist.clean_below': 120, 'filter.cutoff': 600, 'filter.env_amount': 0.35, 'mod_env.decay': 260, 'amp_env.sustain': 0.85, 'comp.pump': 0.45, 'eq.mid_freq': 300, 'eq.mid_gain': -4.5 },
       mods: kit(BASS_KIT, [], { 'lfo3>tape_wow': ['lfo3', 'unison_detune', 0.06] }),
     },
     {
@@ -93,8 +92,7 @@ const def: CategoryDef = {
       texture: ['dust', 0.3, 0.35, 300],
       set: {
         'osc1.wave': 'wavetable', 'osc1.wt_pos': 0.35, 'filter.cutoff': 280, 'filter.env_amount': 0.5, 'filter.resonance': 0.42, 'mod_env.decay': 160,
-        'amp_env.decay': 420, 'amp_env.sustain': 0.1, 'amp_env.release': 120, 'lfo2.retrigger': true, 'lfo2.rate': 6, 'lfo2.shape': 'sine',
-      },
+        'amp_env.decay': 420, 'amp_env.sustain': 0.1, 'amp_env.release': 120, 'lfo2.retrigger': true, 'lfo2.rate': 6, 'lfo2.shape': 'sine', 'eq.mid_freq': 300, 'eq.mid_gain': -4.5 },
       mods: kit(BASS_KIT, [], { 'random>drive': ['velocity', 'osc1_wt_pos', 0.25], 'env2>filter_cutoff': ['lfo2', 'filter_cutoff', 0.06] }),
     },
     {
@@ -190,8 +188,8 @@ const def: CategoryDef = {
       id: 'night-swell', name: 'Night Swell', audition: 'dread',
       description: "A bass that swells into each note and opens slowly as it holds, like a tide coming in under the track.",
       tags: ['bass', 'swell', 'slow', 'moving', 'dark', 'pad-like', 'lorn', 'new'],
-      texture: ['dust', 0.65, 0.45, 600],
-      set: { 'amp_env.attack': 250, 'filter.cutoff': 300, 'filter.env_amount': 0.05, 'env2.attack': 3000, 'env2.sustain': 1, 'amp_env.sustain': 0.95, 'amp_env.release': 400, 'tape.age': 0.7 },
+      texture: ['dust', 0.75, 0.45, 600],
+      set: { 'amp_env.attack': 250, 'filter.cutoff': 300, 'filter.env_amount': 0.05, 'env2.attack': 3000, 'env2.sustain': 1, 'amp_env.sustain': 0.95, 'amp_env.release': 400, 'tape.age': 0.7, 'eq.mid_freq': 300, 'eq.mid_gain': -4.5 },
       mods: kit(BASS_KIT, [['env2', 'filter_cutoff', 0.35]]),
     },
     {
@@ -199,7 +197,7 @@ const def: CategoryDef = {
       description: "A clean FM bass with a glassy edge that answers your touch: soft when played gently, a metallic knock when hit.",
       tags: ['bass', 'fm', 'glassy', 'clean', 'touch', 'digital', 'lorn', 'new'],
       texture: ['dust', 0.7, 0.35, 500],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.1, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'osc2.level': 0, 'fm.amount': 0.25, 'fm.ratio': 1, 'fm.punch': 0.4, 'fm.decay': 200, 'amp_env.attack': 5, 'amp_env.sustain': 0.6, 'amp_env.release': 150, 'sub.level': 0.3, 'filter.cutoff': 1500, 'filter.env_amount': 0, 'voice.velocity': 0.75, 'tape.age': 0.7},
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.1, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'osc2.level': 0, 'fm.amount': 0.25, 'fm.ratio': 1, 'fm.punch': 0.4, 'fm.decay': 200, 'amp_env.attack': 5, 'amp_env.sustain': 0.6, 'amp_env.release': 150, 'sub.level': 0.3, 'filter.cutoff': 1500, 'filter.env_amount': 0, 'voice.velocity': 0.75, 'tape.age': 0.7, 'eq.mid_freq': 300, 'eq.mid_gain': -4.5 },
       mods: kit(BASS_KIT, [], { 'lfo1>filter_cutoff': ['lfo1', 'fm_amount', 0.12], 'random>filter_cutoff': ['random', 'fm_amount', 0.08], 'velocity>filter_cutoff': ['velocity', 'fm_amount', 0.3], 'env2>filter_cutoff': ['env2', 'fm_amount', 0.1] }),
     },
   ],

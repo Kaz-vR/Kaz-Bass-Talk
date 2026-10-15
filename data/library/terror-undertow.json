@@ -17,7 +17,37 @@
     "family": "terror",
     "category": "bass",
     "collection": "terror",
-    "audition": "dread"
+    "audition": "dread",
+    "vibe": {
+      "brightOct": 0.59,
+      "airDb": -54.4,
+      "dirt": 0.58,
+      "widthDb": -9.5,
+      "tailDb": -25.1
+    },
+    "checks": {
+      "hash": "eea9b0a3",
+      "audio": "c136925d",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "mod 2 (lfo2 → filter_cutoff) 0.16 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.26,
+      "highEnergy": 0.583,
+      "sub": 0.779,
+      "lowMid": 0.491,
+      "dirt": 0.576,
+      "width": 0.764,
+      "attack": 0.201,
+      "decay": 0.903,
+      "sustain": 0.908,
+      "release": 0.773,
+      "movement": 0.358
+    }
   },
   "voice.polyphony": 1,
   "voice.legato": false,
@@ -74,10 +104,10 @@
   "click.decay": 15,
   "click.tone": 2500,
   "drive.on": true,
-  "drive.amount": 0.6,
+  "drive.amount": 0.75,
   "filter.on": true,
   "filter.type": "lowpass",
-  "filter.cutoff": 520,
+  "filter.cutoff": 640,
   "filter.resonance": 0.22,
   "filter.keytrack": 0.5,
   "filter.env_amount": 0.12,
@@ -85,7 +115,7 @@
   "filter.accent": 0,
   "dist.on": true,
   "dist.type": "tube",
-  "dist.drive": 0.28,
+  "dist.drive": 0.36,
   "dist.mix": 0.65,
   "dist.post_tone": 0.35,
   "dist.clean_below": 120,
@@ -96,7 +126,7 @@
   "tape.on": true,
   "tape.drive": 0.45,
   "tape.wow": 0.22,
-  "tape.age": 0.45,
+  "tape.age": 0.6,
   "amp_env.attack": 6,
   "amp_env.decay": 800,
   "amp_env.sustain": 0.95,
@@ -221,6 +251,6 @@
   "eq.mid_freq": 320,
   "eq.high_gain": -2,
   "eq.highcut": 5500,
-  "output.gain": 0,
+  "output.gain": -0.6,
   "output.crossover": 250
 }

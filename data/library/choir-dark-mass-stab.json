@@ -24,13 +24,13 @@
       "tailDb": -15.2
     },
     "checks": {
-      "hash": "83444d84",
-      "audio": "ed9995b0",
+      "hash": "5063106b",
+      "audio": "36c83661",
       "judge": "b3d612c0",
       "critic": true,
       "issues": [],
       "earns": true,
-      "weakest": "sub 0.24 dB",
+      "weakest": "sub 0.23 dB",
       "failing": []
     },
     "features": {
@@ -42,7 +42,7 @@
       "width": 0.93,
       "attack": 0.301,
       "decay": 0.871,
-      "sustain": 0.736,
+      "sustain": 0.722,
       "release": 0.773,
       "movement": 0.24
     }

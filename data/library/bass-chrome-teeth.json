@@ -17,7 +17,37 @@
     "family": "bass",
     "collection": "bank",
     "audition": "groove",
-    "iconic": true
+    "iconic": true,
+    "vibe": {
+      "brightOct": 1.16,
+      "airDb": -47.7,
+      "dirt": 0.67,
+      "widthDb": -7.5,
+      "tailDb": -32.4
+    },
+    "checks": {
+      "hash": "60c29981",
+      "audio": "fa4c1ea2",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "texture bed 0.23 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.345,
+      "highEnergy": 0.641,
+      "sub": 0.661,
+      "lowMid": 0.555,
+      "dirt": 0.673,
+      "width": 0.811,
+      "attack": 0.201,
+      "decay": 0.903,
+      "sustain": 0.809,
+      "release": 0.773,
+      "movement": 0.258
+    }
   },
   "voice.polyphony": 1,
   "voice.legato": false,
@@ -217,10 +247,10 @@
   "fx.lowcut": 250,
   "eq.on": true,
   "eq.low_gain": 0,
-  "eq.mid_gain": -2,
-  "eq.mid_freq": 320,
+  "eq.mid_gain": -4.5,
+  "eq.mid_freq": 300,
   "eq.high_gain": -2,
   "eq.highcut": 5000,
-  "output.gain": -1.6,
+  "output.gain": -1.3,
   "output.crossover": 250
 }

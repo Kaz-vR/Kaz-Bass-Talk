@@ -18,15 +18,15 @@
     "audition": "swell",
     "iconic": true,
     "vibe": {
-      "brightOct": 1.2,
-      "airDb": -40.7,
+      "brightOct": 1.16,
+      "airDb": -40.9,
       "dirt": 1.17,
-      "widthDb": -1.8,
-      "tailDb": -3.9
+      "widthDb": -1.7,
+      "tailDb": -4
     },
     "checks": {
-      "hash": "fc74ffe2",
-      "audio": "023ceefe",
+      "hash": "37165965",
+      "audio": "31ed0af7",
       "judge": "b3d612c0",
       "critic": true,
       "issues": [],
@@ -35,17 +35,17 @@
       "failing": []
     },
     "features": {
-      "brightness": 0.139,
-      "highEnergy": 0.586,
-      "sub": 0.9,
-      "lowMid": 0.39,
+      "brightness": 0.133,
+      "highEnergy": 0.583,
+      "sub": 0.904,
+      "lowMid": 0.382,
       "dirt": 1,
-      "width": 0.956,
+      "width": 0.957,
       "attack": 0.937,
       "decay": 1,
-      "sustain": 0.918,
+      "sustain": 0.901,
       "release": 0.773,
-      "movement": 0.229
+      "movement": 0.234
     }
   },
   "voice.polyphony": 4,

@@ -40,6 +40,8 @@ interface Def {
   extra?: Mod[];
   /** Texture bed: type, level, tone, tail (ms). */
   texture?: [type: string, level: number, tone: number, tail: number];
+  /** Written exceptions to the style limits (tools/lib/allow.ts). */
+  allow?: Record<string, { min?: number; max?: number; why: string }>;
 }
 
 const TERROR_BASE: Record<string, number | string | boolean> = {
@@ -131,7 +133,8 @@ const D: Def[] = [
       'env2.attack': 2600, 'reverb.mix': 0.34, 'reverb.size': 0.92, 'reverb.tone': 0.85,
       'delay.mix': 0.14, 'delay.time': '1/2', 'delay.feedback': 0.5, 'delay.tone': 0.2, 'eq.highcut': 4800, 'comp.pump': 0.15,
     },
-    mods: kit([['env2', 'filter_cutoff', 0.2], ['drift_slow', 'reverb_mix', 0.25]]),
+    mods: kit([['env2', 'filter_cutoff', 0.2], ['drift_slow', 'reverb_mix', 0.25], ['lfo1', 'filter_cutoff', 0.28]]),
+    allow: { aliasDb: { max: -30, why: "an equal-tempered fifth (Ominous Fifth template) puts its upper partials a few Hz off the harmonic lattice the fizz probe expects; the voice is oversampled and doesn't alias" } },
   },
   {
     id: 'worn-tape', dir: 'lorn-tape-flutter', name: 'Worn Tape',
@@ -190,6 +193,7 @@ const D: Def[] = [
       'eq.highcut': 5000,
     },
     mods: kit([['lfo1', 'filter_cutoff', 0.1], ['lfo2', 'filter_cutoff', 0.02], ['env2', 'filter_cutoff', 0.05]]),
+    allow: { aliasDb: { max: -30, why: "an equal-tempered fifth (Ominous Fifth template) puts its upper partials a few Hz off the harmonic lattice the fizz probe expects; the voice is oversampled and doesn't alias" } },
   },
   {
     id: 'crushed-808', dir: 'lorn-tape-flutter', name: 'Crushed 808',
@@ -209,7 +213,9 @@ const D: Def[] = [
       'lfo1>filter_cutoff': ['lfo1', 'dist_drive', 0.15],
       'lfo2>filter_cutoff': ['lfo2', 'dist_drive', 0.08],
       'lfo3>unison_detune': ['lfo3', 'tape_wow', 0.3],
-      'env2>filter_cutoff': ['env2', 'osc2_level', 0.2],
+      // The 808 / Thump template has no oscillator 2: its slots move the drive and oscillator 1 instead.
+      'env2>filter_cutoff': ['env2', 'drive', 0.2],
+      'drift>osc2_pitch': ['drift', 'osc1_pitch', 0.002],
       'random>filter_cutoff': ['random', 'dist_drive', 0.06],
     }),
   },
@@ -284,7 +290,7 @@ const D: Def[] = [
     texture: ['rumble', 0.9, 0.3, 1800],
     set: {
       'osc1.unison_voices': 5, 'osc1.unison_detune': 22, 'osc2.semi': -12, 'osc2.fine': -9, 'osc2.level': 0.4,
-      'filter.cutoff': 520, 'eq.mid_gain': -3.5, 'reverb.mix': 0.18, 'comp.pump': 0.3,
+      'eq.mid_gain': -3.5, 'reverb.mix': 0.18, 'comp.pump': 0.3, 'tape.age': 0.6, 'drive.amount': 0.75, 'dist.drive': 0.36, 'filter.cutoff': 640,
     },
     mods: kit([], {
       'drift_slow>reverb_mix': ['drift_slow', 'texture_level', 0.35],
@@ -299,6 +305,7 @@ function build(def: Def): Record<string, unknown> {
     meta: {
       name: def.name, description: def.description, tags: def.tags, directory: def.dir, family: 'terror',
       category: 'bass', collection: 'terror', audition: 'dread',
+      ...(def.allow ? { allow: def.allow } : {}),
     },
     'wheel.preset': wheelDefault('bass'),
     ...TERROR_BASE,

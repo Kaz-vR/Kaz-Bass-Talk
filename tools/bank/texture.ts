@@ -42,6 +42,7 @@ const def: CategoryDef = {
       tags: ['texture', 'vinyl', 'crackle', 'pops', 'lo-fi', 'night', 'lorn'],
       texture: ['crackle', 0.7, 0.4, 3000],
       set: {},
+      allow: { 'consistency:dirt': { why: 'a soft bed made of noise: its grain is the sound' } },
     },
     {
       id: 'dust-field', name: 'Dust Field',

@@ -16,15 +16,15 @@
     "collection": "bank",
     "audition": "chords",
     "vibe": {
-      "brightOct": 1.86,
+      "brightOct": 1.85,
       "airDb": -38.1,
       "dirt": 0.4,
       "widthDb": -3.2,
       "tailDb": -5.8
     },
     "checks": {
-      "hash": "f5add34e",
-      "audio": "2acffe0b",
+      "hash": "6c3f22cd",
+      "audio": "d0620aef",
       "judge": "b3d612c0",
       "critic": true,
       "issues": [],
@@ -39,11 +39,11 @@
       "lowMid": 0.245,
       "dirt": 0.405,
       "width": 0.919,
-      "attack": 0.864,
+      "attack": 0.867,
       "decay": 0.973,
-      "sustain": 0.918,
+      "sustain": 0.906,
       "release": 0.773,
-      "movement": 0.281
+      "movement": 0.282
     }
   },
   "voice.polyphony": 8,

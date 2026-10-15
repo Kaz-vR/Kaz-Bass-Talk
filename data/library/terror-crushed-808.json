@@ -16,7 +16,37 @@
     "family": "terror",
     "category": "bass",
     "collection": "terror",
-    "audition": "dread"
+    "audition": "dread",
+    "vibe": {
+      "brightOct": 1.13,
+      "airDb": -45.2,
+      "dirt": 0.57,
+      "widthDb": -18.8,
+      "tailDb": -23.7
+    },
+    "checks": {
+      "hash": "9859fd9c",
+      "audio": "3cd6aba8",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "pump 0.20 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.341,
+      "highEnergy": 0.607,
+      "sub": 0.634,
+      "lowMid": 0.609,
+      "dirt": 0.571,
+      "width": 0.529,
+      "attack": 0.301,
+      "decay": 0.902,
+      "sustain": 0.743,
+      "release": 0.773,
+      "movement": 0.299
+    }
   },
   "voice.polyphony": 1,
   "voice.legato": false,
@@ -158,7 +188,7 @@
   "mod2.dest": "dist_drive",
   "mod2.amount": 0.08,
   "mod3.source": "env2",
-  "mod3.dest": "osc2_level",
+  "mod3.dest": "drive",
   "mod3.amount": 0.2,
   "mod4.source": "drift_slow",
   "mod4.dest": "drive",
@@ -170,7 +200,7 @@
   "mod6.dest": "width",
   "mod6.amount": 0.35,
   "mod7.source": "drift",
-  "mod7.dest": "osc2_pitch",
+  "mod7.dest": "osc1_pitch",
   "mod7.amount": 0.002,
   "mod8.source": "lfo1",
   "mod8.dest": "delay_time",
@@ -220,6 +250,6 @@
   "eq.mid_freq": 320,
   "eq.high_gain": -2,
   "eq.highcut": 5500,
-  "output.gain": 0,
+  "output.gain": -4.1,
   "output.crossover": 250
 }

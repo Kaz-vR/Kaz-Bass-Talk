@@ -17,7 +17,43 @@
     "family": "terror",
     "category": "bass",
     "collection": "terror",
-    "audition": "dread"
+    "audition": "dread",
+    "allow": {
+      "aliasDb": {
+        "max": -30,
+        "why": "an equal-tempered fifth (Ominous Fifth template) puts its upper partials a few Hz off the harmonic lattice the fizz probe expects; the voice is oversampled and doesn't alias"
+      }
+    },
+    "vibe": {
+      "brightOct": 0.65,
+      "airDb": -46.6,
+      "dirt": 0.6,
+      "widthDb": -10.5,
+      "tailDb": -10.7
+    },
+    "checks": {
+      "hash": "a007cd2d",
+      "audio": "75764915",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "delay 0.23 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.269,
+      "highEnergy": 0.562,
+      "sub": 0.646,
+      "lowMid": 0.68,
+      "dirt": 0.605,
+      "width": 0.738,
+      "attack": 0.46,
+      "decay": 0.9,
+      "sustain": 0.875,
+      "release": 0.773,
+      "movement": 0.107
+    }
   },
   "voice.polyphony": 1,
   "voice.legato": false,
@@ -154,7 +190,7 @@
   "mod.on": true,
   "mod1.source": "lfo1",
   "mod1.dest": "filter_cutoff",
-  "mod1.amount": 0.14,
+  "mod1.amount": 0.28,
   "mod2.source": "lfo2",
   "mod2.dest": "filter_cutoff",
   "mod2.amount": 0.05,
@@ -221,6 +257,6 @@
   "eq.mid_freq": 320,
   "eq.high_gain": -2,
   "eq.highcut": 4800,
-  "output.gain": 0,
+  "output.gain": -2.5,
   "output.crossover": 250
 }

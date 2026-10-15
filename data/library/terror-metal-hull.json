@@ -16,7 +16,43 @@
     "family": "terror",
     "category": "bass",
     "collection": "terror",
-    "audition": "dread"
+    "audition": "dread",
+    "allow": {
+      "aliasDb": {
+        "max": -30,
+        "why": "an equal-tempered fifth (Ominous Fifth template) puts its upper partials a few Hz off the harmonic lattice the fizz probe expects; the voice is oversampled and doesn't alias"
+      }
+    },
+    "vibe": {
+      "brightOct": 1.44,
+      "airDb": -42,
+      "dirt": 0.7,
+      "widthDb": -8.2,
+      "tailDb": -29.8
+    },
+    "checks": {
+      "hash": "02c3338f",
+      "audio": "451de258",
+      "judge": "b3d612c0",
+      "critic": true,
+      "issues": [],
+      "earns": true,
+      "weakest": "mod 10 (lfo4 → chorus_depth) 0.27 dB",
+      "failing": []
+    },
+    "features": {
+      "brightness": 0.388,
+      "highEnergy": 0.674,
+      "sub": 0.68,
+      "lowMid": 0.477,
+      "dirt": 0.704,
+      "width": 0.795,
+      "attack": 0.333,
+      "decay": 0.902,
+      "sustain": 0.871,
+      "release": 0.773,
+      "movement": 0.2
+    }
   },
   "voice.polyphony": 1,
   "voice.legato": false,
@@ -220,6 +256,6 @@
   "eq.mid_freq": 320,
   "eq.high_gain": -2,
   "eq.highcut": 5000,
-  "output.gain": 0,
+  "output.gain": -2.1,
   "output.crossover": 250
 }

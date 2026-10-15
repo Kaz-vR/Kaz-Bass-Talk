@@ -24,8 +24,8 @@
       "tailDb": -6.5
     },
     "checks": {
-      "hash": "a65359a6",
-      "audio": "ff856a71",
+      "hash": "a3f3f8d9",
+      "audio": "08526d88",
       "judge": "b3d612c0",
       "critic": true,
       "issues": [],
@@ -40,7 +40,7 @@
       "lowMid": 0.223,
       "dirt": 0.413,
       "width": 0.892,
-      "attack": 0.861,
+      "attack": 0.864,
       "decay": 1,
       "sustain": 0.921,
       "release": 0.773,
