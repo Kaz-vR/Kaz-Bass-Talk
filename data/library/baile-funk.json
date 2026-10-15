@@ -207,7 +207,7 @@
   "eq.mid_freq": 700,
   "eq.high_gain": 0,
   "eq.highcut": 8000,
-  "output.gain": -4.7,
+  "output.gain": -5.1,
   "output.crossover": 120,
   "wheel.preset": "snarl"
 }

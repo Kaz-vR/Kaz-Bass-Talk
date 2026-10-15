@@ -250,6 +250,6 @@
   "eq.mid_freq": 320,
   "eq.high_gain": -2,
   "eq.highcut": 5000,
-  "output.gain": -0.2,
+  "output.gain": -0.5,
   "output.crossover": 250
 }

@@ -228,4 +228,5 @@ Finish each phase, with its tests passing, before starting the next. At the end 
 - Think like a world-class sound designer working in LORN's style: every preset is a finished, release-quality sound. Encode what makes a sound good, and what makes it fit the bank, as rules and checks rather than relying on the human to catch problems.
 - Work autonomously: solve problems the way established synths do, and don't stop to ask the human questions or to listen. Passing tests are necessary but not proof of quality.
 - Never add a dependency that pulls in an ML runtime, model weights, or network access.
+- **Never re-check the whole bank after a change** (the owner's rule). Re-check only the presets a change is about (e.g. the ones you just built or edited), a few others when needed, nothing more. Stale check stamps on untouched presets are acceptable until the owner asks for a full check.
 - If the same problem fails 3 times, step back and rethink the approach (root cause, not symptoms) instead of retrying the same fix; note what happened in the commit message.
