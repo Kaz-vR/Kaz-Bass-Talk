@@ -254,10 +254,15 @@ export class SynthView {
   private meterG: CanvasRenderingContext2D | null = null;
   private scopeG: CanvasRenderingContext2D | null = null;
   private scopeSize: [number, number] = [0, 0];
-  private wheelView: (() => void) | null = null;
+  private readonly wheelViews: (() => void)[] = [];
+  readonly keysEl = h('div', 'kb-keys');
+  private readonly octaveVal = h('span', 'chip-val');
+  private readonly velFill = h('span', 'kb-vel-fill');
   private wheel = 0;
   onGear: () => void = () => {};
   onWheel: (v: number) => void = () => {};
+  onPitch: (v: number) => void = () => {};
+  onOctave: (dir: number) => void = () => {};
   presets: PresetSource | null = null;
   private readonly menu = h('div', 'pre-menu');
   private menuShelf = '';
@@ -282,8 +287,7 @@ export class SynthView {
     const fit = () => {
       // Fit the window like a plugin: never wider than it, never taller than it (the keyboard
       // under the page counts too), so the top can't slide out of view.
-      const keys = (document.querySelector('.keys-wrap') as HTMLElement | null)?.offsetHeight ?? 0;
-      const tall = (window.innerHeight - keys) / Math.max(1, this.page.offsetHeight);
+      const tall = window.innerHeight / Math.max(1, this.page.offsetHeight);
       const s = Math.max(0.4, Math.min(this.zoom, root.clientWidth / DESIGN_WIDTH, tall));
       this.page.style.transform = `scale(${s})`;
       this.page.style.marginLeft = `${Math.max(0, (root.clientWidth - DESIGN_WIDTH * s) / 2)}px`;
@@ -341,7 +345,17 @@ export class SynthView {
   /** The mod wheel moved elsewhere (hardware or the full view): show it. */
   setWheel(v: number): void {
     this.wheel = v;
-    this.wheelView?.();
+    for (const f of this.wheelViews) f();
+  }
+
+  /** The keyboard moved an octave (base = its lowest C as a MIDI note). */
+  setOctave(base: number): void {
+    this.octaveVal.textContent = `C${base / 12 - 1}`;
+  }
+
+  /** How hard the last note was played (0..1). */
+  setVelocity(v: number): void {
+    this.velFill.style.width = `${Math.round(v * 100)}%`;
   }
 
   /** Live output: the oscilloscope and the level meter. */
@@ -1152,7 +1166,7 @@ export class SynthView {
     cv.addEventListener('pointerup', (e) => cv.releasePointerCapture(e.pointerId));
     cv.addEventListener('dblclick', () => setW(0));
     cv.title = 'Mod wheel (follows your keyboard\'s wheel; drag to try it). Double-click to reset.';
-    this.wheelView = draw;
+    this.wheelViews.push(draw);
     draw();
     body.append(h('div', 'wheel-row', h('div', 'wheel-left', sel, hint, val), cv));
     return el;
@@ -1379,14 +1393,15 @@ export class SynthView {
     items.sort(by[this.sort]);
     const list = h('div', 'pp-list');
     for (const it of items) {
-      const row = h('button', 'pp-row', h('span', 'pp-play'),
-        h('span', 'pp-row-main', h('span', 'pp-row-top', h('span', 'pp-name', it.name), ...(it.tpl ? [h('span', 'pp-tpl', `${it.tpl} · ${it.tplName}`)] : [])), h('span', 'pp-desc', it.description)));
+      const row = h('button', 'pp-row', h('span', 'pp-play'), h('span', 'pp-name', it.name));
       row.dataset.index = String(it.index);
       row.title = 'Click to hear it, double-click to open it in OSC';
       row.onclick = () => src.pick(shelf.id, it.index);
       row.ondblclick = () => this.showTab('OSC');
       list.append(row);
     }
+    list.classList.add('pp-grid');
+    list.style.gridTemplateRows = `repeat(${Math.max(1, Math.ceil(items.length / 2))}, auto)`;
     const mid = h('div', 'pp-col pp-presets',
       h('div', 'pp-head', h('span', 'pp-title', shelf.name.toUpperCase()), h('span', 'pp-sub', `${shelf.items.length} presets`), h('div', 'sel pp-sort', sortSel)),
       list);
@@ -1512,9 +1527,7 @@ export class SynthView {
         e.stopPropagation();
         src.removeRoll(it.id, which === 'randomizer' ? 'rolls' : 'user');
       };
-      const row = h('button', 'pp-row', h('span', 'pp-play'),
-        h('span', 'pp-row-main', h('span', 'pp-row-top', h('span', 'pp-name', it.name)), h('span', 'pp-desc', it.hint)),
-        h('span', 'pp-tools', star, del));
+      const row = h('button', 'pp-row', h('span', 'pp-play'), h('span', 'pp-name', it.name), h('span', 'pp-tools', star, del));
       row.dataset.roll = String(it.id);
       row.title = 'Click to hear it, double-click to open it in OSC';
       row.onclick = () => src.pickRoll(it.id);
@@ -1573,6 +1586,109 @@ export class SynthView {
     );
   }
 
+  // ------------------------------------------------------------------ the keyboard strip
+
+  /** A hardware-style wheel: ridges, a bright handle; `center` = springs back to the middle (pitch). */
+  private wheelCanvas(get: () => number, set: (v: number) => void, center: boolean): [HTMLCanvasElement, () => void] {
+    const W = 34, H = 112;
+    const [cv, g] = canvas(W, H, 'kb-wheel');
+    const draw = () => {
+      const v = get();
+      g.clearRect(0, 0, W, H);
+      g.fillStyle = '#0b0201';
+      g.strokeStyle = '#3a120c';
+      g.lineWidth = 1;
+      g.beginPath();
+      g.roundRect(0.5, 0.5, W - 1, H - 1, 8);
+      g.fill();
+      g.stroke();
+      g.strokeStyle = FAINT;
+      g.lineWidth = 2;
+      for (let i = 0; i < 16; i++) {
+        const y = 8 + (i * (H - 16)) / 15;
+        g.beginPath();
+        g.moveTo(5, y);
+        g.lineTo(W - 5, y);
+        g.stroke();
+      }
+      const cy = 6 + (1 - v) * (H - 12);
+      if (!center) {
+        g.fillStyle = 'rgba(255,143,117,0.22)';
+        g.beginPath();
+        g.roundRect(3, cy, W - 6, H - 3 - cy, 5);
+        g.fill();
+      }
+      g.fillStyle = '#ffe3d9';
+      g.beginPath();
+      g.roundRect(3, cy - 3, W - 6, 6, 3);
+      g.fill();
+    };
+    const fromY = (e: PointerEvent) => {
+      const r = cv.getBoundingClientRect();
+      set(Math.max(0, Math.min(1, 1 - (e.clientY - r.top) / r.height)));
+      draw();
+    };
+    cv.addEventListener('pointerdown', (e) => {
+      cv.setPointerCapture(e.pointerId);
+      fromY(e);
+    });
+    cv.addEventListener('pointermove', (e) => { if (cv.hasPointerCapture(e.pointerId)) fromY(e); });
+    cv.addEventListener('pointerup', (e) => {
+      cv.releasePointerCapture(e.pointerId);
+      if (center) {
+        set(0.5);
+        draw();
+      }
+    });
+    cv.addEventListener('dblclick', () => {
+      set(center ? 0.5 : 0);
+      draw();
+    });
+    draw();
+    return [cv, draw];
+  }
+
+  /** The keyboard under the page: pitch and mod wheels, octave, the wheel's move and velocity, then the keys. */
+  private keyboardStrip(): HTMLElement {
+    let bend = 0.5;
+    const [pitch] = this.wheelCanvas(() => bend, (v) => {
+      bend = v;
+      this.onPitch(v * 2 - 1);
+    }, true);
+    pitch.title = 'Pitch bend (springs back when you let go)';
+    const [mod, drawMod] = this.wheelCanvas(() => this.wheel, (v) => {
+      this.wheel = v;
+      for (const f of this.wheelViews) f();
+      this.onWheel(v);
+    }, false);
+    mod.title = 'Mod wheel: plays the preset\'s move (follows your keyboard\'s wheel). Double-click to reset.';
+    this.wheelViews.push(drawMod);
+    const octave = h('div', 'chip kb-oct', this.octaveVal);
+    octave.title = 'Octave of the keyboard (Z / X, or scroll here)';
+    octave.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      this.onOctave(e.deltaY < 0 ? 1 : -1);
+    }, { passive: false });
+    const down = h('button', 'kb-oct-btn', '‹');
+    const up = h('button', 'kb-oct-btn', '›');
+    down.onclick = () => this.onOctave(-1);
+    up.onclick = () => this.onOctave(1);
+    const move = h('span', 'kb-move');
+    this.watch(['wheel.move', 'wheel.preset'], () => {
+      const m = String(this.get('wheel.move'));
+      const name = m === 'preset default' ? String(this.get('wheel.preset')) : m;
+      move.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+    });
+    this.velFill.style.width = '75%';
+    const side = h('div', 'kb-side',
+      h('div', 'kb-wheels', h('div', 'kb-w', pitch, h('span', 'kb-w-label', 'Pitch')), h('div', 'kb-w', mod, h('span', 'kb-w-label', 'Mod'))),
+      h('div', 'kb-info',
+        h('span', 'kb-label', 'OCTAVE'), h('div', 'kb-oct-row', down, octave, up),
+        h('span', 'kb-label', 'MOVE'), move,
+        h('span', 'kb-label', 'VEL'), h('span', 'kb-vel', this.velFill)));
+    return h('div', 'kb-strip', side, this.keysEl);
+  }
+
   // ------------------------------------------------------------------ the page
 
   private build(): void {
@@ -1600,6 +1716,7 @@ export class SynthView {
       this.oscPage,
       this.presetPage,
       this.bottomBar(),
+      this.keyboardStrip(),
     );
   }
 }

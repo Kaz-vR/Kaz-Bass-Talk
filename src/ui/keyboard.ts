@@ -13,11 +13,12 @@ export interface KeyboardHandlers {
   noteOn(note: number, velocity: number): void;
   noteOff(note: number): void;
   onOctave?(base: number): void;
+  onVelocity?(velocity: number): void;
 }
 
 export class Keyboard {
   base = 36; // C2
-  private readonly span = 29; // C .. E (2 octaves + a third)
+  private readonly span = 37; // C .. C (three octaves)
   private held = new Map<string, number>();
   private pointerNote = -1;
   private keyEls = new Map<number, HTMLElement>();
@@ -49,7 +50,8 @@ export class Keyboard {
       }
       const lbl = document.createElement('span');
       lbl.className = 'lbl';
-      lbl.textContent = KEY_LABELS[i] ?? (i % 12 === 0 ? `C${(this.base + i) / 12 - 1}` : '');
+      lbl.textContent = i % 12 === 0 ? `C${(this.base + i) / 12 - 1}` : '';
+      if (KEY_LABELS[i]) el.title = `Computer key: ${KEY_LABELS[i]}`;
       el.append(lbl);
       el.onpointerdown = (e) => {
         el.setPointerCapture(e.pointerId);
@@ -57,6 +59,7 @@ export class Keyboard {
         const rect = el.getBoundingClientRect();
         const vel = Math.min(1, 0.4 + (0.6 * (e.clientY - rect.top)) / rect.height);
         this.h.noteOn(this.pointerNote, vel);
+        this.h.onVelocity?.(vel);
         this.mark(this.pointerNote, true);
       };
       el.onpointerup = el.onpointercancel = () => {
@@ -84,9 +87,7 @@ export class Keyboard {
   private keyDown(e: KeyboardEvent): void {
     if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || this.isTyping(e)) return;
     if (e.code === 'KeyZ' || e.code === 'KeyX') {
-      this.releaseAll();
-      this.base = Math.max(12, Math.min(84, this.base + (e.code === 'KeyZ' ? -12 : 12)));
-      this.render();
+      this.shift(e.code === 'KeyZ' ? -1 : 1);
       return;
     }
     const off = KEYMAP[e.code];
@@ -94,6 +95,7 @@ export class Keyboard {
     const note = this.base + off;
     this.held.set(e.code, note);
     this.h.noteOn(note, 0.85);
+    this.h.onVelocity?.(0.85);
     this.mark(note, true);
   }
 
@@ -103,6 +105,13 @@ export class Keyboard {
     this.held.delete(e.code);
     this.h.noteOff(note);
     this.mark(note, false);
+  }
+
+  /** Move the keyboard an octave down (-1) or up (+1). */
+  shift(dir: number): void {
+    this.releaseAll();
+    this.base = Math.max(12, Math.min(72, this.base + 12 * dir));
+    this.render();
   }
 
   releaseAll(): void {

@@ -137,6 +137,8 @@ synth.presets = {
   toggleLoop: () => setPlaying(!playing),
   playing: () => playing,
 };
+synth.onPitch = (v) => host?.pitchBend(v);
+synth.onOctave = (dir) => keyboard.shift(dir);
 synth.onWheel = (v) => {
   host?.modWheel(v);
   panel.setWheel(v);
@@ -323,10 +325,11 @@ $<HTMLButtonElement>('copy').onclick = async () => {
   setTimeout(() => ($('copy').textContent = 'Copy patch JSON'), 1500);
 };
 
-const keyboard = new Keyboard($('keyboard'), {
+const keyboard = new Keyboard(synth.keysEl, {
   noteOn: (n, v) => host?.noteOn(n, v),
   noteOff: (n) => host?.noteOff(n),
-  onOctave: (base) => ($('octave').textContent = `keys start at C${base / 12 - 1}`),
+  onOctave: (base) => synth.setOctave(base),
+  onVelocity: (v) => synth.setVelocity(v),
 });
 
 if (groups[0].audition) loopId = groups[0].audition;
