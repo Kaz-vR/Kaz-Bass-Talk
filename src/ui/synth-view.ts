@@ -1313,6 +1313,8 @@ export class SynthView {
     if (!src) return;
     const shelves = src.shelves();
     const rollPage = this.pageShelf === 'randomizer' || this.pageShelf === 'user';
+    // the Randomizer's box locks (in "All controls") show while it is open
+    document.body.classList.toggle('randomizing', this.pageShelf === 'randomizer');
     const shelf = shelves.find((s) => s.id === this.pageShelf) ?? shelves[0];
     if (!rollPage) this.pageShelf = shelf.id;
     // shelves
