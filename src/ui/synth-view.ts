@@ -443,12 +443,13 @@ export class SynthView {
   // ------------------------------------------------------------------ controls
 
   /** A dial bound to a float/int parameter. Big = the controls that matter most, small = details. */
-  private knob(id: string, label: string, size: Size = 'mid', opts: { fmt?: (v: number) => string; disabled?: () => boolean; deps?: string[] } = {}): HTMLElement {
+  private knob(id: string, label: string, size: Size = 'mid', opts: { fmt?: (v: number) => string; disabled?: () => boolean; deps?: string[]; showValue?: boolean } = {}): HTMLElement {
     const p = getParam(id)!;
     const px = PX[size];
     const [cv, g] = canvas(px, px, 'knob');
     const val = h('div', 'k-val');
-    const el = h('div', `k k-${size}`, cv, h('div', 'k-label', label), val);
+    // The value stays hidden (the dial shows enough) and appears over the name on hover / drag.
+    const el = h('div', `k k-${size}${opts.showValue ? '' : ' quiet'}`, cv, h('div', 'k-label', label), val);
     el.title = `${p.label}: ${p.describes}`;
     const bipolar = (p.min ?? 0) < 0 && (p.max ?? 0) > 0;
     const fmt = (v: number) => (opts.fmt ? opts.fmt(v) : formatValue(p, v));
@@ -876,14 +877,20 @@ export class SynthView {
 
   // ------------------------------------------------------------------ the source strips
 
-  /** One source as a channel strip: name and settings on the left, its print, then its dials. */
-  private strip(title: string, cls: string, left2: HTMLElement[], headExtra: HTMLElement[], print: HTMLElement | null, knobs: HTMLElement[]): [HTMLElement, HTMLElement] {
-    const head = h('div', 'st-head', h('span', 'c-title', title), ...headExtra);
+  /**
+   * One source as a channel strip, in fixed columns so every strip lines up: the name with its
+   * selector under it | the pitch boxes | the wave print | the dials in small groups.
+   */
+  private strip(title: string, cls: string, o: { power: HTMLElement | ((el: HTMLElement) => HTMLElement); head?: HTMLElement[]; under: HTMLElement; chips?: HTMLElement[]; print?: HTMLElement; groups: HTMLElement[][] }): HTMLElement {
+    const head = h('div', 'st-head', h('span', 'c-title', title), ...(o.head ?? []));
+    const groups = h('div', 'st-knobs', ...o.groups.map((g) => h('div', 'st-group', ...g)));
     const el = h('div', `c c-src strip ${cls}`,
-      h('div', 'st-left', head, h('div', 'st-row', ...left2)),
-      h('div', 'st-print', ...(print ? [print] : [])),
-      h('div', 'st-knobs', ...knobs));
-    return [el, head];
+      h('div', 'st-left', head, o.under),
+      h('div', 'st-chips', ...(o.chips ?? [])),
+      h('div', 'st-print', ...(o.print ? [o.print] : [])),
+      groups);
+    head.prepend(typeof o.power === 'function' ? o.power(el) : o.power);
+    return el;
   }
 
   private oscStrip(n: 1 | 2): HTMLElement {
@@ -892,16 +899,6 @@ export class SynthView {
     const oct = () => Math.trunc(this.num(`${o}.semi`) / 12);
     const sem = () => this.num(`${o}.semi`) - 12 * oct();
     const setSemi = (v: number) => this.set(`${o}.semi`, Math.max(semiP.min!, Math.min(semiP.max!, v)));
-    const chips = [
-      this.chip('OCT', oct, (v) => setSemi(12 * v + sem()), -2, 2, [`${o}.semi`], 'Octave'),
-      this.chip('SEM', sem, (v) => setSemi(12 * oct() + v), -11, 11, [`${o}.semi`], 'Semitones'),
-      this.chip('FIN', () => this.num(`${o}.fine`), (v) => this.set(`${o}.fine`, v), -100, 100, [`${o}.fine`], 'Fine tune (cents)'),
-    ];
-    const left2: HTMLElement[] = [
-      this.selector(`${o}.wave`),
-      this.chip('UNI', () => this.num(`${o}.unison_voices`), (v) => this.set(`${o}.unison_voices`, v), 1, 7, [`${o}.unison_voices`], 'Unison voices (stacked detuned copies)'),
-    ];
-    if (n === 2) left2.push(this.toggle('osc2.sync', 'Sync', 'small'));
     // Shape = pulse width on pulse / pwm saw, position on the wavetable, dimmed otherwise.
     const pw = this.knob(`${o}.pulse_width`, 'Shape', 'small', { disabled: () => !['pulse', 'pwm_saw'].includes(String(this.get(`${o}.wave`))), deps: [`${o}.wave`] });
     const wt = this.knob(`${o}.wt_pos`, 'Shape', 'small');
@@ -911,15 +908,23 @@ export class SynthView {
       pw.style.display = isWt ? 'none' : '';
     });
     const uniOff = () => this.num(`${o}.unison_voices`) <= 1;
-    const [el, head] = this.strip(n === 1 ? 'OSC A' : 'OSC B', 'osc', left2, chips, this.wavePrint(n), [
-      this.knob(`${o}.level`, 'Level', 'mid'),
-      this.knob(`${o}.unison_detune`, 'Detune', 'mid', { disabled: uniOff, deps: [`${o}.unison_voices`] }),
-      pw, wt,
-      this.knob(`${o}.unison_spread`, 'Spread', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] }),
-      this.lowCut(`${o}.highpass`, `${o}.filter_type`),
-    ]);
-    head.prepend(this.levelPower(`${o}.level`, el));
-    return el;
+    return this.strip(n === 1 ? 'OSC A' : 'OSC B', 'osc', {
+      power: (el) => this.levelPower(`${o}.level`, el),
+      head: n === 2 ? [this.toggle('osc2.sync', 'Sync', 'small')] : [],
+      under: this.selector(`${o}.wave`),
+      chips: [
+        this.chip('OCT', oct, (v) => setSemi(12 * v + sem()), -2, 2, [`${o}.semi`], 'Octave'),
+        this.chip('SEM', sem, (v) => setSemi(12 * oct() + v), -11, 11, [`${o}.semi`], 'Semitones'),
+        this.chip('FIN', () => this.num(`${o}.fine`), (v) => this.set(`${o}.fine`, v), -100, 100, [`${o}.fine`], 'Fine tune (cents)'),
+      ],
+      print: this.wavePrint(n),
+      groups: [
+        [this.chip('UNI', () => this.num(`${o}.unison_voices`), (v) => this.set(`${o}.unison_voices`, v), 1, 7, [`${o}.unison_voices`], 'Unison voices (stacked detuned copies)'),
+          this.knob(`${o}.unison_detune`, 'Detune', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] })],
+        [pw, wt, this.knob(`${o}.unison_spread`, 'Spread', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] })],
+        [this.lowCut(`${o}.highpass`, `${o}.filter_type`), this.knob(`${o}.level`, 'Level', 'small')],
+      ],
+    });
   }
 
   /**
@@ -949,60 +954,48 @@ export class SynthView {
   }
 
   private subStrip(): HTMLElement {
-    const waves = h('div', 'wave-btns');
-    const icons: Record<string, string> = { sine: '∿', triangle: '⋀', square: '⊓' };
-    for (const w of getParam('sub.wave')!.options!) {
-      const b = h('button', 'wave-btn', icons[w] ?? w);
-      b.title = w;
-      b.onclick = () => this.set('sub.wave', w);
-      this.watch(['sub.wave'], () => b.classList.toggle('on', this.get('sub.wave') === w));
-      waves.append(b);
-    }
-    const [el, head] = this.strip('SUB', 'sub', [waves, this.toggle('sub.direct', 'Direct out', 'small')],
-      [this.chip('OCT', () => this.num('sub.octave'), (v) => this.set('sub.octave', v), -2, -1, ['sub.octave'], 'Sub octave')],
-      this.subPrint(), [this.knob('sub.level', 'Level', 'mid'), h('div', 'k-gap'), this.knob('sub.clip', 'Clip', 'small')]);
-    head.prepend(this.levelPower('sub.level', el));
-    return el;
+    return this.strip('SUB', 'sub', {
+      power: (el) => this.levelPower('sub.level', el),
+      head: [this.toggle('sub.direct', 'Direct', 'small')],
+      under: this.selector('sub.wave'),
+      chips: [this.chip('OCT', () => this.num('sub.octave'), (v) => this.set('sub.octave', v), -2, -1, ['sub.octave'], 'Sub octave')],
+      print: this.subPrint(),
+      groups: [[], [], [this.knob('sub.clip', 'Clip', 'small'), this.knob('sub.level', 'Level', 'small')]],
+    });
   }
 
   private noiseStrip(): HTMLElement {
-    const [el, head] = this.strip('NOISE', 'noise', [this.selector('texture.type'), this.toggle('texture.direct', 'Direct out', 'small')],
-      [h('span', 'st-note', 'texture bed')], null, [
-        this.knob('texture.level', 'LEVEL', 'big'),
-        this.knob('texture.tone', 'Tone', 'mid'),
-        this.knob('texture.tail', 'Tail', 'mid'),
-        this.lowCut('texture.filter_cutoff', 'texture.filter_type'),
-      ]);
-    head.prepend(this.levelPower('texture.level', el));
-    return el;
+    return this.strip('NOISE', 'noise', {
+      power: (el) => this.levelPower('texture.level', el),
+      head: [this.toggle('texture.direct', 'Direct', 'small')],
+      under: this.selector('texture.type'),
+      groups: [[], [this.knob('texture.tone', 'Tone', 'small'), this.knob('texture.tail', 'Tail', 'small')],
+        [this.lowCut('texture.filter_cutoff', 'texture.filter_type'), this.knob('texture.level', 'Level', 'small')]],
+    });
   }
 
   private breathStrip(): HTMLElement {
-    const [el, head] = this.strip('BREATH', 'breath', [h('span', 'st-hint', 'air at the start of each note')], [], null, [
-      this.knob('breath.level', 'Level', 'mid'),
-      this.knob('breath.chiff', 'Chiff', 'mid'),
-      this.knob('breath.decay', 'Decay', 'small'),
-      this.knob('breath.tone', 'Tone', 'small'),
-    ]);
-    head.prepend(this.levelPower('breath.level', el));
-    return el;
+    return this.strip('BREATH', 'breath', {
+      power: (el) => this.levelPower('breath.level', el),
+      under: h('span', 'st-hint', 'air on each note'),
+      groups: [[], [this.knob('breath.chiff', 'Chiff', 'small'), this.knob('breath.decay', 'Decay', 'small')],
+        [this.knob('breath.tone', 'Tone', 'small'), this.knob('breath.level', 'Level', 'small')]],
+    });
   }
 
   private clickStrip(): HTMLElement {
-    const [el, head] = this.strip('CLICK', 'click', [this.selector('click.type')], [], null, [
-      this.knob('click.level', 'Level', 'mid'),
-      this.knob('click.decay', 'Decay', 'mid'),
-      h('div', 'k-gap'),
-      this.knob('click.tone', 'Tone', 'small'),
-    ]);
-    head.prepend(this.levelPower('click.level', el));
-    return el;
+    return this.strip('CLICK', 'click', {
+      power: (el) => this.levelPower('click.level', el),
+      under: this.selector('click.type'),
+      groups: [[], [this.knob('click.decay', 'Decay', 'small')],
+        [this.knob('click.tone', 'Tone', 'small'), this.knob('click.level', 'Level', 'small')]],
+    });
   }
 
   // ------------------------------------------------------------------ the middle: scope + amp envelope
 
   private scopeBox(): HTMLElement {
-    const W = 226, H = 188;
+    const W = 188, H = 150;
     const [cv, g] = canvas(W, H, 'scope-screen');
     this.scopeG = g;
     this.scopeSize = [W, H];
@@ -1017,10 +1010,10 @@ export class SynthView {
     const [el, head, body] = this.card(title, zone, 'env');
     if (size !== 'small') head.append(h('span', 'c-note', 'drag the points'));
     body.append(this.envPrint(prefix, W, H), h('div', 'knob-row',
-      this.knob(`${prefix}.attack`, 'Attack', size, { fmt: ms }),
-      this.knob(`${prefix}.decay`, 'Decay', size, { fmt: ms }),
-      this.knob(`${prefix}.sustain`, 'Sustain', size, { fmt: db }),
-      this.knob(`${prefix}.release`, 'Release', size, { fmt: ms }),
+      this.knob(`${prefix}.attack`, 'Attack', size, { fmt: ms, showValue: true }),
+      this.knob(`${prefix}.decay`, 'Decay', size, { fmt: ms, showValue: true }),
+      this.knob(`${prefix}.sustain`, 'Sustain', size, { fmt: db, showValue: true }),
+      this.knob(`${prefix}.release`, 'Release', size, { fmt: ms, showValue: true }),
     ));
     return el;
   }
@@ -1030,18 +1023,23 @@ export class SynthView {
   private filterCard(): HTMLElement {
     const [el, head, body] = this.card('FILTER', 'flt', 'main-filter');
     head.prepend(this.boolPower('filter.on', el));
-    const routes = h('div', 'routes', h('span', 'routes-label', 'Into filter'),
+    // What goes into the filter, top to bottom in the same order as the sources on the left.
+    const routes = h('div', 'routes', h('span', 'routes-label', 'In'),
+      this.toggle('filter.route_br', 'Br', 'route'),
+      this.toggle('filter.route_cl', 'Cl', 'route'),
+      this.toggle('filter.route_n', 'No', 'route'),
       this.toggle('filter.route_a', 'A', 'route'),
       this.toggle('filter.route_b', 'B', 'route'),
-      this.toggle('filter.route_n', 'N', 'route'),
-      this.toggle('filter.route_s', 'S', 'route'));
-    routes.title = 'What goes through the filter: oscillator A, oscillator B, the noise bed, the sub';
+      this.toggle('filter.route_s', 'Sub', 'route'));
+    routes.title = 'What goes through the filter: breath, click, noise, oscillator A, oscillator B, sub';
     const drive = this.knob('drive.amount', 'Drive', 'mid', { disabled: () => !this.get('drive.on'), deps: ['drive.on'] });
     // Turning the drive up switches the drive stage on.
     drive.addEventListener('pointerdown', () => { if (!this.get('drive.on')) this.set('drive.on', true); }, true);
-    body.append(this.selector('filter.type'), this.filterPrint(174, 92), routes,
-      h('div', 'knob-row', this.knob('filter.cutoff', 'CUTOFF', 'big'), this.knob('filter.resonance', 'RES', 'big'), this.knob('filter.env_amount', 'ENV', 'big')),
-      h('div', 'knob-row', drive, this.knob('filter.keytrack', 'Key', 'small'), this.knob('filter.fat', 'Fat', 'small'), this.knob('filter.mix', 'Mix', 'small')));
+    const grid = h('div', 'flt-grid',
+      this.knob('filter.cutoff', 'CUTOFF', 'big'), this.knob('filter.resonance', 'RES', 'big'),
+      this.knob('filter.env_amount', 'ENV', 'big'), drive);
+    body.append(this.selector('filter.type'), this.filterPrint(170, 84), h('div', 'flt-main', routes, grid),
+      h('div', 'knob-row flt-small', this.knob('filter.keytrack', 'Key', 'small'), this.knob('filter.fat', 'Fat', 'small'), this.knob('filter.mix', 'Mix', 'small')));
     return el;
   }
 
@@ -1052,123 +1050,25 @@ export class SynthView {
     head.prepend(this.boolPower('dist.on', el));
     const low = this.knob('dist.clean_below', 'Low', 'small', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
     low.title = 'Keeps everything below this frequency clean (the distortion only works on the part above it). Fully left = off.';
-    body.append(h('div', 'dist-top', this.selector('dist.type'), this.distPrint(76, 40)),
-      h('div', 'knob-row', this.knob('dist.drive', 'DRIVE', 'big'), this.knob('dist.mix', 'Mix', 'small'), this.knob('dist.post_tone', 'Tone', 'small'), low));
+    body.append(h('div', 'dist-top', this.selector('dist.type'), this.distPrint(64, 36)),
+      h('div', 'knob-row', this.knob('dist.drive', 'DRIVE', 'big'), h('div', 'k-pair', this.knob('dist.mix', 'Mix', 'small'), this.knob('dist.post_tone', 'Tone', 'small'), low)));
     return el;
   }
 
   private tapeCard(): HTMLElement {
     const [el, head, body] = this.card('TAPE', 'dirt');
     head.prepend(this.boolPower('tape.on', el));
-    body.append(h('div', 'knob-row', this.knob('tape.age', 'AGE', 'big'), this.knob('tape.wow', 'Wow', 'mid'), this.knob('tape.drive', 'Drive', 'mid')));
+    const drift = this.knob('voice.analog', 'Drift', 'small');
+    drift.title = 'Analog drift: the oscillators drift slightly in pitch and the filter varies a touch per note, like an old analog synth. 0 is perfectly steady.';
+    body.append(h('div', 'knob-row', this.knob('tape.age', 'AGE', 'big'), h('div', 'k-pair', this.knob('tape.wow', 'Wow', 'small'), this.knob('tape.drive', 'Drive', 'small'), drift)));
     return el;
   }
 
-  /** Bitcrusher: folds to its title line while it does nothing (off, or mix at 0). */
-  private crushCard(): HTMLElement {
-    const [el, head, body] = this.card('BITCRUSHER', 'dirt', 'fold');
-    const b = h('button', 'power', lamp());
-    b.title = 'On / off';
-    const on = () => !!this.get('crush.on') && this.num('crush.mix') > 0;
-    b.onclick = () => {
-      if (on()) {
-        this.remembered.set('crush.mix', this.num('crush.mix'));
-        this.set('crush.mix', 0);
-      } else {
-        this.set('crush.on', true);
-        this.set('crush.mix', this.remembered.get('crush.mix') ?? 0.5);
-      }
-    };
-    this.watch(['crush.on', 'crush.mix'], () => {
-      b.classList.toggle('on', on());
-      el.classList.toggle('is-off', !on());
-    });
-    head.prepend(b);
-    head.append(h('span', 'c-note off-note', 'off'));
-    body.append(h('div', 'knob-row',
-      this.knob('crush.mix', 'Mix', 'small'),
-      this.knob('crush.bits', 'Bits', 'small', { fmt: (v) => `${Math.round(v)} bit` }),
-      this.knob('crush.rate', 'Rate', 'small')));
-    return el;
-  }
-
-  /** Mid clip: folds to its title line while it is at 0 dB (off). */
+  /** Mid clip: a transparent soft clipper on the oscillators (0 dB = off). */
   private midClipCard(): HTMLElement {
-    const [el, head, body] = this.card('MID CLIP', 'dirt', 'fold');
+    const [el, head, body] = this.card('MID CLIP', 'dirt');
     head.prepend(this.levelPower('clip.mid', el, 3));
-    head.append(h('span', 'c-note off-note', 'off'));
-    body.append(h('div', 'knob-row', this.knob('clip.mid', 'Clip', 'small'), h('div', 'clip-led', this.toggle('clip.low_cut', 'Clean lows', 'small'))));
-    return el;
-  }
-
-  /** The mod wheel: which connected move it plays, and a wheel you can drag (it follows a hardware wheel). */
-  private wheelCard(): HTMLElement {
-    const [el, head, body] = this.card('MOD WHEEL', 'src', 'wheel-card');
-    head.prepend(h('span', 'lamp lamp-on'));
-    const moveP = getParam('wheel.move')!;
-    const nice = (o: string) => o.charAt(0).toUpperCase() + o.slice(1);
-    const current = () => {
-      const m = String(this.get('wheel.move'));
-      return m === 'preset default' ? String(this.get('wheel.preset')) : m;
-    };
-    const sel = this.selector('wheel.move', { label: (o) => (o === 'preset default' ? `${String(this.get('wheel.preset'))} · preset` : o), deps: ['wheel.preset'] });
-    const hint = h('div', 'wheel-hint');
-    this.watch(['wheel.move', 'wheel.preset'], () => {
-      const text = moveP.describes.match(new RegExp(`${nice(current())}: ([^.]*)`))?.[1] ?? '';
-      const what = text.match(/\(([^)]*)\)/)?.[1] ?? text;
-      hint.textContent = what.replace(/, /g, ' · ').trim();
-    });
-    // the wheel itself
-    const W = 30, H = 70;
-    const [cv, g] = canvas(W, H, 'mw');
-    const val = h('span', 'wheel-val');
-    const draw = () => {
-      g.clearRect(0, 0, W, H);
-      g.fillStyle = '#0b0201';
-      g.strokeStyle = '#3a120c';
-      g.lineWidth = 1;
-      g.beginPath();
-      g.roundRect(0.5, 0.5, W - 1, H - 1, 7);
-      g.fill();
-      g.stroke();
-      g.strokeStyle = FAINT;
-      g.lineWidth = 2;
-      for (let i = 0; i < 12; i++) {
-        const y = 7 + (i * (H - 14)) / 11;
-        g.beginPath();
-        g.moveTo(5, y);
-        g.lineTo(W - 5, y);
-        g.stroke();
-      }
-      const cy = 6 + (1 - this.wheel) * (H - 12);
-      g.fillStyle = 'rgba(255,143,117,0.22)';
-      g.fillRect(3, cy, W - 6, H - 3 - cy);
-      g.fillStyle = '#ffe3d9';
-      g.beginPath();
-      g.roundRect(3, cy - 3, W - 6, 6, 3);
-      g.fill();
-      val.textContent = `${Math.round(this.wheel * 100)}%`;
-    };
-    const setW = (v: number) => {
-      this.wheel = Math.max(0, Math.min(1, v));
-      draw();
-      this.onWheel(this.wheel);
-    };
-    const fromY = (e: PointerEvent) => {
-      const r = cv.getBoundingClientRect();
-      setW(1 - (e.clientY - r.top) / r.height);
-    };
-    cv.addEventListener('pointerdown', (e) => {
-      cv.setPointerCapture(e.pointerId);
-      fromY(e);
-    });
-    cv.addEventListener('pointermove', (e) => { if (cv.hasPointerCapture(e.pointerId)) fromY(e); });
-    cv.addEventListener('pointerup', (e) => cv.releasePointerCapture(e.pointerId));
-    cv.addEventListener('dblclick', () => setW(0));
-    cv.title = 'Mod wheel (follows your keyboard\'s wheel; drag to try it). Double-click to reset.';
-    this.wheelViews.push(draw);
-    draw();
-    body.append(h('div', 'wheel-row', h('div', 'wheel-left', sel, hint, val), cv));
+    body.append(h('div', 'knob-row clip-row', this.knob('clip.mid', 'Clip', 'small'), this.toggle('clip.low_cut', 'Clean lows', 'small')));
     return el;
   }
 
@@ -1484,19 +1384,28 @@ export class SynthView {
       dice.disabled = rs.rolling;
       dice.title = 'Roll a new sound (boxes locked in "All controls" stay as they are)';
       dice.onclick = () => src.roll();
-      const weird = h('input', 'pp-weird') as HTMLInputElement;
-      weird.type = 'range';
-      weird.min = '0';
-      weird.max = '1';
-      weird.step = '0.01';
-      weird.value = String(rs.weirdness);
+      // The same kind of slider as Glide in the play bar.
+      const fill = h('div', 'glide-fill');
+      const weird = h('div', 'glide-track pp-weird', fill);
       const word = (v: number) => (v < 0.2 ? 'close cousins' : v < 0.5 ? 'a twist' : v < 0.8 ? 'strange' : 'wild');
       const wv = h('span', 'pp-weird-word', word(rs.weirdness));
-      weird.oninput = () => {
-        src.setWeirdness(Number(weird.value));
-        wv.textContent = word(Number(weird.value));
+      const show = (v: number) => {
+        fill.style.width = `${v * 100}%`;
+        wv.textContent = word(v);
       };
-      const wrap = h('label', 'pp-field', h('span', 'pp-field-label', 'Weirdness'), weird, wv);
+      const fromX = (x: number) => {
+        const r = weird.getBoundingClientRect();
+        const v = Math.round(Math.max(0, Math.min(1, (x - r.left) / r.width)) * 100) / 100;
+        src.setWeirdness(v);
+        show(v);
+      };
+      weird.addEventListener('pointerdown', (e) => {
+        weird.setPointerCapture(e.pointerId);
+        fromX(e.clientX);
+      });
+      weird.addEventListener('pointermove', (e) => { if (weird.hasPointerCapture(e.pointerId)) fromX(e.clientX); });
+      show(rs.weirdness);
+      const wrap = h('div', 'pp-field', h('span', 'pp-field-label', 'Weirdness'), weird, wv);
       wrap.title = 'Low: close cousins of the presets. High: parts from other categories collide, wild ideas, far from anything in the bank.';
       const based = h('select', 'sel-name');
       for (const [id, name] of rs.basedOptions) based.append(new Option(name.toUpperCase(), id));
@@ -1673,11 +1582,15 @@ export class SynthView {
     const up = h('button', 'kb-oct-btn', '›');
     down.onclick = () => this.onOctave(-1);
     up.onclick = () => this.onOctave(1);
-    const move = h('span', 'kb-move');
+    // The wheel's move: the preset's own, or another one picked here.
+    const nice = (o: string) => o.charAt(0).toUpperCase() + o.slice(1);
+    const move = h('select', 'kb-move');
+    for (const o of getParam('wheel.move')!.options!) move.append(new Option(nice(o), o));
+    move.onchange = () => this.set('wheel.move', move.value);
+    move.title = getParam('wheel.move')!.describes;
     this.watch(['wheel.move', 'wheel.preset'], () => {
-      const m = String(this.get('wheel.move'));
-      const name = m === 'preset default' ? String(this.get('wheel.preset')) : m;
-      move.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+      move.options[0].text = nice(String(this.get('wheel.preset')));
+      move.value = String(this.get('wheel.move'));
     });
     this.velFill.style.width = '75%';
     const side = h('div', 'kb-side',
@@ -1705,10 +1618,10 @@ export class SynthView {
     const cap = (n: string, name: string, note: string, zone: Zone) =>
       h('div', `zone-cap cap-${zone}`, h('span', 'cap-name', `${n}  ${name}`), h('span', 'cap-note', note), h('span', 'cap-line'));
     const sources = h('div', 'col col-sources', cap('1', 'SOURCES', 'make the sound', 'src'),
-      this.oscStrip(1), this.oscStrip(2), this.subStrip(), this.noiseStrip(), this.breathStrip(), this.clickStrip());
-    const middle = h('div', 'col col-middle', h('div', 'zone-cap'), this.scopeBox(), this.envCard('amp_env', 'AMP ENVELOPE', 'src', 220, 236, 'mid'));
-    const filter = h('div', 'col col-filter', cap('2', 'FILTER', 'shape the tone', 'flt'), this.filterCard(), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', 174, 70, 'small'));
-    const dirt = h('div', 'col col-dirt', cap('3', 'DIRT', 'grit and wear', 'dirt'), this.distCard(), this.tapeCard(), this.crushCard(), this.midClipCard(), this.wheelCard());
+      this.breathStrip(), this.clickStrip(), this.noiseStrip(), this.oscStrip(1), this.oscStrip(2), this.subStrip());
+    const middle = h('div', 'col col-middle', h('div', 'zone-cap'), this.scopeBox(), this.envCard('amp_env', 'AMP ENVELOPE', 'src', 186, 262, 'small'));
+    const filter = h('div', 'col col-filter', cap('2', 'FILTER', 'shape the tone', 'flt'), this.filterCard(), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', 170, 62, 'small'));
+    const dirt = h('div', 'col col-dirt', cap('3', 'DIRT', 'grit and wear', 'dirt'), this.distCard(), this.tapeCard(), this.midClipCard());
     this.oscPage = h('div', 'v2-main', sources, middle, filter, dirt);
     this.presetPage.style.display = 'none';
     this.page.append(

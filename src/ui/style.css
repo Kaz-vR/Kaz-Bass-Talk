@@ -444,3 +444,73 @@ body.randomizing .group.locked { box-shadow: inset 0 0 0 1px #6f78ff; }
 .kb-keys .key.down.white { background: linear-gradient(180deg, #7a3a2c 0%, #cdb9a2 35%, #dccbb4 100%); box-shadow: inset 0 0 0 999px rgba(255,59,34,0.3), inset 0 -6px 0 #ff5a40; }
 .kb-keys .key.down.black { background: linear-gradient(180deg, rgba(255,143,117,0.1), rgba(255,143,117,0.8)), #0C0B09; }
 .kb-keys .key .lbl { position: absolute; bottom: 10px; width: 100%; text-align: center; font-size: 10px; font-weight: 700; color: #5a3a2c; }
+
+/* ------------------------------------------------------------ UI pass: sizes and alignment */
+.v2-main { gap: 12px; }
+.col-sources { width: 536px; }
+.col-middle { width: 210px; }
+.col-filter { width: 200px; }
+.col-dirt { width: 182px; }
+.col-dirt .c { flex: 1; }
+.col-dirt .c:first-child { flex: 1.15; }
+
+/* one control height everywhere: selects and number boxes are 26 px */
+.sel { height: 26px; }
+.sel::after { top: 5px; }
+.chip { width: 32px; height: 26px; }
+.chip-label { font-size: 7.5px; }
+
+/* dial values: hidden, shown over the name on hover / while dragging */
+.k { position: relative; }
+.k.quiet .k-val { position: absolute; left: -6px; right: -6px; bottom: 0; text-align: center; opacity: 0; pointer-events: none;
+  background: #1a0504; border-radius: 3px; color: #fff; transition: opacity .1s; }
+.k.quiet:hover .k-val, .k.quiet.drag .k-val { opacity: 1; }
+.k.quiet .k-label { margin-bottom: 0; }
+
+/* the source strips: fixed columns so every strip lines up */
+.strip { display: grid; grid-template-columns: 100px 106px 62px 1fr; column-gap: 0; align-items: center; min-height: 0; flex: 1 1 0; padding: 0 12px 0 12px; }
+.strip.noise { min-height: 0; flex-basis: 0; }
+.st-left { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.st-head { display: flex; align-items: center; gap: 8px; height: 18px; }
+.st-head .c-title { margin-right: 0; }
+.st-head .led { margin-left: auto; padding-right: 6px; }
+.st-left .sel { width: 90px; }
+.st-chips { display: flex; gap: 4px; align-self: center; }
+.st-print { display: flex; justify-content: flex-start; }
+.st-knobs { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; min-width: 0; grid-column: 4; padding-left: 0 !important; }
+.strip.noise .st-knobs, .strip.breath .st-knobs, .strip.click .st-knobs { grid-column: 4; padding-left: 0; }
+.strip.noise .st-print, .strip.breath .st-print, .strip.click .st-print { display: flex; }
+.st-group { display: flex; align-items: flex-end; gap: 5px; min-width: 77px; justify-content: flex-end; }
+.st-group:empty { min-width: 77px; }
+.st-group .chip { align-self: center; margin: 0 4px 14px 0; }
+.st-group .k-small { width: 36px; }
+.st-hint { white-space: nowrap; }
+
+/* the scope and amp envelope fit the narrower middle */
+.scope { padding: 8px; }
+.env .knob-row { justify-content: space-around; }
+
+/* filter: what goes in, top to bottom like the sources; the four main dials in a 2 x 2 grid */
+.flt-main { display: flex; gap: 8px; align-items: flex-start; }
+.routes { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; width: 40px; flex: none; padding-top: 2px; }
+.routes .led { gap: 6px; font-size: 10.5px; }
+.routes-label { font-size: 10px; color: var(--t3); margin: 0 0 1px; }
+.flt-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; row-gap: 6px; justify-items: center; align-items: end; }
+.flt-grid .k-mid { margin-top: 9px; }
+.flt-small { justify-content: space-around; }
+
+/* dirt: the big dial on the left, the small ones next to it */
+.k-pair { display: flex; gap: 0; align-items: flex-end; }
+.k-pair .k-small { width: 36px; }
+.col-dirt .knob-row { justify-content: space-between; align-items: flex-end; }
+.dist-top .sel { flex: 1; min-width: 0; }
+.clip-row { align-items: center; justify-content: flex-start; gap: 16px; }
+
+/* keyboard: the move is a small dropdown */
+.kb-move { appearance: none; -webkit-appearance: none; background: transparent; border: 0; padding: 0; margin-bottom: 6px; cursor: pointer;
+  font: 600 12px Inter, system-ui, sans-serif; color: var(--src); width: 62px; }
+.kb-move option { background: #1a0605; color: var(--val); }
+.kb-move:hover { color: #ffd2c4; }
+
+/* randomizer: weirdness uses the glide slider */
+.pp-weird { width: 110px; flex: none; }
