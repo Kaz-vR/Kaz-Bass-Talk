@@ -106,7 +106,7 @@ inline int paramIndex(const char* id) {
 
 /** Parameter indices, resolved once from the generated schema. */
 struct ParamIndex {
-  struct Osc { int wave, semi, fine, pw, wt, voices, detune, spread, level, hp; };
+  struct Osc { int wave, semi, fine, pw, wt, voices, detune, spread, level, hp, fType, fKey; };
   struct Lfo { int shape, rate, sync, retrig, fade; };
   struct Slot { int src, dst, amt; };
   int legato, glide, octave, velocity, analog;
@@ -115,6 +115,8 @@ struct ParamIndex {
   int strTone, strDecay, shepRate, accent, ampCurve, chorusMode;
   int clickType, clickLevel, clickDecay, clickTone, subWave, subOct, subLevel, subClip, midClip, noise, drive;
   int texType, texLevel, texTone, texTail, texPosition;
+  int subFType, subFCut, subFKey, subDirect, texPan, texDirect, texFType, texFCut, texFKey;
+  int routeA, routeB, routeN, routeS, routeBr, routeCl, postCut, fat, fMix;
   int fType, cutoff, res, keytrack, envAmt, vowel;
   int dType, dDrive, dMix, dTone, dSplit, crushMix, crushBits, crushRate, tapeDrive, tapeWow, tapeAge;
   int compAmount, compSpeed, compPump, compPumpRate, osc2Sync;
@@ -135,7 +137,8 @@ struct ParamIndex {
     for (int n = 0; n < 2; n++) {
       const std::string o = "osc" + std::to_string(n + 1) + ".";
       osc[n] = {ix(o + "wave"), ix(o + "semi"), ix(o + "fine"), ix(o + "pulse_width"), ix(o + "wt_pos"), ix(o + "unison_voices"),
-                ix(o + "unison_detune"), ix(o + "unison_spread"), ix(o + "level"), ix(o + "highpass")};
+                ix(o + "unison_detune"), ix(o + "unison_spread"), ix(o + "level"), ix(o + "highpass"),
+                ix(o + "filter_type"), ix(o + "filter_key")};
     }
     fmAmount = ix("fm.amount"); fmRatio = ix("fm.ratio"); fmPunch = ix("fm.punch"); fmDecay = ix("fm.decay"); fmFb = ix("fm.feedback");
     fm2Amount = ix("fm2.amount"); fm2Ratio = ix("fm2.ratio"); fmAlgo = ix("fm.algorithm");
@@ -144,6 +147,10 @@ struct ParamIndex {
     clickType = ix("click.type"); clickLevel = ix("click.level"); clickDecay = ix("click.decay"); clickTone = ix("click.tone");
     subWave = ix("sub.wave"); subOct = ix("sub.octave"); subLevel = ix("sub.level"); subClip = ix("sub.clip"); midClip = ix("clip.mid"); noise = ix("noise.level"); drive = ix("drive.amount");
     texType = ix("texture.type"); texLevel = ix("texture.level"); texTone = ix("texture.tone"); texTail = ix("texture.tail"); texPosition = ix("texture.position");
+    subFType = ix("sub.filter_type"); subFCut = ix("sub.filter_cutoff"); subFKey = ix("sub.filter_key"); subDirect = ix("sub.direct");
+    texPan = ix("texture.pan"); texDirect = ix("texture.direct"); texFType = ix("texture.filter_type"); texFCut = ix("texture.filter_cutoff"); texFKey = ix("texture.filter_key");
+    routeA = ix("filter.route_a"); routeB = ix("filter.route_b"); routeN = ix("filter.route_n"); routeS = ix("filter.route_s");
+    routeBr = ix("filter.route_br"); routeCl = ix("filter.route_cl"); postCut = ix("clip.low_cut"); fat = ix("filter.fat"); fMix = ix("filter.mix");
     fType = ix("filter.type"); cutoff = ix("filter.cutoff"); res = ix("filter.resonance"); keytrack = ix("filter.keytrack");
     envAmt = ix("filter.env_amount"); vowel = ix("filter.vowel");
     dType = ix("dist.type"); dDrive = ix("dist.drive"); dMix = ix("dist.mix"); dTone = ix("dist.post_tone"); dSplit = ix("dist.clean_below");

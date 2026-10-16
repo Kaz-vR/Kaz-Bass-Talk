@@ -198,6 +198,9 @@ class Synth {
     }
     texture.reset();
     texEnv = texLpL = texLpR = 0;
+    texF.reset();
+    texNL.reset();
+    texNR.reset();
     wobCycle = -1;
     wobScale = wobScaleTarget = 1;
     wobBright = wobBrightTarget = 0;
@@ -268,6 +271,21 @@ class Synth {
           tl = texLpL;
           tr = texLpR;
         }
+        if (texF.active) {
+          tl = texF.process(tl, 0);
+          tr = texF.process(tr, 1);
+        }
+        if (texRouteN) {
+          texNL.process(tl, texNG, texNK);
+          texNR.process(tr, texNG, texNK);
+          const int m = texNMode;
+          tl = m == 1 ? texNL.bp : m == 2 ? texNL.lp + texNL.hp : texNL.lp;
+          tr = m == 1 ? texNR.bp : m == 2 ? texNR.lp + texNR.hp : texNR.lp;
+        }
+        if (texPanOn) {
+          tl *= texPanL;
+          tr *= texPanR;
+        }
         const double tg = texGain * texEnv * duckGain * texMon;
         texL = tl * tg;
         texR = tr * tg;
@@ -275,7 +293,8 @@ class Synth {
         texEnv = 0;
       }
       const bool texPost = cur[P.texPosition] > 0.5;
-      if (!texPost) {
+      // Direct out: the bed joins the clean sub after every effect.
+      if (!texDirect && !texPost) {
         l += texL;
         r += texR;
       }
@@ -290,7 +309,7 @@ class Synth {
         l = tmp[0];
         r = tmp[1];
       }
-      if (texPost) {
+      if (texPost && !texDirect) {
         l += texL;
         r += texR;
       }
@@ -339,6 +358,10 @@ class Synth {
       }
       l += sub;
       r += sub;
+      if (texDirect) {
+        l += texL;
+        r += texR;
+      }
       l = dcL[1].process(dcL[0].process(l));
       r = dcR[1].process(dcR[0].process(r));
 
@@ -410,6 +433,12 @@ class Synth {
   int texType = 0;
   double texTone = 0.4, texAtk = 0.001, texRel = 0.999, texLpL = 0, texLpR = 0, texLpCoef = 1;
   bool anyGate = false;
+  // The bed's own filter, its copy of the main filter (N), pan and direct out.
+  SlotFilter<2> texF;
+  Svf texNL, texNR;
+  bool texRouteN = false, texPanOn = false, texDirect = false;
+  double texNG = 0.1, texNK = 1.4, texPanL = 1, texPanR = 1;
+  int texNMode = 0;  // 0 low, 1 band, 2 notch
 
   Compressor comp;
   bool compOn = false, ottOn = false;
@@ -709,6 +738,33 @@ class Synth {
     texAtk = 1 - std::exp(-1 / (std::fmax(0.03, cur[P.amp[0]] / 3000) * fs));
     texRel = std::exp(-4.6 / ((cur[P.texTail] / 1000) * fs));
     texLpCoef = lead->tapeLpCoef;
+    {
+      const SlotKind sk = auxSlot(cur[P.texFType]);
+      double hz = cur[P.texFCut];
+      if (cur[P.texFKey] > 0.5) hz *= std::pow(2.0, (lead->pitch + 12 * cur[P.octave] - KEYTRACK_CENTER) / 12);
+      texF.set(sk.kind, sk.p24, hz, fs);
+    }
+    const bool routeN = cur[P.routeN] > 0.5;
+    if (routeN && !texRouteN) {
+      texNL.reset();
+      texNR.reset();
+    }
+    texRouteN = routeN;
+    if (routeN) {
+      // A copy of the main filter that follows the newest note (the bed is shared by all voices).
+      texNG = std::tan((PI * std::fmin(lead->fcNow, fs * 0.45)) / fs);
+      texNK = 2 - 1.85 * lead->resNow;
+      const int t = (int)std::lround(cur[P.fType]);
+      texNMode = t == FILTER_BP || t == 2 ? 1 : t == FILTER_NOTCH ? 2 : 0;
+    }
+    const double pan = cur[P.texPan];
+    texPanOn = pan != 0;
+    if (texPanOn) {
+      const double a = ((pan + 1) * PI) / 4;
+      texPanL = std::cos(a) * SQRT2;
+      texPanR = std::sin(a) * SQRT2;
+    }
+    texDirect = cur[P.texDirect] > 0.5;
 
     beatPos += (tempo / 60) * (CONTROL_BLOCK / fs);
     if (beatPos >= 4) beatPos -= 4;

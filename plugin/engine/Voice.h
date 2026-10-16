@@ -17,6 +17,20 @@
 namespace lt {
 
 constexpr double MID_CLIP_REF = 0.8;
+/** polyBLEP residual for a unit step at phase 0 (t in 0..1, dt = phase increment). */
+inline double polyBlep(double t, double dt) {
+  if (t < dt) {
+    const double x = t / dt;
+    return x + x - x * x - 1;
+  }
+  if (t > 1 - dt) {
+    const double x = (t - 1) / dt;
+    return x * x + x + x + 1;
+  }
+  return 0;
+}
+/** The sub routed into the main filter arrives at about the level the clean path would have had. */
+constexpr double SUB_ROUTE_GAIN = 1 / (VOICE_GAIN * PRE_FILTER_GAIN * POST_FILTER_GAIN);
 constexpr double UNISON_SKEW[7] = {0, 0.19, -0.13, 0.08, -0.17, 0.11, 0};
 
 struct OscState {
@@ -33,6 +47,8 @@ class Voice {
  public:
   int note = 48;
   double pitch = 48;
+  /** The main filter's current cutoff (Hz) and resonance, for the texture bed's copy of it. */
+  double fcNow = 1000, resNow = 0;
   double velocity = 1;
   bool gate = false;
   long long order = 0;
@@ -162,8 +178,13 @@ class Voice {
     subClip.reset();
     midClip.reset();
     subDelay.fill(0);
-    for (auto& hp : oscHp)
-      for (auto& f : hp) f.reset();
+    for (auto& f : oscF) f.reset();
+    subF.reset();
+    postCut.reset();
+    upBL.reset();
+    upBR.reset();
+    fatL.reset();
+    fatR.reset();
     tail = 0;
   }
 
@@ -306,16 +327,39 @@ class Voice {
       o.frac = fpos - fa;
       o.baseSaw = (SAW_FRAME * MIP_LEVELS + mip) * TABLE_SIZE;
     }
+    const double keyOct = std::pow(2.0, (pitch + 12 * cur[P.octave] - KEYTRACK_CENTER) / 12);
     for (int n = 0; n < 2; n++) {
-      const double hz = cur[P.osc[n].hp];
-      oscHpOn[n] = hz > 21;
-      if (oscHpOn[n] && hz != lastOscHp[n]) {
-        for (int i = 0; i < 2; i++) {
-          oscHp[n][i].setHighpass(hz, SUBSONIC_Q[i], fs);
-          oscHp[n][2 + i].setHighpass(hz, SUBSONIC_Q[i], fs);
-        }
-        lastOscHp[n] = hz;
+      const SlotKind sk = oscSlot(cur[P.osc[n].fType]);
+      double hz = cur[P.osc[n].hp];
+      if (cur[P.osc[n].fKey] > 0.5) hz *= keyOct;
+      oscF[n].set(sk.kind, sk.p24, hz, fs);
+    }
+    routeA = cur[P.routeA] > 0.5;
+    routeB = cur[P.routeB] > 0.5;
+    routeS = cur[P.routeS] > 0.5;
+    routeBr = cur[P.routeBr] > 0.5;
+    routeCl = cur[P.routeCl] > 0.5;
+    {
+      double hz = INFINITY;
+      for (int n = 0; n < 2; n++) {
+        const double t = cur[P.osc[n].fType];
+        if (t <= 1 && cur[P.osc[n].hp] > 21) hz = std::fmin(hz, cur[P.osc[n].hp]);  // high 24 / high 12
       }
+      const bool on = cur[P.postCut] > 0.5 && !routeS && hz < INFINITY;
+      postCut.set(on ? SLOT_HP : SLOT_OFF, true, on ? hz : 20, fs);
+    }
+    subDirect = cur[P.subDirect] > 0.5;
+    const bool bypass = !routeA || !routeB || !routeBr;
+    if (bypass && !bypassOn) {
+      upBL.reset();
+      upBR.reset();
+    }
+    bypassOn = bypass;
+    {
+      const SlotKind sk = auxSlot(cur[P.subFType]);
+      double hz = cur[P.subFCut];
+      if (cur[P.subFKey] > 0.5) hz *= keyOct;
+      subF.set(sk.kind, sk.p24, hz, fs);
     }
     strTone = cur[P.strTone];
     shepRate = (cur[P.shepRate] * 0.4) / fs;
@@ -362,6 +406,18 @@ class Voice {
     if (filterType == FILTER_LPG) octs += 1.5 * std::log2(std::fmax(ampEnv.level, 0.002));
     const double fc = clampd(cur[P.cutoff] * std::pow(2.0, octs), 20, std::fmin(20000, fs * 0.45));
     const double gTarget = std::tan((PI * fc) / fsOs);
+    fcNow = fc;
+    resNow = res;
+    // Fat: a low shelf below the cutoff that grows with the resonance, and saturation, after the filter.
+    fat = cur[P.fat];
+    fMix = cur[P.fMix];
+    if (fat > 0) {
+      const double shelf = clampd(0.5 * fc, 40, 400);
+      const double db = fat * (3 + 9 * res);
+      fatL.setLowShelf(shelf, db, fsOs);
+      fatR.setLowShelf(shelf, db, fsOs);
+      fatDrive = 1 + 2 * fat;
+    }
     if (gPrevTarget < 0) g = gTarget;
     gStep = (gTarget - g) / (CONTROL_BLOCK * OS);
     gPrevTarget = gTarget;
@@ -477,14 +533,14 @@ class Voice {
           o1.phase[j] = ph - std::floor(ph);
         }
       }
-      if (oscHpOn[0]) {
-        auto& f = oscHp[0];
-        l = f[1].process(f[0].process(l));
-        r = f[3].process(f[2].process(r));
+      if (oscF[0].active) {
+        l = oscF[0].process(l, 0);
+        r = oscF[0].process(r, 1);
       }
-      const bool o2Hp = oscHpOn[1];
+      // Oscillator 2 sums on its own when it has a filter or a different routing.
+      const bool sepB = oscF[1].active || routeA != routeB;
       const double preL = l, preR = r;
-      if (o2Hp) l = r = 0;
+      if (sepB) l = r = 0;
       if (o2.gain > 0 && o2.wave >= WAVE_STRING) {
         const double s = specialOsc(1, o2) * o2.gain;
         l += s;
@@ -528,10 +584,27 @@ class Voice {
           r += s * o2.panR[j];
         }
       }
-      if (o2Hp) {
-        auto& f = oscHp[1];
-        l = preL + f[1].process(f[0].process(l));
-        r = preR + f[3].process(f[2].process(r));
+      // Routing: what goes through the drive and main filter, and what skips them.
+      double byL = 0, byR = 0;
+      if (sepB) {
+        double bl = l, br = r;
+        if (oscF[1].active) {
+          bl = oscF[1].process(bl, 0);
+          br = oscF[1].process(br, 1);
+        }
+        if (routeA && routeB) {
+          l = preL + bl;
+          r = preR + br;
+        } else {
+          l = (routeA ? preL : 0) + (routeB ? bl : 0);
+          r = (routeA ? preR : 0) + (routeB ? br : 0);
+          byL = (routeA ? 0 : preL) + (routeB ? 0 : bl);
+          byR = (routeA ? 0 : preR) + (routeB ? 0 : br);
+        }
+      } else if (!routeA) {
+        byL = l;
+        byR = r;
+        l = r = 0;
       }
       if (noiseLevel > 0) {
         const double nz = rng.next() * noiseLevel;
@@ -543,16 +616,73 @@ class Voice {
         const double ba = chiffAmt * chiffEnv + 0.5 * breathLvl;
         breathSvf.process(rng.next(), breathG, 1.1);
         const double b = breathSvf.bp * ba * 1.6;
-        l += b;
-        r += b;
+        if (routeBr) {
+          l += b;
+          r += b;
+        } else {
+          byL += b;
+          byR += b;
+        }
       }
+      // Click into the filter (C): level-matched to its usual place after the amp.
+      if (routeCl && clickLevel > 0) {
+        const double c = transient.process() * clickLevel * 1.5 / (PRE_FILTER_GAIN * POST_FILTER_GAIN);
+        l += c;
+        r += c;
+      }
+      // Sub: clean, mono, phase-stable (in poly mode only the lowest note carries it). Its own
+      // filter and clip shape it; with "sub into filter" (S) it joins the oscillators instead.
+      const double amp = env * velGain * duck;
+      double sub = 0;
+      subMix += subMix < subOn ? subRamp : subMix > subOn ? -subRamp : 0;
+      if (subMix < 0) subMix = 0;
+      else if (subMix > 1) subMix = 1;
+      if (subLevel > 0 && subMix > 0) {
+        double sp = subPhase + subInc;
+        if (sp >= 1) sp -= 1;
+        subPhase = sp;
+        if (subWave == 0) sub = std::sin(TWO_PI * sp);
+        else if (subWave == 1) sub = sp < 0.25 ? 4 * sp : sp < 0.75 ? 2 - 4 * sp : 4 * sp - 4;
+        else {
+          // Square, band-limited with polyBLEP at both edges.
+          const double dt = subInc;
+          double sp2 = sp + 0.5;
+          if (sp2 >= 1) sp2 -= 1;
+          sub = (sp < 0.5 ? 1 : -1) + polyBlep(sp, dt) - polyBlep(sp2, dt);
+        }
+        if (subF.active) sub = subF.process(sub);
+        if (routeS) {
+          const double s = sub * subLevel * subMix * SUB_ROUTE_GAIN;
+          l += s;
+          r += s;
+          sub = 0;
+        } else {
+          sub *= subLevel * amp * subMix;
+          if (subClip.knee > 0) {
+            double co[2];
+            subClip.process(sub, 0, subLevel * velGain, co);
+            sub = co[0];
+          }
+        }
+      } else {
+        subPhase += subInc;
+        if (subPhase >= 1) subPhase -= 1;
+      }
+
       l *= PRE_FILTER_GAIN;
       r *= PRE_FILTER_GAIN;
 
       upL.process(l);
       upR.process(r);
-      nonlinear(upL.out0, upR.out0, 0);
-      nonlinear(upL.out1, upR.out1, 2);
+      if (bypassOn) {
+        upBL.process(byL * PRE_FILTER_GAIN);
+        upBR.process(byR * PRE_FILTER_GAIN);
+        nonlinear(upL.out0, upR.out0, 0, upBL.out0, upBR.out0);
+        nonlinear(upL.out1, upR.out1, 2, upBL.out1, upBR.out1);
+      } else {
+        nonlinear(upL.out0, upR.out0, 0, 0, 0);
+        nonlinear(upL.out1, upR.out1, 2, 0, 0);
+      }
       l = dnL.process(osOut[0], osOut[2]);
       r = dnR.process(osOut[1], osOut[3]);
 
@@ -566,10 +696,13 @@ class Voice {
         l = tmp[0];
         r = tmp[1];
       }
+      if (postCut.active) {
+        l = postCut.process(l, 0);
+        r = postCut.process(r, 1);
+      }
       l = voiceDcL.process(l);
       r = voiceDcR.process(r);
 
-      const double amp = env * velGain * duck;
       const double va = amp * ampMod * VOICE_GAIN;
       l *= va;
       r *= va;
@@ -581,32 +714,12 @@ class Voice {
         r = co[1];
       }
 
-      if (clickLevel > 0) {
+      if (clickLevel > 0 && !routeCl) {
         const double c = transient.process() * clickLevel * velGain * duck * VOICE_GAIN * 1.5;
         l += c;
         r += c;
       }
 
-      double sub = 0;
-      subMix += subMix < subOn ? subRamp : subMix > subOn ? -subRamp : 0;
-      if (subMix < 0) subMix = 0;
-      else if (subMix > 1) subMix = 1;
-      if (subLevel > 0 && subMix > 0) {
-        double sp = subPhase + subInc;
-        if (sp >= 1) sp -= 1;
-        subPhase = sp;
-        if (subWave == 0) sub = std::sin(TWO_PI * sp);
-        else sub = sp < 0.25 ? 4 * sp : sp < 0.75 ? 2 - 4 * sp : 4 * sp - 4;
-        sub *= subLevel * amp * subMix;
-        if (subClip.knee > 0) {
-          double co[2];
-          subClip.process(sub, 0, subLevel * velGain, co);
-          sub = co[0];
-        }
-      } else {
-        subPhase += subInc;
-        if (subPhase >= 1) subPhase -= 1;
-      }
       subDelay[subDelayPos] = sub;
     } else {
       subDelay[subDelayPos] = 0;
@@ -616,9 +729,16 @@ class Voice {
     if (rp < 0) rp += 32;
     const double subOut = subDelay[rp];
     subDelayPos = (subDelayPos + 1) & 31;
-    out[0] = l;
-    out[1] = r;
-    out[2] = subOut;
+    // With direct out off the sub joins the voice and goes through the dynamics, effects and EQ.
+    if (subDirect) {
+      out[0] = l;
+      out[1] = r;
+      out[2] = subOut;
+    } else {
+      out[0] = l + subOut;
+      out[1] = r + subOut;
+      out[2] = 0;
+    }
   }
 
  private:
@@ -656,9 +776,17 @@ class Voice {
   int subDelayPos = 0;
   double subInc = 0, subLevel = 0;
   int subWave = 0;
-  Biquad oscHp[2][4];
-  bool oscHpOn[2] = {false, false};
-  double lastOscHp[2] = {-1, -1};
+  // Each oscillator's own filter slot, the sub's, and the oscillators' low cut after the dirt.
+  SlotFilter<2> oscF[2];
+  SlotFilter<1> subF;
+  SlotFilter<2> postCut;
+  bool routeA = true, routeB = true, routeS = false, routeBr = true, routeCl = false, subDirect = true;
+  // Some source skips the drive and main filter: it gets its own oversampled path.
+  bool bypassOn = false;
+  Upsampler2x upBL, upBR;
+  // Filter fat (low shelf + saturation after the filter) and mix (dry/filtered).
+  double fat = 0, fatDrive = 1, fMix = 1;
+  Biquad fatL, fatR;
   double noiseLevel = 0;
 
   double driveMix = 0, driveGain = 1, driveComp = 1;
@@ -777,12 +905,13 @@ class Voice {
     return y;
   }
 
-  void nonlinear(double l, double r, int slot) {
+  void nonlinear(double l, double r, int slot, double bl, double br) {
     if (driveMix > 0) {
       const double dc = driveComp, dm = driveMix;
       l += (driveShape(l, 0) * dc - l) * dm;
       r += (driveShape(r, 1) * dc - r) * dm;
     }
+    const double dryL = l, dryR = r;
     g += gStep;
     const double gg = g;
     if (filterType == FILTER_LP) {
@@ -826,8 +955,23 @@ class Voice {
       l = fl * 2.2;
       r = fr * 2.2;
     }
+    // Mix (dry/filtered) and fat (body back below the cutoff, saturation).
+    if (fMix < 1) {
+      l = dryL + (l - dryL) * fMix;
+      r = dryR + (r - dryR) * fMix;
+    }
+    if (fat > 0) {
+      const double d = fatDrive;
+      l = std::tanh(fatL.process(l) * d) / d;
+      r = std::tanh(fatR.process(r) * d) / d;
+    }
     l *= POST_FILTER_GAIN;
     r *= POST_FILTER_GAIN;
+    // Sources that skip the drive and filter rejoin here.
+    if (bypassOn) {
+      l += bl * POST_FILTER_GAIN;
+      r += br * POST_FILTER_GAIN;
+    }
 
     if (distAmt > 0) {
       double lowL = 0, lowR = 0, hl = l, hr = r;

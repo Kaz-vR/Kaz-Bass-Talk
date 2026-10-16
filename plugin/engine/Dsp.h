@@ -161,6 +161,10 @@ class Biquad {
     const double w = (TWO_PI * fc) / fs, c = std::cos(w), al = std::sin(w) / (2 * q);
     set((1 - c) / 2, 1 - c, (1 - c) / 2, 1 + al, -2 * c, 1 - al);
   }
+  void setBandpass(double fc, double q, double fs) {
+    const double w = (TWO_PI * fc) / fs, c = std::cos(w), al = std::sin(w) / (2 * q);
+    set(al, 0, -al, 1 + al, -2 * c, 1 - al);
+  }
   void setLowShelf(double fc, double db, double fs) {
     const double A = std::pow(10.0, db / 40), w = (TWO_PI * fc) / fs, c = std::cos(w), s = std::sin(w);
     const double al = (s / 2) * SQRT2, sa = 2 * std::sqrt(A) * al;
@@ -187,6 +191,67 @@ class Biquad {
     a2 = na2 / na0;
   }
 };
+
+/** Filter kinds of a source's own filter slot. */
+constexpr int SLOT_OFF = 0, SLOT_HP = 1, SLOT_LP = 2, SLOT_BP = 3;
+
+/**
+ * A source's own filter (oscillators, sub, texture bed): high-, low- or band-pass at 12 or
+ * 24 dB/oct, on 1 or 2 channels. It switches itself off where it would do nothing (a
+ * high-pass at 20 Hz, a low-pass at 20 kHz), so an unused slot costs nothing.
+ */
+template <int CH>
+class SlotFilter {
+ public:
+  bool active = false;
+  void reset() {
+    for (auto& b : f) b.reset();
+  }
+  void set(int k, bool poles24, double fc, double fs) {
+    const bool on = k == SLOT_HP ? fc > 21 : k == SLOT_LP ? fc < 19000 : k == SLOT_BP;
+    if (!on) {
+      if (active) reset();
+      active = false;
+      lastFc = -1;
+      return;
+    }
+    const int st = k == SLOT_BP ? 1 : poles24 ? 2 : 1;
+    if (active && k == kind && st == stages && fc == lastFc) return;
+    if (!active || k != kind) reset();
+    active = true;
+    kind = k;
+    stages = st;
+    lastFc = fc;
+    static constexpr double BW4_Q[2] = {0.5412, 1.3066};
+    const double fl = std::fmin(fc, fs * 0.45);
+    for (int ch = 0; ch < CH; ch++) {
+      for (int i = 0; i < st; i++) {
+        const double q = st == 2 ? BW4_Q[i] : SQRT1_2;
+        Biquad& b = f[2 * ch + i];
+        if (k == SLOT_HP) b.setHighpass(fl, q, fs);
+        else if (k == SLOT_LP) b.setLowpass(fl, q, fs);
+        else b.setBandpass(fl, 1, fs);
+      }
+    }
+  }
+  double process(double x, int ch = 0) {
+    const int b = 2 * ch;
+    x = f[b].process(x);
+    return stages == 2 ? f[b + 1].process(x) : x;
+  }
+ private:
+  Biquad f[2 * CH];
+  int stages = 2, kind = SLOT_OFF;
+  double lastFc = -1;
+};
+
+struct SlotKind { int kind; bool p24; };
+/** Slot kind and slope for the oscillators' filter types: high 24, high 12, low 24, low 12, band. */
+constexpr SlotKind OSC_SLOT[5] = {{SLOT_HP, true}, {SLOT_HP, false}, {SLOT_LP, true}, {SLOT_LP, false}, {SLOT_BP, false}};
+/** ... and for the sub's and the texture bed's: off, low 12, low 24, high 12, high 24, band. */
+constexpr SlotKind AUX_SLOT[6] = {{SLOT_OFF, false}, {SLOT_LP, false}, {SLOT_LP, true}, {SLOT_HP, false}, {SLOT_HP, true}, {SLOT_BP, false}};
+inline SlotKind oscSlot(double t) { const int i = (int)t; return i >= 0 && i < 5 ? OSC_SLOT[i] : OSC_SLOT[0]; }
+inline SlotKind auxSlot(double t) { const int i = (int)t; return i >= 0 && i < 6 ? AUX_SLOT[i] : AUX_SLOT[0]; }
 
 /** ADSR with analog-style exponential segments. Times are in ms. */
 class Envelope {
