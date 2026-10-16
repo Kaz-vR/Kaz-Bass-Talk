@@ -514,3 +514,33 @@ body.randomizing .group.locked { box-shadow: inset 0 0 0 1px #6f78ff; }
 
 /* randomizer: weirdness uses the glide slider */
 .pp-weird { width: 110px; flex: none; }
+
+/* ------------------------------------------------------------ one dial size (40 px) everywhere */
+.v2 .k-big, .v2 .k-mid, .v2 .k-small { width: 44px; }
+.v2 .k-big .k-label, .v2 .k-mid .k-label, .v2 .k-small .k-label { font-size: 11px; font-weight: 600; letter-spacing: 0; color: var(--t2); }
+.v2 .k-small .k-val, .v2 .k-big .k-val, .v2 .k-mid .k-val { font-size: 11.5px; color: var(--val); }
+/* source strips: tighter fixed columns to make room for the bigger dials */
+.strip { grid-template-columns: 96px 96px 58px 1fr; padding: 0 10px; }
+.st-left .sel { width: 86px; }
+.st-chips { gap: 3px; }
+.chip { width: 30px; }
+.st-knobs { gap: 8px; }
+.st-group { gap: 0; min-width: 88px; }
+.st-group:empty { min-width: 88px; }
+.st-group .k-small { width: 44px; }
+.st-group .chip { margin: 0 2px 15px 0; }
+/* filter: four dials in a 2 x 2 grid beside the lights, three in a row under */
+.flt-grid { row-gap: 8px; }
+.flt-grid .k-mid { margin-top: 0; }
+/* dirt: four dials in one row */
+.col-dirt .c-body { padding: 8px 6px 10px; }
+.col-dirt .knob-row { justify-content: space-between; }
+.env .knob-row { justify-content: space-between; }
+.strip { grid-template-columns: 92px 92px 54px 1fr; }
+.st-left .sel { width: 84px; }
+.chip { width: 28px; }
+.st-knobs { gap: 12px; justify-content: flex-end; }
+.st-group { min-width: 0; }
+.st-group:empty { min-width: 88px; }
+.col-dirt .k-big, .col-dirt .k-mid, .col-dirt .k-small { width: 41px; }
+.st-group, .st-group:empty { width: 88px; min-width: 88px; justify-content: flex-end; }

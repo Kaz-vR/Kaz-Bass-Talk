@@ -63,7 +63,8 @@ const DESIGN_WIDTH = 1200;
 const ZOOMS = [1, 1.25, 1.5];
 const ZOOM_KEY = 'lowtalk.zoom';
 const FS = 48000;
-const PX: Record<Size, number> = { big: 56, mid: 38, small: 28 };
+// One dial size everywhere (the owner's call: same size, big enough to read at a glance).
+const PX: Record<Size, number> = { big: 40, mid: 40, small: 40 };
 
 /** Tiny DOM helper. */
 function h<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', ...kids: (Node | string)[]): HTMLElementTagNameMap[K] {
@@ -482,7 +483,7 @@ export class SynthView {
       g.arc(cx, cy, tr, a0, a1);
       g.stroke();
       if (Math.abs(av - zero) > 0.02) {
-        g.strokeStyle = off ? '#5a3a32' : size === 'small' ? '#b8705f' : accent;
+        g.strokeStyle = off ? '#5a3a32' : accent;
         if (size === 'big' && !off) {
           g.shadowColor = accent;
           g.shadowBlur = 5;
@@ -1025,19 +1026,19 @@ export class SynthView {
     head.prepend(this.boolPower('filter.on', el));
     // What goes into the filter, top to bottom in the same order as the sources on the left.
     const routes = h('div', 'routes', h('span', 'routes-label', 'In'),
-      this.toggle('filter.route_br', 'Br', 'route'),
-      this.toggle('filter.route_cl', 'Cl', 'route'),
-      this.toggle('filter.route_n', 'No', 'route'),
       this.toggle('filter.route_a', 'A', 'route'),
       this.toggle('filter.route_b', 'B', 'route'),
-      this.toggle('filter.route_s', 'Sub', 'route'));
-    routes.title = 'What goes through the filter: breath, click, noise, oscillator A, oscillator B, sub';
+      this.toggle('filter.route_s', 'S', 'route'),
+      this.toggle('filter.route_n', 'N', 'route'),
+      this.toggle('filter.route_br', 'B', 'route'),
+      this.toggle('filter.route_cl', 'C', 'route'));
+    routes.title = 'What goes through the filter, in the order of the sources: oscillator A, oscillator B, sub, noise, breath, click';
     const drive = this.knob('drive.amount', 'Drive', 'mid', { disabled: () => !this.get('drive.on'), deps: ['drive.on'] });
     // Turning the drive up switches the drive stage on.
     drive.addEventListener('pointerdown', () => { if (!this.get('drive.on')) this.set('drive.on', true); }, true);
     const grid = h('div', 'flt-grid',
-      this.knob('filter.cutoff', 'CUTOFF', 'big'), this.knob('filter.resonance', 'RES', 'big'),
-      this.knob('filter.env_amount', 'ENV', 'big'), drive);
+      this.knob('filter.cutoff', 'Cutoff', 'big'), this.knob('filter.resonance', 'Res', 'big'),
+      this.knob('filter.env_amount', 'Env', 'big'), drive);
     body.append(this.selector('filter.type'), this.filterPrint(170, 84), h('div', 'flt-main', routes, grid),
       h('div', 'knob-row flt-small', this.knob('filter.keytrack', 'Key', 'small'), this.knob('filter.fat', 'Fat', 'small'), this.knob('filter.mix', 'Mix', 'small')));
     return el;
@@ -1051,7 +1052,7 @@ export class SynthView {
     const low = this.knob('dist.clean_below', 'Low', 'small', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
     low.title = 'Keeps everything below this frequency clean (the distortion only works on the part above it). Fully left = off.';
     body.append(h('div', 'dist-top', this.selector('dist.type'), this.distPrint(64, 36)),
-      h('div', 'knob-row', this.knob('dist.drive', 'DRIVE', 'big'), h('div', 'k-pair', this.knob('dist.mix', 'Mix', 'small'), this.knob('dist.post_tone', 'Tone', 'small'), low)));
+      h('div', 'knob-row', this.knob('dist.drive', 'Drive', 'big'), this.knob('dist.mix', 'Mix', 'small'), this.knob('dist.post_tone', 'Tone', 'small'), low));
     return el;
   }
 
@@ -1060,7 +1061,7 @@ export class SynthView {
     head.prepend(this.boolPower('tape.on', el));
     const drift = this.knob('voice.analog', 'Drift', 'small');
     drift.title = 'Analog drift: the oscillators drift slightly in pitch and the filter varies a touch per note, like an old analog synth. 0 is perfectly steady.';
-    body.append(h('div', 'knob-row', this.knob('tape.age', 'AGE', 'big'), h('div', 'k-pair', this.knob('tape.wow', 'Wow', 'small'), this.knob('tape.drive', 'Drive', 'small'), drift)));
+    body.append(h('div', 'knob-row', this.knob('tape.age', 'Age', 'big'), this.knob('tape.wow', 'Wow', 'small'), this.knob('tape.drive', 'Drive', 'small'), drift));
     return el;
   }
 
@@ -1618,7 +1619,7 @@ export class SynthView {
     const cap = (n: string, name: string, note: string, zone: Zone) =>
       h('div', `zone-cap cap-${zone}`, h('span', 'cap-name', `${n}  ${name}`), h('span', 'cap-note', note), h('span', 'cap-line'));
     const sources = h('div', 'col col-sources', cap('1', 'SOURCES', 'make the sound', 'src'),
-      this.breathStrip(), this.clickStrip(), this.noiseStrip(), this.oscStrip(1), this.oscStrip(2), this.subStrip());
+      this.oscStrip(1), this.oscStrip(2), this.subStrip(), this.noiseStrip(), this.breathStrip(), this.clickStrip());
     const middle = h('div', 'col col-middle', h('div', 'zone-cap'), this.scopeBox(), this.envCard('amp_env', 'AMP ENVELOPE', 'src', 186, 262, 'small'));
     const filter = h('div', 'col col-filter', cap('2', 'FILTER', 'shape the tone', 'flt'), this.filterCard(), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', 170, 62, 'small'));
     const dirt = h('div', 'col col-dirt', cap('3', 'DIRT', 'grit and wear', 'dirt'), this.distCard(), this.tapeCard(), this.midClipCard());
