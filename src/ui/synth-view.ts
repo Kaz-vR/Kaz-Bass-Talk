@@ -199,6 +199,13 @@ function handle(g: CanvasRenderingContext2D, x: number, y: number, hot = false):
 }
 
 /** A round glowing lamp (the darkroom's safelight) used for every on/off light. */
+/** Scroll a list so `el` sits in its middle, without moving the window (scrollIntoView would). */
+function centerIn(list: Element | null, el: HTMLElement): void {
+  if (!list) return;
+  const l = list as HTMLElement;
+  l.scrollTop = el.offsetTop - l.offsetTop - (l.clientHeight - el.offsetHeight) / 2;
+}
+
 function lamp(): HTMLElement {
   return h('span', 'lamp');
 }
@@ -273,7 +280,11 @@ export class SynthView {
     }
     this.build();
     const fit = () => {
-      const s = Math.min(this.zoom, root.clientWidth / DESIGN_WIDTH);
+      // Fit the window like a plugin: never wider than it, never taller than it (the keyboard
+      // under the page counts too), so the top can't slide out of view.
+      const keys = (document.querySelector('.keys-wrap') as HTMLElement | null)?.offsetHeight ?? 0;
+      const tall = (window.innerHeight - keys) / Math.max(1, this.page.offsetHeight);
+      const s = Math.max(0.4, Math.min(this.zoom, root.clientWidth / DESIGN_WIDTH, tall));
       this.page.style.transform = `scale(${s})`;
       this.page.style.marginLeft = `${Math.max(0, (root.clientWidth - DESIGN_WIDTH * s) / 2)}px`;
       root.style.height = `${this.page.offsetHeight * s}px`;
@@ -1288,7 +1299,8 @@ export class SynthView {
       right.append(b);
     }
     this.menu.replaceChildren(left, right);
-    right.querySelector('.on')?.scrollIntoView({ block: 'nearest' });
+    const on = right.querySelector<HTMLElement>('.on');
+    if (on) centerIn(right, on);
   }
 
   // ------------------------------------------------------------------ the PRESETS page
@@ -1400,7 +1412,7 @@ export class SynthView {
       r.classList.toggle('on', on);
       if (on) {
         found = true;
-        r.scrollIntoView({ block: 'center' });
+        centerIn(r.parentElement, r);
       }
     });
     const right = this.presetPage.querySelector('.pp-detail');
@@ -1524,7 +1536,7 @@ export class SynthView {
       r.classList.toggle('on', on);
       if (on) {
         found = true;
-        r.scrollIntoView({ block: 'center' });
+        centerIn(r.parentElement, r);
       }
     });
     const right = this.presetPage.querySelector('.pp-detail');
