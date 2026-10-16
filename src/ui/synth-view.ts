@@ -8,6 +8,14 @@ import { fromNormalized, getParam, toNormalized, type ParamValue, type Patch } f
 import { formatValue } from './params-panel';
 
 type OnChange = (id: string, value: ParamValue) => void;
+
+/** What the preset selector shows: the shelves, their presets, and how to load one. */
+export interface PresetSource {
+  shelves: () => { id: string; name: string; items: { index: number; name: string; tpl: string }[] }[];
+  current: () => { shelf: string; index: number };
+  pick: (shelf: string, index: number) => void;
+  step: (dir: number) => void;
+}
 type Size = 'big' | 'mid' | 'small';
 type Zone = 'src' | 'flt' | 'dirt';
 
@@ -203,6 +211,9 @@ export class SynthView {
   private wheel = 0;
   onGear: () => void = () => {};
   onWheel: (v: number) => void = () => {};
+  presets: PresetSource | null = null;
+  private readonly menu = h('div', 'pre-menu');
+  private menuShelf = '';
 
   constructor(root: HTMLElement, private readonly onChange: OnChange) {
     this.root = root;
@@ -1159,6 +1170,69 @@ export class SynthView {
     );
   }
 
+  // ------------------------------------------------------------------ the preset selector
+
+  /** ‹ name ▾ › in the top middle: arrows step through the shelf, the name opens the list. */
+  private presetSelector(): HTMLElement {
+    const prev = h('button', 'pre-step', '‹');
+    const next = h('button', 'pre-step', '›');
+    prev.title = 'Previous preset on this shelf';
+    next.title = 'Next preset on this shelf';
+    prev.onclick = () => this.presets?.step(-1);
+    next.onclick = () => this.presets?.step(1);
+    const name = h('button', 'pre-name', this.titleEl, h('span', 'pre-caret', '▾'));
+    name.title = 'Choose a preset';
+    name.onclick = (e) => {
+      e.stopPropagation();
+      if (this.menu.classList.contains('open')) this.closeMenu();
+      else this.openMenu();
+    };
+    this.menu.addEventListener('click', (e) => e.stopPropagation());
+    document.addEventListener('click', () => this.closeMenu());
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') this.closeMenu(); });
+    return h('div', 'pre-sel', h('div', 'pre-row', prev, name, next), this.subEl, this.menu);
+  }
+
+  private openMenu(): void {
+    if (!this.presets) return;
+    this.menuShelf = this.presets.current().shelf;
+    this.renderMenu();
+    this.menu.classList.add('open');
+  }
+
+  private closeMenu(): void {
+    this.menu.classList.remove('open');
+  }
+
+  /** The dropdown: the shelves on the left, the presets on the chosen shelf on the right. */
+  private renderMenu(): void {
+    const src = this.presets!;
+    const shelves = src.shelves();
+    const cur = src.current();
+    const left = h('div', 'pre-shelves');
+    for (const s of shelves) {
+      const b = h('button', 'pre-shelf' + (s.id === this.menuShelf ? ' on' : ''), lamp(), h('span', 'pre-shelf-name', s.name), h('span', 'pre-count', String(s.items.length)));
+      b.onclick = () => {
+        this.menuShelf = s.id;
+        this.renderMenu();
+      };
+      left.append(b);
+    }
+    const shelf = shelves.find((s) => s.id === this.menuShelf) ?? shelves[0];
+    const right = h('div', 'pre-list');
+    for (const it of shelf?.items ?? []) {
+      const on = shelf.id === cur.shelf && it.index === cur.index;
+      const b = h('button', 'pre-item' + (on ? ' on' : ''), h('span', 'pre-item-name', it.name), h('span', 'pre-tpl', it.tpl));
+      b.onclick = () => {
+        src.pick(shelf.id, it.index);
+        this.closeMenu();
+      };
+      right.append(b);
+    }
+    this.menu.replaceChildren(left, right);
+    right.querySelector('.on')?.scrollIntoView({ block: 'nearest' });
+  }
+
   // ------------------------------------------------------------------ the page
 
   private build(): void {
@@ -1171,6 +1245,12 @@ export class SynthView {
       }
       tabs.append(b);
     }
+    for (const t of ['PRESETS']) {
+      const b = h('button', 'tab', t);
+      b.disabled = true;
+      b.title = 'Coming later: browsing the bank here (until then: the selector in the middle, or the shelves above the page)';
+      tabs.append(b);
+    }
     const cap = (n: string, name: string, note: string, zone: Zone) =>
       h('div', `zone-cap cap-${zone}`, h('span', 'cap-name', `${n}  ${name}`), h('span', 'cap-note', note), h('span', 'cap-line'));
     const sources = h('div', 'col col-sources', cap('1', 'SOURCES', 'make the sound', 'src'),
@@ -1179,7 +1259,7 @@ export class SynthView {
     const filter = h('div', 'col col-filter', cap('2', 'FILTER', 'shape the tone', 'flt'), this.filterCard(), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', 174, 70, 'small'));
     const dirt = h('div', 'col col-dirt', cap('3', 'DIRT', 'grit and wear', 'dirt'), this.distCard(), this.tapeCard(), this.crushCard(), this.midClipCard(), this.wheelCard());
     this.page.append(
-      h('div', 'v2-top', h('div', 'v2-title', this.titleEl, this.subEl), h('div', 'v2-top-right', tabs, this.zoomBtn)),
+      h('div', 'v2-top', h('div', 'v2-brand', 'Low Talk'), this.presetSelector(), h('div', 'v2-top-right', tabs, this.zoomBtn)),
       h('div', 'v2-main', sources, middle, filter, dirt),
       this.bottomBar(),
     );

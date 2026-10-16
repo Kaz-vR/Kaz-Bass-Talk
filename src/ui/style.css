@@ -164,6 +164,34 @@ body.randomizing .group.locked { box-shadow: inset 0 0 0 1px #6f78ff; }
 .zoom { background: #0d0302; border: 1px solid #3a120c; border-radius: 4px; color: var(--t2); font-size: 11px; padding: 4px 10px; cursor: pointer; min-width: 52px; }
 .zoom:hover { border-color: var(--dimr); }
 
+/* the preset selector (top middle) and its dropdown */
+.v2-top { position: relative; height: 62px; align-items: flex-start; padding-top: 4px; box-sizing: border-box; }
+.v2-brand { font: italic 22px/1.2 'DejaVu Serif', Georgia, 'Times New Roman', serif; color: #ffb39f; width: 300px; padding-top: 6px; }
+.v2-top-right { width: 380px; justify-content: flex-end; padding-top: 8px; }
+.pre-sel { position: absolute; left: 50%; transform: translateX(-50%); top: 2px; display: flex; flex-direction: column; align-items: center; gap: 5px; z-index: 10; }
+.pre-row { display: flex; align-items: center; gap: 8px; }
+.pre-step { width: 26px; height: 32px; background: transparent; border: 0; color: var(--t2); font-size: 22px; cursor: pointer; padding: 0; line-height: 1; }
+.pre-step:hover { color: #ffd2c4; }
+.pre-name { position: relative; display: flex; align-items: center; justify-content: center; width: 300px; height: 34px; background: #0d0302; border: 1px solid #3a120c; border-radius: 6px; cursor: pointer; padding: 0 30px; }
+.pre-name:hover { border-color: var(--dimr); }
+.pre-name .v2-name { font-size: 20px; color: #ffd2c4; overflow: hidden; text-overflow: ellipsis; }
+.pre-caret { position: absolute; right: 12px; top: 10px; font-size: 11px; color: var(--dimr); }
+.pre-sel .v2-sub { font-size: 10px; }
+.pre-menu { display: none; position: absolute; top: 62px; width: 520px; max-height: 470px; background: linear-gradient(170deg, #1f0605, #110302); border: 1px solid #4a1a12; border-radius: 8px; box-shadow: 0 18px 40px rgba(0,0,0,0.75); overflow: hidden; }
+.pre-menu.open { display: flex; }
+.pre-shelves { width: 190px; flex: none; padding: 8px; border-right: 1px solid #2a0b07; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.pre-shelf { display: flex; align-items: center; gap: 9px; background: transparent; border: 1px solid transparent; border-radius: 5px; padding: 6px 8px; cursor: pointer; color: var(--t2); font-size: 12px; text-align: left; }
+.pre-shelf:hover { background: #1a0605; }
+.pre-shelf.on { background: #2a0a07; border-color: rgba(255,143,117,0.45); color: #ffd2c4; font-weight: 700; }
+.pre-shelf.on .lamp { border-color: transparent; background: radial-gradient(circle at 38% 32%, #ffe6dc 0%, var(--src) 45%, rgba(255,143,117,.55) 100%); box-shadow: 0 0 6px 2px rgba(255,143,117,.4); }
+.pre-shelf-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pre-count { font-size: 11px; color: var(--dimr); font-weight: 400; }
+.pre-list { flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
+.pre-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: transparent; border: 1px solid transparent; border-radius: 5px; padding: 6px 10px; cursor: pointer; color: var(--val); font-size: 12.5px; text-align: left; }
+.pre-item:hover { background: #1a0605; }
+.pre-item.on { background: #2a0a07; border-color: rgba(255,143,117,0.55); color: #ffd2c4; font-weight: 600; }
+.pre-tpl { font-size: 10px; font-weight: 700; color: var(--flt); }
+
 /* the four columns, in signal order */
 .v2-main { display: flex; gap: 16px; align-items: stretch; }
 .col { display: flex; flex-direction: column; gap: 8px; }

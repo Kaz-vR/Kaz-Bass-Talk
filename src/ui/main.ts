@@ -70,6 +70,26 @@ const synth = new SynthView($('synth-v2'), (id, value) => {
   host?.setParam(id, value);
   panel.setValue(id, value);
 });
+// The preset selector in the middle of the synth page: the bank's shelves (not the rolls).
+synth.presets = {
+  shelves: () => groups.filter((g) => g.items.length && g.id !== RANDOMIZER && g.id !== USER).map((g) => ({
+    id: g.id,
+    name: g.name,
+    items: g.items.map((i) => {
+      const tpl = (library[i].meta.tags as string[] | undefined)?.find((t) => t in BASS_TEMPLATES);
+      return { index: i, name: library[i].meta.name, tpl: tpl ? BASS_TEMPLATES[tpl][0] : '' };
+    }),
+  })),
+  current: () => ({ shelf: currentRoll ? '' : currentGroup.id, index: currentRoll ? -1 : currentIndex }),
+  pick: (shelf, index) => {
+    const g = groups.find((x) => x.id === shelf);
+    if (!g) return;
+    if (g !== currentGroup && g.audition) setLoop(g.audition);
+    currentGroup = g;
+    loadPatch(index);
+  },
+  step: (dir) => stepPreset(dir),
+};
 synth.onWheel = (v) => {
   host?.modWheel(v);
   panel.setWheel(v);
