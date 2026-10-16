@@ -10,12 +10,29 @@ import { formatValue } from './params-panel';
 type OnChange = (id: string, value: ParamValue) => void;
 
 /** What the preset selector shows: the shelves, their presets, and how to load one. */
+export interface PresetItem {
+  index: number;
+  name: string;
+  /** Dark bass template letter and name ('' when the preset has none). */
+  tpl: string;
+  tplName: string;
+  description: string;
+  tags: string[];
+  /** Measured character (normalized 0..1). */
+  features: Record<string, number>;
+}
 export interface PresetSource {
-  shelves: () => { id: string; name: string; items: { index: number; name: string; tpl: string }[] }[];
+  shelves: () => { id: string; name: string; secondary?: boolean; items: PresetItem[] }[];
   current: () => { shelf: string; index: number };
   pick: (shelf: string, index: number) => void;
   step: (dir: number) => void;
+  toggleLoop: () => void;
+  playing: () => boolean;
 }
+
+type Sort = 'bank' | 'name' | 'template' | 'hard' | 'bright' | 'moving';
+const SORTS: [Sort, string][] = [['bank', 'BANK ORDER'], ['name', 'NAME'], ['template', 'TEMPLATE'], ['hard', 'SOFT → HARD'], ['bright', 'DARK → BRIGHT'], ['moving', 'STILL → MOVING']];
+const fval = (it: PresetItem, k: string) => Math.max(0, Math.min(1, Number(it.features[k] ?? 0.5)));
 type Size = 'big' | 'mid' | 'small';
 type Zone = 'src' | 'flt' | 'dirt';
 
@@ -214,6 +231,12 @@ export class SynthView {
   presets: PresetSource | null = null;
   private readonly menu = h('div', 'pre-menu');
   private menuShelf = '';
+  private oscPage: HTMLElement | null = null;
+  private readonly presetPage = h('div', 'v2-main preset-page');
+  private readonly tabBtns = new Map<string, HTMLButtonElement>();
+  private pageShelf = '';
+  private sort: Sort = 'bank';
+  private audition: HTMLButtonElement | null = null;
 
   constructor(root: HTMLElement, private readonly onChange: OnChange) {
     this.root = root;
@@ -255,6 +278,13 @@ export class SynthView {
   show(patch: Patch): void {
     this.values = { ...(patch as unknown as Record<string, ParamValue>) };
     for (const v of this.allViews) v();
+    if (this.presetPage.isConnected && this.presetPage.style.display !== 'none') this.markCurrent();
+  }
+
+  /** The audition loop started or stopped (the AUDITION button follows it). */
+  setPlaying(on: boolean): void {
+    if (this.audition) this.audition.textContent = on ? '■  STOP' : '▶  AUDITION';
+    this.audition?.classList.toggle('on', on);
   }
 
   /** The preset's name and where it lives (shelf · frame · template), shown like a print's caption. */
@@ -1233,22 +1263,149 @@ export class SynthView {
     right.querySelector('.on')?.scrollIntoView({ block: 'nearest' });
   }
 
+  // ------------------------------------------------------------------ the PRESETS page
+
+  /** Switch between the synth page (OSC) and the preset browser (PRESETS). */
+  private showTab(t: string): void {
+    for (const [name, b] of this.tabBtns) b.classList.toggle('on', name === t);
+    const presets = t === 'PRESETS';
+    if (presets) {
+      // keep the browser exactly as tall as the synth page, so nothing jumps
+      this.presetPage.style.height = `${this.oscPage!.offsetHeight}px`;
+      this.pageShelf = this.presets?.current().shelf || this.pageShelf || (this.presets?.shelves()[0]?.id ?? '');
+      this.renderPresetPage();
+    }
+    this.oscPage!.style.display = presets ? 'none' : '';
+    this.presetPage.style.display = presets ? '' : 'none';
+  }
+
+  /** Three columns: the shelves, the presets on the chosen shelf, the selected preset up close. */
+  private renderPresetPage(): void {
+    const src = this.presets;
+    if (!src) return;
+    const shelves = src.shelves();
+    const shelf = shelves.find((s) => s.id === this.pageShelf) ?? shelves[0];
+    this.pageShelf = shelf.id;
+    // shelves
+    const left = h('div', 'pp-col pp-shelves', h('div', 'pp-head', h('span', 'pp-title dim', 'SHELVES')));
+    let divided = false;
+    for (const s of shelves) {
+      if (s.secondary && !divided) {
+        left.append(h('div', 'pp-divider'));
+        divided = true;
+      }
+      const b = h('button', 'pp-shelf' + (s.id === shelf.id ? ' on' : '') + (s.secondary ? ' secondary' : ''), lamp(), h('span', 'pp-shelf-name', s.name), h('span', 'pp-count', String(s.items.length)));
+      b.onclick = () => {
+        this.pageShelf = s.id;
+        this.renderPresetPage();
+      };
+      left.append(b);
+    }
+    // the list
+    const sortSel = h('select', 'sel-name');
+    for (const [k, label] of SORTS) sortSel.append(new Option(`SORT: ${label}`, k));
+    sortSel.value = this.sort;
+    sortSel.onchange = () => {
+      this.sort = sortSel.value as Sort;
+      this.renderPresetPage();
+    };
+    const items = [...shelf.items];
+    const by: Record<Sort, (a: PresetItem, b: PresetItem) => number> = {
+      bank: () => 0,
+      name: (a, b) => a.name.localeCompare(b.name),
+      template: (a, b) => (a.tpl || 'Z').localeCompare(b.tpl || 'Z') || a.name.localeCompare(b.name),
+      hard: (a, b) => fval(a, 'dirt') - fval(b, 'dirt'),
+      bright: (a, b) => fval(a, 'brightness') - fval(b, 'brightness'),
+      moving: (a, b) => fval(a, 'movement') - fval(b, 'movement'),
+    };
+    items.sort(by[this.sort]);
+    const list = h('div', 'pp-list');
+    for (const it of items) {
+      const row = h('button', 'pp-row', h('span', 'pp-play'),
+        h('span', 'pp-row-main', h('span', 'pp-row-top', h('span', 'pp-name', it.name), ...(it.tpl ? [h('span', 'pp-tpl', `${it.tpl} · ${it.tplName}`)] : [])), h('span', 'pp-desc', it.description)));
+      row.dataset.index = String(it.index);
+      row.title = 'Click to hear it, double-click to open it in OSC';
+      row.onclick = () => src.pick(shelf.id, it.index);
+      row.ondblclick = () => this.showTab('OSC');
+      list.append(row);
+    }
+    const mid = h('div', 'pp-col pp-presets',
+      h('div', 'pp-head', h('span', 'pp-title', shelf.name.toUpperCase()), h('span', 'pp-sub', `${shelf.items.length} presets`), h('div', 'sel pp-sort', sortSel)),
+      list);
+    // the detail
+    const right = h('div', 'pp-col pp-detail');
+    this.presetPage.replaceChildren(left, mid, right);
+    this.markCurrent();
+  }
+
+  /** Highlight the loaded preset in the list and show it up close. */
+  private markCurrent(): void {
+    const src = this.presets;
+    if (!src) return;
+    const cur = src.current();
+    const shelf = src.shelves().find((s) => s.id === this.pageShelf);
+    let found = false;
+    this.presetPage.querySelectorAll<HTMLElement>('.pp-row').forEach((r) => {
+      const on = cur.shelf === this.pageShelf && Number(r.dataset.index) === cur.index;
+      r.classList.toggle('on', on);
+      if (on) {
+        found = true;
+        r.scrollIntoView({ block: 'center' });
+      }
+    });
+    const right = this.presetPage.querySelector('.pp-detail');
+    if (!right) return;
+    const it = found ? shelf?.items.find((x) => x.index === cur.index) : undefined;
+    if (!it) {
+      right.replaceChildren(h('div', 'pp-empty', 'Click a preset to hear it.'));
+      return;
+    }
+    const W = 360, H = 150;
+    const [cv, g] = canvas(W, H, 'disp');
+    paper(g, W, H);
+    // the sound's "photo": a waveform shaped by its measured character
+    const k = 2 + (it.index % 4) + fval(it, 'brightness') * 3, amp = 0.18 + fval(it, 'dirt') * 0.2, ph = it.index * 1.7;
+    const pts: [number, number][] = [];
+    for (let x = 0; x <= W; x += 2) {
+      const u = x / W;
+      pts.push([x, H * (0.5 - Math.sin(Math.PI * u) ** 1.2 * amp * (Math.sin((u * 6.283 * k) / 2 + ph) * 0.75 + 0.25 * Math.sin(u * 6.283 * k * 1.9 - ph)))]);
+    }
+    silver(g, pts);
+    vignette(g, W, H);
+    const bars = h('div', 'pp-bars');
+    for (const [label, key] of [['Bright', 'brightness'], ['Dirt', 'dirt'], ['Moving', 'movement'], ['Attack', 'attack'], ['Length', 'decay'], ['Width', 'width']]) {
+      const fill = h('span', 'pp-bar-fill');
+      fill.style.width = `${Math.max(4, fval(it, key) * 100)}%`;
+      bars.append(h('div', 'pp-bar', h('span', 'pp-bar-label', label), h('span', 'pp-bar-track', fill)));
+    }
+    this.audition = h('button', 'pp-btn pp-audition');
+    this.audition.onclick = () => src.toggleLoop();
+    this.setPlaying(src.playing());
+    const open = h('button', 'pp-btn', 'OPEN IN OSC  →');
+    open.onclick = () => this.showTab('OSC');
+    right.replaceChildren(
+      h('div', 'pp-print', cv),
+      h('div', 'pp-big-name', it.name),
+      ...(it.tpl ? [h('span', 'pp-tpl', `${it.tpl} · ${it.tplName}`)] : []),
+      h('p', 'pp-text', it.description),
+      h('div', 'pp-tags', ...it.tags.slice(0, 4).map((t) => h('span', 'pp-tag', t))),
+      h('div', 'pp-title dim', 'CHARACTER'),
+      bars,
+      h('div', 'pp-buttons', this.audition, open),
+    );
+  }
+
   // ------------------------------------------------------------------ the page
 
   private build(): void {
     const tabs = h('div', 'v2-tabs');
-    for (const [t, on] of [['OSC', true], ['LFO', false], ['FX', false]] as const) {
-      const b = h('button', 'tab' + (on ? ' on' : ''), t);
-      if (!on) {
+    for (const [t, ready] of [['OSC', true], ['LFO', false], ['FX', false], ['PRESETS', true]] as const) {
+      const b = h('button', 'tab' + (t === 'OSC' ? ' on' : ''), t);
+      if (!ready) {
         b.disabled = true;
         b.title = 'Coming later (until then: "All controls" opens every control)';
-      }
-      tabs.append(b);
-    }
-    for (const t of ['PRESETS']) {
-      const b = h('button', 'tab', t);
-      b.disabled = true;
-      b.title = 'Coming later: browsing the bank here (until then: the selector in the middle, or the shelves above the page)';
+      } else b.onclick = () => this.showTab(t);
+      this.tabBtns.set(t, b);
       tabs.append(b);
     }
     const cap = (n: string, name: string, note: string, zone: Zone) =>
@@ -1258,9 +1415,12 @@ export class SynthView {
     const middle = h('div', 'col col-middle', h('div', 'zone-cap'), this.scopeBox(), this.envCard('amp_env', 'AMP ENVELOPE', 'src', 220, 236, 'mid'));
     const filter = h('div', 'col col-filter', cap('2', 'FILTER', 'shape the tone', 'flt'), this.filterCard(), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', 174, 70, 'small'));
     const dirt = h('div', 'col col-dirt', cap('3', 'DIRT', 'grit and wear', 'dirt'), this.distCard(), this.tapeCard(), this.crushCard(), this.midClipCard(), this.wheelCard());
+    this.oscPage = h('div', 'v2-main', sources, middle, filter, dirt);
+    this.presetPage.style.display = 'none';
     this.page.append(
       h('div', 'v2-top', h('div', 'v2-brand', 'Low Talk'), this.presetSelector(), h('div', 'v2-top-right', tabs, this.zoomBtn)),
-      h('div', 'v2-main', sources, middle, filter, dirt),
+      this.oscPage,
+      this.presetPage,
       this.bottomBar(),
     );
   }

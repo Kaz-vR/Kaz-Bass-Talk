@@ -10,7 +10,7 @@ import { Keyboard } from './keyboard';
 import { initMidi } from './midi';
 import { ParamsPanel } from './params-panel';
 import { Scope } from './scope';
-import { SynthView } from './synth-view';
+import { SynthView, type PresetSource } from './synth-view';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -71,15 +71,28 @@ const synth = new SynthView($('synth-v2'), (id, value) => {
   panel.setValue(id, value);
 });
 // The preset selector in the middle of the synth page: the bank's shelves (not the rolls).
+const TPL_LETTER: Record<string, string> = { 'heavy-reese': 'A', 'cinematic-screamer': 'B', 'ominous-fifth': 'C', 'deep-rumble': 'D', '808-thump': 'E', 'single-body': 'F', 'tritone-bass': 'G' };
+let shelfCache: ReturnType<PresetSource['shelves']> | null = null;
 synth.presets = {
-  shelves: () => groups.filter((g) => g.items.length && g.id !== RANDOMIZER && g.id !== USER).map((g) => ({
+  shelves: () => (shelfCache ??= groups.filter((g) => g.items.length && g.id !== RANDOMIZER && g.id !== USER).map((g) => ({
     id: g.id,
     name: g.name,
+    secondary: g.id === ATLAS,
     items: g.items.map((i) => {
-      const tpl = (library[i].meta.tags as string[] | undefined)?.find((t) => t in BASS_TEMPLATES);
-      return { index: i, name: library[i].meta.name, tpl: tpl ? BASS_TEMPLATES[tpl][0] : '' };
+      const m = library[i].meta;
+      const tags = (m.tags as string[] | undefined) ?? [];
+      const tpl = tags.find((t) => t in BASS_TEMPLATES);
+      return {
+        index: i,
+        name: m.name,
+        tpl: tpl ? TPL_LETTER[tpl] ?? '' : '',
+        tplName: tpl ? BASS_TEMPLATES[tpl][0] : '',
+        description: String(m.description ?? ''),
+        tags: tags.filter((t) => !(t in BASS_TEMPLATES)),
+        features: (m.features ?? {}) as Record<string, number>,
+      };
     }),
-  })),
+  }))),
   current: () => ({ shelf: currentRoll ? '' : currentGroup.id, index: currentRoll ? -1 : currentIndex }),
   pick: (shelf, index) => {
     const g = groups.find((x) => x.id === shelf);
@@ -89,6 +102,8 @@ synth.presets = {
     loadPatch(index);
   },
   step: (dir) => stepPreset(dir),
+  toggleLoop: () => setPlaying(!playing),
+  playing: () => playing,
 };
 synth.onWheel = (v) => {
   host?.modWheel(v);
@@ -416,6 +431,7 @@ function setPlaying(on: boolean): void {
   if (!host) return;
   on ? host.play() : host.stop();
   playBtn.textContent = on ? '■ Stop' : '▶ Play';
+  synth.setPlaying(on);
 }
 playBtn.onclick = () => setPlaying(!playing);
 window.addEventListener('keydown', (e) => {
