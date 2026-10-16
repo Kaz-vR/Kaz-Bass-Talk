@@ -1,14 +1,21 @@
-// The new synth page (from the owner's mockup): the sources with their own filter slots, the
-// main filter with its routing, the two envelopes and the play bar. It edits the same patch as
-// the full parameter view under it (opened with the gear), so both always show the same values.
+// The synth page (the owner's darkroom layout): the sources as channel strips on the left, a live
+// oscilloscope above the amp envelope, the filter with its envelope, the dirt chain and the mod
+// wheel, and the play bar. Three knob sizes carry the weight (big for what matters most). It edits
+// the same patch as the full parameter view under it (opened with "All controls"), so both always
+// show the same values.
 import { Biquad } from '../engine/core/dsp';
 import { fromNormalized, getParam, toNormalized, type ParamValue, type Patch } from '../schema';
 import { formatValue } from './params-panel';
 
 type OnChange = (id: string, value: ParamValue) => void;
+type Size = 'big' | 'mid' | 'small';
+type Zone = 'src' | 'flt' | 'dirt';
 
-const DESIGN_WIDTH = 1600;
+const DESIGN_WIDTH = 1200;
+const ZOOMS = [1, 1.25, 1.5];
+const ZOOM_KEY = 'lowtalk.zoom';
 const FS = 48000;
+const PX: Record<Size, number> = { big: 56, mid: 38, small: 28 };
 
 /** Tiny DOM helper. */
 function h<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', ...kids: (Node | string)[]): HTMLElementTagNameMap[K] {
@@ -61,17 +68,17 @@ function response(stages: [Kind, number, number][], f: number): number {
   return m;
 }
 
-// ------------------------------------------------------------------ darkroom look
-// The page is a darkroom: deep red trays, red dials, round glowing lamps and every display a
-// small photo print (silver line on grainy dark paper, cream border from the CSS).
+// ------------------------------------------------------------------ darkroom drawing
+// Every display is a small photo print: a silver line on grainy dark paper (the cream border
+// comes from the CSS).
 const INK = '#e8e2d8';
-const FAINT = '#4a160e';
-const HI = '#ffd2c4';
+const FAINT = '#2a0b07';
+const PEN = '#ff5a40';
 
-let grainPattern: HTMLCanvasElement | null = null;
+let grainTile: HTMLCanvasElement | null = null;
 /** A small tile of film grain, made once and reused by every display. */
 function grain(): HTMLCanvasElement {
-  if (grainPattern) return grainPattern;
+  if (grainTile) return grainTile;
   const c = document.createElement('canvas');
   c.width = c.height = 128;
   const g = c.getContext('2d')!;
@@ -84,7 +91,7 @@ function grain(): HTMLCanvasElement {
     img.data[i + 3] = (seed >> 8) % 46;
   }
   g.putImageData(img, 0, 0);
-  grainPattern = c;
+  grainTile = c;
   return c;
 }
 
@@ -128,12 +135,55 @@ function silver(g: CanvasRenderingContext2D, pts: [number, number][], on = true)
   g.stroke();
 }
 
+/** A grease-pencil handle on a print (something you can drag). */
+function handle(g: CanvasRenderingContext2D, x: number, y: number, hot = false): void {
+  g.fillStyle = hexA(PEN, hot ? 0.45 : 0.22);
+  g.strokeStyle = PEN;
+  g.lineWidth = 1.8;
+  g.beginPath();
+  g.arc(x, y, hot ? 6.5 : 5.5, 0, 2 * Math.PI);
+  g.fill();
+  g.stroke();
+  g.fillStyle = '#ffe3d9';
+  g.beginPath();
+  g.arc(x, y, 2, 0, 2 * Math.PI);
+  g.fill();
+}
+
 /** A round glowing lamp (the darkroom's safelight) used for every on/off light. */
 function lamp(): HTMLElement {
-  const el = document.createElement('span');
-  el.className = 'lamp';
-  return el;
+  return h('span', 'lamp');
 }
+
+/** Basic wave shapes for the oscillator and sub prints. */
+function waveShape(wave: string, x: number, pw: number, wt: number): number {
+  const tri = x < 0.25 ? 4 * x : x < 0.75 ? 2 - 4 * x : 4 * x - 4;
+  const saw = 1 - 2 * x;
+  switch (wave) {
+    case 'sine': return Math.sin(2 * Math.PI * x);
+    case 'triangle': return tri;
+    case 'saw': return saw;
+    case 'square': return x < 0.5 ? 0.8 : -0.8;
+    case 'pulse': return x < pw ? 0.8 : -0.8;
+    case 'pwm_saw': return 0.5 * (saw + (1 - 2 * ((x + pw) % 1)));
+    case 'wavetable': {
+      const seg = wt * 4, i = Math.min(3, Math.floor(seg)), f = seg - i;
+      const frames = [Math.sin(2 * Math.PI * x), tri, saw, x < 0.5 ? 0.8 : -0.8,
+        Math.sin(2 * Math.PI * x) * 0.6 + Math.sin(6 * Math.PI * x) * 0.3 + Math.sin(10 * Math.PI * x) * 0.15];
+      return frames[i] * (1 - f) + frames[i + 1] * f;
+    }
+    case 'string': return Math.exp(-3 * x) * Math.sin(2 * Math.PI * 3 * x) * (1 - 2 * ((x * 7) % 1) * 0.3);
+    case 'shepard': return 0.5 * Math.sin(2 * Math.PI * x) + 0.3 * Math.sin(4 * Math.PI * x) + 0.2 * Math.sin(8 * Math.PI * x);
+    default: return saw;
+  }
+}
+
+const ms = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${v < 10 ? v.toFixed(1) : Math.round(v)} ms`);
+const db = (v: number) => {
+  if (v <= 0.0005) return '-inf dB';
+  const d = 20 * Math.log10(v);
+  return `${d.toFixed(Math.abs(d) >= 10 ? 0 : 1)} dB`;
+};
 
 export class SynthView {
   readonly root: HTMLElement;
@@ -141,25 +191,49 @@ export class SynthView {
   private values: Record<string, ParamValue> = {};
   private readonly watchers = new Map<string, (() => void)[]>();
   private readonly allViews: (() => void)[] = [];
-  private analyser: AnalyserNode | null = null;
-  private meterG: CanvasRenderingContext2D | null = null;
   private readonly remembered = new Map<string, ParamValue>();
-  onGear: () => void = () => {};
   private readonly titleEl = h('span', 'v2-name');
   private readonly subEl = h('span', 'v2-sub');
+  private readonly zoomBtn = h('button', 'zoom');
+  private zoom = 1;
+  private meterG: CanvasRenderingContext2D | null = null;
+  private scopeG: CanvasRenderingContext2D | null = null;
+  private scopeSize: [number, number] = [0, 0];
+  private wheelView: (() => void) | null = null;
+  private wheel = 0;
+  onGear: () => void = () => {};
+  onWheel: (v: number) => void = () => {};
 
   constructor(root: HTMLElement, private readonly onChange: OnChange) {
     this.root = root;
     this.page = h('div', 'v2');
     root.append(this.page);
+    try {
+      const z = Number(localStorage.getItem(ZOOM_KEY));
+      if (ZOOMS.includes(z)) this.zoom = z;
+    } catch {
+      // no storage: stay at 100%
+    }
     this.build();
     const fit = () => {
-      const s = Math.min(1, root.clientWidth / DESIGN_WIDTH);
+      const s = Math.min(this.zoom, root.clientWidth / DESIGN_WIDTH);
       this.page.style.transform = `scale(${s})`;
       this.page.style.marginLeft = `${Math.max(0, (root.clientWidth - DESIGN_WIDTH * s) / 2)}px`;
       root.style.height = `${this.page.offsetHeight * s}px`;
+      this.zoomBtn.textContent = `${Math.round(s * 100)}%`;
+    };
+    this.zoomBtn.title = 'Size of this page: 100%, 125% or 150% (it never gets wider than the window)';
+    this.zoomBtn.onclick = () => {
+      this.zoom = ZOOMS[(ZOOMS.indexOf(this.zoom) + 1) % ZOOMS.length];
+      try {
+        localStorage.setItem(ZOOM_KEY, String(this.zoom));
+      } catch {
+        // ignore
+      }
+      fit();
     };
     new ResizeObserver(fit).observe(root);
+    new ResizeObserver(fit).observe(this.page);
     window.addEventListener('resize', fit);
     requestAnimationFrame(fit);
   }
@@ -184,8 +258,14 @@ export class SynthView {
     for (const f of this.watchers.get(id) ?? []) f();
   }
 
+  /** The mod wheel moved elsewhere (hardware or the full view): show it. */
+  setWheel(v: number): void {
+    this.wheel = v;
+    this.wheelView?.();
+  }
+
+  /** Live output: the oscilloscope and the level meter. */
   setAnalyser(a: AnalyserNode): void {
-    this.analyser = a;
     const buf = new Float32Array(a.fftSize);
     let level = 0;
     const draw = () => {
@@ -193,20 +273,53 @@ export class SynthView {
       let pk = 0;
       for (const x of buf) pk = Math.max(pk, Math.abs(x));
       level = Math.max(pk, level * 0.92);
-      const g = this.meterG;
-      if (g) {
-        const H = 26, N = 16;
-        g.clearRect(0, 0, 96, H);
-        const db = 20 * Math.log10(level + 1e-6);
-        const lit = Math.round(Math.max(0, Math.min(1, (db + 48) / 48)) * N);
-        for (let i = 0; i < N; i++) {
-          g.fillStyle = i < lit ? hexA(i > 13 ? '#ff4f6a' : '#ff8f75', 0.35 + i * 0.04) : FAINT;
-          g.fillRect(i * 6, 0, 4, H);
-        }
-      }
+      this.drawMeter(level);
+      this.drawScope(buf);
       requestAnimationFrame(draw);
     };
-    if (this.analyser) requestAnimationFrame(draw);
+    requestAnimationFrame(draw);
+  }
+
+  private drawMeter(level: number): void {
+    const g = this.meterG;
+    if (!g) return;
+    const H = 22, N = 14;
+    g.clearRect(0, 0, N * 6, H);
+    const d = 20 * Math.log10(level + 1e-6);
+    const lit = Math.round(Math.max(0, Math.min(1, (d + 48) / 48)) * N);
+    for (let i = 0; i < N; i++) {
+      g.fillStyle = i < lit ? hexA(i > 11 ? '#ff4f6a' : '#ff8f75', 0.4 + i * 0.04) : FAINT;
+      g.fillRect(i * 6, 0, 4, H);
+    }
+  }
+
+  /** The oscilloscope: the output waveform on a phosphor screen, triggered for a steady picture. */
+  private drawScope(buf: Float32Array): void {
+    const g = this.scopeG;
+    if (!g) return;
+    const [W, H] = this.scopeSize;
+    // phosphor persistence: the last frames fade instead of vanishing
+    g.fillStyle = 'rgba(9,8,7,0.32)';
+    g.fillRect(0, 0, W, H);
+    let start = 0;
+    for (let i = 1; i < buf.length / 2; i++) if (buf[i - 1] < 0 && buf[i] >= 0) { start = i; break; }
+    const n = Math.min(1600, buf.length - start);
+    let pk = 0;
+    for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(buf[start + i]));
+    const gain = pk > 0.02 ? Math.min(4, 0.8 / pk) : 1; // keep quiet sounds visible
+    g.strokeStyle = 'rgba(244,240,232,0.92)';
+    g.lineWidth = 1.6;
+    g.shadowColor = 'rgba(240,235,225,0.85)';
+    g.shadowBlur = 7;
+    g.beginPath();
+    for (let i = 0; i < n; i++) {
+      const x = (i / (n - 1)) * W;
+      const y = H / 2 - buf[start + i] * gain * (H * 0.4);
+      if (i) g.lineTo(x, y);
+      else g.moveTo(x, y);
+    }
+    g.stroke();
+    g.shadowBlur = 0;
   }
 
   private get(id: string): ParamValue {
@@ -235,14 +348,13 @@ export class SynthView {
 
   // ------------------------------------------------------------------ controls
 
-  /** A dark metallic knob bound to a float/int parameter. */
-  private knob(id: string, label: string, size: 'big' | 'mid' | 'small' = 'mid', opts: { fmt?: (v: number) => string; disabled?: () => boolean; deps?: string[] } = {}): HTMLElement {
+  /** A dial bound to a float/int parameter. Big = the controls that matter most, small = details. */
+  private knob(id: string, label: string, size: Size = 'mid', opts: { fmt?: (v: number) => string; disabled?: () => boolean; deps?: string[] } = {}): HTMLElement {
     const p = getParam(id)!;
-    const px = size === 'big' ? 64 : size === 'mid' ? 48 : 36;
+    const px = PX[size];
     const [cv, g] = canvas(px, px, 'knob');
-    const lab = h('div', 'k-label', label);
     const val = h('div', 'k-val');
-    const el = h('div', `k k-${size}`, cv, lab, val);
+    const el = h('div', `k k-${size}`, cv, h('div', 'k-label', label), val);
     el.title = `${p.label}: ${p.describes}`;
     const bipolar = (p.min ?? 0) < 0 && (p.max ?? 0) > 0;
     const fmt = (v: number) => (opts.fmt ? opts.fmt(v) : formatValue(p, v));
@@ -252,35 +364,41 @@ export class SynthView {
       const off = opts.disabled?.() ?? false;
       el.classList.toggle('off', off);
       val.textContent = fmt(v);
-      const r = px / 2 - 1, cx = px / 2, cy = px / 2;
+      const r = px / 2, cx = r, cy = r;
       g.clearRect(0, 0, px, px);
       const a0 = 0.75 * Math.PI, a1 = 2.25 * Math.PI;
       const zero = bipolar ? a0 + (a1 - a0) * toNormalized(p, 0) : a0;
       const av = a0 + (a1 - a0) * n;
       const accent = getComputedStyle(el).getPropertyValue('--knob-accent').trim() || '#ff8f75';
-      // dial face
-      g.fillStyle = '#120403';
+      // face
+      g.fillStyle = '#140504';
       g.strokeStyle = '#3a120c';
-      g.lineWidth = 1.5;
+      g.lineWidth = 1.2;
       g.beginPath();
-      g.arc(cx, cy, r - 0.5, 0, 2 * Math.PI);
+      g.arc(cx, cy, r - 1, 0, 2 * Math.PI);
       g.fill();
       g.stroke();
-      // ticks, lit up to the value
-      const ticks = px > 44 ? 20 : 12;
-      const lo = Math.min(zero, av) - 1e-6, hi = Math.max(zero, av) + 1e-6;
-      g.lineWidth = 1.3;
-      for (let i = 0; i <= ticks; i++) {
-        const t = a0 + ((a1 - a0) * i) / ticks;
-        const big = i % (ticks / 4) === 0;
-        g.strokeStyle = !off && t >= lo && t <= hi ? accent : FAINT;
+      // track and value arc
+      const tr = r - (size === 'big' ? 5 : 4), sw = size === 'big' ? 3.5 : size === 'mid' ? 3 : 2.5;
+      g.lineCap = 'round';
+      g.lineWidth = sw;
+      g.strokeStyle = FAINT;
+      g.beginPath();
+      g.arc(cx, cy, tr, a0, a1);
+      g.stroke();
+      if (Math.abs(av - zero) > 0.02) {
+        g.strokeStyle = off ? '#5a3a32' : size === 'small' ? '#b8705f' : accent;
+        if (size === 'big' && !off) {
+          g.shadowColor = accent;
+          g.shadowBlur = 5;
+        }
         g.beginPath();
-        g.moveTo(cx + Math.cos(t) * (r - 7), cy + Math.sin(t) * (r - 7));
-        g.lineTo(cx + Math.cos(t) * (r - (big ? 1.5 : 4)), cy + Math.sin(t) * (r - (big ? 1.5 : 4)));
+        g.arc(cx, cy, tr, Math.min(zero, av), Math.max(zero, av));
         g.stroke();
+        g.shadowBlur = 0;
       }
       // body
-      const br = r * 0.62;
+      const br = r * (size === 'big' ? 0.56 : 0.5);
       const body = g.createRadialGradient(cx - br * 0.2, cy - br * 0.3, br * 0.05, cx, cy, br);
       body.addColorStop(0, '#4a1a12');
       body.addColorStop(1, '#1a0605');
@@ -289,16 +407,15 @@ export class SynthView {
       g.arc(cx, cy, br, 0, 2 * Math.PI);
       g.fill();
       // pointer
-      g.strokeStyle = off ? '#5a3a32' : HI;
-      g.lineWidth = px > 44 ? 3 : 2;
-      g.lineCap = 'round';
+      g.strokeStyle = off ? '#7a5a52' : '#ffe3d9';
+      g.lineWidth = size === 'big' ? 2.6 : 2;
       g.beginPath();
-      g.moveTo(cx, cy);
-      g.lineTo(cx + Math.cos(av) * r * 0.56, cy + Math.sin(av) * r * 0.56);
+      g.moveTo(cx + Math.cos(av) * br * 0.15, cy + Math.sin(av) * br * 0.15);
+      g.lineTo(cx + Math.cos(av) * br * 0.92, cy + Math.sin(av) * br * 0.92);
       g.stroke();
     };
     const setN = (n: number) => {
-      let v = fromNormalized(p, n);
+      let v = fromNormalized(p, Math.max(0, Math.min(1, n)));
       if (p.type === 'float') v = Math.round(v * 1e4) / 1e4;
       this.set(id, v);
     };
@@ -327,12 +444,648 @@ export class SynthView {
     return el;
   }
 
+  /** A dropdown for an enum parameter (‹ › step through it, the name opens the list). */
+  private selector(id: string, opts: { label?: (o: string) => string; deps?: string[] } = {}): HTMLElement {
+    const p = getParam(id)!;
+    const sel = h('select', 'sel-name');
+    const name = (o: string) => (opts.label ?? ((x: string) => x.replace(/_/g, ' ')))(o).toUpperCase();
+    for (const o of p.options!) sel.append(new Option(name(o), o));
+    const pick = (to: string) => {
+      if (String(this.get(id)) !== to) this.set(id, to);
+    };
+    sel.onchange = () => pick(sel.value);
+    const step = (d: number) => {
+      const i = p.options!.indexOf(String(this.get(id)));
+      pick(p.options![(i + d + p.options!.length) % p.options!.length]);
+    };
+    const prev = h('button', 'sel-btn', '‹');
+    const next = h('button', 'sel-btn', '›');
+    prev.onclick = () => step(-1);
+    next.onclick = () => step(1);
+    const el = h('div', 'sel', sel, prev, next);
+    el.title = `${p.label}: ${p.describes}`;
+    this.watch([id, ...(opts.deps ?? [])], () => {
+      p.options!.forEach((o, i) => { sel.options[i].text = name(o); });
+      sel.value = String(this.get(id));
+    });
+    return el;
+  }
+
+  /** A lamp switch for a bool parameter. */
+  private toggle(id: string, label: string, cls = ''): HTMLElement {
+    const p = getParam(id)!;
+    const b = h('button', `led ${cls}`, lamp(), label);
+    b.title = `${p.label}: ${p.describes}`;
+    b.onclick = () => this.set(id, !this.get(id));
+    this.watch([id], () => b.classList.toggle('on', !!this.get(id)));
+    return b;
+  }
+
+  /** The power lamp of a part that is switched on and off by its level (remembering the level). */
+  private levelPower(levelId: string, card: HTMLElement, fallback?: number): HTMLElement {
+    const b = h('button', 'power', lamp());
+    b.title = 'On / off';
+    b.onclick = () => {
+      const v = this.num(levelId);
+      if (v > 0) {
+        this.remembered.set(levelId, v);
+        this.set(levelId, 0);
+      } else this.set(levelId, this.remembered.get(levelId) ?? fallback ?? ((getParam(levelId)!.default as number) || 0.5));
+    };
+    this.watch([levelId], () => {
+      const on = this.num(levelId) > 0;
+      b.classList.toggle('on', on);
+      card.classList.toggle('is-off', !on);
+    });
+    return b;
+  }
+
+  /** The power lamp of a part with its own on/off switch. */
+  private boolPower(id: string, card: HTMLElement): HTMLElement {
+    const b = h('button', 'power', lamp());
+    b.title = getParam(id)?.describes ?? '';
+    b.onclick = () => this.set(id, !this.get(id));
+    this.watch([id], () => {
+      b.classList.toggle('on', !!this.get(id));
+      card.classList.toggle('is-off', !this.get(id));
+    });
+    return b;
+  }
+
+  /** A small number box you drag up/down (or scroll). */
+  private chip(label: string, get: () => number, set: (v: number) => void, min: number, max: number, ids: string[], title = ''): HTMLElement {
+    const v = h('span', 'chip-val');
+    const el = h('div', 'chip', h('span', 'chip-label', label), v);
+    el.title = `${title} (drag up/down)`;
+    let y0 = 0, v0 = 0;
+    el.addEventListener('pointerdown', (e) => {
+      el.setPointerCapture(e.pointerId);
+      y0 = e.clientY;
+      v0 = get();
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!el.hasPointerCapture(e.pointerId)) return;
+      set(Math.max(min, Math.min(max, v0 + Math.round((y0 - e.clientY) / 12))));
+    });
+    el.addEventListener('pointerup', (e) => el.releasePointerCapture(e.pointerId));
+    el.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      set(Math.max(min, Math.min(max, get() - Math.sign(e.deltaY))));
+    }, { passive: false });
+    this.watch(ids, () => { v.textContent = String(Math.round(get())); });
+    return el;
+  }
+
+  /** A box with its power lamp and title. */
+  private card(title: string, zone: Zone, cls = ''): [HTMLElement, HTMLElement, HTMLElement] {
+    const head = h('div', 'c-head', h('span', 'c-title', title));
+    const body = h('div', 'c-body');
+    const el = h('div', `c c-${zone} ${cls}`, head, body);
+    return [el, head, body];
+  }
+
+  // ------------------------------------------------------------------ displays
+
+  /** The oscillator's wave as a small print. */
+  private wavePrint(n: 1 | 2): HTMLElement {
+    const W = 60, H = 36;
+    const [cv, g] = canvas(W, H, 'disp');
+    const o = `osc${n}`;
+    this.watch([`${o}.wave`, `${o}.pulse_width`, `${o}.wt_pos`, `${o}.level`], () => {
+      paper(g, W, H);
+      const wave = String(this.get(`${o}.wave`)), pw = this.num(`${o}.pulse_width`), wt = this.num(`${o}.wt_pos`);
+      const pts: [number, number][] = [];
+      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - waveShape(wave, ((i / W) * 1.5) % 1, pw, wt) * (H / 2 - 7)]);
+      silver(g, pts, this.num(`${o}.level`) > 0);
+      vignette(g, W, H);
+    });
+    return cv;
+  }
+
+  private subPrint(): HTMLElement {
+    const W = 60, H = 36;
+    const [cv, g] = canvas(W, H, 'disp');
+    this.watch(['sub.wave', 'sub.level'], () => {
+      paper(g, W, H);
+      const pts: [number, number][] = [];
+      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - waveShape(String(this.get('sub.wave')), ((i / W) * 1.5) % 1, 0.5, 0) * (H / 2 - 7)]);
+      silver(g, pts, this.num('sub.level') > 0);
+      vignette(g, W, H);
+    });
+    return cv;
+  }
+
+  /** Frequency response of the main filter. */
+  private filterPrint(W: number, H: number): HTMLElement {
+    const [cv, g] = canvas(W, H, 'disp');
+    const type = () => String(this.get('filter.type'));
+    const stages = (): [Kind, number, number][] | 'comb' | 'formant' => {
+      const fc = this.num('filter.cutoff'), res = this.num('filter.resonance');
+      switch (type()) {
+        case 'lowpass': return [['lp', fc, 0.54 + res * 5], ['lp', fc, 1.31]];
+        case 'diode': return [['lp', fc, 0.6 + res * 4], ['lp', fc * 1.6, 0.6]];
+        case 'lpg': return [['lp', fc, 0.7 + res * 2]];
+        case 'bandpass': return [['bp', fc, 1 + res * 6], ['bp', fc, 1 + res * 6]];
+        case 'notch': return [['notch', fc, 0.7 + res * 4]];
+        case 'comb': return 'comb';
+        default: return 'formant';
+      }
+    };
+    this.watch(['filter.type', 'filter.cutoff', 'filter.resonance', 'filter.vowel', 'filter.on'], () => {
+      paper(g, W, H);
+      g.strokeStyle = 'rgba(232,226,216,0.04)';
+      for (const f of [100, 1000, 10000]) {
+        const x = (Math.log(f / 20) / Math.log(1000)) * W;
+        g.beginPath();
+        g.moveTo(x, 0);
+        g.lineTo(x, H);
+        g.stroke();
+      }
+      const st = stages();
+      const on = !!this.get('filter.on');
+      const top = 24, bottom = -48;
+      const ys: number[] = [];
+      for (let i = 0; i <= W; i++) {
+        const f = 20 * Math.pow(1000, i / W);
+        let m: number;
+        if (st === 'comb') {
+          const fc = this.num('filter.cutoff');
+          m = 0.35 / Math.max(0.15, Math.abs(1 - 0.85 * Math.cos((2 * Math.PI * f) / fc)) + 0.15);
+        } else if (st === 'formant') {
+          const k = this.num('filter.cutoff') / 2000;
+          const v = this.num('filter.vowel') * 4;
+          const vowels = [[730, 1090, 2440], [530, 1840, 2480], [270, 2290, 3010], [570, 840, 2410], [300, 870, 2240]];
+          const i0 = Math.min(3, Math.floor(v)), fr = v - i0;
+          m = 0;
+          for (let j = 0; j < 3; j++) m += response([['bp', (vowels[i0][j] * (1 - fr) + vowels[i0 + 1][j] * fr) * k, 6]], f) * [1, 0.5, 0.25][j];
+        } else m = on ? response(st, f) : 1;
+        const d = 20 * Math.log10(m + 1e-9);
+        ys.push(H - ((Math.max(bottom, Math.min(top, d)) - bottom) / (top - bottom)) * H);
+      }
+      silver(g, ys.map((y, i) => [i, y] as [number, number]), on);
+      // the cutoff as a handle on the curve
+      if (on && st !== 'formant') {
+        const fc = this.num('filter.cutoff');
+        const x = Math.max(4, Math.min(W - 4, (Math.log(fc / 20) / Math.log(1000)) * W));
+        handle(g, x, ys[Math.round(x)] ?? H / 2);
+      }
+      vignette(g, W, H);
+    });
+    // drag on the print: left/right = cutoff, up/down = resonance
+    const cut = getParam('filter.cutoff')!, res = getParam('filter.resonance')!;
+    let x0 = 0, y0 = 0, c0 = 0, r0 = 0;
+    cv.addEventListener('pointerdown', (e) => {
+      cv.setPointerCapture(e.pointerId);
+      x0 = e.clientX;
+      y0 = e.clientY;
+      c0 = toNormalized(cut, this.num('filter.cutoff'));
+      r0 = toNormalized(res, this.num('filter.resonance'));
+    });
+    cv.addEventListener('pointermove', (e) => {
+      if (!cv.hasPointerCapture(e.pointerId)) return;
+      const r = cv.getBoundingClientRect();
+      this.set('filter.cutoff', Math.round(fromNormalized(cut, Math.max(0, Math.min(1, c0 + (e.clientX - x0) / r.width)))));
+      this.set('filter.resonance', Math.round(fromNormalized(res, Math.max(0, Math.min(1, r0 + (y0 - e.clientY) / r.height))) * 1000) / 1000);
+    });
+    cv.addEventListener('pointerup', (e) => cv.releasePointerCapture(e.pointerId));
+    cv.title = 'Drag: left/right = cutoff, up/down = resonance';
+    cv.classList.add('draggable');
+    return cv;
+  }
+
+  /** The distortion's transfer curve. */
+  private distPrint(W: number, H: number): HTMLElement {
+    const [cv, g] = canvas(W, H, 'disp');
+    const shape = (type: string, x: number, d: number): number => {
+      const k = 1 + 14 * d;
+      switch (type) {
+        case 'hard': return Math.max(-1, Math.min(1, x * k));
+        case 'fold': return Math.sin((x * k * Math.PI) / 2);
+        case 'tube': {
+          const b = 0.25;
+          return (Math.tanh(x * k + b) - Math.tanh(b)) / (1 - Math.tanh(b) * 0.4);
+        }
+        default: return Math.tanh(x * k) / Math.tanh(Math.max(1, k * 0.6));
+      }
+    };
+    this.watch(['dist.on', 'dist.type', 'dist.drive', 'dist.mix'], () => {
+      const on = !!this.get('dist.on');
+      const type = String(this.get('dist.type')), d = this.num('dist.drive'), mix = this.num('dist.mix');
+      paper(g, W, H);
+      const pts: [number, number][] = [];
+      for (let i = 0; i <= W; i++) {
+        const x = (i / W) * 2 - 1;
+        const y = Math.max(-1.1, Math.min(1.1, mix * shape(type, x, d) + (1 - mix) * x));
+        pts.push([i, H / 2 - y * (H / 2 - 6)]);
+      }
+      silver(g, pts, on);
+      vignette(g, W, H);
+    });
+    return cv;
+  }
+
+  /** An ADSR print with handles you drag: A sideways, D sideways and S up/down, R sideways. */
+  private envPrint(prefix: string, W: number, H: number): HTMLElement {
+    const [cv, g] = canvas(W, H, 'disp');
+    const ids = ['attack', 'decay', 'sustain', 'release'].map((s) => `${prefix}.${s}`);
+    let span = 1000;
+    let hot = -1;
+    const geo = () => {
+      const a = this.num(ids[0]), d = this.num(ids[1]), s = this.num(ids[2]), r = this.num(ids[3]);
+      const hold = Math.max(250, 0.25 * (a + d));
+      const X = (t: number) => 8 + (t / span) * (W - 16);
+      const Y = (v: number) => H - 10 - v * (H - 26);
+      return { a, d, s, r, hold, X, Y };
+    };
+    const reSpan = () => {
+      const { a, d, r, hold } = geo();
+      const total = a + d + hold + r;
+      span = total <= 1000 ? 1000 : total <= 4000 ? Math.ceil(total / 1000) * 1000 : total;
+    };
+    const points = () => {
+      const { a, d, s, r, hold, X, Y } = geo();
+      return [[X(a), Y(1)], [X(a + d), Y(s)], [X(a + d + hold), Y(s)], [X(a + d + hold + r), Y(0)]] as [number, number][];
+    };
+    const draw = () => {
+      const { a, d, s, r, hold, X, Y } = geo();
+      paper(g, W, H);
+      g.fillStyle = 'rgba(232,226,216,0.28)';
+      g.font = '10px Inter, system-ui, sans-serif';
+      g.strokeStyle = 'rgba(232,226,216,0.04)';
+      const stepMs = span <= 1000 ? 250 : 1000;
+      for (let t = stepMs; t < span; t += stepMs) {
+        g.beginPath();
+        g.moveTo(X(t), 0);
+        g.lineTo(X(t), H);
+        g.stroke();
+        if (t % 1000 === 0) g.fillText(`${t / 1000} s`, X(t) + 3, 12);
+      }
+      const pts: [number, number][] = [[X(0), Y(0)]];
+      const N = 40;
+      for (let i = 0; i <= N; i++) pts.push([X((a * i) / N), Y(1 - Math.pow(1 - i / N, 2))]);
+      for (let i = 1; i <= N; i++) pts.push([X(a + (d * i) / N), Y(s + (1 - s) * Math.exp((-5 * i) / N))]);
+      pts.push([X(a + d + hold), Y(s)]);
+      for (let i = 1; i <= N; i++) pts.push([X(a + d + hold + (r * i) / N), Y(s * Math.exp((-5 * i) / N))]);
+      silver(g, pts);
+      vignette(g, W, H);
+      points().forEach(([x, y], i) => handle(g, x, y, i === hot));
+    };
+    this.watch(ids, () => {
+      if (hot < 0) reSpan();
+      draw();
+    });
+    // dragging the handles
+    const P = ids.map((id) => getParam(id)!);
+    let start: { x: number; y: number; v: number[] } | null = null;
+    const local = (e: PointerEvent) => {
+      const r = cv.getBoundingClientRect();
+      return [((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.height) * H];
+    };
+    cv.addEventListener('pointerdown', (e) => {
+      const [x, y] = local(e);
+      let best = -1, bd = 18 * 18;
+      points().forEach(([px, py], i) => {
+        const dd = (px - x) ** 2 + (py - y) ** 2;
+        if (dd < bd) { bd = dd; best = i; }
+      });
+      if (best < 0) return;
+      hot = best;
+      cv.setPointerCapture(e.pointerId);
+      start = { x, y, v: ids.map((id) => this.num(id)) };
+      draw();
+    });
+    cv.addEventListener('pointermove', (e) => {
+      if (!start || !cv.hasPointerCapture(e.pointerId)) {
+        const [x, y] = local(e);
+        cv.style.cursor = points().some(([px, py]) => (px - x) ** 2 + (py - y) ** 2 < 18 * 18) ? 'grab' : '';
+        return;
+      }
+      const [x, y] = local(e);
+      const msPerPx = span / (W - 16);
+      const dt = (x - start.x) * msPerPx;
+      const clampP = (i: number, v: number) => Math.max(P[i].min!, Math.min(P[i].max!, v));
+      if (hot === 0) this.set(ids[0], Math.round(clampP(0, start.v[0] + dt) * 10) / 10);
+      if (hot === 1) this.set(ids[1], Math.round(clampP(1, start.v[1] + dt)));
+      if (hot === 1 || hot === 2) this.set(ids[2], Math.round(clampP(2, start.v[2] - (y - start.y) / (H - 26)) * 1000) / 1000);
+      if (hot === 3) this.set(ids[3], Math.round(clampP(3, start.v[3] + dt)));
+    });
+    cv.addEventListener('pointerup', (e) => {
+      if (cv.hasPointerCapture(e.pointerId)) cv.releasePointerCapture(e.pointerId);
+      start = null;
+      hot = -1;
+      reSpan();
+      draw();
+    });
+    cv.title = 'Drag the points: attack, decay and sustain, release';
+    return cv;
+  }
+
+  // ------------------------------------------------------------------ the source strips
+
+  /** One source as a channel strip: name and settings on the left, its print, then its dials. */
+  private strip(title: string, cls: string, left2: HTMLElement[], headExtra: HTMLElement[], print: HTMLElement | null, knobs: HTMLElement[]): [HTMLElement, HTMLElement] {
+    const head = h('div', 'st-head', h('span', 'c-title', title), ...headExtra);
+    const el = h('div', `c c-src strip ${cls}`,
+      h('div', 'st-left', head, h('div', 'st-row', ...left2)),
+      h('div', 'st-print', ...(print ? [print] : [])),
+      h('div', 'st-knobs', ...knobs));
+    return [el, head];
+  }
+
+  private oscStrip(n: 1 | 2): HTMLElement {
+    const o = `osc${n}`;
+    const semiP = getParam(`${o}.semi`)!;
+    const oct = () => Math.trunc(this.num(`${o}.semi`) / 12);
+    const sem = () => this.num(`${o}.semi`) - 12 * oct();
+    const setSemi = (v: number) => this.set(`${o}.semi`, Math.max(semiP.min!, Math.min(semiP.max!, v)));
+    const chips = [
+      this.chip('OCT', oct, (v) => setSemi(12 * v + sem()), -2, 2, [`${o}.semi`], 'Octave'),
+      this.chip('SEM', sem, (v) => setSemi(12 * oct() + v), -11, 11, [`${o}.semi`], 'Semitones'),
+      this.chip('FIN', () => this.num(`${o}.fine`), (v) => this.set(`${o}.fine`, v), -100, 100, [`${o}.fine`], 'Fine tune (cents)'),
+    ];
+    const left2: HTMLElement[] = [
+      this.selector(`${o}.wave`),
+      this.chip('UNI', () => this.num(`${o}.unison_voices`), (v) => this.set(`${o}.unison_voices`, v), 1, 7, [`${o}.unison_voices`], 'Unison voices (stacked detuned copies)'),
+    ];
+    if (n === 2) left2.push(this.toggle('osc2.sync', 'Sync', 'small'));
+    // Shape = pulse width on pulse / pwm saw, position on the wavetable, dimmed otherwise.
+    const pw = this.knob(`${o}.pulse_width`, 'Shape', 'small', { disabled: () => !['pulse', 'pwm_saw'].includes(String(this.get(`${o}.wave`))), deps: [`${o}.wave`] });
+    const wt = this.knob(`${o}.wt_pos`, 'Shape', 'small');
+    this.watch([`${o}.wave`], () => {
+      const isWt = String(this.get(`${o}.wave`)) === 'wavetable';
+      wt.style.display = isWt ? '' : 'none';
+      pw.style.display = isWt ? 'none' : '';
+    });
+    const uniOff = () => this.num(`${o}.unison_voices`) <= 1;
+    const [el, head] = this.strip(n === 1 ? 'OSC A' : 'OSC B', 'osc', left2, chips, this.wavePrint(n), [
+      this.knob(`${o}.level`, 'Level', 'mid'),
+      this.knob(`${o}.unison_detune`, 'Detune', 'mid', { disabled: uniOff, deps: [`${o}.unison_voices`] }),
+      pw, wt,
+      this.knob(`${o}.unison_spread`, 'Spread', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] }),
+      this.lowCut(`${o}.highpass`, `${o}.filter_type`),
+    ]);
+    head.prepend(this.levelPower(`${o}.level`, el));
+    return el;
+  }
+
+  /**
+   * LO CUT: a source's high-pass as one knob (fully left = off). On the oscillators it is their
+   * filter slot's cutoff (dimmed if that slot was set to another type in the full view); on the
+   * noise bed, turning it up switches the bed's own filter to a 24 dB high-pass.
+   */
+  private lowCut(cutId: string, typeId: string): HTMLElement {
+    const isOsc = cutId.startsWith('osc');
+    const p = getParam(cutId)!;
+    const OFF = 21;
+    const fmt = (v: number) => {
+      if (!String(this.get(typeId)).startsWith('high') || v <= OFF) return 'off';
+      return v >= 1000 ? `${(v / 1000).toFixed(1)} kHz` : `${Math.round(v)} Hz`;
+    };
+    const el = this.knob(cutId, 'Lo cut', 'small', { fmt, deps: [typeId], disabled: () => (isOsc ? !String(this.get(typeId)).startsWith('high') : false) });
+    el.title = `Low cut: ${isOsc ? 'cuts this oscillator below this frequency before the drive, so it stays out of the sub\'s space' : 'cuts the noise bed below this frequency so it stays out of the body of the sound'}. Fully left = off. ${p.label}.`;
+    if (!isOsc) {
+      el.addEventListener('pointerdown', () => {
+        if (!String(this.get(typeId)).startsWith('high')) {
+          this.set(cutId, 20);
+          this.set(typeId, 'high 24');
+        }
+      }, true);
+    }
+    return el;
+  }
+
+  private subStrip(): HTMLElement {
+    const waves = h('div', 'wave-btns');
+    const icons: Record<string, string> = { sine: '∿', triangle: '⋀', square: '⊓' };
+    for (const w of getParam('sub.wave')!.options!) {
+      const b = h('button', 'wave-btn', icons[w] ?? w);
+      b.title = w;
+      b.onclick = () => this.set('sub.wave', w);
+      this.watch(['sub.wave'], () => b.classList.toggle('on', this.get('sub.wave') === w));
+      waves.append(b);
+    }
+    const [el, head] = this.strip('SUB', 'sub', [waves, this.toggle('sub.direct', 'Direct out', 'small')],
+      [this.chip('OCT', () => this.num('sub.octave'), (v) => this.set('sub.octave', v), -2, -1, ['sub.octave'], 'Sub octave')],
+      this.subPrint(), [this.knob('sub.level', 'Level', 'mid'), h('div', 'k-gap'), this.knob('sub.clip', 'Clip', 'small')]);
+    head.prepend(this.levelPower('sub.level', el));
+    return el;
+  }
+
+  private noiseStrip(): HTMLElement {
+    const [el, head] = this.strip('NOISE', 'noise', [this.selector('texture.type'), this.toggle('texture.direct', 'Direct out', 'small')],
+      [h('span', 'st-note', 'texture bed')], null, [
+        this.knob('texture.level', 'LEVEL', 'big'),
+        this.knob('texture.tone', 'Tone', 'mid'),
+        this.knob('texture.tail', 'Tail', 'mid'),
+        this.lowCut('texture.filter_cutoff', 'texture.filter_type'),
+      ]);
+    head.prepend(this.levelPower('texture.level', el));
+    return el;
+  }
+
+  private breathStrip(): HTMLElement {
+    const [el, head] = this.strip('BREATH', 'breath', [h('span', 'st-hint', 'air at the start of each note')], [], null, [
+      this.knob('breath.level', 'Level', 'mid'),
+      this.knob('breath.chiff', 'Chiff', 'mid'),
+      this.knob('breath.decay', 'Decay', 'small'),
+      this.knob('breath.tone', 'Tone', 'small'),
+    ]);
+    head.prepend(this.levelPower('breath.level', el));
+    return el;
+  }
+
+  private clickStrip(): HTMLElement {
+    const [el, head] = this.strip('CLICK', 'click', [this.selector('click.type')], [], null, [
+      this.knob('click.level', 'Level', 'mid'),
+      this.knob('click.decay', 'Decay', 'mid'),
+      h('div', 'k-gap'),
+      this.knob('click.tone', 'Tone', 'small'),
+    ]);
+    head.prepend(this.levelPower('click.level', el));
+    return el;
+  }
+
+  // ------------------------------------------------------------------ the middle: scope + amp envelope
+
+  private scopeBox(): HTMLElement {
+    const W = 226, H = 188;
+    const [cv, g] = canvas(W, H, 'scope-screen');
+    this.scopeG = g;
+    this.scopeSize = [W, H];
+    g.fillStyle = '#090807';
+    g.fillRect(0, 0, W, H);
+    const el = h('div', 'scope', h('div', 'scope-glass', cv));
+    el.title = 'Oscilloscope: the sound coming out, as a waveform';
+    return el;
+  }
+
+  private envCard(prefix: 'amp_env' | 'mod_env', title: string, zone: Zone, W: number, H: number, size: Size): HTMLElement {
+    const [el, head, body] = this.card(title, zone, 'env');
+    if (size !== 'small') head.append(h('span', 'c-note', 'drag the points'));
+    body.append(this.envPrint(prefix, W, H), h('div', 'knob-row',
+      this.knob(`${prefix}.attack`, 'Attack', size, { fmt: ms }),
+      this.knob(`${prefix}.decay`, 'Decay', size, { fmt: ms }),
+      this.knob(`${prefix}.sustain`, 'Sustain', size, { fmt: db }),
+      this.knob(`${prefix}.release`, 'Release', size, { fmt: ms }),
+    ));
+    return el;
+  }
+
+  // ------------------------------------------------------------------ filter
+
+  private filterCard(): HTMLElement {
+    const [el, head, body] = this.card('FILTER', 'flt', 'main-filter');
+    head.prepend(this.boolPower('filter.on', el));
+    const routes = h('div', 'routes', h('span', 'routes-label', 'Into filter'),
+      this.toggle('filter.route_a', 'A', 'route'),
+      this.toggle('filter.route_b', 'B', 'route'),
+      this.toggle('filter.route_n', 'N', 'route'),
+      this.toggle('filter.route_s', 'S', 'route'));
+    routes.title = 'What goes through the filter: oscillator A, oscillator B, the noise bed, the sub';
+    const drive = this.knob('drive.amount', 'Drive', 'mid', { disabled: () => !this.get('drive.on'), deps: ['drive.on'] });
+    // Turning the drive up switches the drive stage on.
+    drive.addEventListener('pointerdown', () => { if (!this.get('drive.on')) this.set('drive.on', true); }, true);
+    body.append(this.selector('filter.type'), this.filterPrint(174, 92), routes,
+      h('div', 'knob-row', this.knob('filter.cutoff', 'CUTOFF', 'big'), this.knob('filter.resonance', 'RES', 'big'), this.knob('filter.env_amount', 'ENV', 'big')),
+      h('div', 'knob-row', drive, this.knob('filter.keytrack', 'Key', 'small'), this.knob('filter.fat', 'Fat', 'small'), this.knob('filter.mix', 'Mix', 'small')));
+    return el;
+  }
+
+  // ------------------------------------------------------------------ dirt
+
+  private distCard(): HTMLElement {
+    const [el, head, body] = this.card('DISTORTION', 'dirt');
+    head.prepend(this.boolPower('dist.on', el));
+    const low = this.knob('dist.clean_below', 'Low', 'small', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
+    low.title = 'Keeps everything below this frequency clean (the distortion only works on the part above it). Fully left = off.';
+    body.append(h('div', 'dist-top', this.selector('dist.type'), this.distPrint(76, 40)),
+      h('div', 'knob-row', this.knob('dist.drive', 'DRIVE', 'big'), this.knob('dist.mix', 'Mix', 'small'), this.knob('dist.post_tone', 'Tone', 'small'), low));
+    return el;
+  }
+
+  private tapeCard(): HTMLElement {
+    const [el, head, body] = this.card('TAPE', 'dirt');
+    head.prepend(this.boolPower('tape.on', el));
+    body.append(h('div', 'knob-row', this.knob('tape.age', 'AGE', 'big'), this.knob('tape.wow', 'Wow', 'mid'), this.knob('tape.drive', 'Drive', 'mid')));
+    return el;
+  }
+
+  /** Bitcrusher: folds to its title line while it does nothing (off, or mix at 0). */
+  private crushCard(): HTMLElement {
+    const [el, head, body] = this.card('BITCRUSHER', 'dirt', 'fold');
+    const b = h('button', 'power', lamp());
+    b.title = 'On / off';
+    const on = () => !!this.get('crush.on') && this.num('crush.mix') > 0;
+    b.onclick = () => {
+      if (on()) {
+        this.remembered.set('crush.mix', this.num('crush.mix'));
+        this.set('crush.mix', 0);
+      } else {
+        this.set('crush.on', true);
+        this.set('crush.mix', this.remembered.get('crush.mix') ?? 0.5);
+      }
+    };
+    this.watch(['crush.on', 'crush.mix'], () => {
+      b.classList.toggle('on', on());
+      el.classList.toggle('is-off', !on());
+    });
+    head.prepend(b);
+    head.append(h('span', 'c-note off-note', 'off'));
+    body.append(h('div', 'knob-row',
+      this.knob('crush.mix', 'Mix', 'small'),
+      this.knob('crush.bits', 'Bits', 'small', { fmt: (v) => `${Math.round(v)} bit` }),
+      this.knob('crush.rate', 'Rate', 'small')));
+    return el;
+  }
+
+  /** Mid clip: folds to its title line while it is at 0 dB (off). */
+  private midClipCard(): HTMLElement {
+    const [el, head, body] = this.card('MID CLIP', 'dirt', 'fold');
+    head.prepend(this.levelPower('clip.mid', el, 3));
+    head.append(h('span', 'c-note off-note', 'off'));
+    body.append(h('div', 'knob-row', this.knob('clip.mid', 'Clip', 'small'), h('div', 'clip-led', this.toggle('clip.low_cut', 'Clean lows', 'small'))));
+    return el;
+  }
+
+  /** The mod wheel: which connected move it plays, and a wheel you can drag (it follows a hardware wheel). */
+  private wheelCard(): HTMLElement {
+    const [el, head, body] = this.card('MOD WHEEL', 'src', 'wheel-card');
+    head.prepend(h('span', 'lamp lamp-on'));
+    const moveP = getParam('wheel.move')!;
+    const nice = (o: string) => o.charAt(0).toUpperCase() + o.slice(1);
+    const current = () => {
+      const m = String(this.get('wheel.move'));
+      return m === 'preset default' ? String(this.get('wheel.preset')) : m;
+    };
+    const sel = this.selector('wheel.move', { label: (o) => (o === 'preset default' ? `${String(this.get('wheel.preset'))} · preset` : o), deps: ['wheel.preset'] });
+    const hint = h('div', 'wheel-hint');
+    this.watch(['wheel.move', 'wheel.preset'], () => {
+      const text = moveP.describes.match(new RegExp(`${nice(current())}: ([^.]*)`))?.[1] ?? '';
+      const what = text.match(/\(([^)]*)\)/)?.[1] ?? text;
+      hint.textContent = what.replace(/, /g, ' · ').trim();
+    });
+    // the wheel itself
+    const W = 30, H = 70;
+    const [cv, g] = canvas(W, H, 'mw');
+    const val = h('span', 'wheel-val');
+    const draw = () => {
+      g.clearRect(0, 0, W, H);
+      g.fillStyle = '#0b0201';
+      g.strokeStyle = '#3a120c';
+      g.lineWidth = 1;
+      g.beginPath();
+      g.roundRect(0.5, 0.5, W - 1, H - 1, 7);
+      g.fill();
+      g.stroke();
+      g.strokeStyle = FAINT;
+      g.lineWidth = 2;
+      for (let i = 0; i < 12; i++) {
+        const y = 7 + (i * (H - 14)) / 11;
+        g.beginPath();
+        g.moveTo(5, y);
+        g.lineTo(W - 5, y);
+        g.stroke();
+      }
+      const cy = 6 + (1 - this.wheel) * (H - 12);
+      g.fillStyle = 'rgba(255,143,117,0.22)';
+      g.fillRect(3, cy, W - 6, H - 3 - cy);
+      g.fillStyle = '#ffe3d9';
+      g.beginPath();
+      g.roundRect(3, cy - 3, W - 6, 6, 3);
+      g.fill();
+      val.textContent = `${Math.round(this.wheel * 100)}%`;
+    };
+    const setW = (v: number) => {
+      this.wheel = Math.max(0, Math.min(1, v));
+      draw();
+      this.onWheel(this.wheel);
+    };
+    const fromY = (e: PointerEvent) => {
+      const r = cv.getBoundingClientRect();
+      setW(1 - (e.clientY - r.top) / r.height);
+    };
+    cv.addEventListener('pointerdown', (e) => {
+      cv.setPointerCapture(e.pointerId);
+      fromY(e);
+    });
+    cv.addEventListener('pointermove', (e) => { if (cv.hasPointerCapture(e.pointerId)) fromY(e); });
+    cv.addEventListener('pointerup', (e) => cv.releasePointerCapture(e.pointerId));
+    cv.addEventListener('dblclick', () => setW(0));
+    cv.title = 'Mod wheel (follows your keyboard\'s wheel; drag to try it). Double-click to reset.';
+    this.wheelView = draw;
+    draw();
+    body.append(h('div', 'wheel-row', h('div', 'wheel-left', sel, hint, val), cv));
+    return el;
+  }
+
+  // ------------------------------------------------------------------ bottom bar
+
   /** A label and value you drag up/down (or scroll) to change, like the master level. */
   private readout(id: string, label: string): HTMLElement {
     const p = getParam(id)!;
     const val = h('span', 'ro-val');
     const el = h('div', 'readout', h('span', 'ro-label', label), val);
-    el.title = `${p.label}: ${p.describes}`;
+    el.title = `${p.label}: ${p.describes} (drag up/down)`;
     let y0 = 0, n0 = 0;
     el.addEventListener('pointerdown', (e) => {
       el.setPointerCapture(e.pointerId);
@@ -355,497 +1108,6 @@ export class SynthView {
     return el;
   }
 
-  /** ‹ name › selector for an enum parameter (the name is a dropdown too). */
-  private selector(id: string, opts: { onPick?: (from: string, to: string) => void; label?: (o: string) => string } = {}): HTMLElement {
-    const p = getParam(id)!;
-    const sel = h('select', 'sel-name');
-    for (const o of p.options!) sel.append(new Option((opts.label ?? ((x: string) => x.replace(/_/g, ' ')))(o).toUpperCase(), o));
-    const pick = (to: string) => {
-      const from = String(this.get(id));
-      if (from === to) return;
-      opts.onPick?.(from, to);
-      this.set(id, to);
-    };
-    sel.onchange = () => pick(sel.value);
-    const step = (d: number) => {
-      const i = p.options!.indexOf(String(this.get(id)));
-      pick(p.options![(i + d + p.options!.length) % p.options!.length]);
-    };
-    const prev = h('button', 'sel-btn', '‹');
-    const next = h('button', 'sel-btn', '›');
-    prev.onclick = () => step(-1);
-    next.onclick = () => step(1);
-    const el = h('div', 'sel', sel, prev, next);
-    el.title = `${p.label}: ${p.describes}`;
-    this.watch([id], () => { sel.value = String(this.get(id)); });
-    return el;
-  }
-
-  /** A small LED switch for a bool parameter. */
-  private toggle(id: string, label: string, cls = ''): HTMLElement {
-    const p = getParam(id)!;
-    const b = h('button', `led ${cls}`, lamp(), label);
-    b.title = `${p.label}: ${p.describes}`;
-    b.onclick = () => this.set(id, !this.get(id));
-    this.watch([id], () => b.classList.toggle('on', !!this.get(id)));
-    return b;
-  }
-
-  /** Power LED in a card header that mutes a layer by its level (remembering the level). */
-  private levelPower(levelId: string): HTMLElement {
-    const b = h('button', 'power', lamp());
-    b.title = 'On / off (sets the level to 0 and back)';
-    b.onclick = () => {
-      const v = this.num(levelId);
-      if (v > 0) {
-        this.remembered.set(levelId, v);
-        this.set(levelId, 0);
-      } else this.set(levelId, this.remembered.get(levelId) ?? (getParam(levelId)!.default as number) ?? 0.5);
-    };
-    this.watch([levelId], () => b.classList.toggle('on', this.num(levelId) > 0));
-    return b;
-  }
-
-  /** Power LED for a bool parameter. */
-  private boolPower(id: string): HTMLElement {
-    const b = h('button', 'power', lamp());
-    b.title = getParam(id)?.describes ?? '';
-    b.onclick = () => this.set(id, !this.get(id));
-    this.watch([id], () => b.classList.toggle('on', !!this.get(id)));
-    return b;
-  }
-
-  /** A number field dragged up/down (ints), with optional custom get/set. */
-  private stepper(label: string, get: () => number, set: (v: number) => void, min: number, max: number, ids: string[], title = ''): HTMLElement {
-    const v = h('span', 'st-val');
-    const el = h('div', 'stepper', h('span', 'st-label', label), v);
-    el.title = title;
-    let y0 = 0, v0 = 0;
-    el.addEventListener('pointerdown', (e) => {
-      el.setPointerCapture(e.pointerId);
-      y0 = e.clientY;
-      v0 = get();
-    });
-    el.addEventListener('pointermove', (e) => {
-      if (!el.hasPointerCapture(e.pointerId)) return;
-      set(Math.max(min, Math.min(max, v0 + Math.round((y0 - e.clientY) / 12))));
-    });
-    el.addEventListener('pointerup', (e) => el.releasePointerCapture(e.pointerId));
-    el.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      set(Math.max(min, Math.min(max, get() - Math.sign(e.deltaY))));
-    }, { passive: false });
-    this.watch(ids, () => {
-      const n = get();
-      v.textContent = Number.isInteger(n) ? String(n) : n.toFixed(0);
-    });
-    return el;
-  }
-
-  private card(title: string, group: 'src' | 'flt' | 'dirt', ...head: HTMLElement[]): [HTMLElement, HTMLElement] {
-    const body = h('div', 'c-body');
-    const hd = h('div', 'c-head', ...head, h('span', 'c-title', title));
-    const el = h('div', `c c-${group}`, hd, body);
-    return [el, body];
-  }
-
-  // ------------------------------------------------------------------ displays
-
-  private waveView(n: 1 | 2): HTMLElement {
-    const W = 260, H = 96;
-    const [cv, g] = canvas(W, H, 'disp');
-    const ids = [`osc${n}.wave`, `osc${n}.pulse_width`, `osc${n}.wt_pos`, `osc${n}.level`, `osc${n}.unison_voices`, `osc${n}.unison_detune`];
-    const shape = (wave: string, x: number, pw: number, wt: number): number => {
-      const tri = x < 0.25 ? 4 * x : x < 0.75 ? 2 - 4 * x : 4 * x - 4;
-      const saw = 1 - 2 * x;
-      switch (wave) {
-        case 'sine': return Math.sin(2 * Math.PI * x);
-        case 'triangle': return tri;
-        case 'saw': return saw;
-        case 'pulse': return x < pw ? 0.8 : -0.8;
-        case 'pwm_saw': return 0.5 * (saw + (1 - 2 * ((x + pw) % 1)));
-        case 'wavetable': {
-          const seg = wt * 4, i = Math.min(3, Math.floor(seg)), f = seg - i;
-          const frames = [Math.sin(2 * Math.PI * x), tri, saw, x < 0.5 ? 0.8 : -0.8,
-            Math.sin(2 * Math.PI * x) * 0.6 + Math.sin(6 * Math.PI * x) * 0.3 + Math.sin(10 * Math.PI * x) * 0.15];
-          return frames[i] * (1 - f) + frames[i + 1] * f;
-        }
-        case 'string': return Math.exp(-3 * x) * Math.sin(2 * Math.PI * 3 * x) * (1 - 2 * ((x * 7) % 1) * 0.3);
-        case 'shepard': return 0.5 * Math.sin(2 * Math.PI * x) + 0.3 * Math.sin(4 * Math.PI * x) + 0.2 * Math.sin(8 * Math.PI * x);
-        default: return saw;
-      }
-    };
-    const draw = () => {
-      paper(g, W, H);
-      const wave = String(this.get(`osc${n}.wave`));
-      const pw = this.num(`osc${n}.pulse_width`), wt = this.num(`osc${n}.wt_pos`);
-      const lvl = this.num(`osc${n}.level`);
-      const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) {
-        const x = ((i / W) * 1.5) % 1;
-        pts.push([i, H / 2 - shape(wave, x, pw, wt) * (H / 2 - 14)]);
-      }
-      silver(g, pts, lvl > 0);
-      vignette(g, W, H);
-    };
-    this.watch(ids, draw);
-    return cv;
-  }
-
-  /** Frequency response display: `stages` gives the filter for the current values. */
-  private curveView(ids: string[], stages: () => [Kind, number, number][] | 'comb' | 'formant', active: () => boolean, W = 144, H = 66): HTMLElement {
-    const [cv, g] = canvas(W, H, 'disp');
-    const draw = () => {
-      paper(g, W, H);
-      g.strokeStyle = 'rgba(232,226,216,0.04)';
-      for (const f of [100, 1000, 10000]) {
-        const x = (Math.log(f / 20) / Math.log(1000)) * W;
-        g.beginPath();
-        g.moveTo(x, 0);
-        g.lineTo(x, H);
-        g.stroke();
-      }
-      const st = stages();
-      const on = active();
-      const top = 24, bottom = -48;
-      const ys: number[] = [];
-      for (let i = 0; i <= W; i++) {
-        const f = 20 * Math.pow(1000, i / W);
-        let m: number;
-        if (st === 'comb') {
-          const fc = this.num('filter.cutoff');
-          m = 1 / Math.max(0.15, Math.abs(1 - 0.85 * Math.cos((2 * Math.PI * f) / fc)) + 0.15);
-          m *= 0.35;
-        } else if (st === 'formant') {
-          const k = this.num('filter.cutoff') / 2000;
-          const v = this.num('filter.vowel') * 4;
-          const vowels = [[730, 1090, 2440], [530, 1840, 2480], [270, 2290, 3010], [570, 840, 2410], [300, 870, 2240]];
-          const i0 = Math.min(3, Math.floor(v)), fr = v - i0;
-          m = 0;
-          for (let j = 0; j < 3; j++) {
-            const fj = (vowels[i0][j] * (1 - fr) + vowels[i0 + 1][j] * fr) * k;
-            m += response([['bp', fj, 6]], f) * [1, 0.5, 0.25][j];
-          }
-        } else m = on ? response(st, f) : 1;
-        const db = 20 * Math.log10(m + 1e-9);
-        ys.push(H - ((Math.max(bottom, Math.min(top, db)) - bottom) / (top - bottom)) * H);
-      }
-      silver(g, ys.map((y, i) => [i, y] as [number, number]), on);
-      vignette(g, W, H);
-    };
-    this.watch(ids, draw);
-    return cv;
-  }
-
-  /** ADSR display. */
-  private envView(prefix: string, W = 370, H = 112): HTMLElement {
-    const [cv, g] = canvas(W, H, 'disp');
-    const ids = ['attack', 'decay', 'sustain', 'release'].map((s) => `${prefix}.${s}`);
-    const draw = () => {
-      const a = this.num(ids[0]), d = this.num(ids[1]), s = this.num(ids[2]), r = this.num(ids[3]);
-      const hold = Math.max(250, 0.25 * (a + d));
-      const total = a + d + hold + r;
-      const span = total <= 1000 ? 1000 : total <= 4000 ? Math.ceil(total / 1000) * 1000 : total;
-      const X = (t: number) => 6 + (t / span) * (W - 12);
-      const Y = (v: number) => H - 10 - v * (H - 28);
-      paper(g, W, H);
-      g.fillStyle = 'rgba(232,226,216,0.3)';
-      g.font = '10px Inter, system-ui, sans-serif';
-      g.strokeStyle = 'rgba(232,226,216,0.04)';
-      const stepMs = span <= 1000 ? 250 : 1000;
-      for (let t = stepMs; t < span; t += stepMs) {
-        g.beginPath();
-        g.moveTo(X(t), 0);
-        g.lineTo(X(t), H);
-        g.stroke();
-        if (t % 1000 === 0) g.fillText(`${t / 1000} s`, X(t) + 3, H - 6);
-      }
-      const pts: [number, number][] = [];
-      const N = 40;
-      for (let i = 0; i <= N; i++) pts.push([X((a * i) / N), Y(1 - Math.pow(1 - i / N, 2))]);
-      for (let i = 1; i <= N; i++) pts.push([X(a + (d * i) / N), Y(s + (1 - s) * Math.exp((-5 * i) / N))]);
-      pts.push([X(a + d + hold), Y(s)]);
-      for (let i = 1; i <= N; i++) pts.push([X(a + d + hold + (r * i) / N), Y(s * Math.exp((-5 * i) / N))]);
-      silver(g, [[X(0), Y(0)], ...pts]);
-      vignette(g, W, H);
-    };
-    this.watch(ids, draw);
-    return cv;
-  }
-
-  // ------------------------------------------------------------------ cards
-
-  private oscCard(n: 1 | 2): HTMLElement {
-    const o = `osc${n}`;
-    const [el, body] = this.card(n === 1 ? 'OSC A' : 'OSC B', 'src', this.levelPower(`${o}.level`));
-    const semiP = getParam(`${o}.semi`)!;
-    const oct = () => Math.trunc(this.num(`${o}.semi`) / 12);
-    const sem = () => this.num(`${o}.semi`) - 12 * oct();
-    const setSemi = (v: number) => this.set(`${o}.semi`, Math.max(semiP.min!, Math.min(semiP.max!, v)));
-    const pitch = h('div', 'pitch-row',
-      this.stepper('OCT', oct, (v) => setSemi(12 * v + sem()), -2, 2, [`${o}.semi`], 'Octave'),
-      this.stepper('SEM', sem, (v) => setSemi(12 * oct() + v), -11, 11, [`${o}.semi`], 'Semitones'),
-      this.stepper('FIN', () => Math.round(this.num(`${o}.fine`)), (v) => this.set(`${o}.fine`, v), -100, 100, [`${o}.fine`], 'Fine tune (cents)'),
-    );
-    const top = h('div', 'osc-top', this.selector(`${o}.wave`), pitch);
-    const shapeId = () => (String(this.get(`${o}.wave`)) === 'wavetable' ? `${o}.wt_pos` : `${o}.pulse_width`);
-    // Shape: pulse width on pulse / pwm saw, position on the wavetable, dimmed otherwise.
-    const shapeWrap = h('div', 'shape-wrap');
-    const pwKnob = this.knob(`${o}.pulse_width`, 'SHAPE', 'small', { disabled: () => !['pulse', 'pwm_saw'].includes(String(this.get(`${o}.wave`))), deps: [`${o}.wave`] });
-    const wtKnob = this.knob(`${o}.wt_pos`, 'SHAPE', 'small');
-    shapeWrap.append(pwKnob, wtKnob);
-    this.watch([`${o}.wave`], () => {
-      const wt = shapeId() === `${o}.wt_pos`;
-      wtKnob.style.display = wt ? '' : 'none';
-      pwKnob.style.display = wt ? 'none' : '';
-    });
-    const uniOff = () => this.num(`${o}.unison_voices`) <= 1;
-    const knobs = h('div', 'knob-row',
-      this.stepper('UNISON', () => this.num(`${o}.unison_voices`), (v) => this.set(`${o}.unison_voices`, v), 1, 7, [`${o}.unison_voices`], 'Unison voices (stacked detuned copies)'),
-      this.knob(`${o}.unison_detune`, 'DETUNE', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] }),
-      shapeWrap,
-      this.knob(`${o}.unison_spread`, 'SPREAD', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] }),
-      this.lowCut(`${o}.highpass`, `${o}.filter_type`),
-      this.knob(`${o}.level`, 'LEVEL', 'small'),
-    );
-    body.append(top, this.waveView(n), knobs);
-    if (n === 2) body.append(h('div', 'sync-row', this.toggle('osc2.sync', 'SYNC')));
-    return el;
-  }
-
-  /**
-   * LOW CUT: a source's high-pass as one knob (fully left = off). On the oscillators it is their
-   * filter slot's cutoff (dimmed if that slot was set to another type in the full view); on the
-   * noise bed, turning it up switches the bed's own filter to a 24 dB high-pass.
-   */
-  private lowCut(cutId: string, typeId: string): HTMLElement {
-    const isOsc = cutId.startsWith('osc');
-    const p = getParam(cutId)!;
-    const OFF = 21;
-    const fmt = (v: number) => {
-      const t = String(this.get(typeId));
-      if (!t.startsWith('high') || v <= OFF) return 'off';
-      return v >= 1000 ? `${(v / 1000).toFixed(1)} kHz` : `${Math.round(v)} Hz`;
-    };
-    const el = this.knob(cutId, 'LO CUT', 'small', {
-      fmt,
-      deps: [typeId],
-      disabled: () => (isOsc ? !String(this.get(typeId)).startsWith('high') : false),
-    });
-    el.title = `Low cut: ${isOsc ? 'cuts this oscillator below this frequency before the drive, so it stays out of the sub\'s space' : 'cuts the noise bed below this frequency so it stays out of the body of the sound'}. Fully left = off. ${p.label}.`;
-    if (!isOsc) {
-      // The bed's filter is off by default: the knob shows "off" at its far left and switches it on when turned up.
-      el.addEventListener('pointerdown', () => {
-        if (!String(this.get(typeId)).startsWith('high')) {
-          this.set(cutId, 20);
-          this.set(typeId, 'high 24');
-        }
-      }, true);
-    }
-    return el;
-  }
-
-  private breathCard(): HTMLElement {
-    const [el, body] = this.card('BREATH', 'src', this.levelPower('breath.level'));
-    el.classList.add('layer');
-    body.append(h('div', 'knob-row tight',
-      this.knob('breath.chiff', 'CHIFF', 'small'),
-      this.knob('breath.decay', 'DECAY', 'small'),
-      this.knob('breath.tone', 'TONE', 'small'),
-      this.knob('breath.level', 'LEVEL', 'small'),
-    ));
-    return el;
-  }
-
-  private clickCard(): HTMLElement {
-    const [el, body] = this.card('CLICK', 'src', this.levelPower('click.level'));
-    el.classList.add('layer');
-    body.append(h('div', 'card-top', this.selector('click.type')), h('div', 'knob-row tight',
-      this.knob('click.decay', 'DECAY', 'small'),
-      this.knob('click.tone', 'TONE', 'small'),
-      this.knob('click.level', 'LEVEL', 'small'),
-    ));
-    return el;
-  }
-
-  /** Distortion: type, a live transfer curve, drive, mix, tone and the clean low band. */
-  private distCard(): HTMLElement {
-    const [el, body] = this.card('DISTORTION', 'dirt', this.boolPower('dist.on'));
-    const W = 300, H = 105;
-    const [cv, g] = canvas(W, H, 'disp');
-    const shape = (type: string, x: number, d: number): number => {
-      const k = 1 + 14 * d;
-      switch (type) {
-        case 'hard': return Math.max(-1, Math.min(1, x * k));
-        case 'fold': return Math.sin((x * k * Math.PI) / 2);
-        case 'tube': {
-          const b = 0.25;
-          return (Math.tanh(x * k + b) - Math.tanh(b)) / (1 - Math.tanh(b) * 0.4);
-        }
-        default: return Math.tanh(x * k) / Math.tanh(Math.max(1, k * 0.6));
-      }
-    };
-    const draw = () => {
-      const on = !!this.get('dist.on');
-      const type = String(this.get('dist.type')), d = this.num('dist.drive'), mix = this.num('dist.mix');
-      paper(g, W, H);
-      const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) {
-        const x = (i / W) * 2 - 1;
-        const y = Math.max(-1.1, Math.min(1.1, mix * shape(type, x, d) + (1 - mix) * x));
-        pts.push([i, H / 2 - y * (H / 2 - 12)]);
-      }
-      silver(g, pts, on);
-      vignette(g, W, H);
-    };
-    this.watch(['dist.on', 'dist.type', 'dist.drive', 'dist.mix'], draw);
-    const low = this.knob('dist.clean_below', 'LOW', 'small', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
-    low.title = 'Keeps everything below this frequency clean (the distortion only works on the part above it). Fully left = off.';
-    body.append(this.selector('dist.type'), cv, h('div', 'knob-row tight',
-      this.knob('dist.drive', 'DRIVE', 'small'),
-      this.knob('dist.mix', 'MIX', 'small'),
-      this.knob('dist.post_tone', 'TONE', 'small'),
-      low,
-    ));
-    return el;
-  }
-
-  private crushCard(): HTMLElement {
-    const [el, body] = this.card('BITCRUSHER', 'dirt', this.boolPower('crush.on'));
-    body.append(h('div', 'knob-row tight',
-      this.knob('crush.mix', 'MIX', 'small'),
-      this.knob('crush.bits', 'BITS', 'small', { fmt: (v) => `${Math.round(v)} bit` }),
-      this.knob('crush.rate', 'RATE', 'small'),
-    ));
-    return el;
-  }
-
-  private tapeCard(): HTMLElement {
-    const [el, body] = this.card('TAPE', 'dirt', this.boolPower('tape.on'));
-    body.append(h('div', 'knob-row tight',
-      this.knob('tape.drive', 'DRIVE', 'small'),
-      this.knob('tape.wow', 'WOW', 'small'),
-      this.knob('tape.age', 'AGE', 'small'),
-    ));
-    return el;
-  }
-
-  private midClipCard(): HTMLElement {
-    const [el, body] = this.card('MID CLIP', 'dirt', this.levelPower('clip.mid'));
-    body.append(h('div', 'knob-row tight',
-      this.knob('clip.mid', 'CLIP', 'small'),
-      h('div', 'clip-led', this.toggle('clip.low_cut', 'CLEAN LOWS', 'small')),
-    ));
-    return el;
-  }
-
-  private noiseCard(): HTMLElement {
-    const [el, body] = this.card('NOISE', 'src', this.levelPower('texture.level'));
-    el.classList.add('noise');
-    const head = h('div', 'card-top', this.selector('texture.type'), this.toggle('texture.direct', 'DIRECT OUT', 'small'));
-    const knobs = h('div', 'knob-row tight',
-      this.knob('texture.tone', 'TONE', 'small'),
-      this.knob('texture.tail', 'TAIL', 'small'),
-      this.knob('texture.pan', 'PAN', 'small'),
-      this.lowCut('texture.filter_cutoff', 'texture.filter_type'),
-      this.knob('texture.level', 'LEVEL', 'small'),
-    );
-    body.append(head, knobs);
-    return el;
-  }
-
-  private subCard(): HTMLElement {
-    const [el, body] = this.card('SUB', 'src', this.levelPower('sub.level'));
-    el.classList.add('sub');
-    const waves = h('div', 'wave-btns');
-    const icons: Record<string, string> = { sine: '∿', triangle: '⋀', square: '⊓' };
-    for (const w of getParam('sub.wave')!.options!) {
-      const b = h('button', 'wave-btn', icons[w] ?? w);
-      b.title = w;
-      b.onclick = () => this.set('sub.wave', w);
-      this.watch(['sub.wave'], () => b.classList.toggle('on', this.get('sub.wave') === w));
-      waves.append(b);
-    }
-    const head = h('div', 'card-top', waves, this.toggle('sub.direct', 'DIRECT OUT', 'small'));
-    const W = 206, H = 58;
-    const [cv, g] = canvas(W, H, 'disp');
-    this.watch(['sub.wave', 'sub.level'], () => {
-      paper(g, W, H);
-      const w = String(this.get('sub.wave'));
-      const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) {
-        const x = ((i / W) * 1.5) % 1;
-        const y = w === 'square' ? (x < 0.5 ? 0.8 : -0.8) : w === 'triangle' ? (x < 0.25 ? 4 * x : x < 0.75 ? 2 - 4 * x : 4 * x - 4) : Math.sin(2 * Math.PI * x);
-        pts.push([i, H / 2 - y * (H / 2 - 10)]);
-      }
-      silver(g, pts, this.num('sub.level') > 0);
-      vignette(g, W, H);
-    });
-    const row = h('div', 'knob-row',
-      this.stepper('OCTAVE', () => this.num('sub.octave'), (v) => this.set('sub.octave', v), -2, -1, ['sub.octave'], 'Sub octave'),
-      this.knob('sub.level', 'LEVEL', 'small'),
-      this.knob('sub.clip', 'CLIP', 'small'),
-    );
-    body.append(head, cv, row);
-    return el;
-  }
-
-  private envCard(prefix: 'amp_env' | 'mod_env', title: string, group: 'src' | 'flt', W = 370, H = 112): HTMLElement {
-    const [el, body] = this.card(title, group);
-    el.classList.add('env');
-    const ms = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${v < 10 ? v.toFixed(1) : Math.round(v)} ms`);
-    const sus = (v: number) => (v <= 0.0005 ? '-inf dB' : `${(20 * Math.log10(v)).toFixed(1)} dB`);
-    const row = h('div', 'env-knobs',
-      this.knob(`${prefix}.attack`, 'ATTACK', 'mid', { fmt: ms }),
-      this.knob(`${prefix}.decay`, 'DECAY', 'mid', { fmt: ms }),
-      this.knob(`${prefix}.sustain`, 'SUSTAIN', 'mid', { fmt: sus }),
-      this.knob(`${prefix}.release`, 'RELEASE', 'mid', { fmt: ms }),
-    );
-    body.append(this.envView(prefix, W, H), row);
-    return el;
-  }
-
-  private mainFilterCard(): HTMLElement {
-    const [el, body] = this.card('FILTER', 'flt', this.boolPower('filter.on'));
-    el.classList.add('main-filter');
-    const type = () => String(this.get('filter.type'));
-    const stages = (): [Kind, number, number][] | 'comb' | 'formant' => {
-      const fc = this.num('filter.cutoff'), res = this.num('filter.resonance');
-      switch (type()) {
-        case 'lowpass': return [['lp', fc, 0.54 + res * 5], ['lp', fc, 1.31]];
-        case 'diode': return [['lp', fc, 0.6 + res * 4], ['lp', fc * 1.6, 0.6]];
-        case 'lpg': return [['lp', fc, 0.7 + res * 2]];
-        case 'bandpass': return [['bp', fc, 1 + res * 6], ['bp', fc, 1 + res * 6]];
-        case 'notch': return [['notch', fc, 0.7 + res * 4]];
-        case 'comb': return 'comb';
-        default: return 'formant';
-      }
-    };
-    const curve = this.curveView(['filter.type', 'filter.cutoff', 'filter.resonance', 'filter.vowel', 'filter.on'], stages, () => !!this.get('filter.on'), 290, 130);
-    const routes = h('div', 'routes-col',
-      this.toggle('filter.route_a', 'A', 'route'),
-      this.toggle('filter.route_b', 'B', 'route'),
-      this.toggle('filter.route_n', 'N', 'route'),
-      this.toggle('filter.route_s', 'S', 'route'),
-    );
-    const driveKnob = this.knob('drive.amount', 'DRIVE', 'small', { disabled: () => !this.get('drive.on'), deps: ['drive.on'] });
-    // Turning the drive up switches the drive stage on.
-    driveKnob.addEventListener('pointerdown', () => { if (!this.get('drive.on')) this.set('drive.on', true); });
-    const grid = h('div', 'flt-knobs',
-      this.knob('filter.cutoff', 'CUTOFF', 'mid'),
-      this.knob('filter.resonance', 'RES', 'mid'),
-      this.knob('filter.env_amount', 'ENV', 'mid'),
-    );
-    const row2 = h('div', 'knob-row tight flt-row2',
-      this.knob('filter.keytrack', 'KEY', 'small'),
-      driveKnob,
-      this.knob('filter.fat', 'FAT', 'small'),
-      this.knob('filter.mix', 'MIX', 'small'),
-    );
-    body.append(this.selector('filter.type'), curve, h('div', 'flt-main', h('div', 'routes-wrap', routes), grid), row2);
-    return el;
-  }
-
   private bottomBar(): HTMLElement {
     const mono = h('button', 'seg', 'MONO');
     const poly = h('button', 'seg', 'POLY');
@@ -863,11 +1125,11 @@ export class SynthView {
     const glideP = getParam('voice.glide')!;
     const track = h('div', 'glide-track', h('div', 'glide-fill'));
     const gval = h('span', 'glide-val');
-    const glide = h('div', 'glide', h('span', 'glide-label', 'GLIDE'), track, gval);
+    const glide = h('div', 'glide', h('span', 'glide-label', 'Glide'), track, gval);
     glide.title = `${glideP.label}: ${glideP.describes}`;
     const setFromX = (x: number) => {
       const r = track.getBoundingClientRect();
-      this.set('voice.glide', Math.round(fromNormalized(glideP, (x - r.left) / r.width) * 10) / 10);
+      this.set('voice.glide', Math.round(fromNormalized(glideP, Math.max(0, Math.min(1, (x - r.left) / r.width))) * 10) / 10);
     };
     track.addEventListener('pointerdown', (e) => {
       track.setPointerCapture(e.pointerId);
@@ -880,23 +1142,24 @@ export class SynthView {
       (track.firstChild as HTMLElement).style.width = `${toNormalized(glideP, v) * 100}%`;
       gval.textContent = formatValue(glideP, v);
     });
-    const gear = h('button', 'gear', h('span', 'gear-icon'), h('span', 'gear-label', 'OPEN ALL'));
+    const safe = h('div', 'safelight', h('span', 'lamp lamp-safe'), h('span', 'safe-text', 'Low end mono · limiter on'));
+    safe.title = 'The low end is always mono and phase-stable; a transparent output limiter is always on.';
+    const gear = h('button', 'gear', h('span', 'gear-icon'), h('span', 'gear-label', 'All controls'));
     gear.title = 'Open every control (the full parameter view) under this page';
     gear.onclick = () => this.onGear();
-    const [meter, mg] = canvas(96, 26, 'meter');
+    const [meter, mg] = canvas(84, 22, 'meter');
     this.meterG = mg;
-    const master = h('div', 'master', this.readout('output.gain', 'MASTER'), meter);
-    const safelight = h('div', 'safelight', lamp(), h('div', 'safe-text', h('span', 'safe-label', 'SAFELIGHT'), h('span', 'safe-val', 'LOW END MONO · LIMITER ON')));
-    safelight.title = 'The low end is always mono and phase-stable; a transparent output limiter is always on.';
     return h('div', 'v2-bottom',
       h('div', 'seg-wrap', mono, poly),
-      this.toggle('voice.legato', 'LEGATO'),
+      this.toggle('voice.legato', 'Legato'),
       glide,
-      safelight,
+      safe,
       gear,
-      master,
+      h('div', 'master', this.readout('output.gain', 'Master'), meter),
     );
   }
+
+  // ------------------------------------------------------------------ the page
 
   private build(): void {
     const tabs = h('div', 'v2-tabs');
@@ -904,20 +1167,22 @@ export class SynthView {
       const b = h('button', 'tab' + (on ? ' on' : ''), t);
       if (!on) {
         b.disabled = true;
-        b.title = 'Coming later (until then: the gear opens every control)';
+        b.title = 'Coming later (until then: "All controls" opens every control)';
       }
       tabs.append(b);
     }
-    const oscRow = h('div', 'osc-row', this.oscCard(1), this.oscCard(2));
-    const sources = h('div', 'col-sources', oscRow, this.envCard('amp_env', 'AMP ENVELOPE', 'src', 556, 270));
-    const layers = h('div', 'col-layers', this.noiseCard(), this.breathCard(), this.clickCard(), this.subCard());
-    const filter = h('div', 'col-filter', this.mainFilterCard(), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', 290, 125));
-    const dirt = h('div', 'col-dirt', this.distCard(), this.crushCard(), this.tapeCard(), this.midClipCard());
-    const zone = (cls: string, cap: string, ...kids: HTMLElement[]) => h('div', `zone ${cls}`, h('div', 'zone-cap', cap), h('div', 'zone-body', ...kids));
-    const zoneSrc = zone('zone-src', 'SOURCES', sources, layers);
-    const zoneFlt = zone('zone-flt', 'FILTER', filter);
-    const zoneDirt = zone('zone-dirt', 'DIRT', dirt);
-    this.page.append(h('div', 'v2-top', h('div', 'v2-title', this.titleEl, this.subEl), tabs), h('div', 'v2-main', zoneSrc, zoneFlt, zoneDirt), this.bottomBar());
+    const cap = (n: string, name: string, note: string, zone: Zone) =>
+      h('div', `zone-cap cap-${zone}`, h('span', 'cap-name', `${n}  ${name}`), h('span', 'cap-note', note), h('span', 'cap-line'));
+    const sources = h('div', 'col col-sources', cap('1', 'SOURCES', 'make the sound', 'src'),
+      this.oscStrip(1), this.oscStrip(2), this.subStrip(), this.noiseStrip(), this.breathStrip(), this.clickStrip());
+    const middle = h('div', 'col col-middle', h('div', 'zone-cap'), this.scopeBox(), this.envCard('amp_env', 'AMP ENVELOPE', 'src', 220, 236, 'mid'));
+    const filter = h('div', 'col col-filter', cap('2', 'FILTER', 'shape the tone', 'flt'), this.filterCard(), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', 174, 70, 'small'));
+    const dirt = h('div', 'col col-dirt', cap('3', 'DIRT', 'grit and wear', 'dirt'), this.distCard(), this.tapeCard(), this.crushCard(), this.midClipCard(), this.wheelCard());
+    this.page.append(
+      h('div', 'v2-top', h('div', 'v2-title', this.titleEl, this.subEl), h('div', 'v2-top-right', tabs, this.zoomBtn)),
+      h('div', 'v2-main', sources, middle, filter, dirt),
+      this.bottomBar(),
+    );
   }
 }
 
@@ -925,4 +1190,3 @@ function hexA(hex: string, a: number): string {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 }
-

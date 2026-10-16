@@ -57,7 +57,10 @@ const panel = new ParamsPanel(
     host?.setParam(id, value);
     synth.setValue(id, value);
   },
-  (v) => host?.modWheel(v),
+  (v) => {
+    host?.modWheel(v);
+    synth.setWheel(v);
+  },
   (solo, mute) => host?.monitor(solo, mute),
 );
 
@@ -67,6 +70,10 @@ const synth = new SynthView($('synth-v2'), (id, value) => {
   host?.setParam(id, value);
   panel.setValue(id, value);
 });
+synth.onWheel = (v) => {
+  host?.modWheel(v);
+  panel.setWheel(v);
+};
 synth.onGear = () => {
   const old = $('old-ui');
   old.classList.toggle('hidden');
@@ -459,6 +466,7 @@ $('start').querySelector('button')!.addEventListener('click', async () => {
     modWheel: (v) => {
       host?.modWheel(v);
       panel.setWheel(v);
+      synth.setWheel(v);
     },
     allNotesOff: () => host?.panic(),
     status: (t) => {
