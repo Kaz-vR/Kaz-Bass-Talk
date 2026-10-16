@@ -189,6 +189,8 @@ export class Voice {
   private routeA = true;
   private routeB = true;
   private routeS = false;
+  private routeBr = true;
+  private routeCl = false;
   private subDirect = true;
   /** Some source skips the drive and main filter: it gets its own oversampled path. */
   private bypassOn = false;
@@ -596,6 +598,8 @@ export class Voice {
     this.routeA = cur[P.routeA] > 0.5;
     this.routeB = cur[P.routeB] > 0.5;
     this.routeS = cur[P.routeS] > 0.5;
+    this.routeBr = cur[P.routeBr] > 0.5;
+    this.routeCl = cur[P.routeCl] > 0.5;
     {
       let hz = Infinity;
       for (let n = 0; n < 2; n++) {
@@ -606,7 +610,7 @@ export class Voice {
       this.postCut.set(on ? 1 : 0, true, on ? hz : 20, fs);
     }
     this.subDirect = cur[P.subDirect] > 0.5;
-    const bypass = !this.routeA || !this.routeB;
+    const bypass = !this.routeA || !this.routeB || !this.routeBr;
     if (bypass && !this.bypassOn) {
       this.upBL.reset();
       this.upBR.reset();
@@ -1088,7 +1092,7 @@ export class Voice {
           byL = (this.routeA ? 0 : preL) + (this.routeB ? 0 : bl);
           byR = (this.routeA ? 0 : preR) + (this.routeB ? 0 : br);
         }
-      } else if (this.bypassOn) {
+      } else if (!this.routeA) {
         // Neither oscillator goes into the filter.
         byL = l;
         byR = r;
@@ -1104,8 +1108,20 @@ export class Voice {
         const ba = this.chiffAmt * this.chiffEnv + 0.5 * this.breathLvl;
         this.breathSvf.process(this.rng.next(), this.breathG, 1.1);
         const b = this.breathSvf.bp * ba * 1.6;
-        l += b;
-        r += b;
+        if (this.routeBr) {
+          l += b;
+          r += b;
+        } else {
+          byL += b;
+          byR += b;
+        }
+      }
+      // Click into the filter (C): it joins the oscillators here, level-matched to its usual
+      // place after the amp, and the amp envelope then shapes it like everything else.
+      if (this.routeCl && this.clickLevel > 0) {
+        const c = this.transient.process() * this.clickLevel * 1.5 / (PRE_FILTER_GAIN * POST_FILTER_GAIN);
+        l += c;
+        r += c;
       }
       // Sub: clean, mono, phase-stable (in poly mode only the lowest note carries it). Its own
       // filter and clip shape it; with "sub into filter" (S) it joins the oscillators instead.
@@ -1202,7 +1218,7 @@ export class Voice {
       }
 
       // Attack transient layer (bypasses the filter so it stays crisp).
-      if (this.clickLevel > 0) {
+      if (this.clickLevel > 0 && !this.routeCl) {
         const c = this.transient.process() * this.clickLevel * this.velGain * duck * VOICE_GAIN * 1.5;
         l += c;
         r += c;

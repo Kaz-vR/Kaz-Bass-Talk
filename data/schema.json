@@ -977,6 +977,22 @@
       "describes": "The sub goes through the drive and the main filter, and from there through the rest of the voice and the effects. Off (the default): the sub stays on its own clean path."
     },
     {
+      "id": "filter.route_br",
+      "label": "Filter: breath in",
+      "type": "bool",
+      "default": true,
+      "group": "filter",
+      "describes": "The breath layer goes through the drive and the main filter (the default). Off: it skips them, staying airy however dark the filter is."
+    },
+    {
+      "id": "filter.route_cl",
+      "label": "Filter: click in",
+      "type": "bool",
+      "default": false,
+      "group": "filter",
+      "describes": "The click goes through the drive and the main filter, so the filter darkens and shapes it. Off (the default): it is added after the amp and stays crisp."
+    },
+    {
       "id": "filter.fat",
       "label": "Filter fat",
       "type": "float",

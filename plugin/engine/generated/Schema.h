@@ -6,7 +6,7 @@ struct ParamSpec {
   const char* id; const char* label; PType type; double min, max, def; int curve; double exponent;
   const char* unit; const char* group; const char* options; const char* describes;
 };
-constexpr int PARAM_COUNT = 226;
+constexpr int PARAM_COUNT = 228;
 inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "voice.polyphony", "Polyphony", PType::Int, 1, 8, 1, 0, 3, "voices", "voice", "", "1 = monophonic (legato and glide work, the bass default). 2-8 = that many notes at once, for pads, keys and chords; the oldest note is taken over when more are played." },
   { "voice.legato", "Legato", PType::Bool, 0, 1, 0, 0, 3, "", "voice", "", "On: overlapping notes slide without retriggering the envelopes (303-style). Off: every note retriggers." },
@@ -90,6 +90,8 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "filter.route_b", "Filter: osc 2 in", PType::Bool, 0, 1, 1, 0, 3, "", "filter", "", "Oscillator 2 goes through the drive and the main filter. Off: it skips them." },
   { "filter.route_n", "Filter: texture in", PType::Bool, 0, 1, 0, 0, 3, "", "filter", "", "The texture bed goes through a copy of the main filter that follows the newest note." },
   { "filter.route_s", "Filter: sub in", PType::Bool, 0, 1, 0, 0, 3, "", "filter", "", "The sub goes through the drive and the main filter, and from there through the rest of the voice and the effects. Off (the default): the sub stays on its own clean path." },
+  { "filter.route_br", "Filter: breath in", PType::Bool, 0, 1, 1, 0, 3, "", "filter", "", "The breath layer goes through the drive and the main filter (the default). Off: it skips them, staying airy however dark the filter is." },
+  { "filter.route_cl", "Filter: click in", PType::Bool, 0, 1, 0, 0, 3, "", "filter", "", "The click goes through the drive and the main filter, so the filter darkens and shapes it. Off (the default): it is added after the amp and stays crisp." },
   { "filter.fat", "Filter fat", PType::Float, 0, 1, 0, 0, 3, "", "filter", "", "Brings back the body that resonance takes away and saturates inside the filter, so a resonant filter stays thick instead of thin and whistly." },
   { "filter.mix", "Filter mix", PType::Float, 0, 1, 1, 0, 3, "", "filter", "", "Blend of the unfiltered (driven) and the filtered sound. 1 = fully filtered." },
   { "dist.on", "Distortion on", PType::Bool, 0, 1, 1, 0, 3, "", "dist", "", "Switches Distortion on or off without losing its settings. Off also saves CPU." },
