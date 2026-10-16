@@ -21,9 +21,32 @@ export interface PresetItem {
   /** Measured character (normalized 0..1). */
   features: Record<string, number>;
 }
+/** A rolled sound (Randomizer) or a starred one (User). */
+export interface RollItem {
+  id: number;
+  name: string;
+  hint: string;
+  starred: boolean;
+}
+export interface RollState {
+  rolls: RollItem[];
+  user: RollItem[];
+  rolling: boolean;
+  weirdness: number;
+  basedOn: string;
+  basedOptions: [string, string][];
+}
 export interface PresetSource {
   shelves: () => { id: string; name: string; secondary?: boolean; items: PresetItem[] }[];
-  current: () => { shelf: string; index: number };
+  current: () => { shelf: string; index: number; roll: number };
+  rollState: () => RollState;
+  roll: () => void;
+  setWeirdness: (v: number) => void;
+  setBasedOn: (id: string) => void;
+  clearRolls: () => void;
+  pickRoll: (id: number) => void;
+  starRoll: (id: number) => void;
+  removeRoll: (id: number, from: 'rolls' | 'user') => void;
   pick: (shelf: string, index: number) => void;
   step: (dir: number) => void;
   toggleLoop: () => void;
@@ -279,6 +302,11 @@ export class SynthView {
     this.values = { ...(patch as unknown as Record<string, ParamValue>) };
     for (const v of this.allViews) v();
     if (this.presetPage.isConnected && this.presetPage.style.display !== 'none') this.markCurrent();
+  }
+
+  /** The rolls or starred sounds changed: redraw the PRESETS page if it's showing. */
+  refreshPresets(): void {
+    if (this.presetPage.style.display !== 'none' && this.presetPage.isConnected) this.renderPresetPage();
   }
 
   /** The audition loop started or stopped (the AUDITION button follows it). */
@@ -1284,8 +1312,9 @@ export class SynthView {
     const src = this.presets;
     if (!src) return;
     const shelves = src.shelves();
+    const rollPage = this.pageShelf === 'randomizer' || this.pageShelf === 'user';
     const shelf = shelves.find((s) => s.id === this.pageShelf) ?? shelves[0];
-    this.pageShelf = shelf.id;
+    if (!rollPage) this.pageShelf = shelf.id;
     // shelves
     const left = h('div', 'pp-col pp-shelves', h('div', 'pp-head', h('span', 'pp-title dim', 'SHELVES')));
     let divided = false;
@@ -1294,12 +1323,27 @@ export class SynthView {
         left.append(h('div', 'pp-divider'));
         divided = true;
       }
-      const b = h('button', 'pp-shelf' + (s.id === shelf.id ? ' on' : '') + (s.secondary ? ' secondary' : ''), lamp(), h('span', 'pp-shelf-name', s.name), h('span', 'pp-count', String(s.items.length)));
+      const b = h('button', 'pp-shelf' + (s.id === this.pageShelf ? ' on' : '') + (s.secondary ? ' secondary' : ''), lamp(), h('span', 'pp-shelf-name', s.name), h('span', 'pp-count', String(s.items.length)));
       b.onclick = () => {
         this.pageShelf = s.id;
         this.renderPresetPage();
       };
       left.append(b);
+    }
+    if (!divided) left.append(h('div', 'pp-divider'));
+    const rs = src.rollState();
+    for (const [id, name, count] of [['randomizer', 'Randomizer', ''], ['user', '★ User', String(rs.user.length)]] as const) {
+      const b = h('button', 'pp-shelf secondary' + (this.pageShelf === id ? ' on' : ''), lamp(), h('span', 'pp-shelf-name', name), h('span', 'pp-count', count));
+      b.onclick = () => {
+        this.pageShelf = id;
+        this.renderPresetPage();
+      };
+      left.append(b);
+    }
+    if (this.pageShelf === 'randomizer' || this.pageShelf === 'user') {
+      this.presetPage.replaceChildren(left, this.rollList(this.pageShelf, rs), h('div', 'pp-col pp-detail'));
+      this.markCurrent();
+      return;
     }
     // the list
     const sortSel = h('select', 'sel-name');
@@ -1343,6 +1387,10 @@ export class SynthView {
     const src = this.presets;
     if (!src) return;
     const cur = src.current();
+    if (this.pageShelf === 'randomizer' || this.pageShelf === 'user') {
+      this.markRoll(cur.roll);
+      return;
+    }
     const shelf = src.shelves().find((s) => s.id === this.pageShelf);
     let found = false;
     this.presetPage.querySelectorAll<HTMLElement>('.pp-row').forEach((r) => {
@@ -1392,6 +1440,122 @@ export class SynthView {
       h('div', 'pp-title dim', 'CHARACTER'),
       bars,
       h('div', 'pp-buttons', this.audition, open),
+    );
+  }
+
+  /** The Randomizer (roll controls + the rolls) or User (the starred sounds) in the middle column. */
+  private rollList(which: 'randomizer' | 'user', rs: RollState): HTMLElement {
+    const src = this.presets!;
+    const items = which === 'randomizer' ? rs.rolls : rs.user;
+    const head = h('div', 'pp-head', h('span', 'pp-title', which === 'randomizer' ? 'RANDOMIZER' : '★ USER'),
+      h('span', 'pp-sub', which === 'randomizer' ? `${items.length} rolls` : `${items.length} starred sounds`));
+    const col = h('div', 'pp-col pp-presets', head);
+    if (which === 'randomizer') {
+      const dice = h('button', 'pp-roll', rs.rolling ? 'ROLLING…' : '🎲  ROLL');
+      dice.disabled = rs.rolling;
+      dice.title = 'Roll a new sound (boxes locked in "All controls" stay as they are)';
+      dice.onclick = () => src.roll();
+      const weird = h('input', 'pp-weird') as HTMLInputElement;
+      weird.type = 'range';
+      weird.min = '0';
+      weird.max = '1';
+      weird.step = '0.01';
+      weird.value = String(rs.weirdness);
+      const word = (v: number) => (v < 0.2 ? 'close cousins' : v < 0.5 ? 'a twist' : v < 0.8 ? 'strange' : 'wild');
+      const wv = h('span', 'pp-weird-word', word(rs.weirdness));
+      weird.oninput = () => {
+        src.setWeirdness(Number(weird.value));
+        wv.textContent = word(Number(weird.value));
+      };
+      const wrap = h('label', 'pp-field', h('span', 'pp-field-label', 'Weirdness'), weird, wv);
+      wrap.title = 'Low: close cousins of the presets. High: parts from other categories collide, wild ideas, far from anything in the bank.';
+      const based = h('select', 'sel-name');
+      for (const [id, name] of rs.basedOptions) based.append(new Option(name.toUpperCase(), id));
+      based.value = rs.basedOn;
+      based.onchange = () => src.setBasedOn(based.value);
+      const basedWrap = h('label', 'pp-field', h('span', 'pp-field-label', 'Based on'), h('div', 'sel pp-based', based));
+      basedWrap.title = "Which presets the roll is built from. 'Anything' draws from the whole bank.";
+      const clear = h('button', 'pp-clear', 'Clear all');
+      clear.disabled = !items.length;
+      clear.title = 'Remove every roll (starred ones stay in User)';
+      clear.onclick = () => src.clearRolls();
+      col.append(h('div', 'pp-rollbar', dice, wrap, basedWrap, clear));
+    }
+    const list = h('div', 'pp-list');
+    if (!items.length) {
+      list.append(h('div', 'pp-empty', which === 'randomizer' ? 'Roll to make a new sound from the bank\'s own parts.' : 'Star a roll (☆) to keep it here.'));
+    }
+    for (const it of items) {
+      const star = h('button', 'pp-icon' + (it.starred ? ' on' : ''), it.starred ? '★' : '☆');
+      star.title = it.starred ? 'In User (click to take it out)' : 'Star: add this sound to User';
+      star.onclick = (e) => {
+        e.stopPropagation();
+        src.starRoll(it.id);
+      };
+      const del = h('button', 'pp-icon', '✕');
+      del.title = which === 'randomizer' ? 'Throw this roll away' : 'Delete this sound from User';
+      del.onclick = (e) => {
+        e.stopPropagation();
+        src.removeRoll(it.id, which === 'randomizer' ? 'rolls' : 'user');
+      };
+      const row = h('button', 'pp-row', h('span', 'pp-play'),
+        h('span', 'pp-row-main', h('span', 'pp-row-top', h('span', 'pp-name', it.name)), h('span', 'pp-desc', it.hint)),
+        h('span', 'pp-tools', star, del));
+      row.dataset.roll = String(it.id);
+      row.title = 'Click to hear it, double-click to open it in OSC';
+      row.onclick = () => src.pickRoll(it.id);
+      row.ondblclick = () => this.showTab('OSC');
+      list.append(row);
+    }
+    col.append(list);
+    return col;
+  }
+
+  /** Highlight the loaded roll and show it up close. */
+  private markRoll(id: number): void {
+    const src = this.presets!;
+    const rs = src.rollState();
+    const it = [...rs.rolls, ...rs.user].find((x) => x.id === id);
+    let found = false;
+    this.presetPage.querySelectorAll<HTMLElement>('.pp-row').forEach((r) => {
+      const on = Number(r.dataset.roll) === id;
+      r.classList.toggle('on', on);
+      if (on) {
+        found = true;
+        r.scrollIntoView({ block: 'center' });
+      }
+    });
+    const right = this.presetPage.querySelector('.pp-detail');
+    if (!right) return;
+    if (!it || !found) {
+      right.replaceChildren(h('div', 'pp-empty', this.pageShelf === 'randomizer' ? 'Roll, then click a roll to hear it.' : 'Click a sound to hear it.'));
+      return;
+    }
+    const W = 360, H = 150;
+    const [cv, g] = canvas(W, H, 'disp');
+    paper(g, W, H);
+    const k = 2 + (id % 5) * 0.8, ph = id * 2.3;
+    const pts: [number, number][] = [];
+    for (let x = 0; x <= W; x += 2) {
+      const u = x / W;
+      pts.push([x, H * (0.5 - Math.sin(Math.PI * u) ** 1.2 * 0.3 * (Math.sin(u * 6.283 * k + ph) * 0.7 + 0.3 * Math.sin(u * 6.283 * k * 2.3 - ph)))]);
+    }
+    silver(g, pts);
+    vignette(g, W, H);
+    this.audition = h('button', 'pp-btn pp-audition');
+    this.audition.onclick = () => src.toggleLoop();
+    this.setPlaying(src.playing());
+    const star = h('button', 'pp-btn' + (it.starred ? ' starred' : ''), it.starred ? '★  IN USER' : '☆  STAR');
+    star.onclick = () => src.starRoll(it.id);
+    const open = h('button', 'pp-btn', 'OPEN IN OSC  →');
+    open.onclick = () => this.showTab('OSC');
+    right.replaceChildren(
+      h('div', 'pp-print', cv),
+      h('div', 'pp-big-name', it.name),
+      h('span', 'pp-tpl', it.starred ? '★ User' : 'Rolled'),
+      h('p', 'pp-text', it.hint),
+      h('div', 'pp-buttons', this.audition, star),
+      h('div', 'pp-buttons pp-buttons-2', open),
     );
   }
 

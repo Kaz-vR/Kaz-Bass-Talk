@@ -93,7 +93,41 @@ synth.presets = {
       };
     }),
   }))),
-  current: () => ({ shelf: currentRoll ? '' : currentGroup.id, index: currentRoll ? -1 : currentIndex }),
+  current: () => ({ shelf: currentRoll ? '' : currentGroup.id, index: currentRoll ? -1 : currentIndex, roll: currentRoll?.id ?? -1 }),
+  rollState: () => {
+    const item = (e: RollEntry) => ({ id: e.id, name: e.roll.name, hint: e.roll.hint, starred: isStarred(e) });
+    return {
+      rolls: rolls.map(item),
+      user: userSounds.map(item),
+      rolling,
+      weirdness,
+      basedOn,
+      basedOptions: [['any', 'Anything'], ...categories.map((c) => [c.id, c.name] as [string, string])],
+    };
+  },
+  roll: () => doRoll(),
+  setWeirdness: (v) => { weirdness = v; },
+  setBasedOn: (id) => { basedOn = id; },
+  clearRolls: () => {
+    rolls = [];
+    renderBrowser();
+  },
+  pickRoll: (id) => {
+    const e = [...rolls, ...userSounds].find((x) => x.id === id);
+    if (e) loadRoll(e);
+  },
+  starRoll: (id) => {
+    const e = [...rolls, ...userSounds].find((x) => x.id === id);
+    if (e) toggleStar(e);
+  },
+  removeRoll: (id, from) => {
+    if (from === 'rolls') rolls = rolls.filter((x) => x.id !== id);
+    else {
+      userSounds = userSounds.filter((x) => x.id !== id);
+      saveUser();
+    }
+    renderBrowser();
+  },
   pick: (shelf, index) => {
     const g = groups.find((x) => x.id === shelf);
     if (!g) return;
@@ -138,6 +172,7 @@ function setLoop(id: string): void {
 }
 
 function renderBrowser(): void {
+  queueMicrotask(() => synth.refreshPresets());
   const cats = $('categories');
   cats.innerHTML = '';
   for (const g of groups) {
