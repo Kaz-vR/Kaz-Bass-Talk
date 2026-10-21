@@ -544,3 +544,6 @@ body.randomizing .group.locked { box-shadow: inset 0 0 0 1px #6f78ff; }
 .st-group:empty { min-width: 88px; }
 .col-dirt .k-big, .col-dirt .k-mid, .col-dirt .k-small { width: 41px; }
 .st-group, .st-group:empty { width: 88px; min-width: 88px; justify-content: flex-end; }
+
+/* Inside the plugin window: the page fits the window's width (no sideways scrolling). */
+html.in-plugin, html.in-plugin body { overflow-x: hidden; }

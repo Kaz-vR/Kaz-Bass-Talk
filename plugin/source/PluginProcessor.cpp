@@ -92,6 +92,8 @@ void LowTalkProcessor::loadPresets() {
 void LowTalkProcessor::setCurrentProgram(int index) {
   if (index < 0 || index >= (int)presets.size()) return;
   currentProgram = index;
+  setPresetName(presets[(size_t)index].name);
+  stateSerial++;
   const auto& vals = presets[(size_t)index].values;
   for (int i = 0; i < lt::PARAM_COUNT; i++)
     if (auto* p = apvts.getParameter(lt::PARAMS[i].id))
@@ -108,7 +110,12 @@ bool LowTalkProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const 
 }
 
 void LowTalkProcessor::prepareToPlay(double sampleRate, int) {
+  // A new engine: the window's loop is handed over again (the old player goes with the old synth).
+  player.reset();
+  rate = sampleRate;
   synth = std::make_unique<lt::Synth>(sampleRate);
+  player = std::make_unique<lt::LoopPlayer>(*synth);
+  if (loopEverSet && !loopPending.load()) loopPending.store(true);
   pushParams(true);
   setLatencySamples(synth->latency());
 }
@@ -131,8 +138,10 @@ void LowTalkProcessor::handleMidi(const juce::MidiMessage& m) {
   const int ch = m.getChannel() - 1;
   const bool member = mpe && ch > 0;
   if (m.isNoteOn()) {
+    markNote(m.getNoteNumber(), true);
     synth->noteOn(m.getNoteNumber(), m.getFloatVelocity(), member ? ch : -1);
   } else if (m.isNoteOff()) {
+    markNote(m.getNoteNumber(), false);
     synth->noteOff(m.getNoteNumber(), member ? ch : -1);
   } else if (m.isPitchWheel()) {
     const double v = (m.getPitchWheelValue() - 8192) / 8192.0;
@@ -148,6 +157,7 @@ void LowTalkProcessor::handleMidi(const juce::MidiMessage& m) {
     } else if (cc == 74 && member) {
       synth->setChannelSlide(ch, m.getControllerValue() / 127.0);
     } else if (cc == 123 || cc == 120) {
+      for (auto& h : heldNotes) h.store(0);
       synth->allNotesOff();
     }
   }
@@ -160,6 +170,7 @@ void LowTalkProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
   if (!synth) return;
 
   pushParams(false);
+  runCommands();
 
   const bool mpe = mpeParam->load() > 0.5f;
   if (mpe != mpeWas) {
@@ -170,8 +181,9 @@ void LowTalkProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
   // The pump and the wobble run on the host's tempo and bar, so they land on the beat.
   if (auto* head = getPlayHead()) {
     if (auto pos = head->getPosition()) {
-      if (auto bpm = pos->getBpm()) synth->setTempo(*bpm);
-      if (pos->getIsPlaying()) {
+      // (While the window's audition loop plays, it keeps its own tempo.)
+      if (auto bpm = pos->getBpm(); bpm && !player->playing) synth->setTempo(*bpm);
+      if (pos->getIsPlaying() && !player->playing) {
         if (auto ppq = pos->getPpqPosition()) {
           const double barStart = pos->getPpqPositionOfLastBarStart().orFallback(0.0);
           synth->syncBeat(*ppq - barStart);
@@ -194,21 +206,30 @@ void LowTalkProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     const int at = juce::jlimit(0, frames, meta.samplePosition);
     if (at > pos) {
       synth->setModWheel(wheel);
-      synth->render(left, right, pos, at - pos);
+      player->render(left, right, pos, at - pos);
       pos = at;
     }
     handleMidi(meta.getMessage());
   }
   if (pos < frames) {
     synth->setModWheel(wheel);
-    synth->render(left, right, pos, frames - pos);
+    player->render(left, right, pos, frames - pos);
   }
   effectiveWheel.store(wheel);
+
+  // Feed the window's scope and meter.
+  int sp = scopePos.load(std::memory_order_relaxed);
+  for (int i = 0; i < frames; i++) {
+    scope[(size_t)sp] = 0.5f * (left[i] + right[i]);
+    sp = (sp + 1) & (SCOPE_SIZE - 1);
+  }
+  scopePos.store(sp, std::memory_order_release);
 }
 
 void LowTalkProcessor::getStateInformation(juce::MemoryBlock& destData) {
   auto state = apvts.copyState();
   state.setProperty("program", currentProgram, nullptr);
+  state.setProperty("presetName", getPresetName(), nullptr);
   if (auto xml = state.createXml()) copyXmlToBinary(*xml, destData);
 }
 
@@ -217,9 +238,82 @@ void LowTalkProcessor::setStateInformation(const void* data, int sizeInBytes) {
     auto tree = juce::ValueTree::fromXml(*xml);
     if (tree.hasType(apvts.state.getType())) {
       currentProgram = tree.getProperty("program", 0);
+      const juce::String name = tree.getProperty("presetName", "").toString();
       apvts.replaceState(tree);
+      setPresetName(name.isNotEmpty() || presets.empty() ? name : presets[(size_t)juce::jlimit(0, (int)presets.size() - 1, currentProgram)].name);
+      stateSerial++;
     }
   }
+}
+
+void LowTalkProcessor::markNote(int note, bool down) {
+  if (note < 0 || note > 127) return;
+  const uint32_t bit = 1u << (note & 31);
+  auto& w = heldNotes[(size_t)(note >> 5)];
+  if (down) w.fetch_or(bit);
+  else w.fetch_and(~bit);
+}
+
+void LowTalkProcessor::sendCommand(const Command& c) {
+  const auto w = commandFifo.write(1);
+  if (w.blockSize1 > 0) commands[(size_t)w.startIndex1] = c;
+  else if (w.blockSize2 > 0) commands[(size_t)w.startIndex2] = c;
+}
+
+void LowTalkProcessor::runCommands() {
+  if (loopPending.load(std::memory_order_acquire)) {
+    player->setLoop(pendingLoop.data(), pendingCount, pendingLength, pendingBpm);
+    loopPending.store(false, std::memory_order_release);
+  }
+  const auto rd = commandFifo.read(commandFifo.getNumReady());
+  auto run = [this](const Command& c) {
+    switch (c.type) {
+      case CMD_NOTE_ON: synth->noteOn(c.a, c.v); break;
+      case CMD_NOTE_OFF: synth->noteOff(c.a); break;
+      case CMD_BEND: synth->pitchBend(c.v); break;
+      case CMD_PANIC: player->stop(); synth->panic(); break;
+      case CMD_PLAY: player->start(); break;
+      case CMD_STOP: player->stop(); break;
+      case CMD_MONITOR: synth->setMonitor(c.a, c.b); break;
+      default: break;
+    }
+  };
+  for (int i = 0; i < rd.blockSize1; i++) run(commands[(size_t)(rd.startIndex1 + i)]);
+  for (int i = 0; i < rd.blockSize2; i++) run(commands[(size_t)(rd.startIndex2 + i)]);
+}
+
+bool LowTalkProcessor::sendLoop(const std::vector<lt::LoopEvent>& events, double lengthBeats, double bpm) {
+  if (loopPending.load(std::memory_order_acquire)) return false;
+  pendingCount = (int)std::min(events.size(), pendingLoop.size());
+  std::copy(events.begin(), events.begin() + pendingCount, pendingLoop.begin());
+  pendingLength = lengthBeats;
+  pendingBpm = bpm;
+  loopEverSet = true;
+  loopPending.store(true, std::memory_order_release);
+  return true;
+}
+
+void LowTalkProcessor::setEngineValue(int index, double value) {
+  if (index < 0 || index >= lt::PARAM_COUNT) return;
+  if (auto* p = apvts.getParameter(lt::PARAMS[index].id)) {
+    p->beginChangeGesture();
+    p->setValueNotifyingHost(p->convertTo0to1((float)value));
+    p->endChangeGesture();
+  }
+}
+
+void LowTalkProcessor::setWheelFromUi(float v) {
+  if (auto* p = apvts.getParameter(WHEEL_ID)) p->setValueNotifyingHost(juce::jlimit(0.f, 1.f, v));
+}
+
+juce::String LowTalkProcessor::getPresetName() const {
+  const juce::ScopedLock sl(nameLock);
+  return presetName;
+}
+
+void LowTalkProcessor::setPresetName(const juce::String& n) {
+  const juce::ScopedLock sl(nameLock);
+  presetName = n;
 }
 
 juce::AudioProcessorEditor* LowTalkProcessor::createEditor() { return new LowTalkEditor(*this); }

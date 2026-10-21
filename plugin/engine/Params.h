@@ -65,6 +65,8 @@ constexpr int D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_
               D_DIST_TONE = 34, D_TEXTURE = 35, D_VIBRATO = 36, D_BREATH = 37;
 constexpr int DEST_COUNT = 38;
 constexpr double TEXTURE_GAIN = 0.5;
+/** Sound layers for solo / mute (Synth::setMonitor bit positions). */
+constexpr int MON_OSC1 = 0, MON_OSC2 = 1, MON_SUB = 2, MON_NOISE = 3, MON_CLICK = 4, MON_BREATH = 5, MON_TEXTURE = 6;
 
 constexpr double WOBBLE_BEATS[8] = {2, 1, 2.0 / 3, 0.5, 1.0 / 3, 0.25, 1.0 / 6, 0.125};
 constexpr int WOB_FILTER = 0, WOB_FILTER_DRIVE = 1, WOB_FILTER_DRIVE_TEXTURE = 2;

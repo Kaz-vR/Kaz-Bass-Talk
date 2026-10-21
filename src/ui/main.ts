@@ -2,9 +2,10 @@
 // computer keyboard, MIDI or the audition loops, and edit every schema
 // parameter. (Macros and the create area follow their phases.)
 import { EngineHost } from '../engine/host';
+import { arrayToPatch, inPlugin, PluginHost } from '../engine/plugin-host';
 import { roll, type Roll } from '../generator/randomizer';
 import { categories } from '../quality/categories';
-import { validatePatch, type ParamValue, type Patch } from '../schema';
+import { params, validatePatch, type ParamValue, type Patch } from '../schema';
 import { DEFAULT_LOOP_ID, library, loops } from './data';
 import { Keyboard } from './keyboard';
 import { initMidi } from './midi';
@@ -17,7 +18,8 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 // The audition loop: picked by the shelf (and a preset can name its own).
 let loopId = DEFAULT_LOOP_ID;
 
-let host: EngineHost | null = null;
+// The browser's AudioWorklet engine, or the plugin's C++ engine when this page is the plugin window.
+let host: EngineHost | PluginHost | null = null;
 let playing = false;
 let current: Patch = structuredClone(library[0]);
 let reference: Patch = library[0];
@@ -361,3 +363,59 @@ $('start').querySelector('button')!.addEventListener('click', async () => {
     status: () => {},
   });
 });
+
+// Inside the plugin window: no start button, no Web MIDI (the host sends MIDI); the plugin
+// holds the patch (its parameters are automatable and saved with the project).
+function startPlugin(): void {
+  document.documentElement.classList.add('in-plugin');
+  $('start').classList.add('hidden');
+  let held = new Set<number>();
+  let lastWheel = -1;
+  const ph = new PluginHost({
+    state: ({ values, name }) => {
+      const i = library.findIndex((p) => p.meta.name === name);
+      const r = i < 0 ? [...rolls, ...userSounds].find((e) => e.roll.name === name) : undefined;
+      if (i >= 0) {
+        currentRoll = null;
+        currentIndex = i;
+        currentGroup = groups.find((g) => g.items.includes(i)) ?? currentGroup;
+        reference = library[i];
+      } else if (r) {
+        currentRoll = r;
+        reference = r.roll.patch;
+      }
+      current = arrayToPatch(values, i >= 0 || r ? structuredClone(reference.meta) : { ...current.meta, name });
+      if (i < 0 && !r) reference = current;
+      showPatchInfo(current);
+      panel.show(current, reference);
+      synth.show(current);
+      renderBrowser();
+    },
+    params: (changes) => {
+      for (const [i, v] of changes) {
+        const p = params[i];
+        if (!p) continue;
+        const value = (p.type === 'enum' ? p.options![Math.round(v)] : p.type === 'bool' ? v > 0.5 : p.type === 'int' ? Math.round(v) : v) as ParamValue;
+        current[p.id] = value;
+        panel.setValue(p.id, value);
+        synth.setValue(p.id, value);
+      }
+    },
+    notes: (notes, wheel) => {
+      const now = new Set(notes);
+      for (const n of held) if (!now.has(n)) keyboard.mark(n, false);
+      for (const n of now) if (!held.has(n)) keyboard.mark(n, true);
+      held = now;
+      if (wheel >= 0 && wheel !== lastWheel) {
+        lastWheel = wheel;
+        panel.setWheel(wheel);
+        synth.setWheel(wheel);
+      }
+    },
+  });
+  host = ph;
+  host.setLoop(loops.find((l) => l.id === loopId) ?? null);
+  new Scope(host.analyser, $<HTMLCanvasElement>('scope'), $<HTMLCanvasElement>('spectrum'));
+  synth.setAnalyser(host.analyser);
+}
+if (inPlugin()) startPlugin();

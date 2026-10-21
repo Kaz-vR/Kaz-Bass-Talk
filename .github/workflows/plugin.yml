@@ -4,7 +4,7 @@ name: Plugin (Windows VST3)
 
 on:
   push:
-    paths: ['plugin/**', '.github/workflows/plugin.yml']
+    paths: ['plugin/**', 'src/**', 'index.html', 'package*.json', 'vite.config.ts', '.github/workflows/plugin.yml']
   workflow_dispatch:
 
 jobs:
@@ -13,8 +13,28 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The plugin window is the web UI: build it, the plugin embeds dist/.
+      - name: Build the web UI
+        run: |
+          npm ci
+          npx vite build
+
+      # WebView2 (the window's browser), linked statically: the NuGet package's static loader.
+      - name: Get the WebView2 SDK
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.1901.177 -OutFile webview2.zip
+          Expand-Archive webview2.zip -DestinationPath nuget\Microsoft.Web.WebView2.1.0.1901.177
+
       - name: Configure
-        run: cmake -S plugin -B build -A x64 "-DLOWTALK_FORMATS=VST3;Standalone"
+        shell: pwsh
+        run: |
+          $nuget = (Join-Path $env:GITHUB_WORKSPACE "nuget") -replace '\\', '/'
+          cmake -S plugin -B build -A x64 "-DLOWTALK_FORMATS=VST3;Standalone" "-DJUCE_WEBVIEW2_PACKAGE_LOCATION=$nuget"
 
       - name: Build
         run: cmake --build build --config Release --target LowTalk_VST3 --parallel

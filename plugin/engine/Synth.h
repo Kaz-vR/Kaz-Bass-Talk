@@ -77,6 +77,17 @@ class Synth {
     raw[index] = value;
     resolve();
   }
+  /** Solo / mute sound layers (bit masks of MON_*): with any solo, only soloed layers play. */
+  void setMonitor(int solo, int mute) {
+    monSolo = solo;
+    monMute = mute;
+    resolve();
+    if (!anyActive()) {
+      cur = target;
+      applyDiscrete();
+      texMon = texMonTarget;
+    }
+  }
   void setTempo(double bpm) { tempo = clampd(bpm, 20, 400); }
   void syncBeat(double beat) { beatPos = beat - 4 * std::floor(beat / 4); }
   void pitchBend(double v) { bend = clampd(v, -1, 1); }
@@ -414,6 +425,7 @@ class Synth {
   int stackLen = 0;
   double bend = 0, modWheel = 0, wheel = 0;
   double texMon = 1, texMonTarget = 1;
+  int monSolo = 0, monMute = 0;
   std::array<double, DEST_COUNT> xdst{};
   Rng wobRng{0x60bb1e};
   long long wobCycle = -1;
@@ -512,7 +524,20 @@ class Synth {
     if (off(P.phaserOn)) { zero({P.phaserMix}); block({D_PHASER_MIX}); }
     if (off(P.delayOn)) { zero({P.delayMix}); block({D_DELAY_MIX, D_DELAY_TIME}); }
     if (off(P.reverbOn)) { zero({P.reverbMix}); block({D_REVERB_MIX}); }
-    texMonTarget = 1;
+    // Solo / mute (a listening aid from the window, not part of the patch).
+    auto hear = [&](int layer) { return !(monMute >> layer & 1) && (monSolo == 0 || (monSolo >> layer & 1)); };
+    if (!hear(MON_OSC1)) { zero({P.osc[0].level}); block({D_OSC1_LEVEL}); }
+    if (!hear(MON_OSC2)) { zero({P.osc[1].level}); block({D_OSC2_LEVEL}); }
+    if (!hear(MON_SUB)) { zero({P.subLevel}); block({D_SUB}); }
+    if (!hear(MON_NOISE)) { zero({P.noise}); block({D_NOISE}); }
+    if (!hear(MON_CLICK)) zero({P.clickLevel});
+    if (!hear(MON_BREATH)) { zero({P.breath, P.chiff}); block({D_BREATH}); }
+    // Tape age hisses on its own: with the whole oscillator path silent, the tape goes quiet too.
+    if (!hear(MON_OSC1) && !hear(MON_OSC2) && !hear(MON_NOISE) && !hear(MON_BREATH)) {
+      zero({P.tapeDrive, P.tapeWow, P.tapeAge});
+      block({D_TAPE_WOW});
+    }
+    texMonTarget = hear(MON_TEXTURE) ? 1 : 0;
   }
 
   void monoStart(int note, double velocity, bool overlapping, int channel) {
