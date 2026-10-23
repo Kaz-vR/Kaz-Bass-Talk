@@ -134,7 +134,19 @@ function accentOf(el: Element): string {
   return (el.isConnected && getComputedStyle(el).getPropertyValue('--knob-accent').trim()) || INK;
 }
 
-/** A glowing line in the box's colour: a wide soft halo, a glow and the line itself. */
+/** Mix a hex colour towards white (t = 0..1). */
+function toWhite(hex: string, t: number): string {
+  if (!hex.startsWith('#')) return hex;
+  const n = parseInt(hex.slice(1), 16);
+  const m = (c: number) => Math.round(c + (255 - c) * t);
+  return `rgb(${m((n >> 16) & 255)},${m((n >> 8) & 255)},${m(n & 255)})`;
+}
+
+/**
+ * A neon line in the box's colour, as in the owner's reference: a wide ambient glow, the
+ * coloured tube, and a hot core that runs towards white. (The glow also spills onto the box
+ * around the display: see .disp in the stylesheet.)
+ */
 function silver(g: CanvasRenderingContext2D, pts: [number, number][], on = true, color?: string): void {
   const col = on ? color ?? accentOf(g.canvas) : '#4a4a50';
   const path = () => {
@@ -144,12 +156,15 @@ function silver(g: CanvasRenderingContext2D, pts: [number, number][], on = true,
   g.save();
   g.lineCap = 'round';
   g.lineJoin = 'round';
-  for (const [w, a, b] of [[10, 0.06, 18], [4.5, 0.16, 9], [1.8, 1, 5]]) {
-    g.strokeStyle = col;
-    g.globalAlpha = on ? a : a * 0.6;
+  const layers: [string, number, number, number][] = on
+    ? [[col, 18, 0.035, 30], [col, 8, 0.09, 16], [col, 2.4, 0.9, 7], [toWhite(col, 0.72), 1.1, 1, 2]]
+    : [[col, 2, 0.6, 0]];
+  for (const [c, w, a, b] of layers) {
+    g.strokeStyle = c;
+    g.globalAlpha = a;
     g.lineWidth = w;
     g.shadowColor = col;
-    g.shadowBlur = on ? b : 0;
+    g.shadowBlur = b;
     path();
     g.stroke();
   }
@@ -157,12 +172,14 @@ function silver(g: CanvasRenderingContext2D, pts: [number, number][], on = true,
 }
 
 /** A soft wash of the line's colour under a curve (envelopes, filter response). */
-function fillUnder(g: CanvasRenderingContext2D, pts: [number, number][], bottom: number, color: string): void {
+function fillUnder(g: CanvasRenderingContext2D, pts: [number, number][], bottom: number, color: string, top0 = 0.26, bot0 = 0): void {
   if (pts.length < 2) return;
   const top = Math.min(...pts.map((p) => p[1]));
   const f = g.createLinearGradient(0, top, 0, bottom);
-  f.addColorStop(0, hexA(color.startsWith('#') ? color : INK, 0.2));
-  f.addColorStop(1, hexA(color.startsWith('#') ? color : INK, 0.02));
+  const c = color.startsWith('#') ? color : INK;
+  f.addColorStop(0, hexA(c, top0));
+  f.addColorStop(0.6, hexA(c, Math.max(bot0, top0 * 0.3)));
+  f.addColorStop(1, hexA(c, bot0));
   g.fillStyle = f;
   g.beginPath();
   pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
@@ -780,8 +797,8 @@ export class SynthView {
         ys.push(H - ((Math.max(bottom, Math.min(top, d)) - bottom) / (top - bottom)) * H);
       }
       const curve = ys.map((y, i) => [i, y] as [number, number]);
-      if (on) fillUnder(g, curve, H, accentOf(cv));
-      silver(g, curve, on);
+      if (on) fillUnder(g, curve, H, accentOf(cv), 0.3, 0.1);
+      silver(g, curve, on, toWhite(accentOf(cv), 0.55));
       // the cutoff as a handle on the curve
       if (on && st !== 'formant') {
         const fc = this.num('filter.cutoff');

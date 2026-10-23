@@ -796,3 +796,6 @@ html, body, .v2-wrap { background: #070708; }
 .osc-page .box-sub .st-chips { justify-self: start; }
 .osc-page .box-sub .st-print, .osc-page .strip.noise .st-print { justify-content: center; align-self: auto; }
 .osc-page .box-sub .st-knobs, .osc-page .strip.noise .st-knobs { justify-content: flex-start; gap: 14px; align-self: auto; padding: 0; }
+
+/* the neon's ambient glow spills onto the box around each display */
+.v2 .disp { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--knob-accent, #e8e2d8) 35%, transparent)) drop-shadow(0 0 26px color-mix(in srgb, var(--knob-accent, #e8e2d8) 20%, transparent)); overflow: visible; }
