@@ -242,6 +242,58 @@ function waveShape(wave: string, x: number, pw: number, wt: number): number {
   }
 }
 
+/** A moving average over the y values: a darker tone draws a rounder line. */
+function smoothY(pts: [number, number][], win: number): [number, number][] {
+  const n = Math.max(0, Math.round(win));
+  if (!n) return pts;
+  return pts.map(([x], i) => {
+    let sum = 0, c = 0;
+    for (let k = Math.max(0, i - n); k <= Math.min(pts.length - 1, i + n); k++) {
+      sum += pts[k][1];
+      c++;
+    }
+    return [x, sum / c];
+  });
+}
+
+/**
+ * A low cut shown on a print: a thin frequency strip along the bottom (20 Hz – 20 kHz, log),
+ * dark below the cut, lit above it, with a glowing tick where it cuts. Off (≤ 21 Hz) = nothing.
+ */
+function loCutStrip(g: CanvasRenderingContext2D, W: number, H: number, hz: number, on: boolean, color: string): void {
+  if (!(hz > 21)) return;
+  const x = Math.max(1, Math.min(W - 1, (Math.log(hz / 20) / Math.log(1000)) * W));
+  g.save();
+  g.fillStyle = 'rgba(255,255,255,0.05)';
+  g.fillRect(0, H - 3, x, 2);
+  g.fillStyle = on ? hexA(color.startsWith('#') ? color : INK, 0.35) : 'rgba(120,120,125,0.3)';
+  g.fillRect(x, H - 3, W - x, 2);
+  g.fillStyle = on ? color : '#77777d';
+  if (on) {
+    g.shadowColor = color;
+    g.shadowBlur = 6;
+  }
+  g.fillRect(x - 0.75, H - 9, 1.5, 8);
+  g.restore();
+}
+
+/** A few faint copies of a line (unison voices), drawn under the main one. */
+function ghosts(g: CanvasRenderingContext2D, sets: [number, number][][], color: string, on: boolean): void {
+  g.save();
+  g.lineWidth = 1.2;
+  g.strokeStyle = on ? hexA(color.startsWith('#') ? color : INK, 0.35) : 'rgba(120,120,125,0.3)';
+  if (on) {
+    g.shadowColor = color;
+    g.shadowBlur = 4;
+  }
+  for (const pts of sets) {
+    g.beginPath();
+    pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    g.stroke();
+  }
+  g.restore();
+}
+
 const MOD_SLOTS = 12;
 const MOD_IDS = Array.from({ length: MOD_SLOTS }, (_, i) => [`mod${i + 1}.source`, `mod${i + 1}.dest`, `mod${i + 1}.amount`]).flat();
 const LFO_SHAPE: Record<string, string> = { sine: 'SINE', triangle: 'TRIANGLE', saw_up: 'SAW UP', saw_down: 'SAW DOWN', square: 'SQUARE', sample_hold: 'S & H', wander: 'WANDER' };
@@ -882,12 +934,30 @@ export class SynthView {
   private wavePrint(n: 1 | 2, W: number, H: number): HTMLElement {
     const [cv, g] = canvas(W, H, 'disp');
     const o = `osc${n}`;
-    this.watch([`${o}.wave`, `${o}.pulse_width`, `${o}.wt_pos`, `${o}.level`], () => {
+    // Pitch (OCT / SEM / FIN) sets how many cycles show, level the height, unison draws its
+    // detuned copies (spread pulls them apart), the lo cut shows on a strip along the bottom.
+    this.watch([`${o}.wave`, `${o}.pulse_width`, `${o}.wt_pos`, `${o}.level`, `${o}.semi`, `${o}.fine`, `${o}.unison_voices`, `${o}.unison_detune`, `${o}.unison_spread`, `${o}.highpass`, `${o}.filter_type`], () => {
       paper(g, W, H);
       const wave = String(this.get(`${o}.wave`)), pw = this.num(`${o}.pulse_width`), wt = this.num(`${o}.wt_pos`);
-      const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - waveShape(wave, ((i / W) * (W / 70)) % 1, pw, wt) * (H / 2 - 9)]);
-      silver(g, pts, this.num(`${o}.level`) > 0);
+      const lvl = this.num(`${o}.level`), on = lvl > 0;
+      const cycles = Math.max(1.2, Math.min(9, (W / 70) * Math.pow(2, (this.num(`${o}.semi`) + this.num(`${o}.fine`) / 100) / 12)));
+      const amp = (H / 2 - 9) * (0.3 + 0.7 * lvl);
+      const line = (shift: number, dy: number): [number, number][] => {
+        const pts: [number, number][] = [];
+        for (let i = 0; i <= W; i++) pts.push([i, H / 2 + dy - waveShape(wave, ((((i / W) * cycles + shift) % 1) + 1) % 1, pw, wt) * amp]);
+        return pts;
+      };
+      const voices = Math.round(this.num(`${o}.unison_voices`)), det = this.num(`${o}.unison_detune`) / 100, spread = this.num(`${o}.unison_spread`);
+      if (voices > 1) {
+        const copies: [number, number][][] = [];
+        for (let v = 1; v < Math.min(voices, 5); v++) {
+          const side = v % 2 ? 1 : -1, k = Math.ceil(v / 2);
+          copies.push(line(side * k * det * 0.09, side * k * spread * 3));
+        }
+        ghosts(g, copies, accentOf(cv), on);
+      }
+      silver(g, line(0, 0), on);
+      if (String(this.get(`${o}.filter_type`)).startsWith('high')) loCutStrip(g, W, H, this.num(`${o}.highpass`), on, accentOf(cv));
       vignette(g, W, H);
     });
     return cv;
@@ -895,11 +965,14 @@ export class SynthView {
 
   private subPrint(W: number, H: number): HTMLElement {
     const [cv, g] = canvas(W, H, 'disp');
-    this.watch(['sub.wave', 'sub.level'], () => {
+    // The octave sets how many cycles show, level the height, the clip flattens the tops.
+    this.watch(['sub.wave', 'sub.level', 'sub.octave', 'sub.clip'], () => {
       paper(g, W, H);
+      const cycles = (W / 90) * (this.num('sub.octave') <= -2 ? 0.5 : 1), lvl = this.num('sub.level');
+      const k = 1 + this.num('sub.clip') / 3, clip = (v: number) => (k > 1.01 ? Math.tanh(v * k) / Math.tanh(k) : v);
       const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - waveShape(String(this.get('sub.wave')), ((i / W) * (W / 90)) % 1, 0.5, 0) * (H / 2 - 9) * 0.7]);
-      silver(g, pts, this.num('sub.level') > 0);
+      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - clip(waveShape(String(this.get('sub.wave')), ((i / W) * cycles) % 1, 0.5, 0)) * (H / 2 - 9) * (0.3 + 0.6 * lvl)]);
+      silver(g, pts, lvl > 0);
       vignette(g, W, H);
     });
     return cv;
@@ -908,19 +981,25 @@ export class SynthView {
   /** The noise layer as a short trace: its grain follows the type, its height the level. */
   private noisePrint(W: number, H: number): HTMLElement {
     const [cv, g] = canvas(W, H, 'disp noise-disp');
-    this.watch(['texture.type', 'texture.level', 'breath.level', 'breath.chiff'], () => {
+    // Tone smooths the grain (dark = rounder), tail fades the end, lo cut shows on the strip.
+    this.watch(['texture.type', 'texture.level', 'breath.level', 'breath.chiff', 'texture.tone', 'texture.tail', 'breath.tone', 'breath.decay', 'texture.filter_cutoff', 'texture.filter_type'], () => {
       paper(g, W, H);
       const type = String(this.get('texture.type'));
-      const lvl = type === 'breath' ? Math.max(this.num('breath.level'), this.num('breath.chiff')) : this.num('texture.level');
+      const breath = type === 'breath';
+      const lvl = breath ? Math.max(this.num('breath.level'), this.num('breath.chiff')) : this.num('texture.level');
+      const tone = this.num(breath ? 'breath.tone' : 'texture.tone');
+      const tail = breath ? 0 : Math.min(1, this.num('texture.tail') / 3000);
       let seed = 3 + type.length;
       const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) - 0.5;
       const pts: [number, number][] = [];
       for (let i = 0; i <= W; i += 1.5) {
         const pop = type === 'crackle' && Math.abs(r()) > 0.46 ? 3 : 1;
         const env = type === 'breath' ? Math.sin((i / W) * Math.PI) : type === 'rumble' ? 0.6 : 1;
-        pts.push([i, H / 2 + r() * (H - 10) * (0.25 + 0.75 * lvl) * pop * env * (type === 'air' ? 0.6 : 1)]);
+        const fade = breath ? 1 : Math.min(1, Math.max(0, (1 - i / W) / Math.max(0.05, 0.25 + 0.75 * tail)) * 1.6);
+        pts.push([i, H / 2 + r() * (H - 10) * (0.25 + 0.75 * lvl) * pop * env * fade * (type === 'air' ? 0.6 : 1)]);
       }
-      silver(g, pts, lvl > 0);
+      silver(g, smoothY(pts, (1 - tone) * 4), lvl > 0);
+      if (!breath && String(this.get('texture.filter_type')).startsWith('high')) loCutStrip(g, W, H, this.num('texture.filter_cutoff'), lvl > 0, accentOf(cv));
     });
     return cv;
   }
@@ -984,11 +1063,28 @@ export class SynthView {
       if (on && st !== 'formant') {
         const fc = fcNow();
         const x = Math.max(4, Math.min(W - 4, (Math.log(fc / 20) / Math.log(1000)) * W));
+        // Key tracking: how far the cutoff follows the keyboard (two octaves of notes either way).
+        const kt = this.num('filter.keytrack');
+        if (kt > 0) {
+          const span = (2 * kt * Math.log(2)) / Math.log(1000) * W;
+          g.save();
+          g.strokeStyle = hexA(accentOf(cv).startsWith('#') ? accentOf(cv) : INK, 0.55);
+          g.lineWidth = 1;
+          g.beginPath();
+          g.moveTo(x - span, H - 4);
+          g.lineTo(x + span, H - 4);
+          g.moveTo(x - span, H - 7);
+          g.lineTo(x - span, H - 1);
+          g.moveTo(x + span, H - 7);
+          g.lineTo(x + span, H - 1);
+          g.stroke();
+          g.restore();
+        }
         handle(g, x, ys[Math.round(x)] ?? H / 2);
       }
       vignette(g, W, H);
     };
-    this.watch(['filter.type', 'filter.cutoff', 'filter.resonance', 'filter.vowel', 'filter.on', 'drive.on', 'drive.amount'], redraw);
+    this.watch(['filter.type', 'filter.cutoff', 'filter.resonance', 'filter.vowel', 'filter.on', 'drive.on', 'drive.amount', 'filter.keytrack'], redraw);
     this.liveDraws.push(redraw);
     // drag on the print: left/right = cutoff, up/down = resonance
     const cut = getParam('filter.cutoff')!, res = getParam('filter.resonance')!;
@@ -1207,12 +1303,14 @@ export class SynthView {
     const el = this.knob(cutId, 'Lo cut', 'lg', { fmt, deps: [typeId], disabled: () => (isOsc ? !String(this.get(typeId)).startsWith('high') : false) });
     el.title = `Low cut: ${isOsc ? 'cuts this oscillator below this frequency before the drive, so it stays out of the sub\'s space' : 'cuts the noise bed below this frequency so it stays out of the body of the sound'}. Fully left = off. ${p.label}.`;
     if (!isOsc) {
-      el.addEventListener('pointerdown', () => {
+      const toHighpass = () => {
         if (!String(this.get(typeId)).startsWith('high')) {
           this.set(cutId, 20);
           this.set(typeId, 'high 24');
         }
-      }, true);
+      };
+      el.addEventListener('pointerdown', toHighpass, true);
+      el.addEventListener('wheel', toHighpass, true);
     }
     return el;
   }
@@ -1565,14 +1663,15 @@ export class SynthView {
   private lfoPrint(n: number, W: number, H: number): HTMLElement {
     const [cv, g] = canvas(W, H, 'disp');
     const L = `lfo${n}`;
-    this.watch([`${L}.shape`, `${L}.fade`, `${L}.rate`, `${L}.sync`, `${L}.on`], () => {
+    this.watch([`${L}.shape`, `${L}.fade`, `${L}.rate`, `${L}.sync`, `${L}.on`, `${L}.retrigger`], () => {
       paper(g, W, H);
       const shape = String(this.get(`${L}.shape`));
       const sync = String(this.get(`${L}.sync`));
       // Seconds per cycle (synced rates at 120 BPM), to place the fade on the same time axis.
       const beats = sync === 'free' ? 0 : syncBeats(sync);
       const period = beats ? beats * 0.5 : 1 / Math.max(0.01, this.num(`${L}.rate`));
-      const span = 2 * period, fade = this.num(`${L}.fade`) / 1000;
+      // A fixed 2-second window (at 120 BPM): a faster rate shows more cycles.
+      const span = 2, fade = this.num(`${L}.fade`) / 1000;
       let seed = 11 + n;
       const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
       const steps = Array.from({ length: 10 }, rnd);
@@ -1595,6 +1694,15 @@ export class SynthView {
         pts.push([i, H / 2 - f(t / period) * a * (H / 2 - 7)]);
       }
       silver(g, pts, !!this.get(`${L}.on`));
+      // Retrig: every note starts the shape from the top (a tick at the start).
+      if (this.get(`${L}.retrigger`)) {
+        g.save();
+        g.fillStyle = accentOf(cv);
+        g.shadowColor = accentOf(cv);
+        g.shadowBlur = 6;
+        g.fillRect(1, 2, 1.5, H - 4);
+        g.restore();
+      }
     });
     return cv;
   }
@@ -1717,15 +1825,19 @@ export class SynthView {
     const W = PRINT_W, H = PRINT_H;
     const [cv, g] = canvas(W, H, 'disp');
     // Two bars of the wobble at its rate, each cycle a little different (life).
-    this.watch(['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.life'], () => {
+    this.watch(['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.life', 'wobble.target'], () => {
       paper(g, W, H);
+      const target = String(this.get('wobble.target'));
       const cycles = Math.min(16, 8 / syncBeats(String(this.get('wobble.rate')))), shape = String(this.get('wobble.shape'));
       const dep = 0.3 + 0.7 * this.num('wobble.depth'), life = this.num('wobble.life');
       const f = (p: number) => (shape === 'triangle' ? (p < 0.5 ? 4 * p - 1 : 3 - 4 * p) : shape === 'saw down' ? 1 - 2 * p : shape === 'square' ? (p < 0.5 ? 0.85 : -0.85) : Math.sin(2 * Math.PI * p));
       const pts: [number, number][] = [];
       for (let i = 0; i <= W; i++) {
         const x = (i / W) * cycles, c = Math.floor(x), vary = 1 - life * 0.45 * (0.5 + 0.5 * Math.sin(c * 2.7 + 1));
-        pts.push([i, H / 2 - f(x - c) * dep * vary * (H / 2 - 7)]);
+        let y = f(x - c) * dep * vary;
+        if (target !== 'filter') y = Math.tanh(y * 2.2) / Math.tanh(2.2);
+        if (target.endsWith('texture')) y += 0.08 * Math.sin(i * 1.7) * Math.sin(i * 0.37);
+        pts.push([i, H / 2 - y * (H / 2 - 7)]);
       }
       silver(g, pts, !!this.get('wobble.on') && this.num('wobble.depth') > 0);
     });
@@ -1812,24 +1924,26 @@ export class SynthView {
   // ------------------------------------------------------------------ the FX page
 
   /** A neon print on an FX box: a line (one value per x in 0..1, -1..1) in the box's colour. */
-  private fxLine(ids: string[], on: () => boolean, curve: (x: number) => number, fill = false): HTMLElement {
+  private fxLine(ids: string[], on: () => boolean, curve: (x: number) => number, fill = false, o: { lowcut?: string | (() => string); smooth?: () => number } = {}): HTMLElement {
     const W = PRINT_W, H = PRINT_H;
     const [cv, g] = canvas(W, H, 'disp');
-    this.watch(ids, () => {
+    this.watch([...ids, ...(typeof o.lowcut === 'string' ? [o.lowcut] : [])], () => {
       paper(g, W, H);
-      const pts: [number, number][] = [];
+      let pts: [number, number][] = [];
       for (let i = 0; i <= W; i++) pts.push([i, H / 2 - Math.max(-1.05, Math.min(1.05, curve(i / W))) * (H / 2 - 8)]);
+      if (o.smooth) pts = smoothY(pts, o.smooth());
       if (fill && on()) fillUnder(g, pts, H, accentOf(cv), 0.28, 0.06);
       silver(g, pts, on());
+      if (o.lowcut) loCutStrip(g, W, H, this.num(typeof o.lowcut === 'string' ? o.lowcut : o.lowcut()), on(), accentOf(cv));
     });
     return cv;
   }
 
   /** Glowing spikes (delay repeats, the reverb tail): [x 0..1, height 0..1] from the bottom. */
-  private fxSpikes(ids: string[], on: () => boolean, spikes: () => [number, number][]): HTMLElement {
+  private fxSpikes(ids: string[], on: () => boolean, spikes: () => [number, number][], lowcut?: string): HTMLElement {
     const W = PRINT_W, H = PRINT_H;
     const [cv, g] = canvas(W, H, 'disp');
-    this.watch(ids, () => {
+    this.watch([...ids, ...(lowcut ? [lowcut] : [])], () => {
       paper(g, W, H);
       const lit = on(), col = lit ? accentOf(cv) : '#4a4a50';
       g.save();
@@ -1849,6 +1963,7 @@ export class SynthView {
         g.stroke();
       }
       g.restore();
+      if (lowcut) loCutStrip(g, W, H, this.num(lowcut), lit, col);
     });
     return cv;
   }
@@ -1887,18 +2002,20 @@ export class SynthView {
     const dist = this.obox('DISTORTION', 'fx-box box-dist', {
       power: (el) => this.boolPower('dist.on', el),
       head: [this.selector('dist.type')],
-      print: this.fxLine(['dist.on', 'dist.type', 'dist.drive', 'dist.mix'], lit('dist.on', 'dist.mix'), (x) => {
+      print: this.fxLine(['dist.on', 'dist.type', 'dist.drive', 'dist.mix', 'dist.post_tone'], lit('dist.on', 'dist.mix'), (x) => {
         const s = Math.sin(x * 2 * Math.PI * 2) * 0.9, m = this.num('dist.mix');
         return m * shape(String(this.get('dist.type')), s, this.num('dist.drive')) * 0.9 + (1 - m) * s;
-      }),
+      }, false, { lowcut: 'dist.clean_below', smooth: () => (1 - this.num('dist.post_tone')) * 7 }),
       dials: [lg('dist.drive', 'Drive'), lg('dist.mix', 'Mix'), lg('dist.post_tone', 'Tone'), distLow],
     });
 
     const crush = this.obox('CRUSH', 'fx-box box-crush', {
       power: (el) => this.boolPower('crush.on', el),
       print: this.fxLine(['crush.bits', 'crush.rate', 'crush.mix', 'crush.on'], lit('crush.on', 'crush.mix'), (x) => {
-        const hold = Math.max(1, this.num('crush.rate')) / 300, q = Math.pow(2, Math.min(5, this.num('crush.bits') - 1));
-        const xs = Math.floor(x / hold) * hold, c = Math.round(Math.sin(xs * 2 * Math.PI * 2) * 0.9 * q) / q, m = this.num('crush.mix');
+        // More bits = finer steps (spread so every bit shows), a higher rate = longer held steps.
+        const hold = Math.max(1, this.num('crush.rate')) / 300, q = 1 + (this.num('crush.bits') - 1) * 1.6;
+        const xs = Math.floor(x / hold) * hold, c = Math.round(Math.sin(xs * 2 * Math.PI * 2) * 0.9 * q) / q;
+        const m = this.get('crush.on') && this.num('crush.mix') > 0 ? this.num('crush.mix') : 1;
         return Math.sin(x * 2 * Math.PI * 2) * 0.9 * (1 - m) + c * m;
       }),
       dials: [lg('crush.mix', 'Mix'), lg('crush.bits', 'Bits'), lg('crush.rate', 'Rate')],
@@ -1926,8 +2043,9 @@ export class SynthView {
         const d = this.num('chorus.depth'), voices = this.get('chorus.mode') === 'ensemble' ? 3 : 2;
         let v = 0;
         for (let i = 0; i < voices; i++) v += Math.sin(x * 2 * Math.PI * 2.5 + i * (0.4 + 1.6 * d) + d * Math.sin(x * 6 + i));
-        return (0.9 * v) / voices;
-      }),
+        const m = this.num('chorus.mix');
+        return 0.9 * ((1 - m) * Math.sin(x * 2 * Math.PI * 2.5) + (m * v) / voices);
+      }, false, { lowcut: 'chorus.lowcut' }),
       dials: [lg('chorus.mix', 'Mix'), lg('chorus.depth', 'Depth'), lowCut('chorus')],
     });
 
@@ -1956,14 +2074,18 @@ export class SynthView {
     mfxPower.title = 'On / off';
     mfxPower.onclick = () => this.set(`${kind}.on`, !this.get(`${kind}.on`));
     const mfxLit = () => !!this.get(`${kind}.on`) && this.num(`${kind}.mix`) > 0;
-    const mfxPrint = this.fxLine(['flanger.on', 'phaser.on', 'flanger.mix', 'phaser.mix', 'flanger.feedback', 'flanger.rate', 'phaser.rate'], mfxLit, (x) => {
+    const mfxPrint = this.fxLine(['flanger.on', 'phaser.on', 'flanger.mix', 'phaser.mix', 'flanger.feedback', 'flanger.rate', 'phaser.rate', 'flanger.lowcut', 'phaser.lowcut'], mfxLit, (x) => {
       if (kind === 'flanger') {
-        const fb = this.num('flanger.feedback'), c = Math.abs(Math.cos(x * Math.PI * 7));
-        return 0.8 - 1.6 * Math.pow(1 - c, 1 + 6 * fb);
+        // Feedback sharpens the teeth, rate sweeps their spacing across the print, mix their depth.
+        const fb = this.num('flanger.feedback'), r = this.num('flanger.rate'), m = Math.min(1, 0.25 + this.num('flanger.mix'));
+        const c = Math.abs(Math.cos(Math.PI * (x * 7 + 0.35 * r * Math.sin(2 * Math.PI * x))));
+        return 0.8 - 1.6 * m * Math.pow(1 - c, 1 + 6 * fb);
       }
-      const m = this.num('phaser.mix');
-      return 0.75 - 1.6 * m * (Math.exp(-(((x - 0.3) / 0.05) ** 2)) + Math.exp(-(((x - 0.55) / 0.05) ** 2)) + 0.6 * Math.exp(-(((x - 0.78) / 0.05) ** 2)));
-    });
+      // The notches drift further apart as the rate goes up; mix sets how deep they go.
+      const m = this.num('phaser.mix'), sp = 0.06 * Math.log2(1 + this.num('phaser.rate'));
+      const notch = (c: number) => Math.exp(-(((x - c) / 0.05) ** 2));
+      return 0.75 - 1.6 * m * (notch(0.42 - sp) + notch(0.55 + sp * 0.3) + 0.6 * notch(0.7 + sp));
+    }, false, { lowcut: () => `${kind}.lowcut` });
     const mfx = this.obox(titles, 'fx-box box-mfx', { power: mfxPower, print: mfxPrint, dials: [...flDials, ...phDials] });
     const showKind = () => {
       if (heard('phaser') && !heard('flanger')) kind = 'phaser';
@@ -1982,26 +2104,27 @@ export class SynthView {
     const delay = this.obox('DELAY', 'fx-box box-delay', {
       power: (el) => this.boolPower('delay.on', el),
       head: [delayTime],
-      print: this.fxSpikes(['delay.time', 'delay.feedback', 'delay.mix', 'delay.on'], lit('delay.on', 'delay.mix'), () => {
+      print: this.fxSpikes(['delay.time', 'delay.feedback', 'delay.mix', 'delay.on', 'delay.tone'], lit('delay.on', 'delay.mix'), () => {
         const step = syncBeats(String(this.get('delay.time'))) / 4, fb = this.num('delay.feedback');
         const out: [number, number][] = [[0, 1]];
-        for (let i = 1, a = 0.9 * Math.max(0.05, this.num('delay.mix') * 1.4); i < 32 && i * step < 1; i++, a *= Math.max(0.05, fb)) out.push([i * step, Math.min(1, a)]);
+        const keep = Math.max(0.05, fb) * (0.55 + 0.45 * this.num('delay.tone'));
+        for (let i = 1, a = 0.9 * Math.max(0.05, this.num('delay.mix') * 1.4); i < 32 && i * step < 1; i++, a *= keep) out.push([i * step, Math.min(1, a)]);
         return out;
-      }),
+      }, 'delay.lowcut'),
       dials: [lg('delay.mix', 'Mix'), lg('delay.feedback', 'Feedbk'), lg('delay.tone', 'Tone'), lowCut('delay')],
     });
 
     const reverb = this.obox('REVERB', 'fx-box box-reverb', {
       power: (el) => this.boolPower('reverb.on', el),
       print: this.fxSpikes(['reverb.size', 'reverb.mix', 'reverb.tone', 'reverb.on'], lit('reverb.on', 'reverb.mix'), () => {
-        const len = 0.15 + 0.85 * this.num('reverb.size');
+        const len = 0.15 + 0.85 * this.num('reverb.size'), mix = 0.35 + 0.65 * Math.min(1, this.num('reverb.mix') * 2.5), grain = 0.2 + 0.8 * this.num('reverb.tone');
         const out: [number, number][] = [];
         for (let i = 0; i < 80; i++) {
           const x = i / 80;
-          out.push([x, Math.exp((-3.5 * x) / len) * (0.3 + 0.7 * noise[i])]);
+          out.push([x, mix * Math.exp((-3.5 * x) / len) * (1 - grain * 0.7 + grain * 0.7 * noise[i])]);
         }
         return out;
-      }),
+      }, 'reverb.lowcut'),
       dials: [lg('reverb.mix', 'Mix'), lg('reverb.size', 'Size'), lg('reverb.tone', 'Tone'), lowCut('reverb')],
     });
 
