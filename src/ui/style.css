@@ -1062,3 +1062,7 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .pp-roll { height: 26px; background: none; border: 1px solid var(--knob-accent); border-radius: 0; color: #fff; font-size: 10px; letter-spacing: 0.2em; font-weight: 400; }
 .v2 .pp-field-label, .v2 .pp-weird-word { font: 400 9.5px 'LT Inter', Inter, sans-serif; letter-spacing: 0.12em; color: #8a8a90; text-transform: uppercase; }
 .v2 .pp-clear { border: 0; border-radius: 0; font-size: 9.5px; letter-spacing: 0.14em; color: #8a8a90; text-transform: uppercase; }
+/* Pitch env / vibrato: a dot before each word glows while that one is on. */
+.v2 .kind-dot { display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: #2e2e33; margin-right: 6px; vertical-align: 2px; }
+.v2 .fx-kind.live .kind-dot { background: var(--knob-accent); box-shadow: 0 0 5px var(--knob-accent); }
+.v2 .pv-prints { display: flex; justify-content: center; }

@@ -349,7 +349,6 @@ export class SynthView {
   private readonly liveDraws: (() => void)[] = [];
   private modPage: HTMLElement | null = null;
   private fxPage: HTMLElement | null = null;
-  private playPage: HTMLElement | null = null;
   /** The synth page's height: every tab keeps it, so nothing jumps. */
   private pageHeight = 0;
   private readonly presetPage = h('div', 'v2-main preset-page');
@@ -1639,56 +1638,79 @@ export class SynthView {
     });
   }
 
-  /** The pitch envelope: a drop (or rise) on every note. On when its amount isn't 0. */
-  private pitchBox(): HTMLElement {
-    const power = h('button', 'power', lamp());
-    power.title = 'On / off (the amount)';
-    power.onclick = () => {
+  /**
+   * Pitch envelope and vibrato share one box: the title's two words switch which one you see
+   * (both keep working; a dot before each word glows while it is on). The bar switches the shown one.
+   */
+  private pitchVibBox(): HTMLElement {
+    const W = MB_PRINT_W, H = MB_PRINT_H;
+    let view: 'pitch' | 'vib' = 'pitch';
+    const peOn = () => this.num('pitch_env.amount') !== 0;
+    const vibOn = () => !!this.get('vibrato.on') && this.num('vibrato.depth') > 0;
+    // pitch envelope: on when its amount isn't 0 (the bar remembers the amount)
+    const togglePitch = () => {
       const v = this.num('pitch_env.amount');
       if (v !== 0) {
         this.remembered.set('pitch_env.amount', v);
         this.set('pitch_env.amount', 0);
       } else this.set('pitch_env.amount', this.remembered.get('pitch_env.amount') ?? -12);
     };
-    const W = MB_PRINT_W, H = MB_PRINT_H;
-    const [cv, g] = canvas(W, H, 'disp');
-    const box = this.obox('PITCH ENV', 'mb box-pitch', {
-      power,
-      print: cv,
-      dials: [this.knob('pitch_env.amount', 'Amount', 'lg', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v)} st` }), this.knob('pitch_env.decay', 'Decay', 'lg', { fmt: ms })],
-    });
+    const [pcv, pg] = canvas(W, H, 'disp');
     this.watch(['pitch_env.amount', 'pitch_env.decay'], () => {
       const amt = this.num('pitch_env.amount'), dec = this.num('pitch_env.decay');
-      power.classList.toggle('on', amt !== 0);
-      box.classList.toggle('is-off', amt === 0);
-      paper(g, W, H);
+      paper(pg, W, H);
       const span = Math.max(200, dec * 3), a = Math.sign(amt) * Math.min(1, 0.25 + Math.abs(amt) / 32);
       const pts: [number, number][] = [];
       for (let i = 0; i <= W; i++) pts.push([i, H / 2 - a * Math.exp((-4.6 * (i / W) * span) / dec) * (H / 2 - 7)]);
-      silver(g, pts, amt !== 0);
+      silver(pg, pts, amt !== 0);
     });
-    return box;
-  }
-
-  private vibratoBox(): HTMLElement {
-    const W = PRINT_W, H = PRINT_H;
-    const [cv, g] = canvas(W, H, 'disp');
-    // Flat until the delay, then the wobble fades in.
+    // vibrato: flat until the delay, then it fades in
+    const [vcv, vg] = canvas(W, H, 'disp');
     this.watch(['vibrato.on', 'vibrato.depth', 'vibrato.rate', 'vibrato.delay', 'vibrato.fade'], () => {
-      paper(g, W, H);
+      paper(vg, W, H);
       const span = 2000, d = this.num('vibrato.delay'), f = this.num('vibrato.fade'), dep = 0.3 + 0.7 * (this.num('vibrato.depth') / 100);
       const pts: [number, number][] = [];
       for (let i = 0; i <= W; i++) {
         const t = (i / W) * span, a = t < d ? 0 : Math.min(1, (t - d) / Math.max(1, f));
         pts.push([i, H / 2 - Math.sin((t / 1000) * this.num('vibrato.rate') * 2 * Math.PI) * a * dep * (H / 2 - 7)]);
       }
-      silver(g, pts, !!this.get('vibrato.on') && this.num('vibrato.depth') > 0);
+      silver(vg, pts, vibOn());
     });
-    return this.obox('VIBRATO', 'box-vib', {
-      power: (el) => this.boolPower('vibrato.on', el),
-      print: cv,
-      dials: [this.knob('vibrato.depth', 'Depth', 'lg'), this.knob('vibrato.rate', 'Rate', 'lg'), this.knob('vibrato.delay', 'Delay', 'lg', { fmt: ms }), this.knob('vibrato.fade', 'Fade', 'lg', { fmt: ms })],
+    const peDials = [this.knob('pitch_env.amount', 'Amount', 'lg', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v)} st` }), this.knob('pitch_env.decay', 'Decay', 'lg', { fmt: ms })];
+    const vibDials = [this.knob('vibrato.depth', 'Depth', 'lg'), this.knob('vibrato.rate', 'Rate', 'lg'), this.knob('vibrato.delay', 'Delay', 'lg', { fmt: ms }), this.knob('vibrato.fade', 'Fade', 'lg', { fmt: ms })];
+    const word = (label: string, v: 'pitch' | 'vib') => {
+      const b = h('button', 'fx-kind', h('span', 'kind-dot'), label);
+      b.onclick = () => {
+        view = v;
+        show();
+      };
+      return b;
+    };
+    const pBtn = word('PITCH ENV', 'pitch'), vBtn = word('VIBRATO', 'vib');
+    const power = h('button', 'power', lamp());
+    power.title = 'On / off (the one shown)';
+    power.onclick = () => (view === 'pitch' ? togglePitch() : this.set('vibrato.on', !this.get('vibrato.on')));
+    const box = this.obox(h('span', 'fx-kinds', pBtn, h('span', 'fx-kind-sep', '/'), vBtn), 'mb box-pitch', {
+      power,
+      print: h('div', 'pv-prints', pcv, vcv),
+      dials: [...peDials, ...vibDials],
     });
+    const show = () => {
+      const pe = view === 'pitch';
+      pBtn.classList.toggle('on', pe);
+      vBtn.classList.toggle('on', !pe);
+      pBtn.classList.toggle('live', peOn());
+      vBtn.classList.toggle('live', vibOn());
+      pcv.style.display = pe ? '' : 'none';
+      vcv.style.display = pe ? 'none' : '';
+      for (const k of peDials) k.style.display = pe ? '' : 'none';
+      for (const k of vibDials) k.style.display = pe ? 'none' : '';
+      const on = pe ? peOn() : !!this.get('vibrato.on');
+      power.classList.toggle('on', on);
+      box.classList.toggle('is-off', !on);
+    };
+    this.watch(['pitch_env.amount', 'vibrato.on', 'vibrato.depth'], show);
+    return box;
   }
 
   private wobbleBox(): HTMLElement {
@@ -1747,13 +1769,8 @@ export class SynthView {
     return h('div', 'v2-main mod-page2',
       this.lfoBox(1), this.lfoBox(2),
       this.lfoBox(3), this.lfoBox(4),
-      this.env2Box(), this.pitchBox(),
+      this.env2Box(), this.pitchVibBox(),
       this.matrixBox());
-  }
-
-  /** The PLAY page: how the sound moves as it is played (vibrato, wobble; more to come). */
-  private buildPlayPage(): HTMLElement {
-    return h('div', 'v2-main osc-page play-page', this.vibratoBox(), this.wobbleBox());
   }
 
   /** A bipolar amount you drag sideways (double-click = 0): a neon line from the centre, in the box colour. */
@@ -2015,7 +2032,7 @@ export class SynthView {
   private showTab(t: string): void {
     for (const [name, b] of this.tabBtns) b.classList.toggle('on', name === t);
     if (this.oscPage!.style.display !== 'none') this.pageHeight = this.oscPage!.offsetHeight || this.pageHeight;
-    const pages: [string, HTMLElement][] = [['OSC', this.oscPage!], ['MOD', this.modPage!], ['PLAY', this.playPage!], ['FX', this.fxPage!], ['PRESETS', this.presetPage]];
+    const pages: [string, HTMLElement][] = [['OSC', this.oscPage!], ['MOD', this.modPage!], ['FX', this.fxPage!], ['PRESETS', this.presetPage]];
     if (t === 'PRESETS') {
       this.pageShelf = this.presets?.current().shelf || this.pageShelf || (this.presets?.shelves()[0]?.id ?? '');
       this.renderPresetPage();
@@ -2423,7 +2440,7 @@ export class SynthView {
 
   private build(): void {
     const tabs = h('div', 'v2-tabs');
-    for (const [t, ready] of [['OSC', true], ['MOD', true], ['PLAY', true], ['FX', true], ['PRESETS', true]] as const) {
+    for (const [t, ready] of [['OSC', true], ['MOD', true], ['FX', true], ['PRESETS', true]] as const) {
       const b = h('button', 'tab' + (t === 'OSC' ? ' on' : ''), t);
       if (!ready) {
         b.disabled = true;
@@ -2436,22 +2453,19 @@ export class SynthView {
       h('div', `zone-cap cap-${zone}`, h('span', 'cap-name', `${n}  ${name}`), h('span', 'cap-note', note), h('span', 'cap-line'));
     void cap;
     void this.scopeBox; // the oscilloscope comes back later; its place is an empty box for now
-    // Two rows of four boxes: OSC A, OSC B, amp envelope, filter; sub, noise, scope, filter envelope.
+    // Two rows of four boxes: OSC A, OSC B, amp envelope, filter; sub, noise, wobble, filter envelope.
     this.oscPage = h('div', 'v2-main osc-page',
       this.oscStrip(1), this.oscStrip(2), this.envBox('amp_env', 'AMP ENVELOPE', 'c-src box-amp'), this.filterBox(),
-      this.subStrip(), this.noiseStrip(), this.obox('', 'box-empty', {}), this.envBox('mod_env', 'FILTER ENVELOPE', 'c-flt box-fenv'));
+      this.subStrip(), this.noiseStrip(), this.wobbleBox(), this.envBox('mod_env', 'FILTER ENVELOPE', 'c-flt box-fenv'));
     this.modPage = this.buildModPage();
-    this.playPage = this.buildPlayPage();
     this.fxPage = this.buildFxPage();
     this.presetPage.style.display = 'none';
-    this.playPage.style.display = 'none';
     this.modPage.style.display = 'none';
     this.fxPage.style.display = 'none';
     this.page.append(
       h('div', 'v2-top', this.sceneCanvas(), h('div', 'v2-brand', h('span', 'brand-name', 'Low Talk'), h('span', 'brand-sub', 'Synthesizer')), this.presetSelector(), h('div', 'v2-top-right', tabs, this.zoomBtn)),
       this.oscPage,
       this.modPage,
-      this.playPage,
       this.fxPage,
       this.presetPage,
       this.bottomBar(),
