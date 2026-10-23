@@ -903,3 +903,26 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .ob-dials .ob-routes { display: grid; grid-template-columns: auto auto; gap: 3px 8px; align-self: center; margin-left: 6px; padding-bottom: 4px; }
 .v2 .ob-dials .ob-routes-label { grid-column: 1 / 3; font-size: 9px; letter-spacing: 0.2em; color: #7c7c82; line-height: 12px; }
 .v2 .ob-dials .ob-routes .led { height: 16px; }
+
+/* ---- OSC page headers (owner's pick, "accent bar"): a thin glowing bar before the title is the
+   on/off; the selector and values are plain text, no boxes. */
+.v2 .ob-head { gap: 10px; }
+.v2 .ob-head > .power, .v2 .ob-head > .ob-bar { order: -1; margin: 0 -2px 0 0; width: 2px; height: 16px; flex: none; padding: 0; border: 0; border-radius: 1px;
+  background: #333338; box-shadow: none; cursor: pointer; }
+.v2 .ob-head > .power .lamp { display: none; }
+.v2 .ob-head > .power.on, .v2 .ob-head > .ob-bar { background: var(--knob-accent, #fff); box-shadow: 0 0 8px var(--knob-accent, #fff), 0 0 2px var(--knob-accent, #fff); }
+.v2 .ob-head > .ob-bar { cursor: default; }
+.v2 .ob-head .c-title { margin-right: 0; }
+.v2 .ob-head .sel, .v2 .main-filter .ob-head .sel { background: none; border: 0; height: 22px; width: auto; flex: none; }
+.v2 .ob-head .sel-name { field-sizing: content; padding: 0 14px 0 0; line-height: 22px; color: #ececf0; font-size: 11px; letter-spacing: 0.1em; font-weight: 400; }
+.v2 .ob-head .sel::after { top: 7px; right: 2px; width: 4px; height: 4px; }
+.v2 .ob-chips { gap: 10px; }
+.v2 .ob-chips .chip { width: auto; height: 22px; background: none; border: 0; flex-direction: row; align-items: baseline; justify-content: flex-start; gap: 3px; }
+.v2 .ob-chips .chip-label { font-size: 8.5px; letter-spacing: 0.14em; color: #66666d; }
+.v2 .ob-chips .chip-val { font-size: 11px; color: #ececf0; font-variant-numeric: tabular-nums; }
+.v2 .ob-chips .chip:hover .chip-val { color: #fff; }
+.v2 .ob-head { gap: 9px; }
+.v2 .ob-chips { gap: 8px; align-items: center; height: 22px; }
+.v2 .ob-chips .chip { align-items: center; padding: 0; line-height: 22px; }
+.v2 .ob-chips .chip-label, .v2 .ob-chips .chip-val { line-height: 1; margin: 0; padding: 0; }
+.v2 .ob-chips .chip-val { position: relative; top: 0.5px; }

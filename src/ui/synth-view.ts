@@ -1177,7 +1177,8 @@ export class SynthView {
     const head = h('div', 'ob-head', h('span', 'c-title', title), ...(o.head ?? []));
     const mid = h('div', 'ob-print', ...(o.print ? [o.print] : []), ...(o.corner?.length ? [h('div', 'ob-corner', ...o.corner)] : []));
     const el = h('div', `c ob ${cls}`, head, mid, h('div', 'ob-dials', ...(o.dials ?? [])));
-    if (o.power) head.append(typeof o.power === 'function' ? o.power(el) : o.power);
+    // The on/off is a thin glowing bar before the title (boxes without one get a bar that stays lit).
+    if (title) head.prepend(o.power ? (typeof o.power === 'function' ? o.power(el) : o.power) : h('span', 'ob-bar'));
     return el;
   }
 
