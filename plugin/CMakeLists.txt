@@ -41,7 +41,7 @@ juce_add_binary_data(LowTalkData SOURCES resources/presets.json)
 # The window is the web UI (the browser prototype's page), built with `npx vite build` into dist/
 # and served from memory by the plugin (no files on disk, no network).
 set(LOWTALK_UI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../dist" CACHE PATH "The built web UI")
-file(GLOB_RECURSE LOWTALK_UI_FILES "${LOWTALK_UI_DIR}/*.html" "${LOWTALK_UI_DIR}/*.js" "${LOWTALK_UI_DIR}/*.css")
+file(GLOB_RECURSE LOWTALK_UI_FILES "${LOWTALK_UI_DIR}/*.html" "${LOWTALK_UI_DIR}/*.js" "${LOWTALK_UI_DIR}/*.css" "${LOWTALK_UI_DIR}/*.woff2")
 list(FILTER LOWTALK_UI_FILES EXCLUDE REGEX "worklet-")
 if(NOT LOWTALK_UI_FILES)
   message(FATAL_ERROR "No web UI in ${LOWTALK_UI_DIR}: run `npm ci && npx vite build` in the repository first.")

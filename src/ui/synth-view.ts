@@ -6,6 +6,7 @@
 import { Biquad } from '../engine/core/dsp';
 import { fromNormalized, getParam, toNormalized, type ParamValue, type Patch } from '../schema';
 import { formatValue } from './params-panel';
+import { drawScene } from './scene';
 
 type OnChange = (id: string, value: ParamValue) => void;
 
@@ -119,8 +120,6 @@ function response(stages: [Kind, number, number][], f: number): number {
 // Every display is a small photo print: a silver line on grainy dark paper (the cream border
 // comes from the CSS).
 const INK = '#e8e2d8';
-const FAINT = '#2a0b07';
-const PEN = '#ff5a40';
 
 let grainTile: HTMLCanvasElement | null = null;
 /** A small tile of film grain, made once and reused by every display. */
@@ -142,59 +141,85 @@ function grain(): HTMLCanvasElement {
   return c;
 }
 
-/** The dark photographic paper every display draws on. */
+/** The near-black screen every display draws on (a faint grain). */
 function paper(g: CanvasRenderingContext2D, W: number, H: number): void {
   g.clearRect(0, 0, W, H);
-  g.fillStyle = '#0e0d0c';
+  g.fillStyle = '#0a0a0b';
   g.fillRect(0, 0, W, H);
+  g.globalAlpha = 0.35;
   g.fillStyle = g.createPattern(grain(), 'repeat')!;
   g.fillRect(0, 0, W, H);
+  g.globalAlpha = 1;
 }
 
-/** Vignette on top of a print. */
+/** A soft darkening towards a display's edges. */
 function vignette(g: CanvasRenderingContext2D, W: number, H: number): void {
-  const v = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.62);
+  const v = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.7);
   v.addColorStop(0, 'rgba(0,0,0,0)');
-  v.addColorStop(1, 'rgba(0,0,0,0.75)');
+  v.addColorStop(1, 'rgba(0,0,0,0.45)');
   g.fillStyle = v;
   g.fillRect(0, 0, W, H);
 }
 
-/** A silver line: a few faint ghost copies around a bright main line, like a long exposure. */
-function silver(g: CanvasRenderingContext2D, pts: [number, number][], on = true): void {
-  const col = on ? INK : '#5a524a';
-  for (let k = -3; k <= 3; k++) {
-    if (k === 0) continue;
-    g.strokeStyle = hexA(col, 0.1);
-    g.lineWidth = 0.8;
-    g.beginPath();
-    pts.forEach(([x, y], i) => {
-      const yy = y + k * 1.1 * Math.sin(x * 0.045 + k);
-      if (i) g.lineTo(x, yy);
-      else g.moveTo(x, yy);
-    });
-    g.stroke();
-  }
-  g.strokeStyle = hexA(col, 0.9);
-  g.lineWidth = 1.5;
-  g.beginPath();
-  pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
-  g.stroke();
+/** The colour of the box a display sits in (its --knob-accent). */
+function accentOf(el: Element): string {
+  return (el.isConnected && getComputedStyle(el).getPropertyValue('--knob-accent').trim()) || INK;
 }
 
-/** A grease-pencil handle on a print (something you can drag). */
+/** A glowing line in the box's colour: a wide soft halo, a glow and the line itself. */
+function silver(g: CanvasRenderingContext2D, pts: [number, number][], on = true, color?: string): void {
+  const col = on ? color ?? accentOf(g.canvas) : '#4a4a50';
+  const path = () => {
+    g.beginPath();
+    pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  };
+  g.save();
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  for (const [w, a, b] of [[10, 0.06, 18], [4.5, 0.16, 9], [1.8, 1, 5]]) {
+    g.strokeStyle = col;
+    g.globalAlpha = on ? a : a * 0.6;
+    g.lineWidth = w;
+    g.shadowColor = col;
+    g.shadowBlur = on ? b : 0;
+    path();
+    g.stroke();
+  }
+  g.restore();
+}
+
+/** A soft wash of the line's colour under a curve (envelopes, filter response). */
+function fillUnder(g: CanvasRenderingContext2D, pts: [number, number][], bottom: number, color: string): void {
+  if (pts.length < 2) return;
+  const top = Math.min(...pts.map((p) => p[1]));
+  const f = g.createLinearGradient(0, top, 0, bottom);
+  f.addColorStop(0, hexA(color.startsWith('#') ? color : INK, 0.2));
+  f.addColorStop(1, hexA(color.startsWith('#') ? color : INK, 0.02));
+  g.fillStyle = f;
+  g.beginPath();
+  pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  g.lineTo(pts[pts.length - 1][0], bottom);
+  g.lineTo(pts[0][0], bottom);
+  g.closePath();
+  g.fill();
+}
+
+/** A glowing point on a display (something you can drag). */
 function handle(g: CanvasRenderingContext2D, x: number, y: number, hot = false): void {
-  g.fillStyle = hexA(PEN, hot ? 0.45 : 0.22);
-  g.strokeStyle = PEN;
-  g.lineWidth = 1.8;
+  const col = accentOf(g.canvas);
+  g.save();
+  g.shadowColor = col;
+  g.shadowBlur = hot ? 14 : 8;
+  g.fillStyle = col;
   g.beginPath();
-  g.arc(x, y, hot ? 6.5 : 5.5, 0, 2 * Math.PI);
+  g.arc(x, y, hot ? 5.5 : 4, 0, 2 * Math.PI);
   g.fill();
-  g.stroke();
-  g.fillStyle = '#ffe3d9';
+  g.shadowBlur = 0;
+  g.fillStyle = 'rgba(255,255,255,0.85)';
   g.beginPath();
-  g.arc(x, y, 2, 0, 2 * Math.PI);
+  g.arc(x, y, hot ? 2.2 : 1.6, 0, 2 * Math.PI);
   g.fill();
+  g.restore();
 }
 
 /** A round glowing lamp (the darkroom's safelight) used for every on/off light. */
@@ -399,8 +424,8 @@ export class SynthView {
     const d = 20 * Math.log10(level + 1e-6);
     const lit = Math.round(Math.max(0, Math.min(1, (d + 48) / 48)) * N);
     for (let i = 0; i < N; i++) {
-      g.fillStyle = i < lit ? hexA(i > 11 ? '#ff4f6a' : '#ff8f75', 0.4 + i * 0.04) : FAINT;
-      g.fillRect(i * 6, 0, 4, H);
+      g.fillStyle = i < lit ? (i > 11 ? 'rgba(255,90,70,0.95)' : `rgba(230,230,236,${0.45 + i * 0.035})`) : 'rgba(255,255,255,0.07)';
+      g.fillRect(i * 6, 0, 3, H);
     }
   }
 
@@ -409,19 +434,22 @@ export class SynthView {
     const g = this.scopeG;
     if (!g) return;
     const [W, H] = this.scopeSize;
-    // phosphor persistence: the last frames fade instead of vanishing
-    g.fillStyle = 'rgba(9,8,7,0.32)';
+    // phosphor persistence: the last frames fade instead of vanishing; a faint graticule
+    g.fillStyle = 'rgba(5,7,6,0.34)';
     g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(180,230,210,0.05)';
+    for (let i = 1; i < 8; i++) g.fillRect(Math.round((W * i) / 8), 0, 1, H);
+    for (let i = 1; i < 4; i++) g.fillRect(0, Math.round((H * i) / 4), W, 1);
     let start = 0;
     for (let i = 1; i < buf.length / 2; i++) if (buf[i - 1] < 0 && buf[i] >= 0) { start = i; break; }
     const n = Math.min(1600, buf.length - start);
     let pk = 0;
     for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(buf[start + i]));
     const gain = pk > 0.02 ? Math.min(4, 0.8 / pk) : 1; // keep quiet sounds visible
-    g.strokeStyle = 'rgba(244,240,232,0.92)';
+    g.strokeStyle = 'rgba(216,240,230,0.95)';
     g.lineWidth = 1.6;
-    g.shadowColor = 'rgba(240,235,225,0.85)';
-    g.shadowBlur = 7;
+    g.shadowColor = 'rgba(190,240,215,0.9)';
+    g.shadowBlur = 8;
     g.beginPath();
     for (let i = 0; i < n; i++) {
       const x = (i / (n - 1)) * W;
@@ -482,49 +510,77 @@ export class SynthView {
       const zero = bipolar ? a0 + (a1 - a0) * toNormalized(p, 0) : a0;
       const av = a0 + (a1 - a0) * n;
       const accent = getComputedStyle(el).getPropertyValue('--knob-accent').trim() || '#ff8f75';
-      // face
-      g.fillStyle = '#140504';
-      g.strokeStyle = '#3a120c';
-      g.lineWidth = 1.2;
+      const kr = r - 3;
+      // shadow under the knob
+      g.save();
+      g.shadowColor = 'rgba(0,0,0,0.9)';
+      g.shadowBlur = 6;
+      g.shadowOffsetY = 2;
+      g.fillStyle = '#060607';
       g.beginPath();
-      g.arc(cx, cy, r - 1, 0, 2 * Math.PI);
+      g.arc(cx, cy, kr, 0, 2 * Math.PI);
       g.fill();
-      g.stroke();
-      // track and value arc
-      const tr = r - (size === 'big' ? 5 : 4), sw = size === 'big' ? 3.5 : size === 'mid' ? 3 : 2.5;
-      g.lineCap = 'round';
-      g.lineWidth = sw;
-      g.strokeStyle = FAINT;
+      g.restore();
+      // rim, lit from above
+      const rim = g.createLinearGradient(cx, cy - kr, cx, cy + kr);
+      rim.addColorStop(0, '#7a7a80');
+      rim.addColorStop(0.2, '#2c2c30');
+      rim.addColorStop(0.6, '#121214');
+      rim.addColorStop(1, '#2a2a2d');
+      g.fillStyle = rim;
       g.beginPath();
-      g.arc(cx, cy, tr, a0, a1);
+      g.arc(cx, cy, kr, 0, 2 * Math.PI);
+      g.fill();
+      // value arc on the rim
+      g.lineCap = 'round';
+      g.lineWidth = 2.2;
+      g.strokeStyle = 'rgba(255,255,255,0.06)';
+      g.beginPath();
+      g.arc(cx, cy, kr - 1.6, a0, a1);
       g.stroke();
       if (Math.abs(av - zero) > 0.02) {
-        g.strokeStyle = off ? '#5a3a32' : accent;
-        if (size === 'big' && !off) {
+        g.save();
+        g.strokeStyle = off ? '#4a4a50' : accent;
+        if (!off) {
           g.shadowColor = accent;
           g.shadowBlur = 5;
         }
         g.beginPath();
-        g.arc(cx, cy, tr, Math.min(zero, av), Math.max(zero, av));
+        g.arc(cx, cy, kr - 1.6, Math.min(zero, av), Math.max(zero, av));
         g.stroke();
-        g.shadowBlur = 0;
+        g.restore();
       }
-      // body
-      const br = r * (size === 'big' ? 0.56 : 0.5);
-      const body = g.createRadialGradient(cx - br * 0.2, cy - br * 0.3, br * 0.05, cx, cy, br);
-      body.addColorStop(0, '#4a1a12');
-      body.addColorStop(1, '#1a0605');
-      g.fillStyle = body;
+      // matte face
+      const fr = kr * 0.74;
+      const edge = g.createLinearGradient(cx, cy - fr, cx, cy + fr);
+      edge.addColorStop(0, '#000');
+      edge.addColorStop(1, '#2b2b2e');
+      g.fillStyle = edge;
       g.beginPath();
-      g.arc(cx, cy, br, 0, 2 * Math.PI);
+      g.arc(cx, cy, fr + 1, 0, 2 * Math.PI);
       g.fill();
-      // pointer
-      g.strokeStyle = off ? '#7a5a52' : '#ffe3d9';
-      g.lineWidth = size === 'big' ? 2.6 : 2;
+      const face = g.createRadialGradient(cx - fr * 0.25, cy - fr * 0.5, fr * 0.05, cx, cy, fr);
+      face.addColorStop(0, '#26262a');
+      face.addColorStop(0.55, '#141416');
+      face.addColorStop(1, '#0a0a0b');
+      g.fillStyle = face;
       g.beginPath();
-      g.moveTo(cx + Math.cos(av) * br * 0.15, cy + Math.sin(av) * br * 0.15);
-      g.lineTo(cx + Math.cos(av) * br * 0.92, cy + Math.sin(av) * br * 0.92);
+      g.arc(cx, cy, fr, 0, 2 * Math.PI);
+      g.fill();
+      // glowing pointer
+      g.save();
+      g.lineCap = 'round';
+      g.strokeStyle = off ? '#6a6a70' : accent;
+      g.lineWidth = 2;
+      if (!off) {
+        g.shadowColor = accent;
+        g.shadowBlur = 5;
+      }
+      g.beginPath();
+      g.moveTo(cx + Math.cos(av) * fr * 0.35, cy + Math.sin(av) * fr * 0.35);
+      g.lineTo(cx + Math.cos(av) * fr * 0.95, cy + Math.sin(av) * fr * 0.95);
       g.stroke();
+      g.restore();
     };
     const setN = (n: number) => {
       let v = fromNormalized(p, Math.max(0, Math.min(1, n)));
@@ -660,14 +716,14 @@ export class SynthView {
 
   /** The oscillator's wave as a small print. */
   private wavePrint(n: 1 | 2): HTMLElement {
-    const W = 60, H = 36;
+    const W = 252, H = 78;
     const [cv, g] = canvas(W, H, 'disp');
     const o = `osc${n}`;
     this.watch([`${o}.wave`, `${o}.pulse_width`, `${o}.wt_pos`, `${o}.level`], () => {
       paper(g, W, H);
       const wave = String(this.get(`${o}.wave`)), pw = this.num(`${o}.pulse_width`), wt = this.num(`${o}.wt_pos`);
       const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - waveShape(wave, ((i / W) * 1.5) % 1, pw, wt) * (H / 2 - 7)]);
+      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - waveShape(wave, ((i / W) * 2.5) % 1, pw, wt) * (H / 2 - 9)]);
       silver(g, pts, this.num(`${o}.level`) > 0);
       vignette(g, W, H);
     });
@@ -675,14 +731,35 @@ export class SynthView {
   }
 
   private subPrint(): HTMLElement {
-    const W = 60, H = 36;
+    const W = 140, H = 70;
     const [cv, g] = canvas(W, H, 'disp');
     this.watch(['sub.wave', 'sub.level'], () => {
       paper(g, W, H);
       const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - waveShape(String(this.get('sub.wave')), ((i / W) * 1.5) % 1, 0.5, 0) * (H / 2 - 7)]);
+      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - waveShape(String(this.get('sub.wave')), ((i / W) * 2) % 1, 0.5, 0) * (H / 2 - 9)]);
       silver(g, pts, this.num('sub.level') > 0);
       vignette(g, W, H);
+    });
+    return cv;
+  }
+
+  /** The noise layer as a short trace: its grain follows the type, its height the level. */
+  private noisePrint(): HTMLElement {
+    const W = 126, H = 30;
+    const [cv, g] = canvas(W, H, 'disp noise-disp');
+    this.watch(['texture.type', 'texture.level', 'breath.level', 'breath.chiff'], () => {
+      paper(g, W, H);
+      const type = String(this.get('texture.type'));
+      const lvl = type === 'breath' ? Math.max(this.num('breath.level'), this.num('breath.chiff')) : this.num('texture.level');
+      let seed = 3 + type.length;
+      const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) - 0.5;
+      const pts: [number, number][] = [];
+      for (let i = 0; i <= W; i += 1.5) {
+        const pop = type === 'crackle' && Math.abs(r()) > 0.46 ? 3 : 1;
+        const env = type === 'breath' ? Math.sin((i / W) * Math.PI) : type === 'rumble' ? 0.6 : 1;
+        pts.push([i, H / 2 + r() * (H - 10) * (0.25 + 0.75 * lvl) * pop * env * (type === 'air' ? 0.6 : 1)]);
+      }
+      silver(g, pts, lvl > 0);
     });
     return cv;
   }
@@ -734,7 +811,9 @@ export class SynthView {
         const d = 20 * Math.log10(m + 1e-9);
         ys.push(H - ((Math.max(bottom, Math.min(top, d)) - bottom) / (top - bottom)) * H);
       }
-      silver(g, ys.map((y, i) => [i, y] as [number, number]), on);
+      const curve = ys.map((y, i) => [i, y] as [number, number]);
+      if (on) fillUnder(g, curve, H, accentOf(cv));
+      silver(g, curve, on);
       // the cutoff as a handle on the curve
       if (on && st !== 'formant') {
         const fc = this.num('filter.cutoff');
@@ -838,6 +917,7 @@ export class SynthView {
       for (let i = 1; i <= N; i++) pts.push([X(a + (d * i) / N), Y(s + (1 - s) * Math.exp((-5 * i) / N))]);
       pts.push([X(a + d + hold), Y(s)]);
       for (let i = 1; i <= N; i++) pts.push([X(a + d + hold + (r * i) / N), Y(s * Math.exp((-5 * i) / N))]);
+      fillUnder(g, pts, H, accentOf(cv));
       silver(g, pts);
       vignette(g, W, H);
       points().forEach(([x, y], i) => handle(g, x, y, i === hot));
@@ -925,7 +1005,7 @@ export class SynthView {
       pw.style.display = isWt ? 'none' : '';
     });
     const uniOff = () => this.num(`${o}.unison_voices`) <= 1;
-    return this.strip(n === 1 ? 'OSC A' : 'OSC B', 'osc', {
+    return this.strip(n === 1 ? 'OSC A' : 'OSC B', `osc box-osc${n === 1 ? 'a' : 'b'}`, {
       power: (el) => this.levelPower(`${o}.level`, el),
       head: n === 2 ? [this.toggle('osc2.sync', 'Sync', 'small')] : [],
       under: this.selector(`${o}.wave`),
@@ -933,11 +1013,11 @@ export class SynthView {
         this.chip('OCT', oct, (v) => setSemi(12 * v + sem()), -2, 2, [`${o}.semi`], 'Octave'),
         this.chip('SEM', sem, (v) => setSemi(12 * oct() + v), -11, 11, [`${o}.semi`], 'Semitones'),
         this.chip('FIN', () => this.num(`${o}.fine`), (v) => this.set(`${o}.fine`, v), -100, 100, [`${o}.fine`], 'Fine tune (cents)'),
+        this.chip('UNI', () => this.num(`${o}.unison_voices`), (v) => this.set(`${o}.unison_voices`, v), 1, 7, [`${o}.unison_voices`], 'Unison voices (stacked detuned copies)'),
       ],
       print: this.wavePrint(n),
       groups: [
-        [this.chip('UNI', () => this.num(`${o}.unison_voices`), (v) => this.set(`${o}.unison_voices`, v), 1, 7, [`${o}.unison_voices`], 'Unison voices (stacked detuned copies)'),
-          this.knob(`${o}.unison_detune`, 'Detune', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] })],
+        [this.knob(`${o}.unison_detune`, 'Detune', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] })],
         [pw, wt, this.knob(`${o}.unison_spread`, 'Spread', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] })],
         [this.lowCut(`${o}.highpass`, `${o}.filter_type`), this.knob(`${o}.level`, 'Level', 'small')],
       ],
@@ -971,7 +1051,7 @@ export class SynthView {
   }
 
   private subStrip(): HTMLElement {
-    return this.strip('SUB', 'sub', {
+    return this.strip('SUB', 'sub box-sub', {
       power: (el) => this.levelPower('sub.level', el),
       head: [this.toggle('sub.direct', 'Direct', 'small')],
       under: this.selector('sub.wave'),
@@ -1022,10 +1102,11 @@ export class SynthView {
       for (const k of breath) k.style.display = br ? '' : 'none';
       direct.style.visibility = br ? 'hidden' : '';
     });
-    return this.strip('NOISE', 'noise', {
+    return this.strip('NOISE', 'noise box-noise', {
       power,
       head: [direct],
       under: this.selector('texture.type'),
+      print: this.noisePrint(),
       groups: [[], [bed[0], bed[1], breath[0], breath[1]], [bed[2], bed[3], breath[2], breath[3]]],
     });
   }
@@ -1033,19 +1114,20 @@ export class SynthView {
   // ------------------------------------------------------------------ the middle: scope + amp envelope
 
   private scopeBox(): HTMLElement {
-    const W = 188, H = 150;
+    const W = 232, H = 150;
     const [cv, g] = canvas(W, H, 'scope-screen');
     this.scopeG = g;
     this.scopeSize = [W, H];
     g.fillStyle = '#090807';
     g.fillRect(0, 0, W, H);
-    const el = h('div', 'scope', h('div', 'scope-glass', cv));
+    const [el, , body] = this.card('OSCILLOSCOPE', 'src', 'box-scope');
+    body.append(h('div', 'scope-glass', cv));
     el.title = 'Oscilloscope: the sound coming out, as a waveform';
     return el;
   }
 
-  private envCard(prefix: 'amp_env' | 'mod_env', title: string, zone: Zone, W: number, H: number, size: Size): HTMLElement {
-    const [el, head, body] = this.card(title, zone, 'env');
+  private envCard(prefix: 'amp_env' | 'mod_env', title: string, zone: Zone, W: number, H: number, size: Size, cls = ''): HTMLElement {
+    const [el, head, body] = this.card(title, zone, `env ${cls}`);
     if (size !== 'small') head.append(h('span', 'c-note', 'drag the points'));
     body.append(this.envPrint(prefix, W, H), h('div', 'knob-row',
       this.knob(`${prefix}.attack`, 'Attack', size, { fmt: ms, showValue: true }),
@@ -1059,7 +1141,7 @@ export class SynthView {
   // ------------------------------------------------------------------ filter
 
   private filterCard(): HTMLElement {
-    const [el, head, body] = this.card('FILTER', 'flt', 'main-filter');
+    const [el, head, body] = this.card('FILTER', 'flt', 'main-filter box-flt');
     head.prepend(this.boolPower('filter.on', el));
     // What goes into the filter, top to bottom in the same order as the sources on the left.
     const routes = h('div', 'routes', h('span', 'routes-label', 'In'),
@@ -1075,7 +1157,7 @@ export class SynthView {
     const grid = h('div', 'flt-grid',
       this.knob('filter.cutoff', 'Cutoff', 'big'), this.knob('filter.resonance', 'Res', 'big'),
       this.knob('filter.env_amount', 'Env', 'big'), drive);
-    body.append(this.selector('filter.type'), this.filterPrint(170, 84), h('div', 'flt-main', routes, grid),
+    body.append(h('div', 'flt-top', routes, this.selector('filter.type')), this.filterPrint(282, 64), grid,
       h('div', 'knob-row flt-small', this.knob('filter.keytrack', 'Key', 'small'), this.knob('filter.fat', 'Fat', 'small'), this.knob('filter.mix', 'Mix', 'small')));
     return el;
   }
@@ -1653,7 +1735,8 @@ export class SynthView {
       this.renderPresetPage();
     }
     for (const [name, el] of pages) {
-      if (name !== 'OSC' && this.pageHeight) el.style.height = `${this.pageHeight}px`;
+      // The browser keeps the synth page's height; MOD and FX take what they need.
+      if (name === 'PRESETS' && this.pageHeight) el.style.height = `${this.pageHeight}px`;
       el.style.display = name === t ? '' : 'none';
     }
   }
@@ -1922,33 +2005,32 @@ export class SynthView {
     const draw = () => {
       const v = get();
       g.clearRect(0, 0, W, H);
-      g.fillStyle = '#0b0201';
-      g.strokeStyle = '#3a120c';
-      g.lineWidth = 1;
-      g.beginPath();
-      g.roundRect(0.5, 0.5, W - 1, H - 1, 8);
-      g.fill();
-      g.stroke();
-      g.strokeStyle = FAINT;
-      g.lineWidth = 2;
-      for (let i = 0; i < 16; i++) {
-        const y = 8 + (i * (H - 16)) / 15;
-        g.beginPath();
-        g.moveTo(5, y);
-        g.lineTo(W - 5, y);
-        g.stroke();
+      g.fillStyle = '#030303';
+      g.fillRect(0, 0, W, H);
+      const body = g.createLinearGradient(3, 0, W - 3, 0);
+      body.addColorStop(0, '#0e0e10');
+      body.addColorStop(0.5, '#1c1c1f');
+      body.addColorStop(1, '#0b0b0c');
+      g.fillStyle = body;
+      g.fillRect(3, 3, W - 6, H - 6);
+      const light = g.createLinearGradient(0, 3, 0, H - 3);
+      light.addColorStop(0, 'rgba(255,255,255,0.08)');
+      light.addColorStop(0.5, 'rgba(255,255,255,0)');
+      light.addColorStop(1, 'rgba(0,0,0,0.4)');
+      g.fillStyle = light;
+      g.fillRect(3, 3, W - 6, H - 6);
+      g.fillStyle = 'rgba(255,255,255,0.035)';
+      for (let i = 0; i < 18; i++) g.fillRect(6, 8 + (i * (H - 16)) / 17, W - 12, 1);
+      const cy = 7 + (1 - v) * (H - 14);
+      g.save();
+      for (const [hh, a, b] of [[9, 0.25, 12], [3.5, 1, 5]]) {
+        g.fillStyle = '#ff3a26';
+        g.globalAlpha = a;
+        g.shadowColor = '#ff3a26';
+        g.shadowBlur = b;
+        g.fillRect(4, cy - hh / 2, W - 8, hh);
       }
-      const cy = 6 + (1 - v) * (H - 12);
-      if (!center) {
-        g.fillStyle = 'rgba(255,143,117,0.22)';
-        g.beginPath();
-        g.roundRect(3, cy, W - 6, H - 3 - cy, 5);
-        g.fill();
-      }
-      g.fillStyle = '#ffe3d9';
-      g.beginPath();
-      g.roundRect(3, cy - 3, W - 6, 6, 3);
-      g.fill();
+      g.restore();
     };
     const fromY = (e: PointerEvent) => {
       const r = cv.getBoundingClientRect();
@@ -2022,6 +2104,13 @@ export class SynthView {
 
   // ------------------------------------------------------------------ the page
 
+  /** The header's scene (code-drawn for now; a painted image can replace it). */
+  private sceneCanvas(): HTMLElement {
+    const cv = h('canvas', 'v2-scene');
+    drawScene(cv, DESIGN_WIDTH, 150);
+    return cv;
+  }
+
   private build(): void {
     const tabs = h('div', 'v2-tabs');
     for (const [t, ready] of [['OSC', true], ['MOD', true], ['FX', true], ['PRESETS', true]] as const) {
@@ -2035,18 +2124,18 @@ export class SynthView {
     }
     const cap = (n: string, name: string, note: string, zone: Zone) =>
       h('div', `zone-cap cap-${zone}`, h('span', 'cap-name', `${n}  ${name}`), h('span', 'cap-note', note), h('span', 'cap-line'));
-    const sources = h('div', 'col col-sources', cap('1', 'SOURCES', 'make the sound', 'src'),
-      this.oscStrip(1), this.oscStrip(2), this.subStrip(), this.noiseStrip());
-    const middle = h('div', 'col col-middle', h('div', 'zone-cap'), this.scopeBox(), this.envCard('amp_env', 'AMP ENVELOPE', 'src', 186, 262, 'small'));
-    const filter = h('div', 'col col-filter', cap('2', 'FILTER', 'shape the tone', 'flt'), this.filterCard(), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', 170, 62, 'small'));
-    this.oscPage = h('div', 'v2-main osc-page', sources, middle, filter);
+    void cap;
+    // Two rows of four boxes: OSC A, OSC B, amp envelope, filter; sub, noise, scope, filter envelope.
+    this.oscPage = h('div', 'v2-main osc-page',
+      this.oscStrip(1), this.oscStrip(2), this.envCard('amp_env', 'AMP ENVELOPE', 'src', 226, 118, 'small', 'box-amp'), this.filterCard(),
+      this.subStrip(), this.noiseStrip(), this.scopeBox(), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', 282, 62, 'small', 'box-fenv'));
     this.modPage = this.buildModPage();
     this.fxPage = this.buildFxPage();
     this.presetPage.style.display = 'none';
     this.modPage.style.display = 'none';
     this.fxPage.style.display = 'none';
     this.page.append(
-      h('div', 'v2-top', h('div', 'v2-brand', 'Low Talk'), this.presetSelector(), h('div', 'v2-top-right', tabs, this.zoomBtn)),
+      h('div', 'v2-top', this.sceneCanvas(), h('div', 'v2-brand', h('span', 'brand-name', 'Low Talk'), h('span', 'brand-sub', 'Synthesizer')), this.presetSelector(), h('div', 'v2-top-right', tabs, this.zoomBtn)),
       this.oscPage,
       this.modPage,
       this.fxPage,
