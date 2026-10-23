@@ -71,8 +71,6 @@ export const INGREDIENTS: Record<string, (p: Patch) => boolean> = {
   'chorus:classic': (p) => num(p, 'chorus.mix') > 0.05 && p['chorus.mode'] === 'classic',
   phaser: (p) => num(p, 'phaser.mix') > 0.05,
   flanger: (p) => num(p, 'flanger.mix') > 0.05,
-  'pump:strong': (p) => num(p, 'comp.pump') >= 0.4,
-  'pump:other-rate': (p) => num(p, 'comp.pump') > 0.1 && p['comp.pump_rate'] !== '1/4',
   'velocity:strong': (p) => num(p, 'voice.velocity') >= 0.75,
   supersaw: (p) => used(p, 1) && p['osc1.wave'] === 'saw' && num(p, 'osc1.unison_voices') >= 6 && num(p, 'osc1.unison_detune') >= 20,
   'delay:feedback': (p) => num(p, 'delay.mix') > 0.05 && num(p, 'delay.feedback') >= 0.65,
@@ -80,8 +78,7 @@ export const INGREDIENTS: Record<string, (p: Patch) => boolean> = {
   'texture:crackle': (p) => num(p, 'texture.level') > 0.05 && p['texture.type'] === 'crackle',
   'texture:dust': (p) => num(p, 'texture.level') > 0.05 && p['texture.type'] === 'dust',
   'texture:rumble': (p) => num(p, 'texture.level') > 0.05 && p['texture.type'] === 'rumble',
-  'texture:air': (p) => num(p, 'texture.level') > 0.05 && p['texture.type'] === 'air',
-  'texture:after-dynamics': (p) => num(p, 'texture.level') > 0.05 && p['texture.position'] === 'after dynamics' };
+  'texture:air': (p) => num(p, 'texture.level') > 0.05 && p['texture.type'] === 'air' };
 
 export interface Iconic { id: string; name: string; category: string; preset: string; identity: string; requires: string[] }
 

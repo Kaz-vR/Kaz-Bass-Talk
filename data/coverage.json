@@ -25,7 +25,6 @@
       "move:retrigger",
       "glide",
       "wobble",
-      "pump:strong",
       "reverb:small",
       "delay:dotted",
       "texture:dust",
@@ -81,7 +80,6 @@
       "chorus:ensemble",
       "phaser",
       "flanger",
-      "pump:strong",
       "texture:dust",
       "texture:air",
       "texture:crackle"
@@ -158,8 +156,6 @@
       "delay:triplet",
       "delay:straight",
       "phaser",
-      "pump:strong",
-      "pump:other-rate",
       "texture:dust"
     ],
     "strings": [
@@ -180,8 +176,7 @@
       "reverb:huge",
       "chorus:ensemble",
       "phaser",
-      "texture:dust",
-      "texture:crackle"
+      "texture:dust"
     ],
     "brass": [
       "wave:saw",
@@ -222,9 +217,7 @@
       "move:fade-in",
       "reverb:huge",
       "chorus:ensemble",
-      "phaser",
-      "texture:air",
-      "texture:dust"
+      "phaser"
     ],
     "bells": [
       "wave:sine",
@@ -303,7 +296,6 @@
       "move:bloom",
       "move:wavetable",
       "move:synced",
-      "pump:strong",
       "reverb:huge",
       "phaser",
       "flanger",
@@ -324,13 +316,11 @@
       "tape:heavy",
       "move:synced",
       "move:retrigger",
-      "pump:strong",
       "reverb:huge",
       "texture:crackle",
       "texture:dust",
       "texture:rumble",
-      "texture:air",
-      "texture:after-dynamics"
+      "texture:air"
     ]
   },
   "iconic": [
@@ -499,9 +489,7 @@
       "category": "drone",
       "preset": "drone-black-pump",
       "identity": "A dark drone breathing hard on the beat.",
-      "requires": [
-        "pump:strong"
-      ]
+      "requires": []
     },
     {
       "id": "ethereal-choir",
@@ -1252,12 +1240,6 @@
       "preset": "arp-slow-tide",
       "identity": "A soft saw arpeggio whose filter rises and falls over the bars like a slow tide.",
       "requires": []
-    }
-  ],
-  "keep": [
-    {
-      "preset": "keys-midnight-upright",
-      "why": "the owner uses it as is: never change, re-tune or remove it"
     }
   ]
 }
