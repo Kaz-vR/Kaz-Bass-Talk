@@ -119,18 +119,11 @@ describe('texture bed', () => {
   });
 });
 
-describe('breath and click into the filter', () => {
-  const breath = { 'osc1.level': 0, 'osc2.level': 0, 'sub.level': 0, 'breath.level': 0.8, 'filter.cutoff': 200 };
-  it('breath goes through the filter by default; off, it skips a dark filter and keeps its air', () => {
-    const through = render(breath).left;
-    const skip = render({ ...breath, 'filter.route_br': false }).left;
+describe('breath into the filter (N)', () => {
+  const breath = { 'osc1.level': 0, 'osc2.level': 0, 'sub.level': 0, 'texture.type': 'breath', 'breath.level': 0.8, 'filter.cutoff': 200 };
+  it('with N on, breath goes through the filter; off, it skips a dark filter and keeps its air', () => {
+    const through = render({ ...breath, 'filter.route_n': true }).left;
+    const skip = render({ ...breath, 'filter.route_n': false }).left;
     expect(above(skip, 2000)).toBeGreaterThan(above(through, 2000) + 10);
-  });
-  it('click into the filter gets darkened by it; the default leaves it crisp after the amp', () => {
-    const click = { 'osc1.level': 0, 'osc2.level': 0, 'sub.level': 0, 'click.level': 1, 'click.type': 'click', 'filter.cutoff': 200, 'amp_env.attack': 0.5 };
-    const crisp = render(click).left;
-    const filtered = render({ ...click, 'filter.route_cl': true }).left;
-    const hi = (x: Float32Array) => { let e = 0; for (let i = 1; i < 2400; i++) e += (x[i] - x[i - 1]) ** 2; return e; };
-    expect(hi(filtered)).toBeLessThan(hi(crisp) * 0.3);
   });
 });

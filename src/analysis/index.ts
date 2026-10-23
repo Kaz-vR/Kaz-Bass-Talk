@@ -411,7 +411,7 @@ export function frozen(p: Patch): Patch {
   q['osc1.fine'] = 0;
   q['osc2.fine'] = 0;
   for (let n = 1; n <= 12; n++) q[`mod${n}.amount`] = 0;
-  for (const id of ['chorus.mix', 'flanger.mix', 'phaser.mix', 'delay.mix', 'reverb.mix', 'tape.wow', 'tape.age', 'comp.pump', 'pitch_env.amount', 'filter.env_amount', 'noise.level', 'click.level', 'fm.punch']) q[id] = 0;
+  for (const id of ['chorus.mix', 'flanger.mix', 'phaser.mix', 'delay.mix', 'reverb.mix', 'tape.wow', 'tape.age', 'comp.pump', 'pitch_env.amount', 'filter.env_amount', 'noise.level', 'fm.punch']) q[id] = 0;
   // Hold the note at full level so short plucks are measured, not their silence.
   q['amp_env.attack'] = 1;
   q['amp_env.sustain'] = 1;
@@ -469,7 +469,7 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
   };
   const lowX = probe(PROBE_NOTES.low), midX = probe(PROBE_NOTES.mid), highX = probe(PROBE_NOTES.high);
   // Texture: the same note without the bed; the difference is the bed (it has its own random generators).
-  const hasTexture = (p['texture.level'] as number) > 0;
+  const hasTexture = (p['texture.level'] as number) > 0 && p['texture.type'] !== 'breath';
   const noTex: Patch = { ...p, meta: p.meta, 'texture.level': 0 };
   const holdEnd = Math.round(hold * fs);
   const settle = Math.round(0.25 * fs);

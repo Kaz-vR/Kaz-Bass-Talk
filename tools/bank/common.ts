@@ -4,6 +4,7 @@
 // (mostly before the filter), alive (independent non-repeating motion at
 // several time scales), dark and worn, space, glue.
 
+import { breathAsNoise } from '../lib/noise';
 import { foldOctave } from '../lib/octave';
 import { params, validatePatch } from '../../src/schema';
 import { wheelDefault } from '../../src/quality/categories';
@@ -131,6 +132,7 @@ export function buildPreset(cat: CategoryDef, def: PresetDef, audition: string):
     raw[`mod${i + 1}.amount`] = amt;
   });
   foldOctave(raw, def.id);
+  breathAsNoise(raw);
   const { patch, issues } = validatePatch(raw);
   if (issues.length) throw new Error(`${cat.category}/${def.id}: ${JSON.stringify(issues)}`);
   const out: Record<string, unknown> = { meta: patch.meta };

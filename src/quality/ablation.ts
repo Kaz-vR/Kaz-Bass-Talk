@@ -16,7 +16,7 @@ export interface Ingredient {
   label: string;
   /** Parameter values that switch it off. */
   off: Record<string, ParamValue>;
-  /** Acts only for a moment per note (click, pitch or filter envelope, chiff): judged on its strongest frames. */
+  /** Acts only for a moment per note (pitch or filter envelope, chiff): judged on its strongest frames. */
   momentary?: boolean;
 }
 
@@ -35,7 +35,7 @@ export interface AblationResult {
 export const EARNS_PLACE_DB = 0.15;
 
 const n = (p: Patch, id: string) => p[id] as number;
-const MOMENTARY = new Set(['click', 'pitchEnv', 'filterEnv', 'fm']);
+const MOMENTARY = new Set(['pitchEnv', 'filterEnv', 'fm']);
 
 /** The ingredients present in a patch (things a designer chose to add). */
 export function ingredients(p: Patch): Ingredient[] {
@@ -53,8 +53,8 @@ export function ingredients(p: Patch): Ingredient[] {
   if (n(p, 'sub.level') > 0.02) add('sub', 'sub', { 'sub.level': 0 });
   if (n(p, 'noise.level') > 0.005) add('noise', 'noise', { 'noise.level': 0 });
   if (n(p, 'fm.amount') > 0.01 || n(p, 'fm.punch') > 0.01 || n(p, 'fm2.amount') > 0.01) add('fm', 'FM', { 'fm.amount': 0, 'fm.punch': 0, 'fm2.amount': 0 });
-  if (n(p, 'click.level') > 0.01) add('click', 'transient', { 'click.level': 0 });
-  if (n(p, 'breath.chiff') > 0.01 || n(p, 'breath.level') > 0.01) add('breath', 'breath', { 'breath.chiff': 0, 'breath.level': 0 });
+  const breath = p['texture.type'] === 'breath';
+  if (breath && (n(p, 'breath.chiff') > 0.01 || n(p, 'breath.level') > 0.01)) add('breath', 'breath', { 'breath.chiff': 0, 'breath.level': 0 });
   if (n(p, 'vibrato.depth') > 0.5) add('vibrato', 'vibrato', { 'vibrato.depth': 0 });
   if (Math.abs(n(p, 'pitch_env.amount')) > 0.1) add('pitchEnv', 'pitch envelope', { 'pitch_env.amount': 0 });
   if (Math.abs(n(p, 'filter.env_amount')) > 0.01) add('filterEnv', 'filter envelope', { 'filter.env_amount': 0 });
@@ -62,7 +62,7 @@ export function ingredients(p: Patch): Ingredient[] {
   if (n(p, 'dist.mix') > 0.02 && n(p, 'dist.drive') > 0.01) add('dist', 'distortion', { 'dist.mix': 0 });
   if (n(p, 'crush.mix') > 0.01) add('crush', 'bitcrusher', { 'crush.mix': 0 });
   if (n(p, 'tape.drive') > 0.01 || n(p, 'tape.wow') > 0.01 || n(p, 'tape.age') > 0.01) add('tape', 'tape', { 'tape.drive': 0, 'tape.wow': 0, 'tape.age': 0 });
-  if (n(p, 'texture.level') > 0.01) add('texture', 'texture bed', { 'texture.level': 0 });
+  if (!breath && n(p, 'texture.level') > 0.01) add('texture', 'texture bed', { 'texture.level': 0 });
   if (n(p, 'comp.pump') > 0.01) add('pump', 'pump', { 'comp.pump': 0 });
   if (n(p, 'ott.amount') > 0.01) add('ott', 'multiband OTT', { 'ott.amount': 0 });
   for (const fx of ['chorus', 'flanger', 'phaser', 'delay', 'reverb']) {
@@ -102,7 +102,7 @@ function bandFrames(l: Float32Array, r: Float32Array, fs: number): Float64Array[
  * is within 45 dB of that frame's loudest band and weighted toward louder
  * bands. Across frames: the 80th percentile, because movement only shows
  * while the modulator is away from its centre (95th for momentary
- * ingredients like a click, which only act at the start of each note).
+ * ingredients like a pitch drop, which only act at the start of each note).
  */
 export function audibleDifference(a: Float64Array[], b: Float64Array[], percentile = 0.8): number {
   const perFrame: number[] = [];

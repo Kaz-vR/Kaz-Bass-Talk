@@ -1,6 +1,6 @@
 // Voice building blocks added for full bass-directory coverage: 303-style
 // diode filter, comb filter, physical-model string, Shepard-tone oscillator
-// and the attack transient layer. All state is preallocated; nothing here
+// and the texture bed. All state is preallocated; nothing here
 // allocates after construction.
 
 import { fastTanh as fastTanh_, Rng as Rng_, Svf as Svf_, TWO_PI as TWO_PI_ } from './dsp';
@@ -191,91 +191,6 @@ export class Shepard {
 }
 
 export const CLICK_NOISE = 0, CLICK_CLICK = 1, CLICK_KNOCK = 2, CLICK_KICK = 3;
-
-/**
- * Attack transient layer: a short, separately enveloped noise burst, tick,
- * woody knock or pitched kick drum, added on top of each note (it bypasses
- * the filter so it stays crisp).
- */
-export class Transient {
-  private env = 0;
-  private envCoef = 0.99;
-  private phase = 0;
-  private freq = 0; // cycles/sample
-  private freqTarget = 0;
-  private sweep = 0.999;
-  private readonly svf = new Svf();
-  private readonly rng = new Rng(0xc11c);
-  private type = CLICK_CLICK;
-  private g = 0.1;
-  // DC blocker: a decaying sine burst has net area, which would add up to DC on fast notes.
-  private dcX = 0;
-  private dcY = 0;
-  private dcR = 0.997;
-
-  reset(): void {
-    this.env = 0;
-    this.svf.reset();
-    this.dcX = this.dcY = 0;
-  }
-
-  /**
-   * Fire on a new note. tone = Hz (filter for noise/click, start pitch for
-   * knock/kick), noteHz = the note's pitch (kick drops to it).
-   */
-  trigger(type: number, decayMs: number, tone: number, noteHz: number, fs: number): void {
-    this.type = type;
-    this.env = 1;
-    this.dcR = 1 - (2 * Math.PI * 20) / fs;
-    this.envCoef = Math.exp(-4.6 / Math.max(1, (decayMs / 1000) * fs));
-    this.phase = 0;
-    this.g = Math.tan((Math.PI * Math.min(tone, fs * 0.45)) / fs);
-    if (type === CLICK_KNOCK) {
-      this.freq = tone / fs;
-      this.freqTarget = (tone * 0.6) / fs;
-      this.sweep = Math.exp(-1 / (0.01 * fs));
-    } else if (type === CLICK_KICK) {
-      this.freq = tone / fs;
-      this.freqTarget = Math.max(30, noteHz) / fs;
-      this.sweep = Math.exp(-1 / (Math.max(5, decayMs * 0.25) * 0.001 * fs));
-    }
-  }
-
-  process(): number {
-    if (this.env < 1e-5) {
-      // Let the DC blocker settle back to zero after the burst.
-      const y0 = -this.dcX + this.dcR * this.dcY;
-      this.dcX = 0;
-      this.dcY = y0;
-      return y0;
-    }
-    let y: number;
-    switch (this.type) {
-      case CLICK_NOISE:
-        this.svf.process(this.rng.next(), this.g, 0.7);
-        y = this.svf.bp * 1.4;
-        break;
-      case CLICK_CLICK:
-        this.svf.process(this.rng.next(), this.g, 1.2);
-        y = this.svf.hp;
-        break;
-      case CLICK_KNOCK:
-      default: {
-        this.freq = this.freqTarget + (this.freq - this.freqTarget) * this.sweep;
-        this.phase += this.freq;
-        if (this.phase >= 1) this.phase -= 1;
-        y = Math.sin(TWO_PI * this.phase);
-        if (this.type === CLICK_KICK) y = fastTanh(2.2 * y);
-      }
-    }
-    y *= this.env;
-    this.env *= this.envCoef;
-    const out = y - this.dcX + this.dcR * this.dcY;
-    this.dcX = y;
-    this.dcY = out;
-    return out;
-  }
-}
 
 export const TEX_CRACKLE = 0, TEX_DUST = 1, TEX_RUMBLE = 2, TEX_AIR = 3;
 

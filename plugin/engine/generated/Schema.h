@@ -6,7 +6,7 @@ struct ParamSpec {
   const char* id; const char* label; PType type; double min, max, def; int curve; double exponent;
   const char* unit; const char* group; const char* options; const char* describes;
 };
-constexpr int PARAM_COUNT = 228;
+constexpr int PARAM_COUNT = 222;
 inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "voice.polyphony", "Polyphony", PType::Int, 1, 8, 1, 0, 3, "voices", "voice", "", "1 = monophonic (legato and glide work, the bass default). 2-8 = that many notes at once, for pads, keys and chords; the oldest note is taken over when more are played." },
   { "voice.legato", "Legato", PType::Bool, 0, 1, 0, 0, 3, "", "voice", "", "On: overlapping notes slide without retriggering the envelopes (303-style). Off: every note retriggers." },
@@ -62,7 +62,7 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "sub.filter_key", "Sub filter keytrack", PType::Bool, 0, 1, 0, 0, 3, "", "sub", "", "On: the sub filter's cutoff follows the played note (set for C3)." },
   { "sub.direct", "Sub direct out", PType::Bool, 0, 1, 1, 0, 3, "", "sub", "", "On (the default): the sub skips dynamics, effects and EQ and only meets the output's safety stages. Off: it goes through the dynamics, effects and EQ with the rest." },
   { "noise.level", "Noise level", PType::Float, 0, 1, 0, 2, 2, "", "noise", "", "White noise into the filter for grit, breath and attack texture. Keep low." },
-  { "texture.type", "Texture type", PType::Enum, 0, 3, 0, 0, 3, "", "texture", "crackle|dust|rumble|air", "Texture bed under the bass: crackle is vinyl pops, dust is fine grit, rumble is a low dark hum (kept above the sub), air is breathy noise." },
+  { "texture.type", "Texture type", PType::Enum, 0, 4, 0, 0, 3, "", "texture", "crackle|dust|rumble|air|breath", "What the Noise strip plays: a texture bed under the sound (crackle is vinyl pops, dust is fine grit, rumble is a low dark hum kept above the sub, air is breathy noise) or breath, per-note breath noise (chiff and a sustained level, set in the breath controls). With breath picked the bed is silent." },
   { "texture.level", "Texture level", PType::Float, 0, 1, 0, 0, 3, "", "texture", "", "How loud the texture bed is. It swells in with each note and lingers for the tail; silent between notes." },
   { "texture.tone", "Texture tone", PType::Float, 0, 1, 0.4, 0, 3, "", "texture", "", "Darker (0) to brighter (1); for crackle also sparser to busier." },
   { "texture.tail", "Texture tail", PType::Float, 20, 6000, 700, 1, 3, "ms", "texture", "", "How long the texture lingers after a note ends." },
@@ -72,10 +72,6 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "texture.filter_type", "Texture filter type", PType::Enum, 0, 5, 0, 0, 3, "", "texture", "off|low 12|low 24|high 12|high 24|band", "The bed's own filter: high-pass keeps it out of the low end, low-pass darkens it, band narrows it to a band." },
   { "texture.filter_cutoff", "Texture filter cutoff", PType::Float, 20, 20000, 1000, 1, 3, "Hz", "texture", "", "Cutoff of the bed's own filter." },
   { "texture.filter_key", "Texture filter keytrack", PType::Bool, 0, 1, 0, 0, 3, "", "texture", "", "On: the bed's filter follows the newest note (set for C3)." },
-  { "click.type", "Transient type", PType::Enum, 0, 3, 1, 0, 3, "", "click", "noise|click|knock|kick", "The attack layer added on top of each note: noise is a breathy hit, click is a sharp tick, knock is a short woody/plastic thud, kick is a pitched kick drum that drops to the note." },
-  { "click.level", "Transient level", PType::Float, 0, 1, 0, 2, 2, "", "click", "", "How loud the attack layer is. A little adds definition and punch on small speakers." },
-  { "click.decay", "Transient decay", PType::Float, 1, 300, 15, 1, 3, "ms", "click", "", "Length of the attack layer. A few ms is a tick; 50-150 ms is a knock or kick." },
-  { "click.tone", "Transient tone", PType::Float, 100, 12000, 2500, 1, 3, "Hz", "click", "", "Brightness of noise/click, or the start pitch of a knock/kick." },
   { "drive.on", "Drive on", PType::Bool, 0, 1, 1, 0, 3, "", "drive", "", "Switches Drive on or off without losing its settings. Off also saves CPU." },
   { "drive.amount", "Pre-filter drive", PType::Float, 0, 1, 0, 0, 3, "", "drive", "", "Warm saturation before the filter. Adds harmonics and thickness; the filter then rounds them off." },
   { "filter.on", "Filter on", PType::Bool, 0, 1, 1, 0, 3, "", "filter", "", "Switches Filter on or off without losing its settings. Off also saves CPU." },
@@ -88,10 +84,8 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "filter.accent", "Accent", PType::Float, 0, 1, 0, 0, 3, "", "filter", "", "303-style accent: hard-played notes open the filter further, resonate more and hit louder." },
   { "filter.route_a", "Filter: osc 1 in", PType::Bool, 0, 1, 1, 0, 3, "", "filter", "", "Oscillator 1 goes through the drive and the main filter. Off: it skips them (the distortion, tape and the rest still apply)." },
   { "filter.route_b", "Filter: osc 2 in", PType::Bool, 0, 1, 1, 0, 3, "", "filter", "", "Oscillator 2 goes through the drive and the main filter. Off: it skips them." },
-  { "filter.route_n", "Filter: texture in", PType::Bool, 0, 1, 0, 0, 3, "", "filter", "", "The texture bed goes through a copy of the main filter that follows the newest note." },
+  { "filter.route_n", "Filter: noise in", PType::Bool, 0, 1, 0, 0, 3, "", "filter", "", "The Noise strip goes through the main filter: a texture bed through a copy of it that follows the newest note, breath through the drive and the voice's own filter. Off: it skips them." },
   { "filter.route_s", "Filter: sub in", PType::Bool, 0, 1, 0, 0, 3, "", "filter", "", "The sub goes through the drive and the main filter, and from there through the rest of the voice and the effects. Off (the default): the sub stays on its own clean path." },
-  { "filter.route_br", "Filter: breath in", PType::Bool, 0, 1, 1, 0, 3, "", "filter", "", "The breath layer goes through the drive and the main filter (the default). Off: it skips them, staying airy however dark the filter is." },
-  { "filter.route_cl", "Filter: click in", PType::Bool, 0, 1, 0, 0, 3, "", "filter", "", "The click goes through the drive and the main filter, so the filter darkens and shapes it. Off (the default): it is added after the amp and stays crisp." },
   { "filter.fat", "Filter fat", PType::Float, 0, 1, 0, 0, 3, "", "filter", "", "Brings back the body that resonance takes away and saturates inside the filter, so a resonant filter stays thick instead of thin and whistly." },
   { "filter.mix", "Filter mix", PType::Float, 0, 1, 1, 0, 3, "", "filter", "", "Blend of the unfiltered (driven) and the filtered sound. 1 = fully filtered." },
   { "dist.on", "Distortion on", PType::Bool, 0, 1, 1, 0, 3, "", "dist", "", "Switches Distortion on or off without losing its settings. Off also saves CPU." },
@@ -130,10 +124,10 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "vibrato.rate", "Vibrato rate", PType::Float, 2, 9, 5.2, 0, 3, "Hz", "vibrato", "", "Vibrato speed; each note varies it slightly so a chord never wobbles in lockstep." },
   { "vibrato.delay", "Vibrato delay", PType::Float, 0, 3000, 350, 0, 3, "ms", "vibrato", "", "Time after the note starts before the vibrato begins: notes start straight, then sing." },
   { "vibrato.fade", "Vibrato fade-in", PType::Float, 1, 3000, 500, 1, 3, "ms", "vibrato", "", "How long the vibrato takes to reach full depth after its delay." },
-  { "breath.chiff", "Breath chiff", PType::Float, 0, 1, 0, 0, 3, "", "breath", "", "A short burst of breath or bow noise at the start of each note, through the filter: the attack of brass, flutes and bowed strings." },
-  { "breath.decay", "Chiff decay", PType::Float, 5, 1000, 120, 1, 3, "ms", "breath", "", "How long the attack noise lasts." },
-  { "breath.level", "Breath level", PType::Float, 0, 1, 0, 0, 3, "", "breath", "", "Breath noise that sustains with the note (follows the amp envelope): airy brass, breathy voices, bowing." },
-  { "breath.tone", "Breath tone", PType::Float, 0, 1, 0.5, 0, 3, "", "breath", "", "Where the breath noise sits: dark (0, ~500 Hz) to airy (1, ~8 kHz)." },
+  { "breath.chiff", "Breath chiff", PType::Float, 0, 1, 0, 0, 3, "", "breath", "", "A short burst of breath or bow noise at the start of each note, through the filter: the attack of brass, flutes and bowed strings. Only sounds when the Noise type is breath." },
+  { "breath.decay", "Chiff decay", PType::Float, 5, 1000, 120, 1, 3, "ms", "breath", "", "How long the attack noise lasts. Only sounds when the Noise type is breath." },
+  { "breath.level", "Breath level", PType::Float, 0, 1, 0, 0, 3, "", "breath", "", "Breath noise that sustains with the note (follows the amp envelope): airy brass, breathy voices, bowing. Only sounds when the Noise type is breath." },
+  { "breath.tone", "Breath tone", PType::Float, 0, 1, 0.5, 0, 3, "", "breath", "", "Where the breath noise sits: dark (0, ~500 Hz) to airy (1, ~8 kHz). Only sounds when the Noise type is breath." },
   { "lfo1.on", "LFO 1 on", PType::Bool, 0, 1, 1, 0, 3, "", "lfo1", "", "Switches LFO 1 on or off without losing its settings. Off also saves CPU." },
   { "lfo1.shape", "LFO 1 shape", PType::Enum, 0, 6, 0, 0, 3, "", "lfo1", "sine|triangle|saw_up|saw_down|square|sample_hold|wander", "Sine and triangle are smooth wobbles; saws are rhythmic ramps; square jumps; sample & hold is random steps; wander is smooth random motion that never repeats." },
   { "lfo1.rate", "LFO 1 rate", PType::Float, 0.01, 30, 2, 1, 3, "Hz", "lfo1", "", "Speed when not tempo-synced. Under 1 Hz is slow drift; 2-8 Hz is wobble; above 10 Hz is buzz/growl." },

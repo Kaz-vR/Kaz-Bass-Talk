@@ -66,7 +66,7 @@ constexpr int D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_
 constexpr int DEST_COUNT = 38;
 constexpr double TEXTURE_GAIN = 0.5;
 /** Sound layers for solo / mute (Synth::setMonitor bit positions). */
-constexpr int MON_OSC1 = 0, MON_OSC2 = 1, MON_SUB = 2, MON_NOISE = 3, MON_CLICK = 4, MON_BREATH = 5, MON_TEXTURE = 6;
+constexpr int MON_OSC1 = 0, MON_OSC2 = 1, MON_SUB = 2, MON_NOISE = 3, MON_BREATH = 4, MON_TEXTURE = 5;
 
 constexpr double WOBBLE_BEATS[8] = {2, 1, 2.0 / 3, 0.5, 1.0 / 3, 0.25, 1.0 / 6, 0.125};
 constexpr int WOB_FILTER = 0, WOB_FILTER_DRIVE = 1, WOB_FILTER_DRIVE_TEXTURE = 2;
@@ -115,10 +115,10 @@ struct ParamIndex {
   Osc osc[2];
   int fmAmount, fmRatio, fmPunch, fmDecay, fmFb, fm2Amount, fm2Ratio, fmAlgo;
   int strTone, strDecay, shepRate, accent, ampCurve, chorusMode;
-  int clickType, clickLevel, clickDecay, clickTone, subWave, subOct, subLevel, subClip, midClip, noise, drive;
+  int subWave, subOct, subLevel, subClip, midClip, noise, drive;
   int texType, texLevel, texTone, texTail, texPosition;
   int subFType, subFCut, subFKey, subDirect, texPan, texDirect, texFType, texFCut, texFKey;
-  int routeA, routeB, routeN, routeS, routeBr, routeCl, postCut, fat, fMix;
+  int routeA, routeB, routeN, routeS, postCut, fat, fMix;
   int fType, cutoff, res, keytrack, envAmt, vowel;
   int dType, dDrive, dMix, dTone, dSplit, crushMix, crushBits, crushRate, tapeDrive, tapeWow, tapeAge;
   int compAmount, compSpeed, compPump, compPumpRate, osc2Sync;
@@ -146,13 +146,12 @@ struct ParamIndex {
     fm2Amount = ix("fm2.amount"); fm2Ratio = ix("fm2.ratio"); fmAlgo = ix("fm.algorithm");
     strTone = ix("string.tone"); strDecay = ix("string.decay"); shepRate = ix("shepard.rate");
     accent = ix("filter.accent"); ampCurve = ix("amp_env.attack_curve"); chorusMode = ix("chorus.mode");
-    clickType = ix("click.type"); clickLevel = ix("click.level"); clickDecay = ix("click.decay"); clickTone = ix("click.tone");
     subWave = ix("sub.wave"); subOct = ix("sub.octave"); subLevel = ix("sub.level"); subClip = ix("sub.clip"); midClip = ix("clip.mid"); noise = ix("noise.level"); drive = ix("drive.amount");
     texType = ix("texture.type"); texLevel = ix("texture.level"); texTone = ix("texture.tone"); texTail = ix("texture.tail"); texPosition = ix("texture.position");
     subFType = ix("sub.filter_type"); subFCut = ix("sub.filter_cutoff"); subFKey = ix("sub.filter_key"); subDirect = ix("sub.direct");
     texPan = ix("texture.pan"); texDirect = ix("texture.direct"); texFType = ix("texture.filter_type"); texFCut = ix("texture.filter_cutoff"); texFKey = ix("texture.filter_key");
     routeA = ix("filter.route_a"); routeB = ix("filter.route_b"); routeN = ix("filter.route_n"); routeS = ix("filter.route_s");
-    routeBr = ix("filter.route_br"); routeCl = ix("filter.route_cl"); postCut = ix("clip.low_cut"); fat = ix("filter.fat"); fMix = ix("filter.mix");
+    postCut = ix("clip.low_cut"); fat = ix("filter.fat"); fMix = ix("filter.mix");
     fType = ix("filter.type"); cutoff = ix("filter.cutoff"); res = ix("filter.resonance"); keytrack = ix("filter.keytrack");
     envAmt = ix("filter.env_amount"); vowel = ix("filter.vowel");
     dType = ix("dist.type"); dDrive = ix("dist.drive"); dMix = ix("dist.mix"); dTone = ix("dist.post_tone"); dSplit = ix("dist.clean_below");

@@ -161,7 +161,7 @@ const def: CategoryDef = {
       description: "A fall that starts with a hit: a hard impact, then everything sinks away into the dark.",
       tags: ['risers', 'fall', 'impact', 'hard-start', 'downlifter', 'dark', 'lorn', 'new'],
       texture: ['crackle', 0.5, 0.35, 2000],
-      set: { 'amp_env.attack': 2, 'env2.attack': 4000, 'click.type': 'kick', 'click.level': 0, 'filter.cutoff': 1500 },
+      set: { 'amp_env.attack': 2, 'env2.attack': 4000, 'filter.cutoff': 1500 },
       mods: kit(RISE_KIT, [['env2', 'pitch', -1], ['env2', 'filter_cutoff', -0.4], ['lfo1', 'filter_cutoff', 0.4], ['drift_slow', 'drive', 0.35]], { 'env2>noise_level': ['env2', 'amp', -0.5] }),
     },
     {

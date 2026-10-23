@@ -178,7 +178,7 @@ const def: CategoryDef = {
       texture: ['dust', 0.5, 0.35, 800],
       set: { ...BITE, 
         'osc1.wave': 'sine', 'osc2.wave': 'sine', 'osc2.semi': 12, 'osc2.level': 0.4, 'fm.amount': 0, 'fm.punch': 0,
-        'amp_env.sustain': 0.9, 'amp_env.release': 300, 'click.type': 'click', 'click.level': 1.0, 'click.tone': 2000, 'click.decay': 12,
+        'amp_env.sustain': 0.9, 'amp_env.release': 300,
         'chorus.mix': 0.45, 'drive.amount': 0.6, 'dist.drive': 0.3,
       },
       mods: kit(KEYS_KIT, [], {

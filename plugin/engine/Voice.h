@@ -1,6 +1,6 @@
 // One synth voice (port of src/engine/core/voice.ts): oscillators (+FM),
 // noise and breath → [2× oversampled: drive → filter → distortion] →
-// bitcrusher → tape → DC filter → amp, + transient + clean mono sub.
+// bitcrusher → tape → DC filter → amp, + clean mono sub.
 // Plugin addition: per-note MPE (bend, pressure, slide), zero unless an MPE
 // controller sends it, so the sound is the prototype's otherwise.
 #pragma once
@@ -117,8 +117,6 @@ class Voice {
         strings[k].pluck(fs / hz);
       }
     }
-    // The transient's pitch follows the sub's register (an octave above the sub, as at the default).
-    if (cur[P.clickLevel] > 0) transient.trigger((int)cur[P.clickType], cur[P.clickDecay], cur[P.clickTone], noteHz * std::pow(2.0, cur[P.subOct] + 1), fs);
     ampEnv.trigger();
     modEnv.trigger();
     env2.trigger();
@@ -171,7 +169,6 @@ class Voice {
     combR.reset();
     for (auto& s : strings) s.reset();
     for (auto& s : shepards) s.reset();
-    transient.reset();
     breathSvf.reset();
     crusher.reset();
     tape.reset();
@@ -337,8 +334,9 @@ class Voice {
     routeA = cur[P.routeA] > 0.5;
     routeB = cur[P.routeB] > 0.5;
     routeS = cur[P.routeS] > 0.5;
-    routeBr = cur[P.routeBr] > 0.5;
-    routeCl = cur[P.routeCl] > 0.5;
+    // Breath is the Noise strip's breath type; N decides whether it goes through the filter.
+    breathType = (int)cur[P.texType] == TEX_BREATH;
+    routeBr = cur[P.routeN] > 0.5;
     {
       double hz = INFINITY;
       for (int n = 0; n < 2; n++) {
@@ -349,7 +347,7 @@ class Voice {
       postCut.set(on ? SLOT_HP : SLOT_OFF, true, on ? hz : 20, fs);
     }
     subDirect = cur[P.subDirect] > 0.5;
-    const bool bypass = !routeA || !routeB || !routeBr;
+    const bool bypass = !routeA || !routeB || (breathType && !routeBr);
     if (bypass && !bypassOn) {
       upBL.reset();
       upBR.reset();
@@ -376,7 +374,6 @@ class Voice {
     const double carrier = toInc(basePitch + cur[P.osc[0].semi]);
     fmInc = std::fmin(0.45, carrier * cur[P.fmRatio]);
     fm2Inc = std::fmin(0.45, carrier * cur[P.fm2Ratio]);
-    clickLevel = cur[P.clickLevel];
 
     // The sub follows the played note (glide, bend, pitch envelope) but never the pitch modulation.
     const double subPitch = pitch + 12 * cur[P.octave] + 2 * bend + mpeBend + cur[P.peAmount] * pitchEnvLevel;
@@ -385,8 +382,8 @@ class Voice {
     subInc = sInc;
     subLevel = clampd(cur[P.subLevel] + dst[D_SUB], 0, 1) * SUB_GAIN;
     noiseLevel = clampd(cur[P.noise] + dst[D_NOISE], 0, 1) * 0.5;
-    chiffAmt = cur[P.chiff];
-    breathLvl = clampd(cur[P.breath] + dst[D_BREATH], 0, 1);
+    chiffAmt = breathType ? cur[P.chiff] : 0;
+    breathLvl = breathType ? clampd(cur[P.breath] + dst[D_BREATH], 0, 1) : 0;
     breathOn = chiffAmt > 0 || breathLvl > 0;
     if (breathOn) {
       breathG = std::tan((PI * std::fmin(500 * std::pow(16.0, cur[P.breathTone]), fs * 0.45)) / fs);
@@ -624,12 +621,6 @@ class Voice {
           byR += b;
         }
       }
-      // Click into the filter (C): level-matched to its usual place after the amp.
-      if (routeCl && clickLevel > 0) {
-        const double c = transient.process() * clickLevel * 1.5 / (PRE_FILTER_GAIN * POST_FILTER_GAIN);
-        l += c;
-        r += c;
-      }
       // Sub: clean, mono, phase-stable (in poly mode only the lowest note carries it). Its own
       // filter and clip shape it; with "sub into filter" (S) it joins the oscillators instead.
       const double amp = env * velGain * duck;
@@ -714,12 +705,6 @@ class Voice {
         r = co[1];
       }
 
-      if (clickLevel > 0 && !routeCl) {
-        const double c = transient.process() * clickLevel * velGain * duck * VOICE_GAIN * 1.5;
-        l += c;
-        r += c;
-      }
-
       subDelay[subDelayPos] = sub;
     } else {
       subDelay[subDelayPos] = 0;
@@ -764,8 +749,6 @@ class Voice {
   double strTone = 0.5;
   Shepard shepards[2];
   double shepRate = 0;
-  Transient transient;
-  double clickLevel = 0;
   double noteTime = 0, vibPhase = 0, vibRate = 5;
   Svf breathSvf;
   double breathG = 0.1, chiffEnv = 0, chiffCoef = 0.99, chiffAmt = 0, breathLvl = 0;
@@ -780,7 +763,7 @@ class Voice {
   SlotFilter<2> oscF[2];
   SlotFilter<1> subF;
   SlotFilter<2> postCut;
-  bool routeA = true, routeB = true, routeS = false, routeBr = true, routeCl = false, subDirect = true;
+  bool routeA = true, routeB = true, routeS = false, routeBr = true, breathType = false, subDirect = true;
   // Some source skips the drive and main filter: it gets its own oversampled path.
   bool bypassOn = false;
   Upsampler2x upBL, upBR;

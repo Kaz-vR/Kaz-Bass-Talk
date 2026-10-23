@@ -95,15 +95,11 @@
   "sub.octave": -1,
   "sub.level": 0,
   "noise.level": 0,
-  "texture.type": "dust",
+  "texture.type": "breath",
   "texture.level": 0.5,
   "texture.tone": 0.2,
   "texture.tail": 3000,
   "texture.position": "before dynamics",
-  "click.type": "click",
-  "click.level": 0,
-  "click.decay": 15,
-  "click.tone": 2500,
   "drive.on": true,
   "drive.amount": 0.3,
   "filter.on": true,
@@ -253,5 +249,6 @@
   "eq.high_gain": -2,
   "eq.highcut": 4500,
   "output.gain": -2.8,
-  "output.crossover": 120
+  "output.crossover": 120,
+  "filter.route_n": true
 }

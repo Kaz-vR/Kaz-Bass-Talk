@@ -55,7 +55,7 @@ const def: CategoryDef = {
       texture: ['dust', 0.3, 0.3, 600],
       set: {
         'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.3, 'fm.ratio': 1.5, 'fm.punch': 0.6, 'fm.decay': 60,
-        'click.type': 'knock', 'click.level': 0.4, 'click.tone': 900, 'filter.cutoff': 3000, 'filter.env_amount': 0, 'drive.amount': 0.6,
+        'filter.cutoff': 3000, 'filter.env_amount': 0, 'drive.amount': 0.6,
         'chorus.mix': 0.25,
       },
       mods: kit(SOFT_PLUCK_KIT, [], { 'random>amp': ['random', 'fm_amount', 0.08], 'lfo3>delay_mix': ['lfo3', 'fm_amount', 0.1] }),

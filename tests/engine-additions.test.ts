@@ -37,15 +37,6 @@ describe('FM operators', () => {
   });
 });
 
-describe('transient layer', () => {
-  it('adds a short burst on each note that is gone a moment later', () => {
-    const one = { id: 'o', name: 'o', description: '', bpm: 120, length_beats: 8, notes: [{ start: 0, dur: 2, note: 45, vel: 1 }] };
-    const r = renderPatch({ ...base, 'osc1.level': 0, 'click.level': 1, 'click.type': 'knock', 'click.decay': 30, 'click.tone': 600 }, one, { seconds: 0.5 });
-    expect(rms(r.left, 0, 0.02 * FS)).toBeGreaterThan(0.05);
-    expect(rms(r.left, 0.25 * FS, 0.45 * FS)).toBeLessThan(0.002);
-  });
-});
-
 describe('filter types', () => {
   const saw = { ...base, 'osc1.wave': 'saw' };
   const spec = (p: object) => powerSpectrum(mono(renderPatch(p, heldNote(33, 4), { seconds: 1.5 })), FS, 0.5 * FS, 1.4 * FS, 16384);

@@ -31,8 +31,7 @@ export const INGREDIENTS: Record<string, (p: Patch) => boolean> = {
   'sub:triangle': (p) => num(p, 'sub.level') > 0.05 && p['sub.wave'] === 'triangle',
   'sub:2oct': (p) => num(p, 'sub.level') > 0.05 && num(p, 'sub.octave') === -2,
   'layer:noise': (p) => num(p, 'noise.level') > 0.03,
-  'layer:breath': (p) => num(p, 'breath.level') > 0.05 || num(p, 'breath.chiff') > 0.1,
-  'layer:click': (p) => num(p, 'click.level') > 0.1,
+  'layer:breath': (p) => p['texture.type'] === 'breath' && (num(p, 'breath.level') > 0.05 || num(p, 'breath.chiff') > 0.1),
   'filter:lowpass': (p) => p['filter.type'] === 'lowpass',
   'filter:bandpass': (p) => p['filter.type'] === 'bandpass',
   'filter:formant': (p) => p['filter.type'] === 'formant',
@@ -82,8 +81,7 @@ export const INGREDIENTS: Record<string, (p: Patch) => boolean> = {
   'texture:dust': (p) => num(p, 'texture.level') > 0.05 && p['texture.type'] === 'dust',
   'texture:rumble': (p) => num(p, 'texture.level') > 0.05 && p['texture.type'] === 'rumble',
   'texture:air': (p) => num(p, 'texture.level') > 0.05 && p['texture.type'] === 'air',
-  'texture:after-dynamics': (p) => num(p, 'texture.level') > 0.05 && p['texture.position'] === 'after dynamics',
-};
+  'texture:after-dynamics': (p) => num(p, 'texture.level') > 0.05 && p['texture.position'] === 'after dynamics' };
 
 export interface Iconic { id: string; name: string; category: string; preset: string; identity: string; requires: string[] }
 

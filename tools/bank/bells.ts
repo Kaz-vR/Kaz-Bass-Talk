@@ -71,7 +71,6 @@ const def: CategoryDef = {
       texture: ['air', 0.4, 0.4, 800],
       set: {
         'fm.ratio': 4, 'fm.amount': 0.1, 'fm.punch': 0.4, 'fm.decay': 150, 'amp_env.decay': 1200,
-        'click.type': 'knock', 'click.level': 0.7, 'click.tone': 2500, 'click.decay': 10,
       },
     },
     {

@@ -530,7 +530,6 @@ class Synth {
     if (!hear(MON_OSC2)) { zero({P.osc[1].level}); block({D_OSC2_LEVEL}); }
     if (!hear(MON_SUB)) { zero({P.subLevel}); block({D_SUB}); }
     if (!hear(MON_NOISE)) { zero({P.noise}); block({D_NOISE}); }
-    if (!hear(MON_CLICK)) zero({P.clickLevel});
     if (!hear(MON_BREATH)) { zero({P.breath, P.chiff}); block({D_BREATH}); }
     // Tape age hisses on its own: with the whole oscillator path silent, the tape goes quiet too.
     if (!hear(MON_OSC1) && !hear(MON_OSC2) && !hear(MON_NOISE) && !hear(MON_BREATH)) {
@@ -757,7 +756,8 @@ class Synth {
     }
 
     const double tex = clampd(cur[P.texLevel] + dst[D_TEXTURE], 0, 1);
-    texGain = tex * tex * TEXTURE_GAIN;
+    // With breath picked the Noise strip plays per-note breath (in the voices): the bed is silent.
+    texGain = (int)cur[P.texType] == TEX_BREATH ? 0 : tex * tex * TEXTURE_GAIN;
     texType = (int)cur[P.texType];
     texTone = clampd(cur[P.texTone] + wobTexTone, 0, 1);
     texAtk = 1 - std::exp(-1 / (std::fmax(0.03, cur[P.amp[0]] / 3000) * fs));

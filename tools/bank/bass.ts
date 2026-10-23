@@ -124,7 +124,7 @@ const def: CategoryDef = {
       texture: ['rumble', 0.25, 0.3, 300],
       set: {
         'osc1.wave': 'sine', 'osc2.level': 0.15, 'osc2.wave': 'triangle', 'pitch_env.amount': 24, 'pitch_env.decay': 70, 'amp_env.decay': 600,
-        'amp_env.sustain': 0.15, 'click.type': 'kick', 'click.level': 0.5, 'click.tone': 180, 'click.decay': 50, 'reverb.size': 0.6, 'reverb.mix': 0.32, 'delay.mix': 0.26, 'delay.feedback': 0.5, 'drive.amount': 0.75, 'dist.drive': 0.4,
+        'amp_env.sustain': 0.15, 'reverb.size': 0.6, 'reverb.mix': 0.32, 'delay.mix': 0.26, 'delay.feedback': 0.5, 'drive.amount': 0.75, 'dist.drive': 0.4,
         'filter.cutoff': 900, 'filter.env_amount': 0.2,
       },
       // A sine thump: the filter barely touches it, so the life is in the drive, the pitch and the level.

@@ -203,7 +203,7 @@ const D: Def[] = [
     tags: ['lorn', 'terror', '808', 'crushed', 'distorted', 'long', 'dark'],
     set: {
       'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'osc1.level': 0.75, 'osc2.wave': 'triangle', 'osc2.level': 0.2,
-      'pitch_env.amount': 12, 'pitch_env.decay': 60, 'click.type': 'knock', 'click.level': 0.65, 'click.decay': 25, 'click.tone': 900,
+      'pitch_env.amount': 12, 'pitch_env.decay': 60,
       'amp_env.attack': 1, 'amp_env.decay': 3200, 'amp_env.sustain': 0.4, 'amp_env.release': 700,
       'drive.amount': 0.6, 'filter.cutoff': 1200, 'dist.type': 'fold', 'dist.drive': 0.3, 'dist.mix': 0.75, 'dist.clean_below': 90, 'sub.level': 0.5,
       'crush.mix': 0.25, 'crush.bits': 5, 'crush.rate': 7, 'comp.pump': 0.1, 'chorus.mix': 0.24, 'tape.wow': 0.3, 'lfo2.rate': 3.1,

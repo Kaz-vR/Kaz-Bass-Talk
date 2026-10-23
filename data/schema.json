@@ -666,11 +666,12 @@
         "crackle",
         "dust",
         "rumble",
-        "air"
+        "air",
+        "breath"
       ],
       "default": "crackle",
       "group": "texture",
-      "describes": "Texture bed under the bass: crackle is vinyl pops, dust is fine grit, rumble is a low dark hum (kept above the sub), air is breathy noise."
+      "describes": "What the Noise strip plays: a texture bed under the sound (crackle is vinyl pops, dust is fine grit, rumble is a low dark hum kept above the sub, air is breathy noise) or breath, per-note breath noise (chiff and a sustained level, set in the breath controls). With breath picked the bed is silent."
     },
     {
       "id": "texture.level",
@@ -775,57 +776,6 @@
       "default": false,
       "group": "texture",
       "describes": "On: the bed's filter follows the newest note (set for C3)."
-    },
-    {
-      "id": "click.type",
-      "label": "Transient type",
-      "type": "enum",
-      "options": [
-        "noise",
-        "click",
-        "knock",
-        "kick"
-      ],
-      "default": "click",
-      "group": "click",
-      "describes": "The attack layer added on top of each note: noise is a breathy hit, click is a sharp tick, knock is a short woody/plastic thud, kick is a pitched kick drum that drops to the note."
-    },
-    {
-      "id": "click.level",
-      "label": "Transient level",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0,
-      "curve": "pow",
-      "unit": "",
-      "group": "click",
-      "describes": "How loud the attack layer is. A little adds definition and punch on small speakers.",
-      "exponent": 2
-    },
-    {
-      "id": "click.decay",
-      "label": "Transient decay",
-      "type": "float",
-      "min": 1,
-      "max": 300,
-      "default": 15,
-      "curve": "log",
-      "unit": "ms",
-      "group": "click",
-      "describes": "Length of the attack layer. A few ms is a tick; 50-150 ms is a knock or kick."
-    },
-    {
-      "id": "click.tone",
-      "label": "Transient tone",
-      "type": "float",
-      "min": 100,
-      "max": 12000,
-      "default": 2500,
-      "curve": "log",
-      "unit": "Hz",
-      "group": "click",
-      "describes": "Brightness of noise/click, or the start pitch of a knock/kick."
     },
     {
       "id": "drive.on",
@@ -962,11 +912,11 @@
     },
     {
       "id": "filter.route_n",
-      "label": "Filter: texture in",
+      "label": "Filter: noise in",
       "type": "bool",
       "default": false,
       "group": "filter",
-      "describes": "The texture bed goes through a copy of the main filter that follows the newest note."
+      "describes": "The Noise strip goes through the main filter: a texture bed through a copy of it that follows the newest note, breath through the drive and the voice's own filter. Off: it skips them."
     },
     {
       "id": "filter.route_s",
@@ -975,22 +925,6 @@
       "default": false,
       "group": "filter",
       "describes": "The sub goes through the drive and the main filter, and from there through the rest of the voice and the effects. Off (the default): the sub stays on its own clean path."
-    },
-    {
-      "id": "filter.route_br",
-      "label": "Filter: breath in",
-      "type": "bool",
-      "default": true,
-      "group": "filter",
-      "describes": "The breath layer goes through the drive and the main filter (the default). Off: it skips them, staying airy however dark the filter is."
-    },
-    {
-      "id": "filter.route_cl",
-      "label": "Filter: click in",
-      "type": "bool",
-      "default": false,
-      "group": "filter",
-      "describes": "The click goes through the drive and the main filter, so the filter darkens and shapes it. Off (the default): it is added after the amp and stays crisp."
     },
     {
       "id": "filter.fat",
@@ -1441,7 +1375,7 @@
       "curve": "linear",
       "unit": "",
       "group": "breath",
-      "describes": "A short burst of breath or bow noise at the start of each note, through the filter: the attack of brass, flutes and bowed strings."
+      "describes": "A short burst of breath or bow noise at the start of each note, through the filter: the attack of brass, flutes and bowed strings. Only sounds when the Noise type is breath."
     },
     {
       "id": "breath.decay",
@@ -1453,7 +1387,7 @@
       "curve": "log",
       "unit": "ms",
       "group": "breath",
-      "describes": "How long the attack noise lasts."
+      "describes": "How long the attack noise lasts. Only sounds when the Noise type is breath."
     },
     {
       "id": "breath.level",
@@ -1465,7 +1399,7 @@
       "curve": "linear",
       "unit": "",
       "group": "breath",
-      "describes": "Breath noise that sustains with the note (follows the amp envelope): airy brass, breathy voices, bowing."
+      "describes": "Breath noise that sustains with the note (follows the amp envelope): airy brass, breathy voices, bowing. Only sounds when the Noise type is breath."
     },
     {
       "id": "breath.tone",
@@ -1477,7 +1411,7 @@
       "curve": "linear",
       "unit": "",
       "group": "breath",
-      "describes": "Where the breath noise sits: dark (0, ~500 Hz) to airy (1, ~8 kHz)."
+      "describes": "Where the breath noise sits: dark (0, ~500 Hz) to airy (1, ~8 kHz). Only sounds when the Noise type is breath."
     },
     {
       "id": "lfo1.on",

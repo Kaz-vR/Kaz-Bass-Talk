@@ -12,7 +12,7 @@
 //
 // Signal path (fixed order):
 //   up to 8 voices (see voice.ts: oscillators → drive → filter → distortion
-//   → bitcrusher → tape → amp, + transient), summed
+//   → bitcrusher → tape → amp), summed
 //   + texture bed
 //   → compressor (+ tempo pump) → multiband OTT
 //   → FX above fx.lowcut only (chorus → flanger → phaser → delay → reverb)
@@ -286,7 +286,7 @@ export class Synth {
   }
 
   /**
-   * Solo / mute sound layers (osc1, osc2, sub, noise, click, breath, texture):
+   * Solo / mute sound layers (osc1, osc2, sub, noise, breath, texture):
    * a listening aid, not part of the patch. With any solo, only soloed layers play.
    */
   setMonitor(solo: readonly string[], mute: readonly string[]): void {
@@ -342,7 +342,6 @@ export class Synth {
     if (!hear('osc2')) { zero(P.osc[1].level); block(K.D_OSC2_LEVEL); }
     if (!hear('sub')) { zero(P.subLevel); block(K.D_SUB); }
     if (!hear('noise')) { zero(P.noise); block(K.D_NOISE); }
-    if (!hear('click')) zero(P.clickLevel);
     if (!hear('breath')) { zero(P.breath, P.chiff); block(K.D_BREATH); }
     // Tape age hisses on its own: with every layer of the oscillator path silent (e.g. the sub
     // soloed), the tape goes quiet too, so a solo only plays what it names.
@@ -697,7 +696,8 @@ export class Synth {
 
     // Texture bed.
     const tex = clamp(cur[P.texLevel] + dst[K.D_TEXTURE], 0, 1);
-    this.texGain = tex * tex * TEXTURE_GAIN;
+    // With breath picked the Noise strip plays per-note breath (in the voices): the bed is silent.
+    this.texGain = cur[P.texType] === K.TEX_BREATH ? 0 : tex * tex * TEXTURE_GAIN;
     this.texType = cur[P.texType];
     this.texTone = clamp(cur[P.texTone] + this.wobTexTone, 0, 1);
     // The bed swells in with the note: never faster than ~a third of the amp attack.

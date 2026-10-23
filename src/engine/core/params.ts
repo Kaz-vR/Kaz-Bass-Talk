@@ -19,6 +19,8 @@ export const OS = 2; // oversampling factor of the nonlinear section
 // Section Qs of an 8th-order Butterworth filter.
 export const XO_Q = [0.5098, 0.6013, 0.9000, 2.5629];
 export const SAW_FRAME = 2 * FRAMES_PER_SEGMENT; // keyframe 2 of the morph table is a pure saw
+/** texture.type option index of breath (the Noise strip's per-note breath instead of a bed). */
+export const TEX_BREATH = 4;
 export const KEYTRACK_CENTER = 48; // C3: filter.cutoff is the actual cutoff at this note
 
 // Gain staging.
@@ -132,11 +134,10 @@ export const P = {
   fm2Amount: ix('fm2.amount'), fm2Ratio: ix('fm2.ratio'), fmAlgo: ix('fm.algorithm'),
   strTone: ix('string.tone'), strDecay: ix('string.decay'), shepRate: ix('shepard.rate'),
   accent: ix('filter.accent'), ampCurve: ix('amp_env.attack_curve'), chorusMode: ix('chorus.mode'),
-  clickType: ix('click.type'), clickLevel: ix('click.level'), clickDecay: ix('click.decay'), clickTone: ix('click.tone'),
   subWave: ix('sub.wave'), subOct: ix('sub.octave'), subLevel: ix('sub.level'), subClip: ix('sub.clip'), midClip: ix('clip.mid'),
   subFType: ix('sub.filter_type'), subFCut: ix('sub.filter_cutoff'), subFKey: ix('sub.filter_key'), subDirect: ix('sub.direct'),
   texPan: ix('texture.pan'), texDirect: ix('texture.direct'), texFType: ix('texture.filter_type'), texFCut: ix('texture.filter_cutoff'), texFKey: ix('texture.filter_key'),
-  routeA: ix('filter.route_a'), routeB: ix('filter.route_b'), routeN: ix('filter.route_n'), routeS: ix('filter.route_s'), routeBr: ix('filter.route_br'), routeCl: ix('filter.route_cl'), postCut: ix('clip.low_cut'), fat: ix('filter.fat'), fMix: ix('filter.mix'),
+  routeA: ix('filter.route_a'), routeB: ix('filter.route_b'), routeN: ix('filter.route_n'), routeS: ix('filter.route_s'), postCut: ix('clip.low_cut'), fat: ix('filter.fat'), fMix: ix('filter.mix'),
   noise: ix('noise.level'), drive: ix('drive.amount'),
   texType: ix('texture.type'), texLevel: ix('texture.level'), texTone: ix('texture.tone'), texTail: ix('texture.tail'), texPosition: ix('texture.position'),
   fType: ix('filter.type'), cutoff: ix('filter.cutoff'), res: ix('filter.resonance'), keytrack: ix('filter.keytrack'),

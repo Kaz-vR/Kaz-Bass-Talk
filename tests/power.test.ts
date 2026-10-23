@@ -7,7 +7,7 @@ import { heldNote } from './helpers/audio';
 
 const FS = 24000;
 const busy = {
-  meta: { name: 't' }, 'osc1.wave': 'saw', 'osc2.wave': 'pulse', 'osc2.level': 0.4, 'sub.level': 0.4, 'noise.level': 0.1, 'click.level': 0.5,
+  meta: { name: 't' }, 'osc1.wave': 'saw', 'osc2.wave': 'pulse', 'osc2.level': 0.4, 'sub.level': 0.4, 'noise.level': 0.1,
   'breath.level': 0.2, 'fm.amount': 0.3, 'drive.amount': 0.5, 'filter.cutoff': 900, 'filter.resonance': 0.3, 'dist.drive': 0.4, 'dist.mix': 0.6,
   'crush.mix': 0.6, 'crush.bits': 4, 'crush.rate': 6, 'tape.drive': 0.4, 'tape.wow': 0.3, 'tape.age': 0.4, 'vibrato.depth': 30, 'vibrato.delay': 0,
   'wobble.depth': 0.6, 'comp.amount': 0.5, 'comp.pump': 0.4, 'ott.amount': 0.3, 'eq.highcut': 5000, 'eq.low_gain': 3,
@@ -51,7 +51,8 @@ describe('solo / mute', () => {
     expect(diffDb(render({ ...busy, 'osc2.level': 0 }), render(busy, { mute: ['osc2'] }))).toBeLessThan(-60);
   });
   it('solo plays only the soloed layers', () => {
-    const silent = { 'osc1.level': 0, 'osc2.level': 0, 'noise.level': 0, 'click.level': 0, 'breath.level': 0, 'texture.level': 0 };
+    // With every layer of the oscillator path silent the tape goes quiet too (its hiss would be all that's left).
+    const silent = { 'osc1.level': 0, 'osc2.level': 0, 'noise.level': 0, 'breath.level': 0, 'texture.level': 0, 'tape.drive': 0, 'tape.wow': 0, 'tape.age': 0 };
     expect(diffDb(render({ ...busy, ...silent }), render(busy, { solo: ['sub'] }))).toBeLessThan(-60);
   });
 });

@@ -98,7 +98,7 @@ export function arrayToPatch(values: number[], meta: Patch['meta']): Patch {
   return validatePatch(patch).patch;
 }
 
-const LAYERS = ['osc1', 'osc2', 'sub', 'noise', 'click', 'breath', 'texture'];
+const LAYERS = ['osc1', 'osc2', 'sub', 'noise', 'breath', 'texture'];
 const mask = (names: string[]) => names.reduce((m, n) => (LAYERS.includes(n) ? m | (1 << LAYERS.indexOf(n)) : m), 0);
 
 export class PluginHost {

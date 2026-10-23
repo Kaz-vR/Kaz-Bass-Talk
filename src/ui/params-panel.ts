@@ -8,11 +8,11 @@ type OnWheel = (value: number) => void;
 type OnMonitor = (solo: string[], mute: string[]) => void;
 
 /** Sound layers with solo / mute, by box. */
-const LAYERS: Record<string, string> = { osc1: 'osc1', osc2: 'osc2', sub: 'sub', noise: 'noise', click: 'click', breath: 'breath', texture: 'texture' };
+const LAYERS: Record<string, string> = { osc1: 'osc1', osc2: 'osc2', sub: 'sub', noise: 'noise', breath: 'breath', texture: 'texture' };
 
 const GROUP_TITLES: Record<string, string> = {
   voice: 'Voice', osc1: 'Oscillator 1', osc2: 'Oscillator 2', fm: 'FM', sub: 'Sub', noise: 'Noise', texture: 'Texture', drive: 'Drive',
-  string: 'String / Shepard', click: 'Transient', vibrato: 'Vibrato', breath: 'Breath', filter: 'Filter', dist: 'Distortion', crush: 'Bitcrusher', tape: 'Tape', clip: 'Mid clip', dynamics: 'Dynamics', amp_env: 'Amp envelope', mod_env: 'Mod envelope', pitch_env: 'Pitch envelope',
+  string: 'String / Shepard', vibrato: 'Vibrato', breath: 'Breath', filter: 'Filter', dist: 'Distortion', crush: 'Bitcrusher', tape: 'Tape', clip: 'Mid clip', dynamics: 'Dynamics', amp_env: 'Amp envelope', mod_env: 'Mod envelope', pitch_env: 'Pitch envelope',
   env2: 'Env 2 (bloom)', wheel: 'Mod wheel', wobble: 'Wobble', lfo1: 'LFO 1', lfo2: 'LFO 2', lfo3: 'LFO 3', lfo4: 'LFO 4', mod: 'Mod matrix', fx: 'Effects', eq: 'EQ', output: 'Output',
 };
 
@@ -27,7 +27,6 @@ const GROUP_TIPS: Record<string, string> = {
   sub: 'A clean sine or triangle one or two octaves below, always mono: the weight in the low end. Its own transparent clipper adds density without making it louder.',
   noise: 'White noise mixed in before the filter: air, grit and breath in the tone.',
   texture: 'A bed of crackle, dust, rumble or air that plays with the notes and lingers after them: the worn, recorded feel.',
-  click: 'A short attack at the start of each note (click, knock, noise or kick) so it cuts through.',
   drive: 'Saturation before the filter: dirt that the filter then shapes, so the filter movement stays audible.',
   filter: 'Shapes the tone: low-pass (darker), band-pass, formant (vowels), 303 diode, notch, comb or low-pass gate. Cutoff, resonance and envelope.',
   dist: 'Distortion after the filter (soft, hard, fold, tube), optionally only on the mids so the low end stays clean.',
@@ -39,7 +38,7 @@ const GROUP_TIPS: Record<string, string> = {
   env2: 'A slow envelope for long changes while a note is held (blooming open, swelling grit). Does nothing until routed in the mod matrix.',
   pitch_env: 'A quick pitch drop or rise at the start of each note: kicks, 808 drops, zaps, scoops.',
   vibrato: 'A human vibrato that starts after a short delay and fades in, so notes start straight and then sing.',
-  breath: 'The player\'s air: a short noisy puff at the start of each note plus a soft breathy band under it, before the filter.',
+  breath: 'The player\'s air: a short noisy puff at the start of each note plus a soft breathy band under it. Only sounds when the texture type is breath (the Noise strip).',
   lfo1: 'A slow or fast repeating (or smoothly random) movement. Does nothing until routed in the mod matrix; the line under the title shows where it goes.',
   lfo2: 'A slow or fast repeating (or smoothly random) movement. Does nothing until routed in the mod matrix; the line under the title shows where it goes.',
   lfo3: 'A slow or fast repeating (or smoothly random) movement. Does nothing until routed in the mod matrix; the line under the title shows where it goes.',
@@ -55,7 +54,7 @@ const GROUP_TIPS: Record<string, string> = {
 /** The page's sections, in the order the sound flows: play, sources, the dirt chain, envelopes, movement, space, out. */
 const SECTIONS: { id: string; title: string; hint: string; groups: string[] }[] = [
   { id: 'play', title: 'Play', hint: 'How it is played: voices, glide, touch, the mod wheel and a player\'s vibrato.', groups: ['voice', 'wheel', 'vibrato'] },
-  { id: 'sources', title: 'Sources', hint: 'What makes the sound: oscillators, FM, sub, noise, breath, the attack transient and the pitch at the start of a note.', groups: ['osc1', 'osc2', 'string', 'fm', 'sub', 'noise', 'breath', 'click', 'pitch_env'] },
+  { id: 'sources', title: 'Sources', hint: 'What makes the sound: oscillators, FM, sub, noise, breath and the pitch at the start of a note.', groups: ['osc1', 'osc2', 'string', 'fm', 'sub', 'noise', 'breath', 'pitch_env'] },
   { id: 'tone', title: 'Tone and dirt', hint: 'The fixed chain, left to right: drive → filter → distortion → bitcrusher → tape → mid clip.', groups: ['drive', 'filter', 'dist', 'crush', 'tape', 'clip'] },
   { id: 'shape', title: 'Shape over time', hint: 'Per-note envelopes: volume, the filter sweep and the slow bloom.', groups: ['amp_env', 'mod_env', 'env2'] },
   { id: 'movement', title: 'Movement', hint: 'What keeps it alive: the wobble, four LFOs, the other sources and the matrix that routes them.', groups: ['wobble', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'other', 'mod'] },

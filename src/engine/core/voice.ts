@@ -1,10 +1,10 @@
 // One synth voice: everything that belongs to a single note, from the
-// oscillators through the amp, plus its clean sub and attack transient.
+// oscillators through the amp, plus its clean sub.
 //
 //   osc1 (+FM) + osc2 + noise
 //   → [2× oversampled: drive → filter → distortion (optionally mids only)]
 //   → bitcrusher → tape (saturation, wow/flutter, age) → DC filter → amp
-//   + transient + sub (clean, mono, phase-stable: bypasses everything above)
+//   + sub (clean, mono, phase-stable: bypasses everything above)
 //
 // The Synth owns up to 8 of these (polyphony) and everything shared: the
 // parameters, LFOs and drift sources, the texture bed and the FX chain.
@@ -14,7 +14,7 @@ import { AUX_SLOT, Biquad, clamp, Clipper, Envelope, Ladder, OSC_SLOT, Rng, Slot
 import { Crusher, Tape } from './fx';
 import { Downsampler2x, OVERSAMPLE_LATENCY, Upsampler2x } from './oversample';
 import * as K from './params';
-import { Comb, DiodeLadder, KarplusString, Shepard, Transient } from './voicefx';
+import { Comb, DiodeLadder, KarplusString, Shepard } from './voicefx';
 import { FRAME_COUNT, FRAMES_PER_SEGMENT, MIP_LEVELS, mipForIncrement, TABLE_MASK, TABLE_SIZE } from './wavetable';
 
 // Module-local bindings: avoids live-binding getter overhead on hot paths in
@@ -150,8 +150,6 @@ export class Voice {
   private strTone = 0.5;
   private readonly shepards = [new Shepard(), new Shepard()];
   private shepRate = 0;
-  private readonly transient = new Transient();
-  private clickLevel = 0;
   // Delayed vibrato (per note: its own phase and a slightly different rate).
   private noteTime = 0;
   private vibPhase = 0;
@@ -190,7 +188,7 @@ export class Voice {
   private routeB = true;
   private routeS = false;
   private routeBr = true;
-  private routeCl = false;
+  private breathType = false;
   private subDirect = true;
   /** Some source skips the drive and main filter: it gets its own oversampled path. */
   private bypassOn = false;
@@ -342,7 +340,7 @@ export class Voice {
       this.fmPrevOut = 0;
     }
     this.noteCutoffJitter = this.rng.next();
-    // Per-note excitations: FM punch, string pluck, transient layer.
+    // Per-note excitations: FM punch, string pluck.
     this.fmEnv = 1;
     const noteHz = 440 * Math.pow(2, (note + 12 * cur[P.octave] - 69) / 12);
     for (let n = 0; n < 2; n++) {
@@ -350,12 +348,6 @@ export class Voice {
         const hz = noteHz * Math.pow(2, cur[P.osc[n].semi] / 12);
         this.strings[n].pluck(this.fs / hz);
       }
-    }
-    // The transient's pitch follows the sub's register (an 808's kick and sub are one thump):
-    // an octave above the sub, as at the default sub octave.
-    if (cur[P.clickLevel] > 0) {
-      const kickHz = noteHz * Math.pow(2, cur[P.subOct] + 1);
-      this.transient.trigger(cur[P.clickType], cur[P.clickDecay], cur[P.clickTone], kickHz, this.fs);
     }
     this.ampEnv.trigger();
     this.modEnv.trigger();
@@ -407,7 +399,6 @@ export class Voice {
     this.combR.reset();
     for (const st of this.strings) st.reset();
     for (const sh of this.shepards) sh.reset();
-    this.transient.reset();
     this.breathSvf.reset();
     this.crusher.reset();
     this.tape.reset();
@@ -598,8 +589,9 @@ export class Voice {
     this.routeA = cur[P.routeA] > 0.5;
     this.routeB = cur[P.routeB] > 0.5;
     this.routeS = cur[P.routeS] > 0.5;
-    this.routeBr = cur[P.routeBr] > 0.5;
-    this.routeCl = cur[P.routeCl] > 0.5;
+    // Breath is the Noise strip's breath type; N decides whether it goes through the filter.
+    this.breathType = cur[P.texType] === K.TEX_BREATH;
+    this.routeBr = cur[P.routeN] > 0.5;
     {
       let hz = Infinity;
       for (let n = 0; n < 2; n++) {
@@ -610,7 +602,7 @@ export class Voice {
       this.postCut.set(on ? 1 : 0, true, on ? hz : 20, fs);
     }
     this.subDirect = cur[P.subDirect] > 0.5;
-    const bypass = !this.routeA || !this.routeB || !this.routeBr;
+    const bypass = !this.routeA || !this.routeB || (this.breathType && !this.routeBr);
     if (bypass && !this.bypassOn) {
       this.upBL.reset();
       this.upBR.reset();
@@ -640,7 +632,6 @@ export class Voice {
     const carrier = this.toInc(basePitch + cur[P.osc[0].semi]);
     this.fmInc = Math.min(0.45, carrier * cur[P.fmRatio]);
     this.fm2Inc = Math.min(0.45, carrier * cur[P.fm2Ratio]);
-    this.clickLevel = cur[P.clickLevel];
 
     // Sub, folded up an octave at a time if it would fall below 20 Hz (inaudible, wastes headroom).
     // The sub follows the played note (glide, bend, pitch envelope) but never the
@@ -651,8 +642,8 @@ export class Voice {
     this.subInc = subInc;
     this.subLevel = clamp(cur[P.subLevel] + dst[D.SUB], 0, 1) * SUB_GAIN;
     this.noiseLevel = clamp(cur[P.noise] + dst[D.NOISE], 0, 1) * 0.5;
-    this.chiffAmt = cur[P.chiff];
-    this.breathLvl = clamp(cur[P.breath] + dst[D.BREATH], 0, 1);
+    this.chiffAmt = this.breathType ? cur[P.chiff] : 0;
+    this.breathLvl = this.breathType ? clamp(cur[P.breath] + dst[D.BREATH], 0, 1) : 0;
     this.breathOn = this.chiffAmt > 0 || this.breathLvl > 0;
     if (this.breathOn) {
       this.breathG = Math.tan((Math.PI * Math.min(500 * Math.pow(16, cur[P.breathTone]), fs * 0.45)) / fs);
@@ -961,7 +952,7 @@ export class Voice {
   }
 
   /**
-   * One stereo sample of this voice (voice + transient + sub) into out.
+   * One stereo sample of this voice (voice + sub) into out.
    * `duck` is the Synth's discrete-switch fade gain.
    */
   render(duck: number, out: Float64Array): void {
@@ -1116,13 +1107,6 @@ export class Voice {
           byR += b;
         }
       }
-      // Click into the filter (C): it joins the oscillators here, level-matched to its usual
-      // place after the amp, and the amp envelope then shapes it like everything else.
-      if (this.routeCl && this.clickLevel > 0) {
-        const c = this.transient.process() * this.clickLevel * 1.5 / (PRE_FILTER_GAIN * POST_FILTER_GAIN);
-        l += c;
-        r += c;
-      }
       // Sub: clean, mono, phase-stable (in poly mode only the lowest note carries it). Its own
       // filter and clip shape it; with "sub into filter" (S) it joins the oscillators instead.
       const amp = env * this.velGain * duck;
@@ -1215,13 +1199,6 @@ export class Voice {
         this.midClip.process(l, r, MID_CLIP_REF * this.ampMod * VOICE_GAIN * this.velGain, this.clipOut);
         l = this.clipOut[0];
         r = this.clipOut[1];
-      }
-
-      // Attack transient layer (bypasses the filter so it stays crisp).
-      if (this.clickLevel > 0 && !this.routeCl) {
-        const c = this.transient.process() * this.clickLevel * this.velGain * duck * VOICE_GAIN * 1.5;
-        l += c;
-        r += c;
       }
 
       this.subDelay[this.subDelayPos] = sub;

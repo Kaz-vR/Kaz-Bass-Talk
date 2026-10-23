@@ -981,31 +981,52 @@ export class SynthView {
     });
   }
 
+  /**
+   * Noise: a texture bed (crackle, dust, rumble, air) or breath (per-note breath noise, its
+   * chiff and a sustained level). The dials follow the type: tone, tail, lo cut and level for a
+   * bed; chiff, decay, tone and level for breath.
+   */
   private noiseStrip(): HTMLElement {
+    const isBreath = () => this.get('texture.type') === 'breath';
+    const bed = [this.knob('texture.tone', 'Tone', 'small'), this.knob('texture.tail', 'Tail', 'small'),
+      this.lowCut('texture.filter_cutoff', 'texture.filter_type'), this.knob('texture.level', 'Level', 'small')];
+    const breath = [this.knob('breath.chiff', 'Chiff', 'small'), this.knob('breath.decay', 'Decay', 'small'),
+      this.knob('breath.tone', 'Tone', 'small'), this.knob('breath.level', 'Level', 'small')];
+    const direct = this.toggle('texture.direct', 'Direct', 'small');
+    const power = (el: HTMLElement) => {
+      const b = h('button', 'power', lamp());
+      b.title = 'On / off';
+      const ids = () => (isBreath() ? ['breath.level', 'breath.chiff'] : ['texture.level']);
+      const on = () => ids().some((id) => this.num(id) > 0);
+      b.onclick = () => {
+        if (on()) {
+          for (const id of ids()) {
+            this.remembered.set(id, this.num(id));
+            this.set(id, 0);
+          }
+        } else {
+          const id = ids()[0];
+          this.set(id, this.remembered.get(id) ?? (isBreath() ? 0.3 : 0.5));
+          if (isBreath() && this.remembered.has('breath.chiff')) this.set('breath.chiff', this.remembered.get('breath.chiff')!);
+        }
+      };
+      this.watch(['texture.type', 'texture.level', 'breath.level', 'breath.chiff'], () => {
+        b.classList.toggle('on', on());
+        el.classList.toggle('is-off', !on());
+      });
+      return b;
+    };
+    this.watch(['texture.type'], () => {
+      const br = isBreath();
+      for (const k of bed) k.style.display = br ? 'none' : '';
+      for (const k of breath) k.style.display = br ? '' : 'none';
+      direct.style.visibility = br ? 'hidden' : '';
+    });
     return this.strip('NOISE', 'noise', {
-      power: (el) => this.levelPower('texture.level', el),
-      head: [this.toggle('texture.direct', 'Direct', 'small')],
+      power,
+      head: [direct],
       under: this.selector('texture.type'),
-      groups: [[], [this.knob('texture.tone', 'Tone', 'small'), this.knob('texture.tail', 'Tail', 'small')],
-        [this.lowCut('texture.filter_cutoff', 'texture.filter_type'), this.knob('texture.level', 'Level', 'small')]],
-    });
-  }
-
-  private breathStrip(): HTMLElement {
-    return this.strip('BREATH', 'breath', {
-      power: (el) => this.levelPower('breath.level', el),
-      under: h('span', 'st-hint', 'air on each note'),
-      groups: [[], [this.knob('breath.chiff', 'Chiff', 'small'), this.knob('breath.decay', 'Decay', 'small')],
-        [this.knob('breath.tone', 'Tone', 'small'), this.knob('breath.level', 'Level', 'small')]],
-    });
-  }
-
-  private clickStrip(): HTMLElement {
-    return this.strip('CLICK', 'click', {
-      power: (el) => this.levelPower('click.level', el),
-      under: this.selector('click.type'),
-      groups: [[], [this.knob('click.decay', 'Decay', 'small')],
-        [this.knob('click.tone', 'Tone', 'small'), this.knob('click.level', 'Level', 'small')]],
+      groups: [[], [bed[0], bed[1], breath[0], breath[1]], [bed[2], bed[3], breath[2], breath[3]]],
     });
   }
 
@@ -1046,9 +1067,8 @@ export class SynthView {
       this.toggle('filter.route_b', 'B', 'route'),
       this.toggle('filter.route_s', 'S', 'route'),
       this.toggle('filter.route_n', 'N', 'route'),
-      this.toggle('filter.route_br', 'B', 'route'),
-      this.toggle('filter.route_cl', 'C', 'route'));
-    routes.title = 'What goes through the filter, in the order of the sources: oscillator A, oscillator B, sub, noise, breath, click';
+    );
+    routes.title = 'What goes through the filter, in the order of the sources: oscillator A, oscillator B, sub, noise (a texture bed or breath)';
     const drive = this.knob('drive.amount', 'Drive', 'mid', { disabled: () => !this.get('drive.on'), deps: ['drive.on'] });
     // Turning the drive up switches the drive stage on.
     drive.addEventListener('pointerdown', () => { if (!this.get('drive.on')) this.set('drive.on', true); }, true);
@@ -2020,7 +2040,7 @@ export class SynthView {
     const cap = (n: string, name: string, note: string, zone: Zone) =>
       h('div', `zone-cap cap-${zone}`, h('span', 'cap-name', `${n}  ${name}`), h('span', 'cap-note', note), h('span', 'cap-line'));
     const sources = h('div', 'col col-sources', cap('1', 'SOURCES', 'make the sound', 'src'),
-      this.oscStrip(1), this.oscStrip(2), this.subStrip(), this.noiseStrip(), this.breathStrip(), this.clickStrip());
+      this.oscStrip(1), this.oscStrip(2), this.subStrip(), this.noiseStrip());
     const middle = h('div', 'col col-middle', h('div', 'zone-cap'), this.scopeBox(), this.envCard('amp_env', 'AMP ENVELOPE', 'src', 186, 262, 'small'));
     const filter = h('div', 'col col-filter', cap('2', 'FILTER', 'shape the tone', 'flt'), this.filterCard(), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', 170, 62, 'small'));
     const dirt = h('div', 'col col-dirt', cap('3', 'DIRT', 'grit and wear', 'dirt'), this.distCard(), this.tapeCard(), this.midClipCard());

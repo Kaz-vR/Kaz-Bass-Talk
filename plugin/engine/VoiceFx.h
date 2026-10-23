@@ -1,6 +1,6 @@
 // Voice building blocks (port of src/engine/core/voicefx.ts): 303-style diode
 // filter, comb filter, physical-model string, Shepard oscillator, attack
-// transient and the texture bed. Buffers are sized in the constructor.
+// texture bed. Buffers are sized in the constructor.
 #pragma once
 #include <array>
 #include <cmath>
@@ -144,73 +144,7 @@ class Shepard {
   double pos = 0;
 };
 
-constexpr int CLICK_NOISE = 0, CLICK_CLICK = 1, CLICK_KNOCK = 2, CLICK_KICK = 3;
-
-class Transient {
- public:
-  Transient() : rng(0xc11c) {}
-  void reset() {
-    env = 0;
-    svf.reset();
-    dcX = dcY = 0;
-  }
-  void trigger(int t, double decayMs, double tone, double noteHz, double fs) {
-    type = t;
-    env = 1;
-    dcR = 1 - (2 * PI * 20) / fs;
-    envCoef = std::exp(-4.6 / std::fmax(1, (decayMs / 1000) * fs));
-    phase = 0;
-    g = std::tan((PI * std::fmin(tone, fs * 0.45)) / fs);
-    if (t == CLICK_KNOCK) {
-      freq = tone / fs;
-      freqTarget = (tone * 0.6) / fs;
-      sweep = std::exp(-1 / (0.01 * fs));
-    } else if (t == CLICK_KICK) {
-      freq = tone / fs;
-      freqTarget = std::fmax(30, noteHz) / fs;
-      sweep = std::exp(-1 / (std::fmax(5, decayMs * 0.25) * 0.001 * fs));
-    }
-  }
-  double process() {
-    if (env < 1e-5) {
-      const double y0 = -dcX + dcR * dcY;
-      dcX = 0;
-      dcY = y0;
-      return y0;
-    }
-    double y;
-    switch (type) {
-      case CLICK_NOISE:
-        svf.process(rng.next(), g, 0.7);
-        y = svf.bp * 1.4;
-        break;
-      case CLICK_CLICK:
-        svf.process(rng.next(), g, 1.2);
-        y = svf.hp;
-        break;
-      default:
-        freq = freqTarget + (freq - freqTarget) * sweep;
-        phase += freq;
-        if (phase >= 1) phase -= 1;
-        y = std::sin(TWO_PI * phase);
-        if (type == CLICK_KICK) y = fastTanh(2.2 * y);
-    }
-    y *= env;
-    env *= envCoef;
-    const double out = y - dcX + dcR * dcY;
-    dcX = y;
-    dcY = out;
-    return out;
-  }
- private:
-  double env = 0, envCoef = 0.99, phase = 0, freq = 0, freqTarget = 0, sweep = 0.999;
-  Svf svf;
-  Rng rng;
-  int type = CLICK_CLICK;
-  double g = 0.1, dcX = 0, dcY = 0, dcR = 0.997;
-};
-
-constexpr int TEX_CRACKLE = 0, TEX_DUST = 1, TEX_RUMBLE = 2, TEX_AIR = 3;
+constexpr int TEX_CRACKLE = 0, TEX_DUST = 1, TEX_RUMBLE = 2, TEX_AIR = 3, TEX_BREATH = 4;
 
 class Texture {
  public:

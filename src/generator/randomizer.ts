@@ -55,7 +55,7 @@ const between = (r: Rand, lo: number, hi: number) => lo + (hi - lo) * r();
 
 /** Boxes a roll can swap in from another preset. */
 const SWAP_GROUPS = [
-  'osc1', 'osc2', 'fm', 'string', 'sub', 'noise', 'texture', 'click', 'drive', 'filter', 'dist', 'crush', 'tape', 'amp_env', 'mod_env',
+  'osc1', 'osc2', 'fm', 'string', 'sub', 'noise', 'texture', 'drive', 'filter', 'dist', 'crush', 'tape', 'amp_env', 'mod_env',
   'env2', 'pitch_env', 'vibrato', 'breath', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'mod', 'dynamics', 'fx', 'eq',
 ];
 /** Never randomized: level and the low-end crossover are set by the leveler and the safety rules. */

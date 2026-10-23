@@ -85,14 +85,10 @@
   "sub.octave": -1,
   "sub.level": 0,
   "noise.level": 0,
-  "texture.type": "air",
+  "texture.type": "breath",
   "texture.level": 0.7,
   "texture.tone": 0.15,
   "texture.tail": 3000,
-  "click.type": "click",
-  "click.level": 0,
-  "click.decay": 15,
-  "click.tone": 2500,
   "drive.amount": 0.5,
   "filter.type": "lowpass",
   "filter.cutoff": 1500,
@@ -218,5 +214,6 @@
   "eq.highcut": 4000,
   "output.gain": -3.7,
   "output.crossover": 120,
-  "wheel.preset": "decay"
+  "wheel.preset": "decay",
+  "filter.route_n": true
 }
