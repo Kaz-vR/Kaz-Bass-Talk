@@ -242,6 +242,162 @@ function waveShape(wave: string, x: number, pw: number, wt: number): number {
   }
 }
 
+/**
+ * Dial looks to choose from (owner's review): 'ref' (the reference's knurled cap with a tick
+ * above), 'photo' (lit like a real object), 'silver' (brushed aluminium), 'flat' (minimal) and
+ * 'glass' (a dark glass dome). Same geometry: the value arc runs outside the cap.
+ */
+function drawKnobVariant(g: CanvasRenderingContext2D, style: string, k: { cx: number; cy: number; r: number; n: number; av: number; zero: number; a0: number; a1: number; accent: string; off: boolean }): void {
+  const { cx, cy, r, av, zero, a0, a1, accent, off } = k;
+  const col = off ? '#55555b' : accent;
+  const kr = r - 5;
+  const circle = (rad: number, fill: string | CanvasGradient) => {
+    g.fillStyle = fill;
+    g.beginPath();
+    g.arc(cx, cy, rad, 0, 2 * Math.PI);
+    g.fill();
+  };
+  const arc = (rad: number, w: number, glow: boolean) => {
+    g.save();
+    g.lineCap = 'round';
+    g.lineWidth = w;
+    g.strokeStyle = 'rgba(255,255,255,0.07)';
+    g.beginPath();
+    g.arc(cx, cy, rad, a0, a1);
+    g.stroke();
+    if (Math.abs(av - zero) > 0.02) {
+      g.strokeStyle = col;
+      if (glow && !off) {
+        g.shadowColor = col;
+        g.shadowBlur = 5;
+      }
+      g.beginPath();
+      g.arc(cx, cy, rad, Math.min(zero, av), Math.max(zero, av));
+      g.stroke();
+    }
+    g.restore();
+  };
+  const pointer = (r0: number, r1: number, w: number, color: string, glow: boolean) => {
+    g.save();
+    g.lineCap = 'round';
+    g.strokeStyle = color;
+    g.lineWidth = w;
+    if (glow && !off) {
+      g.shadowColor = color;
+      g.shadowBlur = 5;
+    }
+    g.beginPath();
+    g.moveTo(cx + Math.cos(av) * r0, cy + Math.sin(av) * r0);
+    g.lineTo(cx + Math.cos(av) * r1, cy + Math.sin(av) * r1);
+    g.stroke();
+    g.restore();
+  };
+  const shadow = (blur: number, dy: number) => {
+    g.save();
+    g.shadowColor = 'rgba(0,0,0,0.95)';
+    g.shadowBlur = blur;
+    g.shadowOffsetY = dy;
+    circle(kr, '#050506');
+    g.restore();
+  };
+  const lin = (stops: [number, string][], rad: number) => {
+    const gr = g.createLinearGradient(cx, cy - rad, cx, cy + rad);
+    for (const [o, c] of stops) gr.addColorStop(o, c);
+    return gr;
+  };
+  switch (style) {
+    case 'ref': {
+      arc(r - 1.5, 1.4, true);
+      shadow(7, 2.5);
+      circle(kr, lin([[0, '#55555c'], [0.25, '#1c1c1f'], [1, '#0a0a0b']], kr));
+      // knurled grip
+      g.save();
+      for (let i = 0; i < 40; i++) {
+        const a = (i / 40) * 2 * Math.PI, lit = 0.35 + 0.65 * Math.max(0, -Math.sin(a));
+        g.strokeStyle = `rgba(${Math.round(150 * lit)},${Math.round(150 * lit)},${Math.round(158 * lit)},0.45)`;
+        g.lineWidth = 0.6;
+        g.beginPath();
+        g.moveTo(cx + Math.cos(a) * kr * 0.84, cy + Math.sin(a) * kr * 0.84);
+        g.lineTo(cx + Math.cos(a) * kr * 0.98, cy + Math.sin(a) * kr * 0.98);
+        g.stroke();
+      }
+      g.restore();
+      const fr = kr * 0.8;
+      circle(fr, (() => { const gr = g.createRadialGradient(cx - fr * 0.3, cy - fr * 0.55, fr * 0.05, cx, cy, fr); gr.addColorStop(0, '#2c2c31'); gr.addColorStop(0.6, '#151517'); gr.addColorStop(1, '#0b0b0c'); return gr; })());
+      pointer(fr * 0.15, fr * 0.92, 1.8, col, true);
+      break;
+    }
+    case 'photo': {
+      arc(r - 1.5, 1.6, true);
+      shadow(10, 4);
+      const cg = g.createConicGradient(-Math.PI / 2, cx, cy);
+      [[0, '#8a8a92'], [0.12, '#3a3a40'], [0.3, '#1a1a1d'], [0.5, '#121214'], [0.7, '#1a1a1d'], [0.88, '#3a3a40'], [1, '#8a8a92']].forEach(([o, c]) => cg.addColorStop(o as number, c as string));
+      circle(kr, cg);
+      const fr = kr * 0.82;
+      circle(fr + 0.8, lin([[0, '#000'], [1, '#3a3a3f']], fr));
+      circle(fr, (() => { const gr = g.createRadialGradient(cx, cy + fr * 0.4, fr * 0.1, cx, cy, fr); gr.addColorStop(0, '#1d1d20'); gr.addColorStop(1, '#0d0d0f'); return gr; })());
+      // specular highlight
+      g.save();
+      const hl = g.createLinearGradient(cx, cy - fr, cx, cy);
+      hl.addColorStop(0, 'rgba(255,255,255,0.16)');
+      hl.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = hl;
+      g.beginPath();
+      g.ellipse(cx, cy - fr * 0.45, fr * 0.7, fr * 0.42, 0, 0, 2 * Math.PI);
+      g.fill();
+      g.restore();
+      pointer(fr * 0.3, fr * 0.92, 2, col, true);
+      break;
+    }
+    case 'silver': {
+      arc(r - 1.5, 1.6, true);
+      shadow(8, 3);
+      circle(kr, lin([[0, '#2a2a2e'], [1, '#08080a']], kr));
+      const fr = kr * 0.84;
+      const cg = g.createConicGradient(0, cx, cy);
+      [[0, '#6e6e76'], [0.12, '#c4c4cc'], [0.25, '#5e5e66'], [0.38, '#a8a8b0'], [0.5, '#56565e'], [0.62, '#b8b8c0'], [0.75, '#5e5e66'], [0.88, '#b0b0b8'], [1, '#6e6e76']].forEach(([o, c]) => cg.addColorStop(o as number, c as string));
+      circle(fr, cg);
+      circle(fr, (() => { const gr = g.createRadialGradient(cx, cy - fr * 0.6, 0, cx, cy, fr); gr.addColorStop(0, 'rgba(255,255,255,0.15)'); gr.addColorStop(1, 'rgba(0,0,0,0.4)'); return gr; })());
+      pointer(fr * 0.25, fr * 0.95, 2, '#0a0a0b', false);
+      break;
+    }
+    case 'flat': {
+      arc(r - 1.5, 1.2, false);
+      circle(kr, '#161618');
+      g.save();
+      g.strokeStyle = 'rgba(255,255,255,0.10)';
+      g.lineWidth = 1;
+      g.beginPath();
+      g.arc(cx, cy, kr - 0.5, 0, 2 * Math.PI);
+      g.stroke();
+      g.restore();
+      pointer(kr * 0.2, kr * 0.85, 1.6, col, false);
+      break;
+    }
+    default: { // 'glass'
+      arc(r - 1.5, 1.4, true);
+      shadow(9, 3);
+      circle(kr, (() => { const gr = g.createRadialGradient(cx, cy + kr * 0.3, kr * 0.1, cx, cy, kr); gr.addColorStop(0, '#16161a'); gr.addColorStop(1, '#040405'); return gr; })());
+      pointer(kr * 0.15, kr * 0.8, 2.6, col, true);
+      pointer(kr * 0.15, kr * 0.8, 0.9, '#ffffff', false);
+      g.save();
+      const hl = g.createLinearGradient(cx, cy - kr, cx, cy);
+      hl.addColorStop(0, 'rgba(255,255,255,0.22)');
+      hl.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = hl;
+      g.beginPath();
+      g.ellipse(cx, cy - kr * 0.42, kr * 0.72, kr * 0.45, 0, 0, 2 * Math.PI);
+      g.fill();
+      g.strokeStyle = 'rgba(255,255,255,0.14)';
+      g.lineWidth = 0.8;
+      g.beginPath();
+      g.arc(cx, cy, kr, 0, 2 * Math.PI);
+      g.stroke();
+      g.restore();
+    }
+  }
+}
+
 /** A moving average over the y values: a darker tone draws a rounder line. */
 function smoothY(pts: [number, number][], win: number): [number, number][] {
   const n = Math.max(0, Math.round(win));
@@ -725,8 +881,13 @@ export class SynthView {
       const a0 = 0.75 * Math.PI, a1 = 2.25 * Math.PI;
       const zero = bipolar ? a0 + (a1 - a0) * toNormalized(p, 0) : a0;
       const av = a0 + (a1 - a0) * n;
-      const accent = getComputedStyle(el).getPropertyValue('--knob-accent').trim() || '#ff8f75';
+      const cs = getComputedStyle(el);
+      const accent = cs.getPropertyValue('--knob-accent').trim() || '#ff8f75';
       const kr = r - 3;
+      // Alternative dial looks (picked by the page's --knob-style), else the default below.
+      const style = cs.getPropertyValue('--knob-style').trim();
+      if (style && style !== 'ring') drawKnobVariant(g, style, { cx, cy, r, n, av, zero, a0, a1, accent, off });
+      else {
       // shadow under the knob
       g.save();
       g.shadowColor = 'rgba(0,0,0,0.9)';
@@ -797,6 +958,7 @@ export class SynthView {
       g.lineTo(cx + Math.cos(av) * fr * 0.95, cy + Math.sin(av) * fr * 0.95);
       g.stroke();
       g.restore();
+      }
       // Serum-style modulation ring: how far the modulator moves this dial, from where the dial sits.
       if (mod) {
         const amt = this.num(mod.id);
