@@ -297,6 +297,7 @@ function stepPreset(dir: number): void {
 }
 $<HTMLButtonElement>('panic').onclick = () => {
   host?.panic();
+  synth.allNotesOff();
 };
 $<HTMLButtonElement>('copy').onclick = async () => {
   const json = JSON.stringify(validatePatch(current).patch, null, 2);
@@ -311,8 +312,8 @@ $<HTMLButtonElement>('copy').onclick = async () => {
 };
 
 const keyboard = new Keyboard(synth.keysEl, {
-  noteOn: (n, v) => host?.noteOn(n, v),
-  noteOff: (n) => host?.noteOff(n),
+  noteOn: (n, v) => { host?.noteOn(n, v); synth.noteOn(); },
+  noteOff: (n) => { host?.noteOff(n); synth.noteOff(); },
   onOctave: (base) => synth.setOctave(base),
   onVelocity: (v) => synth.setVelocity(v),
 });
@@ -333,15 +334,15 @@ $('start').querySelector('button')!.addEventListener('click', async () => {
   new Scope(host.analyser, $<HTMLCanvasElement>('scope'), $<HTMLCanvasElement>('spectrum'));
   synth.setAnalyser(host.analyser);
   initMidi({
-    noteOn: (n, v) => { host?.noteOn(n, v); keyboard.mark(n, true); },
-    noteOff: (n) => { host?.noteOff(n); keyboard.mark(n, false); },
+    noteOn: (n, v) => { host?.noteOn(n, v); keyboard.mark(n, true); synth.noteOn(); },
+    noteOff: (n) => { host?.noteOff(n); keyboard.mark(n, false); synth.noteOff(); },
     pitchBend: (v) => host?.pitchBend(v),
     modWheel: (v) => {
       host?.modWheel(v);
       panel.setWheel(v);
       synth.setWheel(v);
     },
-    allNotesOff: () => host?.panic(),
+    allNotesOff: () => { host?.panic(); synth.allNotesOff(); },
     status: () => {},
   });
 });
@@ -385,8 +386,8 @@ function startPlugin(): void {
     },
     notes: (notes, wheel) => {
       const now = new Set(notes);
-      for (const n of held) if (!now.has(n)) keyboard.mark(n, false);
-      for (const n of now) if (!held.has(n)) keyboard.mark(n, true);
+      for (const n of held) if (!now.has(n)) { keyboard.mark(n, false); synth.noteOff(); }
+      for (const n of now) if (!held.has(n)) { keyboard.mark(n, true); synth.noteOn(); }
       held = now;
       if (wheel >= 0 && wheel !== lastWheel) {
         lastWheel = wheel;

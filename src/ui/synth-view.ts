@@ -297,6 +297,12 @@ export class SynthView {
   private readonly menu = h('div', 'pre-menu');
   private menuShelf = '';
   private oscPage: HTMLElement | null = null;
+  // The envelope balls: when the newest note started and was released (ms), notes held, redraws.
+  private noteT0 = -1;
+  private relT0 = -1;
+  private held = 0;
+  private dotRaf = 0;
+  private readonly dotDraws: (() => void)[] = [];
   private modPage: HTMLElement | null = null;
   private fxPage: HTMLElement | null = null;
   /** The synth page's height: every tab keeps it, so nothing jumps. */
@@ -355,6 +361,41 @@ export class SynthView {
   /** The rolls or starred sounds changed: redraw the PRESETS page if it's showing. */
   refreshPresets(): void {
     if (this.presetPage.style.display !== 'none' && this.presetPage.isConnected) this.renderPresetPage();
+  }
+
+  /** A note started (keyboard, MIDI or the host): the envelope balls start running. */
+  noteOn(): void {
+    const legato = this.held > 0 && this.num('voice.polyphony') <= 1 && !!this.get('voice.legato');
+    this.held++;
+    if (!legato) {
+      this.noteT0 = performance.now();
+      this.relT0 = -1;
+    }
+    this.runDots();
+  }
+
+  /** A note ended: with none left held, the balls run down the release. */
+  noteOff(): void {
+    this.held = Math.max(0, this.held - 1);
+    if (this.held === 0 && this.noteT0 >= 0 && this.relT0 < 0) this.relT0 = performance.now();
+  }
+
+  allNotesOff(): void {
+    this.held = 0;
+    if (this.noteT0 >= 0 && this.relT0 < 0) this.relT0 = performance.now();
+  }
+
+  private runDots(): void {
+    if (this.dotRaf) return;
+    const step = () => {
+      for (const f of this.dotDraws) f();
+      const longest = Math.max(this.num('amp_env.release'), this.num('mod_env.release'), this.num('env2.release'));
+      const live = this.noteT0 >= 0 && (this.relT0 < 0 || performance.now() - this.relT0 < longest + 50);
+      if (!live) this.noteT0 = -1;
+      this.dotRaf = live ? requestAnimationFrame(step) : 0;
+      if (!live) for (const f of this.dotDraws) f();
+    };
+    this.dotRaf = requestAnimationFrame(step);
   }
 
   /** The preset's name and where it lives (shelf · frame · template), shown like a print's caption. */
@@ -895,7 +936,46 @@ export class SynthView {
       silver(g, pts);
       vignette(g, W, H);
       points().forEach(([x, y], i) => handle(g, x, y, i === hot));
+      // Where the playing note is in the envelope: a ball that runs along it (as in Serum).
+      const at = playhead();
+      if (at) {
+        const col = accentOf(cv);
+        g.save();
+        g.shadowColor = col;
+        g.shadowBlur = 16;
+        g.fillStyle = col;
+        g.beginPath();
+        g.arc(at[0], at[1], 5, 0, 2 * Math.PI);
+        g.fill();
+        g.shadowBlur = 6;
+        g.shadowColor = '#fff';
+        g.fillStyle = '#fff';
+        g.beginPath();
+        g.arc(at[0], at[1], 2.6, 0, 2 * Math.PI);
+        g.fill();
+        g.restore();
+      }
     };
+    /** The playhead on this envelope: held = along attack, decay and sustain; released = down the release. */
+    const playhead = (): [number, number] | null => {
+      if (this.noteT0 < 0) return null;
+      const { a, d, s, r, hold, X, Y } = geo();
+      const heldAt = (t: number): [number, number] => {
+        if (t < a) return [t, 1 - Math.pow(1 - t / Math.max(a, 1e-3), 2)];
+        if (t < a + d) return [t, s + (1 - s) * Math.exp((-5 * (t - a)) / Math.max(d, 1e-3))];
+        return [a + d + Math.min(t - a - d, hold), s];
+      };
+      const now = performance.now();
+      if (this.relT0 < 0) {
+        const [t, v] = heldAt(now - this.noteT0);
+        return [X(t), Y(v)];
+      }
+      const tr = now - this.relT0;
+      if (tr > r) return null;
+      const v0 = heldAt(this.relT0 - this.noteT0)[1];
+      return [X(a + d + hold + tr), Y(v0 * Math.exp((-5 * tr) / Math.max(r, 1e-3)))];
+    };
+    this.dotDraws.push(draw);
     this.watch(ids, () => {
       if (hot < 0) reSpan();
       draw();
