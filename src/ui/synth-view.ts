@@ -263,6 +263,11 @@ function syncBeats(v: string): number {
   const b = (4 * Number(m[1])) / Number(m[2]);
   return m[3] === 'D' ? b * 1.5 : m[3] === 'T' ? (b * 2) / 3 : b;
 }
+/** OSC page prints: one height for all; widths follow the box (beside a side column, the amp box, the wide box). */
+const PRINT_H = 92;
+const PRINT_SIDE_W = 160;
+const PRINT_MID_W = 254;
+const PRINT_WIDE_W = 266;
 /** A modulation ring on a dial: the amount parameter, its colour, and how far it moves the dial (normalized). */
 interface KnobMod {
   id: string;
@@ -869,28 +874,26 @@ export class SynthView {
   // ------------------------------------------------------------------ displays
 
   /** The oscillator's wave as a small print. */
-  private wavePrint(n: 1 | 2): HTMLElement {
-    const W = 252, H = 78;
+  private wavePrint(n: 1 | 2, W: number, H: number): HTMLElement {
     const [cv, g] = canvas(W, H, 'disp');
     const o = `osc${n}`;
     this.watch([`${o}.wave`, `${o}.pulse_width`, `${o}.wt_pos`, `${o}.level`], () => {
       paper(g, W, H);
       const wave = String(this.get(`${o}.wave`)), pw = this.num(`${o}.pulse_width`), wt = this.num(`${o}.wt_pos`);
       const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - waveShape(wave, ((i / W) * 2.5) % 1, pw, wt) * (H / 2 - 9)]);
+      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - waveShape(wave, ((i / W) * (W / 70)) % 1, pw, wt) * (H / 2 - 9)]);
       silver(g, pts, this.num(`${o}.level`) > 0);
       vignette(g, W, H);
     });
     return cv;
   }
 
-  private subPrint(): HTMLElement {
-    const W = 252, H = 50;
+  private subPrint(W: number, H: number): HTMLElement {
     const [cv, g] = canvas(W, H, 'disp');
     this.watch(['sub.wave', 'sub.level'], () => {
       paper(g, W, H);
       const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - waveShape(String(this.get('sub.wave')), ((i / W) * 2) % 1, 0.5, 0) * (H / 2 - 9)]);
+      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - waveShape(String(this.get('sub.wave')), ((i / W) * (W / 90)) % 1, 0.5, 0) * (H / 2 - 9) * 0.7]);
       silver(g, pts, this.num('sub.level') > 0);
       vignette(g, W, H);
     });
@@ -898,8 +901,7 @@ export class SynthView {
   }
 
   /** The noise layer as a short trace: its grain follows the type, its height the level. */
-  private noisePrint(): HTMLElement {
-    const W = 252, H = 50;
+  private noisePrint(W: number, H: number): HTMLElement {
     const [cv, g] = canvas(W, H, 'disp noise-disp');
     this.watch(['texture.type', 'texture.level', 'breath.level', 'breath.chiff'], () => {
       paper(g, W, H);
@@ -1167,15 +1169,16 @@ export class SynthView {
    * One source as a channel strip, in fixed columns so every strip lines up: the name with its
    * selector under it | the pitch boxes | the wave print | the dials in small groups.
    */
-  private strip(title: string, cls: string, o: { power: HTMLElement | ((el: HTMLElement) => HTMLElement); head?: HTMLElement[]; under: HTMLElement; chips?: HTMLElement[]; print?: HTMLElement; groups: HTMLElement[][] }): HTMLElement {
-    const head = h('div', 'st-head', h('span', 'c-title', title), ...(o.head ?? []));
-    const groups = h('div', 'st-knobs', ...o.groups.map((g) => h('div', 'st-group', ...g)));
-    const el = h('div', `c c-src strip ${cls}`,
-      h('div', 'st-left', head, o.under),
-      h('div', 'st-chips', ...(o.chips ?? [])),
-      h('div', 'st-print', ...(o.print ? [o.print] : [])),
-      groups);
-    head.prepend(typeof o.power === 'function' ? o.power(el) : o.power);
+  /**
+   * A box on the OSC page. Every box has the same three rows at the same heights: the title row,
+   * the print (with an optional column of selectors and boxes on its left), and the dials,
+   * centred with equal spacing. Differences between boxes only change widths, never heights.
+   */
+  private obox(title: string, cls: string, o: { power?: HTMLElement | ((el: HTMLElement) => HTMLElement); head?: HTMLElement[]; side?: HTMLElement[]; print?: HTMLElement; dials?: HTMLElement[] }): HTMLElement {
+    const head = h('div', 'ob-head', h('span', 'c-title', title), ...(o.head ?? []));
+    const mid = h('div', 'ob-mid', ...(o.side ? [h('div', 'ob-side', ...o.side)] : []), h('div', 'ob-print', ...(o.print ? [o.print] : [])));
+    const el = h('div', `c ob ${cls}`, head, mid, h('div', 'ob-dials', ...(o.dials ?? [])));
+    if (o.power) head.append(typeof o.power === 'function' ? o.power(el) : o.power);
     return el;
   }
 
@@ -1194,21 +1197,20 @@ export class SynthView {
       pw.style.display = isWt ? 'none' : '';
     });
     const uniOff = () => this.num(`${o}.unison_voices`) <= 1;
-    return this.strip(n === 1 ? 'OSC A' : 'OSC B', `osc box-osc${n === 1 ? 'a' : 'b'}`, {
+    return this.obox(n === 1 ? 'OSC A' : 'OSC B', `c-src osc box-osc${n === 1 ? 'a' : 'b'}`, {
       power: (el) => this.levelPower(`${o}.level`, el),
       head: n === 2 ? [this.toggle('osc2.sync', 'Sync', 'small')] : [],
-      under: this.selector(`${o}.wave`),
-      chips: [
+      side: [this.selector(`${o}.wave`), h('div', 'ob-chips',
         this.chip('OCT', oct, (v) => setSemi(12 * v + sem()), -2, 2, [`${o}.semi`], 'Octave'),
         this.chip('SEM', sem, (v) => setSemi(12 * oct() + v), -11, 11, [`${o}.semi`], 'Semitones'),
         this.chip('FIN', () => this.num(`${o}.fine`), (v) => this.set(`${o}.fine`, v), -100, 100, [`${o}.fine`], 'Fine tune (cents)'),
-      ],
-      print: this.wavePrint(n),
-      groups: [
-        [this.chip('UNI', () => this.num(`${o}.unison_voices`), (v) => this.set(`${o}.unison_voices`, v), 1, 7, [`${o}.unison_voices`], 'Unison voices (stacked detuned copies)'),
-          this.knob(`${o}.unison_detune`, 'Detune', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] })],
-        [pw, wt, this.knob(`${o}.unison_spread`, 'Spread', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] })],
-        [this.lowCut(`${o}.highpass`, `${o}.filter_type`), this.knob(`${o}.level`, 'Level', 'small')],
+        this.chip('UNI', () => this.num(`${o}.unison_voices`), (v) => this.set(`${o}.unison_voices`, v), 1, 7, [`${o}.unison_voices`], 'Unison voices (stacked detuned copies)'),
+      )],
+      print: this.wavePrint(n, PRINT_SIDE_W, PRINT_H),
+      dials: [
+        this.knob(`${o}.unison_detune`, 'Detune', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] }),
+        pw, wt, this.knob(`${o}.unison_spread`, 'Spread', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] }),
+        this.lowCut(`${o}.highpass`, `${o}.filter_type`), this.knob(`${o}.level`, 'Level', 'small'),
       ],
     });
   }
@@ -1240,13 +1242,13 @@ export class SynthView {
   }
 
   private subStrip(): HTMLElement {
-    return this.strip('SUB', 'sub box-sub', {
+    return this.obox('SUB', 'c-src sub box-sub', {
       power: (el) => this.levelPower('sub.level', el),
       head: [this.toggle('sub.direct', 'Direct', 'small')],
-      under: this.selector('sub.wave'),
-      chips: [this.chip('OCT', () => this.num('sub.octave'), (v) => this.set('sub.octave', v), -2, -1, ['sub.octave'], 'Sub octave')],
-      print: this.subPrint(),
-      groups: [[], [], [this.knob('sub.clip', 'Clip', 'small'), this.knob('sub.level', 'Level', 'small')]],
+      side: [this.selector('sub.wave'), h('div', 'ob-chips',
+        this.chip('OCT', () => this.num('sub.octave'), (v) => this.set('sub.octave', v), -2, -1, ['sub.octave'], 'Sub octave'))],
+      print: this.subPrint(PRINT_SIDE_W, PRINT_H),
+      dials: [this.knob('sub.clip', 'Clip', 'small'), this.knob('sub.level', 'Level', 'small')],
     });
   }
 
@@ -1291,12 +1293,12 @@ export class SynthView {
       for (const k of breath) k.style.display = br ? '' : 'none';
       direct.style.visibility = br ? 'hidden' : '';
     });
-    return this.strip('NOISE', 'noise box-noise', {
+    return this.obox('NOISE', 'c-src noise box-noise', {
       power,
       head: [direct],
-      under: this.selector('texture.type'),
-      print: this.noisePrint(),
-      groups: [[], [bed[0], bed[1], breath[0], breath[1]], [bed[2], bed[3], breath[2], breath[3]]],
+      side: [this.selector('texture.type')],
+      print: this.noisePrint(PRINT_SIDE_W, PRINT_H),
+      dials: [bed[0], bed[1], breath[0], breath[1], bed[2], bed[3], breath[2], breath[3]],
     });
   }
 
@@ -1343,41 +1345,44 @@ export class SynthView {
     return el;
   }
 
-  private envCard(prefix: 'amp_env' | 'mod_env', title: string, zone: Zone, W: number, H: number, size: Size, cls = ''): HTMLElement {
-    const [el, head, body] = this.card(title, zone, `env ${cls}`);
-    if (size !== 'small') head.append(h('span', 'c-note', 'drag the points'));
-    if (prefix === 'mod_env') head.append(this.modReadout(FENV_MOD, 'CUTOFF'));
-    body.append(this.envPrint(prefix, W, H), h('div', 'knob-row',
-      this.knob(`${prefix}.attack`, 'A', size, { fmt: ms, parse: parseMs }),
-      this.knob(`${prefix}.decay`, 'D', size, { fmt: ms, parse: parseMs }),
-      this.knob(`${prefix}.sustain`, 'S', size, { fmt: db, parse: parseDb }),
-      this.knob(`${prefix}.release`, 'R', size, { fmt: ms, parse: parseMs }),
-    ));
-    return el;
+  private envBox(prefix: 'amp_env' | 'mod_env', title: string, cls: string, W: number): HTMLElement {
+    // The filter envelope's "→ CUTOFF" amount sits in the print's top-right corner.
+    const print = this.envPrint(prefix, W, PRINT_H);
+    return this.obox(title, `env ${cls}`, {
+      print: prefix === 'mod_env' ? h('div', 'ob-over', print, this.modReadout(FENV_MOD, 'CUTOFF')) : print,
+      dials: [
+        this.knob(`${prefix}.attack`, 'A', 'small', { fmt: ms, parse: parseMs }),
+        this.knob(`${prefix}.decay`, 'D', 'small', { fmt: ms, parse: parseMs }),
+        this.knob(`${prefix}.sustain`, 'S', 'small', { fmt: db, parse: parseDb }),
+        this.knob(`${prefix}.release`, 'R', 'small', { fmt: ms, parse: parseMs }),
+      ],
+    });
   }
 
   // ------------------------------------------------------------------ filter
 
-  private filterCard(): HTMLElement {
-    const [el, head, body] = this.card('FILTER', 'flt', 'main-filter box-flt');
-    head.prepend(this.boolPower('filter.on', el));
-    // What goes into the filter, top to bottom in the same order as the sources on the left.
-    const routes = h('div', 'routes', h('span', 'routes-label', 'In'),
+  private filterBox(): HTMLElement {
+    // What goes into the filter, in the order of the sources: A, B, S, N.
+    const routes = h('div', 'ob-routes', h('span', 'ob-routes-label', 'IN'),
       this.toggle('filter.route_a', 'A', 'route'),
       this.toggle('filter.route_b', 'B', 'route'),
       this.toggle('filter.route_s', 'S', 'route'),
       this.toggle('filter.route_n', 'N', 'route'),
     );
     routes.title = 'What goes through the filter, in the order of the sources: oscillator A, oscillator B, sub, noise (a texture bed or breath)';
-    const drive = this.knob('drive.amount', 'Drive', 'mid', { disabled: () => !this.get('drive.on'), deps: ['drive.on'] });
+    const drive = this.knob('drive.amount', 'Drive', 'small', { disabled: () => !this.get('drive.on'), deps: ['drive.on'] });
     // Turning the drive up switches the drive stage on.
     drive.addEventListener('pointerdown', () => { if (!this.get('drive.on')) this.set('drive.on', true); }, true);
     // The filter envelope's amount is the ring around Cutoff (as in Serum): Alt-drag the dial.
-    const cutoff = this.knob('filter.cutoff', 'Cutoff', 'big', { mod: { ...FENV_MOD, live: () => this.liveFilter?.cutoff ?? null } });
+    const cutoff = this.knob('filter.cutoff', 'Cutoff', 'small', { mod: { ...FENV_MOD, live: () => this.liveFilter?.cutoff ?? null } });
     cutoff.title += ' The outer ring is how far the filter envelope sweeps it: Alt-drag to set it, Alt-double-click to clear it.';
-    const grid = h('div', 'flt-grid', cutoff, this.knob('filter.resonance', 'Res', 'big'), drive, this.keyTrack());
-    body.append(h('div', 'flt-top', this.selector('filter.type'), routes), this.filterPrint(282, 64), grid);
-    return el;
+    return this.obox('FILTER', 'c-flt main-filter box-flt', {
+      power: (el) => this.boolPower('filter.on', el),
+      head: [this.keyTrack()],
+      side: [this.selector('filter.type'), routes],
+      print: this.filterPrint(PRINT_SIDE_W, PRINT_H),
+      dials: [cutoff, this.knob('filter.resonance', 'Res', 'small'), drive],
+    });
   }
 
   /** Key tracking as an on/off lamp: off = 0, on = the amount the preset had (0.5 if it had none). */
@@ -2362,8 +2367,8 @@ export class SynthView {
     void this.scopeBox; // the oscilloscope comes back later; its place is an empty box for now
     // Two rows of four boxes: OSC A, OSC B, amp envelope, filter; sub, noise, scope, filter envelope.
     this.oscPage = h('div', 'v2-main osc-page',
-      this.oscStrip(1), this.oscStrip(2), this.envCard('amp_env', 'AMP ENVELOPE', 'src', 226, 118, 'small', 'box-amp'), this.filterCard(),
-      this.subStrip(), this.noiseStrip(), h('div', 'c box-empty'), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', 282, 62, 'small', 'box-fenv'));
+      this.oscStrip(1), this.oscStrip(2), this.envBox('amp_env', 'AMP ENVELOPE', 'c-src box-amp', PRINT_MID_W), this.filterBox(),
+      this.subStrip(), this.noiseStrip(), this.obox('', 'box-empty', {}), this.envBox('mod_env', 'FILTER ENVELOPE', 'c-flt box-fenv', PRINT_WIDE_W));
     this.modPage = this.buildModPage();
     this.fxPage = this.buildFxPage();
     this.presetPage.style.display = 'none';

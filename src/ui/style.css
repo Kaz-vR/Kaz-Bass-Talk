@@ -843,3 +843,33 @@ html, body, .v2-wrap { background: #070708; }
 /* filter: cutoff, res, drive, and the key tracking lamp */
 .osc-page .flt-grid { align-items: center; }
 .v2 .key-led { align-self: center; justify-self: center; margin-bottom: 14px; }
+
+/* ---- OSC page: every box has the same three rows (title, print, dials) at the same heights.
+   Selectors and boxes sit in a column left of the print, so boxes differ in width, never height. */
+.v2 .osc-page { grid-template-columns: 300px 300px 288px 300px; grid-template-rows: 226px 226px; gap: 4px; }
+.v2 .osc-page > .ob { display: grid; grid-template-rows: 22px 92px 56px; row-gap: 14px; padding: 14px 16px 12px; align-content: start; }
+.v2 .ob-head { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.v2 .ob-head .c-title { margin-right: auto; }
+.v2 .ob-head > .power { margin-left: 2px; }
+.v2 .ob-mid { display: flex; gap: 10px; align-items: stretch; min-height: 0; }
+.v2 .ob-side { width: 96px; flex: none; display: flex; flex-direction: column; gap: 8px; }
+.v2 .ob-side .sel { width: 100%; }
+.v2 .ob-chips { display: grid; grid-template-columns: 46px 46px; gap: 4px; }
+.v2 .ob-chips .chip { width: 46px; margin: 0; }
+.v2 .ob-routes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 6px; align-items: center; }
+.v2 .ob-routes-label { grid-column: 1 / 3; font-size: 9.5px; letter-spacing: 0.18em; color: #7c7c82; line-height: 12px; }
+.v2 .ob-routes .led { font-size: 10.5px; height: 18px; padding: 0; }
+.v2 .ob-print { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; }
+.v2 .ob-print .disp { margin: 0; align-self: center; }
+.v2 .ob-dials { display: flex; justify-content: center; align-items: flex-end; gap: 10px; }
+.v2 .ob-dials .k { width: 44px; margin: 0; flex: none; }
+.v2 .ob-dials .k-label { font-size: 10.5px; letter-spacing: 0.02em; }
+.c.is-off .ob-mid, .c.is-off .ob-dials { opacity: 0.45; }
+.v2 .ob-side .sel-name { font-size: 11px; letter-spacing: 0.1em; }
+.v2 .ob-head .key-led { margin: 0; align-self: center; }
+.v2 .ob-head .led { padding: 0; height: 22px; }
+.v2 .ob-over { position: relative; }
+.v2 .ob-over .mod-readout { position: absolute; top: 2px; right: 4px; white-space: nowrap; }
+.v2 .ob-side .sel { height: 28px; flex: none; }
+.v2 .ob-side .sel-name { height: 100%; line-height: 28px; padding: 0 20px 0 10px; letter-spacing: 0.08em; }
+.v2 .ob-side .sel::after { top: 10px; right: 10px; }
