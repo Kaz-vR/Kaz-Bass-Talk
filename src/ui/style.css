@@ -817,3 +817,14 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .chip { height: 32px; }
 .v2 .chip-label { color: #6c6c72; }
 .v2::after { display: none; }
+
+/* selectors first (left), then the number boxes; UNI sits with the dials, left of Detune */
+.osc-page .strip, .osc-page .box-sub.strip, .osc-page .box-noise.strip { grid-template-columns: auto 1fr; grid-template-areas: "head head" "sel chips" "print print" "knobs knobs"; }
+.osc-page .st-left > .sel, .osc-page .box-sub .st-left > .sel, .osc-page .box-noise .st-left > .sel { justify-self: start; }
+.osc-page .st-chips, .osc-page .box-sub .st-chips { justify-self: start; }
+.osc-page .strip .st-knobs > .st-group:first-child .chip, .osc-page .strip .st-knobs .chip { align-self: center; margin-bottom: 18px; }
+.osc-page .flt-top { gap: 14px; justify-content: flex-start; }
+.osc-page .box-osca.strip, .osc-page .box-oscb.strip { padding-left: 14px; padding-right: 14px; }
+.osc-page .strip .st-knobs { min-width: 0; gap: 2px; }
+.osc-page .box-osca .k, .osc-page .box-oscb .k { width: 42px; }
+.osc-page .box-osca .k-label, .osc-page .box-oscb .k-label { font-size: 10px; letter-spacing: 0.02em; }

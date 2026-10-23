@@ -1067,11 +1067,11 @@ export class SynthView {
         this.chip('OCT', oct, (v) => setSemi(12 * v + sem()), -2, 2, [`${o}.semi`], 'Octave'),
         this.chip('SEM', sem, (v) => setSemi(12 * oct() + v), -11, 11, [`${o}.semi`], 'Semitones'),
         this.chip('FIN', () => this.num(`${o}.fine`), (v) => this.set(`${o}.fine`, v), -100, 100, [`${o}.fine`], 'Fine tune (cents)'),
-        this.chip('UNI', () => this.num(`${o}.unison_voices`), (v) => this.set(`${o}.unison_voices`, v), 1, 7, [`${o}.unison_voices`], 'Unison voices (stacked detuned copies)'),
       ],
       print: this.wavePrint(n),
       groups: [
-        [this.knob(`${o}.unison_detune`, 'Detune', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] })],
+        [this.chip('UNI', () => this.num(`${o}.unison_voices`), (v) => this.set(`${o}.unison_voices`, v), 1, 7, [`${o}.unison_voices`], 'Unison voices (stacked detuned copies)'),
+          this.knob(`${o}.unison_detune`, 'Detune', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] })],
         [pw, wt, this.knob(`${o}.unison_spread`, 'Spread', 'small', { disabled: uniOff, deps: [`${o}.unison_voices`] })],
         [this.lowCut(`${o}.highpass`, `${o}.filter_type`), this.knob(`${o}.level`, 'Level', 'small')],
       ],
@@ -1211,7 +1211,7 @@ export class SynthView {
     const grid = h('div', 'flt-grid',
       this.knob('filter.cutoff', 'Cutoff', 'big'), this.knob('filter.resonance', 'Res', 'big'),
       this.knob('filter.env_amount', 'Env', 'big'), drive);
-    body.append(h('div', 'flt-top', routes, this.selector('filter.type')), this.filterPrint(282, 64), grid,
+    body.append(h('div', 'flt-top', this.selector('filter.type'), routes), this.filterPrint(282, 64), grid,
       h('div', 'knob-row flt-small', this.knob('filter.keytrack', 'Key', 'small'), this.knob('filter.fat', 'Fat', 'small'), this.knob('filter.mix', 'Mix', 'small')));
     return el;
   }
