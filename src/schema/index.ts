@@ -131,7 +131,45 @@ export function validatePatch(input: unknown): ValidationResult {
   for (const key of Object.keys(src)) {
     if (key !== 'meta' && key !== 'fx.lowcut' && !indexById.has(key)) issues.push({ param: key, message: 'unknown parameter (dropped)' });
   }
+  sortModSlots(patch);
   return { patch, issues };
+}
+
+/** Matrix sources in reading order: the LFOs, Env 2 and the envelopes, what the hands do, the drifts. */
+const SRC_ORDER = ['lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo_product', 'env2', 'mod_env', 'amp_env', 'velocity', 'modwheel', 'keytrack', 'drift', 'drift_slow', 'random'];
+/** Destinations in signal order: pitch, the sources, drive and filter, dirt, level, effects, LFO rates. */
+const DEST_ORDER = ['pitch', 'osc1_pitch', 'osc2_pitch', 'vibrato_depth', 'osc1_wt_pos', 'osc2_wt_pos', 'osc1_pw', 'osc2_pw', 'osc1_level', 'osc2_level',
+  'unison_detune', 'fm_amount', 'fm2_amount', 'sub_level', 'noise_level', 'breath_level', 'texture_level', 'drive', 'filter_cutoff', 'filter_resonance',
+  'filter_vowel', 'dist_drive', 'dist_mix', 'dist_tone', 'crush_mix', 'tape_wow', 'amp', 'chorus_depth', 'phaser_mix', 'delay_time', 'delay_mix',
+  'reverb_mix', 'width', 'lfo1_rate', 'lfo2_rate', 'lfo3_rate', 'lfo4_rate'];
+const MOD_SLOT_COUNT = 12;
+
+/**
+ * Put the 12 mod-matrix slots in reading order: everything from LFO 1 first, then LFO 2, 3, 4,
+ * Env 2, velocity / wheel / keytrack, the drifts and random; the same source's rows together, in
+ * signal order of their destinations; empty slots last. The slots are summed, so the sound is
+ * unchanged. Runs on every patch that is loaded (presets, rolls, saved sounds).
+ */
+export function sortModSlots(patch: Patch): void {
+  const rank = (list: string[], v: string) => {
+    const i = list.indexOf(v);
+    return i < 0 ? list.length : i;
+  };
+  const slots = Array.from({ length: MOD_SLOT_COUNT }, (_, i) => {
+    const n = i + 1;
+    return { src: patch[`mod${n}.source`], dest: patch[`mod${n}.dest`], amt: patch[`mod${n}.amount`], i };
+  });
+  const used = (s: (typeof slots)[number]) => s.src !== 'none' && s.dest !== 'none' && s.amt !== 0;
+  slots.sort((a, b) =>
+    Number(used(b)) - Number(used(a)) ||
+    (used(a) ? rank(SRC_ORDER, String(a.src)) - rank(SRC_ORDER, String(b.src)) || rank(DEST_ORDER, String(a.dest)) - rank(DEST_ORDER, String(b.dest)) : 0) ||
+    a.i - b.i);
+  slots.forEach((s, i) => {
+    const n = i + 1;
+    patch[`mod${n}.source`] = s.src;
+    patch[`mod${n}.dest`] = s.dest;
+    patch[`mod${n}.amount`] = s.amt;
+  });
 }
 
 export function defaultPatch(name = 'Init'): Patch {
