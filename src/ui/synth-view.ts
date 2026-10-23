@@ -263,6 +263,22 @@ function syncBeats(v: string): number {
   const b = (4 * Number(m[1])) / Number(m[2]);
   return m[3] === 'D' ? b * 1.5 : m[3] === 'T' ? (b * 2) / 3 : b;
 }
+/** Typed times: "150", "150 ms", "1.5 s". */
+const parseMs = (t: string): number | null => {
+  const m = /^\s*(-?[\d.]+)\s*(ms|s)?\s*$/i.exec(t);
+  return m ? Number(m[1]) * (m[2]?.toLowerCase() === 's' ? 1000 : 1) : null;
+};
+/** Typed levels in dB ("-6", "-6 dB", "0"); "-inf" or "off" is silence. */
+const parseDb = (t: string): number | null => {
+  if (/inf|off/i.test(t)) return 0;
+  const m = /^\s*(-?[\d.]+)\s*(db)?\s*$/i.exec(t);
+  return m ? Math.min(1, Math.pow(10, Number(m[1]) / 20)) : null;
+};
+/** Typed percentages ("75", "75 %"). */
+const parsePct = (t: string): number | null => {
+  const m = /^\s*(-?[\d.]+)\s*%?\s*$/.exec(t);
+  return m ? Number(m[1]) / 100 : null;
+};
 const ms = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${v < 10 ? v.toFixed(1) : Math.round(v)} ms`);
 const db = (v: number) => {
   if (v <= 0.0005) return '-inf dB';
@@ -514,7 +530,7 @@ export class SynthView {
   // ------------------------------------------------------------------ controls
 
   /** A dial bound to a float/int parameter. Big = the controls that matter most, small = details. */
-  private knob(id: string, label: string, size: Size = 'mid', opts: { fmt?: (v: number) => string; disabled?: () => boolean; deps?: string[]; showValue?: boolean } = {}): HTMLElement {
+  private knob(id: string, label: string, size: Size = 'mid', opts: { fmt?: (v: number) => string; parse?: (text: string) => number | null; disabled?: () => boolean; deps?: string[]; showValue?: boolean } = {}): HTMLElement {
     const p = getParam(id)!;
     const px = PX[size];
     const [cv, g] = canvas(px, px, 'knob');
@@ -629,7 +645,34 @@ export class SynthView {
       cv.releasePointerCapture(e.pointerId);
       el.classList.remove('drag');
     });
-    cv.addEventListener('dblclick', () => this.set(id, p.default as ParamValue));
+    if (opts.parse) {
+      // Double-click: type a value (Enter sets it, Escape cancels).
+      const parse = opts.parse;
+      cv.addEventListener('dblclick', () => {
+        const input = h('input', 'k-input');
+        input.type = 'text';
+        input.value = fmt(this.num(id));
+        el.append(input);
+        input.focus();
+        input.select();
+        let done = false;
+        const close = (commit: boolean) => {
+          if (done) return;
+          done = true;
+          if (commit) {
+            const v = parse(input.value);
+            if (v !== null && Number.isFinite(v)) this.set(id, Math.round(Math.max(p.min!, Math.min(p.max!, v)) * 1000) / 1000);
+          }
+          input.remove();
+        };
+        input.addEventListener('keydown', (e) => {
+          e.stopPropagation();
+          if (e.key === 'Enter') close(true);
+          if (e.key === 'Escape') close(false);
+        });
+        input.addEventListener('blur', () => close(true));
+      });
+    } else cv.addEventListener('dblclick', () => this.set(id, p.default as ParamValue));
     cv.addEventListener('wheel', (e) => {
       e.preventDefault();
       setN(toNormalized(p, this.num(id)) - Math.sign(e.deltaY) * (e.shiftKey ? 0.002 : 0.02));
@@ -1184,10 +1227,10 @@ export class SynthView {
     const [el, head, body] = this.card(title, zone, `env ${cls}`);
     if (size !== 'small') head.append(h('span', 'c-note', 'drag the points'));
     body.append(this.envPrint(prefix, W, H), h('div', 'knob-row',
-      this.knob(`${prefix}.attack`, 'A', size, { fmt: ms, showValue: true }),
-      this.knob(`${prefix}.decay`, 'D', size, { fmt: ms, showValue: true }),
-      this.knob(`${prefix}.sustain`, 'S', size, { fmt: db, showValue: true }),
-      this.knob(`${prefix}.release`, 'R', size, { fmt: ms, showValue: true }),
+      this.knob(`${prefix}.attack`, 'A', size, { fmt: ms, parse: parseMs }),
+      this.knob(`${prefix}.decay`, 'D', size, { fmt: ms, parse: parseMs }),
+      this.knob(`${prefix}.sustain`, 'S', size, { fmt: db, parse: parseDb }),
+      this.knob(`${prefix}.release`, 'R', size, { fmt: ms, parse: parseMs }),
     ));
     return el;
   }
@@ -1498,10 +1541,10 @@ export class SynthView {
     head.append(this.routeNote('env2'));
     const pct = (v: number) => `${Math.round(v * 100)}%`;
     body.append(this.envPrint('env2', 208, 118), h('div', 'knob-row',
-      this.knob('env2.attack', 'A', 'mid', { fmt: ms, showValue: true }),
-      this.knob('env2.decay', 'D', 'mid', { fmt: ms, showValue: true }),
-      this.knob('env2.sustain', 'S', 'mid', { fmt: pct, showValue: true }),
-      this.knob('env2.release', 'R', 'mid', { fmt: ms, showValue: true })));
+      this.knob('env2.attack', 'A', 'mid', { fmt: ms, parse: parseMs }),
+      this.knob('env2.decay', 'D', 'mid', { fmt: ms, parse: parseMs }),
+      this.knob('env2.sustain', 'S', 'mid', { fmt: pct, parse: parsePct }),
+      this.knob('env2.release', 'R', 'mid', { fmt: ms, parse: parseMs })));
     return el;
   }
 
