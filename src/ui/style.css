@@ -873,3 +873,33 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .ob-side .sel { height: 28px; flex: none; }
 .v2 .ob-side .sel-name { height: 100%; line-height: 28px; padding: 0 20px 0 10px; letter-spacing: 0.08em; }
 .v2 .ob-side .sel::after { top: 10px; right: 10px; }
+
+/* ---- OSC page v2: eight 4:3 boxes of one size. Title row (title, selector, value boxes, power),
+   the print full width in the middle (switches in its top corner), the dials centred below. */
+.v2 .osc-page { grid-template-columns: repeat(4, 297px); grid-template-rows: 223px 223px; gap: 4px; }
+.v2 .osc-page > .ob { grid-template-rows: 28px 84px 62px; row-gap: 11px; padding: 12px 12px 12px; }
+.v2 .ob-head { gap: 6px; }
+.v2 .ob-head .c-title { margin-right: 4px; letter-spacing: 0.25em; white-space: nowrap; }
+.v2 .ob-head > .power { margin-left: auto; }
+.v2 .ob-head .sel { width: 66px; height: 26px; flex: 0 1 auto; min-width: 0; }
+.v2 .ob-head .sel-name { height: 100%; line-height: 26px; padding: 0 16px 0 8px; font-size: 10.5px; letter-spacing: 0.06em; }
+.v2 .ob-head .sel::after { top: 9px; right: 7px; }
+.v2 .main-filter .ob-head .sel { width: 84px; }
+.v2 .ob-chips { display: flex; gap: 2px; }
+.v2 .ob-chips .chip { width: 28px; height: 26px; margin: 0; }
+.v2 .ob-routes { display: flex; gap: 7px; align-items: center; }
+.v2 .ob-routes .led { font-size: 10.5px; gap: 4px; padding: 0; }
+.v2 .ob-print { position: relative; display: flex; align-items: center; justify-content: center; min-height: 0; }
+.v2 .ob-corner { position: absolute; top: 3px; right: 16px; z-index: 2; display: flex; gap: 10px; align-items: center; padding: 0 6px; height: 18px; background: rgba(8,8,9,0.55); }
+.v2 .ob-corner .led { font-size: 9.5px; height: 18px; padding: 0; gap: 5px; letter-spacing: 0.12em; }
+.v2 .ob-corner .mod-readout { position: static; }
+.v2 .ob-dials { gap: 7px; }
+.v2 .ob-dials .k { width: 48px; }
+.v2 .ob-dials .k-label { font-size: 11px; }
+.v2 .main-filter .ob-head .sel { width: 96px; }
+.v2 .ob-head .key-led { font-size: 10px; letter-spacing: 0.12em; }
+.v2 .ob-corner { background: none; top: 0; right: 14px; padding: 0; }
+.v2 .ob-corner .led, .v2 .ob-corner .mod-readout { text-shadow: 0 0 3px #000, 0 0 6px #000, 0 0 10px #000; }
+.v2 .ob-dials .ob-routes { display: grid; grid-template-columns: auto auto; gap: 3px 8px; align-self: center; margin-left: 6px; padding-bottom: 4px; }
+.v2 .ob-dials .ob-routes-label { grid-column: 1 / 3; font-size: 9px; letter-spacing: 0.2em; color: #7c7c82; line-height: 12px; }
+.v2 .ob-dials .ob-routes .led { height: 16px; }
