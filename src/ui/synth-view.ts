@@ -263,6 +263,20 @@ function syncBeats(v: string): number {
   const b = (4 * Number(m[1])) / Number(m[2]);
   return m[3] === 'D' ? b * 1.5 : m[3] === 'T' ? (b * 2) / 3 : b;
 }
+/** A modulation ring on a dial: the amount parameter, its colour, and how far it moves the dial (normalized). */
+interface KnobMod {
+  id: string;
+  color: string;
+  span: (amount: number) => number;
+  fmt: (amount: number) => string;
+}
+/** The filter envelope → cutoff: ±1 is ±6 octaves on a 20 Hz – 20 kHz log dial. */
+const FENV_MOD: KnobMod = {
+  id: 'filter.env_amount',
+  color: '#bfe6ff',
+  span: (a) => (a * 6) / Math.log2(1000),
+  fmt: (a) => (Math.abs(a) < 1e-4 ? 'off' : `${a > 0 ? '+' : '−'}${(Math.abs(a) * 6).toFixed(1)} oct`),
+};
 /** Typed times: "150", "150 ms", "1.5 s". */
 const parseMs = (t: string): number | null => {
   const m = /^\s*(-?[\d.]+)\s*(ms|s)?\s*$/i.exec(t);
@@ -530,8 +544,9 @@ export class SynthView {
   // ------------------------------------------------------------------ controls
 
   /** A dial bound to a float/int parameter. Big = the controls that matter most, small = details. */
-  private knob(id: string, label: string, size: Size = 'mid', opts: { fmt?: (v: number) => string; parse?: (text: string) => number | null; disabled?: () => boolean; deps?: string[]; showValue?: boolean } = {}): HTMLElement {
+  private knob(id: string, label: string, size: Size = 'mid', opts: { fmt?: (v: number) => string; parse?: (text: string) => number | null; disabled?: () => boolean; deps?: string[]; showValue?: boolean; mod?: KnobMod } = {}): HTMLElement {
     const p = getParam(id)!;
+    const mod = opts.mod;
     const px = PX[size];
     const [cv, g] = canvas(px, px, 'knob');
     const val = h('div', 'k-val');
@@ -540,12 +555,13 @@ export class SynthView {
     el.title = `${p.label}: ${p.describes}`;
     const bipolar = (p.min ?? 0) < 0 && (p.max ?? 0) > 0;
     const fmt = (v: number) => (opts.fmt ? opts.fmt(v) : formatValue(p, v));
+    let modDrag = false;
     const draw = () => {
       const v = this.num(id);
       const n = toNormalized(p, p.curve === 'log' ? Math.max(v, p.min!) : v);
       const off = opts.disabled?.() ?? false;
       el.classList.toggle('off', off);
-      val.textContent = fmt(v);
+      val.textContent = modDrag && mod ? mod.fmt(this.num(mod.id)) : fmt(v);
       const r = px / 2, cx = r, cy = r;
       g.clearRect(0, 0, px, px);
       const a0 = 0.75 * Math.PI, a1 = 2.25 * Math.PI;
@@ -623,27 +639,61 @@ export class SynthView {
       g.lineTo(cx + Math.cos(av) * fr * 0.95, cy + Math.sin(av) * fr * 0.95);
       g.stroke();
       g.restore();
+      // Serum-style modulation ring: how far the modulator moves this dial, from where the dial sits.
+      if (mod) {
+        const amt = this.num(mod.id);
+        const m = Math.max(0, Math.min(1, n + mod.span(amt)));
+        const am = a0 + (a1 - a0) * m;
+        if (Math.abs(am - av) > 0.01) {
+          g.save();
+          g.lineCap = 'round';
+          g.lineWidth = 1.8;
+          g.strokeStyle = mod.color;
+          g.shadowColor = mod.color;
+          g.shadowBlur = 4;
+          g.beginPath();
+          g.arc(cx, cy, r - 0.9, Math.min(av, am), Math.max(av, am));
+          g.stroke();
+          g.restore();
+        }
+      }
     };
     const setN = (n: number) => {
       let v = fromNormalized(p, Math.max(0, Math.min(1, n)));
       if (p.type === 'float') v = Math.round(v * 1e4) / 1e4;
       this.set(id, v);
     };
-    let startY = 0, startN = 0;
+    let startY = 0, startN = 0, startMod = 0;
     cv.addEventListener('pointerdown', (e) => {
       cv.setPointerCapture(e.pointerId);
       startY = e.clientY;
       startN = toNormalized(p, this.num(id));
+      // With a modulation ring: Alt-drag, or grabbing the outer ring, sets the amount instead.
+      if (mod) {
+        const b = cv.getBoundingClientRect();
+        const dist = Math.hypot(e.clientX - b.left - b.width / 2, e.clientY - b.top - b.height / 2);
+        modDrag = e.altKey || dist > b.width * 0.42;
+        startMod = this.num(mod.id);
+        if (modDrag) draw();
+      }
       el.classList.add('drag');
     });
     cv.addEventListener('pointermove', (e) => {
       if (!cv.hasPointerCapture(e.pointerId)) return;
       const span = e.shiftKey ? 1000 : 200;
-      setN(startN + (startY - e.clientY) / span);
+      if (modDrag && mod) {
+        const mp = getParam(mod.id)!;
+        const v = Math.max(mp.min!, Math.min(mp.max!, startMod + ((startY - e.clientY) / span) * (mp.max! - mp.min!) / 2));
+        this.set(mod.id, Math.round(v * 1e4) / 1e4);
+      } else setN(startN + (startY - e.clientY) / span);
     });
     cv.addEventListener('pointerup', (e) => {
       cv.releasePointerCapture(e.pointerId);
       el.classList.remove('drag');
+      if (modDrag) {
+        modDrag = false;
+        draw();
+      }
     });
     if (opts.parse) {
       // Double-click: type a value (Enter sets it, Escape cancels).
@@ -672,12 +722,15 @@ export class SynthView {
         });
         input.addEventListener('blur', () => close(true));
       });
-    } else cv.addEventListener('dblclick', () => this.set(id, p.default as ParamValue));
+    } else {
+      // Alt-double-click clears the modulation ring; a plain double-click resets the dial.
+      cv.addEventListener('dblclick', (e) => (mod && e.altKey ? this.set(mod.id, 0) : this.set(id, p.default as ParamValue)));
+    }
     cv.addEventListener('wheel', (e) => {
       e.preventDefault();
       setN(toNormalized(p, this.num(id)) - Math.sign(e.deltaY) * (e.shiftKey ? 0.002 : 0.02));
     }, { passive: false });
-    this.watch([id, ...(opts.deps ?? [])], draw);
+    this.watch([id, ...(mod ? [mod.id] : []), ...(opts.deps ?? [])], draw);
     return el;
   }
 
@@ -1223,9 +1276,38 @@ export class SynthView {
     return el;
   }
 
+  /** "→ CUTOFF +2.4 oct": where a modulator goes and how much; drag up/down to change it, double-click clears it. */
+  private modReadout(mod: KnobMod, target: string): HTMLElement {
+    const mp = getParam(mod.id)!;
+    const amt = h('span', 'mr-amt');
+    const el = h('span', 'mod-readout', h('span', 'mr-to', `→ ${target}`), amt);
+    el.title = 'How far this envelope sweeps the filter cutoff (the ring around Cutoff). Drag up/down to change it; double-click to clear it.';
+    let startY = 0, start = 0;
+    el.addEventListener('pointerdown', (e) => {
+      el.setPointerCapture(e.pointerId);
+      startY = e.clientY;
+      start = this.num(mod.id);
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!el.hasPointerCapture(e.pointerId)) return;
+      const span = e.shiftKey ? 1000 : 200;
+      const v = Math.max(mp.min!, Math.min(mp.max!, start + ((startY - e.clientY) / span) * (mp.max! - mp.min!) / 2));
+      this.set(mod.id, Math.round(v * 1e4) / 1e4);
+    });
+    el.addEventListener('pointerup', (e) => el.releasePointerCapture(e.pointerId));
+    el.addEventListener('dblclick', () => this.set(mod.id, 0));
+    this.watch([mod.id], () => {
+      const v = this.num(mod.id);
+      amt.textContent = mod.fmt(v);
+      el.classList.toggle('zero', Math.abs(v) < 1e-4);
+    });
+    return el;
+  }
+
   private envCard(prefix: 'amp_env' | 'mod_env', title: string, zone: Zone, W: number, H: number, size: Size, cls = ''): HTMLElement {
     const [el, head, body] = this.card(title, zone, `env ${cls}`);
     if (size !== 'small') head.append(h('span', 'c-note', 'drag the points'));
+    if (prefix === 'mod_env') head.append(this.modReadout(FENV_MOD, 'CUTOFF'));
     body.append(this.envPrint(prefix, W, H), h('div', 'knob-row',
       this.knob(`${prefix}.attack`, 'A', size, { fmt: ms, parse: parseMs }),
       this.knob(`${prefix}.decay`, 'D', size, { fmt: ms, parse: parseMs }),
@@ -1251,11 +1333,12 @@ export class SynthView {
     const drive = this.knob('drive.amount', 'Drive', 'mid', { disabled: () => !this.get('drive.on'), deps: ['drive.on'] });
     // Turning the drive up switches the drive stage on.
     drive.addEventListener('pointerdown', () => { if (!this.get('drive.on')) this.set('drive.on', true); }, true);
-    const grid = h('div', 'flt-grid',
-      this.knob('filter.cutoff', 'Cutoff', 'big'), this.knob('filter.resonance', 'Res', 'big'),
-      this.knob('filter.env_amount', 'Env', 'big'), drive);
+    // The filter envelope's amount is the ring around Cutoff (as in Serum): Alt-drag the dial or grab the ring.
+    const cutoff = this.knob('filter.cutoff', 'Cutoff', 'big', { mod: FENV_MOD });
+    cutoff.title += ' The outer ring is how far the filter envelope sweeps it: Alt-drag (or drag the ring) to set it, Alt-double-click to clear it.';
+    const grid = h('div', 'flt-grid', cutoff, this.knob('filter.resonance', 'Res', 'big'), drive, this.knob('filter.keytrack', 'Key', 'big'));
     body.append(h('div', 'flt-top', this.selector('filter.type'), routes), this.filterPrint(282, 64), grid,
-      h('div', 'knob-row flt-small', this.knob('filter.keytrack', 'Key', 'small'), this.knob('filter.fat', 'Fat', 'small'), this.knob('filter.mix', 'Mix', 'small')));
+      h('div', 'knob-row flt-small', this.knob('filter.fat', 'Fat', 'small'), this.knob('filter.mix', 'Mix', 'small')));
     return el;
   }
 

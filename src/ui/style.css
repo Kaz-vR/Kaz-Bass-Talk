@@ -832,3 +832,10 @@ html, body, .v2-wrap { background: #070708; }
 /* typing a value into a dial (double-click) */
 .v2 .k-input { position: absolute; left: -10px; right: -10px; bottom: -2px; z-index: 5; height: 20px; box-sizing: border-box; text-align: center;
   background: #000; border: 1px solid var(--knob-accent, #fff); border-radius: 2px; color: #fff; font: 400 11px 'LT Inter', Inter, sans-serif; outline: none; padding: 0 2px; }
+
+/* filter envelope → cutoff readout in the envelope's header */
+.v2 .mod-readout { margin-left: auto; display: inline-flex; gap: 6px; align-items: baseline; cursor: ns-resize; user-select: none; touch-action: none;
+  font: 400 10.5px 'LT Inter', Inter, sans-serif; letter-spacing: 0.12em; color: #bfe6ff; text-shadow: 0 0 6px rgba(120,190,255,0.6); }
+.v2 .mod-readout .mr-amt { letter-spacing: 0.04em; color: #fff; }
+.v2 .mod-readout.zero { color: #6b7380; text-shadow: none; }
+.v2 .mod-readout.zero .mr-amt { color: #6b7380; }
