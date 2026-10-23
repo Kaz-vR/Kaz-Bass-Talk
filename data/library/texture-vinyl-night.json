@@ -90,7 +90,7 @@
   "sub.octave": -1,
   "sub.level": 0,
   "noise.level": 0,
-  "texture.type": "breath",
+  "texture.type": "crackle",
   "texture.level": 0.7,
   "texture.tone": 0.4,
   "texture.tail": 3000,
@@ -220,5 +220,5 @@
   "output.gain": -5.6,
   "output.crossover": 120,
   "wheel.preset": "decay",
-  "filter.route_n": true
+  "filter.route_n": false
 }

@@ -85,7 +85,7 @@
   "sub.octave": -1,
   "sub.level": 0,
   "noise.level": 0,
-  "texture.type": "breath",
+  "texture.type": "dust",
   "texture.level": 0.7,
   "texture.tone": 0.5,
   "texture.tail": 2500,
@@ -215,5 +215,5 @@
   "output.gain": 3,
   "output.crossover": 120,
   "wheel.preset": "decay",
-  "filter.route_n": true
+  "filter.route_n": false
 }

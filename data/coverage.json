@@ -197,9 +197,7 @@
       "glide",
       "move:fade-in",
       "reverb:huge",
-      "chorus:ensemble",
-      "texture:air",
-      "texture:dust"
+      "chorus:ensemble"
     ],
     "choir": [
       "wave:saw",

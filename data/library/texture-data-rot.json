@@ -91,7 +91,7 @@
   "sub.octave": -1,
   "sub.level": 0,
   "noise.level": 0,
-  "texture.type": "breath",
+  "texture.type": "crackle",
   "texture.level": 0.6,
   "texture.tone": 0.5,
   "texture.tail": 1500,
@@ -243,5 +243,5 @@
   "eq.highcut": 5500,
   "output.gain": -4,
   "output.crossover": 120,
-  "filter.route_n": true
+  "filter.route_n": false
 }

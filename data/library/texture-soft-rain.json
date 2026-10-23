@@ -95,7 +95,7 @@
   "sub.octave": -1,
   "sub.level": 0,
   "noise.level": 0,
-  "texture.type": "breath",
+  "texture.type": "dust",
   "texture.level": 0.5,
   "texture.tone": 0.2,
   "texture.tail": 3000,
@@ -247,5 +247,5 @@
   "eq.highcut": 4500,
   "output.gain": -2.8,
   "output.crossover": 120,
-  "filter.route_n": true
+  "filter.route_n": false
 }
