@@ -399,8 +399,9 @@ function drawKnobVariant(g: CanvasRenderingContext2D, style: string, k: { cx: nu
 }
 
 /**
- * The faint dust on the panels (the owner's pick, "Void + colour"): a few light specks, a little
- * denser towards the edges, stretched over each box. Drawn once.
+ * The barely-there wear on the panels (the owner's pick, "Gallery"): two faint smudges, a few
+ * specks a little denser towards the edges, some fine scratches and dust. Drawn once, stretched
+ * over each box.
  */
 function dustTexture(): string {
   const w = 300, h = 230, d = 2;
@@ -409,17 +410,42 @@ function dustTexture(): string {
   cv.height = h * d;
   const g = cv.getContext('2d')!;
   g.scale(d, d);
-  let seed = 15;
+  let seed = 5;
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < 2; i++) {
+    const x = rnd() * w, y = rnd() * h, rad = 20 + rnd() * 70;
+    const gr = g.createRadialGradient(x, y, 0, x, y, rad);
+    gr.addColorStop(0, `rgba(0,0,0,${0.08 * (0.4 + rnd() * 0.6)})`);
+    gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr;
+    g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+  }
+  for (let i = 0; i < 500; i++) {
     const x = rnd() * w, y = rnd() * h, edge = Math.min(x, y, w - x, h - y);
     if (rnd() > Math.exp(-edge / 10)) continue;
-    g.fillStyle = rnd() < 0.2 ? `rgba(0,0,0,${0.25 + rnd() * 0.45})` : `rgba(210,210,215,${0.04 + rnd() * 0.12})`;
+    g.fillStyle = rnd() < 0.5 ? `rgba(0,0,0,${0.25 + rnd() * 0.45})` : `rgba(210,210,215,${0.04 + rnd() * 0.12})`;
     g.beginPath();
     g.arc(x, y, 0.4 + rnd() * rnd() * 2.2, 0, 2 * Math.PI);
     g.fill();
   }
-  for (let i = 0; i < 45; i++) {
+  for (let i = 0; i < 14; i++) {
+    let x = rnd() * w, y = rnd() * h;
+    if (rnd() < 0.7) {
+      const side = Math.floor(rnd() * 4);
+      if (side === 0) y = rnd() * 20;
+      if (side === 1) y = h - rnd() * 20;
+      if (side === 2) x = rnd() * 20;
+      if (side === 3) x = w - rnd() * 20;
+    }
+    const ang = rnd() * Math.PI, len = 4 + rnd() * rnd() * 18;
+    g.strokeStyle = `rgba(220,220,225,${0.03 + rnd() * 0.05})`;
+    g.lineWidth = 0.4 + rnd() * 0.5;
+    g.beginPath();
+    g.moveTo(x, y);
+    g.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
+    g.stroke();
+  }
+  for (let i = 0; i < 60; i++) {
     g.fillStyle = `rgba(230,230,235,${0.05 + rnd() * 0.18})`;
     g.fillRect(rnd() * w, rnd() * h, 0.6 + rnd() * 0.8, 0.6 + rnd() * 0.8);
   }

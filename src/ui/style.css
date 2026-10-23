@@ -1067,20 +1067,17 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .fx-kind.live .kind-dot { background: var(--knob-accent); box-shadow: 0 0 5px var(--knob-accent); }
 .v2 .pv-prints { display: flex; justify-content: center; }
 
-/* ==== The look (owner's pick, "Void + colour"): option 2's clean layout and box colours on pure
-   black, no borders, boxes separated by space, faint dust, lines with a VHS fringe and ghost,
-   flat dials, a charcoal keyboard, and one type system. ==== */
+/* ==== The look (owner's pick, "Gallery"): flat graphite panels with hairline edges, minimal
+   flat dials, barely any dust, more air between boxes, and one type system. ==== */
 .v2 { --knob-style: flat; }
 .v2, .v2 * { font-family: 'LT Inter', Inter, sans-serif; }
 /* panels */
-.v2 .osc-page > .c, .v2 .mod-page2 > .c, .v2 .preset-page .pp-col, .v2 .v2-bottom, .v2 .kb-side {
-  background: var(--dust) 0 0 / 100% 100% no-repeat, #050506 !important; border: 0 !important; box-shadow: none !important; }
-.v2 .osc-page, .v2 .mod-page2, .v2 .preset-page { background: #000; gap: 10px !important; }
+.v2 .osc-page > .c, .v2 .mod-page2 > .c, .v2 .preset-page .pp-col {
+  background: var(--dust) 0 0 / 100% 100% no-repeat, #0f0f11 !important; border: 1px solid rgba(255,255,255,0.06) !important; box-shadow: none !important; }
+.v2 .osc-page, .v2 .mod-page2, .v2 .preset-page { gap: 6px !important; }
 .v2 .osc-page { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
 .v2 .mod-page2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr) !important; }
 .v2 .preset-page { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr) !important; }
-/* the lines: each box's own colour with a faint red/cyan fringe and a ghost to the right */
-.v2 .osc-page .disp, .v2 .mod-page2 .disp, .v2 .preset-page .disp { filter: brightness(1.12) drop-shadow(-1.1px 0 0 rgba(255,40,40,0.5)) drop-shadow(1.1px 0 0 rgba(40,220,255,0.42)) drop-shadow(5px 0 0 rgba(255,255,255,0.07)); }
 /* one type system: titles, header values, uppercase dial labels, small caps for the rest */
 .v2 .c-title, .v2 .fx-kind, .v2 .pp-title { font-weight: 400 !important; font-size: 11px !important; letter-spacing: 0.4em !important; color: #c8c8cc !important; }
 .v2 .fx-kind:not(.on) { color: #5c5c62 !important; }
@@ -1092,10 +1089,6 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .v2-bottom, .v2 .v2-bottom * { font-size: 9.5px !important; letter-spacing: 0.2em !important; font-weight: 500 !important; }
 .v2 .kb-label, .v2 .kb-w-label { font-size: 8.5px !important; letter-spacing: 0.2em !important; font-weight: 500 !important; text-transform: uppercase; }
 .v2 .ro-label { text-transform: uppercase; }
-/* charcoal keyboard */
-.v2 .kb-keys .key.white { background: linear-gradient(180deg, #2a2a2d, #1f1f22) !important; border-left: 1px solid #0a0a0b !important; border-right: 1px solid #0a0a0b !important; }
-.v2 .kb-keys .key.black { background: #070708 !important; }
-.v2 .kb-keys .key .lbl { color: #5a5a60 !important; font-weight: 400 !important; }
 /* MOD's LFO title rows carry shape, HZ / SYNC and retrig: tighter title spacing there */
 .v2 .mod-page2 .c-title, .v2 .mod-page2 .fx-kind { letter-spacing: 0.26em !important; }
 .v2 .mod-page2 .ob-head { gap: 7px !important; }
