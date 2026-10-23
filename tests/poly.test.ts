@@ -11,7 +11,7 @@ const FS = 48000;
 const hz = (n: number) => 440 * Math.pow(2, (n - 69) / 12);
 const base = {
   meta: { name: 't' }, 'voice.analog': 0, 'sub.level': 0, 'osc1.wave': 'sine', 'osc1.level': 0.6, 'filter.cutoff': 20000,
-  'amp_env.attack': 5, 'amp_env.sustain': 1, 'amp_env.release': 50, 'comp.amount': 0,
+  'amp_env.attack': 5, 'amp_env.sustain': 1, 'amp_env.release': 50,
 };
 const chord = (notes: number[], dur = 2, gap = 0): Loop => ({
   id: 'c', name: 'c', description: '', bpm: 120, length_beats: 16,

@@ -91,32 +91,6 @@ it('tape age only adds quiet hiss on top of the sub', () => {
   expect(rms(diff)).toBeLessThan(0.002); // ≈ -54 dBFS
 });
 
-describe('compressor', () => {
-  it('evens out loud and quiet notes', () => {
-    const notes = { id: 'v', name: 'v', description: '', bpm: 120, length_beats: 4, notes: [
-      { start: 0, dur: 0.8, note: 45, vel: 1 },
-      { start: 1, dur: 0.8, note: 45, vel: 0.25 },
-    ] };
-    const p = { ...base, 'osc1.wave': 'saw', 'osc1.level': 1, 'filter.cutoff': 2000, 'voice.velocity': 1 };
-    const ratio = (q: object) => {
-      const r = renderPatch(q, notes, { seconds: 2 });
-      return rms(r.left, 0.2 * FS, 0.35 * FS) / rms(r.left, 0.7 * FS, 0.85 * FS);
-    };
-    const dry = ratio(p);
-    const comp = ratio({ ...p, 'comp.amount': 0.9, 'comp.speed': 0.8 });
-    expect(dry).toBeGreaterThan(3);
-    expect(comp).toBeLessThan(dry * 0.6);
-  });
-
-  it('pump ducks on the beat', () => {
-    const p = { ...base, 'osc1.wave': 'saw', 'osc1.level': 1, 'filter.cutoff': 2000, 'comp.pump': 1 };
-    const r = renderPatch(p, heldNote(45, 8), { seconds: 2 }); // 120 BPM: beats at 0.5 s
-    const onBeat = rms(r.left, 1.0 * FS + 1000, 1.0 * FS + 3000);
-    const offBeat = rms(r.left, 1.3 * FS, 1.32 * FS);
-    expect(onBeat).toBeLessThan(offBeat * 0.5);
-  });
-});
-
 describe('delay', () => {
   it('echoes after the synced time', () => {
     const p = { ...base, 'osc1.wave': 'saw', 'osc1.level': 1, 'filter.cutoff': 3000, 'fx.lowcut': 100, 'amp_env.release': 5,

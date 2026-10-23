@@ -7,7 +7,7 @@ import { fft, heldNote, rms } from './helpers/audio';
 const FS = 48000;
 const base = {
   meta: { name: 't' }, 'voice.analog': 0, 'amp_env.attack': 1, 'amp_env.sustain': 1, 'filter.keytrack': 0, 'filter.resonance': 0,
-  'dynamics.on': false, 'chorus.on': false, 'delay.on': false, 'reverb.on': false, 'tape.on': false, 'eq.on': false, 'output.gain': -12,
+  'chorus.on': false, 'delay.on': false, 'reverb.on': false, 'tape.on': false, 'eq.on': false, 'output.gain': -12,
 };
 const render = (p: object, note = 48) => renderPatch({ ...base, ...p }, heldNote(note), { sampleRate: FS, seconds: 1 });
 const tail = (x: Float32Array) => x.subarray(FS / 4, FS);

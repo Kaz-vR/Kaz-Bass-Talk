@@ -8,7 +8,7 @@ import { heldNote, rms } from './helpers/audio';
 const FS = 48000;
 const base = {
   meta: { name: 't' }, 'voice.analog': 0, 'sub.level': 0, 'osc1.wave': 'sine', 'osc1.level': 0.7, 'filter.cutoff': 20000,
-  'amp_env.attack': 2, 'amp_env.sustain': 1, 'comp.amount': 0,
+  'amp_env.attack': 2, 'amp_env.sustain': 1,
 };
 const mono = (r: { left: Float32Array; right: Float32Array }) => Float64Array.from(r.left, (v, i) => 0.5 * (v + r.right[i]));
 /** Zero-crossing pitch over a window (clean sine). */

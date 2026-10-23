@@ -10,7 +10,7 @@ const busy = {
   meta: { name: 't' }, 'osc1.wave': 'saw', 'osc2.wave': 'pulse', 'osc2.level': 0.4, 'sub.level': 0.4, 'noise.level': 0.1,
   'breath.level': 0.2, 'fm.amount': 0.3, 'drive.amount': 0.5, 'filter.cutoff': 900, 'filter.resonance': 0.3, 'dist.drive': 0.4, 'dist.mix': 0.6,
   'crush.mix': 0.6, 'crush.bits': 4, 'crush.rate': 6, 'tape.drive': 0.4, 'tape.wow': 0.3, 'tape.age': 0.4, 'vibrato.depth': 30, 'vibrato.delay': 0,
-  'wobble.depth': 0.6, 'comp.amount': 0.5, 'comp.pump': 0.4, 'ott.amount': 0.3, 'eq.highcut': 5000, 'eq.low_gain': 3,
+  'wobble.depth': 0.6, 'eq.highcut': 5000, 'eq.low_gain': 3,
   'chorus.mix': 0.4, 'flanger.mix': 0.3, 'phaser.mix': 0.3, 'delay.mix': 0.3, 'reverb.mix': 0.3, 'texture.level': 0.4,
   'amp_env.sustain': 1, 'mod1.source': 'lfo1', 'mod1.dest': 'filter_cutoff', 'mod1.amount': 0.3, 'lfo1.rate': 3,
 };
@@ -30,7 +30,7 @@ describe('power switches', () => {
   it.each([
     ['fm.on', { 'fm.amount': 0 }], ['drive.on', { 'drive.amount': 0 }], ['dist.on', { 'dist.mix': 0 }], ['crush.on', { 'crush.mix': 0 }],
     ['tape.on', { 'tape.drive': 0, 'tape.wow': 0, 'tape.age': 0 }], ['vibrato.on', { 'vibrato.depth': 0 }], ['wobble.on', { 'wobble.depth': 0 }],
-    ['mod.on', { 'mod1.amount': 0 }], ['lfo1.on', { 'mod1.amount': 0 }], ['dynamics.on', { 'comp.amount': 0, 'comp.pump': 0, 'ott.amount': 0 }],
+    ['mod.on', { 'mod1.amount': 0 }], ['lfo1.on', { 'mod1.amount': 0 }],
     ['eq.on', { 'eq.highcut': 20000, 'eq.low_gain': 0 }], ['chorus.on', { 'chorus.mix': 0 }], ['flanger.on', { 'flanger.mix': 0 }],
     ['phaser.on', { 'phaser.mix': 0 }], ['delay.on', { 'delay.mix': 0 }], ['reverb.on', { 'reverb.mix': 0 }],
   ] as const)('%s off = the block not being there', (flag, without) => {

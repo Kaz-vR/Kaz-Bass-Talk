@@ -63,8 +63,6 @@ export function ingredients(p: Patch): Ingredient[] {
   if (n(p, 'crush.mix') > 0.01) add('crush', 'bitcrusher', { 'crush.mix': 0 });
   if (n(p, 'tape.drive') > 0.01 || n(p, 'tape.wow') > 0.01 || n(p, 'tape.age') > 0.01) add('tape', 'tape', { 'tape.drive': 0, 'tape.wow': 0, 'tape.age': 0 });
   if (!breath && n(p, 'texture.level') > 0.01) add('texture', 'texture bed', { 'texture.level': 0 });
-  if (n(p, 'comp.pump') > 0.01) add('pump', 'pump', { 'comp.pump': 0 });
-  if (n(p, 'ott.amount') > 0.01) add('ott', 'multiband OTT', { 'ott.amount': 0 });
   for (const fx of ['chorus', 'flanger', 'phaser', 'delay', 'reverb']) {
     if (n(p, `${fx}.mix`) > 0.01) add(fx, fx, { [`${fx}.mix`]: 0 });
   }

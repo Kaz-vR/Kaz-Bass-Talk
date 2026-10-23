@@ -19,8 +19,8 @@ describe('sound-design rules', () => {
     expect(rules({ 'dist.drive': 0.6, 'dist.mix': 1, 'sub.level': 0 }, 'distorted')).not.toContain('clean-low-end');
   });
   it('flags effects reaching the low end', () => {
-    expect(rules({ 'chorus.mix': 0.5, 'fx.lowcut': 50 }, 'synthwave')).toContain('fx-low-cut');
-    expect(rules({ 'chorus.mix': 0.5, 'fx.lowcut': 250 }, 'synthwave')).not.toContain('fx-low-cut');
+    expect(rules({ 'chorus.mix': 0.5, 'chorus.lowcut': 50 }, 'synthwave')).toContain('fx-low-cut');
+    expect(rules({ 'chorus.mix': 0.5, 'chorus.lowcut': 250 }, 'synthwave')).not.toContain('fx-low-cut');
   });
   it('flags envelopes that do not fit the family', () => {
     expect(rules({ 'amp_env.sustain': 1 }, '808')).toContain('envelope-family');

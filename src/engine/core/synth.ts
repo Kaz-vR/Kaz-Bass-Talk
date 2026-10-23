@@ -14,8 +14,7 @@
 //   up to 8 voices (see voice.ts: oscillators → drive → filter → distortion
 //   → bitcrusher → tape → amp), summed
 //   + texture bed
-//   → compressor (+ tempo pump) → multiband OTT
-//   → FX above fx.lowcut only (chorus → flanger → phaser → delay → reverb)
+//   → chorus → flanger → phaser → delay → reverb (each only above its own low cut)
 //   → EQ → high cut
 //   + the clean mono sub (its own path: only the Sub box touches it)
 //   → subsonic/DC filter → mono below crossover
@@ -28,7 +27,7 @@
 
 import { PARAM_COUNT, params } from '../../schema';
 import { AUX_SLOT, Biquad, clamp, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
-import { Chorus, Compressor, Delay, Flanger, Limiter, Ott, Phaser, Reverb } from './fx';
+import { Chorus, Delay, Flanger, Limiter, Phaser, Reverb } from './fx';
 import { OVERSAMPLE_LATENCY } from './oversample';
 import * as K from './params';
 import { Voice } from './voice';
@@ -141,12 +140,7 @@ export class Synth {
   liveCutoff = 0;
   liveRes = 0;
 
-  // Dynamics.
-  private readonly comp = new Compressor();
-  private readonly ott: Ott;
-  private compOn = false;
-  private ottOn = false;
-  /** Position in the bar, in beats [0, 4): the pump's clock. */
+  /** Position in the bar, in beats [0, 4): the wobble's clock. */
   private beatPos = 0;
 
   // FX + output.
@@ -166,8 +160,10 @@ export class Synth {
   private readonly hcR = new Biquad();
   private highcutOn = false;
   private readonly eqOn = new Uint8Array(3);
-  private readonly hpL = new Biquad();
-  private readonly hpR = new Biquad();
+  // Each modulation / space effect's own low cut (chorus, flanger, phaser, delay, reverb).
+  private readonly hpL = [new Biquad(), new Biquad(), new Biquad(), new Biquad(), new Biquad()];
+  private readonly hpR = [new Biquad(), new Biquad(), new Biquad(), new Biquad(), new Biquad()];
+  private readonly lastLowcut = new Float64Array(5);
   private readonly chorus: Chorus;
   private readonly phaser: Phaser;
   private readonly reverb: Reverb;
@@ -189,7 +185,7 @@ export class Synth {
   private readonly postDcR: number;
   private outTarget = 1;
   private lastOutDb = NaN;
-  private readonly lastFx = new Float64Array(8); // lowcut, eqLow, eqMid, eqMidFreq, eqHigh, crossover, highcut
+  private readonly lastFx = new Float64Array(8); // (unused), eqLow, eqMid, eqMidFreq, eqHigh, crossover, highcut
   private readonly tmp = new Float64Array(2);
   private readonly vout = new Float64Array(3);
   private ctrlCount = 0;
@@ -216,7 +212,6 @@ export class Synth {
     this.reverb = new Reverb(sampleRate);
     this.flanger = new Flanger(sampleRate);
     this.delay = new Delay(sampleRate);
-    this.ott = new Ott(sampleRate);
     this.limiter = new Limiter(sampleRate, K.LIMITER_CEILING_DB);
     // Subsonic + DC filter: 15 Hz 4th-order high-pass (−0.4 dB at 20 Hz, flat by 30 Hz).
     for (let i = 0; i < 2; i++) {
@@ -279,7 +274,7 @@ export class Synth {
     this.tempo = clamp(bpm, 20, 400);
   }
 
-  /** Align the internal beat clock (used by the tempo pump) to a song position in beats. */
+  /** Align the internal beat clock (used by the wobble) to a song position in beats. */
   syncBeat(beat: number): void {
     this.beatPos = beat - 4 * Math.floor(beat / 4);
   }
@@ -331,7 +326,6 @@ export class Synth {
     if (off(P.vibOn)) { zero(P.vibDepth); block(K.D_VIBRATO); }
     if (off(P.wobOn)) zero(P.wobDepth);
     if (off(P.modOn)) for (const s of P.slots) t[s.amt] = 0;
-    if (off(P.dynOn)) zero(P.compAmount, P.compPump, P.ott);
     if (off(P.eqOn)) { zero(P.eqLow, P.eqMid, P.eqHigh); t[P.eqHighcut] = 20000; }
     if (off(P.chorusOn)) { zero(P.chorusMix); block(K.D_CHORUS_DEPTH); }
     if (off(P.flangerOn)) zero(P.flangerMix);
@@ -455,8 +449,10 @@ export class Synth {
       this.eqL[i].reset();
       this.eqR[i].reset();
     }
-    this.hpL.reset();
-    this.hpR.reset();
+    for (let k = 0; k < 5; k++) {
+      this.hpL[k].reset();
+      this.hpR[k].reset();
+    }
     for (let i = 0; i < 4; i++) this.xo[i].reset();
     for (let i = 0; i < 2; i++) this.xoPost[i].reset();
     this.chorus.reset();
@@ -475,8 +471,6 @@ export class Synth {
     this.wobBright = this.wobBrightTarget = 0;
     this.hcL.reset();
     this.hcR.reset();
-    this.comp.reset();
-    this.ott.reset();
     this.flanger.reset();
     this.delay.reset();
   }
@@ -571,7 +565,7 @@ export class Synth {
     }
     const depth = cur[P.wobDepth];
     if (depth > 1e-4) {
-      // Locked to the bar (the same clock as the pump).
+      // Locked to the bar.
       const cycle = K.WOBBLE_BEATS[Math.round(cur[P.wobRate])] ?? 0.5;
       const n = Math.floor(this.beatPos / cycle);
       const p = (this.beatPos - n * cycle) / cycle;
@@ -737,21 +731,9 @@ export class Synth {
     }
     this.texDirect = cur[P.texDirect] > 0.5;
 
-    // Dynamics: compressor with a tempo pump, then multiband OTT.
+    // The bar clock (the wobble locks to it).
     this.beatPos += (this.tempo / 60) * (BLOCK / fs);
     if (this.beatPos >= 4) this.beatPos -= 4;
-    const pump = cur[P.compPump];
-    let pumpGain = 1;
-    if (pump > 0) {
-      const cycle = K.PUMP_BEATS[Math.round(cur[P.compPumpRate])] ?? 1;
-      const b = (this.beatPos % cycle) / cycle;
-      const duck = b < 0.03 ? b / 0.03 : Math.exp(-(b - 0.03) * 6);
-      pumpGain = 1 - pump * 0.85 * duck;
-    }
-    this.compOn = cur[P.compAmount] > 0.001 || pump > 0.001;
-    if (this.compOn) this.comp.update(cur[P.compAmount], cur[P.compSpeed], pumpGain, fs, BLOCK);
-    this.ottOn = cur[P.ott] > 0.0005;
-    if (this.ottOn) this.ott.update(cur[P.ott], BLOCK);
 
     // Delay. Modulating the delay time glides the read head (tape-style pitch smear on the repeats).
     this.delaySeconds = Math.min(3, ((DELAY_BEATS[cur[P.delayTime]] * 60) / this.tempo) * Math.pow(2, clamp(dst[K.D_DELAY_TIME], -1, 1)));
@@ -767,11 +749,13 @@ export class Synth {
 
     // FX filters: only recompute coefficients when values move.
     const lf = this.lastFx;
-    const lowcut = cur[P.fxLowcut];
-    if (lowcut !== lf[0]) {
-      this.hpL.setHighpass(lowcut, Math.SQRT1_2, fs);
-      this.hpR.setHighpass(lowcut, Math.SQRT1_2, fs);
-      lf[0] = lowcut;
+    for (let k = 0; k < 5; k++) {
+      const lowcut = cur[P.fxLowcut[k]];
+      if (lowcut !== this.lastLowcut[k]) {
+        this.hpL[k].setHighpass(lowcut, Math.SQRT1_2, fs);
+        this.hpR[k].setHighpass(lowcut, Math.SQRT1_2, fs);
+        this.lastLowcut[k] = lowcut;
+      }
     }
     this.eqOn[0] = Math.abs(cur[P.eqLow]) > 0.01 ? 1 : 0;
     this.eqOn[1] = Math.abs(cur[P.eqMid]) > 0.01 ? 1 : 0;
@@ -908,67 +892,48 @@ export class Synth {
       } else if (!this.anyGate) {
         this.texEnv = 0;
       }
-      // Before dynamics the bed is compressed and pumps with the sound; after, it stays steady.
-      const texPost = cur[P.texPosition] > 0.5;
       // Direct out: the bed joins the clean sub after every effect.
       const texDirect = this.texDirect;
-      if (!texDirect && !texPost) {
+      if (!texDirect) {
         l += texL;
         r += texR;
       }
 
-      // Dynamics (stereo-linked, so mono content stays mono).
-      if (this.compOn) {
-        this.comp.process(l, r, out);
-        l = out[0];
-        r = out[1];
-      }
-      if (this.ottOn) {
-        this.ott.process(l, r, out);
-        l = out[0];
-        r = out[1];
-      }
-      if (texPost && !texDirect) {
-        l += texL;
-        r += texR;
-      }
-
-      // FX on the part above fx.lowcut only.
-      const hl = this.hpL.process(l);
-      const hr = this.hpR.process(r);
-      let xl = hl, xr = hr;
+      // Effects, each only on what is above its own low cut (the part below passes dry).
+      const hpL = this.hpL, hpR = this.hpR;
       const cMix = cur[P.chorusMix];
       if (cMix > 1e-4) {
-        this.chorus.process(xl, xr, cMix, this.chorusDepth, out, cur[P.chorusMode] > 0.5);
-        xl = out[0];
-        xr = out[1];
+        const hl = hpL[0].process(l), hr = hpR[0].process(r);
+        this.chorus.process(hl, hr, cMix, this.chorusDepth, out, cur[P.chorusMode] > 0.5);
+        l += out[0] - hl;
+        r += out[1] - hr;
       }
       const fMix = cur[P.flangerMix];
       if (fMix > 1e-4) {
-        this.flanger.process(xl, xr, fMix, cur[P.flangerRate], cur[P.flangerFb], out);
-        xl = out[0];
-        xr = out[1];
+        const hl = hpL[1].process(l), hr = hpR[1].process(r);
+        this.flanger.process(hl, hr, fMix, cur[P.flangerRate], cur[P.flangerFb], out);
+        l += out[0] - hl;
+        r += out[1] - hr;
       }
       const pMix = this.phaserMix;
       if (pMix > 1e-4) {
-        this.phaser.process(xl, xr, pMix, cur[P.phaserRate], out);
-        xl = out[0];
-        xr = out[1];
+        const hl = hpL[2].process(l), hr = hpR[2].process(r);
+        this.phaser.process(hl, hr, pMix, cur[P.phaserRate], out);
+        l += out[0] - hl;
+        r += out[1] - hr;
       }
       const dMix = this.delayMix;
       if (dMix > 1e-4) {
-        this.delay.process(xl, xr, this.delaySeconds, cur[P.delayFb], this.delayToneCoef, out);
-        xl += out[0] * dMix;
-        xr += out[1] * dMix;
+        this.delay.process(hpL[3].process(l), hpR[3].process(r), this.delaySeconds, cur[P.delayFb], this.delayToneCoef, out);
+        l += out[0] * dMix;
+        r += out[1] * dMix;
       }
       const rMix = this.reverbMix;
       if (rMix > 1e-4) {
-        this.reverb.process(0.5 * (xl + xr), cur[P.reverbSize], cur[P.reverbTone], out);
-        xl += out[0] * rMix;
-        xr += out[1] * rMix;
+        this.reverb.process(0.5 * (hpL[4].process(l) + hpR[4].process(r)), cur[P.reverbSize], cur[P.reverbTone], out);
+        l += out[0] * rMix;
+        r += out[1] * rMix;
       }
-      l = l - hl + xl;
-      r = r - hr + xr;
 
       // EQ (bands at 0 dB are skipped) and high cut.
       for (let b = 0; b < 3; b++) {

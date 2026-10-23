@@ -1,15 +1,14 @@
-// Stereo effects that run after the voice. They only ever see the part of the
-// signal above `fx.lowcut` (see Synth.processFx), so the low end stays dry,
-// centred and phase-stable whatever the effect settings are.
+// Stereo effects that run after the voice. Each only sees the part of the signal
+// above its own low cut (chorus.lowcut … reverb.lowcut, see Synth), so the low end
+// stays dry, centred and phase-stable whatever the effect settings are.
 
-import { clamp as clamp_, fastTanh as fastTanh_, Rng as Rng_, Svf as Svf_, TWO_PI as TWO_PI_ } from './dsp';
+import { clamp as clamp_, fastTanh as fastTanh_, Rng as Rng_, TWO_PI as TWO_PI_ } from './dsp';
 
 // Module-local bindings: avoids live-binding getter overhead on hot paths in
 // some module transforms (tsx / vite-node).
 const clamp = clamp_;
 const fastTanh = fastTanh_;
 const Rng = Rng_;
-const Svf = Svf_;
 const TWO_PI = TWO_PI_;
 
 const MAX_FS = 192000;
@@ -657,139 +656,3 @@ export class Crusher {
   }
 }
 
-/**
- * Stereo-linked feed-forward compressor with automatic make-up gain and a
- * tempo-synced "pump" (sidechain-style ducking on every beat). The gain is
- * computed at control rate from a per-sample peak detector and interpolated.
- */
-export class Compressor {
-  private env = 0;
-  private gain = 1;
-  private gainStep = 0;
-  private atk = 0;
-  private rel = 0;
-  private thresh = 1;
-  private slope = 0; // 1 - 1/ratio
-  private makeup = 1;
-  private active = false;
-
-  reset(): void {
-    this.env = 0;
-    this.gain = 1;
-    this.gainStep = 0;
-  }
-
-  /** Call at control rate with block length (samples) and settings. */
-  update(amount: number, speed: number, pumpGain: number, fs: number, block: number): void {
-    this.active = amount > 0.001;
-    const atkMs = 30 * Math.pow(1 / 30, speed); // 30 ms .. 1 ms
-    const relMs = 300 * Math.pow(40 / 300, speed); // 300 ms .. 40 ms
-    this.atk = 1 - Math.exp(-1 / ((atkMs * fs) / 1000));
-    this.rel = 1 - Math.exp(-1 / ((relMs * fs) / 1000));
-    const threshDb = -30 * amount;
-    const ratio = 1.5 + 6 * amount;
-    this.thresh = Math.pow(10, threshDb / 20);
-    this.slope = 1 - 1 / ratio;
-    this.makeup = Math.pow(10, (-threshDb * this.slope * 0.5) / 20);
-    let g = 1;
-    if (this.active && this.env > this.thresh) {
-      // gain = (env/thresh)^(-slope)
-      g = Math.pow(this.env / this.thresh, -this.slope);
-    }
-    const target = (this.active ? g * this.makeup : 1) * pumpGain;
-    this.gainStep = (target - this.gain) / block;
-  }
-
-  process(l: number, r: number, out: Float64Array): void {
-    const a = Math.max(Math.abs(l), Math.abs(r));
-    this.env += (a - this.env) * (a > this.env ? this.atk : this.rel);
-    this.gain += this.gainStep;
-    out[0] = l * this.gain;
-    out[1] = r * this.gain;
-  }
-}
-
-/**
- * Three-band upward + downward compressor in the style of "OTT": brings up
- * quiet detail and squashes loud peaks per band, for a dense, polished,
- * "finished" tone. Bands are split complementarily (low = LP, mid = LP of the
- * rest, high = remainder) so with all gains at 1 the output equals the input.
- * The low band gets very little upward gain so the sub never swells or muddies.
- */
-export class Ott {
-  private lowL = new Svf();
-  private lowR = new Svf();
-  private midL = new Svf();
-  private midR = new Svf();
-  private gLow: number;
-  private gMid: number;
-  private env = new Float64Array(3);
-  private gain = new Float64Array([1, 1, 1]);
-  private step = new Float64Array(3);
-  private atk: number;
-  private rel: number;
-  private static readonly UP_MAX_DB = [3, 12, 14];
-  private static readonly THRESH_DB = [-14, -20, -24];
-
-  constructor(fs: number) {
-    this.gLow = Math.tan((Math.PI * 120) / fs);
-    this.gMid = Math.tan((Math.PI * 2500) / fs);
-    this.lowL.setCoefs(this.gLow, Math.SQRT2);
-    this.lowR.setCoefs(this.gLow, Math.SQRT2);
-    this.midL.setCoefs(this.gMid, Math.SQRT2);
-    this.midR.setCoefs(this.gMid, Math.SQRT2);
-    this.atk = 1 - Math.exp(-1 / (0.004 * fs));
-    this.rel = 1 - Math.exp(-1 / (0.12 * fs));
-  }
-
-  reset(): void {
-    this.lowL.reset();
-    this.lowR.reset();
-    this.midL.reset();
-    this.midR.reset();
-    this.env.fill(0);
-    this.gain.fill(1);
-    this.step.fill(0);
-  }
-
-  update(amount: number, block: number): void {
-    for (let b = 0; b < 3; b++) {
-      let target = 1;
-      if (amount > 0.001) {
-        const e = Math.max(this.env[b], 1e-6);
-        const db = 20 * Math.log10(e);
-        const t = Ott.THRESH_DB[b];
-        let gDb: number;
-        if (db > t) gDb = -(db - t) * 0.75; // downward 4:1
-        else gDb = Math.min(Ott.UP_MAX_DB[b], (t - db) * 0.6); // upward
-        if (db < -70) gDb = Math.min(gDb, 0); // never lift silence / noise
-        target = 1 + amount * (Math.pow(10, gDb / 20) - 1);
-      }
-      this.step[b] = (target - this.gain[b]) / block;
-    }
-  }
-
-  process(l: number, r: number, out: Float64Array): void {
-    this.lowL.processFixed(l);
-    this.lowR.processFixed(r);
-    const loL = this.lowL.lp, loR = this.lowR.lp;
-    const restL = l - loL, restR = r - loR;
-    this.midL.processFixed(restL);
-    this.midR.processFixed(restR);
-    const miL = this.midL.lp, miR = this.midR.lp;
-    const hiL = restL - miL, hiR = restR - miR;
-    const bands0 = Math.max(Math.abs(loL), Math.abs(loR));
-    const bands1 = Math.max(Math.abs(miL), Math.abs(miR));
-    const bands2 = Math.max(Math.abs(hiL), Math.abs(hiR));
-    const env = this.env, a = this.atk, rl = this.rel;
-    env[0] += (bands0 - env[0]) * (bands0 > env[0] ? a : rl);
-    env[1] += (bands1 - env[1]) * (bands1 > env[1] ? a : rl);
-    env[2] += (bands2 - env[2]) * (bands2 > env[2] ? a : rl);
-    const g = this.gain, s = this.step;
-    g[0] += s[0];
-    g[1] += s[1];
-    g[2] += s[2];
-    out[0] = loL * g[0] + miL * g[1] + hiL * g[2];
-    out[1] = loR * g[0] + miR * g[1] + hiR * g[2];
-  }
-}

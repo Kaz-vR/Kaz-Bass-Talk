@@ -33,7 +33,7 @@ function hasMovement(p: Patch): boolean {
     if (MOVING_SOURCES.has(src) && Math.abs(n(p, `mod${s}.amount`)) > 0.02 && p[`mod${s}.dest`] !== 'none') return true;
   }
   if (n(p, 'chorus.mix') > 0.05 || n(p, 'flanger.mix') > 0.05 || n(p, 'phaser.mix') > 0.05) return true;
-  if (n(p, 'tape.wow') > 0.02 || n(p, 'voice.analog') >= 0.2 || n(p, 'comp.pump') > 0.05) return true;
+  if (n(p, 'tape.wow') > 0.02 || n(p, 'voice.analog') >= 0.2) return true;
   for (const o of [1, 2]) {
     if (n(p, `osc${o}.level`) > 0.1 && n(p, `osc${o}.unison_voices`) > 1 && n(p, `osc${o}.unison_detune`) > 4) return true;
   }
@@ -84,9 +84,9 @@ export function checkRules(p: Patch, family = (p.meta?.family as string | undefi
   }
 
   // Stereo effects must stay above the sub.
-  const fxMix = Math.max(n(p, 'chorus.mix'), n(p, 'flanger.mix'), n(p, 'phaser.mix'), n(p, 'reverb.mix'), n(p, 'delay.mix'));
-  if (fxMix > 0.3 && n(p, 'fx.lowcut') < 100) {
-    add('fx-low-cut', 'error', 'Stereo/space effects reach below 100 Hz; raise fx.lowcut to keep the low end centred and tight.');
+  const low = ['chorus', 'flanger', 'phaser', 'delay', 'reverb'].filter((f) => n(p, `${f}.mix`) > 0.3 && n(p, `${f}.lowcut`) < 100);
+  if (low.length) {
+    add('fx-low-cut', 'error', `Stereo/space effects reach below 100 Hz (${low.join(', ')}); raise their low cut to keep the low end centred and tight.`);
   }
 
   // Envelope shape fits the family.

@@ -8,7 +8,7 @@ import { heldNote, rms } from './helpers/audio';
 const FS = 48000;
 const dry = {
   meta: { name: 't' }, 'voice.analog': 0, 'filter.cutoff': 20000, 'filter.keytrack': 0, 'filter.resonance': 0,
-  'amp_env.attack': 1, 'amp_env.sustain': 1, 'dynamics.on': false, 'chorus.on': false, 'delay.on': false, 'reverb.on': false,
+  'amp_env.attack': 1, 'amp_env.sustain': 1, 'chorus.on': false, 'delay.on': false, 'reverb.on': false,
   'tape.on': false, 'dist.on': false, 'drive.on': false, 'eq.on': false, 'output.gain': -12,
 };
 const sub = { ...dry, 'osc1.level': 0, 'osc2.level': 0, 'sub.level': 0.8, 'sub.wave': 'sine' };
@@ -71,7 +71,7 @@ describe('clean sub', () => {
   it('the sub never goes through dynamics, effects or EQ', () => {
     const soloSub = { ...sub, 'output.gain': -12 };
     const wet = {
-      ...soloSub, 'dynamics.on': true, 'comp.amount': 0.8, 'comp.pump': 0.6, 'ott.amount': 0.6, 'reverb.on': true, 'reverb.mix': 0.6,
+      ...soloSub, 'reverb.on': true, 'reverb.mix': 0.6,
       'delay.on': true, 'delay.mix': 0.5, 'chorus.on': true, 'chorus.mix': 0.5, 'eq.on': true, 'eq.low_gain': 6, 'eq.mid_gain': -6, 'fx.lowcut': 20,
     };
     const a = renderPatch(soloSub, heldNote(36), { sampleRate: FS, seconds: 1.5 }).left;
@@ -87,7 +87,7 @@ describe('clean sub', () => {
 
 describe('sub solo', () => {
   it('plays only the sub: no tape hiss from the silent oscillator path', () => {
-    const p = { ...sub, 'tape.on': true, 'tape.age': 0.8, 'tape.drive': 0.6, 'dynamics.on': true, 'ott.amount': 0.6, 'sub.level': 0 };
+    const p = { ...sub, 'tape.on': true, 'tape.age': 0.8, 'tape.drive': 0.6, 'sub.level': 0 };
     const r = renderPatch(p, heldNote(36), { sampleRate: FS, seconds: 1.5, monitor: { solo: ['sub'] } });
     expect(20 * Math.log10(rms(r.left) + 1e-12)).toBeLessThan(-110);
   });

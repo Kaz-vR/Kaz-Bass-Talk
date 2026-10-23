@@ -12,7 +12,7 @@ const LAYERS: Record<string, string> = { osc1: 'osc1', osc2: 'osc2', sub: 'sub',
 
 const GROUP_TITLES: Record<string, string> = {
   voice: 'Voice', osc1: 'Oscillator 1', osc2: 'Oscillator 2', fm: 'FM', sub: 'Sub', noise: 'Noise', texture: 'Texture', drive: 'Drive',
-  string: 'String / Shepard', vibrato: 'Vibrato', breath: 'Breath', filter: 'Filter', dist: 'Distortion', crush: 'Bitcrusher', tape: 'Tape', clip: 'Mid clip', dynamics: 'Dynamics', amp_env: 'Amp envelope', mod_env: 'Mod envelope', pitch_env: 'Pitch envelope',
+  string: 'String / Shepard', vibrato: 'Vibrato', breath: 'Breath', filter: 'Filter', dist: 'Distortion', crush: 'Bitcrusher', tape: 'Tape', clip: 'Mid clip', amp_env: 'Amp envelope', mod_env: 'Mod envelope', pitch_env: 'Pitch envelope',
   env2: 'Env 2 (bloom)', wheel: 'Mod wheel', wobble: 'Wobble', lfo1: 'LFO 1', lfo2: 'LFO 2', lfo3: 'LFO 3', lfo4: 'LFO 4', mod: 'Mod matrix', fx: 'Effects', eq: 'EQ', output: 'Output',
 };
 
@@ -45,7 +45,6 @@ const GROUP_TIPS: Record<string, string> = {
   lfo4: 'A slow or fast repeating (or smoothly random) movement. Does nothing until routed in the mod matrix; the line under the title shows where it goes.',
   wobble: 'A tempo-locked wobble: the filter (and optionally the drive and texture) swings shut and open on the beat. Depth 0 = off.',
   mod: 'The mod matrix: connects movement sources (LFOs, envelopes, drift, velocity, mod wheel…) to what they move, with an amount for each.',
-  dynamics: 'Compression and the tempo pump (ducking on the beat, like sidechain), plus a multiband squash (OTT) that brings out detail.',
   fx: 'Chorus, flanger, phaser, delay and reverb, only above the low end so the bass stays clean and mono.',
   eq: 'Final tone shaping: low, mid and high bands and the high cut (where the dark, controlled top comes from).',
   output: 'Final level and the low-end crossover. The limiter and mono low end are always on.',
@@ -58,7 +57,7 @@ const SECTIONS: { id: string; title: string; hint: string; groups: string[] }[] 
   { id: 'tone', title: 'Tone and dirt', hint: 'The fixed chain, left to right: drive → filter → distortion → bitcrusher → tape → mid clip.', groups: ['drive', 'filter', 'dist', 'crush', 'tape', 'clip'] },
   { id: 'shape', title: 'Shape over time', hint: 'Per-note envelopes: volume, the filter sweep and the slow bloom.', groups: ['amp_env', 'mod_env', 'env2'] },
   { id: 'movement', title: 'Movement', hint: 'What keeps it alive: the wobble, four LFOs, the other sources and the matrix that routes them.', groups: ['wobble', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'other', 'mod'] },
-  { id: 'space', title: 'Space and finish', hint: 'After the voices, in order: the texture bed, dynamics, effects (chorus → flanger → phaser → delay → reverb) and EQ.', groups: ['texture', 'dynamics', 'fx', 'eq'] },
+  { id: 'space', title: 'Space and finish', hint: 'After the voices, in order: the texture bed, effects (chorus → flanger → phaser → delay → reverb, each above its own low cut) and EQ.', groups: ['texture', 'fx', 'eq'] },
   { id: 'out', title: 'Output', hint: 'Final level. The limiter and the mono low end are always on.', groups: ['output'] },
 ];
 const FOLD_KEY = 'lowtalk.folded-sections';

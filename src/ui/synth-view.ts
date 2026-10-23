@@ -1005,37 +1005,6 @@ export class SynthView {
     return cv;
   }
 
-  /** The distortion's transfer curve. */
-  private distPrint(W: number, H: number): HTMLElement {
-    const [cv, g] = canvas(W, H, 'disp');
-    const shape = (type: string, x: number, d: number): number => {
-      const k = 1 + 14 * d;
-      switch (type) {
-        case 'hard': return Math.max(-1, Math.min(1, x * k));
-        case 'fold': return Math.sin((x * k * Math.PI) / 2);
-        case 'tube': {
-          const b = 0.25;
-          return (Math.tanh(x * k + b) - Math.tanh(b)) / (1 - Math.tanh(b) * 0.4);
-        }
-        default: return Math.tanh(x * k) / Math.tanh(Math.max(1, k * 0.6));
-      }
-    };
-    this.watch(['dist.on', 'dist.type', 'dist.drive', 'dist.mix'], () => {
-      const on = !!this.get('dist.on');
-      const type = String(this.get('dist.type')), d = this.num('dist.drive'), mix = this.num('dist.mix');
-      paper(g, W, H);
-      const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) {
-        const x = (i / W) * 2 - 1;
-        const y = Math.max(-1.1, Math.min(1.1, mix * shape(type, x, d) + (1 - mix) * x));
-        pts.push([i, H / 2 - y * (H / 2 - 6)]);
-      }
-      silver(g, pts, on);
-      vignette(g, W, H);
-    });
-    return cv;
-  }
-
   /** An ADSR print with handles you drag: A sideways, D sideways and S up/down, R sideways. */
   private envPrint(prefix: string, W: number, H: number): HTMLElement {
     const [cv, g] = canvas(W, H, 'disp');
@@ -1173,8 +1142,8 @@ export class SynthView {
    * print full width in the middle (with switches like Sync / Direct / Key in its top corner),
    * and the dials, one size, centred with equal spacing.
    */
-  private obox(title: string, cls: string, o: { power?: HTMLElement | ((el: HTMLElement) => HTMLElement); head?: HTMLElement[]; corner?: HTMLElement[]; print?: HTMLElement; dials?: HTMLElement[] }): HTMLElement {
-    const head = h('div', 'ob-head', h('span', 'c-title', title), ...(o.head ?? []));
+  private obox(title: string | HTMLElement, cls: string, o: { power?: HTMLElement | ((el: HTMLElement) => HTMLElement); head?: HTMLElement[]; corner?: HTMLElement[]; print?: HTMLElement; dials?: HTMLElement[] }): HTMLElement {
+    const head = h('div', 'ob-head', typeof title === 'string' ? h('span', 'c-title', title) : title, ...(o.head ?? []));
     const mid = h('div', 'ob-print', ...(o.print ? [o.print] : []), ...(o.corner?.length ? [h('div', 'ob-corner', ...o.corner)] : []));
     const el = h('div', `c ob ${cls}`, head, mid, h('div', 'ob-dials', ...(o.dials ?? [])));
     // The on/off is a thin glowing bar before the title (boxes without one get a bar that stays lit).
@@ -1402,25 +1371,6 @@ export class SynthView {
 
   // ------------------------------------------------------------------ dirt
 
-  private distCard(): HTMLElement {
-    const [el, head, body] = this.card('DISTORTION', 'dirt');
-    head.prepend(this.boolPower('dist.on', el));
-    const low = this.knob('dist.clean_below', 'Low', 'small', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
-    low.title = 'Keeps everything below this frequency clean (the distortion only works on the part above it). Fully left = off.';
-    body.append(h('div', 'dist-top', this.selector('dist.type'), this.distPrint(64, 36)),
-      h('div', 'knob-row', this.knob('dist.drive', 'Drive', 'big'), this.knob('dist.mix', 'Mix', 'small'), this.knob('dist.post_tone', 'Tone', 'small'), low));
-    return el;
-  }
-
-  private tapeCard(): HTMLElement {
-    const [el, head, body] = this.card('TAPE', 'dirt');
-    head.prepend(this.boolPower('tape.on', el));
-    const drift = this.knob('voice.analog', 'Drift', 'small');
-    drift.title = 'Analog drift: the oscillators drift slightly in pitch and the filter varies a touch per note, like an old analog synth. 0 is perfectly steady.';
-    body.append(h('div', 'knob-row', this.knob('tape.age', 'Age', 'big'), this.knob('tape.wow', 'Wow', 'small'), this.knob('tape.drive', 'Drive', 'small'), drift));
-    return el;
-  }
-
   // ------------------------------------------------------------------ bottom bar
 
   /** A label and value you drag up/down (or scroll) to change, like the master level. */
@@ -1589,21 +1539,6 @@ export class SynthView {
       el.classList.toggle('none', !t);
     });
     return el;
-  }
-
-  /** Small segmented buttons for an enum (e.g. the pump rate). */
-  private segs(id: string, label: (o: string) => string = (o) => o): HTMLElement {
-    const p = getParam(id)!;
-    const wrap = h('div', 'mseg-wrap');
-    wrap.title = `${p.label}: ${p.describes}`;
-    const bs = p.options!.map((o) => {
-      const b = h('button', 'mseg', label(o));
-      b.onclick = () => this.set(id, o);
-      wrap.append(b);
-      return [o, b] as const;
-    });
-    this.watch([id], () => bs.forEach(([o, b]) => b.classList.toggle('on', String(this.get(id)) === o)));
-    return wrap;
   }
 
   /** An LFO's print: two cycles of its shape, with its fade-in. */
@@ -1812,119 +1747,205 @@ export class SynthView {
 
   // ------------------------------------------------------------------ the FX page
 
-  /** A print redrawn whenever one of `ids` changes. */
-  private fxPrint(W: number, H: number, ids: string[], on: () => boolean, curve: (x: number) => number | [number, number][]): HTMLElement {
+  /** A neon print on an FX box: a line (one value per x in 0..1, -1..1) in the box's colour. */
+  private fxLine(ids: string[], on: () => boolean, curve: (x: number) => number, fill = false): HTMLElement {
+    const W = PRINT_W, H = PRINT_H;
     const [cv, g] = canvas(W, H, 'disp');
     this.watch(ids, () => {
       paper(g, W, H);
       const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) {
-        const y = curve(i / W);
-        if (typeof y === 'number') pts.push([i, H / 2 - y * (H / 2 - 7)]);
-      }
+      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - Math.max(-1.05, Math.min(1.05, curve(i / W))) * (H / 2 - 8)]);
+      if (fill && on()) fillUnder(g, pts, H, accentOf(cv), 0.28, 0.06);
       silver(g, pts, on());
-      vignette(g, W, H);
     });
     return cv;
   }
 
-  /** Bars (OTT bands, delay repeats, the reverb tail) instead of a line. */
-  private barPrint(W: number, H: number, ids: string[], on: () => boolean, bars: () => [number, number, number][]): HTMLElement {
+  /** Glowing spikes (delay repeats, the reverb tail): [x 0..1, height 0..1] from the bottom. */
+  private fxSpikes(ids: string[], on: () => boolean, spikes: () => [number, number][]): HTMLElement {
+    const W = PRINT_W, H = PRINT_H;
     const [cv, g] = canvas(W, H, 'disp');
     this.watch(ids, () => {
       paper(g, W, H);
-      const lit = on();
-      for (const [x, w, a] of bars()) {
-        const hh = Math.max(1, a * (H - 14));
-        g.fillStyle = hexA(lit ? INK : '#5a524a', 0.2 + 0.65 * Math.min(1, a));
-        g.fillRect(x * W, (H - hh) / 2, Math.max(1, w * W), hh);
+      const lit = on(), col = lit ? accentOf(cv) : '#4a4a50';
+      g.save();
+      g.lineCap = 'round';
+      for (const [x, a] of spikes()) {
+        const px = 4 + x * (W - 8), top = H - 6 - Math.max(1, a * (H - 14));
+        g.strokeStyle = col;
+        g.globalAlpha = lit ? 0.35 + 0.65 * Math.min(1, a) : 0.6;
+        g.lineWidth = 2;
+        if (lit) {
+          g.shadowColor = col;
+          g.shadowBlur = 8;
+        }
+        g.beginPath();
+        g.moveTo(px, H - 6);
+        g.lineTo(px, top);
+        g.stroke();
       }
-      vignette(g, W, H);
+      g.restore();
     });
     return cv;
   }
 
-  private fxCard(title: string, zone: Zone, power: string | null, print: HTMLElement, controls: HTMLElement[], knobs: HTMLElement[], note = ''): HTMLElement {
-    const [el, head, body] = this.card(title, zone, 'fx');
-    if (power) head.prepend(this.boolPower(power, el));
-    if (note) head.append(h('span', 'c-note', note));
-    body.append(print, ...controls, h('div', 'knob-row fx-knobs', ...knobs));
-    return el;
-  }
-
+  /**
+   * The FX page: eight 4:3 boxes like the OSC page, in signal order. The dirt (in each voice):
+   * distortion, crush, tape; then the shared effects, each above its own low cut: chorus,
+   * flanger or phaser (one at a time), delay, reverb; and the EQ last.
+   */
   private buildFxPage(): HTMLElement {
-    const W = 178, H = 40;
-    const onOf = (...ids: string[]) => () => ids.every((id) => (typeof this.get(id) === 'boolean' ? !!this.get(id) : this.num(id) > 0));
+    const lit = (power: string, mix?: string) => () => !!this.get(power) && (!mix || this.num(mix) > 0);
+    const lg = (id: string, label: string, opts: Parameters<SynthView['knob']>[3] = {}) => this.knob(id, label, 'lg', opts);
+    const lowCut = (fx: string) => {
+      const k = lg(`${fx}.lowcut`, 'Lo cut');
+      k.title = `Low cut: the ${fx} only works above this frequency, so the low end stays clean and centred.`;
+      return k;
+    };
     let seed = 5;
     const noise = Array.from({ length: 400 }, () => ((seed = (seed * 16807) % 2147483647) / 2147483647));
 
-    const crush = this.fxCard('CRUSH', 'src', 'crush.on',
-      this.fxPrint(W, H, ['crush.bits', 'crush.rate', 'crush.mix', 'crush.on'], onOf('crush.on', 'crush.mix'), (x) => {
-        const hold = Math.max(1, this.num('crush.rate')) / 400, q = Math.pow(2, Math.min(5, this.num('crush.bits') - 1));
-        const xs = Math.floor(x / hold) * hold, s = Math.sin(xs * 2 * Math.PI * 1.5) * 0.85;
-        const c = Math.round(s * q) / q, m = this.num('crush.mix');
-        return Math.sin(x * 2 * Math.PI * 1.5) * 0.85 * (1 - m) + c * m;
-      }), [], [this.knob('crush.mix', 'Mix'), this.knob('crush.bits', 'Bits'), this.knob('crush.rate', 'Rate')], 'in each voice');
+    // Distortion: two cycles of a sine through the curve.
+    const shape = (type: string, x: number, d: number): number => {
+      const k = 1 + 14 * d;
+      switch (type) {
+        case 'hard': return Math.max(-1, Math.min(1, x * k));
+        case 'fold': return Math.sin((x * k * Math.PI) / 2);
+        case 'tube': {
+          const b = 0.25;
+          return (Math.tanh(x * k + b) - Math.tanh(b)) / (1 - Math.tanh(b) * 0.4);
+        }
+        default: return Math.tanh(x * k) / Math.tanh(Math.max(1, k * 0.6));
+      }
+    };
+    const distLow = lg('dist.clean_below', 'Low', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
+    distLow.title = 'Keeps everything below this frequency clean (the distortion only works on the part above it). Fully left = off.';
+    const dist = this.obox('DISTORTION', 'fx-box box-dist', {
+      power: (el) => this.boolPower('dist.on', el),
+      head: [this.selector('dist.type')],
+      print: this.fxLine(['dist.on', 'dist.type', 'dist.drive', 'dist.mix'], lit('dist.on', 'dist.mix'), (x) => {
+        const s = Math.sin(x * 2 * Math.PI * 2) * 0.9, m = this.num('dist.mix');
+        return m * shape(String(this.get('dist.type')), s, this.num('dist.drive')) * 0.9 + (1 - m) * s;
+      }),
+      dials: [lg('dist.drive', 'Drive'), lg('dist.mix', 'Mix'), lg('dist.post_tone', 'Tone'), distLow],
+    });
 
-    const pumpBeats: Record<string, number> = { '1/1': 4, '1/2': 2, '1/4': 1, '1/8': 0.5 };
-    const comp = this.fxCard('COMP + PUMP', 'src', 'dynamics.on',
-      this.fxPrint(W, H, ['comp.pump', 'comp.pump_rate', 'comp.amount', 'dynamics.on'], onOf('dynamics.on'), (x) => {
-        const per = pumpBeats[String(this.get('comp.pump_rate'))] ?? 1, ph = ((x * 4) / per) % 1, p = this.num('comp.pump');
-        return 0.8 - 1.6 * p * Math.exp(-ph * 6) * Math.min(1, ph / 0.03);
-      }), [this.segs('comp.pump_rate')], [this.knob('comp.amount', 'Amount'), this.knob('comp.speed', 'Speed'), this.knob('comp.pump', 'Pump')]);
+    const crush = this.obox('CRUSH', 'fx-box box-crush', {
+      power: (el) => this.boolPower('crush.on', el),
+      print: this.fxLine(['crush.bits', 'crush.rate', 'crush.mix', 'crush.on'], lit('crush.on', 'crush.mix'), (x) => {
+        const hold = Math.max(1, this.num('crush.rate')) / 300, q = Math.pow(2, Math.min(5, this.num('crush.bits') - 1));
+        const xs = Math.floor(x / hold) * hold, c = Math.round(Math.sin(xs * 2 * Math.PI * 2) * 0.9 * q) / q, m = this.num('crush.mix');
+        return Math.sin(x * 2 * Math.PI * 2) * 0.9 * (1 - m) + c * m;
+      }),
+      dials: [lg('crush.mix', 'Mix'), lg('crush.bits', 'Bits'), lg('crush.rate', 'Rate')],
+    });
 
-    const ott = this.fxCard('OTT', 'src', null,
-      this.barPrint(W, H, ['ott.amount', 'dynamics.on'], onOf('dynamics.on', 'ott.amount'), () => {
-        const a = this.num('ott.amount');
-        return [0.55, 0.8, 0.45].map((v, i) => [0.06 + i * 0.31, 0.26, 0.25 + v * a * 0.75] as [number, number, number]);
-      }), [], [this.knob('ott.amount', 'Amount')], 'three bands');
+    // Tape: a sine that wobbles in pitch (wow, drift), loses its top (age) and saturates (drive).
+    const drift = lg('voice.analog', 'Drift');
+    drift.title = 'Analog drift: the oscillators drift slightly in pitch and the filter varies a touch per note, like an old analog synth. 0 is perfectly steady.';
+    const tape = this.obox('TAPE', 'fx-box box-tape', {
+      power: (el) => this.boolPower('tape.on', el),
+      print: this.fxLine(['tape.on', 'tape.age', 'tape.wow', 'tape.drive', 'voice.analog'], lit('tape.on'), (x) => {
+        const wow = this.num('tape.wow') + 0.5 * this.num('voice.analog'), age = this.num('tape.age'), d = this.num('tape.drive');
+        const ph = x * 2.5 + wow * 0.12 * Math.sin(x * 2 * Math.PI * 1.3);
+        const s = Math.sin(ph * 2 * Math.PI) + (1 - age) * 0.18 * Math.sin(ph * 6 * Math.PI);
+        const k = 1 + 4 * d;
+        return (Math.tanh(s * k) / Math.tanh(k)) * 0.85;
+      }),
+      dials: [lg('tape.age', 'Age'), lg('tape.wow', 'Wow'), lg('tape.drive', 'Drive'), drift],
+    });
 
-    const chorus = this.fxCard('CHORUS', 'flt', 'chorus.on',
-      this.fxPrint(W, H, ['chorus.depth', 'chorus.mix', 'chorus.mode', 'chorus.on'], onOf('chorus.on', 'chorus.mix'), (x) => {
+    const chorus = this.obox('CHORUS', 'fx-box box-chorus', {
+      power: (el) => this.boolPower('chorus.on', el),
+      head: [this.selector('chorus.mode')],
+      print: this.fxLine(['chorus.depth', 'chorus.mix', 'chorus.mode', 'chorus.on'], lit('chorus.on', 'chorus.mix'), (x) => {
         const d = this.num('chorus.depth'), voices = this.get('chorus.mode') === 'ensemble' ? 3 : 2;
-        let s = 0;
-        for (let v = 0; v < voices; v++) s += Math.sin(x * 9 + v * (0.4 + 1.2 * d));
-        return (0.85 * s) / voices;
-      }), [this.selector('chorus.mode')], [this.knob('chorus.mix', 'Mix'), this.knob('chorus.depth', 'Depth')]);
+        let v = 0;
+        for (let i = 0; i < voices; i++) v += Math.sin(x * 2 * Math.PI * 2.5 + i * (0.4 + 1.6 * d) + d * Math.sin(x * 6 + i));
+        return (0.9 * v) / voices;
+      }),
+      dials: [lg('chorus.mix', 'Mix'), lg('chorus.depth', 'Depth'), lowCut('chorus')],
+    });
 
-    const flanger = this.fxCard('FLANGER', 'flt', 'flanger.on',
-      this.fxPrint(W, H, ['flanger.rate', 'flanger.feedback', 'flanger.mix', 'flanger.on'], onOf('flanger.on', 'flanger.mix'), (x) => {
+    // Flanger or phaser: one box, one at a time (the switch in the title row).
+    // Which one the box shows: the one that is actually heard (on with some mix); otherwise as before.
+    const heard = (k: string) => !!this.get(`${k}.on`) && this.num(`${k}.mix`) > 0;
+    let kind: 'flanger' | 'phaser' = heard('phaser') && !heard('flanger') ? 'phaser' : 'flanger';
+    const kindBtn = (k: 'flanger' | 'phaser') => {
+      const b = h('button', 'c-title fx-kind', k.toUpperCase());
+      b.onclick = () => {
+        if (kind === k) return;
+        const wasOn = !!this.get(`${kind}.on`);
+        this.set(`${kind}.on`, false);
+        kind = k;
+        // The box stays on or off as it was; only the effect inside changes.
+        this.set(`${k}.on`, wasOn);
+        showKind();
+      };
+      return b;
+    };
+    const fBtn = kindBtn('flanger'), pBtn = kindBtn('phaser');
+    const titles = h('span', 'fx-kinds', fBtn, h('span', 'fx-kind-sep', '/'), pBtn);
+    const flDials = [lg('flanger.mix', 'Mix'), lg('flanger.rate', 'Rate'), lg('flanger.feedback', 'Feedbk'), lowCut('flanger')];
+    const phDials = [lg('phaser.mix', 'Mix'), lg('phaser.rate', 'Rate'), lowCut('phaser')];
+    const mfxPower = h('button', 'power', lamp());
+    mfxPower.title = 'On / off';
+    mfxPower.onclick = () => this.set(`${kind}.on`, !this.get(`${kind}.on`));
+    const mfxLit = () => !!this.get(`${kind}.on`) && this.num(`${kind}.mix`) > 0;
+    const mfxPrint = this.fxLine(['flanger.on', 'phaser.on', 'flanger.mix', 'phaser.mix', 'flanger.feedback', 'flanger.rate', 'phaser.rate'], mfxLit, (x) => {
+      if (kind === 'flanger') {
         const fb = this.num('flanger.feedback'), c = Math.abs(Math.cos(x * Math.PI * 7));
         return 0.8 - 1.6 * Math.pow(1 - c, 1 + 6 * fb);
-      }), [], [this.knob('flanger.mix', 'Mix'), this.knob('flanger.rate', 'Rate'), this.knob('flanger.feedback', 'Feedbk')]);
-
-    const phaser = this.fxCard('PHASER', 'flt', 'phaser.on',
-      this.fxPrint(W, H, ['phaser.rate', 'phaser.mix', 'phaser.on'], onOf('phaser.on', 'phaser.mix'), (x) => {
-        const m = this.num('phaser.mix');
-        return 0.7 - 1.5 * m * (Math.exp(-(((x - 0.32) / 0.05) ** 2)) + Math.exp(-(((x - 0.64) / 0.05) ** 2)));
-      }), [], [this.knob('phaser.mix', 'Mix'), this.knob('phaser.rate', 'Rate')]);
+      }
+      const m = this.num('phaser.mix');
+      return 0.75 - 1.6 * m * (Math.exp(-(((x - 0.3) / 0.05) ** 2)) + Math.exp(-(((x - 0.55) / 0.05) ** 2)) + 0.6 * Math.exp(-(((x - 0.78) / 0.05) ** 2)));
+    });
+    const mfx = this.obox(titles, 'fx-box box-mfx', { power: mfxPower, print: mfxPrint, dials: [...flDials, ...phDials] });
+    const showKind = () => {
+      if (heard('phaser') && !heard('flanger')) kind = 'phaser';
+      else if (heard('flanger') && !heard('phaser')) kind = 'flanger';
+      fBtn.classList.toggle('on', kind === 'flanger');
+      pBtn.classList.toggle('on', kind === 'phaser');
+      for (const k of flDials) k.style.display = kind === 'flanger' ? '' : 'none';
+      for (const k of phDials) k.style.display = kind === 'phaser' ? '' : 'none';
+      const on = !!this.get(`${kind}.on`);
+      mfxPower.classList.toggle('on', on);
+      mfx.classList.toggle('is-off', !on);
+    };
+    this.watch(['flanger.on', 'phaser.on', 'flanger.mix', 'phaser.mix'], showKind);
 
     const delayTime = this.selector('delay.time', { label: (o) => o });
-    delayTime.classList.add('fx-time');
-    const delay = this.fxCard('DELAY', 'mat', 'delay.on',
-      this.barPrint(W, H, ['delay.time', 'delay.feedback', 'delay.mix', 'delay.tone', 'delay.on'], onOf('delay.on', 'delay.mix'), () => {
+    const delay = this.obox('DELAY', 'fx-box box-delay', {
+      power: (el) => this.boolPower('delay.on', el),
+      head: [delayTime],
+      print: this.fxSpikes(['delay.time', 'delay.feedback', 'delay.mix', 'delay.on'], lit('delay.on', 'delay.mix'), () => {
         const step = syncBeats(String(this.get('delay.time'))) / 4, fb = this.num('delay.feedback');
-        const out: [number, number, number][] = [];
-        for (let i = 0, a = 1; i < 24 && 0.04 + i * step < 0.98; i++, a *= Math.max(0.05, fb)) out.push([0.04 + i * step, 0.012, a]);
+        const out: [number, number][] = [[0, 1]];
+        for (let i = 1, a = 0.9 * Math.max(0.05, this.num('delay.mix') * 1.4); i < 32 && i * step < 1; i++, a *= Math.max(0.05, fb)) out.push([i * step, Math.min(1, a)]);
         return out;
-      }), [delayTime], [this.knob('delay.mix', 'Mix'), this.knob('delay.feedback', 'Feedbk'), this.knob('delay.tone', 'Tone')], 'smeared');
+      }),
+      dials: [lg('delay.mix', 'Mix'), lg('delay.feedback', 'Feedbk'), lg('delay.tone', 'Tone'), lowCut('delay')],
+    });
 
-    const reverb = this.fxCard('REVERB', 'mat', 'reverb.on',
-      this.barPrint(W, H, ['reverb.size', 'reverb.mix', 'reverb.tone', 'reverb.on'], onOf('reverb.on', 'reverb.mix'), () => {
+    const reverb = this.obox('REVERB', 'fx-box box-reverb', {
+      power: (el) => this.boolPower('reverb.on', el),
+      print: this.fxSpikes(['reverb.size', 'reverb.mix', 'reverb.tone', 'reverb.on'], lit('reverb.on', 'reverb.mix'), () => {
         const len = 0.15 + 0.85 * this.num('reverb.size');
-        const out: [number, number, number][] = [];
-        for (let i = 0; i < 200; i++) {
-          const x = 0.03 + (i / 200) * 0.94;
-          out.push([x, 0.005, Math.exp((-3.5 * x) / len) * (0.35 + 0.65 * noise[i])]);
+        const out: [number, number][] = [];
+        for (let i = 0; i < 80; i++) {
+          const x = i / 80;
+          out.push([x, Math.exp((-3.5 * x) / len) * (0.3 + 0.7 * noise[i])]);
         }
         return out;
-      }), [], [this.knob('reverb.mix', 'Mix'), this.knob('reverb.size', 'Size'), this.knob('reverb.tone', 'Tone')], 'dark');
+      }),
+      dials: [lg('reverb.mix', 'Mix'), lg('reverb.size', 'Size'), lg('reverb.tone', 'Tone'), lowCut('reverb')],
+    });
 
     // The EQ's real response (the engine's shelves, peak and high cut).
     const eqBands = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
-    const eqIds = ['eq.low_gain', 'eq.mid_gain', 'eq.mid_freq', 'eq.high_gain', 'eq.highcut', 'eq.on'];
-    const eq = this.fxCard('EQ', 'dirt', 'eq.on',
-      this.fxPrint(W + 52, H, eqIds, onOf('eq.on'), (x) => {
+    const eq = this.obox('EQ', 'fx-box box-eq', {
+      power: (el) => this.boolPower('eq.on', el),
+      print: this.fxLine(['eq.low_gain', 'eq.mid_gain', 'eq.mid_freq', 'eq.high_gain', 'eq.highcut', 'eq.on'], lit('eq.on'), (x) => {
         if (x === 0) {
           eqBands[0].setLowShelf(100, this.num('eq.low_gain'), FS);
           eqBands[1].setPeak(this.num('eq.mid_freq'), this.num('eq.mid_gain'), 0.9, FS);
@@ -1933,33 +1954,13 @@ export class SynthView {
         }
         const f = 20 * Math.pow(1000, x);
         const dB = 20 * Math.log10(eqBands.reduce((m, b) => m * biquadMag(b, f), 1));
-        return Math.max(-1, Math.min(1, dB / 18));
-      }), [], [this.knob('eq.low_gain', 'Low'), this.knob('eq.mid_gain', 'Mid'), this.knob('eq.mid_freq', 'Freq'), this.knob('eq.high_gain', 'High'), this.knob('eq.highcut', 'Hi cut')]);
-    eq.classList.add('fx-wide');
+        return 0.25 + dB / 24;
+      }, true),
+      dials: [lg('eq.low_gain', 'Low'), lg('eq.mid_gain', 'Mid'), lg('eq.mid_freq', 'Freq'), lg('eq.high_gain', 'High'), lg('eq.highcut', 'Hi cut')],
+    });
 
-    const safe = h('span', 'lamp lamp-safe');
-    const out = this.fxCard('OUTPUT', 'dirt', null,
-      this.fxPrint(W, H, ['output.gain'], () => true, (x) => {
-        const g = Math.pow(10, this.num('output.gain') / 20), v = (x * 2 - 1) * 1.4 * g;
-        return Math.max(-0.89, Math.min(0.89, Math.tanh(v * 1.2) * 0.89));
-      }), [], [this.knob('output.gain', 'Master'), this.knob('output.crossover', 'Mono <')]);
-    out.querySelector('.c-body')!.append(h('div', 'out-safe', safe, h('span', 'c-note', 'low end mono · limiter on')));
-
-    const dist = this.distCard(), tape = this.tapeCard();
-    dist.classList.add('fx');
-    tape.classList.add('fx');
-    const arrow = () => h('div', 'fx-arrow', '→');
-    const row = (...cards: HTMLElement[]) => h('div', 'fx-row', ...cards.flatMap((c, i) => (i ? [arrow(), c] : [c])));
-    const capEl = h('div', 'zone-cap cap-src', h('span', 'cap-name', 'SIGNAL CHAIN'), h('span', 'cap-note', 'left to right, top then bottom: a fixed order'), h('span', 'cap-line'));
-    const lowcut = this.knob('fx.lowcut', 'FX low cut');
-    lowcut.title = 'Chorus, flanger, phaser, delay and reverb only work above this frequency: the low end stays clean and mono.';
-    return h('div', 'v2-main fx-page', capEl,
-      row(dist, crush, tape, comp, ott),
-      h('div', 'fx-between', h('span', 'cap-note', '↳ from here on only above the FX low cut'), lowcut),
-      row(chorus, flanger, phaser, delay, reverb),
-      row(eq, out));
+    return h('div', 'v2-main osc-page fx-page2', dist, crush, tape, chorus, mfx, delay, reverb, eq);
   }
-
 
   // ------------------------------------------------------------------ the PRESETS page
 

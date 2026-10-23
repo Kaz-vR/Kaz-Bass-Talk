@@ -710,18 +710,6 @@
       "describes": "How long the texture lingers after a note ends."
     },
     {
-      "id": "texture.position",
-      "label": "Texture position",
-      "type": "enum",
-      "options": [
-        "before dynamics",
-        "after dynamics"
-      ],
-      "default": "before dynamics",
-      "group": "texture",
-      "describes": "Before dynamics: the bed is compressed and pumps with the sound, breathing as one. After dynamics: the bed skips the compressor, pump and OTT and stays steady underneath, like crackle on its own track."
-    },
-    {
       "id": "texture.pan",
       "label": "Texture pan",
       "type": "float",
@@ -2839,77 +2827,6 @@
       "describes": "Depth and direction of this modulation."
     },
     {
-      "id": "dynamics.on",
-      "label": "Dynamics on",
-      "type": "bool",
-      "default": true,
-      "group": "dynamics",
-      "describes": "Switches Dynamics on or off without losing its settings. Off also saves CPU."
-    },
-    {
-      "id": "comp.amount",
-      "label": "Compressor",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0,
-      "curve": "linear",
-      "unit": "",
-      "group": "dynamics",
-      "describes": "Evens out the level so every note hits the same and resonance peaks are tamed. Higher squashes harder and sounds denser and more aggressive (with automatic make-up gain)."
-    },
-    {
-      "id": "comp.speed",
-      "label": "Compressor speed",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0.5,
-      "curve": "linear",
-      "unit": "",
-      "group": "dynamics",
-      "describes": "Slow lets the attack of each note punch through; fast clamps everything flat and grabs the transient."
-    },
-    {
-      "id": "comp.pump",
-      "label": "Pump",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0,
-      "curve": "pow",
-      "unit": "",
-      "group": "dynamics",
-      "describes": "Tempo-synced ducking on every beat, like sidechain compression from a kick. Makes the bass breathe and pump.",
-      "exponent": 2
-    },
-    {
-      "id": "comp.pump_rate",
-      "label": "Pump rate",
-      "type": "enum",
-      "options": [
-        "1/1",
-        "1/2",
-        "1/4",
-        "1/8"
-      ],
-      "default": "1/4",
-      "group": "dynamics",
-      "describes": "How often the pump ducks: 1/4 on every beat (four-on-the-floor), 1/2 for half-time grooves, 1/8 for double-time, 1/1 once a bar."
-    },
-    {
-      "id": "ott.amount",
-      "label": "Multiband (OTT)",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0,
-      "curve": "linear",
-      "unit": "",
-      "group": "dynamics",
-      "describes": "Three-band upward and downward compression: pulls up quiet detail and squashes peaks for a dense, polished, \"expensive\" modern tone. Low band is protected. Above 0.5 gets hyped and aggressive."
-    },
-    {
       "id": "chorus.on",
       "label": "Chorus on",
       "type": "bool",
@@ -3141,8 +3058,8 @@
       "describes": "0 is a bright, metallic space; 1 is a dark, soft, distant one."
     },
     {
-      "id": "fx.lowcut",
-      "label": "FX low cut",
+      "id": "chorus.lowcut",
+      "label": "Chorus low cut",
       "type": "float",
       "min": 20,
       "max": 1000,
@@ -3150,7 +3067,55 @@
       "curve": "log",
       "unit": "Hz",
       "group": "fx",
-      "describes": "Effects (chorus, phaser, reverb) only process content above this frequency, keeping the low end clean and centred."
+      "describes": "Chorus only works on what is above this frequency, so the low end stays clean, centred and dry."
+    },
+    {
+      "id": "flanger.lowcut",
+      "label": "Flanger low cut",
+      "type": "float",
+      "min": 20,
+      "max": 1000,
+      "default": 250,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "fx",
+      "describes": "Flanger only works on what is above this frequency, so the low end stays clean, centred and dry."
+    },
+    {
+      "id": "phaser.lowcut",
+      "label": "Phaser low cut",
+      "type": "float",
+      "min": 20,
+      "max": 1000,
+      "default": 250,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "fx",
+      "describes": "Phaser only works on what is above this frequency, so the low end stays clean, centred and dry."
+    },
+    {
+      "id": "delay.lowcut",
+      "label": "Delay low cut",
+      "type": "float",
+      "min": 20,
+      "max": 1000,
+      "default": 250,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "fx",
+      "describes": "Delay only works on what is above this frequency, so the low end stays clean, centred and dry."
+    },
+    {
+      "id": "reverb.lowcut",
+      "label": "Reverb low cut",
+      "type": "float",
+      "min": 20,
+      "max": 1000,
+      "default": 250,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "fx",
+      "describes": "Reverb only works on what is above this frequency, so the low end stays clean, centred and dry."
     },
     {
       "id": "eq.on",
