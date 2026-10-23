@@ -398,6 +398,34 @@ function drawKnobVariant(g: CanvasRenderingContext2D, style: string, k: { cx: nu
   }
 }
 
+/**
+ * The faint dust on the panels (the owner's pick, "Void + colour"): a few light specks, a little
+ * denser towards the edges, stretched over each box. Drawn once.
+ */
+function dustTexture(): string {
+  const w = 300, h = 230, d = 2;
+  const cv = document.createElement('canvas');
+  cv.width = w * d;
+  cv.height = h * d;
+  const g = cv.getContext('2d')!;
+  g.scale(d, d);
+  let seed = 15;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 120; i++) {
+    const x = rnd() * w, y = rnd() * h, edge = Math.min(x, y, w - x, h - y);
+    if (rnd() > Math.exp(-edge / 10)) continue;
+    g.fillStyle = rnd() < 0.2 ? `rgba(0,0,0,${0.25 + rnd() * 0.45})` : `rgba(210,210,215,${0.04 + rnd() * 0.12})`;
+    g.beginPath();
+    g.arc(x, y, 0.4 + rnd() * rnd() * 2.2, 0, 2 * Math.PI);
+    g.fill();
+  }
+  for (let i = 0; i < 45; i++) {
+    g.fillStyle = `rgba(230,230,235,${0.05 + rnd() * 0.18})`;
+    g.fillRect(rnd() * w, rnd() * h, 0.6 + rnd() * 0.8, 0.6 + rnd() * 0.8);
+  }
+  return cv.toDataURL();
+}
+
 /** A moving average over the y values: a darker tone draws a rounder line. */
 function smoothY(pts: [number, number][], win: number): [number, number][] {
   const n = Math.max(0, Math.round(win));
@@ -491,7 +519,7 @@ const SHELF_COLOURS = ['#ff3d2e', '#ff8a2a', '#e8b46a', '#3fe3b6', '#9a7cff', '#
 const PRINT_W = 247;
 const PRINT_H = 84;
 /** MOD page boxes (a third of a column high): a short print over the dials. */
-const MB_PRINT_W = 273;
+const MB_PRINT_W = 266;
 const MB_PRINT_H = 36;
 /** A modulation ring on a dial: the amount parameter, its colour, and how far it moves the dial (normalized). */
 interface KnobMod {
@@ -2823,6 +2851,7 @@ export class SynthView {
   }
 
   private build(): void {
+    this.page.style.setProperty('--dust', `url(${dustTexture()})`);
     const tabs = h('div', 'v2-tabs');
     for (const [t, ready] of [['OSC', true], ['MOD', true], ['FX', true], ['PRESETS', true]] as const) {
       const b = h('button', 'tab' + (t === 'OSC' ? ' on' : ''), t);
