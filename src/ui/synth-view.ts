@@ -264,6 +264,8 @@ function syncBeats(v: string): number {
   return m[3] === 'D' ? b * 1.5 : m[3] === 'T' ? (b * 2) / 3 : b;
 }
 /** OSC page prints: one height for all; widths follow the box (beside a side column, the amp box, the wide box). */
+/** The shelves' colours on the PRESETS page, in shelf order. */
+const SHELF_COLOURS = ['#ff3d2e', '#ff8a2a', '#e8b46a', '#3fe3b6', '#9a7cff', '#5f9bff', '#a9dcff', '#ff6fae', '#d4d4da'];
 const PRINT_W = 247;
 const PRINT_H = 84;
 /** MOD page boxes (a third of a column high): a short print over the dials. */
@@ -2035,15 +2037,20 @@ export class SynthView {
     document.body.classList.toggle('randomizing', this.pageShelf === 'randomizer');
     const shelf = shelves.find((s) => s.id === this.pageShelf) ?? shelves[0];
     if (!rollPage) this.pageShelf = shelf.id;
+    // Each shelf has its own colour (the page takes the open shelf's colour).
+    const colour = (i: number) => SHELF_COLOURS[i % SHELF_COLOURS.length];
+    const openIdx = shelves.findIndex((s) => s.id === this.pageShelf);
+    this.presetPage.style.setProperty('--knob-accent', rollPage ? '#d4d4da' : colour(Math.max(0, openIdx)));
     // shelves
-    const left = h('div', 'pp-col pp-shelves', h('div', 'pp-head', h('span', 'pp-title dim', 'SHELVES')));
+    const left = h('div', 'pp-col pp-shelves', h('div', 'pp-head', h('span', 'ob-bar'), h('span', 'pp-title', 'SHELVES')));
     let divided = false;
-    for (const s of shelves) {
+    for (const [si, s] of shelves.entries()) {
       if (s.secondary && !divided) {
         left.append(h('div', 'pp-divider'));
         divided = true;
       }
       const b = h('button', 'pp-shelf' + (s.id === this.pageShelf ? ' on' : '') + (s.secondary ? ' secondary' : ''), lamp(), h('span', 'pp-shelf-name', s.name), h('span', 'pp-count', String(s.items.length)));
+      b.style.setProperty('--shelf', colour(si));
       b.onclick = () => {
         this.pageShelf = s.id;
         this.renderPresetPage();
@@ -2095,7 +2102,7 @@ export class SynthView {
     list.classList.add('pp-grid');
     list.style.gridTemplateRows = `repeat(${Math.max(1, Math.ceil(items.length / 2))}, auto)`;
     const mid = h('div', 'pp-col pp-presets',
-      h('div', 'pp-head', h('span', 'pp-title', shelf.name.toUpperCase()), h('span', 'pp-sub', `${shelf.items.length} presets`), h('div', 'sel pp-sort', sortSel)),
+      h('div', 'pp-head', h('span', 'ob-bar'), h('span', 'pp-title', shelf.name.toUpperCase()), h('span', 'pp-sub', `${shelf.items.length} presets`), h('div', 'sel pp-sort', sortSel)),
       list);
     // the detail
     const right = h('div', 'pp-col pp-detail');
@@ -2129,7 +2136,7 @@ export class SynthView {
       right.replaceChildren(h('div', 'pp-empty', 'Click a preset to hear it.'));
       return;
     }
-    const W = 360, H = 150;
+    const W = PRINT_W + 20, H = PRINT_H;
     const [cv, g] = canvas(W, H, 'disp');
     paper(g, W, H);
     // the sound's "photo": a waveform shaped by its measured character
@@ -2139,23 +2146,23 @@ export class SynthView {
       const u = x / W;
       pts.push([x, H * (0.5 - Math.sin(Math.PI * u) ** 1.2 * amp * (Math.sin((u * 6.283 * k) / 2 + ph) * 0.75 + 0.25 * Math.sin(u * 6.283 * k * 1.9 - ph)))]);
     }
-    silver(g, pts);
-    vignette(g, W, H);
+    silver(g, pts, true, accentOf(this.presetPage));
+    // Character from its measured features: a glowing dot between two words.
     const bars = h('div', 'pp-bars');
-    for (const [label, key] of [['Bright', 'brightness'], ['Dirt', 'dirt'], ['Moving', 'movement'], ['Attack', 'attack'], ['Length', 'decay'], ['Width', 'width']]) {
-      const fill = h('span', 'pp-bar-fill');
-      fill.style.width = `${Math.max(4, fval(it, key) * 100)}%`;
-      bars.append(h('div', 'pp-bar', h('span', 'pp-bar-label', label), h('span', 'pp-bar-track', fill)));
+    for (const [lo, hi, key] of [['dark', 'bright', 'brightness'], ['clean', 'dirty', 'dirt'], ['still', 'moving', 'movement'], ['snap', 'swell', 'attack'], ['short', 'long', 'decay'], ['narrow', 'wide', 'width']]) {
+      const dot = h('b', 'pp-dot');
+      dot.style.left = `${Math.round(Math.max(0, Math.min(1, fval(it, key))) * 100)}%`;
+      bars.append(h('div', 'pp-bar', h('span', 'pp-bar-label', lo), h('span', 'pp-bar-track', dot), h('span', 'pp-bar-label hi', hi)));
     }
     const open = h('button', 'pp-btn', 'OPEN IN OSC  →');
     open.onclick = () => this.showTab('OSC');
     right.replaceChildren(
+      h('div', 'pp-head', h('span', 'ob-bar'), h('span', 'pp-title', 'PREVIEW')),
       h('div', 'pp-print', cv),
       h('div', 'pp-big-name', it.name),
       ...(it.tpl ? [h('span', 'pp-tpl', `${it.tpl} · ${it.tplName}`)] : []),
       h('p', 'pp-text', it.description),
       h('div', 'pp-tags', ...it.tags.slice(0, 4).map((t) => h('span', 'pp-tag', t))),
-      h('div', 'pp-title dim', 'CHARACTER'),
       bars,
       h('div', 'pp-buttons', open),
     );
@@ -2165,7 +2172,7 @@ export class SynthView {
   private rollList(which: 'randomizer' | 'user', rs: RollState): HTMLElement {
     const src = this.presets!;
     const items = which === 'randomizer' ? rs.rolls : rs.user;
-    const head = h('div', 'pp-head', h('span', 'pp-title', which === 'randomizer' ? 'RANDOMIZER' : '★ USER'),
+    const head = h('div', 'pp-head', h('span', 'ob-bar'), h('span', 'pp-title', which === 'randomizer' ? 'RANDOMIZER' : '★ USER'),
       h('span', 'pp-sub', which === 'randomizer' ? `${items.length} rolls` : `${items.length} starred sounds`));
     const col = h('div', 'pp-col pp-presets', head);
     if (which === 'randomizer') {
@@ -2256,7 +2263,7 @@ export class SynthView {
       right.replaceChildren(h('div', 'pp-empty', this.pageShelf === 'randomizer' ? 'Roll, then click a roll to hear it.' : 'Click a sound to hear it.'));
       return;
     }
-    const W = 360, H = 150;
+    const W = PRINT_W + 20, H = PRINT_H;
     const [cv, g] = canvas(W, H, 'disp');
     paper(g, W, H);
     const k = 2 + (id % 5) * 0.8, ph = id * 2.3;
@@ -2265,13 +2272,13 @@ export class SynthView {
       const u = x / W;
       pts.push([x, H * (0.5 - Math.sin(Math.PI * u) ** 1.2 * 0.3 * (Math.sin(u * 6.283 * k + ph) * 0.7 + 0.3 * Math.sin(u * 6.283 * k * 2.3 - ph)))]);
     }
-    silver(g, pts);
-    vignette(g, W, H);
+    silver(g, pts, true, accentOf(this.presetPage));
     const star = h('button', 'pp-btn' + (it.starred ? ' starred' : ''), it.starred ? '★  IN USER' : '☆  STAR');
     star.onclick = () => src.starRoll(it.id);
     const open = h('button', 'pp-btn', 'OPEN IN OSC  →');
     open.onclick = () => this.showTab('OSC');
     right.replaceChildren(
+      h('div', 'pp-head', h('span', 'ob-bar'), h('span', 'pp-title', 'PREVIEW')),
       h('div', 'pp-print', cv),
       h('div', 'pp-big-name', it.name),
       h('span', 'pp-tpl', it.starred ? '★ User' : 'Rolled'),

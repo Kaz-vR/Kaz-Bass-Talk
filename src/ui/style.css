@@ -1008,3 +1008,57 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .mod-page2 > .mb .ob-corner { top: 0; right: 14px; height: 14px; }
 .v2 .mod-page2 .box-matrix { grid-row: 1 / 4; }
 .v2 .mod-page2 .ob-head { gap: 8px; }
+
+/* ---- PRESETS page (owner's pick, option 1): shelves | the shelf's presets | preview, on the OSC grid. */
+.v2 .preset-page { display: grid; grid-template-columns: 297px 598px 297px; gap: 4px; margin: 0; height: 450px; }
+.v2 .preset-page .pp-col { width: auto; border-radius: 0; padding: 12px 14px; gap: 0; overflow: hidden; }
+.v2 .preset-page .pp-head { height: 22px; padding: 0; margin-bottom: 10px; gap: 10px; }
+.v2 .preset-page .pp-title { font-size: 11px; letter-spacing: 0.25em; color: #e6e6ea; font-weight: 400; }
+.v2 .preset-page .pp-sub { font: 400 9.5px 'LT Inter', Inter, sans-serif; letter-spacing: 0.16em; color: #66666d; text-transform: uppercase; }
+.v2 .preset-page .ob-bar { width: 2px; height: 16px; flex: none; background: var(--knob-accent); box-shadow: 0 0 8px var(--knob-accent); }
+.v2 .preset-page .pp-shelves .pp-head .ob-bar { background: #d4d4da; box-shadow: 0 0 8px #d4d4da; }
+/* shelves: a thin bar in each shelf's colour, lit on the open one */
+.v2 .pp-shelf { border: 0; border-radius: 0; background: none; height: 24px; padding: 0; gap: 9px; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: #8a8a90; font-weight: 400; }
+.v2 .pp-shelf .lamp { display: none; }
+.v2 .pp-shelf::before { content: ''; width: 2px; height: 12px; background: #2a2a2e; flex: none; }
+.v2 .pp-shelf:hover { background: none; color: #d0d0d4; }
+.v2 .pp-shelf.on { background: none; border: 0; color: #fff; font-weight: 400; }
+.v2 .pp-shelf.on::before { background: var(--shelf, var(--knob-accent)); box-shadow: 0 0 6px var(--shelf, var(--knob-accent)); }
+.v2 .pp-shelf.secondary { color: #66666d; }
+.v2 .pp-count { font-size: 9.5px; color: #55555b; letter-spacing: 0.06em; }
+.v2 .pp-divider { background: rgba(255,255,255,0.05); margin: 6px 0; }
+/* the list: names in two columns, the loaded one with a glowing dot */
+.v2 .preset-page .pp-list { padding: 0; scrollbar-color: #333338 transparent; }
+.v2 .pp-row { border: 0; border-radius: 0; height: 21px; padding: 0 4px; gap: 8px; background: none; }
+.v2 .pp-row:hover { background: rgba(255,255,255,0.025); }
+.v2 .pp-row.on { background: none; border: 0; }
+.v2 .pp-play { width: 5px; height: 5px; border: 0; border-radius: 50%; background: transparent; }
+.v2 .pp-row.on .pp-play { background: var(--knob-accent); box-shadow: 0 0 6px var(--knob-accent); }
+.v2 .pp-name { font-size: 11px; letter-spacing: 0.05em; color: #c4c4c9; font-weight: 400; }
+.v2 .pp-row.on .pp-name, .v2 .pp-row:hover .pp-name { color: #fff; }
+.v2 .pp-sort { margin-left: auto; width: auto; background: none !important; border: 0 !important; height: 22px; }
+.v2 .pp-sort .sel-name { field-sizing: content; font-size: 9.5px; letter-spacing: 0.16em; color: #8a8a90; padding: 0 14px 0 0; line-height: 22px; }
+.v2 .pp-sort.sel::after { top: 7px; right: 2px; width: 4px; height: 4px; }
+/* preview */
+.v2 .preset-page .pp-detail { gap: 0; }
+.v2 .preset-page .pp-print .disp { width: auto; }
+.v2 .pp-big-name { font: 400 14px 'LT Inter', Inter, sans-serif; letter-spacing: 0.28em; text-transform: uppercase; color: #fff; margin: 12px 0 4px; }
+.v2 .pp-tpl { border: 0; padding: 0; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--knob-accent); font-weight: 400; margin-bottom: 4px; }
+.v2 .pp-text { font-size: 10.5px; line-height: 1.5; color: #9a9aa0; margin: 2px 0 0; }
+.v2 .pp-tags { gap: 10px; margin-top: 6px; }
+.v2 .pp-tag { border: 0; background: none; padding: 0; font-size: 8.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #66666d; }
+.v2 .preset-page .pp-bars { gap: 5px; margin-top: 10px; }
+.v2 .preset-page .pp-bar { gap: 8px; }
+.v2 .preset-page .pp-bar-label { width: 44px; font-size: 8.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #66666d; }
+.v2 .preset-page .pp-bar-label.hi { text-align: right; }
+.v2 .preset-page .pp-bar-track { position: relative; height: 2px; border-radius: 0; background: rgba(255,255,255,0.08); overflow: visible; }
+.v2 .pp-dot { position: absolute; top: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--knob-accent); box-shadow: 0 0 6px var(--knob-accent); transform: translateX(-50%); }
+.v2 .preset-page .pp-buttons { margin-top: auto; }
+.v2 .preset-page .pp-btn { height: 26px; background: none; border: 0; text-align: left; padding: 0; font-size: 10px; letter-spacing: 0.24em; color: var(--knob-accent); font-weight: 400; }
+.v2 .preset-page .pp-btn:hover { color: #fff; }
+.v2 .preset-page .pp-empty { font-size: 10.5px; color: #66666d; letter-spacing: 0.08em; }
+/* Randomizer / User */
+.v2 .pp-rollbar { padding: 0 0 10px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 8px; }
+.v2 .pp-roll { height: 26px; background: none; border: 1px solid var(--knob-accent); border-radius: 0; color: #fff; font-size: 10px; letter-spacing: 0.2em; font-weight: 400; }
+.v2 .pp-field-label, .v2 .pp-weird-word { font: 400 9.5px 'LT Inter', Inter, sans-serif; letter-spacing: 0.12em; color: #8a8a90; text-transform: uppercase; }
+.v2 .pp-clear { border: 0; border-radius: 0; font-size: 9.5px; letter-spacing: 0.14em; color: #8a8a90; text-transform: uppercase; }
