@@ -266,6 +266,10 @@ function syncBeats(v: string): number {
 /** OSC page prints: one height for all; widths follow the box (beside a side column, the amp box, the wide box). */
 const PRINT_W = 247;
 const PRINT_H = 84;
+/** MOD page short boxes: the print beside two dials, or beside four. */
+const SB_PRINT_W = 196;
+const SB_PRINT_SMALL_W = 98;
+const SB_PRINT_H = 58;
 /** A modulation ring on a dial: the amount parameter, its colour, and how far it moves the dial (normalized). */
 interface KnobMod {
   id: string;
@@ -322,7 +326,8 @@ export class SynthView {
   private readonly wheelViews: (() => void)[] = [];
   readonly keysEl = h('div', 'kb-keys');
   private readonly octaveVal = h('span', 'chip-val');
-  private readonly velFill = h('span', 'kb-vel-fill');
+  /** The last note's velocity, as a tick on the Touch slider. */
+  private readonly velTick = h('span', 'kb-vel-tick');
   private wheel = 0;
   onGear: () => void = () => {};
   onWheel: (v: number) => void = () => {};
@@ -476,7 +481,8 @@ export class SynthView {
 
   /** How hard the last note was played (0..1). */
   setVelocity(v: number): void {
-    this.velFill.style.width = `${Math.round(v * 100)}%`;
+    this.velTick.style.left = `${Math.round(v * 100)}%`;
+    this.velTick.classList.add('hit');
   }
 
   /** Live output: the oscilloscope and the level meter. */
@@ -1530,15 +1536,40 @@ export class SynthView {
     return out.length ? `→ ${out.join(', ')}` : '';
   }
 
-  /** A line that always shows where a source goes. */
-  private routeNote(src: string, cls = 'c-note route-note', empty = 'not routed'): HTMLElement {
-    const el = h('span', cls);
+  /**
+   * A short box on the MOD page (a quarter of a column): the title row as on the OSC page, then
+   * one row with the print on the left (switches or routings in its corner) and the dials.
+   */
+  private sbox(title: string, cls: string, o: { power?: HTMLElement | ((el: HTMLElement) => HTMLElement); head?: HTMLElement[]; corner?: HTMLElement[]; print?: HTMLElement; dials?: HTMLElement[] }): HTMLElement {
+    const head = h('div', 'ob-head', h('span', 'c-title', title), ...(o.head ?? []));
+    const print = h('div', 'ob-print sb-print', ...(o.print ? [o.print] : []), ...(o.corner?.length ? [h('div', 'ob-corner', ...o.corner)] : []));
+    const el = h('div', `c ob sb ${cls}`, head, h('div', 'sb-row', print, h('div', 'ob-dials sb-dials', ...(o.dials ?? []))));
+    head.prepend(o.power ? (typeof o.power === 'function' ? o.power(el) : o.power) : h('span', 'ob-bar'));
+    return el;
+  }
+
+  /** A source's routings as a short line ("→ cutoff +14%"), for a print's corner. */
+  private routeTag(src: string): HTMLElement {
+    const el = h('span', 'route-tag');
     this.watch([...MOD_IDS, 'mod.on'], () => {
       const t = this.routesOf(src);
-      el.textContent = t || empty;
+      el.textContent = t || 'not routed';
       el.classList.toggle('none', !t);
+      el.title = t;
     });
     return el;
+  }
+
+  /** Plain-text switch between two states (HZ / SYNC), the chosen one lit. */
+  private textSwitch(labels: [string, string], isFirst: () => boolean, pick: (first: boolean) => void, ids: string[]): HTMLElement {
+    const a = h('button', 'fx-kind', labels[0]), b = h('button', 'fx-kind', labels[1]);
+    a.onclick = () => pick(true);
+    b.onclick = () => pick(false);
+    this.watch(ids, () => {
+      a.classList.toggle('on', isFirst());
+      b.classList.toggle('on', !isFirst());
+    });
+    return h('span', 'fx-kinds sw-small', a, h('span', 'fx-kind-sep', '/'), b);
   }
 
   /** An LFO's print: two cycles of its shape, with its fade-in. */
@@ -1575,58 +1606,51 @@ export class SynthView {
         pts.push([i, H / 2 - f(t / period) * a * (H / 2 - 7)]);
       }
       silver(g, pts, !!this.get(`${L}.on`));
-      vignette(g, W, H);
     });
     return cv;
   }
 
-  /** Hz | Sync: free-running rate or locked to the tempo (the rate dial or the note value shows). */
-  private lfoCard(n: number): HTMLElement {
-    const L = `lfo${n}`;
-    const [el, head, body] = this.card(`LFO ${n}`, 'src', 'lfo');
-    head.prepend(this.boolPower(`${L}.on`, el));
-    head.append(this.routeNote(`lfo${n}`));
-    const id = `${L}.sync`;
-    const hz = h('button', 'mseg', 'Hz'), sy = h('button', 'mseg', 'Sync');
-    hz.onclick = () => {
-      if (this.get(id) !== 'free') {
+  private lfoBox(n: number): HTMLElement {
+    const L = `lfo${n}`, id = `${L}.sync`;
+    const sync = this.textSwitch(['HZ', 'SYNC'], () => this.get(id) === 'free', (free) => {
+      if (free && this.get(id) !== 'free') {
         this.remembered.set(id, this.get(id));
         this.set(id, 'free');
-      }
-    };
-    sy.onclick = () => { if (this.get(id) === 'free') this.set(id, this.remembered.get(id) ?? '1/4'); };
-    const rate = this.knob(`${L}.rate`, 'Rate', 'mid');
-    const note = this.selector(id, { label: (o) => o });
-    note.classList.add('lfo-sync');
+      } else if (!free && this.get(id) === 'free') this.set(id, this.remembered.get(id) ?? '1/4');
+    }, [id]);
+    const rate = this.knob(`${L}.rate`, 'Rate', 'lg');
+    // Synced: the note value sits where the rate dial was, with the same label.
+    const note = h('div', 'k k-lg note-cell', this.selector(id, { label: (o) => o }), h('div', 'k-label', 'Rate'));
     this.watch([id], () => {
       const free = this.get(id) === 'free';
-      hz.classList.toggle('on', free);
-      sy.classList.toggle('on', !free);
       rate.style.display = free ? '' : 'none';
       note.style.display = free ? 'none' : '';
     });
-    body.append(
-      h('div', 'lfo-top', this.selector(`${L}.shape`, { label: (o) => LFO_SHAPE[o] ?? o }), h('div', 'mseg-wrap', hz, sy), this.toggle(`${L}.retrigger`, 'Retrig', 'small')),
-      h('div', 'lfo-bottom', this.lfoPrint(n, 196, 40), h('div', 'lfo-rate', rate, note), this.knob(`${L}.fade`, 'Fade', 'mid', { fmt: ms })),
-    );
-    return el;
+    return this.sbox(`LFO ${n}`, `box-lfo${n}`, {
+      power: (el) => this.boolPower(`${L}.on`, el),
+      head: [this.selector(`${L}.shape`, { label: (o) => LFO_SHAPE[o] ?? o }), sync, this.toggle(`${L}.retrigger`, 'Retrig', 'small')],
+      corner: [this.routeTag(L)],
+      print: this.lfoPrint(n, SB_PRINT_W, SB_PRINT_H),
+      dials: [rate, note, this.knob(`${L}.fade`, 'Fade', 'lg', { fmt: ms })],
+    });
   }
 
-  private env2Card(): HTMLElement {
-    const [el, head, body] = this.card('ENV 2', 'flt', 'env');
-    head.append(this.routeNote('env2'));
+  private env2Box(): HTMLElement {
     const pct = (v: number) => `${Math.round(v * 100)}%`;
-    body.append(this.envPrint('env2', 208, 118), h('div', 'knob-row',
-      this.knob('env2.attack', 'A', 'mid', { fmt: ms, parse: parseMs }),
-      this.knob('env2.decay', 'D', 'mid', { fmt: ms, parse: parseMs }),
-      this.knob('env2.sustain', 'S', 'mid', { fmt: pct, parse: parsePct }),
-      this.knob('env2.release', 'R', 'mid', { fmt: ms, parse: parseMs })));
-    return el;
+    return this.sbox('ENV 2', 'box-env2', {
+      corner: [this.routeTag('env2')],
+      print: this.envPrint('env2', SB_PRINT_SMALL_W, SB_PRINT_H),
+      dials: [
+        this.knob('env2.attack', 'A', 'lg', { fmt: ms, parse: parseMs }),
+        this.knob('env2.decay', 'D', 'lg', { fmt: ms, parse: parseMs }),
+        this.knob('env2.sustain', 'S', 'lg', { fmt: pct, parse: parsePct }),
+        this.knob('env2.release', 'R', 'lg', { fmt: ms, parse: parseMs }),
+      ],
+    });
   }
 
   /** The pitch envelope: a drop (or rise) on every note. On when its amount isn't 0. */
-  private pitchEnvCard(): HTMLElement {
-    const [el, head, body] = this.card('PITCH ENV', 'flt');
+  private pitchBox(): HTMLElement {
     const power = h('button', 'power', lamp());
     power.title = 'On / off (the amount)';
     power.onclick = () => {
@@ -1636,76 +1660,129 @@ export class SynthView {
         this.set('pitch_env.amount', 0);
       } else this.set('pitch_env.amount', this.remembered.get('pitch_env.amount') ?? -12);
     };
-    head.prepend(power);
-    head.append(h('span', 'c-note', 'on every note'));
-    const W = 74, H = 40;
+    const W = SB_PRINT_W, H = SB_PRINT_H;
     const [cv, g] = canvas(W, H, 'disp');
+    const box = this.sbox('PITCH ENV', 'box-pitch', {
+      power,
+      print: cv,
+      dials: [this.knob('pitch_env.amount', 'Amount', 'lg', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v)} st` }), this.knob('pitch_env.decay', 'Decay', 'lg', { fmt: ms })],
+    });
     this.watch(['pitch_env.amount', 'pitch_env.decay'], () => {
       const amt = this.num('pitch_env.amount'), dec = this.num('pitch_env.decay');
       power.classList.toggle('on', amt !== 0);
-      el.classList.toggle('is-off', amt === 0);
+      box.classList.toggle('is-off', amt === 0);
       paper(g, W, H);
-      const span = Math.max(200, dec * 3);
+      const span = Math.max(200, dec * 3), a = Math.sign(amt) * Math.min(1, 0.25 + Math.abs(amt) / 32);
       const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - (amt / 48) * Math.exp((-4.6 * (i / W) * span) / dec) * (H / 2 - 5)]);
+      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - a * Math.exp((-4.6 * (i / W) * span) / dec) * (H / 2 - 7)]);
       silver(g, pts, amt !== 0);
-      vignette(g, W, H);
     });
-    body.append(h('div', 'pe-row', cv, this.knob('pitch_env.amount', 'Amount', 'mid', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v)} st` }), this.knob('pitch_env.decay', 'Decay', 'mid', { fmt: ms })));
-    return el;
+    return box;
   }
 
-  private vibratoCard(): HTMLElement {
-    const [el, head, body] = this.card('VIBRATO', 'dirt');
-    head.prepend(this.boolPower('vibrato.on', el));
-    head.append(h('span', 'c-note', 'arrives late'));
-    body.append(h('div', 'knob-row', this.knob('vibrato.depth', 'Depth'), this.knob('vibrato.rate', 'Rate'), this.knob('vibrato.delay', 'Delay', 'mid', { fmt: ms }), this.knob('vibrato.fade', 'Fade', 'mid', { fmt: ms })));
-    return el;
+  private vibratoBox(): HTMLElement {
+    const W = SB_PRINT_SMALL_W, H = SB_PRINT_H;
+    const [cv, g] = canvas(W, H, 'disp');
+    // Flat until the delay, then the wobble fades in.
+    this.watch(['vibrato.on', 'vibrato.depth', 'vibrato.rate', 'vibrato.delay', 'vibrato.fade'], () => {
+      paper(g, W, H);
+      const span = 2000, d = this.num('vibrato.delay'), f = this.num('vibrato.fade'), dep = 0.3 + 0.7 * (this.num('vibrato.depth') / 100);
+      const pts: [number, number][] = [];
+      for (let i = 0; i <= W; i++) {
+        const t = (i / W) * span, a = t < d ? 0 : Math.min(1, (t - d) / Math.max(1, f));
+        pts.push([i, H / 2 - Math.sin((t / 1000) * this.num('vibrato.rate') * 2 * Math.PI) * a * dep * (H / 2 - 7)]);
+      }
+      silver(g, pts, !!this.get('vibrato.on') && this.num('vibrato.depth') > 0);
+    });
+    return this.sbox('VIBRATO', 'box-vib', {
+      power: (el) => this.boolPower('vibrato.on', el),
+      print: cv,
+      dials: [this.knob('vibrato.depth', 'Depth', 'lg'), this.knob('vibrato.rate', 'Rate', 'lg'), this.knob('vibrato.delay', 'Delay', 'lg', { fmt: ms }), this.knob('vibrato.fade', 'Fade', 'lg', { fmt: ms })],
+    });
   }
 
-  private wobbleCard(): HTMLElement {
-    const [el, head, body] = this.card('WOBBLE', 'dirt');
-    head.prepend(this.boolPower('wobble.on', el));
-    head.append(h('span', 'c-note', 'on the bar'));
-    const target = this.selector('wobble.target', { label: (o) => ({ filter: 'FILTER', 'filter + drive': 'FILTER+DRIVE', 'filter + drive + texture': 'FLT+DRV+TEX' })[o] ?? o });
-    target.classList.add('wob-target');
-    const rate = this.selector('wobble.rate', { label: (o) => o });
-    rate.classList.add('wob-rate');
-    const shape = this.selector('wobble.shape');
-    shape.classList.add('wob-shape');
-    body.append(h('div', 'wob-top', rate, target), h('div', 'wob-bottom', shape, this.knob('wobble.depth', 'Depth'), this.knob('wobble.life', 'Life')));
-    return el;
+  private wobbleBox(): HTMLElement {
+    const W = SB_PRINT_W, H = SB_PRINT_H;
+    const [cv, g] = canvas(W, H, 'disp');
+    // Two bars of the wobble at its rate, each cycle a little different (life).
+    this.watch(['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.life'], () => {
+      paper(g, W, H);
+      const cycles = Math.min(16, 8 / syncBeats(String(this.get('wobble.rate')))), shape = String(this.get('wobble.shape'));
+      const dep = 0.3 + 0.7 * this.num('wobble.depth'), life = this.num('wobble.life');
+      const f = (p: number) => (shape === 'triangle' ? (p < 0.5 ? 4 * p - 1 : 3 - 4 * p) : shape === 'saw down' ? 1 - 2 * p : shape === 'square' ? (p < 0.5 ? 0.85 : -0.85) : Math.sin(2 * Math.PI * p));
+      const pts: [number, number][] = [];
+      for (let i = 0; i <= W; i++) {
+        const x = (i / W) * cycles, c = Math.floor(x), vary = 1 - life * 0.45 * (0.5 + 0.5 * Math.sin(c * 2.7 + 1));
+        pts.push([i, H / 2 - f(x - c) * dep * vary * (H / 2 - 7)]);
+      }
+      silver(g, pts, !!this.get('wobble.on') && this.num('wobble.depth') > 0);
+    });
+    const target = this.selector('wobble.target', { label: (o) => ({ filter: 'FILTER', 'filter + drive': 'FLT + DRV', 'filter + drive + texture': 'FLT + DRV + TEX' })[o] ?? o });
+    return this.sbox('WOBBLE', 'box-wob', {
+      power: (el) => this.boolPower('wobble.on', el),
+      head: [this.selector('wobble.rate', { label: (o) => o }), this.selector('wobble.shape'), target],
+      print: cv,
+      dials: [this.knob('wobble.depth', 'Depth', 'lg'), this.knob('wobble.life', 'Life', 'lg')],
+    });
   }
 
-  /** Sources without settings of their own, and where each goes; plus how much velocity matters. */
-  private otherSourcesCard(): HTMLElement {
-    const [el, , body] = this.card('OTHER SOURCES', 'mat');
-    for (const [src, name] of [['drift', 'Drift'], ['drift_slow', 'Slow drift'], ['random', 'Random'], ['velocity', 'Velocity'], ['modwheel', 'Mod wheel'], ['keytrack', 'Keytrack']]) {
-      body.append(h('div', 'os-row', h('span', 'os-name', name), this.routeNote(src, 'os-route', '—')));
+  private matrixBox(): HTMLElement {
+    const rows: HTMLElement[] = [];
+    for (let n = 1; n <= MOD_SLOTS; n++) {
+      const src = this.selector(`mod${n}.source`, { label: (o) => SRC_LABEL[o] ?? o });
+      const dst = this.selector(`mod${n}.dest`, { label: (o) => DEST_LABEL[o] ?? o });
+      src.classList.add('mx-src');
+      dst.classList.add('mx-dst');
+      const row = h('div', 'mx-row', h('span', 'mx-n', String(n).padStart(2, '0')), src, h('span', 'mx-arrow', '→'), dst);
+      // The source's name and amount in its own box colour (LFO 1 red, Env 2 blue …); empty slots
+      // fade. Registered before the amount bar, so the bar draws in the right colour.
+      this.watch([`mod${n}.source`, `mod${n}.dest`, `mod${n}.amount`], () => {
+        const s = String(this.get(`mod${n}.source`));
+        row.dataset.src = s;
+        row.classList.toggle('empty', s === 'none' || String(this.get(`mod${n}.dest`)) === 'none' || this.num(`mod${n}.amount`) === 0);
+      });
+      row.append(this.amountBar(`mod${n}.amount`, [`mod${n}.source`]));
+      rows.push(row);
     }
-    const touch = this.knob('voice.velocity', 'Touch');
-    touch.title = 'How much playing harder makes it louder and brighter';
-    body.append(h('div', 'knob-row os-touch', touch));
+    const el = h('div', 'c ob box-matrix', h('div', 'ob-head', h('span', 'c-title', 'MOD MATRIX'), h('span', 'mx-note', 'source → destination · amount')), h('div', 'mx-rows', ...rows));
+    el.querySelector('.ob-head')!.prepend(this.boolPower('mod.on', el));
     return el;
   }
 
-  /** A bipolar amount you drag sideways (double-click = 0). */
-  private amountBar(id: string): HTMLElement {
+  /**
+   * The MOD page, in the OSC page's boxes: LFO 1–4 stacked on the left; Env 2, the pitch
+   * envelope, vibrato and wobble stacked next to them; the 12-slot matrix filling the right.
+   */
+  private buildModPage(): HTMLElement {
+    return h('div', 'v2-main mod-page2',
+      this.lfoBox(1), this.env2Box(),
+      this.lfoBox(2), this.pitchBox(),
+      this.lfoBox(3), this.vibratoBox(),
+      this.lfoBox(4), this.wobbleBox(),
+      this.matrixBox());
+  }
+
+  /** A bipolar amount you drag sideways (double-click = 0): a neon line from the centre, in the box colour. */
+  private amountBar(id: string, deps: string[] = []): HTMLElement {
     const p = getParam(id)!;
-    const W = 50, H = 14;
+    const W = 92, H = 14;
     const [cv, g] = canvas(W, H, 'amt');
     const val = h('span', 'amt-val');
-    this.watch([id], () => {
-      const v = this.num(id), mid = W / 2;
+    this.watch([id, ...deps], () => {
+      const v = this.num(id), mid = W / 2, col = accentOf(cv);
       g.clearRect(0, 0, W, H);
-      g.fillStyle = '#0d0302';
-      g.fillRect(0, 4, W, 6);
-      g.strokeStyle = '#3a120c';
-      g.strokeRect(0.5, 4.5, W - 1, 5);
-      g.fillStyle = v >= 0 ? '#ff8f75' : '#ffb36b';
-      g.fillRect(Math.min(mid, mid + v * mid), 5, Math.abs(v * mid), 4);
-      g.fillStyle = '#5a3a32';
-      g.fillRect(mid - 0.5, 2, 1, 10);
+      g.fillStyle = 'rgba(255,255,255,0.06)';
+      g.fillRect(0, H / 2 - 1, W, 2);
+      g.fillStyle = 'rgba(255,255,255,0.25)';
+      g.fillRect(mid - 0.5, 3, 1, H - 6);
+      if (v !== 0) {
+        g.save();
+        g.fillStyle = col;
+        g.shadowColor = col;
+        g.shadowBlur = 6;
+        g.fillRect(Math.min(mid, mid + v * mid), H / 2 - 1.5, Math.max(1, Math.abs(v * mid)), 3);
+        g.restore();
+      }
       val.textContent = v === 0 ? '0' : `${v > 0 ? '+' : ''}${Math.abs(v) < 0.01 ? (v * 100).toFixed(1) : Math.round(v * 100)}%`;
       val.classList.toggle('zero', v === 0);
     });
@@ -1719,30 +1796,6 @@ export class SynthView {
     const el = h('div', 'amt-wrap', cv, val);
     el.title = `${p.label}: drag sideways, double-click for 0`;
     return el;
-  }
-
-  private matrixCard(): HTMLElement {
-    const [el, head, body] = this.card('MOD MATRIX', 'mat', 'matrix');
-    head.prepend(this.boolPower('mod.on', el));
-    head.append(h('span', 'c-note', '12 slots'));
-    for (let n = 1; n <= MOD_SLOTS; n++) {
-      const src = this.selector(`mod${n}.source`, { label: (o) => SRC_LABEL[o] ?? o });
-      const dst = this.selector(`mod${n}.dest`, { label: (o) => DEST_LABEL[o] ?? o });
-      src.classList.add('mx-src');
-      dst.classList.add('mx-dst');
-      body.append(h('div', 'mx-row', h('span', 'mx-n', String(n).padStart(2, '0')), src, h('span', 'mx-arrow', '→'), dst, this.amountBar(`mod${n}.amount`)));
-    }
-    return el;
-  }
-
-  private buildModPage(): HTMLElement {
-    const cap = (n: string, name: string, note: string, zone: string) =>
-      h('div', `zone-cap cap-${zone}`, h('span', 'cap-name', `${n}  ${name}`), h('span', 'cap-note', note), h('span', 'cap-line'));
-    return h('div', 'v2-main mod-page',
-      h('div', 'col col-lfos', cap('1', 'LFOS', 'slow, unrelated rates', 'src'), this.lfoCard(1), this.lfoCard(2), this.lfoCard(3), this.lfoCard(4)),
-      h('div', 'col col-envs', cap('2', 'ENVELOPES', 'once per note', 'flt'), this.env2Card(), this.pitchEnvCard()),
-      h('div', 'col col-play', cap('3', 'PLAYING', 'how a player moves it', 'dirt'), this.vibratoCard(), this.wobbleCard(), this.otherSourcesCard()),
-      h('div', 'col col-matrix', cap('4', 'MATRIX', 'who moves what', 'mat'), this.matrixCard()));
   }
 
   // ------------------------------------------------------------------ the FX page
@@ -2331,13 +2384,32 @@ export class SynthView {
       move.options[0].text = nice(String(this.get('wheel.preset')));
       move.value = String(this.get('wheel.move'));
     });
-    this.velFill.style.width = '75%';
+    // Touch: how much playing harder makes notes louder and brighter (drag sideways); the tick
+    // shows how hard the last note was played.
+    const touchP = getParam('voice.velocity')!;
+    const touchFill = h('span', 'kb-touch-fill');
+    const touch = h('span', 'kb-touch', touchFill, this.velTick);
+    touch.title = 'Touch: how much playing harder makes notes louder and brighter. 0 = every note the same. Drag sideways; the tick is your last note.';
+    this.watch(['voice.velocity'], () => { touchFill.style.width = `${Math.round(this.num('voice.velocity') * 100)}%`; });
+    let tx0 = 0, tv0 = 0;
+    touch.addEventListener('pointerdown', (e) => {
+      touch.setPointerCapture(e.pointerId);
+      tx0 = e.clientX;
+      tv0 = this.num('voice.velocity');
+    });
+    touch.addEventListener('pointermove', (e) => {
+      if (!touch.hasPointerCapture(e.pointerId)) return;
+      const v = Math.max(touchP.min!, Math.min(touchP.max!, tv0 + (e.clientX - tx0) / (touch.offsetWidth || 44)));
+      this.set('voice.velocity', Math.round(v * 100) / 100);
+    });
+    touch.addEventListener('pointerup', (e) => touch.releasePointerCapture(e.pointerId));
+    touch.addEventListener('dblclick', () => this.set('voice.velocity', touchP.default as number));
     const side = h('div', 'kb-side',
       h('div', 'kb-wheels', h('div', 'kb-w', pitch, h('span', 'kb-w-label', 'Pitch')), h('div', 'kb-w', mod, h('span', 'kb-w-label', 'Mod'))),
       h('div', 'kb-info',
         h('span', 'kb-label', 'OCTAVE'), h('div', 'kb-oct-row', down, octave, up),
         h('span', 'kb-label', 'MOVE'), move,
-        h('span', 'kb-label', 'VEL'), h('span', 'kb-vel', this.velFill)));
+        h('span', 'kb-label', 'TOUCH'), touch));
     return h('div', 'kb-strip', side, this.keysEl);
   }
 

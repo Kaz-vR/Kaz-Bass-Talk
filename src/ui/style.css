@@ -941,3 +941,61 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .fx-kind.on { color: #e6e6ea; }
 .v2 .fx-kind:hover { color: #bdbdc2; }
 .v2 .fx-kind-sep { color: #3a3a40; font-size: 11px; }
+
+/* ---- MOD page: LFO 1–4 | Env 2, pitch env, vibrato, wobble (short boxes) | the matrix. */
+.v2 .mod-page2 { display: grid; grid-template-columns: 345px 345px 502px; grid-template-rows: repeat(4, 109.5px); gap: 4px; margin: 0; }
+.v2 .mod-page2 > .sb { display: flex; flex-direction: column; gap: 6px; padding: 8px 12px; min-height: 0; }
+.v2 .mod-page2 .ob-head { height: 22px; flex: none; }
+.v2 .sb-row { display: flex; align-items: flex-end; gap: 8px; height: 60px; }
+.v2 .sb-print { flex: none; height: 60px; display: flex; align-items: center; justify-content: flex-start; }
+.v2 .sb-dials { flex: 1; justify-content: center; gap: 6px; }
+.v2 .sb-dials .k { width: 48px; }
+.v2 .note-cell { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 60px; }
+.v2 .note-cell .sel { background: none; border: 0; height: 40px; width: 48px; }
+.v2 .note-cell .sel-name { field-sizing: content; text-align: center; padding: 0 10px 0 0; font-size: 12px; color: #ececf0; letter-spacing: 0.04em; line-height: 40px; }
+.v2 .note-cell .sel::after { top: 16px; right: 0; width: 4px; height: 4px; }
+.v2 .route-tag { font-size: 9px; letter-spacing: 0.08em; color: #bdbdc2; white-space: nowrap; max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
+.v2 .route-tag.none { color: #55555b; }
+.v2 .sb .ob-corner { top: 0; right: 2px; height: 14px; }
+.v2 .sw-small .fx-kind { font-size: 10px; letter-spacing: 0.14em; }
+.v2 .mod-page2 .ob-head .sel-name { font-size: 10.5px; }
+.v2 .box-lfo1 { --knob-accent: #ff3d2e; }
+.v2 .box-lfo2 { --knob-accent: #ff8a2a; }
+.v2 .box-lfo3 { --knob-accent: #3fe3b6; }
+.v2 .box-lfo4 { --knob-accent: #9a7cff; }
+.v2 .box-env2 { --knob-accent: #5f9bff; }
+.v2 .box-pitch { --knob-accent: #e2c9a6; }
+.v2 .box-vib { --knob-accent: #ff6fae; }
+.v2 .box-wob { --knob-accent: #a9dcff; }
+.v2 .box-matrix { --knob-accent: #d4d4da; grid-column: 3; grid-row: 1 / 5; display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; }
+.v2 .mx-note { font-size: 9.5px; letter-spacing: 0.14em; color: #66666d; margin-left: 6px; }
+.v2 .mx-rows { flex: 1; display: grid; grid-template-rows: repeat(12, 1fr); }
+.v2 .box-matrix .mx-row { height: auto; gap: 6px; border-top: 1px solid rgba(255,255,255,0.035); }
+.v2 .box-matrix .mx-row:first-child { border-top: 0; }
+.v2 .mx-n { width: 18px; font-size: 9.5px; color: #55555b; letter-spacing: 0.06em; font-variant-numeric: tabular-nums; }
+.v2 .box-matrix .sel { background: none; border: 0; height: 26px; }
+.v2 .box-matrix .mx-src { width: 112px; }
+.v2 .box-matrix .mx-dst { width: 150px; }
+.v2 .box-matrix .sel-name { padding: 0 14px 0 0; font-size: 10.5px; letter-spacing: 0.08em; color: #ececf0; font-weight: 400; }
+.v2 .box-matrix .sel::after { top: 10px; right: 4px; width: 4px; height: 4px; }
+.v2 .mx-arrow { color: #55555b; font-size: 11px; }
+.v2 .box-matrix .amt-wrap { gap: 6px; }
+.v2 .box-matrix .amt-val { width: 38px; font-size: 10.5px; color: #cfcfd4; }
+.v2 .box-matrix .mx-row.empty { opacity: 0.4; }
+.v2 .mx-row[data-src="lfo1"] .mx-src .sel-name { color: #ff3d2e; }
+.v2 .mx-row[data-src="lfo2"] .mx-src .sel-name { color: #ff8a2a; }
+.v2 .mx-row[data-src="lfo3"] .mx-src .sel-name { color: #3fe3b6; }
+.v2 .mx-row[data-src="lfo4"] .mx-src .sel-name { color: #9a7cff; }
+.v2 .mx-row[data-src="env2"] .mx-src .sel-name { color: #5f9bff; }
+.v2 .mx-row[data-src="lfo1"] .amt { --knob-accent: #ff3d2e; }
+.v2 .mx-row[data-src="lfo2"] .amt { --knob-accent: #ff8a2a; }
+.v2 .mx-row[data-src="lfo3"] .amt { --knob-accent: #3fe3b6; }
+.v2 .mx-row[data-src="lfo4"] .amt { --knob-accent: #9a7cff; }
+.v2 .mx-row[data-src="env2"] .amt { --knob-accent: #5f9bff; }
+
+/* Touch (replaces VEL): a slider you drag sideways; the tick is the last note's velocity. */
+.v2 .kb-touch { position: relative; display: block; width: 44px; height: 6px; background: rgba(0,0,0,0.6); cursor: ew-resize; touch-action: none; margin-top: 3px; }
+.v2 .kb-touch-fill { display: block; height: 100%; background: #ff6a52; box-shadow: 0 0 6px #ff6a52; }
+.v2 .kb-vel-tick { position: absolute; top: -3px; width: 1px; height: 12px; background: #fff; opacity: 0; transform: translateX(-0.5px); transition: left .08s; }
+.v2 .kb-vel-tick.hit { opacity: 0.8; }
+.v2 .route-tag { text-shadow: 0 0 3px #000, 0 0 6px #000, 0 0 10px #000; }
