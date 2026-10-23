@@ -137,6 +137,9 @@ export class Synth {
   private texLpR = 0;
   private texLpCoef = 1;
   private anyGate = false;
+  /** The newest sounding voice's filter, for the UI's moving filter print: cutoff in Hz (0 = no voice sounding), resonance. */
+  liveCutoff = 0;
+  liveRes = 0;
 
   // Dynamics.
   private readonly comp = new Compressor();
@@ -666,6 +669,8 @@ export class Synth {
       if (v.active || v.gate) v.control(src, this.bend, this.xdst);
     }
     this.anyGate = anyGate;
+    this.liveCutoff = lead.active ? lead.fcNow : 0;
+    this.liveRes = lead.resNow;
     if (this.poly > 1) {
       for (let i = 0; i < MAX_VOICES; i++) {
         const v = this.voices[i];

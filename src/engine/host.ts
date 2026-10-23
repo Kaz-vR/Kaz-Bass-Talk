@@ -10,6 +10,10 @@ export class EngineHost {
   readonly ctx: AudioContext;
   readonly node: AudioWorkletNode;
   readonly analyser: AnalyserNode;
+  /** Read the engine's live filter (output 2: cutoff, resonance). */
+  private readonly ctlCut: AnalyserNode;
+  private readonly ctlRes: AnalyserNode;
+  private readonly ctlBuf = new Float32Array(32);
 
   private constructor(ctx: AudioContext, node: AudioWorkletNode) {
     this.ctx = ctx;
@@ -19,6 +23,22 @@ export class EngineHost {
     this.analyser.smoothingTimeConstant = 0.6;
     node.connect(ctx.destination);
     node.connect(this.analyser);
+    const split = ctx.createChannelSplitter(2);
+    node.connect(split, 1);
+    this.ctlCut = ctx.createAnalyser();
+    this.ctlRes = ctx.createAnalyser();
+    this.ctlCut.fftSize = this.ctlRes.fftSize = 32;
+    split.connect(this.ctlCut, 0);
+    split.connect(this.ctlRes, 1);
+  }
+
+  /** The newest sounding voice's cutoff (Hz) and resonance, or null when nothing sounds. */
+  liveFilter(): { cutoff: number; res: number } | null {
+    this.ctlCut.getFloatTimeDomainData(this.ctlBuf);
+    const cutoff = this.ctlBuf[31];
+    if (!(cutoff > 0)) return null;
+    this.ctlRes.getFloatTimeDomainData(this.ctlBuf);
+    return { cutoff, res: this.ctlBuf[31] };
   }
 
   static async create(): Promise<EngineHost> {
@@ -26,8 +46,8 @@ export class EngineHost {
     await ctx.audioWorklet.addModule(workletUrl);
     const node = new AudioWorkletNode(ctx, PROCESSOR_NAME, {
       numberOfInputs: 0,
-      numberOfOutputs: 1,
-      outputChannelCount: [2],
+      numberOfOutputs: 2,
+      outputChannelCount: [2, 2],
     });
     return new EngineHost(ctx, node);
   }

@@ -37,6 +37,13 @@ class LowTalkProcessor extends AudioWorkletProcessor {
     const l = out[0];
     const r = out.length > 1 ? out[1] : out[0];
     this.player.render(l, r, 0, l.length);
+    // Output 2 carries the live filter (cutoff in Hz, resonance) as a control signal for the UI:
+    // read by an analyser on the main thread, so nothing here allocates or posts messages.
+    const ctl = outputs[1];
+    if (ctl && ctl.length >= 2) {
+      ctl[0].fill(this.synth.liveCutoff);
+      ctl[1].fill(this.synth.liveRes);
+    }
     return true;
   }
 }

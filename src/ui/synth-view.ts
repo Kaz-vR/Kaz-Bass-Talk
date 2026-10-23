@@ -269,6 +269,8 @@ interface KnobMod {
   color: string;
   span: (amount: number) => number;
   fmt: (amount: number) => string;
+  /** The modulated value right now, if the engine reports it (null when nothing sounds). */
+  live?: () => number | null;
 }
 /** The filter envelope → cutoff: ±1 is ±6 octaves on a 20 Hz – 20 kHz log dial. */
 const FENV_MOD: KnobMod = {
@@ -333,6 +335,9 @@ export class SynthView {
   private held = 0;
   private dotRaf = 0;
   private readonly dotDraws: (() => void)[] = [];
+  /** The engine's live filter (what the print shows while notes sound), and the prints that draw it. */
+  private liveFilter: { cutoff: number; res: number } | null = null;
+  private readonly liveDraws: (() => void)[] = [];
   private modPage: HTMLElement | null = null;
   private fxPage: HTMLElement | null = null;
   /** The synth page's height: every tab keeps it, so nothing jumps. */
@@ -426,6 +431,21 @@ export class SynthView {
       if (!live) for (const f of this.dotDraws) f();
     };
     this.dotRaf = requestAnimationFrame(step);
+  }
+
+  /** Follow the engine's real cutoff and resonance (envelope, LFOs, wobble, keytracking…) on the filter print. */
+  setLiveFilter(read: () => { cutoff: number; res: number } | null): void {
+    const step = () => {
+      const v = read();
+      const was = this.liveFilter;
+      const moved = !v !== !was || (v && was && (Math.abs(v.cutoff / was.cutoff - 1) > 0.002 || Math.abs(v.res - was.res) > 0.002));
+      if (moved) {
+        this.liveFilter = v;
+        for (const f of this.liveDraws) f();
+      }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
   /** The preset's name and where it lives (shelf · frame · template), shown like a print's caption. */
@@ -656,6 +676,19 @@ export class SynthView {
           g.stroke();
           g.restore();
         }
+        // Where the engine has it right now (while a note sounds), as a dot on the ring.
+        const live = mod.live?.();
+        if (live !== undefined && live !== null) {
+          const al = a0 + (a1 - a0) * Math.max(0, Math.min(1, toNormalized(p, Math.max(p.min!, Math.min(p.max!, live)))));
+          g.save();
+          g.fillStyle = '#fff';
+          g.shadowColor = mod.color;
+          g.shadowBlur = 6;
+          g.beginPath();
+          g.arc(cx + Math.cos(al) * (r - 0.9), cy + Math.sin(al) * (r - 0.9), 1.9, 0, 2 * Math.PI);
+          g.fill();
+          g.restore();
+        }
       }
     };
     const setN = (n: number) => {
@@ -729,6 +762,7 @@ export class SynthView {
       setN(toNormalized(p, this.num(id)) - Math.sign(e.deltaY) * (e.shiftKey ? 0.002 : 0.02));
     }, { passive: false });
     this.watch([id, ...(mod ? [mod.id] : []), ...(opts.deps ?? [])], draw);
+    if (mod?.live) this.liveDraws.push(draw);
     return el;
   }
 
@@ -888,8 +922,10 @@ export class SynthView {
   private filterPrint(W: number, H: number): HTMLElement {
     const [cv, g] = canvas(W, H, 'disp');
     const type = () => String(this.get('filter.type'));
+    // While notes sound, the print follows the engine's live cutoff and resonance (as in Serum).
+    const fcNow = () => this.liveFilter?.cutoff ?? this.num('filter.cutoff');
     const stages = (): [Kind, number, number][] | 'comb' | 'formant' => {
-      const fc = this.num('filter.cutoff'), res = this.num('filter.resonance');
+      const fc = fcNow(), res = this.liveFilter?.res ?? this.num('filter.resonance');
       switch (type()) {
         case 'lowpass': return [['lp', fc, 0.54 + res * 5], ['lp', fc, 1.31]];
         case 'diode': return [['lp', fc, 0.6 + res * 4], ['lp', fc * 1.6, 0.6]];
@@ -900,7 +936,7 @@ export class SynthView {
         default: return 'formant';
       }
     };
-    this.watch(['filter.type', 'filter.cutoff', 'filter.resonance', 'filter.vowel', 'filter.on', 'drive.on', 'drive.amount'], () => {
+    const redraw = () => {
       paper(g, W, H);
       g.strokeStyle = 'rgba(232,226,216,0.04)';
       for (const f of [100, 1000, 10000]) {
@@ -919,10 +955,10 @@ export class SynthView {
         const f = 20 * Math.pow(1000, i / W);
         let m: number;
         if (st === 'comb') {
-          const fc = this.num('filter.cutoff');
+          const fc = fcNow();
           m = 0.35 / Math.max(0.15, Math.abs(1 - 0.85 * Math.cos((2 * Math.PI * f) / fc)) + 0.15);
         } else if (st === 'formant') {
-          const k = this.num('filter.cutoff') / 2000;
+          const k = fcNow() / 2000;
           const v = this.num('filter.vowel') * 4;
           const vowels = [[730, 1090, 2440], [530, 1840, 2480], [270, 2290, 3010], [570, 840, 2410], [300, 870, 2240]];
           const i0 = Math.min(3, Math.floor(v)), fr = v - i0;
@@ -939,12 +975,14 @@ export class SynthView {
       silver(g, curve, on, toWhite(accentOf(cv), 0.55));
       // the cutoff as a handle on the curve
       if (on && st !== 'formant') {
-        const fc = this.num('filter.cutoff');
+        const fc = fcNow();
         const x = Math.max(4, Math.min(W - 4, (Math.log(fc / 20) / Math.log(1000)) * W));
         handle(g, x, ys[Math.round(x)] ?? H / 2);
       }
       vignette(g, W, H);
-    });
+    };
+    this.watch(['filter.type', 'filter.cutoff', 'filter.resonance', 'filter.vowel', 'filter.on', 'drive.on', 'drive.amount'], redraw);
+    this.liveDraws.push(redraw);
     // drag on the print: left/right = cutoff, up/down = resonance
     const cut = getParam('filter.cutoff')!, res = getParam('filter.resonance')!;
     let x0 = 0, y0 = 0, c0 = 0, r0 = 0;
@@ -1335,7 +1373,7 @@ export class SynthView {
     // Turning the drive up switches the drive stage on.
     drive.addEventListener('pointerdown', () => { if (!this.get('drive.on')) this.set('drive.on', true); }, true);
     // The filter envelope's amount is the ring around Cutoff (as in Serum): Alt-drag the dial.
-    const cutoff = this.knob('filter.cutoff', 'Cutoff', 'big', { mod: FENV_MOD });
+    const cutoff = this.knob('filter.cutoff', 'Cutoff', 'big', { mod: { ...FENV_MOD, live: () => this.liveFilter?.cutoff ?? null } });
     cutoff.title += ' The outer ring is how far the filter envelope sweeps it: Alt-drag to set it, Alt-double-click to clear it.';
     const grid = h('div', 'flt-grid', cutoff, this.knob('filter.resonance', 'Res', 'big'), drive, this.keyTrack());
     body.append(h('div', 'flt-top', this.selector('filter.type'), routes), this.filterPrint(282, 64), grid);
