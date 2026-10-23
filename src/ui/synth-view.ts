@@ -121,45 +121,13 @@ function response(stages: [Kind, number, number][], f: number): number {
 // comes from the CSS).
 const INK = '#e8e2d8';
 
-let grainTile: HTMLCanvasElement | null = null;
-/** A small tile of film grain, made once and reused by every display. */
-function grain(): HTMLCanvasElement {
-  if (grainTile) return grainTile;
-  const c = document.createElement('canvas');
-  c.width = c.height = 128;
-  const g = c.getContext('2d')!;
-  const img = g.createImageData(128, 128);
-  let seed = 7;
-  for (let i = 0; i < img.data.length; i += 4) {
-    seed = (seed * 16807) % 2147483647;
-    const v = 150 + (seed % 105);
-    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
-    img.data[i + 3] = (seed >> 8) % 46;
-  }
-  g.putImageData(img, 0, 0);
-  grainTile = c;
-  return c;
-}
-
-/** The near-black screen every display draws on (a faint grain). */
+/** Displays draw straight onto their box: nothing behind the line. */
 function paper(g: CanvasRenderingContext2D, W: number, H: number): void {
   g.clearRect(0, 0, W, H);
-  g.fillStyle = '#0a0a0b';
-  g.fillRect(0, 0, W, H);
-  g.globalAlpha = 0.35;
-  g.fillStyle = g.createPattern(grain(), 'repeat')!;
-  g.fillRect(0, 0, W, H);
-  g.globalAlpha = 1;
 }
 
-/** A soft darkening towards a display's edges. */
-function vignette(g: CanvasRenderingContext2D, W: number, H: number): void {
-  const v = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.7);
-  v.addColorStop(0, 'rgba(0,0,0,0)');
-  v.addColorStop(1, 'rgba(0,0,0,0.45)');
-  g.fillStyle = v;
-  g.fillRect(0, 0, W, H);
-}
+/** (Kept for the call sites; the frameless look has no vignette.) */
+function vignette(_g: CanvasRenderingContext2D, _W: number, _H: number): void {}
 
 /** The colour of the box a display sits in (its --knob-accent). */
 function accentOf(el: Element): string {
@@ -731,7 +699,7 @@ export class SynthView {
   }
 
   private subPrint(): HTMLElement {
-    const W = 140, H = 70;
+    const W = 252, H = 50;
     const [cv, g] = canvas(W, H, 'disp');
     this.watch(['sub.wave', 'sub.level'], () => {
       paper(g, W, H);
@@ -745,7 +713,7 @@ export class SynthView {
 
   /** The noise layer as a short trace: its grain follows the type, its height the level. */
   private noisePrint(): HTMLElement {
-    const W = 126, H = 30;
+    const W = 252, H = 50;
     const [cv, g] = canvas(W, H, 'disp noise-disp');
     this.watch(['texture.type', 'texture.level', 'breath.level', 'breath.chiff'], () => {
       paper(g, W, H);
@@ -900,17 +868,6 @@ export class SynthView {
     const draw = () => {
       const { a, d, s, r, hold, X, Y } = geo();
       paper(g, W, H);
-      g.fillStyle = 'rgba(232,226,216,0.28)';
-      g.font = '10px Inter, system-ui, sans-serif';
-      g.strokeStyle = 'rgba(232,226,216,0.04)';
-      const stepMs = span <= 1000 ? 250 : span <= 5000 ? 1000 : Math.ceil(span / 5000) * 1000;
-      for (let t = stepMs; t < span; t += stepMs) {
-        g.beginPath();
-        g.moveTo(X(t), 0);
-        g.lineTo(X(t), H);
-        g.stroke();
-        if (t % 1000 === 0) g.fillText(`${t / 1000} s`, X(t) + 3, 12);
-      }
       const pts: [number, number][] = [[X(0), Y(0)]];
       const N = 40;
       for (let i = 0; i <= N; i++) pts.push([X((a * i) / N), Y(1 - Math.pow(1 - i / N, 2))]);
@@ -1130,10 +1087,10 @@ export class SynthView {
     const [el, head, body] = this.card(title, zone, `env ${cls}`);
     if (size !== 'small') head.append(h('span', 'c-note', 'drag the points'));
     body.append(this.envPrint(prefix, W, H), h('div', 'knob-row',
-      this.knob(`${prefix}.attack`, 'Attack', size, { fmt: ms, showValue: true }),
-      this.knob(`${prefix}.decay`, 'Decay', size, { fmt: ms, showValue: true }),
-      this.knob(`${prefix}.sustain`, 'Sustain', size, { fmt: db, showValue: true }),
-      this.knob(`${prefix}.release`, 'Release', size, { fmt: ms, showValue: true }),
+      this.knob(`${prefix}.attack`, 'A', size, { fmt: ms, showValue: true }),
+      this.knob(`${prefix}.decay`, 'D', size, { fmt: ms, showValue: true }),
+      this.knob(`${prefix}.sustain`, 'S', size, { fmt: db, showValue: true }),
+      this.knob(`${prefix}.release`, 'R', size, { fmt: ms, showValue: true }),
     ));
     return el;
   }
@@ -1444,10 +1401,10 @@ export class SynthView {
     head.append(this.routeNote('env2'));
     const pct = (v: number) => `${Math.round(v * 100)}%`;
     body.append(this.envPrint('env2', 208, 118), h('div', 'knob-row',
-      this.knob('env2.attack', 'Attack', 'mid', { fmt: ms, showValue: true }),
-      this.knob('env2.decay', 'Decay', 'mid', { fmt: ms, showValue: true }),
-      this.knob('env2.sustain', 'Sustain', 'mid', { fmt: pct, showValue: true }),
-      this.knob('env2.release', 'Release', 'mid', { fmt: ms, showValue: true })));
+      this.knob('env2.attack', 'A', 'mid', { fmt: ms, showValue: true }),
+      this.knob('env2.decay', 'D', 'mid', { fmt: ms, showValue: true }),
+      this.knob('env2.sustain', 'S', 'mid', { fmt: pct, showValue: true }),
+      this.knob('env2.release', 'R', 'mid', { fmt: ms, showValue: true })));
     return el;
   }
 
@@ -2125,10 +2082,11 @@ export class SynthView {
     const cap = (n: string, name: string, note: string, zone: Zone) =>
       h('div', `zone-cap cap-${zone}`, h('span', 'cap-name', `${n}  ${name}`), h('span', 'cap-note', note), h('span', 'cap-line'));
     void cap;
+    void this.scopeBox; // the oscilloscope comes back later; its place is an empty box for now
     // Two rows of four boxes: OSC A, OSC B, amp envelope, filter; sub, noise, scope, filter envelope.
     this.oscPage = h('div', 'v2-main osc-page',
       this.oscStrip(1), this.oscStrip(2), this.envCard('amp_env', 'AMP ENVELOPE', 'src', 226, 118, 'small', 'box-amp'), this.filterCard(),
-      this.subStrip(), this.noiseStrip(), this.scopeBox(), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', 282, 62, 'small', 'box-fenv'));
+      this.subStrip(), this.noiseStrip(), h('div', 'c box-empty'), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', 282, 62, 'small', 'box-fenv'));
     this.modPage = this.buildModPage();
     this.fxPage = this.buildFxPage();
     this.presetPage.style.display = 'none';

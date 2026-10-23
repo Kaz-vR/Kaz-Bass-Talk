@@ -786,3 +786,13 @@ html, body, .v2-wrap { background: #070708; }
 
 .v2 .mod-page, .v2 .fx-page, .v2 .preset-page { margin: 6px 18px 0; }
 .v2 .mod-page, .v2 .fx-page { height: auto; }
+
+/* frameless displays: the lines sit straight on the box */
+.v2 .disp { border: 0; background: transparent; box-shadow: none; }
+/* sub and noise laid out like the oscillators: selectors on top, the display, the dials under it */
+.osc-page { grid-template-rows: 296px 228px; }
+.osc-page .box-sub.strip, .osc-page .box-noise.strip { grid-template-columns: 1fr auto; grid-template-areas: "head head" "chips sel" "print print" "knobs knobs"; row-gap: 10px; }
+.osc-page .box-sub .st-left > .sel, .osc-page .box-noise .st-left > .sel { justify-self: end; width: 98px; }
+.osc-page .box-sub .st-chips { justify-self: start; }
+.osc-page .box-sub .st-print, .osc-page .strip.noise .st-print { justify-content: center; align-self: auto; }
+.osc-page .box-sub .st-knobs, .osc-page .strip.noise .st-knobs { justify-content: flex-start; gap: 14px; align-self: auto; padding: 0; }
