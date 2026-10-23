@@ -245,7 +245,8 @@ function waveShape(wave: string, x: number, pw: number, wt: number): number {
 /**
  * Dial looks to choose from (owner's review): 'ref' (the reference's knurled cap with a tick
  * above), 'photo' (lit like a real object), 'silver' (brushed aluminium), 'flat' (minimal) and
- * 'glass' (a dark glass dome). Same geometry: the value arc runs outside the cap.
+ * 'glass' (a dark glass dome), 'scale' (a printed tick scale around a machined cap). Same geometry: the
+ * value shows outside the cap.
  */
 function drawKnobVariant(g: CanvasRenderingContext2D, style: string, k: { cx: number; cy: number; r: number; n: number; av: number; zero: number; a0: number; a1: number; accent: string; off: boolean }): void {
   const { cx, cy, r, av, zero, a0, a1, accent, off } = k;
@@ -372,6 +373,49 @@ function drawKnobVariant(g: CanvasRenderingContext2D, style: string, k: { cx: nu
       g.stroke();
       g.restore();
       pointer(kr * 0.2, kr * 0.85, 1.6, col, false);
+      break;
+    }
+    case 'scale': {
+      // Real hardware: a printed tick scale on the panel around a machined, knurled cap with a
+      // printed white line. The value shows as the brighter ticks up to the pointer.
+      const N = 11;
+      for (let i = 0; i < N; i++) {
+        const t = i / (N - 1), a = a0 + (a1 - a0) * t, on = a <= av + 1e-6 && a >= Math.min(zero, av) - 1e-6;
+        g.save();
+        g.strokeStyle = on && !off ? col : 'rgba(225,220,205,0.38)';
+        g.lineWidth = i % 5 === 0 ? 1.2 : 0.9;
+        if (on && !off) {
+          g.shadowColor = col;
+          g.shadowBlur = 3;
+        }
+        g.beginPath();
+        g.moveTo(cx + Math.cos(a) * (r - 4.2), cy + Math.sin(a) * (r - 4.2));
+        g.lineTo(cx + Math.cos(a) * (r - 0.6), cy + Math.sin(a) * (r - 0.6));
+        g.stroke();
+        g.restore();
+      }
+      const cr = r - 7;
+      g.save();
+      g.shadowColor = 'rgba(0,0,0,0.95)';
+      g.shadowBlur = 6;
+      g.shadowOffsetY = 2.5;
+      circle(cr, '#0b0b0c');
+      g.restore();
+      circle(cr, lin([[0, '#4a4a50'], [0.3, '#202023'], [1, '#0c0c0d']], cr));
+      g.save();
+      for (let i = 0; i < 36; i++) {
+        const a = (i / 36) * 2 * Math.PI, lit = 0.3 + 0.7 * Math.max(0, -Math.sin(a));
+        g.strokeStyle = `rgba(${Math.round(160 * lit)},${Math.round(160 * lit)},${Math.round(168 * lit)},0.5)`;
+        g.lineWidth = 0.6;
+        g.beginPath();
+        g.moveTo(cx + Math.cos(a) * cr * 0.86, cy + Math.sin(a) * cr * 0.86);
+        g.lineTo(cx + Math.cos(a) * cr * 0.99, cy + Math.sin(a) * cr * 0.99);
+        g.stroke();
+      }
+      g.restore();
+      const fr = cr * 0.8;
+      circle(fr, (() => { const gr = g.createRadialGradient(cx - fr * 0.3, cy - fr * 0.55, fr * 0.05, cx, cy, fr); gr.addColorStop(0, '#2e2e33'); gr.addColorStop(0.6, '#161618'); gr.addColorStop(1, '#0b0b0c'); return gr; })());
+      pointer(fr * 0.1, fr * 0.95, 1.5, '#ece8dc', false);
       break;
     }
     default: { // 'glass'
