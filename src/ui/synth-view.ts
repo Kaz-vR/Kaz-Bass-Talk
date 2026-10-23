@@ -1101,14 +1101,6 @@ export class SynthView {
     return el;
   }
 
-  /** Mid clip: a transparent soft clipper on the oscillators (0 dB = off). */
-  private midClipCard(): HTMLElement {
-    const [el, head, body] = this.card('MID CLIP', 'dirt');
-    head.prepend(this.levelPower('clip.mid', el, 3));
-    body.append(h('div', 'knob-row clip-row', this.knob('clip.mid', 'Clip', 'small'), this.toggle('clip.low_cut', 'Clean lows', 'small')));
-    return el;
-  }
-
   // ------------------------------------------------------------------ bottom bar
 
   /** A label and value you drag up/down (or scroll) to change, like the master level. */
@@ -1633,15 +1625,19 @@ export class SynthView {
       }), [], [this.knob('output.gain', 'Master'), this.knob('output.crossover', 'Mono <')]);
     out.querySelector('.c-body')!.append(h('div', 'out-safe', safe, h('span', 'c-note', 'low end mono · limiter on')));
 
+    const dist = this.distCard(), tape = this.tapeCard();
+    dist.classList.add('fx');
+    tape.classList.add('fx');
     const arrow = () => h('div', 'fx-arrow', '→');
     const row = (...cards: HTMLElement[]) => h('div', 'fx-row', ...cards.flatMap((c, i) => (i ? [arrow(), c] : [c])));
     const capEl = h('div', 'zone-cap cap-src', h('span', 'cap-name', 'SIGNAL CHAIN'), h('span', 'cap-note', 'left to right, top then bottom: a fixed order'), h('span', 'cap-line'));
     const lowcut = this.knob('fx.lowcut', 'FX low cut');
     lowcut.title = 'Chorus, flanger, phaser, delay and reverb only work above this frequency: the low end stays clean and mono.';
     return h('div', 'v2-main fx-page', capEl,
-      row(crush, comp, ott, chorus, flanger),
+      row(dist, crush, tape, comp, ott),
       h('div', 'fx-between', h('span', 'cap-note', '↳ from here on only above the FX low cut'), lowcut),
-      row(phaser, delay, reverb, eq, out));
+      row(chorus, flanger, phaser, delay, reverb),
+      row(eq, out));
   }
 
 
@@ -2043,8 +2039,7 @@ export class SynthView {
       this.oscStrip(1), this.oscStrip(2), this.subStrip(), this.noiseStrip());
     const middle = h('div', 'col col-middle', h('div', 'zone-cap'), this.scopeBox(), this.envCard('amp_env', 'AMP ENVELOPE', 'src', 186, 262, 'small'));
     const filter = h('div', 'col col-filter', cap('2', 'FILTER', 'shape the tone', 'flt'), this.filterCard(), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', 170, 62, 'small'));
-    const dirt = h('div', 'col col-dirt', cap('3', 'DIRT', 'grit and wear', 'dirt'), this.distCard(), this.tapeCard(), this.midClipCard());
-    this.oscPage = h('div', 'v2-main', sources, middle, filter, dirt);
+    this.oscPage = h('div', 'v2-main osc-page', sources, middle, filter);
     this.modPage = this.buildModPage();
     this.fxPage = this.buildFxPage();
     this.presetPage.style.display = 'none';

@@ -613,3 +613,11 @@ html.in-plugin, html.in-plugin body { overflow-x: hidden; }
 .mx-src { width: 86px; }
 .mx-dst { width: 92px; }
 .amt-val { width: 32px; }
+
+/* OSC page without the dirt column (distortion and tape live on FX); FX in three rows. */
+.osc-page .col-sources { width: 600px; }
+.osc-page .col-middle { width: 260px; }
+.osc-page .col-filter { width: 280px; }
+.fx-page { gap: 8px; }
+.fx-page .fx-between { height: 48px; }
+.fx-row .c.c-dirt.fx .c-body { gap: 10px; }
