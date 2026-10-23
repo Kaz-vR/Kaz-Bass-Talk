@@ -1093,3 +1093,18 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .mod-page2 .c-title, .v2 .mod-page2 .fx-kind { letter-spacing: 0.26em !important; }
 .v2 .mod-page2 .ob-head { gap: 7px !important; }
 .v2 .mod-page2 .sw-small .fx-kind { letter-spacing: 0.12em !important; font-size: 9.5px !important; }
+
+/* ---- Worn look (owner's mockup): worn panels, grain and scanlines inside the light, grimy keys,
+   no red outside the boxes. Textures are procedural (src/ui/texture.ts). ---- */
+.v2 .osc-page > .c, .v2 .mod-page2 > .c, .v2 .preset-page .pp-col, .v2 .v2-bottom, .v2 .kb-side {
+  background: var(--dust) 0 0 / 100% 100% no-repeat, #0e0e0f !important; border: 1px solid rgba(255,255,255,0.03) !important; box-shadow: 0 1px 0 rgba(0,0,0,0.9) !important; }
+.v2 .ob-print::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 3;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0 1px, transparent 1px 2px), var(--light-grain) 0 0 / 192px 192px;
+  mix-blend-mode: multiply; opacity: 0.75; }
+.v2 .kb-keys .key.white { background: var(--key-grime) 0 0 / 100% 100%, linear-gradient(180deg, #dcdcda, #e8e8e6 60%, #dddddb) !important; background-blend-mode: multiply;
+  border-left: 1px solid #111 !important; border-right: 1px solid #111 !important; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.22), inset 0 6px 8px -6px rgba(0,0,0,0.6); }
+.v2 .kb-keys .key.black { background: linear-gradient(90deg, #090909, #1b1b1c 42%, #0d0d0e 70%, #070707) !important;
+  box-shadow: inset 0 -7px 5px -3px rgba(255,255,255,0.07), inset 0 1px 0 rgba(255,255,255,0.05), 2px 4px 5px rgba(0,0,0,0.75); }
+.v2 .kb-keys .key .lbl { color: #6e6e6c !important; font-weight: 500 !important; }
+.v2 .kb-move { color: #cfcfd2 !important; }
+.v2 .kb-touch-fill { background: #8e8e92 !important; box-shadow: none !important; }

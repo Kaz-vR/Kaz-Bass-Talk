@@ -7,6 +7,7 @@ import { Biquad } from '../engine/core/dsp';
 import { fromNormalized, getParam, toNormalized, type ParamValue, type Patch } from '../schema';
 import { formatValue } from './params-panel';
 import { drawScene } from './scene';
+import { decaySignal, keyGrime, lightGrain, panelTexture } from './texture';
 
 type OnChange = (id: string, value: ParamValue) => void;
 
@@ -149,15 +150,19 @@ function toWhite(hex: string, t: number): string {
  */
 function silver(g: CanvasRenderingContext2D, pts: [number, number][], on = true, color?: string): void {
   const col = on ? color ?? accentOf(g.canvas) : '#4a4a50';
+  // A tiny fixed tremor per point, so the trace reads as photographed light rather than a vector.
   const path = () => {
     g.beginPath();
-    pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    pts.forEach(([x, y], i) => {
+      const j = on ? Math.sin(x * 12.9898 + y * 78.233) * 0.25 : 0;
+      return i ? g.lineTo(x, y + j) : g.moveTo(x, y + j);
+    });
   };
   g.save();
   g.lineCap = 'round';
   g.lineJoin = 'round';
   const layers: [string, number, number, number][] = on
-    ? [[col, 18, 0.035, 30], [col, 8, 0.09, 16], [col, 2.4, 0.9, 7], [toWhite(col, 0.72), 1.1, 1, 2]]
+    ? [[col, 10, 0.03, 16], [col, 4, 0.32, 6], [col, 2, 1, 3], [toWhite(col, 0.62), 1, 1, 1]]
     : [[col, 2, 0.6, 0]];
   for (const [c, w, a, b] of layers) {
     g.strokeStyle = c;
@@ -168,11 +173,22 @@ function silver(g: CanvasRenderingContext2D, pts: [number, number][], on = true,
     path();
     g.stroke();
   }
+  // Specks of stray light around the trace (fixed per point), like grain on a photographed screen.
+  if (on) {
+    g.shadowBlur = 0;
+    g.fillStyle = col;
+    for (let i = 0; i < pts.length; i += 3) {
+      const [x, y] = pts[i], hsh = Math.abs(Math.sin(x * 91.17 + y * 13.7) * 43758.5) % 1;
+      if (hsh > 0.45) continue;
+      g.globalAlpha = 0.15 + hsh * 0.8;
+      g.fillRect(x + (hsh - 0.22) * 6, y + (((hsh * 7.3) % 1) - 0.5) * 7, 0.8, 0.8);
+    }
+  }
   g.restore();
 }
 
 /** A soft wash of the line's colour under a curve (envelopes, filter response). */
-function fillUnder(g: CanvasRenderingContext2D, pts: [number, number][], bottom: number, color: string, top0 = 0.26, bot0 = 0): void {
+function fillUnder(g: CanvasRenderingContext2D, pts: [number, number][], bottom: number, color: string, top0 = 0.16, bot0 = 0): void {
   if (pts.length < 2) return;
   const top = Math.min(...pts.map((p) => p[1]));
   const f = g.createLinearGradient(0, top, 0, bottom);
@@ -194,15 +210,15 @@ function handle(g: CanvasRenderingContext2D, x: number, y: number, hot = false):
   const col = accentOf(g.canvas);
   g.save();
   g.shadowColor = col;
-  g.shadowBlur = hot ? 14 : 8;
+  g.shadowBlur = hot ? 16 : 12;
   g.fillStyle = col;
   g.beginPath();
-  g.arc(x, y, hot ? 5.5 : 4, 0, 2 * Math.PI);
+  g.arc(x, y, hot ? 5.5 : 4.5, 0, 2 * Math.PI);
   g.fill();
   g.shadowBlur = 0;
-  g.fillStyle = 'rgba(255,255,255,0.85)';
+  g.fillStyle = 'rgba(255,255,255,0.9)';
   g.beginPath();
-  g.arc(x, y, hot ? 2.2 : 1.6, 0, 2 * Math.PI);
+  g.arc(x, y, hot ? 3 : 2.6, 0, 2 * Math.PI);
   g.fill();
   g.restore();
 }
@@ -363,8 +379,8 @@ function drawKnobVariant(g: CanvasRenderingContext2D, style: string, k: { cx: nu
       break;
     }
     case 'flat': {
-      arc(r - 1.5, 1.2, false);
-      circle(kr, '#161618');
+      arc(r - 1.5, 1.7, false);
+      circle(kr, '#141416');
       g.save();
       g.strokeStyle = 'rgba(255,255,255,0.10)';
       g.lineWidth = 1;
@@ -372,7 +388,7 @@ function drawKnobVariant(g: CanvasRenderingContext2D, style: string, k: { cx: nu
       g.arc(cx, cy, kr - 0.5, 0, 2 * Math.PI);
       g.stroke();
       g.restore();
-      pointer(kr * 0.2, kr * 0.85, 1.6, col, false);
+      pointer(kr * 0.2, kr * 0.85, 2, col, false);
       break;
     }
     case 'scale': {
@@ -442,59 +458,6 @@ function drawKnobVariant(g: CanvasRenderingContext2D, style: string, k: { cx: nu
   }
 }
 
-/**
- * The barely-there wear on the panels (the owner's pick, "Gallery"): two faint smudges, a few
- * specks a little denser towards the edges, some fine scratches and dust. Drawn once, stretched
- * over each box.
- */
-function dustTexture(): string {
-  const w = 300, h = 230, d = 2;
-  const cv = document.createElement('canvas');
-  cv.width = w * d;
-  cv.height = h * d;
-  const g = cv.getContext('2d')!;
-  g.scale(d, d);
-  let seed = 5;
-  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  for (let i = 0; i < 2; i++) {
-    const x = rnd() * w, y = rnd() * h, rad = 20 + rnd() * 70;
-    const gr = g.createRadialGradient(x, y, 0, x, y, rad);
-    gr.addColorStop(0, `rgba(0,0,0,${0.08 * (0.4 + rnd() * 0.6)})`);
-    gr.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = gr;
-    g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
-  }
-  for (let i = 0; i < 500; i++) {
-    const x = rnd() * w, y = rnd() * h, edge = Math.min(x, y, w - x, h - y);
-    if (rnd() > Math.exp(-edge / 10)) continue;
-    g.fillStyle = rnd() < 0.5 ? `rgba(0,0,0,${0.25 + rnd() * 0.45})` : `rgba(210,210,215,${0.04 + rnd() * 0.12})`;
-    g.beginPath();
-    g.arc(x, y, 0.4 + rnd() * rnd() * 2.2, 0, 2 * Math.PI);
-    g.fill();
-  }
-  for (let i = 0; i < 14; i++) {
-    let x = rnd() * w, y = rnd() * h;
-    if (rnd() < 0.7) {
-      const side = Math.floor(rnd() * 4);
-      if (side === 0) y = rnd() * 20;
-      if (side === 1) y = h - rnd() * 20;
-      if (side === 2) x = rnd() * 20;
-      if (side === 3) x = w - rnd() * 20;
-    }
-    const ang = rnd() * Math.PI, len = 4 + rnd() * rnd() * 18;
-    g.strokeStyle = `rgba(220,220,225,${0.03 + rnd() * 0.05})`;
-    g.lineWidth = 0.4 + rnd() * 0.5;
-    g.beginPath();
-    g.moveTo(x, y);
-    g.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
-    g.stroke();
-  }
-  for (let i = 0; i < 60; i++) {
-    g.fillStyle = `rgba(230,230,235,${0.05 + rnd() * 0.18})`;
-    g.fillRect(rnd() * w, rnd() * h, 0.6 + rnd() * 0.8, 0.6 + rnd() * 0.8);
-  }
-  return cv.toDataURL();
-}
 
 /** A moving average over the y values: a darker tone draws a rounder line. */
 function smoothY(pts: [number, number][], win: number): [number, number][] {
@@ -1879,8 +1842,6 @@ export class SynthView {
       (track.firstChild as HTMLElement).style.width = `${toNormalized(glideP, v) * 100}%`;
       gval.textContent = formatValue(glideP, v);
     });
-    const safe = h('div', 'safelight', h('span', 'lamp lamp-safe'), h('span', 'safe-text', 'Low end mono · limiter on'));
-    safe.title = 'The low end is always mono and phase-stable; a transparent output limiter is always on.';
     const gear = h('button', 'gear', h('span', 'gear-icon'), h('span', 'gear-label', 'All controls'));
     gear.title = 'Open every control (the full parameter view) under this page';
     gear.onclick = () => this.onGear();
@@ -1890,7 +1851,6 @@ export class SynthView {
       h('div', 'seg-wrap', mono, poly),
       this.toggle('voice.legato', 'Legato'),
       glide,
-      safe,
       gear,
       h('div', 'master', this.readout('output.gain', 'Master'), meter),
     );
@@ -2814,9 +2774,9 @@ export class SynthView {
       const cy = 7 + (1 - v) * (H - 14);
       g.save();
       for (const [hh, a, b] of [[9, 0.25, 12], [3.5, 1, 5]]) {
-        g.fillStyle = '#ff3a26';
+        g.fillStyle = '#d6d6d6';
         g.globalAlpha = a;
-        g.shadowColor = '#ff3a26';
+        g.shadowColor = '#ffffff';
         g.shadowBlur = b;
         g.fillRect(4, cy - hh / 2, W - 8, hh);
       }
@@ -2917,11 +2877,14 @@ export class SynthView {
   private sceneCanvas(): HTMLElement {
     const cv = h('canvas', 'v2-scene');
     drawScene(cv, DESIGN_WIDTH, 150);
+    decaySignal(cv);
     return cv;
   }
 
   private build(): void {
-    this.page.style.setProperty('--dust', `url(${dustTexture()})`);
+    this.page.style.setProperty('--dust', `url(${panelTexture()})`);
+    this.page.style.setProperty('--light-grain', `url(${lightGrain()})`);
+    this.page.style.setProperty('--key-grime', `url(${keyGrime()})`);
     const tabs = h('div', 'v2-tabs');
     for (const [t, ready] of [['OSC', true], ['MOD', true], ['FX', true], ['PRESETS', true]] as const) {
       const b = h('button', 'tab' + (t === 'OSC' ? ' on' : ''), t);
