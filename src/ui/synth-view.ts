@@ -2685,7 +2685,7 @@ export class SynthView {
     this.modPage.style.display = 'none';
     this.fxPage.style.display = 'none';
     this.page.append(
-      h('div', 'v2-top', this.sceneCanvas(), h('div', 'v2-brand', h('span', 'brand-name', 'Low Talk'), h('span', 'brand-sub', 'Synthesizer')), this.presetSelector(), h('div', 'v2-top-right', tabs, this.zoomBtn)),
+      h('div', 'v2-top', this.sceneCanvas(), h('div', 'v2-brand', h('span', 'brand-name', 'The Grimm'), h('span', 'brand-sub', 'Synthesizer')), this.presetSelector(), h('div', 'v2-top-right', tabs, this.zoomBtn)),
       this.oscPage,
       this.modPage,
       this.fxPage,
