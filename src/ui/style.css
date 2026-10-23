@@ -999,3 +999,12 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .kb-vel-tick { position: absolute; top: -3px; width: 1px; height: 12px; background: #fff; opacity: 0; transform: translateX(-0.5px); transition: left .08s; }
 .v2 .kb-vel-tick.hit { opacity: 0.8; }
 .v2 .route-tag { text-shadow: 0 0 3px #000, 0 0 6px #000, 0 0 10px #000; }
+
+/* ---- MOD page v2: two columns of three (LFO 1–4, Env 2, pitch env) and the matrix on the right half. */
+.v2 .mod-page2 { grid-template-columns: 297px 297px 598px; grid-template-rows: repeat(3, 1fr); height: 450px; }
+.v2 .mod-page2 > .mb { display: grid; grid-template-rows: 22px 36px 60px; row-gap: 5px; padding: 8px 12px; align-content: start; }
+.v2 .mod-page2 > .mb .ob-dials { gap: 7px; }
+.v2 .mod-page2 > .mb .ob-print { justify-content: center; }
+.v2 .mod-page2 > .mb .ob-corner { top: 0; right: 14px; height: 14px; }
+.v2 .mod-page2 .box-matrix { grid-row: 1 / 4; }
+.v2 .mod-page2 .ob-head { gap: 8px; }

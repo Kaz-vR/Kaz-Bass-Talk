@@ -266,10 +266,9 @@ function syncBeats(v: string): number {
 /** OSC page prints: one height for all; widths follow the box (beside a side column, the amp box, the wide box). */
 const PRINT_W = 247;
 const PRINT_H = 84;
-/** MOD page short boxes: the print beside two dials, or beside four. */
-const SB_PRINT_W = 196;
-const SB_PRINT_SMALL_W = 98;
-const SB_PRINT_H = 58;
+/** MOD page boxes (a third of a column high): a short print over the dials. */
+const MB_PRINT_W = 273;
+const MB_PRINT_H = 36;
 /** A modulation ring on a dial: the amount parameter, its colour, and how far it moves the dial (normalized). */
 interface KnobMod {
   id: string;
@@ -348,6 +347,7 @@ export class SynthView {
   private readonly liveDraws: (() => void)[] = [];
   private modPage: HTMLElement | null = null;
   private fxPage: HTMLElement | null = null;
+  private playPage: HTMLElement | null = null;
   /** The synth page's height: every tab keeps it, so nothing jumps. */
   private pageHeight = 0;
   private readonly presetPage = h('div', 'v2-main preset-page');
@@ -1536,18 +1536,6 @@ export class SynthView {
     return out.length ? `→ ${out.join(', ')}` : '';
   }
 
-  /**
-   * A short box on the MOD page (a quarter of a column): the title row as on the OSC page, then
-   * one row with the print on the left (switches or routings in its corner) and the dials.
-   */
-  private sbox(title: string, cls: string, o: { power?: HTMLElement | ((el: HTMLElement) => HTMLElement); head?: HTMLElement[]; corner?: HTMLElement[]; print?: HTMLElement; dials?: HTMLElement[] }): HTMLElement {
-    const head = h('div', 'ob-head', h('span', 'c-title', title), ...(o.head ?? []));
-    const print = h('div', 'ob-print sb-print', ...(o.print ? [o.print] : []), ...(o.corner?.length ? [h('div', 'ob-corner', ...o.corner)] : []));
-    const el = h('div', `c ob sb ${cls}`, head, h('div', 'sb-row', print, h('div', 'ob-dials sb-dials', ...(o.dials ?? []))));
-    head.prepend(o.power ? (typeof o.power === 'function' ? o.power(el) : o.power) : h('span', 'ob-bar'));
-    return el;
-  }
-
   /** A source's routings as a short line ("→ cutoff +14%"), for a print's corner. */
   private routeTag(src: string): HTMLElement {
     const el = h('span', 'route-tag');
@@ -1626,20 +1614,20 @@ export class SynthView {
       rate.style.display = free ? '' : 'none';
       note.style.display = free ? 'none' : '';
     });
-    return this.sbox(`LFO ${n}`, `box-lfo${n}`, {
+    return this.obox(`LFO ${n}`, `mb box-lfo${n}`, {
       power: (el) => this.boolPower(`${L}.on`, el),
       head: [this.selector(`${L}.shape`, { label: (o) => LFO_SHAPE[o] ?? o }), sync, this.toggle(`${L}.retrigger`, 'Retrig', 'small')],
       corner: [this.routeTag(L)],
-      print: this.lfoPrint(n, SB_PRINT_W, SB_PRINT_H),
+      print: this.lfoPrint(n, MB_PRINT_W, MB_PRINT_H),
       dials: [rate, note, this.knob(`${L}.fade`, 'Fade', 'lg', { fmt: ms })],
     });
   }
 
   private env2Box(): HTMLElement {
     const pct = (v: number) => `${Math.round(v * 100)}%`;
-    return this.sbox('ENV 2', 'box-env2', {
+    return this.obox('ENV 2', 'mb box-env2', {
       corner: [this.routeTag('env2')],
-      print: this.envPrint('env2', SB_PRINT_SMALL_W, SB_PRINT_H),
+      print: this.envPrint('env2', MB_PRINT_W, MB_PRINT_H),
       dials: [
         this.knob('env2.attack', 'A', 'lg', { fmt: ms, parse: parseMs }),
         this.knob('env2.decay', 'D', 'lg', { fmt: ms, parse: parseMs }),
@@ -1660,9 +1648,9 @@ export class SynthView {
         this.set('pitch_env.amount', 0);
       } else this.set('pitch_env.amount', this.remembered.get('pitch_env.amount') ?? -12);
     };
-    const W = SB_PRINT_W, H = SB_PRINT_H;
+    const W = MB_PRINT_W, H = MB_PRINT_H;
     const [cv, g] = canvas(W, H, 'disp');
-    const box = this.sbox('PITCH ENV', 'box-pitch', {
+    const box = this.obox('PITCH ENV', 'mb box-pitch', {
       power,
       print: cv,
       dials: [this.knob('pitch_env.amount', 'Amount', 'lg', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v)} st` }), this.knob('pitch_env.decay', 'Decay', 'lg', { fmt: ms })],
@@ -1681,7 +1669,7 @@ export class SynthView {
   }
 
   private vibratoBox(): HTMLElement {
-    const W = SB_PRINT_SMALL_W, H = SB_PRINT_H;
+    const W = PRINT_W, H = PRINT_H;
     const [cv, g] = canvas(W, H, 'disp');
     // Flat until the delay, then the wobble fades in.
     this.watch(['vibrato.on', 'vibrato.depth', 'vibrato.rate', 'vibrato.delay', 'vibrato.fade'], () => {
@@ -1694,7 +1682,7 @@ export class SynthView {
       }
       silver(g, pts, !!this.get('vibrato.on') && this.num('vibrato.depth') > 0);
     });
-    return this.sbox('VIBRATO', 'box-vib', {
+    return this.obox('VIBRATO', 'box-vib', {
       power: (el) => this.boolPower('vibrato.on', el),
       print: cv,
       dials: [this.knob('vibrato.depth', 'Depth', 'lg'), this.knob('vibrato.rate', 'Rate', 'lg'), this.knob('vibrato.delay', 'Delay', 'lg', { fmt: ms }), this.knob('vibrato.fade', 'Fade', 'lg', { fmt: ms })],
@@ -1702,7 +1690,7 @@ export class SynthView {
   }
 
   private wobbleBox(): HTMLElement {
-    const W = SB_PRINT_W, H = SB_PRINT_H;
+    const W = PRINT_W, H = PRINT_H;
     const [cv, g] = canvas(W, H, 'disp');
     // Two bars of the wobble at its rate, each cycle a little different (life).
     this.watch(['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.life'], () => {
@@ -1718,7 +1706,7 @@ export class SynthView {
       silver(g, pts, !!this.get('wobble.on') && this.num('wobble.depth') > 0);
     });
     const target = this.selector('wobble.target', { label: (o) => ({ filter: 'FILTER', 'filter + drive': 'FLT + DRV', 'filter + drive + texture': 'FLT + DRV + TEX' })[o] ?? o });
-    return this.sbox('WOBBLE', 'box-wob', {
+    return this.obox('WOBBLE', 'box-wob', {
       power: (el) => this.boolPower('wobble.on', el),
       head: [this.selector('wobble.rate', { label: (o) => o }), this.selector('wobble.shape'), target],
       print: cv,
@@ -1750,16 +1738,20 @@ export class SynthView {
   }
 
   /**
-   * The MOD page, in the OSC page's boxes: LFO 1–4 stacked on the left; Env 2, the pitch
-   * envelope, vibrato and wobble stacked next to them; the 12-slot matrix filling the right.
+   * The MOD page: the sources on the left (LFO 1–4, then Env 2 and the pitch envelope, in two
+   * columns of three) and the 12-slot matrix filling the right half.
    */
   private buildModPage(): HTMLElement {
     return h('div', 'v2-main mod-page2',
-      this.lfoBox(1), this.env2Box(),
-      this.lfoBox(2), this.pitchBox(),
-      this.lfoBox(3), this.vibratoBox(),
-      this.lfoBox(4), this.wobbleBox(),
+      this.lfoBox(1), this.lfoBox(2),
+      this.lfoBox(3), this.lfoBox(4),
+      this.env2Box(), this.pitchBox(),
       this.matrixBox());
+  }
+
+  /** The PLAY page: how the sound moves as it is played (vibrato, wobble; more to come). */
+  private buildPlayPage(): HTMLElement {
+    return h('div', 'v2-main osc-page play-page', this.vibratoBox(), this.wobbleBox());
   }
 
   /** A bipolar amount you drag sideways (double-click = 0): a neon line from the centre, in the box colour. */
@@ -2021,7 +2013,7 @@ export class SynthView {
   private showTab(t: string): void {
     for (const [name, b] of this.tabBtns) b.classList.toggle('on', name === t);
     if (this.oscPage!.style.display !== 'none') this.pageHeight = this.oscPage!.offsetHeight || this.pageHeight;
-    const pages: [string, HTMLElement][] = [['OSC', this.oscPage!], ['MOD', this.modPage!], ['FX', this.fxPage!], ['PRESETS', this.presetPage]];
+    const pages: [string, HTMLElement][] = [['OSC', this.oscPage!], ['MOD', this.modPage!], ['PLAY', this.playPage!], ['FX', this.fxPage!], ['PRESETS', this.presetPage]];
     if (t === 'PRESETS') {
       this.pageShelf = this.presets?.current().shelf || this.pageShelf || (this.presets?.shelves()[0]?.id ?? '');
       this.renderPresetPage();
@@ -2424,7 +2416,7 @@ export class SynthView {
 
   private build(): void {
     const tabs = h('div', 'v2-tabs');
-    for (const [t, ready] of [['OSC', true], ['MOD', true], ['FX', true], ['PRESETS', true]] as const) {
+    for (const [t, ready] of [['OSC', true], ['MOD', true], ['PLAY', true], ['FX', true], ['PRESETS', true]] as const) {
       const b = h('button', 'tab' + (t === 'OSC' ? ' on' : ''), t);
       if (!ready) {
         b.disabled = true;
@@ -2442,14 +2434,17 @@ export class SynthView {
       this.oscStrip(1), this.oscStrip(2), this.envBox('amp_env', 'AMP ENVELOPE', 'c-src box-amp'), this.filterBox(),
       this.subStrip(), this.noiseStrip(), this.obox('', 'box-empty', {}), this.envBox('mod_env', 'FILTER ENVELOPE', 'c-flt box-fenv'));
     this.modPage = this.buildModPage();
+    this.playPage = this.buildPlayPage();
     this.fxPage = this.buildFxPage();
     this.presetPage.style.display = 'none';
+    this.playPage.style.display = 'none';
     this.modPage.style.display = 'none';
     this.fxPage.style.display = 'none';
     this.page.append(
       h('div', 'v2-top', this.sceneCanvas(), h('div', 'v2-brand', h('span', 'brand-name', 'Low Talk'), h('span', 'brand-sub', 'Synthesizer')), this.presetSelector(), h('div', 'v2-top-right', tabs, this.zoomBtn)),
       this.oscPage,
       this.modPage,
+      this.playPage,
       this.fxPage,
       this.presetPage,
       this.bottomBar(),
