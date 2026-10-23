@@ -124,7 +124,6 @@
   "filter.route_b": true,
   "filter.route_n": true,
   "filter.route_s": false,
-  "filter.fat": 0,
   "filter.mix": 1,
   "dist.on": true,
   "dist.type": "tube",

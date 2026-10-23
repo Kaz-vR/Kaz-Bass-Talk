@@ -839,3 +839,7 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .mod-readout .mr-amt { letter-spacing: 0.04em; color: #fff; }
 .v2 .mod-readout.zero { color: #6b7380; text-shadow: none; }
 .v2 .mod-readout.zero .mr-amt { color: #6b7380; }
+
+/* filter: cutoff, res, drive, and the key tracking lamp */
+.osc-page .flt-grid { align-items: center; }
+.v2 .key-led { align-self: center; justify-self: center; margin-bottom: 14px; }

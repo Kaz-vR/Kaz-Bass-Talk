@@ -6,7 +6,7 @@ struct ParamSpec {
   const char* id; const char* label; PType type; double min, max, def; int curve; double exponent;
   const char* unit; const char* group; const char* options; const char* describes;
 };
-constexpr int PARAM_COUNT = 222;
+constexpr int PARAM_COUNT = 221;
 inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "voice.polyphony", "Polyphony", PType::Int, 1, 8, 1, 0, 3, "voices", "voice", "", "1 = monophonic (legato and glide work, the bass default). 2-8 = that many notes at once, for pads, keys and chords; the oldest note is taken over when more are played." },
   { "voice.legato", "Legato", PType::Bool, 0, 1, 0, 0, 3, "", "voice", "", "On: overlapping notes slide without retriggering the envelopes (303-style). Off: every note retriggers." },
@@ -86,7 +86,6 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "filter.route_b", "Filter: osc 2 in", PType::Bool, 0, 1, 1, 0, 3, "", "filter", "", "Oscillator 2 goes through the drive and the main filter. Off: it skips them." },
   { "filter.route_n", "Filter: noise in", PType::Bool, 0, 1, 0, 0, 3, "", "filter", "", "The Noise strip goes through the main filter: a texture bed through a copy of it that follows the newest note, breath through the drive and the voice's own filter. Off: it skips them." },
   { "filter.route_s", "Filter: sub in", PType::Bool, 0, 1, 0, 0, 3, "", "filter", "", "The sub goes through the drive and the main filter, and from there through the rest of the voice and the effects. Off (the default): the sub stays on its own clean path." },
-  { "filter.fat", "Filter fat", PType::Float, 0, 1, 0, 0, 3, "", "filter", "", "Brings back the body that resonance takes away and saturates inside the filter, so a resonant filter stays thick instead of thin and whistly." },
   { "filter.mix", "Filter mix", PType::Float, 0, 1, 1, 0, 3, "", "filter", "", "Blend of the unfiltered (driven) and the filtered sound. 1 = fully filtered." },
   { "dist.on", "Distortion on", PType::Bool, 0, 1, 1, 0, 3, "", "dist", "", "Switches Distortion on or off without losing its settings. Off also saves CPU." },
   { "dist.type", "Distortion type", PType::Enum, 0, 3, 0, 0, 3, "", "dist", "soft|hard|fold|tube", "Soft is warm and round; hard is aggressive and buzzy; fold is metallic, growly and vocal; tube is asymmetric and thick, adding even harmonics like a driven valve amp." },

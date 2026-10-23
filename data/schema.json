@@ -927,18 +927,6 @@
       "describes": "The sub goes through the drive and the main filter, and from there through the rest of the voice and the effects. Off (the default): the sub stays on its own clean path."
     },
     {
-      "id": "filter.fat",
-      "label": "Filter fat",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0,
-      "curve": "linear",
-      "unit": "",
-      "group": "filter",
-      "describes": "Brings back the body that resonance takes away and saturates inside the filter, so a resonant filter stays thick instead of thin and whistly."
-    },
-    {
       "id": "filter.mix",
       "label": "Filter mix",
       "type": "float",

@@ -668,11 +668,9 @@ export class SynthView {
       cv.setPointerCapture(e.pointerId);
       startY = e.clientY;
       startN = toNormalized(p, this.num(id));
-      // With a modulation ring: Alt-drag, or grabbing the outer ring, sets the amount instead.
+      // With a modulation ring: Alt-drag sets the amount instead.
       if (mod) {
-        const b = cv.getBoundingClientRect();
-        const dist = Math.hypot(e.clientX - b.left - b.width / 2, e.clientY - b.top - b.height / 2);
-        modDrag = e.altKey || dist > b.width * 0.42;
+        modDrag = e.altKey;
         startMod = this.num(mod.id);
         if (modDrag) draw();
       }
@@ -902,7 +900,7 @@ export class SynthView {
         default: return 'formant';
       }
     };
-    this.watch(['filter.type', 'filter.cutoff', 'filter.resonance', 'filter.vowel', 'filter.on'], () => {
+    this.watch(['filter.type', 'filter.cutoff', 'filter.resonance', 'filter.vowel', 'filter.on', 'drive.on', 'drive.amount'], () => {
       paper(g, W, H);
       g.strokeStyle = 'rgba(232,226,216,0.04)';
       for (const f of [100, 1000, 10000]) {
@@ -915,6 +913,7 @@ export class SynthView {
       const st = stages();
       const on = !!this.get('filter.on');
       const top = 24, bottom = -48;
+      const lift = on && this.get('drive.on') ? this.num('drive.amount') * 14 : 0;
       const ys: number[] = [];
       for (let i = 0; i <= W; i++) {
         const f = 20 * Math.pow(1000, i / W);
@@ -930,7 +929,9 @@ export class SynthView {
           m = 0;
           for (let j = 0; j < 3; j++) m += response([['bp', (vowels[i0][j] * (1 - fr) + vowels[i0 + 1][j] * fr) * k, 6]], f) * [1, 0.5, 0.25][j];
         } else m = on ? response(st, f) : 1;
-        const d = 20 * Math.log10(m + 1e-9);
+        // Drive (as in Serum): the whole curve rises, and the top saturates so the peak flattens.
+        let d = 20 * Math.log10(m + 1e-9) + lift;
+        if (d > 6) d = 6 + 12 * Math.tanh((d - 6) / 12);
         ys.push(H - ((Math.max(bottom, Math.min(top, d)) - bottom) / (top - bottom)) * H);
       }
       const curve = ys.map((y, i) => [i, y] as [number, number]);
@@ -1333,13 +1334,28 @@ export class SynthView {
     const drive = this.knob('drive.amount', 'Drive', 'mid', { disabled: () => !this.get('drive.on'), deps: ['drive.on'] });
     // Turning the drive up switches the drive stage on.
     drive.addEventListener('pointerdown', () => { if (!this.get('drive.on')) this.set('drive.on', true); }, true);
-    // The filter envelope's amount is the ring around Cutoff (as in Serum): Alt-drag the dial or grab the ring.
+    // The filter envelope's amount is the ring around Cutoff (as in Serum): Alt-drag the dial.
     const cutoff = this.knob('filter.cutoff', 'Cutoff', 'big', { mod: FENV_MOD });
-    cutoff.title += ' The outer ring is how far the filter envelope sweeps it: Alt-drag (or drag the ring) to set it, Alt-double-click to clear it.';
-    const grid = h('div', 'flt-grid', cutoff, this.knob('filter.resonance', 'Res', 'big'), drive, this.knob('filter.keytrack', 'Key', 'big'));
-    body.append(h('div', 'flt-top', this.selector('filter.type'), routes), this.filterPrint(282, 64), grid,
-      h('div', 'knob-row flt-small', this.knob('filter.fat', 'Fat', 'small'), this.knob('filter.mix', 'Mix', 'small')));
+    cutoff.title += ' The outer ring is how far the filter envelope sweeps it: Alt-drag to set it, Alt-double-click to clear it.';
+    const grid = h('div', 'flt-grid', cutoff, this.knob('filter.resonance', 'Res', 'big'), drive, this.keyTrack());
+    body.append(h('div', 'flt-top', this.selector('filter.type'), routes), this.filterPrint(282, 64), grid);
     return el;
+  }
+
+  /** Key tracking as an on/off lamp: off = 0, on = the amount the preset had (0.5 if it had none). */
+  private keyTrack(): HTMLElement {
+    const id = 'filter.keytrack';
+    const b = h('button', 'led key-led', lamp(), 'KEY');
+    b.title = 'Key tracking: on, the cutoff follows the played note so the tone stays even across the keyboard; off, high notes get darker.';
+    b.onclick = () => {
+      const v = this.num(id);
+      if (v > 0) {
+        this.remembered.set(id, v);
+        this.set(id, 0);
+      } else this.set(id, this.remembered.get(id) ?? 0.5);
+    };
+    this.watch([id], () => b.classList.toggle('on', this.num(id) > 0));
+    return b;
   }
 
   // ------------------------------------------------------------------ dirt

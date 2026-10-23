@@ -194,12 +194,8 @@ export class Voice {
   private bypassOn = false;
   private readonly upBL = new Upsampler2x();
   private readonly upBR = new Upsampler2x();
-  // Filter fat (low shelf + saturation after the filter) and mix (dry/filtered).
-  private fat = 0;
-  private fatDrive = 1;
+  // Filter mix (dry/filtered).
   private fMix = 1;
-  private readonly fatL = new Biquad();
-  private readonly fatR = new Biquad();
   private noiseLevel = 0;
 
   // Drive + filter.
@@ -410,8 +406,6 @@ export class Voice {
     this.postCut.reset();
     this.upBL.reset();
     this.upBR.reset();
-    this.fatL.reset();
-    this.fatR.reset();
     this.tail = 0;
   }
 
@@ -669,17 +663,7 @@ export class Voice {
     const gTarget = Math.tan((Math.PI * fc) / fsOs);
     this.fcNow = fc;
     this.resNow = res;
-    // Fat: a low shelf below the cutoff that grows with the resonance (it gives back the body
-    // the resonance takes) and saturation, both after the filter.
-    this.fat = cur[P.fat];
     this.fMix = cur[P.fMix];
-    if (this.fat > 0) {
-      const shelf = clamp(0.5 * fc, 40, 400);
-      const db = this.fat * (3 + 9 * res);
-      this.fatL.setLowShelf(shelf, db, fsOs);
-      this.fatR.setLowShelf(shelf, db, fsOs);
-      this.fatDrive = 1 + 2 * this.fat;
-    }
     if (this.gPrevTarget < 0) this.g = gTarget;
     this.gStep = (gTarget - this.g) / (CONTROL_BLOCK * OS);
     this.gPrevTarget = gTarget;
@@ -907,15 +891,10 @@ export class Voice {
       l = fl * 2.2;
       r = fr * 2.2;
     }
-    // Mix (dry/filtered) and fat (body back below the cutoff, saturation).
+    // Mix (dry/filtered).
     if (this.fMix < 1) {
       l = dryL + (l - dryL) * this.fMix;
       r = dryR + (r - dryR) * this.fMix;
-    }
-    if (this.fat > 0) {
-      const d = this.fatDrive;
-      l = Math.tanh(this.fatL.process(l) * d) / d;
-      r = Math.tanh(this.fatR.process(r) * d) / d;
     }
     l *= POST_FILTER_GAIN;
     r *= POST_FILTER_GAIN;

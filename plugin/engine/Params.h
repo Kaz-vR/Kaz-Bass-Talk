@@ -118,7 +118,7 @@ struct ParamIndex {
   int subWave, subOct, subLevel, subClip, midClip, noise, drive;
   int texType, texLevel, texTone, texTail, texPosition;
   int subFType, subFCut, subFKey, subDirect, texPan, texDirect, texFType, texFCut, texFKey;
-  int routeA, routeB, routeN, routeS, postCut, fat, fMix;
+  int routeA, routeB, routeN, routeS, postCut, fMix;
   int fType, cutoff, res, keytrack, envAmt, vowel;
   int dType, dDrive, dMix, dTone, dSplit, crushMix, crushBits, crushRate, tapeDrive, tapeWow, tapeAge;
   int compAmount, compSpeed, compPump, compPumpRate, osc2Sync;
@@ -151,7 +151,7 @@ struct ParamIndex {
     subFType = ix("sub.filter_type"); subFCut = ix("sub.filter_cutoff"); subFKey = ix("sub.filter_key"); subDirect = ix("sub.direct");
     texPan = ix("texture.pan"); texDirect = ix("texture.direct"); texFType = ix("texture.filter_type"); texFCut = ix("texture.filter_cutoff"); texFKey = ix("texture.filter_key");
     routeA = ix("filter.route_a"); routeB = ix("filter.route_b"); routeN = ix("filter.route_n"); routeS = ix("filter.route_s");
-    postCut = ix("clip.low_cut"); fat = ix("filter.fat"); fMix = ix("filter.mix");
+    postCut = ix("clip.low_cut"); fMix = ix("filter.mix");
     fType = ix("filter.type"); cutoff = ix("filter.cutoff"); res = ix("filter.resonance"); keytrack = ix("filter.keytrack");
     envAmt = ix("filter.env_amount"); vowel = ix("filter.vowel");
     dType = ix("dist.type"); dDrive = ix("dist.drive"); dMix = ix("dist.mix"); dTone = ix("dist.post_tone"); dSplit = ix("dist.clean_below");

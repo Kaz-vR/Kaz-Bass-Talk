@@ -137,7 +137,7 @@ export const P = {
   subWave: ix('sub.wave'), subOct: ix('sub.octave'), subLevel: ix('sub.level'), subClip: ix('sub.clip'), midClip: ix('clip.mid'),
   subFType: ix('sub.filter_type'), subFCut: ix('sub.filter_cutoff'), subFKey: ix('sub.filter_key'), subDirect: ix('sub.direct'),
   texPan: ix('texture.pan'), texDirect: ix('texture.direct'), texFType: ix('texture.filter_type'), texFCut: ix('texture.filter_cutoff'), texFKey: ix('texture.filter_key'),
-  routeA: ix('filter.route_a'), routeB: ix('filter.route_b'), routeN: ix('filter.route_n'), routeS: ix('filter.route_s'), postCut: ix('clip.low_cut'), fat: ix('filter.fat'), fMix: ix('filter.mix'),
+  routeA: ix('filter.route_a'), routeB: ix('filter.route_b'), routeN: ix('filter.route_n'), routeS: ix('filter.route_s'), postCut: ix('clip.low_cut'), fMix: ix('filter.mix'),
   noise: ix('noise.level'), drive: ix('drive.amount'),
   texType: ix('texture.type'), texLevel: ix('texture.level'), texTone: ix('texture.tone'), texTail: ix('texture.tail'), texPosition: ix('texture.position'),
   fType: ix('filter.type'), cutoff: ix('filter.cutoff'), res: ix('filter.resonance'), keytrack: ix('filter.keytrack'),

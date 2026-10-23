@@ -180,8 +180,6 @@ class Voice {
     postCut.reset();
     upBL.reset();
     upBR.reset();
-    fatL.reset();
-    fatR.reset();
     tail = 0;
   }
 
@@ -405,16 +403,7 @@ class Voice {
     const double gTarget = std::tan((PI * fc) / fsOs);
     fcNow = fc;
     resNow = res;
-    // Fat: a low shelf below the cutoff that grows with the resonance, and saturation, after the filter.
-    fat = cur[P.fat];
     fMix = cur[P.fMix];
-    if (fat > 0) {
-      const double shelf = clampd(0.5 * fc, 40, 400);
-      const double db = fat * (3 + 9 * res);
-      fatL.setLowShelf(shelf, db, fsOs);
-      fatR.setLowShelf(shelf, db, fsOs);
-      fatDrive = 1 + 2 * fat;
-    }
     if (gPrevTarget < 0) g = gTarget;
     gStep = (gTarget - g) / (CONTROL_BLOCK * OS);
     gPrevTarget = gTarget;
@@ -767,9 +756,8 @@ class Voice {
   // Some source skips the drive and main filter: it gets its own oversampled path.
   bool bypassOn = false;
   Upsampler2x upBL, upBR;
-  // Filter fat (low shelf + saturation after the filter) and mix (dry/filtered).
-  double fat = 0, fatDrive = 1, fMix = 1;
-  Biquad fatL, fatR;
+  // Filter mix (dry/filtered).
+  double fMix = 1;
   double noiseLevel = 0;
 
   double driveMix = 0, driveGain = 1, driveComp = 1;
@@ -938,15 +926,10 @@ class Voice {
       l = fl * 2.2;
       r = fr * 2.2;
     }
-    // Mix (dry/filtered) and fat (body back below the cutoff, saturation).
+    // Mix (dry/filtered).
     if (fMix < 1) {
       l = dryL + (l - dryL) * fMix;
       r = dryR + (r - dryR) * fMix;
-    }
-    if (fat > 0) {
-      const double d = fatDrive;
-      l = std::tanh(fatL.process(l) * d) / d;
-      r = std::tanh(fatR.process(r) * d) / d;
     }
     l *= POST_FILTER_GAIN;
     r *= POST_FILTER_GAIN;

@@ -1,5 +1,5 @@
 // The new routing and filter slots: per-source filters, square sub, sub direct out,
-// A/B/N/S into the main filter, filter fat and mix, texture pan / direct out / filter.
+// A/B/N/S into the main filter, filter mix, texture pan / direct out / filter.
 import { describe, expect, it } from 'vitest';
 import { renderPatch } from '../src/engine/core/render';
 import { fft, heldNote, rms } from './helpers/audio';
@@ -81,13 +81,7 @@ describe('oscillator filter slots and routing', () => {
   });
 });
 
-describe('main filter fat and mix', () => {
-  const res = { ...saw, 'filter.cutoff': 600, 'filter.resonance': 0.8 };
-  it('fat brings back low end under a resonant filter', () => {
-    const thin = render(res).left;
-    const fat = render({ ...res, 'filter.fat': 1 }).left;
-    expect(above(fat, 400)).toBeLessThan(above(thin, 400) - 2);
-  });
+describe('main filter mix', () => {
   it('mix 0 is the unfiltered (driven) sound', () => {
     const dry = render({ ...saw, 'filter.mix': 0 }).left;
     const wet = render(saw).left;
