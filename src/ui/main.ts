@@ -1,5 +1,5 @@
 // Prototype UI: browse the preset bank by category, play it from the
-// computer keyboard, MIDI or the audition loops, and edit every schema
+// computer keyboard or MIDI, and edit every schema
 // parameter. (Macros and the create area follow their phases.)
 import { EngineHost } from '../engine/host';
 import { arrayToPatch, inPlugin, PluginHost } from '../engine/plugin-host';
@@ -15,12 +15,11 @@ import { SynthView, type PresetSource } from './synth-view';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
-// The audition loop: picked by the shelf (and a preset can name its own).
+// The shelf's loop: the Randomizer renders its candidates with it (no playback any more).
 let loopId = DEFAULT_LOOP_ID;
 
 // The browser's AudioWorklet engine, or the plugin's C++ engine when this page is the plugin window.
 let host: EngineHost | PluginHost | null = null;
-let playing = false;
 let current: Patch = structuredClone(library[0]);
 let reference: Patch = library[0];
 
@@ -136,8 +135,6 @@ synth.presets = {
     loadPatch(index);
   },
   step: (dir) => stepPreset(dir),
-  toggleLoop: () => setPlaying(!playing),
-  playing: () => playing,
 };
 synth.onPitch = (v) => host?.pitchBend(v);
 synth.onOctave = (dir) => keyboard.shift(dir);
@@ -169,7 +166,6 @@ function showPatchInfo(p: Patch): void {
 function setLoop(id: string): void {
   if (!loops.some((l) => l.id === id) || loopId === id) return;
   loopId = id;
-  host?.setLoop(loops.find((l) => l.id === id) ?? null);
 }
 
 /** Something the preset page shows changed (a preset loaded, a roll added or starred). */
@@ -284,18 +280,6 @@ function loadPatch(index: number): void {
 }
 
 
-function setPlaying(on: boolean): void {
-  playing = on;
-  if (!host) return;
-  on ? host.play() : host.stop();
-  synth.setPlaying(on);
-}
-window.addEventListener('keydown', (e) => {
-  if (e.code === 'Space' && (e.target as HTMLElement).tagName !== 'SELECT') {
-    e.preventDefault();
-    setPlaying(!playing);
-  }
-});
 
 $<HTMLButtonElement>('revert').onclick = () => (currentRoll ? loadRoll(currentRoll) : loadPatch(currentIndex));
 /** Step through the current category, wrapping around at either end. */
@@ -312,7 +296,6 @@ function stepPreset(dir: number): void {
   loadPatch(items[(at + dir + items.length) % items.length]);
 }
 $<HTMLButtonElement>('panic').onclick = () => {
-  setPlaying(false);
   host?.panic();
 };
 $<HTMLButtonElement>('copy').onclick = async () => {
@@ -347,7 +330,6 @@ $('start').querySelector('button')!.addEventListener('click', async () => {
   }
   $('start').classList.add('hidden');
   host.setPatch(current, true);
-  host.setLoop(loops.find((l) => l.id === loopId) ?? null);
   new Scope(host.analyser, $<HTMLCanvasElement>('scope'), $<HTMLCanvasElement>('spectrum'));
   synth.setAnalyser(host.analyser);
   initMidi({
@@ -414,7 +396,6 @@ function startPlugin(): void {
     },
   });
   host = ph;
-  host.setLoop(loops.find((l) => l.id === loopId) ?? null);
   new Scope(host.analyser, $<HTMLCanvasElement>('scope'), $<HTMLCanvasElement>('spectrum'));
   synth.setAnalyser(host.analyser);
 }

@@ -49,8 +49,6 @@ export interface PresetSource {
   removeRoll: (id: number, from: 'rolls' | 'user') => void;
   pick: (shelf: string, index: number) => void;
   step: (dir: number) => void;
-  toggleLoop: () => void;
-  playing: () => boolean;
 }
 
 type Sort = 'bank' | 'name' | 'template' | 'hard' | 'bright' | 'moving';
@@ -297,7 +295,6 @@ export class SynthView {
   private readonly tabBtns = new Map<string, HTMLButtonElement>();
   private pageShelf = '';
   private sort: Sort = 'bank';
-  private audition: HTMLButtonElement | null = null;
 
   constructor(root: HTMLElement, private readonly onChange: OnChange) {
     this.root = root;
@@ -348,12 +345,6 @@ export class SynthView {
   /** The rolls or starred sounds changed: redraw the PRESETS page if it's showing. */
   refreshPresets(): void {
     if (this.presetPage.style.display !== 'none' && this.presetPage.isConnected) this.renderPresetPage();
-  }
-
-  /** The audition loop started or stopped (the AUDITION button follows it). */
-  setPlaying(on: boolean): void {
-    if (this.audition) this.audition.textContent = on ? '■  STOP' : '▶  AUDITION';
-    this.audition?.classList.toggle('on', on);
   }
 
   /** The preset's name and where it lives (shelf · frame · template), shown like a print's caption. */
@@ -1773,9 +1764,6 @@ export class SynthView {
       fill.style.width = `${Math.max(4, fval(it, key) * 100)}%`;
       bars.append(h('div', 'pp-bar', h('span', 'pp-bar-label', label), h('span', 'pp-bar-track', fill)));
     }
-    this.audition = h('button', 'pp-btn pp-audition');
-    this.audition.onclick = () => src.toggleLoop();
-    this.setPlaying(src.playing());
     const open = h('button', 'pp-btn', 'OPEN IN OSC  →');
     open.onclick = () => this.showTab('OSC');
     right.replaceChildren(
@@ -1786,7 +1774,7 @@ export class SynthView {
       h('div', 'pp-tags', ...it.tags.slice(0, 4).map((t) => h('span', 'pp-tag', t))),
       h('div', 'pp-title dim', 'CHARACTER'),
       bars,
-      h('div', 'pp-buttons', this.audition, open),
+      h('div', 'pp-buttons', open),
     );
   }
 
@@ -1896,9 +1884,6 @@ export class SynthView {
     }
     silver(g, pts);
     vignette(g, W, H);
-    this.audition = h('button', 'pp-btn pp-audition');
-    this.audition.onclick = () => src.toggleLoop();
-    this.setPlaying(src.playing());
     const star = h('button', 'pp-btn' + (it.starred ? ' starred' : ''), it.starred ? '★  IN USER' : '☆  STAR');
     star.onclick = () => src.starRoll(it.id);
     const open = h('button', 'pp-btn', 'OPEN IN OSC  →');
@@ -1908,8 +1893,7 @@ export class SynthView {
       h('div', 'pp-big-name', it.name),
       h('span', 'pp-tpl', it.starred ? '★ User' : 'Rolled'),
       h('p', 'pp-text', it.hint),
-      h('div', 'pp-buttons', this.audition, star),
-      h('div', 'pp-buttons pp-buttons-2', open),
+      h('div', 'pp-buttons', star, open),
     );
   }
 
