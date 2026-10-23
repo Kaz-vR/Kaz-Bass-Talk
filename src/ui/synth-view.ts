@@ -57,7 +57,7 @@ type Sort = 'bank' | 'name' | 'template' | 'hard' | 'bright' | 'moving';
 const SORTS: [Sort, string][] = [['bank', 'BANK ORDER'], ['name', 'NAME'], ['template', 'TEMPLATE'], ['hard', 'SOFT → HARD'], ['bright', 'DARK → BRIGHT'], ['moving', 'STILL → MOVING']];
 const fval = (it: PresetItem, k: string) => Math.max(0, Math.min(1, Number(it.features[k] ?? 0.5)));
 type Size = 'big' | 'mid' | 'small';
-type Zone = 'src' | 'flt' | 'dirt';
+type Zone = 'src' | 'flt' | 'dirt' | 'mat';
 
 const DESIGN_WIDTH = 1200;
 const ZOOMS = [1, 1.25, 1.5];
@@ -234,6 +234,27 @@ function waveShape(wave: string, x: number, pw: number, wt: number): number {
   }
 }
 
+const MOD_SLOTS = 12;
+const MOD_IDS = Array.from({ length: MOD_SLOTS }, (_, i) => [`mod${i + 1}.source`, `mod${i + 1}.dest`, `mod${i + 1}.amount`]).flat();
+const LFO_SHAPE: Record<string, string> = { sine: 'SINE', triangle: 'TRIANGLE', saw_up: 'SAW UP', saw_down: 'SAW DOWN', square: 'SQUARE', sample_hold: 'S & H', wander: 'WANDER' };
+const SRC_LABEL: Record<string, string> = {
+  none: '—', lfo1: 'LFO 1', lfo2: 'LFO 2', lfo3: 'LFO 3', lfo4: 'LFO 4', mod_env: 'Filter env', amp_env: 'Amp env', env2: 'Env 2', velocity: 'Velocity',
+  keytrack: 'Keytrack', modwheel: 'Mod wheel', random: 'Random', drift: 'Drift', drift_slow: 'Slow drift', lfo_product: 'LFO 1×2',
+};
+const DEST_LABEL: Record<string, string> = {
+  none: '—', pitch: 'Pitch', osc1_pitch: 'A pitch', osc2_pitch: 'B pitch', osc1_wt_pos: 'A wt pos', osc2_wt_pos: 'B wt pos', osc1_pw: 'A shape', osc2_pw: 'B shape',
+  osc1_level: 'A level', osc2_level: 'B level', unison_detune: 'Detune', fm_amount: 'FM', fm2_amount: 'FM 2', sub_level: 'Sub', noise_level: 'Noise', drive: 'Drive',
+  filter_cutoff: 'Cutoff', filter_resonance: 'Res', filter_vowel: 'Vowel', dist_drive: 'Dist drive', dist_mix: 'Dist mix', dist_tone: 'Dist tone', amp: 'Amp',
+  lfo1_rate: 'LFO 1 rate', lfo2_rate: 'LFO 2 rate', lfo3_rate: 'LFO 3 rate', lfo4_rate: 'LFO 4 rate', crush_mix: 'Crush', chorus_depth: 'Chorus', phaser_mix: 'Phaser',
+  delay_time: 'Delay time', delay_mix: 'Delay', reverb_mix: 'Reverb', width: 'Width', tape_wow: 'Tape wow', texture_level: 'Texture', vibrato_depth: 'Vibrato', breath_level: 'Breath',
+};
+/** Beats in a note value like 1/4, 1/8D or 1/16T. */
+function syncBeats(v: string): number {
+  const m = /^(\d+)\/(\d+)([DT]?)$/.exec(v);
+  if (!m) return 1;
+  const b = (4 * Number(m[1])) / Number(m[2]);
+  return m[3] === 'D' ? b * 1.5 : m[3] === 'T' ? (b * 2) / 3 : b;
+}
 const ms = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${v < 10 ? v.toFixed(1) : Math.round(v)} ms`);
 const db = (v: number) => {
   if (v <= 0.0005) return '-inf dB';
@@ -268,6 +289,10 @@ export class SynthView {
   private readonly menu = h('div', 'pre-menu');
   private menuShelf = '';
   private oscPage: HTMLElement | null = null;
+  private modPage: HTMLElement | null = null;
+  private fxPage: HTMLElement | null = null;
+  /** The synth page's height: every tab keeps it, so nothing jumps. */
+  private pageHeight = 0;
   private readonly presetPage = h('div', 'v2-main preset-page');
   private readonly tabBtns = new Map<string, HTMLButtonElement>();
   private pageShelf = '';
@@ -808,7 +833,7 @@ export class SynthView {
       g.fillStyle = 'rgba(232,226,216,0.28)';
       g.font = '10px Inter, system-ui, sans-serif';
       g.strokeStyle = 'rgba(232,226,216,0.04)';
-      const stepMs = span <= 1000 ? 250 : 1000;
+      const stepMs = span <= 1000 ? 250 : span <= 5000 ? 1000 : Math.ceil(span / 5000) * 1000;
       for (let t = stepMs; t < span; t += stepMs) {
         g.beginPath();
         g.moveTo(X(t), 0);
@@ -1218,20 +1243,412 @@ export class SynthView {
     if (on) centerIn(right, on);
   }
 
+  // ------------------------------------------------------------------ the MOD page
+
+  /** Slots of the mod matrix that a source feeds, as "→ cutoff +14%, drive +8%". */
+  private routesOf(src: string): string {
+    const out: string[] = [];
+    for (let n = 1; n <= MOD_SLOTS; n++) {
+      const amt = this.num(`mod${n}.amount`), dest = String(this.get(`mod${n}.dest`));
+      if (String(this.get(`mod${n}.source`)) !== src || dest === 'none' || amt === 0 || !this.get('mod.on')) continue;
+      const pct = Math.abs(amt) < 0.01 ? (amt * 100).toFixed(1) : String(Math.round(amt * 100));
+      out.push(`${(DEST_LABEL[dest] ?? dest).toLowerCase()} ${amt > 0 ? '+' : ''}${pct}%`);
+    }
+    return out.length ? `→ ${out.join(', ')}` : '';
+  }
+
+  /** A line that always shows where a source goes. */
+  private routeNote(src: string, cls = 'c-note route-note', empty = 'not routed'): HTMLElement {
+    const el = h('span', cls);
+    this.watch([...MOD_IDS, 'mod.on'], () => {
+      const t = this.routesOf(src);
+      el.textContent = t || empty;
+      el.classList.toggle('none', !t);
+    });
+    return el;
+  }
+
+  /** Small segmented buttons for an enum (e.g. the pump rate). */
+  private segs(id: string, label: (o: string) => string = (o) => o): HTMLElement {
+    const p = getParam(id)!;
+    const wrap = h('div', 'mseg-wrap');
+    wrap.title = `${p.label}: ${p.describes}`;
+    const bs = p.options!.map((o) => {
+      const b = h('button', 'mseg', label(o));
+      b.onclick = () => this.set(id, o);
+      wrap.append(b);
+      return [o, b] as const;
+    });
+    this.watch([id], () => bs.forEach(([o, b]) => b.classList.toggle('on', String(this.get(id)) === o)));
+    return wrap;
+  }
+
+  /** An LFO's print: two cycles of its shape, with its fade-in. */
+  private lfoPrint(n: number, W: number, H: number): HTMLElement {
+    const [cv, g] = canvas(W, H, 'disp');
+    const L = `lfo${n}`;
+    this.watch([`${L}.shape`, `${L}.fade`, `${L}.rate`, `${L}.sync`, `${L}.on`], () => {
+      paper(g, W, H);
+      const shape = String(this.get(`${L}.shape`));
+      const sync = String(this.get(`${L}.sync`));
+      // Seconds per cycle (synced rates at 120 BPM), to place the fade on the same time axis.
+      const beats = sync === 'free' ? 0 : syncBeats(sync);
+      const period = beats ? beats * 0.5 : 1 / Math.max(0.01, this.num(`${L}.rate`));
+      const span = 2 * period, fade = this.num(`${L}.fade`) / 1000;
+      let seed = 11 + n;
+      const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
+      const steps = Array.from({ length: 10 }, rnd);
+      const f = (ph: number) => {
+        const p = ph % 1, c = Math.floor(ph);
+        switch (shape) {
+          case 'sine': return Math.sin(2 * Math.PI * ph);
+          case 'triangle': return p < 0.5 ? 4 * p - 1 : 3 - 4 * p;
+          case 'saw_up': return 2 * p - 1;
+          case 'saw_down': return 1 - 2 * p;
+          case 'square': return p < 0.5 ? 0.85 : -0.85;
+          case 'sample_hold': return steps[Math.floor(ph * 4) % 10] * 0.85;
+          default: { const x = ph * 2, i = Math.floor(x), t = x - i, s = t * t * (3 - 2 * t); return (steps[i % 10] + (steps[(i + 1) % 10] - steps[i % 10]) * s) * 0.85 + 0 * c; }
+        }
+      };
+      const pts: [number, number][] = [];
+      for (let i = 0; i <= W; i++) {
+        const t = (i / W) * span;
+        const a = fade > 0 ? Math.min(1, t / fade) : 1;
+        pts.push([i, H / 2 - f(t / period) * a * (H / 2 - 7)]);
+      }
+      silver(g, pts, !!this.get(`${L}.on`));
+      vignette(g, W, H);
+    });
+    return cv;
+  }
+
+  /** Hz | Sync: free-running rate or locked to the tempo (the rate dial or the note value shows). */
+  private lfoCard(n: number): HTMLElement {
+    const L = `lfo${n}`;
+    const [el, head, body] = this.card(`LFO ${n}`, 'src', 'lfo');
+    head.prepend(this.boolPower(`${L}.on`, el));
+    head.append(this.routeNote(`lfo${n}`));
+    const id = `${L}.sync`;
+    const hz = h('button', 'mseg', 'Hz'), sy = h('button', 'mseg', 'Sync');
+    hz.onclick = () => {
+      if (this.get(id) !== 'free') {
+        this.remembered.set(id, this.get(id));
+        this.set(id, 'free');
+      }
+    };
+    sy.onclick = () => { if (this.get(id) === 'free') this.set(id, this.remembered.get(id) ?? '1/4'); };
+    const rate = this.knob(`${L}.rate`, 'Rate', 'mid');
+    const note = this.selector(id, { label: (o) => o });
+    note.classList.add('lfo-sync');
+    this.watch([id], () => {
+      const free = this.get(id) === 'free';
+      hz.classList.toggle('on', free);
+      sy.classList.toggle('on', !free);
+      rate.style.display = free ? '' : 'none';
+      note.style.display = free ? 'none' : '';
+    });
+    body.append(
+      h('div', 'lfo-top', this.selector(`${L}.shape`, { label: (o) => LFO_SHAPE[o] ?? o }), h('div', 'mseg-wrap', hz, sy), this.toggle(`${L}.retrigger`, 'Retrig', 'small')),
+      h('div', 'lfo-bottom', this.lfoPrint(n, 196, 40), h('div', 'lfo-rate', rate, note), this.knob(`${L}.fade`, 'Fade', 'mid', { fmt: ms })),
+    );
+    return el;
+  }
+
+  private env2Card(): HTMLElement {
+    const [el, head, body] = this.card('ENV 2', 'flt', 'env');
+    head.append(this.routeNote('env2'));
+    const pct = (v: number) => `${Math.round(v * 100)}%`;
+    body.append(this.envPrint('env2', 208, 118), h('div', 'knob-row',
+      this.knob('env2.attack', 'Attack', 'mid', { fmt: ms, showValue: true }),
+      this.knob('env2.decay', 'Decay', 'mid', { fmt: ms, showValue: true }),
+      this.knob('env2.sustain', 'Sustain', 'mid', { fmt: pct, showValue: true }),
+      this.knob('env2.release', 'Release', 'mid', { fmt: ms, showValue: true })));
+    return el;
+  }
+
+  /** The pitch envelope: a drop (or rise) on every note. On when its amount isn't 0. */
+  private pitchEnvCard(): HTMLElement {
+    const [el, head, body] = this.card('PITCH ENV', 'flt');
+    const power = h('button', 'power', lamp());
+    power.title = 'On / off (the amount)';
+    power.onclick = () => {
+      const v = this.num('pitch_env.amount');
+      if (v !== 0) {
+        this.remembered.set('pitch_env.amount', v);
+        this.set('pitch_env.amount', 0);
+      } else this.set('pitch_env.amount', this.remembered.get('pitch_env.amount') ?? -12);
+    };
+    head.prepend(power);
+    head.append(h('span', 'c-note', 'on every note'));
+    const W = 74, H = 40;
+    const [cv, g] = canvas(W, H, 'disp');
+    this.watch(['pitch_env.amount', 'pitch_env.decay'], () => {
+      const amt = this.num('pitch_env.amount'), dec = this.num('pitch_env.decay');
+      power.classList.toggle('on', amt !== 0);
+      el.classList.toggle('is-off', amt === 0);
+      paper(g, W, H);
+      const span = Math.max(200, dec * 3);
+      const pts: [number, number][] = [];
+      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - (amt / 48) * Math.exp((-4.6 * (i / W) * span) / dec) * (H / 2 - 5)]);
+      silver(g, pts, amt !== 0);
+      vignette(g, W, H);
+    });
+    body.append(h('div', 'pe-row', cv, this.knob('pitch_env.amount', 'Amount', 'mid', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v)} st` }), this.knob('pitch_env.decay', 'Decay', 'mid', { fmt: ms })));
+    return el;
+  }
+
+  private vibratoCard(): HTMLElement {
+    const [el, head, body] = this.card('VIBRATO', 'dirt');
+    head.prepend(this.boolPower('vibrato.on', el));
+    head.append(h('span', 'c-note', 'arrives late'));
+    body.append(h('div', 'knob-row', this.knob('vibrato.depth', 'Depth'), this.knob('vibrato.rate', 'Rate'), this.knob('vibrato.delay', 'Delay', 'mid', { fmt: ms }), this.knob('vibrato.fade', 'Fade', 'mid', { fmt: ms })));
+    return el;
+  }
+
+  private wobbleCard(): HTMLElement {
+    const [el, head, body] = this.card('WOBBLE', 'dirt');
+    head.prepend(this.boolPower('wobble.on', el));
+    head.append(h('span', 'c-note', 'on the bar'));
+    const target = this.selector('wobble.target', { label: (o) => ({ filter: 'FILTER', 'filter + drive': 'FILTER+DRIVE', 'filter + drive + texture': 'FLT+DRV+TEX' })[o] ?? o });
+    target.classList.add('wob-target');
+    const rate = this.selector('wobble.rate', { label: (o) => o });
+    rate.classList.add('wob-rate');
+    const shape = this.selector('wobble.shape');
+    shape.classList.add('wob-shape');
+    body.append(h('div', 'wob-top', rate, target), h('div', 'wob-bottom', shape, this.knob('wobble.depth', 'Depth'), this.knob('wobble.life', 'Life')));
+    return el;
+  }
+
+  /** Sources without settings of their own, and where each goes; plus how much velocity matters. */
+  private otherSourcesCard(): HTMLElement {
+    const [el, , body] = this.card('OTHER SOURCES', 'mat');
+    for (const [src, name] of [['drift', 'Drift'], ['drift_slow', 'Slow drift'], ['random', 'Random'], ['velocity', 'Velocity'], ['modwheel', 'Mod wheel'], ['keytrack', 'Keytrack']]) {
+      body.append(h('div', 'os-row', h('span', 'os-name', name), this.routeNote(src, 'os-route', '—')));
+    }
+    const touch = this.knob('voice.velocity', 'Touch');
+    touch.title = 'How much playing harder makes it louder and brighter';
+    body.append(h('div', 'knob-row os-touch', touch));
+    return el;
+  }
+
+  /** A bipolar amount you drag sideways (double-click = 0). */
+  private amountBar(id: string): HTMLElement {
+    const p = getParam(id)!;
+    const W = 50, H = 14;
+    const [cv, g] = canvas(W, H, 'amt');
+    const val = h('span', 'amt-val');
+    this.watch([id], () => {
+      const v = this.num(id), mid = W / 2;
+      g.clearRect(0, 0, W, H);
+      g.fillStyle = '#0d0302';
+      g.fillRect(0, 4, W, 6);
+      g.strokeStyle = '#3a120c';
+      g.strokeRect(0.5, 4.5, W - 1, 5);
+      g.fillStyle = v >= 0 ? '#ff8f75' : '#ffb36b';
+      g.fillRect(Math.min(mid, mid + v * mid), 5, Math.abs(v * mid), 4);
+      g.fillStyle = '#5a3a32';
+      g.fillRect(mid - 0.5, 2, 1, 10);
+      val.textContent = v === 0 ? '0' : `${v > 0 ? '+' : ''}${Math.abs(v) < 0.01 ? (v * 100).toFixed(1) : Math.round(v * 100)}%`;
+      val.classList.toggle('zero', v === 0);
+    });
+    let x0 = 0, v0 = 0;
+    const set = (v: number) => this.set(id, Math.round(Math.max(p.min!, Math.min(p.max!, v)) * 1000) / 1000);
+    cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); x0 = e.clientX; v0 = this.num(id); });
+    cv.addEventListener('pointermove', (e) => { if (cv.hasPointerCapture(e.pointerId)) set(v0 + ((e.clientX - x0) / (e.shiftKey ? 400 : 80))); });
+    cv.addEventListener('pointerup', (e) => cv.releasePointerCapture(e.pointerId));
+    cv.addEventListener('dblclick', () => set(0));
+    cv.addEventListener('wheel', (e) => { e.preventDefault(); set(this.num(id) - Math.sign(e.deltaY) * (e.shiftKey ? 0.002 : 0.01)); }, { passive: false });
+    const el = h('div', 'amt-wrap', cv, val);
+    el.title = `${p.label}: drag sideways, double-click for 0`;
+    return el;
+  }
+
+  private matrixCard(): HTMLElement {
+    const [el, head, body] = this.card('MOD MATRIX', 'mat', 'matrix');
+    head.prepend(this.boolPower('mod.on', el));
+    head.append(h('span', 'c-note', '12 slots'));
+    for (let n = 1; n <= MOD_SLOTS; n++) {
+      const src = this.selector(`mod${n}.source`, { label: (o) => SRC_LABEL[o] ?? o });
+      const dst = this.selector(`mod${n}.dest`, { label: (o) => DEST_LABEL[o] ?? o });
+      src.classList.add('mx-src');
+      dst.classList.add('mx-dst');
+      body.append(h('div', 'mx-row', h('span', 'mx-n', String(n).padStart(2, '0')), src, h('span', 'mx-arrow', '→'), dst, this.amountBar(`mod${n}.amount`)));
+    }
+    return el;
+  }
+
+  private buildModPage(): HTMLElement {
+    const cap = (n: string, name: string, note: string, zone: string) =>
+      h('div', `zone-cap cap-${zone}`, h('span', 'cap-name', `${n}  ${name}`), h('span', 'cap-note', note), h('span', 'cap-line'));
+    return h('div', 'v2-main mod-page',
+      h('div', 'col col-lfos', cap('1', 'LFOS', 'slow, unrelated rates', 'src'), this.lfoCard(1), this.lfoCard(2), this.lfoCard(3), this.lfoCard(4)),
+      h('div', 'col col-envs', cap('2', 'ENVELOPES', 'once per note', 'flt'), this.env2Card(), this.pitchEnvCard()),
+      h('div', 'col col-play', cap('3', 'PLAYING', 'how a player moves it', 'dirt'), this.vibratoCard(), this.wobbleCard(), this.otherSourcesCard()),
+      h('div', 'col col-matrix', cap('4', 'MATRIX', 'who moves what', 'mat'), this.matrixCard()));
+  }
+
+  // ------------------------------------------------------------------ the FX page
+
+  /** A print redrawn whenever one of `ids` changes. */
+  private fxPrint(W: number, H: number, ids: string[], on: () => boolean, curve: (x: number) => number | [number, number][]): HTMLElement {
+    const [cv, g] = canvas(W, H, 'disp');
+    this.watch(ids, () => {
+      paper(g, W, H);
+      const pts: [number, number][] = [];
+      for (let i = 0; i <= W; i++) {
+        const y = curve(i / W);
+        if (typeof y === 'number') pts.push([i, H / 2 - y * (H / 2 - 7)]);
+      }
+      silver(g, pts, on());
+      vignette(g, W, H);
+    });
+    return cv;
+  }
+
+  /** Bars (OTT bands, delay repeats, the reverb tail) instead of a line. */
+  private barPrint(W: number, H: number, ids: string[], on: () => boolean, bars: () => [number, number, number][]): HTMLElement {
+    const [cv, g] = canvas(W, H, 'disp');
+    this.watch(ids, () => {
+      paper(g, W, H);
+      const lit = on();
+      for (const [x, w, a] of bars()) {
+        const hh = Math.max(1, a * (H - 14));
+        g.fillStyle = hexA(lit ? INK : '#5a524a', 0.2 + 0.65 * Math.min(1, a));
+        g.fillRect(x * W, (H - hh) / 2, Math.max(1, w * W), hh);
+      }
+      vignette(g, W, H);
+    });
+    return cv;
+  }
+
+  private fxCard(title: string, zone: Zone, power: string | null, print: HTMLElement, controls: HTMLElement[], knobs: HTMLElement[], note = ''): HTMLElement {
+    const [el, head, body] = this.card(title, zone, 'fx');
+    if (power) head.prepend(this.boolPower(power, el));
+    if (note) head.append(h('span', 'c-note', note));
+    body.append(print, ...controls, h('div', 'knob-row fx-knobs', ...knobs));
+    return el;
+  }
+
+  private buildFxPage(): HTMLElement {
+    const W = 178, H = 40;
+    const onOf = (...ids: string[]) => () => ids.every((id) => (typeof this.get(id) === 'boolean' ? !!this.get(id) : this.num(id) > 0));
+    let seed = 5;
+    const noise = Array.from({ length: 400 }, () => ((seed = (seed * 16807) % 2147483647) / 2147483647));
+
+    const crush = this.fxCard('CRUSH', 'src', 'crush.on',
+      this.fxPrint(W, H, ['crush.bits', 'crush.rate', 'crush.mix', 'crush.on'], onOf('crush.on', 'crush.mix'), (x) => {
+        const hold = Math.max(1, this.num('crush.rate')) / 400, q = Math.pow(2, Math.min(5, this.num('crush.bits') - 1));
+        const xs = Math.floor(x / hold) * hold, s = Math.sin(xs * 2 * Math.PI * 1.5) * 0.85;
+        const c = Math.round(s * q) / q, m = this.num('crush.mix');
+        return Math.sin(x * 2 * Math.PI * 1.5) * 0.85 * (1 - m) + c * m;
+      }), [], [this.knob('crush.mix', 'Mix'), this.knob('crush.bits', 'Bits'), this.knob('crush.rate', 'Rate')], 'in each voice');
+
+    const pumpBeats: Record<string, number> = { '1/1': 4, '1/2': 2, '1/4': 1, '1/8': 0.5 };
+    const comp = this.fxCard('COMP + PUMP', 'src', 'dynamics.on',
+      this.fxPrint(W, H, ['comp.pump', 'comp.pump_rate', 'comp.amount', 'dynamics.on'], onOf('dynamics.on'), (x) => {
+        const per = pumpBeats[String(this.get('comp.pump_rate'))] ?? 1, ph = ((x * 4) / per) % 1, p = this.num('comp.pump');
+        return 0.8 - 1.6 * p * Math.exp(-ph * 6) * Math.min(1, ph / 0.03);
+      }), [this.segs('comp.pump_rate')], [this.knob('comp.amount', 'Amount'), this.knob('comp.speed', 'Speed'), this.knob('comp.pump', 'Pump')]);
+
+    const ott = this.fxCard('OTT', 'src', null,
+      this.barPrint(W, H, ['ott.amount', 'dynamics.on'], onOf('dynamics.on', 'ott.amount'), () => {
+        const a = this.num('ott.amount');
+        return [0.55, 0.8, 0.45].map((v, i) => [0.06 + i * 0.31, 0.26, 0.25 + v * a * 0.75] as [number, number, number]);
+      }), [], [this.knob('ott.amount', 'Amount')], 'three bands');
+
+    const chorus = this.fxCard('CHORUS', 'flt', 'chorus.on',
+      this.fxPrint(W, H, ['chorus.depth', 'chorus.mix', 'chorus.mode', 'chorus.on'], onOf('chorus.on', 'chorus.mix'), (x) => {
+        const d = this.num('chorus.depth'), voices = this.get('chorus.mode') === 'ensemble' ? 3 : 2;
+        let s = 0;
+        for (let v = 0; v < voices; v++) s += Math.sin(x * 9 + v * (0.4 + 1.2 * d));
+        return (0.85 * s) / voices;
+      }), [this.selector('chorus.mode')], [this.knob('chorus.mix', 'Mix'), this.knob('chorus.depth', 'Depth')]);
+
+    const flanger = this.fxCard('FLANGER', 'flt', 'flanger.on',
+      this.fxPrint(W, H, ['flanger.rate', 'flanger.feedback', 'flanger.mix', 'flanger.on'], onOf('flanger.on', 'flanger.mix'), (x) => {
+        const fb = this.num('flanger.feedback'), c = Math.abs(Math.cos(x * Math.PI * 7));
+        return 0.8 - 1.6 * Math.pow(1 - c, 1 + 6 * fb);
+      }), [], [this.knob('flanger.mix', 'Mix'), this.knob('flanger.rate', 'Rate'), this.knob('flanger.feedback', 'Feedbk')]);
+
+    const phaser = this.fxCard('PHASER', 'flt', 'phaser.on',
+      this.fxPrint(W, H, ['phaser.rate', 'phaser.mix', 'phaser.on'], onOf('phaser.on', 'phaser.mix'), (x) => {
+        const m = this.num('phaser.mix');
+        return 0.7 - 1.5 * m * (Math.exp(-(((x - 0.32) / 0.05) ** 2)) + Math.exp(-(((x - 0.64) / 0.05) ** 2)));
+      }), [], [this.knob('phaser.mix', 'Mix'), this.knob('phaser.rate', 'Rate')]);
+
+    const delayTime = this.selector('delay.time', { label: (o) => o });
+    delayTime.classList.add('fx-time');
+    const delay = this.fxCard('DELAY', 'mat', 'delay.on',
+      this.barPrint(W, H, ['delay.time', 'delay.feedback', 'delay.mix', 'delay.tone', 'delay.on'], onOf('delay.on', 'delay.mix'), () => {
+        const step = syncBeats(String(this.get('delay.time'))) / 4, fb = this.num('delay.feedback');
+        const out: [number, number, number][] = [];
+        for (let i = 0, a = 1; i < 24 && 0.04 + i * step < 0.98; i++, a *= Math.max(0.05, fb)) out.push([0.04 + i * step, 0.012, a]);
+        return out;
+      }), [delayTime], [this.knob('delay.mix', 'Mix'), this.knob('delay.feedback', 'Feedbk'), this.knob('delay.tone', 'Tone')], 'smeared');
+
+    const reverb = this.fxCard('REVERB', 'mat', 'reverb.on',
+      this.barPrint(W, H, ['reverb.size', 'reverb.mix', 'reverb.tone', 'reverb.on'], onOf('reverb.on', 'reverb.mix'), () => {
+        const len = 0.15 + 0.85 * this.num('reverb.size');
+        const out: [number, number, number][] = [];
+        for (let i = 0; i < 200; i++) {
+          const x = 0.03 + (i / 200) * 0.94;
+          out.push([x, 0.005, Math.exp((-3.5 * x) / len) * (0.35 + 0.65 * noise[i])]);
+        }
+        return out;
+      }), [], [this.knob('reverb.mix', 'Mix'), this.knob('reverb.size', 'Size'), this.knob('reverb.tone', 'Tone')], 'dark');
+
+    // The EQ's real response (the engine's shelves, peak and high cut).
+    const eqBands = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
+    const eqIds = ['eq.low_gain', 'eq.mid_gain', 'eq.mid_freq', 'eq.high_gain', 'eq.highcut', 'eq.on'];
+    const eq = this.fxCard('EQ', 'dirt', 'eq.on',
+      this.fxPrint(W + 52, H, eqIds, onOf('eq.on'), (x) => {
+        if (x === 0) {
+          eqBands[0].setLowShelf(100, this.num('eq.low_gain'), FS);
+          eqBands[1].setPeak(this.num('eq.mid_freq'), this.num('eq.mid_gain'), 0.9, FS);
+          eqBands[2].setHighShelf(5000, this.num('eq.high_gain'), FS);
+          eqBands[3].setLowpass(Math.min(this.num('eq.highcut'), FS * 0.45), Math.SQRT1_2, FS);
+        }
+        const f = 20 * Math.pow(1000, x);
+        const dB = 20 * Math.log10(eqBands.reduce((m, b) => m * biquadMag(b, f), 1));
+        return Math.max(-1, Math.min(1, dB / 18));
+      }), [], [this.knob('eq.low_gain', 'Low'), this.knob('eq.mid_gain', 'Mid'), this.knob('eq.mid_freq', 'Freq'), this.knob('eq.high_gain', 'High'), this.knob('eq.highcut', 'Hi cut')]);
+    eq.classList.add('fx-wide');
+
+    const safe = h('span', 'lamp lamp-safe');
+    const out = this.fxCard('OUTPUT', 'dirt', null,
+      this.fxPrint(W, H, ['output.gain'], () => true, (x) => {
+        const g = Math.pow(10, this.num('output.gain') / 20), v = (x * 2 - 1) * 1.4 * g;
+        return Math.max(-0.89, Math.min(0.89, Math.tanh(v * 1.2) * 0.89));
+      }), [], [this.knob('output.gain', 'Master'), this.knob('output.crossover', 'Mono <')]);
+    out.querySelector('.c-body')!.append(h('div', 'out-safe', safe, h('span', 'c-note', 'low end mono · limiter on')));
+
+    const arrow = () => h('div', 'fx-arrow', '→');
+    const row = (...cards: HTMLElement[]) => h('div', 'fx-row', ...cards.flatMap((c, i) => (i ? [arrow(), c] : [c])));
+    const capEl = h('div', 'zone-cap cap-src', h('span', 'cap-name', 'SIGNAL CHAIN'), h('span', 'cap-note', 'left to right, top then bottom: a fixed order'), h('span', 'cap-line'));
+    const lowcut = this.knob('fx.lowcut', 'FX low cut');
+    lowcut.title = 'Chorus, flanger, phaser, delay and reverb only work above this frequency: the low end stays clean and mono.';
+    return h('div', 'v2-main fx-page', capEl,
+      row(crush, comp, ott, chorus, flanger),
+      h('div', 'fx-between', h('span', 'cap-note', '↳ from here on only above the FX low cut'), lowcut),
+      row(phaser, delay, reverb, eq, out));
+  }
+
+
   // ------------------------------------------------------------------ the PRESETS page
 
   /** Switch between the synth page (OSC) and the preset browser (PRESETS). */
   private showTab(t: string): void {
     for (const [name, b] of this.tabBtns) b.classList.toggle('on', name === t);
-    const presets = t === 'PRESETS';
-    if (presets) {
-      // keep the browser exactly as tall as the synth page, so nothing jumps
-      this.presetPage.style.height = `${this.oscPage!.offsetHeight}px`;
+    if (this.oscPage!.style.display !== 'none') this.pageHeight = this.oscPage!.offsetHeight || this.pageHeight;
+    const pages: [string, HTMLElement][] = [['OSC', this.oscPage!], ['MOD', this.modPage!], ['FX', this.fxPage!], ['PRESETS', this.presetPage]];
+    if (t === 'PRESETS') {
       this.pageShelf = this.presets?.current().shelf || this.pageShelf || (this.presets?.shelves()[0]?.id ?? '');
       this.renderPresetPage();
     }
-    this.oscPage!.style.display = presets ? 'none' : '';
-    this.presetPage.style.display = presets ? '' : 'none';
+    for (const [name, el] of pages) {
+      if (name !== 'OSC' && this.pageHeight) el.style.height = `${this.pageHeight}px`;
+      el.style.display = name === t ? '' : 'none';
+    }
   }
 
   /** Three columns: the shelves, the presets on the chosen shelf, the selected preset up close. */
@@ -1607,7 +2024,7 @@ export class SynthView {
 
   private build(): void {
     const tabs = h('div', 'v2-tabs');
-    for (const [t, ready] of [['OSC', true], ['LFO', false], ['FX', false], ['PRESETS', true]] as const) {
+    for (const [t, ready] of [['OSC', true], ['MOD', true], ['FX', true], ['PRESETS', true]] as const) {
       const b = h('button', 'tab' + (t === 'OSC' ? ' on' : ''), t);
       if (!ready) {
         b.disabled = true;
@@ -1624,10 +2041,16 @@ export class SynthView {
     const filter = h('div', 'col col-filter', cap('2', 'FILTER', 'shape the tone', 'flt'), this.filterCard(), this.envCard('mod_env', 'FILTER ENVELOPE', 'flt', 170, 62, 'small'));
     const dirt = h('div', 'col col-dirt', cap('3', 'DIRT', 'grit and wear', 'dirt'), this.distCard(), this.tapeCard(), this.midClipCard());
     this.oscPage = h('div', 'v2-main', sources, middle, filter, dirt);
+    this.modPage = this.buildModPage();
+    this.fxPage = this.buildFxPage();
     this.presetPage.style.display = 'none';
+    this.modPage.style.display = 'none';
+    this.fxPage.style.display = 'none';
     this.page.append(
       h('div', 'v2-top', h('div', 'v2-brand', 'Low Talk'), this.presetSelector(), h('div', 'v2-top-right', tabs, this.zoomBtn)),
       this.oscPage,
+      this.modPage,
+      this.fxPage,
       this.presetPage,
       this.bottomBar(),
       this.keyboardStrip(),
