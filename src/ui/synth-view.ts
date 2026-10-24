@@ -2552,11 +2552,21 @@ export class SynthView {
       dst.classList.add('mx-dst');
       const on = h('button', 'mx-on', lamp());
       on.title = 'This modulation on / off (keeps its settings)';
-      on.onclick = () => this.set(`mod${n}.on`, !this.get(`mod${n}.on`));
+      // a row from a switched-off LFO shows as off too; switching such a row on switches its LFO on
+      const lfoOf = () => /^lfo(\d)$/.exec(String(this.get(`mod${n}.source`)))?.[1];
+      const live = () => !!this.get(`mod${n}.on`) && (!lfoOf() || !!this.get(`lfo${lfoOf()}.on`));
+      on.onclick = () => {
+        if (live()) this.set(`mod${n}.on`, false);
+        else {
+          this.set(`mod${n}.on`, true);
+          const l = lfoOf();
+          if (l) this.set(`lfo${l}.on`, true);
+        }
+      };
       const row = h('div', 'mx-row', on, h('span', 'mx-n', String(n).padStart(2, '0')), src, h('span', 'mx-arrow', '→'), dst);
-      this.watch([`mod${n}.on`], () => {
-        on.classList.toggle('on', !!this.get(`mod${n}.on`));
-        row.classList.toggle('off', !this.get(`mod${n}.on`));
+      this.watch([`mod${n}.on`, `mod${n}.source`, 'lfo1.on', 'lfo2.on', 'lfo3.on', 'lfo4.on'], () => {
+        on.classList.toggle('on', live());
+        row.classList.toggle('off', !live());
       });
       // The source's name and amount in its own box colour (LFO 1 red, Env 2 blue …); empty slots
       // fade. Registered before the amount bar, so the bar draws in the right colour.
