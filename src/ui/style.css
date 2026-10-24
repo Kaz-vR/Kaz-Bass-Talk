@@ -1359,3 +1359,55 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .tab-level.on { display: block; }
 .v2 .tab-level-fill { display: block; height: 100%; width: 0; border-radius: 1px; background: #a9dcff; box-shadow: 0 0 6px #a9dcff; }
 .v2 .v2-tabs .tab:focus { outline: none; }
+
+/* Every page is exactly the OSC page's size, so switching tabs never moves the play bar or keys. */
+.v2 > .v2-main { height: 452px !important; box-sizing: border-box; flex: none; }
+.v2 .mod-page2 { grid-template-rows: repeat(3, minmax(0, 1fr)) !important; }
+.v2 .lfo-page { grid-template-rows: repeat(4, minmax(0, 1fr)) !important; }
+.v2 .lfo-page > .ob, .v2 .mod-page2 > .ob { min-height: 0; overflow: hidden; }
+
+/* The preset row: undo / redo · name (right-aligned, so the arrows sit right after it and never move) · ‹ › · save. */
+.v2 .pre-row { gap: 0 !important; align-items: center; }
+.v2 .pre-name { width: 280px !important; padding: 0 2px 0 0 !important; justify-content: flex-end !important; }
+.v2 .pre-name .v2-name { white-space: nowrap; }
+.v2 .pre-steps { display: flex; gap: 0; margin-left: 8px; }
+.v2 .pre-step { width: 24px !important; height: 26px !important; display: flex; align-items: center; justify-content: center; }
+.v2 .pre-hist { display: flex; gap: 2px; }
+.v2 .pre-hist:first-child { margin-right: 18px; }
+.v2 .pre-hist:last-child { margin-left: 18px; padding-left: 16px; border-left: 1px solid rgba(255,255,255,0.08); }
+.v2 .hist-btn, .v2 .save-btn { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; background: transparent; border: 0; padding: 0; cursor: pointer; color: #8a8a90; }
+.v2 .hist-btn:hover:not(:disabled), .v2 .save-btn:hover { color: #fff; }
+.v2 .hist-btn:disabled { color: #3a3a3e; cursor: default; }
+.v2 .ico { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+.v2 .pre-step .ico { width: 14px; height: 14px; stroke-width: 1.4; }
+.v2 .pre-step { color: #9a9aa0 !important; }
+.v2 .pre-step:hover { color: #fff !important; }
+.v2 .hist-btn:hover:not(:disabled) .ico, .v2 .save-btn:hover .ico, .v2 .pre-step:hover .ico { filter: drop-shadow(0 0 4px rgba(255,255,255,0.7)); }
+.v2 .save-btn.saved { animation: saved 1.2s ease-out; }
+@keyframes saved { 0% { color: #fff; filter: drop-shadow(0 0 8px #fff); } 100% { color: #8a8a90; filter: none; } }
+
+/* Tabs: bigger, brighter ink so they read at a glance; the active one lit with a glowing rule under it. */
+.v2 .v2-tabs { gap: 6px !important; }
+.v2 .v2-tabs .tab { font-size: 12px !important; font-weight: 500 !important; letter-spacing: 0.2em !important; color: #8e8e95 !important;
+  padding: 9px 10px 9px 12px !important; border-radius: 2px; transition: color 120ms, text-shadow 120ms; }
+.v2 .v2-tabs .tab:hover { color: #d8d8dc !important; }
+.v2 .v2-tabs .tab.on { color: #fff !important; text-shadow: 0 0 10px rgba(255,255,255,0.75), 0 0 2px rgba(255,255,255,0.9) !important; }
+.v2 .v2-tabs .tab::before { content: ""; position: absolute; left: 12px; right: 10px; bottom: 0; height: 1px; background: #fff; opacity: 0; box-shadow: 0 0 6px #fff, 0 0 2px #fff; transition: opacity 120ms; }
+.v2 .v2-tabs .tab.on::before { opacity: 0.9; }
+.v2 .v2-tabs .tab-level { left: 12px !important; right: 10px !important; bottom: 3px !important; }
+.v2 .v2-tabs .tab.locked::after { right: 0 !important; }
+.v2 .v2-tabs { gap: 0 !important; }
+.v2 .v2-tabs .tab { padding: 9px 8px 9px 10px !important; }
+.v2 .v2-tabs .tab::before, .v2 .v2-tabs .tab-level { left: 10px !important; right: 8px !important; }
+.v2 .v2-top-right { width: auto !important; }
+.v2 .pre-sel { left: 532px !important; }
+.v2 .pre-name { width: 232px !important; overflow: hidden; }
+.v2 .pre-name .v2-name { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.v2 .pre-hist { gap: 4px; margin-left: 18px !important; padding-left: 14px !important; border-left: 1px solid rgba(255,255,255,0.08) !important; margin-right: 0 !important; }
+.v2 .pre-sel { left: 560px !important; }
+/* The lock keeps one width locked or not, so the rate and the lock never move. */
+.v2 .lfo5-lock { width: 78px !important; flex: none; display: inline-flex; justify-content: flex-end; align-items: center; }
+/* MONO / POLY on the play bar's centre line, their text centred (the letter spacing's trailing gap evened out). */
+.v2 .v2-bottom .seg-wrap { align-items: center; align-self: center; height: auto; padding: 0 !important; }
+.v2 .v2-bottom .seg { height: 24px; line-height: 24px; padding: 0 0 0 0.24em !important; }
+.v2 .v2-bottom .seg { margin: 0 !important; }

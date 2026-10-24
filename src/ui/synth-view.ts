@@ -3,7 +3,7 @@
 // wheel, and the play bar. Three knob sizes carry the weight (big for what matters most). It edits
 // the same patch as the full parameter view under it (opened with "All controls"), so both always
 // show the same values.
-import { Biquad } from '../engine/core/dsp';
+import { Biquad, ENV_ATTACK_BEND, ENV_FALL_BEND, envSegment } from '../engine/core/dsp';
 import { fromNormalized, getParam, params, toNormalized, type ParamValue, type Patch } from '../schema';
 import { formatValue } from './params-panel';
 import { keyGrime, lightGrain, panelTexture } from './texture';
@@ -223,12 +223,46 @@ function handle(g: CanvasRenderingContext2D, x: number, y: number, hot = false):
   g.restore();
 }
 
+/** A curve's bend dot: a small ring on the middle of its segment (as on Serum's envelopes). */
+function bendDot(g: CanvasRenderingContext2D, x: number, y: number, hot = false): void {
+  const col = accentOf(g.canvas);
+  g.save();
+  g.shadowColor = col;
+  g.shadowBlur = hot ? 10 : 6;
+  g.fillStyle = '#060607';
+  g.strokeStyle = hot ? '#ffffff' : col;
+  g.lineWidth = 1.3;
+  g.beginPath();
+  g.arc(x, y, hot ? 3.6 : 2.8, 0, 2 * Math.PI);
+  g.fill();
+  g.stroke();
+  g.restore();
+}
+
 /** A round glowing lamp (the darkroom's safelight) used for every on/off light. */
 /** Scroll a list so `el` sits in its middle, without moving the window (scrollIntoView would). */
 function centerIn(list: Element | null, el: HTMLElement): void {
   if (!list) return;
   const l = list as HTMLElement;
   l.scrollTop = el.offsetTop - l.offsetTop - (l.clientHeight - el.offsetHeight) / 2;
+}
+
+/** Small line icons for the header (drawn in SVG so they stay sharp at every zoom). */
+function icon(kind: 'prev' | 'next' | 'undo' | 'redo' | 'save'): SVGSVGElement {
+  const paths: Record<typeof kind, string> = {
+    prev: 'M9.5 3.5 5 8l4.5 4.5',
+    next: 'M6.5 3.5 11 8l-4.5 4.5',
+    undo: 'M5.5 3.5 2.5 6.5l3 3M2.8 6.5h6.7a3.5 3.5 0 0 1 0 7H7',
+    redo: 'M10.5 3.5l3 3-3 3M13.2 6.5H6.5a3.5 3.5 0 0 0 0 7H9',
+    save: 'M3 2.5h8l2.5 2.5v8.5h-11zM5.5 2.5v3.5h5V2.5M5 13.5V9.5h6v4',
+  };
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 16 16');
+  svg.setAttribute('class', `ico ico-${kind}`);
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', paths[kind]);
+  svg.append(path);
+  return svg;
 }
 
 function lamp(): HTMLElement {
@@ -632,6 +666,13 @@ export class SynthView {
   private readonly velTick = h('span', 'kb-vel-tick');
   private wheel = 0;
   onGear: () => void = () => {};
+  onUndo: () => void = () => {};
+  onRedo: () => void = () => {};
+  /** Save the sound on screen as your own preset (it lands in ★ User). */
+  onSave: () => void = () => {};
+  private readonly undoBtn = h('button', 'hist-btn');
+  private readonly redoBtn = h('button', 'hist-btn');
+  private readonly saveBtn = h('button', 'save-btn');
   onWheel: (v: number) => void = () => {};
   onPitch: (v: number) => void = () => {};
   onOctave: (dir: number) => void = () => {};
@@ -1520,7 +1561,11 @@ export class SynthView {
     return cv;
   }
 
-  /** An ADSR print with handles you drag: A sideways, D sideways and S up/down, R sideways. */
+  /**
+   * An ADSR print with handles you drag: A sideways, D sideways and S up/down, R sideways; on the
+   * amp and filter envelopes a small dot in the middle of each segment bends it (up / down, as in
+   * Serum; double-click it for the analog default).
+   */
   private envPrint(prefix: string, W: number, H: number): HTMLElement {
     const [cv, g] = canvas(W, H, 'disp');
     const ids = ['attack', 'decay', 'sustain', 'release'].map((s) => `${prefix}.${s}`);
@@ -1528,12 +1573,22 @@ export class SynthView {
     const onId = `${prefix}.on`, isOn = () => !getParam(onId) || !!this.get(onId);
     let span = 1000;
     let hot = -1;
+    // the segments' bends (only the amp and filter envelopes have them; Env 2 / 3 keep the analog shape)
+    const bendIds = ['attack', 'decay', 'release'].map((s) => `${prefix}.${s}_bend`);
+    const hasBend = !!getParam(bendIds[0]);
+    const BEND_DEF = [ENV_ATTACK_BEND, ENV_FALL_BEND, ENV_FALL_BEND];
+    const bends = () => (hasBend ? bendIds.map((id) => this.num(id)) : BEND_DEF);
     const geo = () => {
       const a = this.num(ids[0]), d = this.num(ids[1]), s = this.num(ids[2]), r = this.num(ids[3]);
       const hold = Math.max(250, 0.25 * (a + d));
       const X = (t: number) => 8 + (t / span) * (W - 16);
       const Y = (v: number) => H - 10 - v * (H - 26);
-      return { a, d, s, r, hold, X, Y };
+      const [ab, db, rb] = bends();
+      // the level along each segment (p = 0..1), shaped as the engine shapes it
+      const atk = (p: number) => envSegment(p, ab);
+      const dec = (p: number) => s + (1 - s) * (1 - envSegment(p, db));
+      const rel = (p: number, from: number) => from * (1 - envSegment(p, rb));
+      return { a, d, s, r, hold, X, Y, atk, dec, rel };
     };
     const reSpan = () => {
       const { a, d, r, hold } = geo();
@@ -1541,23 +1596,26 @@ export class SynthView {
       span = total <= 1000 ? 1000 : total <= 4000 ? Math.ceil(total / 1000) * 1000 : total;
     };
     const points = () => {
-      const { a, d, s, r, hold, X, Y } = geo();
-      return [[X(a), Y(1)], [X(a + d), Y(s)], [X(a + d + hold), Y(s)], [X(a + d + hold + r), Y(0)]] as [number, number][];
+      const { a, d, s, r, hold, X, Y, atk, dec, rel } = geo();
+      const pts = [[X(a), Y(1)], [X(a + d), Y(s)], [X(a + d + hold), Y(s)], [X(a + d + hold + r), Y(0)]] as [number, number][];
+      // 4..6: the bend dots, halfway along attack, decay and release
+      if (hasBend) pts.push([X(a / 2), Y(atk(0.5))], [X(a + d / 2), Y(dec(0.5))], [X(a + d + hold + r / 2), Y(rel(0.5, s))]);
+      return pts;
     };
     const draw = () => {
-      const { a, d, s, r, hold, X, Y } = geo();
+      const { a, d, s, r, hold, X, Y, atk, dec, rel } = geo();
       paper(g, W, H);
       const pts: [number, number][] = [[X(0), Y(0)]];
       const N = 40;
-      for (let i = 0; i <= N; i++) pts.push([X((a * i) / N), Y(1 - Math.pow(1 - i / N, 2))]);
-      for (let i = 1; i <= N; i++) pts.push([X(a + (d * i) / N), Y(s + (1 - s) * Math.exp((-5 * i) / N))]);
+      for (let i = 0; i <= N; i++) pts.push([X((a * i) / N), Y(atk(i / N))]);
+      for (let i = 1; i <= N; i++) pts.push([X(a + (d * i) / N), Y(dec(i / N))]);
       pts.push([X(a + d + hold), Y(s)]);
-      for (let i = 1; i <= N; i++) pts.push([X(a + d + hold + (r * i) / N), Y(s * Math.exp((-5 * i) / N))]);
+      for (let i = 1; i <= N; i++) pts.push([X(a + d + hold + (r * i) / N), Y(rel(i / N, s))]);
       fillUnder(g, pts, H, accentOf(cv));
       silver(g, pts, isOn());
       vignette(g, W, H);
       // the handles you drag only while the envelope is on
-      if (isOn()) points().forEach(([x, y], i) => handle(g, x, y, i === hot));
+      if (isOn()) points().forEach(([x, y], i) => (i >= 4 ? bendDot(g, x, y, i === hot) : handle(g, x, y, i === hot)));
       // Where the playing note is in the envelope: a ball that runs along it (as in Serum), not
       // while the envelope is switched off.
       const at = isOn() ? playhead() : null;
@@ -1582,10 +1640,10 @@ export class SynthView {
     /** The playhead on this envelope: held = along attack, decay and sustain; released = down the release. */
     const playhead = (): [number, number] | null => {
       if (this.noteT0 < 0) return null;
-      const { a, d, s, r, hold, X, Y } = geo();
+      const { a, d, s, r, hold, X, Y, atk, dec, rel } = geo();
       const heldAt = (t: number): [number, number] => {
-        if (t < a) return [t, 1 - Math.pow(1 - t / Math.max(a, 1e-3), 2)];
-        if (t < a + d) return [t, s + (1 - s) * Math.exp((-5 * (t - a)) / Math.max(d, 1e-3))];
+        if (t < a) return [t, atk(t / Math.max(a, 1e-3))];
+        if (t < a + d) return [t, dec((t - a) / Math.max(d, 1e-3))];
         return [a + d + Math.min(t - a - d, hold), s];
       };
       const now = performance.now();
@@ -1596,17 +1654,17 @@ export class SynthView {
       const tr = now - this.relT0;
       if (tr > r) return null;
       const v0 = heldAt(this.relT0 - this.noteT0)[1];
-      return [X(a + d + hold + tr), Y(v0 * Math.exp((-5 * tr) / Math.max(r, 1e-3)))];
+      return [X(a + d + hold + tr), Y(rel(tr / Math.max(r, 1e-3), v0))];
     };
     this.dotDraws.push(draw);
-    this.watch(getParam(onId) ? [...ids, onId] : ids, () => {
+    this.watch([...ids, ...(getParam(onId) ? [onId] : []), ...(hasBend ? bendIds : [])], () => {
       if (hot < 0) reSpan();
       draw();
     });
     // dragging the handles
     const P = ids.map((id) => getParam(id)!);
-    let start: { x: number; y: number; v: number[] } | null = null;
-    const local = (e: PointerEvent) => {
+    let start: { x: number; y: number; v: number[]; b: number[] } | null = null;
+    const local = (e: MouseEvent) => {
       const r = cv.getBoundingClientRect();
       return [((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.height) * H];
     };
@@ -1615,13 +1673,14 @@ export class SynthView {
       const [x, y] = local(e);
       let best = -1, bd = 18 * 18;
       points().forEach(([px, py], i) => {
-        const dd = (px - x) ** 2 + (py - y) ** 2;
+        // the bend dots are small: they win only when the pointer is right on them
+        const dd = (px - x) ** 2 + (py - y) ** 2 + (i >= 4 ? 40 : 0);
         if (dd < bd) { bd = dd; best = i; }
       });
       if (best < 0) return;
       hot = best;
       cv.setPointerCapture(e.pointerId);
-      start = { x, y, v: ids.map((id) => this.num(id)) };
+      start = { x, y, v: ids.map((id) => this.num(id)), b: bends() };
       draw();
     });
     cv.addEventListener('pointermove', (e) => {
@@ -1638,6 +1697,18 @@ export class SynthView {
       if (hot === 1) this.set(ids[1], Math.round(clampP(1, start.v[1] + dt)));
       if (hot === 1 || hot === 2) this.set(ids[2], Math.round(clampP(2, start.v[2] - (y - start.y) / (H - 26)) * 1000) / 1000);
       if (hot === 3) this.set(ids[3], Math.round(clampP(3, start.v[3] + dt)));
+      if (hot >= 4) {
+        // up bends a rising segment towards fast-first, a falling one towards slow-first (the dot follows the pointer)
+        const k = hot - 4, up = -(y - start.y) / (H - 26);
+        this.set(bendIds[k], Math.round(Math.max(-1, Math.min(1, start.b[k] + (k === 0 ? 2 : -2) * up)) * 1000) / 1000);
+      }
+    });
+    cv.addEventListener('dblclick', (e) => {
+      if (!hasBend || !isOn()) return;
+      const [x, y] = local(e);
+      points().forEach(([px, py], i) => {
+        if (i >= 4 && (px - x) ** 2 + (py - y) ** 2 < 10 * 10) this.set(bendIds[i - 4], BEND_DEF[i - 4]);
+      });
     });
     cv.addEventListener('pointerup', (e) => {
       if (cv.hasPointerCapture(e.pointerId)) cv.releasePointerCapture(e.pointerId);
@@ -1646,7 +1717,9 @@ export class SynthView {
       reSpan();
       draw();
     });
-    cv.title = 'Drag the points: attack, decay and sustain, release';
+    cv.title = hasBend
+      ? 'Drag the points: attack, decay and sustain, release · drag a small dot up / down to bend its curve (double-click it: back to analog)'
+      : 'Drag the points: attack, decay and sustain, release';
     return cv;
   }
 
@@ -1698,8 +1771,8 @@ export class SynthView {
       print: this.wavePrint(n, PRINT_W, PRINT_H),
       dials: [
         this.knob(`${o}.unison_detune`, 'Detune', 'lg', { disabled: uniOff, deps: [`${o}.unison_voices`] }),
-        pw, wt, this.knob(`${o}.unison_spread`, 'Spread', 'lg', { disabled: uniOff, deps: [`${o}.unison_voices`] }),
-        this.lowCut(`${o}.highpass`, `${o}.filter_type`), this.knob(`${o}.level`, 'Level', 'lg'),
+        this.knob(`${o}.unison_spread`, 'Spread', 'lg', { disabled: uniOff, deps: [`${o}.unison_voices`] }),
+        pw, wt, this.knob(`${o}.level`, 'Level', 'lg'), this.lowCut(`${o}.highpass`, `${o}.filter_type`),
       ],
     });
   }
@@ -1961,10 +2034,10 @@ export class SynthView {
 
   // ------------------------------------------------------------------ the preset selector
 
-  /** ‹ name ▾ › in the top middle: arrows step through the shelf, the name opens the list. */
+  /** name ‹ › in the top middle (the arrows right beside the name, so stepping is a short move), then undo, redo and save. */
   private presetSelector(): HTMLElement {
-    const prev = h('button', 'pre-step', '<');
-    const next = h('button', 'pre-step', '>');
+    const prev = h('button', 'pre-step', icon('prev'));
+    const next = h('button', 'pre-step', icon('next'));
     prev.title = 'Previous preset on this shelf';
     next.title = 'Next preset on this shelf';
     prev.onclick = () => this.presets?.step(-1);
@@ -1976,10 +2049,35 @@ export class SynthView {
       if (this.menu.classList.contains('open')) this.closeMenu();
       else this.openMenu();
     };
+    this.undoBtn.append(icon('undo'));
+    this.redoBtn.append(icon('redo'));
+    this.saveBtn.append(icon('save'));
+    this.undoBtn.title = 'Undo (Ctrl+Z)';
+    this.redoBtn.title = 'Redo (Ctrl+Shift+Z)';
+    this.saveBtn.title = 'Save this sound as your own preset (Ctrl+S): it goes to ★ User';
+    this.undoBtn.onclick = () => this.onUndo();
+    this.redoBtn.onclick = () => this.onRedo();
+    this.saveBtn.onclick = () => this.onSave();
+    this.setHistory(false, false);
     this.menu.addEventListener('click', (e) => e.stopPropagation());
     document.addEventListener('click', () => this.closeMenu());
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') this.closeMenu(); });
-    return h('div', 'pre-sel', h('div', 'pre-row', prev, name, next), this.subEl, this.menu);
+    return h('div', 'pre-sel',
+      h('div', 'pre-row', name, h('div', 'pre-steps', prev, next), h('div', 'pre-hist', this.undoBtn, this.redoBtn, this.saveBtn)),
+      this.subEl, this.menu);
+  }
+
+  /** Undo / redo light up only when there is a step to take. */
+  setHistory(canUndo: boolean, canRedo: boolean): void {
+    this.undoBtn.disabled = !canUndo;
+    this.redoBtn.disabled = !canRedo;
+  }
+
+  /** A short glow on the save icon once a sound is saved. */
+  flashSaved(): void {
+    this.saveBtn.classList.remove('saved');
+    void this.saveBtn.offsetWidth;
+    this.saveBtn.classList.add('saved');
   }
 
   private openMenu(): void {
@@ -2316,6 +2414,10 @@ export class SynthView {
       return x >= 1 ? ph : d - Math.floor(d);
     };
     let hover = -1, drag = -1, curve: number[] = [];
+    // selected points (a box dragged over empty space picks them; dragging one of them moves them all)
+    let sel = new Set<number>();
+    let box: { x0: number; y0: number; x1: number; y1: number } | null = null;
+    let group: { mx: number; my: number; start: WobPoint[] } | null = null;
     const N = W - 2 * PAD;
     const redraw = () => {
       paper(g, W, H);
@@ -2355,6 +2457,18 @@ export class SynthView {
       pts.forEach((q, i) => {
         const r = i === hover || i === drag ? 6 : 4.5, px = X(shown(q.x)), py = Y(q.y);
         const soft = q.s && i > 0 && i < pts.length - 1;
+        if (sel.has(i)) {
+          // a selected point: a lit ring around it
+          g.save();
+          g.strokeStyle = col;
+          g.lineWidth = 1.2;
+          g.shadowColor = col;
+          g.shadowBlur = 8;
+          g.beginPath();
+          g.arc(px, py, r + 4, 0, 2 * Math.PI);
+          g.stroke();
+          g.restore();
+        }
         g.save();
         g.shadowColor = col;
         g.shadowBlur = on() ? 10 : 0;
@@ -2372,6 +2486,18 @@ export class SynthView {
         }
         g.restore();
       });
+      // the selection box while it is dragged
+      if (box) {
+        const x = Math.min(box.x0, box.x1), y = Math.min(box.y0, box.y1), w = Math.abs(box.x1 - box.x0), hh = Math.abs(box.y1 - box.y0);
+        g.save();
+        g.fillStyle = hexA(col.startsWith('#') ? col : '#a9dcff', 0.07);
+        g.fillRect(x, y, w, hh);
+        g.setLineDash([3, 3]);
+        g.strokeStyle = 'rgba(230,236,242,0.55)';
+        g.lineWidth = 1;
+        g.strokeRect(Math.round(x) + 0.5, Math.round(y) + 0.5, Math.round(w), Math.round(hh));
+        g.restore();
+      }
     };
     this.watch(ids, redraw);
     // the moving dot: where the wobble is right now
@@ -2416,17 +2542,64 @@ export class SynthView {
       return best;
     };
     let moved = false, clickTimer = 0;
+    const local = (e: PointerEvent | MouseEvent) => {
+      const r = ov.getBoundingClientRect();
+      return { mx: (e.clientX - r.left) * (W / r.width), my: (e.clientY - r.top) * (H / r.height) };
+    };
     ov.addEventListener('pointerdown', (e) => {
+      if (this.get('wobble.shape') === 'random') return;
       const i = hit(e);
-      if (i < 0) return;
       ov.setPointerCapture(e.pointerId);
-      drag = i;
       moved = false;
+      if (i < 0) {
+        // empty space: drag a box to select points (Shift adds to the selection)
+        const { mx, my } = local(e);
+        if (!e.shiftKey) sel = new Set();
+        box = { x0: mx, y0: my, x1: mx, y1: my };
+        redraw();
+        return;
+      }
+      if (sel.has(i) && sel.size > 1) {
+        // one of the selected points: they all move together
+        const { mx, my } = local(e);
+        group = { mx, my, start: this.wobPoints().map((q) => ({ ...q })) };
+        drag = i;
+        return;
+      }
+      sel = new Set();
+      drag = i;
     });
     ov.addEventListener('pointermove', (e) => {
+      if (box) {
+        const { mx, my } = local(e);
+        box.x1 = mx;
+        box.y1 = my;
+        redraw();
+        return;
+      }
       if (drag < 0) {
         const i = hit(e);
         if (i !== hover) { hover = i; ov.style.cursor = i >= 0 ? 'grab' : 'crosshair'; redraw(); }
+        return;
+      }
+      if (group) {
+        const { mx, my } = local(e);
+        const st = group.start, last = st.length - 1;
+        let dx = (mx - group.mx) / (W - 2 * PAD), dy = -(my - group.my) / (H - 2 * PAD);
+        if (e.shiftKey) {
+          dx = Math.round(dx * GX) / GX;
+          dy = Math.round(dy * GY) / GY;
+        }
+        // keep every selected point inside the graph and in order with the points that stay
+        for (const i of sel) {
+          dy = Math.max(-st[i].y, Math.min(1 - st[i].y, dy));
+          if (i === 0 || i === last) continue;
+          if (!sel.has(i - 1)) dx = Math.max(st[i - 1].x + 0.002 - st[i].x, dx);
+          if (!sel.has(i + 1)) dx = Math.min(st[i + 1].x - 0.002 - st[i].x, dx);
+        }
+        const pts = st.map((q, i) => (sel.has(i) ? { ...q, x: i === 0 || i === last ? q.x : q.x + dx, y: q.y + dy } : { ...q }));
+        moved = true;
+        this.setWobPoints(pts);
         return;
       }
       const pts = this.wobPoints().map((q) => ({ ...q }));
@@ -2440,13 +2613,25 @@ export class SynthView {
       this.setWobPoints(pts);
     });
     ov.addEventListener('pointerup', (e) => {
+      if (ov.hasPointerCapture(e.pointerId)) ov.releasePointerCapture(e.pointerId);
+      if (box) {
+        const x0 = Math.min(box.x0, box.x1), x1 = Math.max(box.x0, box.x1), y0 = Math.min(box.y0, box.y1), y1 = Math.max(box.y0, box.y1);
+        this.wobPoints().forEach((q, i) => {
+          const px = X(shown(q.x)), py = Y(q.y);
+          if (px >= x0 && px <= x1 && py >= y0 && py <= y1) sel.add(i);
+        });
+        box = null;
+        redraw();
+        return;
+      }
       if (drag < 0) return;
-      ov.releasePointerCapture(e.pointerId);
       const i = drag;
       drag = -1;
+      const wasGroup = !!group;
+      group = null;
       // a click (no drag) switches a point between hard (on the line) and soft (pulling it), unless
       // a double-click follows; the first and last points always stay on the line
-      if (!moved) {
+      if (!moved && !wasGroup) {
         clearTimeout(clickTimer);
         clickTimer = window.setTimeout(() => {
           const pts = this.wobPoints().map((q) => ({ ...q }));
@@ -2456,9 +2641,31 @@ export class SynthView {
       }
       redraw();
     });
+    // Delete / Backspace removes the selected points (the first and last stay); Escape drops the selection.
+    document.addEventListener('keydown', (e) => {
+      if (!sel.size || ov.offsetParent === null) return;
+      if (e.key === 'Escape') {
+        sel = new Set();
+        redraw();
+        return;
+      }
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      const pts = this.wobPoints();
+      const keep = pts.filter((_, i) => !sel.has(i) || i === 0 || i === pts.length - 1);
+      sel = new Set();
+      if (keep.length !== pts.length) this.setWobPoints(keep.map((q) => ({ ...q })));
+      else redraw();
+      e.preventDefault();
+    });
+    // switching to another shape (a palette tile, a preset) drops the selection
+    this.watch(['wobble.shape', 'wobble.points'], () => {
+      const n = this.wobPoints().length;
+      for (const i of [...sel]) if (i >= n) sel.delete(i);
+    });
     ov.addEventListener('dblclick', (e) => {
       clearTimeout(clickTimer);
       if (this.get('wobble.shape') === 'random') return;
+      sel = new Set();
       const pts = this.wobPoints().map((q) => ({ ...q }));
       const i = hit(e);
       if (i >= 0) {
@@ -2474,7 +2681,7 @@ export class SynthView {
       this.setWobPoints(pts);
     });
     ov.addEventListener('pointerleave', () => { if (hover >= 0) { hover = -1; redraw(); } });
-    ov.title = 'Drag a point (Shift snaps to the grid) · click it: on the line (hard) or pulling the line (soft) · double-click a point to remove it, empty space to add one';
+    ov.title = 'Drag a point (Shift snaps to the grid) · click it: on the line (hard) or pulling the line (soft) · double-click a point to remove it, empty space to add one · drag over empty space to select several points, then drag one of them to move them together (Delete removes them)';
     const edit = h('div', 'lfo5-edit', cv, ov);
 
     // the rate in the title row: a big value that opens the rate menu (triplet / straight / dotted
@@ -2554,7 +2761,7 @@ export class SynthView {
       h('div', 'lfo5-sec lfo5-knobs',
         this.knob('wobble.depth', 'Depth', 'lg', { fmt: pct }),
         this.knob('wobble.smooth', 'Smooth', 'lg', { fmt: pct }),
-        this.knob('wobble.lowcut', 'Low cut', 'lg', { fmt: hz })),
+        this.knob('wobble.lowcut', 'Lo cut', 'lg', { fmt: hz })),
       h('div', 'lfo5-sec lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, sNext),
       h('div', 'lfo5-sec lfo5-targets', lampFor('wobble.cutoff', 'Cutoff'), lampFor('wobble.volume', 'Volume')));
 
@@ -2902,18 +3109,31 @@ export class SynthView {
       dials: [lg('delay.mix', 'Mix'), lg('delay.feedback', 'Feedbk'), lg('delay.tone', 'Tone'), lowCut('delay')],
     });
 
+    // The tail as it is: pre-delay as a gap, each type's build-up (a room's early reflections, a
+    // cathedral's slow bloom), Decay as its length (log, 0.2-20 s across the print).
     const reverb = this.obox('REVERB', 'fx-box box-reverb', {
       power: (el) => this.boolPower('reverb.on', el),
-      print: this.fxSpikes(['reverb.size', 'reverb.mix', 'reverb.tone', 'reverb.on'], lit('reverb.on', 'reverb.mix'), () => {
-        const len = 0.15 + 0.85 * this.num('reverb.size'), mix = 0.35 + 0.65 * Math.min(1, this.num('reverb.mix') * 2.5), grain = 0.2 + 0.8 * this.num('reverb.tone');
+      head: [this.selector('reverb.type')],
+      print: this.fxSpikes(['reverb.type', 'reverb.decay', 'reverb.predelay', 'reverb.mix', 'reverb.on'], lit('reverb.on', 'reverb.mix'), () => {
+        const type = String(this.get('reverb.type'));
+        const len = 0.08 + 0.92 * (Math.log(this.num('reverb.decay') / 0.2) / Math.log(100));
+        const mix = 0.35 + 0.65 * Math.min(1, this.num('reverb.mix') * 2.5);
+        const gap = 0.3 * (this.num('reverb.predelay') / 250);
+        const rise = ({ room: 0.01, plate: 0.004, hall: 0.05, cathedral: 0.12 } as Record<string, number>)[type] ?? 0.05;
+        const grain = ({ room: 0.75, plate: 0.15, hall: 0.4, cathedral: 0.45 } as Record<string, number>)[type] ?? 0.4;
         const out: [number, number][] = [];
         for (let i = 0; i < 80; i++) {
           const x = i / 80;
-          out.push([x, mix * Math.exp((-3.5 * x) / len) * (1 - grain * 0.7 + grain * 0.7 * noise[i])]);
+          if (x < gap) continue;
+          const t = x - gap;
+          const env = (1 - Math.exp(-t / rise)) * Math.exp((-3.5 * t) / len);
+          // a room's first reflections stand out as a few tall spikes
+          const early = type === 'room' && t < 0.08 && i % 3 === 0 ? 1.25 : 1;
+          out.push([x, Math.min(1, mix * env * early * (1 - grain * 0.7 + grain * 0.7 * noise[i]))]);
         }
         return out;
       }, 'reverb.lowcut'),
-      dials: [lg('reverb.mix', 'Mix'), lg('reverb.size', 'Size'), lg('reverb.tone', 'Tone'), lowCut('reverb')],
+      dials: [lg('reverb.mix', 'Mix'), lg('reverb.decay', 'Decay'), lg('reverb.predelay', 'Pre-delay'), lowCut('reverb')],
     });
 
     // The EQ's real response (the engine's shelves, peak and high cut).
@@ -3101,7 +3321,7 @@ export class SynthView {
     const src = this.presets!;
     const items = which === 'randomizer' ? rs.rolls : rs.user;
     const head = h('div', 'pp-head', h('span', 'ob-bar'), h('span', 'pp-title', which === 'randomizer' ? 'RANDOMIZER' : '★ USER'),
-      h('span', 'pp-sub', which === 'randomizer' ? `${items.length} rolls` : `${items.length} starred sounds`));
+      h('span', 'pp-sub', which === 'randomizer' ? `${items.length} rolls` : `${items.length} ${items.length === 1 ? 'sound' : 'sounds'}`));
     const col = h('div', 'pp-col pp-presets', head);
     if (which === 'randomizer') {
       const dice = h('button', 'pp-roll', rs.rolling ? 'ROLLING…' : '🎲  ROLL');

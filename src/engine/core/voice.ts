@@ -436,8 +436,8 @@ export class Voice {
     const fs = this.fs;
     const cur = this.cur;
 
-    this.ampEnv.set(cur[P.amp[0]], cur[P.amp[1]], cur[P.amp[2]], cur[P.amp[3]], fs, cur[P.ampCurve]);
-    this.modEnv.set(cur[P.mod[0]], cur[P.mod[1]], cur[P.mod[2]], cur[P.mod[3]], fs);
+    this.ampEnv.set(cur[P.amp[0]], cur[P.amp[1]], cur[P.amp[2]], cur[P.amp[3]], fs, cur[P.ampBend[0]], cur[P.ampBend[1]], cur[P.ampBend[2]]);
+    this.modEnv.set(cur[P.mod[0]], cur[P.mod[1]], cur[P.mod[2]], cur[P.mod[3]], fs, cur[P.modBend[0]], cur[P.modBend[1]], cur[P.modBend[2]]);
     this.env2.set(cur[P.env2[0]], cur[P.env2[1]], cur[P.env2[2]], cur[P.env2[3]], fs / CONTROL_BLOCK);
     if (this.env2.stage !== 0) this.env2.tick();
     this.env3.set(cur[P.env3[0]], cur[P.env3[1]], cur[P.env3[2]], cur[P.env3[3]], fs / CONTROL_BLOCK);

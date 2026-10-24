@@ -349,48 +349,96 @@ export const OSC_SLOT: [number, boolean][] = [[SLOT_HP, true], [SLOT_HP, false],
 /** ... and for the sub's and the texture bed's: off, low 12, low 24, high 12, high 24, band. */
 export const AUX_SLOT: [number, boolean][] = [[SLOT_OFF, false], [SLOT_LP, false], [SLOT_LP, true], [SLOT_HP, false], [SLOT_HP, true], [SLOT_BP, false]];
 
-/** ADSR with analog-style exponential segments. Times are in ms. */
+/**
+ * How each segment bends (as on Serum's envelopes): the bend b (-1..1) is a curvature k = 12·b;
+ * 0 is a straight line, positive moves fast first and settles (analog), negative starts slow and
+ * rushes at the end (a swell). The defaults are the analog shapes the envelopes always had.
+ */
+export const ENV_BEND_K = 12;
+export const ENV_ATTACK_BEND = 0.15;
+export const ENV_FALL_BEND = 0.38;
+
+/** A rising segment 0..1 at position p (0..1) with curvature k (the shape the page draws too). */
+export function envSegment(p: number, b: number): number {
+  const k = ENV_BEND_K * b;
+  if (Math.abs(k) < 1e-3) return p;
+  return (1 - Math.exp(-k * p)) / (1 - Math.exp(-k));
+}
+
+/** ADSR whose attack, decay and release each have their own bend. Times are in ms. */
 export class Envelope {
   level = 0;
   stage = 0; // 0 idle, 1 attack, 2 decay/sustain, 3 release
-  private ca = 0;
-  private cd = 0;
-  private cr = 0;
   private sustain = 1;
-  // Attack shape: 0 = analog (fast start), >0 = reverse swell (slow start).
-  private curve = 0;
-  private attackInc = 0;
   private pos = 0;
-
+  /** e^(-k·pos) for the segment running, advanced by one multiply per sample. */
+  private ex = 1;
+  private from = 0;
+  private incA = 0;
+  private incD = 0;
+  private incR = 0;
+  private kA = 0;
+  private kD = 0;
+  private kR = 0;
+  private rA = 1;
+  private rD = 1;
+  private rR = 1;
+  // 1 / (1 - e^-k) per segment; 0 = a straight line (also before the first set())
+  private nA = 0;
+  private nD = 0;
+  private nR = 0;
   private lastA = -1;
   private lastD = -1;
   private lastR = -1;
+  private lastAB = NaN;
+  private lastDB = NaN;
+  private lastRB = NaN;
 
-  /** Recompute coefficients (call at control rate; cheap when unchanged). */
-  set(attackMs: number, decayMs: number, sustain: number, releaseMs: number, fs: number, curve = 0): void {
+  /** Recompute the segments (call at control rate; cheap when unchanged). */
+  set(attackMs: number, decayMs: number, sustain: number, releaseMs: number, fs: number,
+    attackBend = ENV_ATTACK_BEND, decayBend = ENV_FALL_BEND, releaseBend = ENV_FALL_BEND): void {
     this.sustain = sustain;
-    this.curve = curve;
-    this.attackInc = 1 / Math.max(1, (attackMs * fs) / 1000);
-    if (attackMs === this.lastA && decayMs === this.lastD && releaseMs === this.lastR) return;
+    if (attackMs === this.lastA && decayMs === this.lastD && releaseMs === this.lastR && attackBend === this.lastAB && decayBend === this.lastDB && releaseBend === this.lastRB) return;
     this.lastA = attackMs;
     this.lastD = decayMs;
     this.lastR = releaseMs;
-    // Attack aims at 1.2 and stops at 1 → reaches 1 in `attack` ms.
-    this.ca = 1 - Math.exp(-Math.log(6) / Math.max(1, (attackMs * fs) / 1000));
-    // Decay/release reach 1% of the distance in the given time.
-    this.cd = 1 - Math.exp(-4.6 / Math.max(1, (decayMs * fs) / 1000));
-    this.cr = 1 - Math.exp(-4.6 / Math.max(1, (releaseMs * fs) / 1000));
+    this.lastAB = attackBend;
+    this.lastDB = decayBend;
+    this.lastRB = releaseBend;
+    const sa = Math.max(1, (attackMs * fs) / 1000), sd = Math.max(1, (decayMs * fs) / 1000), sr = Math.max(1, (releaseMs * fs) / 1000);
+    this.incA = 1 / sa;
+    this.incD = 1 / sd;
+    this.incR = 1 / sr;
+    this.kA = ENV_BEND_K * attackBend;
+    this.kD = ENV_BEND_K * decayBend;
+    this.kR = ENV_BEND_K * releaseBend;
+    this.rA = Math.exp(-this.kA * this.incA);
+    this.rD = Math.exp(-this.kD * this.incD);
+    this.rR = Math.exp(-this.kR * this.incR);
+    this.nA = Math.abs(this.kA) < 1e-3 ? 0 : 1 / (1 - Math.exp(-this.kA));
+    this.nD = Math.abs(this.kD) < 1e-3 ? 0 : 1 / (1 - Math.exp(-this.kD));
+    this.nR = Math.abs(this.kR) < 1e-3 ? 0 : 1 / (1 - Math.exp(-this.kR));
   }
 
   /** Start (or restart from the current level, no click) the attack. */
   trigger(): void {
     this.stage = 1;
-    // Reverse shape: continue the swell from the current level.
-    if (this.curve > 0) this.pos = Math.pow(this.level, 1 / (1 + 5 * this.curve));
+    // continue the attack from where the level is now (the inverse of its curve)
+    const L = Math.max(0, Math.min(1, this.level));
+    if (this.nA === 0) this.pos = L;
+    else {
+      const inner = 1 - L / this.nA;
+      this.pos = inner > 0 ? Math.min(1, -Math.log(inner) / this.kA) : 1;
+    }
+    this.ex = Math.exp(-this.kA * this.pos);
   }
 
   release(): void {
-    if (this.stage !== 0) this.stage = 3;
+    if (this.stage === 0) return;
+    this.stage = 3;
+    this.from = this.level;
+    this.pos = 0;
+    this.ex = 1;
   }
 
   reset(): void {
@@ -401,26 +449,30 @@ export class Envelope {
   tick(): number {
     switch (this.stage) {
       case 1:
-        if (this.curve > 0) {
-          this.pos += this.attackInc;
-          this.level = this.pos >= 1 ? 1 : Math.pow(this.pos, 1 + 5 * this.curve);
-        } else {
-          this.level += (1.2 - this.level) * this.ca;
-        }
-        if (this.level >= 1) {
+        this.pos += this.incA;
+        this.ex *= this.rA;
+        if (this.pos >= 1) {
           this.level = 1;
           this.stage = 2;
-        }
+          this.pos = 0;
+          this.ex = 1;
+        } else this.level = this.nA === 0 ? this.pos : (1 - this.ex) * this.nA;
         break;
       case 2:
-        this.level += (this.sustain - this.level) * this.cd;
+        if (this.pos < 1) {
+          this.pos += this.incD;
+          this.ex *= this.rD;
+          const g = this.pos >= 1 ? 1 : this.nD === 0 ? this.pos : (1 - this.ex) * this.nD;
+          this.level = 1 - (1 - this.sustain) * g;
+        } else this.level = this.sustain;
         break;
       case 3:
-        this.level -= this.level * this.cr;
-        if (this.level < 1e-5) {
+        this.pos += this.incR;
+        this.ex *= this.rR;
+        if (this.pos >= 1) {
           this.level = 0;
           this.stage = 0;
-        }
+        } else this.level = this.from * (1 - (this.nR === 0 ? this.pos : (1 - this.ex) * this.nR));
         break;
     }
     return this.level;

@@ -478,64 +478,167 @@ export class Delay {
   }
 }
 
-/** Freeverb-style stereo reverb: 8 damped combs + 4 allpasses per side, with pre-delay. */
+export const VERB_ROOM = 0, VERB_PLATE = 1, VERB_HALL = 2, VERB_CATHEDRAL = 3;
+
+/** Per type: tank size (× the base lengths), input diffusion, tank damping (Hz), modulation depth (ms), early build-up, output level (the types level-matched). */
+const VERB_TYPES = [
+  { size: 0.36, diff: 0.62, damp: 5200, mod: 0.35, build: 0.55, level: 0.27 }, // room: small, quick, a little boxy
+  { size: 0.52, diff: 0.78, damp: 6800, mod: 0.5, build: 0.25, level: 0.255 }, // plate: dense from the first moment, the brightest
+  { size: 1.0, diff: 0.7, damp: 4400, mod: 0.8, build: 0.7, level: 0.4 }, // hall: big, smooth, chorused tail
+  { size: 1.75, diff: 0.72, damp: 3300, mod: 1.1, build: 1, level: 0.58 }, // cathedral: huge, slow to bloom, dark
+];
+/** The tank's eight delay lines at hall size (ms): unrelated lengths, so no ringing modes line up. */
+const VERB_LINES_MS = [29.7, 37.1, 41.1, 43.7, 53.3, 59.9, 67.7, 73.1];
+const VERB_DIFF_MS = [4.77, 3.59, 12.73, 9.3];
+const VERB_MOD_HZ = [0.31, 0.47, 0.61, 0.83, 0.37, 0.53, 0.71, 1.07];
+/** Output signs per line: left and right hear the tank differently, so the tail is wide. */
+const VERB_SIGN_L = [1, -1, 1, 1, -1, 1, -1, -1];
+const VERB_SIGN_R = [1, 1, -1, 1, 1, -1, -1, 1];
+const VERB_MAX_PRE = 0.26;
+
+/**
+ * Vintage digital reverb in the manner of the late-1970s machines (as Valhalla
+ * VintageVerb's 1970s colour mode emulates them): a low bandwidth (dark input
+ * and output, nothing above ~8 kHz), a diffused input, and an eight-line
+ * feedback delay network whose lines are slowly chorused, so the tail is
+ * smooth and never rings metallic. Four types (room, plate, hall, cathedral)
+ * set the tank's size, density, damping and modulation; Decay is the RT60 in
+ * seconds; Pre-delay holds the tail back from the note.
+ */
 export class Reverb {
-  private combs: Float32Array[] = [];
-  private combIdx = new Int32Array(16);
-  private combLp = new Float64Array(16);
-  private aps: Float32Array[] = [];
-  private apIdx = new Int32Array(8);
-  private pre: Float32Array;
-  private preIdx = 0;
+  private readonly fs: number;
+  private readonly pre: Float32Array;
+  private preW = 0;
+  private readonly diff: Float32Array[] = [];
+  private readonly diffW = new Int32Array(4);
+  private readonly lines: Float32Array[] = [];
+  private readonly lineW = new Int32Array(8);
+  private readonly damp = new Float64Array(8);
+  private readonly modPh = new Float64Array(8);
+  private readonly lineOut = new Float64Array(8);
+  private inLp = 0;
+  private inLp2 = 0;
+  private outL = 0;
+  private outR = 0;
+  // set up per call from the parameters (cached so the coefficients are only redone when they move)
+  private lastType = -1;
+  private lastDecay = -1;
+  private readonly len = new Float64Array(8);
+  private readonly gain = new Float64Array(8);
+  private readonly diffLen = new Int32Array(4);
+  private dampCoef = 0;
+  private modDepth = 0;
+  private diffG = 0.7;
+  private build = 0.7;
+  private level = 0.4;
+  private readonly bwCoef: number;
 
   constructor(fs: number) {
-    const s = fs / 44100;
-    const combLens = [1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617];
-    const apLens = [556, 441, 341, 225];
-    for (let ch = 0; ch < 2; ch++) {
-      for (const c of combLens) this.combs.push(new Float32Array(Math.round((c + ch * 23) * s)));
-      for (const a of apLens) this.aps.push(new Float32Array(Math.round((a + ch * 23) * s)));
-    }
-    this.pre = new Float32Array(Math.round(0.018 * fs));
+    this.fs = fs;
+    this.pre = new Float32Array(Math.ceil(VERB_MAX_PRE * fs) + 4);
+    const maxScale = VERB_TYPES[VERB_CATHEDRAL].size;
+    for (const ms of VERB_DIFF_MS) this.diff.push(new Float32Array(Math.ceil((ms * maxScale * fs) / 1000) + 4));
+    for (const ms of VERB_LINES_MS) this.lines.push(new Float32Array(Math.ceil(((ms * maxScale + 3) * fs) / 1000) + 4));
+    // 1970s colour: the input and output are band-limited (~7.5 kHz), as the early machines' converters were.
+    this.bwCoef = 1 - Math.exp((-2 * Math.PI * 7500) / fs);
+    for (let i = 0; i < 8; i++) this.modPh[i] = i / 8;
   }
 
   reset(): void {
-    for (const c of this.combs) c.fill(0);
-    for (const a of this.aps) a.fill(0);
-    this.combLp.fill(0);
     this.pre.fill(0);
+    for (const d of this.diff) d.fill(0);
+    for (const l of this.lines) l.fill(0);
+    this.damp.fill(0);
+    this.inLp = this.inLp2 = this.outL = this.outR = 0;
   }
 
-  /** Returns wet stereo into out (dry not included). size 0..1, tone 0 (bright)..1 (dark). */
-  process(input: number, size: number, tone: number, out: Float64Array): void {
-    const fb = 0.72 + 0.26 * size; // ~0.5 s .. ~8 s tails
-    const damp = 0.05 + 0.65 * tone;
-    const x = this.pre[this.preIdx] * 0.03;
-    this.pre[this.preIdx] = input;
-    this.preIdx = this.preIdx + 1 === this.pre.length ? 0 : this.preIdx + 1;
-    for (let ch = 0; ch < 2; ch++) {
-      let acc = 0;
-      for (let c = 0; c < 8; c++) {
-        const k = ch * 8 + c;
-        const buf = this.combs[k];
-        const i = this.combIdx[k];
-        const y = buf[i];
-        this.combLp[k] = y * (1 - damp) + this.combLp[k] * damp;
-        buf[i] = x + this.combLp[k] * fb;
-        this.combIdx[k] = i + 1 === buf.length ? 0 : i + 1;
-        acc += y;
-      }
-      for (let a = 0; a < 4; a++) {
-        const k = ch * 4 + a;
-        const buf = this.aps[k];
-        const i = this.apIdx[k];
-        const b = buf[i];
-        buf[i] = acc + b * 0.5;
-        this.apIdx[k] = i + 1 === buf.length ? 0 : i + 1;
-        acc = b - acc;
-      }
-      out[ch] = acc;
+  private setup(type: number, decay: number): void {
+    const t = VERB_TYPES[Math.max(0, Math.min(3, type))];
+    const fs = this.fs;
+    for (let i = 0; i < 8; i++) {
+      this.len[i] = (VERB_LINES_MS[i] * t.size * fs) / 1000;
+      // RT60: each pass through a line loses its share of 60 dB.
+      // (the damping and the chorused reads lose a little on every pass too: long tails are stretched to match)
+      this.gain[i] = Math.pow(10, (-3 * this.len[i]) / (Math.max(0.1, decay) * (1 + 0.055 * decay) * fs));
     }
+    for (let i = 0; i < 4; i++) this.diffLen[i] = Math.max(1, Math.round((VERB_DIFF_MS[i] * Math.sqrt(t.size) * fs) / 1000));
+    this.dampCoef = Math.exp((-2 * Math.PI * t.damp) / fs);
+    this.modDepth = (t.mod * fs) / 1000;
+    this.diffG = t.diff;
+    this.build = t.build;
+    // a long tail piles up more energy: level it so Decay changes the length, not mostly the loudness
+    this.level = t.level * Math.min(2, Math.pow(Math.max(0.1, decay) / 2, -0.37));
+    this.lastType = type;
+    this.lastDecay = decay;
+  }
+
+  /** Returns wet stereo into out (dry not included). type 0..3, decay = RT60 seconds, predelay in ms. */
+  process(input: number, type: number, decay: number, predelayMs: number, out: Float64Array): void {
+    if (type !== this.lastType || Math.abs(decay - this.lastDecay) > 1e-4 * decay) this.setup(type, decay);
+    const fs = this.fs;
+    // pre-delay (fractional, so moving it glides)
+    const pn = this.pre.length;
+    this.pre[this.preW] = input;
+    const pd = Math.min(VERB_MAX_PRE * fs, Math.max(0, (predelayMs * fs) / 1000));
+    let rp = this.preW - pd;
+    if (rp < 0) rp += pn;
+    const ri = Math.floor(rp), rf = rp - ri;
+    let x = this.pre[ri] * (1 - rf) + this.pre[ri + 1 === pn ? 0 : ri + 1] * rf;
+    this.preW = this.preW + 1 === pn ? 0 : this.preW + 1;
+    // band-limit (two poles: the dark 1970s top)
+    this.inLp += this.bwCoef * (x - this.inLp);
+    this.inLp2 += this.bwCoef * (this.inLp - this.inLp2);
+    x = this.inLp2;
+    // input diffusion: four allpasses smear the attack into a cloud
+    const g = this.diffG;
+    for (let i = 0; i < 4; i++) {
+      const buf = this.diff[i];
+      const n = buf.length;
+      let r = this.diffW[i] - this.diffLen[i];
+      if (r < 0) r += n;
+      const d = buf[r];
+      const v = x + g * d;
+      buf[this.diffW[i]] = v;
+      x = d - g * v;
+      this.diffW[i] = this.diffW[i] + 1 === n ? 0 : this.diffW[i] + 1;
+    }
+    // the tank: read each (chorused) line, damp it, mix through a Householder matrix, feed back
+    let sum = 0;
+    const dc = this.dampCoef;
+    for (let i = 0; i < 8; i++) {
+      const buf = this.lines[i];
+      const n = buf.length;
+      let ph = this.modPh[i] + VERB_MOD_HZ[i] / fs;
+      if (ph >= 1) ph -= 1;
+      this.modPh[i] = ph;
+      const m = 1 + this.modDepth * (0.5 + 0.5 * Math.sin(2 * Math.PI * ph));
+      let r = this.lineW[i] - this.len[i] - m;
+      while (r < 0) r += n;
+      const j = Math.floor(r), f = r - j;
+      const y = buf[j] * (1 - f) + buf[j + 1 === n ? 0 : j + 1] * f;
+      this.damp[i] = y * (1 - dc) + this.damp[i] * dc;
+      const v = this.damp[i] * this.gain[i];
+      this.lineOut[i] = v;
+      sum += v;
+    }
+    const hh = (2 / 8) * sum;
+    // the build-up: in a big space the first lines fill before the later ones
+    const b = this.build;
+    let l = 0, rr = 0;
+    for (let i = 0; i < 8; i++) {
+      const v = this.lineOut[i];
+      const inject = i < 4 ? x : x * (1 - 0.5 * b);
+      const buf = this.lines[i];
+      buf[this.lineW[i]] = v - hh + inject;
+      this.lineW[i] = this.lineW[i] + 1 === buf.length ? 0 : this.lineW[i] + 1;
+      l += VERB_SIGN_L[i] * v;
+      rr += VERB_SIGN_R[i] * v;
+    }
+    // output band-limit, same colour as the input
+    this.outL += this.bwCoef * (l - this.outL);
+    this.outR += this.bwCoef * (rr - this.outR);
+    out[0] = this.outL * this.level;
+    out[1] = this.outR * this.level;
   }
 }
 

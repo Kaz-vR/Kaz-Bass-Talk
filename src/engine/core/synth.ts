@@ -1040,7 +1040,7 @@ export class Synth {
       }
       const rMix = this.reverbMix;
       if (rMix > 1e-4) {
-        this.reverb.process(0.5 * (hpL[4].process(l) + hpR[4].process(r)), cur[P.reverbSize], cur[P.reverbTone], out);
+        this.reverb.process(0.5 * (hpL[4].process(l) + hpR[4].process(r)), cur[P.reverbType], cur[P.reverbDecay], cur[P.reverbPre], out);
         l += out[0] * rMix;
         r += out[1] * rMix;
       }

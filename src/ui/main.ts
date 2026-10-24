@@ -13,6 +13,7 @@ import { ParamsPanel } from './params-panel';
 import { Scope } from './scope';
 import { SynthView, type PresetSource } from './synth-view';
 import { installDropdowns } from './dropdown';
+import { UndoHistory } from '../history/undo';
 
 // Every dropdown opens the page's own menu, not the operating system's.
 installDropdowns();
@@ -44,7 +45,7 @@ const RANDOMIZER = 'randomizer';
 groups.push({ id: RANDOMIZER, name: '🎲 Randomizer', description: "Roll new sounds from the bank's own parts: tame cousins of a category, or weird collisions.", items: [] });
 // Your own sounds: rolls you starred (kept in this browser).
 const USER = 'user';
-groups.push({ id: USER, name: '★ User', description: 'The rolls you starred. They stay here even when you clear the rolls.', items: [] });
+groups.push({ id: USER, name: '★ User', description: 'Sounds you saved and rolls you starred. They stay here even when you clear the rolls.', items: [] });
 library.forEach((p, i) => {
   const cat = (p.meta.category as string | undefined) ?? ATLAS;
   const g = groups.find((x) => x.id === (SHELF[cat] ?? cat))!;
@@ -53,9 +54,31 @@ library.forEach((p, i) => {
 let currentIndex = groups[0].items[0] ?? 0;
 let currentGroup = groups[0];
 
+// Undo / redo: every edit gesture and every preset or roll load is a step.
+const history = new UndoHistory();
+let loaded = false;
+function noteEdit(id: string, value: ParamValue): void {
+  if (current[id] === value) return;
+  history.edit(current, performance.now());
+  updateHistory();
+}
+function updateHistory(): void {
+  synth.setHistory(history.canUndo, history.canRedo);
+}
+function applySnapshot(p: Patch | null): void {
+  if (!p) return;
+  current = p;
+  showPatchInfo(current);
+  panel.show(current, reference);
+  synth.show(current);
+  host?.setPatch(current);
+  updateHistory();
+}
+
 const panel = new ParamsPanel(
   $('params'),
   (id: string, value: ParamValue) => {
+    noteEdit(id, value);
     current[id] = value;
     host?.setParam(id, value);
     synth.setValue(id, value);
@@ -69,6 +92,7 @@ const panel = new ParamsPanel(
 
 // The new synth page on top; the gear opens the full parameter view under it. Both edit the same patch.
 const synth = new SynthView($('synth-v2'), (id, value) => {
+  noteEdit(id, value);
   current[id] = value;
   host?.setParam(id, value);
   panel.setValue(id, value);
@@ -140,6 +164,18 @@ synth.presets = {
   },
   step: (dir) => stepPreset(dir),
 };
+synth.onUndo = () => applySnapshot(history.undo(current));
+synth.onRedo = () => applySnapshot(history.redo(current));
+synth.onSave = () => saveSound();
+document.addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === 'z' && !e.shiftKey) synth.onUndo();
+  else if ((k === 'z' && e.shiftKey) || k === 'y') synth.onRedo();
+  else if (k === 's') synth.onSave();
+  else return;
+  e.preventDefault();
+});
 synth.onPitch = (v) => host?.pitchBend(v);
 synth.onOctave = (dir) => keyboard.shift(dir);
 synth.onWheel = (v) => {
@@ -236,6 +272,8 @@ function toggleStar(e: RollEntry): void {
 }
 
 function loadRoll(e: RollEntry): void {
+  if (loaded) history.replace(current);
+  loaded = true;
   currentRoll = e;
   reference = e.roll.patch;
   const prev = current;
@@ -246,6 +284,28 @@ function loadRoll(e: RollEntry): void {
   panel.show(current, reference);
   synth.show(current);
   host?.setPatch(current);
+  renderBrowser();
+  updateHistory();
+}
+
+/** Save the sound on screen as your own preset: it goes to the top of ★ User (kept in this browser). */
+function saveSound(): void {
+  const own = String(current.meta.name ?? 'My sound');
+  // Saving one of your own again numbers it on ("Name 2", "Name 3") instead of "Name 2 2".
+  const base = currentRoll && userSounds.includes(currentRoll) ? own.replace(/ \d+$/, '') : own;
+  const taken = new Set(userSounds.map((e) => e.roll.name));
+  let name = base;
+  for (let i = 2; taken.has(name); i++) name = `${base} ${i}`;
+  const patch = structuredClone(validatePatch(current).patch);
+  patch.meta = { ...patch.meta, name, description: `Your own, saved from ${current.meta.name}.` };
+  const e: RollEntry = { roll: { patch, name, hint: `Saved from ${current.meta.name}` }, id: nextId++ };
+  userSounds = [e, ...userSounds];
+  saveUser();
+  currentRoll = e;
+  reference = patch;
+  current.meta = structuredClone(patch.meta);
+  showPatchInfo(current);
+  synth.flashSaved();
   renderBrowser();
 }
 
@@ -273,6 +333,8 @@ function doRoll(): void {
 
 
 function loadPatch(index: number): void {
+  if (loaded) history.replace(current);
+  loaded = true;
   currentRoll = null;
   currentIndex = index;
   renderBrowser();
@@ -287,6 +349,7 @@ function loadPatch(index: number): void {
   panel.show(current, reference);
   synth.show(current);
   host?.setPatch(current);
+  updateHistory();
 }
 
 

@@ -86,10 +86,10 @@ describe('new oscillators', () => {
 
 describe('envelope and modulation additions', () => {
   it('reverse attack swells slowly then rushes in', () => {
-    const p = { ...base, 'osc1.wave': 'sine', 'amp_env.attack': 400, 'amp_env.attack_curve': 1 };
+    const p = { ...base, 'osc1.wave': 'sine', 'amp_env.attack': 400, 'amp_env.attack_bend': -0.6 };
     const r = renderPatch(p, heldNote(45, 4), { seconds: 0.6 });
     const early = rms(r.left, 0.05 * FS, 0.15 * FS), late = rms(r.left, 0.3 * FS, 0.38 * FS);
-    const normal = renderPatch({ ...p, 'amp_env.attack_curve': 0 }, heldNote(45, 4), { seconds: 0.6 });
+    const normal = renderPatch({ ...p, 'amp_env.attack_bend': 0.15 }, heldNote(45, 4), { seconds: 0.6 });
     expect(early / late).toBeLessThan(rms(normal.left, 0.05 * FS, 0.15 * FS) / rms(normal.left, 0.3 * FS, 0.38 * FS) * 0.5);
   });
   it('drift modulation moves the sound slowly', () => {

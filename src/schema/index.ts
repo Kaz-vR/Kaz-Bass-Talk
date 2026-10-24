@@ -157,13 +157,32 @@ function migrateBreath(src: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
+ * Older patches had a Freeverb-style reverb with Size and Tone; the reverb is now a vintage
+ * digital one with a type, Decay (seconds) and Pre-delay. Size picks the type and the decay.
+ */
+function migrateAttackCurve(src: Record<string, unknown>): Record<string, unknown> {
+  if (!('amp_env.attack_curve' in src) || 'amp_env.attack_bend' in src) return src;
+  // the old attack shape (0 analog .. 1 reverse swell) as the attack's bend
+  return { ...src, 'amp_env.attack_bend': 0.15 - 0.75 * Math.max(0, Math.min(1, Number(src['amp_env.attack_curve']) || 0)) };
+}
+
+function migrateReverb(src: Record<string, unknown>): Record<string, unknown> {
+  if (!('reverb.size' in src) || 'reverb.decay' in src) return src;
+  const out: Record<string, unknown> = { ...src };
+  const size = Math.max(0, Math.min(1, Number(src['reverb.size']) || 0));
+  out['reverb.decay'] = 0.5 * Math.pow(16, size);
+  out['reverb.type'] = size >= 0.85 ? 'cathedral' : size >= 0.55 ? 'hall' : size >= 0.3 ? 'plate' : 'room';
+  return out;
+}
+
+/**
  * Validate any patch-like object against the schema. Missing params get
  * defaults; out-of-range values are clamped; unknown keys are dropped.
  * Always returns a complete, safe patch plus a list of what was fixed.
  */
 export function validatePatch(input: unknown): ValidationResult {
   const issues: ValidationIssue[] = [];
-  const src = migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>));
+  const src = migrateAttackCurve(migrateReverb(migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>))));
   const rawMeta = src.meta && typeof src.meta === 'object' ? (src.meta as PatchMeta) : undefined;
   const meta: PatchMeta = { ...(rawMeta ?? {}), name: typeof rawMeta?.name === 'string' ? rawMeta.name : 'Untitled' };
   if (!rawMeta) issues.push({ param: 'meta', message: 'missing meta' });
@@ -186,7 +205,7 @@ export function validatePatch(input: unknown): ValidationResult {
     patch[p.id] = old in src ? clampValue(p, src[old], issues) : (p.default as ParamValue);
   }
   for (const key of Object.keys(src)) {
-    if (key !== 'meta' && key !== 'fx.lowcut' && key !== 'wobble.target' && key !== 'wobble.highcut' && !key.startsWith('pitch_env.') && !key.startsWith('breath.') && !indexById.has(key)) issues.push({ param: key, message: 'unknown parameter (dropped)' });
+    if (key !== 'meta' && key !== 'fx.lowcut' && key !== 'wobble.target' && key !== 'wobble.highcut' && key !== 'reverb.size' && key !== 'amp_env.attack_curve' && key !== 'reverb.tone' && !key.startsWith('pitch_env.') && !key.startsWith('breath.') && !indexById.has(key)) issues.push({ param: key, message: 'unknown parameter (dropped)' });
   }
   sortModSlots(patch);
   return { patch, issues };

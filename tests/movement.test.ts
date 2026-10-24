@@ -83,7 +83,7 @@ describe('FX and width mod targets', () => {
     expect(side(wider, 0.5, 1.4)).toBeGreaterThan(side(normal, 0.5, 1.4) * 1.5);
   });
   it('reverb mix can be brought in by modulation', () => {
-    const p = { ...base, 'reverb.mix': 0, 'reverb.size': 0.7, 'mod1.source': 'velocity', 'mod1.dest': 'reverb_mix', 'mod1.amount': 0.6 };
+    const p = { ...base, 'reverb.mix': 0, 'reverb.decay': 4, 'mod1.source': 'velocity', 'mod1.dest': 'reverb_mix', 'mod1.amount': 0.6 };
     const dry = renderPatch({ ...p, 'mod1.amount': 0 }, heldNote(45, 1), { seconds: 0.5, tail: 1 });
     const wet = renderPatch(p, heldNote(45, 1), { seconds: 0.5, tail: 1 });
     expect(rms(wet.left, 0.9 * FS, 1.4 * FS)).toBeGreaterThan(rms(dry.left, 0.9 * FS, 1.4 * FS) * 5 + 1e-4);

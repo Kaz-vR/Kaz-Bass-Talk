@@ -1195,16 +1195,40 @@
       "describes": "Fade-out after the key is released. Short is tight; long overlaps notes."
     },
     {
-      "id": "amp_env.attack_curve",
-      "label": "Attack shape",
+      "id": "amp_env.attack_bend",
+      "label": "Amp attack curve",
       "type": "float",
-      "min": 0,
+      "min": -1,
       "max": 1,
-      "default": 0,
+      "default": 0.15,
       "curve": "linear",
       "unit": "",
       "group": "amp_env",
-      "describes": "0 is a normal fast-rising analog attack; 1 is a reverse swell that starts slow and rushes in (hardstyle reverse bass, backwards tape)."
+      "describes": "How the attack bends (the small dot on the envelope's line). Up: fast first, then settling (analog). Middle: a straight line. Down: slow first, then rushing (a swell)."
+    },
+    {
+      "id": "amp_env.decay_bend",
+      "label": "Amp decay curve",
+      "type": "float",
+      "min": -1,
+      "max": 1,
+      "default": 0.38,
+      "curve": "linear",
+      "unit": "",
+      "group": "amp_env",
+      "describes": "How the decay bends (the small dot on the envelope's line). Up: fast first, then settling (analog). Middle: a straight line. Down: slow first, then rushing (a swell)."
+    },
+    {
+      "id": "amp_env.release_bend",
+      "label": "Amp release curve",
+      "type": "float",
+      "min": -1,
+      "max": 1,
+      "default": 0.38,
+      "curve": "linear",
+      "unit": "",
+      "group": "amp_env",
+      "describes": "How the release bends (the small dot on the envelope's line). Up: fast first, then settling (analog). Middle: a straight line. Down: slow first, then rushing (a swell)."
     },
     {
       "id": "mod_env.on",
@@ -1261,6 +1285,42 @@
       "unit": "ms",
       "group": "mod_env",
       "describes": "Mod envelope fall time after release."
+    },
+    {
+      "id": "mod_env.attack_bend",
+      "label": "Filter env attack curve",
+      "type": "float",
+      "min": -1,
+      "max": 1,
+      "default": 0.15,
+      "curve": "linear",
+      "unit": "",
+      "group": "mod_env",
+      "describes": "How the attack bends (the small dot on the envelope's line). Up: fast first, then settling (analog). Middle: a straight line. Down: slow first, then rushing (a swell)."
+    },
+    {
+      "id": "mod_env.decay_bend",
+      "label": "Filter env decay curve",
+      "type": "float",
+      "min": -1,
+      "max": 1,
+      "default": 0.38,
+      "curve": "linear",
+      "unit": "",
+      "group": "mod_env",
+      "describes": "How the decay bends (the small dot on the envelope's line). Up: fast first, then settling (analog). Middle: a straight line. Down: slow first, then rushing (a swell)."
+    },
+    {
+      "id": "mod_env.release_bend",
+      "label": "Filter env release curve",
+      "type": "float",
+      "min": -1,
+      "max": 1,
+      "default": 0.38,
+      "curve": "linear",
+      "unit": "",
+      "group": "mod_env",
+      "describes": "How the release bends (the small dot on the envelope's line). Up: fast first, then settling (analog). Middle: a straight line. Down: slow first, then rushing (a swell)."
     },
     {
       "id": "env2.on",
@@ -3649,28 +3709,37 @@
       "describes": "Reverb on the upper range only (the sub stays dry). A touch adds space; a lot is cinematic and washed out."
     },
     {
-      "id": "reverb.size",
-      "label": "Reverb size",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0.3,
-      "curve": "linear",
-      "unit": "",
+      "id": "reverb.type",
+      "label": "Reverb type",
+      "type": "enum",
+      "options": ["room", "plate", "hall", "cathedral"],
+      "default": "hall",
       "group": "fx",
-      "describes": "Small is a tight room; large is a long, cinematic tail (several seconds)."
+      "describes": "The space, in the dark, band-limited colour of the late-1970s digital reverbs. Room: small and quick. Plate: dense from the first moment, the brightest. Hall: big, smooth and chorused. Cathedral: huge, slow to bloom and dark."
     },
     {
-      "id": "reverb.tone",
-      "label": "Reverb tone",
+      "id": "reverb.decay",
+      "label": "Reverb decay",
+      "type": "float",
+      "min": 0.2,
+      "max": 20,
+      "default": 2.5,
+      "curve": "log",
+      "unit": "s",
+      "group": "fx",
+      "describes": "How long the tail lasts (the time it takes to fall by 60 dB). Short is a space around the sound; long is a wash it sits in."
+    },
+    {
+      "id": "reverb.predelay",
+      "label": "Reverb pre-delay",
       "type": "float",
       "min": 0,
-      "max": 1,
-      "default": 0.5,
+      "max": 250,
+      "default": 20,
       "curve": "linear",
-      "unit": "",
+      "unit": "ms",
       "group": "fx",
-      "describes": "0 is a bright, metallic space; 1 is a dark, soft, distant one."
+      "describes": "How long the reverb waits before it starts. More keeps the note's attack clear in front of its space."
     },
     {
       "id": "chorus.lowcut",
