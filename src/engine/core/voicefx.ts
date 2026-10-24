@@ -220,8 +220,10 @@ export class Texture {
   private breath = 0;
   private breathTarget = 0;
   private breathCount = 0;
-  /** Breath's soft puff at each new note (set by trigger(), dies away in ~150 ms). */
-  private puff = 0;
+  /** Breath's puff at each new note: a quick swell in (puffIn) times a fade (puffOut) lasting puffLen seconds (Tail). */
+  private puffIn = 0;
+  private puffOut = 0;
+  puffLen = 0.7;
 
   // Static's fast flicker (too fast to hear as rhythm: it is the grain) and wind's gusts.
   private flick = 0;
@@ -230,9 +232,10 @@ export class Texture {
   private gustTarget = 0;
   private gustCount = 0;
 
-  /** A new note started: breath takes a small breath in. */
+  /** A new note started: breath puffs. */
   trigger(): void {
-    this.puff = 1;
+    this.puffIn = 0;
+    this.puffOut = 1;
   }
 
   reset(): void {
@@ -295,14 +298,16 @@ export class Texture {
         break;
       }
       case TEX_BREATH: {
-        // Breath: a mouth-like band of noise (500 Hz .. 8 kHz with tone), a soft puff at each new
-        // note, and the same slow wander as the other beds. density: a narrow breath .. a big open exhale.
-        this.puff *= Math.exp(-1 / (0.15 * fs));
+        // Breath: one puff at each new note and nothing between (owner's call: no sustained
+        // breath, air covers that). A mouth-like band of noise (500 Hz .. 8 kHz with Tone) swells in
+        // over ~10 ms and fades over Tail. density: a narrow, mouthy puff .. a big, open breath.
+        this.puffIn += (1 - this.puffIn) * (1 / (0.01 * fs));
+        this.puffOut *= Math.exp(-4.6 / (Math.max(0.02, this.puffLen) * fs));
         const g = Math.tan((Math.PI * Math.min(500 * Math.pow(16, tone), fs * 0.4)) / fs);
         const q = 1.1 * wide;
         this.svfL.process(this.rngL.next(), g, q);
         this.svfR.process(this.rngR.next(), g, q);
-        const a = 1.85 * Math.sqrt(wide) * (0.75 + 0.25 * w) * (1 + 1.2 * this.puff);
+        const a = 3.5 * Math.sqrt(wide) * this.puffIn * this.puffOut;
         l = this.svfL.bp * a;
         r = this.svfR.bp * a;
         break;

@@ -1,4 +1,4 @@
-// Instrument additions for the preset bank: delayed vibrato, breath (a Noise bed with a puff
+// Instrument additions for the preset bank: delayed vibrato, breath (a Noise type: one puff
 // at each note), and the long envelope ranges risers and bells need.
 import { describe, expect, it } from 'vitest';
 import { renderPatch } from '../src/engine/core/render';
@@ -42,17 +42,17 @@ describe('delayed vibrato', () => {
 });
 
 describe('breath', () => {
-  it('is a bed like the others: a soft puff at each new note, then steady', () => {
-    const p = { ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': false, 'texture.level': 1 };
+  it('is one puff at each new note and nothing between, even while the note is held', () => {
+    const p = { ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': false, 'texture.level': 1, 'texture.tail': 300 };
     const r = renderPatch(p, heldNote(57, 4), { seconds: 1 });
-    expect(rms(r.left, 0.04 * FS, 0.1 * FS)).toBeGreaterThan(rms(r.left, 0.6 * FS, 0.9 * FS) * 1.2);
+    expect(rms(r.left, 0.6 * FS, 0.9 * FS)).toBeLessThan(rms(r.left, 0.01 * FS, 0.1 * FS) * 0.01);
   });
-  it('lingers for its Tail after the note, like the other beds', () => {
-    const p = { ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': false, 'texture.level': 1, 'amp_env.release': 5 };
-    const tail = (ms: number) => rms(renderPatch({ ...p, 'texture.tail': ms }, heldNote(57, 1), { seconds: 2 }).left, 0.65 * FS, 0.9 * FS);
-    expect(tail(1500)).toBeGreaterThan(tail(50) * 10);
+  it('Tail sets how long the puff lasts', () => {
+    const p = { ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': false, 'texture.level': 1 };
+    const late = (ms: number) => rms(renderPatch({ ...p, 'texture.tail': ms }, heldNote(57, 4), { seconds: 1 }).left, 0.4 * FS, 0.6 * FS);
+    expect(late(1500)).toBeGreaterThan(late(100) * 10);
   });
-  it('sustained breath follows the note and sits where its tone says', () => {
+  it('sits where its tone says', () => {
     const dark = mono(renderPatch({ ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': true, 'texture.level': 0.8, 'texture.tone': 0.1 }, heldNote(57, 4), { seconds: 1 }));
     const airy = mono(renderPatch({ ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': true, 'texture.level': 0.8, 'texture.tone': 0.9 }, heldNote(57, 4), { seconds: 1 }));
     const ratio = (x: Float64Array) => { const s = powerSpectrum(x, FS, 0.3 * FS, 0.9 * FS, 8192); return bandPower(s, 3000, 12000) / bandPower(s, 200, 1500); };

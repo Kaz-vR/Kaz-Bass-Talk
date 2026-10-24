@@ -1444,9 +1444,9 @@ export class SynthView {
         // each type's grain, varied by Density
         const x = (i / W) * rate;
         const pop = (type === 'crackle' && Math.abs(r()) > 0.5 - 0.03 * Math.pow(2, 5 * (ch - 0.5)) * 0.4) || (type === 'static' && Math.abs(r()) > 0.495 - 0.012 * Math.pow(2, 4 * (ch - 0.5))) ? 3 : 1;
-        // breath: a small puff at the start of the note, then like the other beds
-        const env = breath ? 0.7 + 0.3 * Math.exp(-(i / W) * 14) : type === 'rumble' ? 0.6 : 1;
-        const fade = Math.min(1, Math.max(0, (1 - i / W) / Math.max(0.05, 0.25 + 0.75 * tail)) * 1.6);
+        // breath: one puff at the start of the note, as long as Tail (the print spans 1 s), then nothing
+        const env = breath ? 1.8 * Math.min(1, (i / W) * 60) * Math.exp((-3 * (i / W)) / Math.max(0.02, this.num('texture.tail') / 1000)) : type === 'rumble' ? 0.6 : 1;
+        const fade = breath ? 1 : Math.min(1, Math.max(0, (1 - i / W) / Math.max(0.05, 0.25 + 0.75 * tail)) * 1.6);
         // crackle is pops only: a quiet line between them
         let y = r() * (H - 10) * (0.25 + 0.75 * lvl) * pop * env * fade * (type === 'air' ? 0.6 : 1) * thick * (type === 'crackle' && pop === 1 ? 0.06 : 1);
         if (type === 'wind') y *= 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(x * 2 * Math.PI * 1.3 + 1));

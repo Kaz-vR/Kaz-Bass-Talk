@@ -817,6 +817,8 @@ export class Synth {
     // The bed swells in with the note: never faster than ~a third of the amp attack.
     this.texAtk = 1 - Math.exp(-1 / (Math.max(0.03, cur[P.amp[0]] / 3000) * fs));
     this.texRel = Math.exp(-4.6 / ((cur[P.texTail] / 1000) * fs));
+    // breath is a puff per note: Tail is how long it lasts
+    this.texture.puffLen = cur[P.texTail] / 1000;
     this.texLpCoef = lead.tapeLpCoef;
     {
       const [kind, p24] = AUX_SLOT[cur[P.texFType]] ?? AUX_SLOT[0];

@@ -29,7 +29,8 @@ describe('texture bed', () => {
     expect(rms(x.left, 0.1 * FS, 0.45 * FS)).toBeGreaterThan(1e-3);
   });
 
-  it.each(TYPES)('%s lingers for its tail, then goes silent', (type) => {
+  // (breath is a puff per note, its own tests are in instrument.test.ts)
+  it.each(TYPES.filter((t) => t !== 'breath'))('%s lingers for its tail, then goes silent', (type) => {
     // Note: 0.5 s held, released; the loop then rests (heldNote(…, 1) is 1 beat on, 1 off at 120 BPM).
     // (crackle denser here: a handful of sparse pops is too few to measure a tail on)
     const x = bed({ ...base, 'texture.type': type, 'texture.tail': 400, 'texture.density': type === 'crackle' ? 0.9 : 0.5 }, 0.95);
