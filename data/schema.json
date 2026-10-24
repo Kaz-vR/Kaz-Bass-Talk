@@ -1041,6 +1041,18 @@
       "describes": "Sample-rate reduction factor. 1 is off; 2-4 adds a metallic, aliased edge; above 10 sounds like a broken toy."
     },
     {
+      "id": "crush.lowcut",
+      "label": "Bitcrusher low cut",
+      "type": "float",
+      "min": 20,
+      "max": 1000,
+      "default": 20,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "crush",
+      "describes": "The bitcrusher only works above this frequency; below it the sound passes clean. 20 Hz = the whole sound."
+    },
+    {
       "id": "tape.on",
       "label": "Tape on",
       "type": "bool",
@@ -1084,6 +1096,18 @@
       "unit": "",
       "group": "tape",
       "describes": "Worn tape: dulls the top end and adds faint hiss. Dark, dusty, lo-fi."
+    },
+    {
+      "id": "tape.lowcut",
+      "label": "Tape low cut",
+      "type": "float",
+      "min": 20,
+      "max": 1000,
+      "default": 20,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "tape",
+      "describes": "The tape only works above this frequency; below it the sound passes clean. 20 Hz = the whole sound."
     },
     {
       "id": "clip.mid",
@@ -1164,6 +1188,14 @@
       "unit": "",
       "group": "amp_env",
       "describes": "0 is a normal fast-rising analog attack; 1 is a reverse swell that starts slow and rushes in (hardstyle reverse bass, backwards tape)."
+    },
+    {
+      "id": "mod_env.on",
+      "label": "Filter envelope on",
+      "type": "bool",
+      "default": true,
+      "group": "mod_env",
+      "describes": "Switches the filter envelope on or off without losing its settings. Off, it no longer sweeps the cutoff and its matrix rows do nothing."
     },
     {
       "id": "mod_env.attack",
@@ -1889,12 +1921,24 @@
       "label": "Wobbler low cut",
       "type": "float",
       "min": 20,
-      "max": 1000,
+      "max": 20000,
       "default": 20,
       "curve": "log",
       "unit": "Hz",
       "group": "wobble",
-      "describes": "The volume shape only works above this frequency, so the low end stays steady under the gate. 20 Hz = the whole sound."
+      "describes": "The volume shape only works above this frequency, so the low end stays steady under the gate. 20 Hz = from the very bottom."
+    },
+    {
+      "id": "wobble.highcut",
+      "label": "Wobbler high cut",
+      "type": "float",
+      "min": 20,
+      "max": 20000,
+      "default": 20000,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "wobble",
+      "describes": "The volume shape only works below this frequency; above it the sound stays steady. With Low cut it picks the band that is gated. 20 kHz = to the very top."
     },
     {
       "id": "wobble.points",

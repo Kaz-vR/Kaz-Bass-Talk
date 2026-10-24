@@ -258,6 +258,11 @@ export class Voice {
   private crushQ = 128;
   private crushRate = 1;
   private crushMix = 0;
+  /** Crush / tape low cut: one-pole pair coefficients (0 = off) and their state (L, L, R, R). */
+  private crushLc = 0;
+  private tapeLc = 0;
+  private readonly crushLp = new Float64Array(4);
+  private readonly tapeLp = new Float64Array(4);
   private readonly tape: Tape;
   private tapeWow = 0;
   /** Tape-age low-pass coefficient (the Synth's texture bed uses the newest voice's). */
@@ -367,6 +372,8 @@ export class Voice {
 
   /** Clear all DSP state (after a fault). */
   reset(): void {
+    this.crushLp.fill(0);
+    this.tapeLp.fill(0);
     this.gate = false;
     this.ampEnv.reset();
     this.modEnv.reset();
@@ -471,7 +478,7 @@ export class Voice {
     src[K.SRC_LFO3] *= this.lfoFade[2];
     src[K.SRC_LFO4] *= this.lfoFade[3];
     src[K.SRC_PRODUCT] = src[K.SRC_LFO1] * src[K.SRC_LFO2];
-    src[K.SRC_MOD_ENV] = this.modEnv.level;
+    src[K.SRC_MOD_ENV] = this.modEnv.level * cur[P.modEnvOn];
     src[K.SRC_AMP_ENV] = this.ampEnv.level;
     src[K.SRC_VEL] = this.velocity;
     src[K.SRC_KEY] = clamp((this.pitch - KEYTRACK_CENTER) / 24, -1, 1);
@@ -663,7 +670,7 @@ export class Voice {
     const res = clamp(cur[P.res] + dst[D.RES] + 0.15 * this.accentAmt, 0, 1);
     const fsOs = fs * OS;
     let octs = (cur[P.keytrack] * (this.pitch + 12 * cur[P.octave] - KEYTRACK_CENTER)) / 12 +
-      6 * cur[P.envAmt] * (1 + 1.5 * this.accentAmt) * this.modEnv.level + 6 * dst[D.CUTOFF] + 0.12 * this.analog * this.noteCutoffJitter;
+      6 * cur[P.envAmt] * cur[P.modEnvOn] * (1 + 1.5 * this.accentAmt) * this.modEnv.level + 6 * dst[D.CUTOFF] + 0.12 * this.analog * this.noteCutoffJitter;
     // Low-pass gate: the cutoff closes together with the amp envelope.
     if (this.filterType === FILTER_LPG) octs += 1.5 * Math.log2(Math.max(this.ampEnv.level, 0.002));
     const fc = clamp(cur[P.cutoff] * Math.pow(2, octs), 20, Math.min(20000, fs * 0.45));
@@ -721,6 +728,8 @@ export class Voice {
     this.crushMix = clamp(cur[P.crushMix] + dst[D.CRUSH], 0, 1);
     this.crushQ = Math.pow(2, cur[P.crushBits] - 1);
     this.crushRate = cur[P.crushRate];
+    this.crushLc = cur[P.crushLowcut] > 21 ? Math.exp((-TWO_PI * cur[P.crushLowcut]) / fs) : 0;
+    this.tapeLc = cur[P.tapeLowcut] > 21 ? Math.exp((-TWO_PI * cur[P.tapeLowcut]) / fs) : 0;
 
     // Tape.
     this.tapeWow = clamp(cur[P.tapeWow] + dst[D.TAPE_WOW], 0, 1);
@@ -1152,17 +1161,38 @@ export class Voice {
       r = this.dnR.process(os[1], os[3]);
 
       // Bitcrusher / downsampler.
+      // (below its low cut the sound passes clean: split off with a one-pole pair, added back after)
       if (this.crushMix > 0) {
-        this.crusher.process(l, r, this.crushMix, this.crushQ, this.crushRate, tmp);
-        l = tmp[0];
-        r = tmp[1];
+        let lowL = 0, lowR = 0;
+        if (this.crushLc > 0) {
+          const c = this.crushLc, s = this.crushLp;
+          s[0] = l + c * (s[0] - l);
+          s[1] = s[0] + c * (s[1] - s[0]);
+          s[2] = r + c * (s[2] - r);
+          s[3] = s[2] + c * (s[3] - s[2]);
+          lowL = s[1];
+          lowR = s[3];
+        }
+        this.crusher.process(l - lowL, r - lowR, this.crushMix, this.crushQ, this.crushRate, tmp);
+        l = lowL + tmp[0];
+        r = lowR + tmp[1];
       }
 
       // Tape (voice only; the sub joins later and stays clean).
       if (this.tapeOn) {
-        this.tape.process(l, r, cur[P.tapeDrive], this.tapeWow, cur[P.tapeAge], this.tapeLpCoef, env, tmp);
-        l = tmp[0];
-        r = tmp[1];
+        let lowL = 0, lowR = 0;
+        if (this.tapeLc > 0) {
+          const c = this.tapeLc, s = this.tapeLp;
+          s[0] = l + c * (s[0] - l);
+          s[1] = s[0] + c * (s[1] - s[0]);
+          s[2] = r + c * (s[2] - r);
+          s[3] = s[2] + c * (s[3] - s[2]);
+          lowL = s[1];
+          lowR = s[3];
+        }
+        this.tape.process(l - lowL, r - lowR, cur[P.tapeDrive], this.tapeWow, cur[P.tapeAge], this.tapeLpCoef, env, tmp);
+        l = lowL + tmp[0];
+        r = lowR + tmp[1];
       }
 
       if (this.postCut.active) {

@@ -192,6 +192,12 @@ export function switchOffUnused(patch: Patch): void {
     }
     if (!used) patch[`${src}.on`] = false;
   }
+  // the filter envelope: used when it sweeps the cutoff or a matrix row uses it
+  let fenv = Number(patch['filter.env_amount']) !== 0;
+  for (let n = 1; n <= MOD_SLOT_COUNT && !fenv; n++) {
+    fenv = patch[`mod${n}.source`] === 'mod_env' && patch[`mod${n}.dest`] !== 'none' && Number(patch[`mod${n}.amount`]) !== 0 && patch[`mod${n}.on`] !== false;
+  }
+  if (!fenv) patch['mod_env.on'] = false;
 }
 
 /** Matrix sources in reading order (rows and the source menu): the envelopes, the LFOs, what the player does, the machine's own life. */

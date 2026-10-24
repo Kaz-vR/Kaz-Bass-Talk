@@ -113,7 +113,7 @@ export class Synth {
   private readonly wobRand = new Float64Array(WOB_RANDOM_STEPS);
   private wobRandCycle = -1;
   /** The volume shape's crossover (two one-poles per side): below the low cut the gate leaves the sound alone. */
-  private wobLp = new Float64Array(4);
+  private wobLp = new Float64Array(8);
   /** The volume target's gain, ramped per sample towards its target so the gate never clicks. */
   private wobGate = 1;
   private wobGateTarget = 1;
@@ -1021,19 +1021,32 @@ export class Synth {
       if (this.wobGate !== 1 || this.wobGateTarget !== 1) {
         this.wobGate += (this.wobGateTarget - this.wobGate) * 0.02;
         if (Math.abs(this.wobGate - 1) < 1e-6 && this.wobGateTarget === 1) this.wobGate = 1;
-        const lc = cur[P.wobLowcut];
+        // Only the band between Low cut and High cut is gated: below and above it the sound stays
+        // steady (two one-pole pairs per side split it off; the three parts add up to the input).
+        const lc = cur[P.wobLowcut], hc = cur[P.wobHighcut], lp = this.wobLp;
+        let lowL = 0, lowR = 0, topL = 0, topR = 0;
         if (lc > 21) {
-          const c = Math.exp((-2 * Math.PI * lc) / this.sampleRate), lp = this.wobLp;
+          const c = Math.exp((-2 * Math.PI * lc) / this.sampleRate);
           lp[0] = l + c * (lp[0] - l);
           lp[1] = lp[0] + c * (lp[1] - lp[0]);
           lp[2] = r + c * (lp[2] - r);
           lp[3] = lp[2] + c * (lp[3] - lp[2]);
-          l = lp[1] + (l - lp[1]) * this.wobGate;
-          r = lp[3] + (r - lp[3]) * this.wobGate;
-        } else {
-          l *= this.wobGate;
-          r *= this.wobGate;
+          lowL = lp[1];
+          lowR = lp[3];
         }
+        if (hc < 19900) {
+          const c = Math.exp((-2 * Math.PI * hc) / this.sampleRate);
+          lp[4] = l + c * (lp[4] - l);
+          lp[5] = lp[4] + c * (lp[5] - lp[4]);
+          lp[6] = r + c * (lp[6] - r);
+          lp[7] = lp[6] + c * (lp[7] - lp[6]);
+          topL = l - lp[5];
+          topR = r - lp[7];
+        }
+        // (a band that is closed, Low cut above High cut, gates nothing)
+        const g = lc < hc ? this.wobGate : 1;
+        l = lowL + topL + (l - lowL - topL) * g;
+        r = lowR + topR + (r - lowR - topR) * g;
       }
 
       // Subsonic / DC filter.

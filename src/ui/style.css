@@ -1276,7 +1276,7 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .lfo5-settings > .ob-head { margin-bottom: 4px; }
 .v2 .lfo5-sec { display: flex; align-items: center; justify-content: center; border-top: 1px solid rgba(255,255,255,0.04); }
 .v2 .lfo5-switch { flex: 1.5; border-top: 0; }
-.v2 .lfo5-knobs { flex: 1.2; gap: 14px; }
+.v2 .lfo5-knobs { flex: 2; display: grid !important; grid-template-columns: repeat(2, auto); justify-content: center; column-gap: 26px; row-gap: 10px; align-content: center; }
 .v2 .lfo5-shift { flex: 0.6; gap: 12px; }
 .v2 .lfo5-shift .k-label { margin-right: 6px; }
 .v2 .lfo-page .lfo5-targets { flex: 0.7; height: auto !important; }
@@ -1332,3 +1332,17 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .lfo5-settings.is-off .led { color: #4a4a50 !important; text-shadow: none !important; }
 /* An LFO / envelope switched on but used by no matrix row: say so clearly. */
 .v2 .mod-page2 > .mb:not(.is-off) .route-tag.none { color: #d8d8dc; text-shadow: 0 0 6px rgba(255,255,255,0.35); letter-spacing: 0.08em; }
+/* The filter envelope's small amount dial, in its ring's lighter blue, left of Cutoff. */
+.v2 .ob-dials .k.k-tiny { width: 32px; }
+.v2 .k.k-fenv { --knob-accent: #bfe6ff; }
+.v2 .k-tiny .k-label { font-size: 9px; }
+/* The matrix amount: drag the number up / down. */
+.v2 .amt-val { cursor: ns-resize; user-select: none; touch-action: none; }
+.v2 .amt-val:hover { color: #fff; text-shadow: 0 0 6px rgba(255,255,255,0.5); }
+/* The palette's second page: a small arrow under the last tile. */
+.v2 .lfo-page > .lfo5-palette { position: relative; }
+.v2 .lfo5-more { position: absolute; right: 4px; bottom: 1px; width: 18px; height: 12px; padding: 0; line-height: 10px; font-size: 11px;
+  background: transparent; border: 0; color: #5d5d62; cursor: pointer; }
+.v2 .lfo5-more:hover { color: #fff; text-shadow: 0 0 6px rgba(255,255,255,0.6); }
+.v2 .lfo-page > .lfo5-palette { grid-auto-rows: 1fr; }
+.v2 .lfo5-tile.empty { min-height: 60px; }

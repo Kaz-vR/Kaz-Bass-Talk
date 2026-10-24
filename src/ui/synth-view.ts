@@ -56,7 +56,7 @@ export interface PresetSource {
 type Sort = 'bank' | 'name' | 'template' | 'hard' | 'bright' | 'moving';
 const SORTS: [Sort, string][] = [['bank', 'BANK ORDER'], ['name', 'NAME'], ['template', 'TEMPLATE'], ['hard', 'SOFT → HARD'], ['bright', 'DARK → BRIGHT'], ['moving', 'STILL → MOVING']];
 const fval = (it: PresetItem, k: string) => Math.max(0, Math.min(1, Number(it.features[k] ?? 0.5)));
-type Size = 'big' | 'mid' | 'small' | 'lg';
+type Size = 'big' | 'mid' | 'small' | 'lg' | 'tiny';
 type Zone = 'src' | 'flt' | 'dirt' | 'mat';
 
 const DESIGN_WIDTH = 1200;
@@ -64,7 +64,7 @@ const ZOOMS = [1, 1.25, 1.5];
 const ZOOM_KEY = 'lowtalk.zoom';
 const FS = 48000;
 // One dial size everywhere (the owner's call: same size, big enough to read at a glance).
-const PX: Record<Size, number> = { big: 40, mid: 40, small: 40, lg: 46 };
+const PX: Record<Size, number> = { big: 40, mid: 40, small: 40, lg: 46, tiny: 30 };
 
 /** Tiny DOM helper. */
 function h<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', ...kids: (Node | string)[]): HTMLElementTagNameMap[K] {
@@ -264,7 +264,7 @@ function waveShape(wave: string, x: number, pw: number, wt: number): number {
  * 'glass' (a dark glass dome), 'scale' (a printed tick scale around a machined cap). Same geometry: the
  * value shows outside the cap.
  */
-function drawKnobVariant(g: CanvasRenderingContext2D, style: string, k: { cx: number; cy: number; r: number; n: number; av: number; zero: number; a0: number; a1: number; accent: string; off: boolean }): void {
+function drawKnobVariant(g: CanvasRenderingContext2D, style: string, k: { cx: number; cy: number; r: number; n: number; av: number; zero: number; a0: number; a1: number; accent: string; off: boolean; noValue?: boolean }): void {
   const { cx, cy, r, av, zero, a0, a1, accent, off } = k;
   const col = off ? '#55555b' : accent;
   const kr = r - 5;
@@ -282,7 +282,8 @@ function drawKnobVariant(g: CanvasRenderingContext2D, style: string, k: { cx: nu
     g.beginPath();
     g.arc(cx, cy, rad, a0, a1);
     g.stroke();
-    if (Math.abs(av - zero) > 0.02) {
+    // (a modulation ring on the dial takes the value arc's place, as in Serum)
+    if (Math.abs(av - zero) > 0.02 && !k.noValue) {
       g.strokeStyle = col;
       if (glow && !off) {
         g.shadowColor = col;
@@ -494,6 +495,33 @@ function loCutStrip(g: CanvasRenderingContext2D, W: number, H: number, hz: numbe
   g.restore();
 }
 
+/**
+ * A band on a print (the Wobbler's Low cut and High cut): the frequency strip along the bottom
+ * (20 Hz – 20 kHz, log), lit between the two cuts, dark outside them, a tick at each cut that is
+ * set. Both off (20 Hz and 20 kHz) = nothing.
+ */
+function bandStrip(g: CanvasRenderingContext2D, W: number, H: number, lo: number, hi: number, on: boolean, color: string): void {
+  const loOn = lo > 21, hiOn = hi < 19900;
+  if (!loOn && !hiOn) return;
+  const X = (hz: number) => Math.max(1, Math.min(W - 1, (Math.log(hz / 20) / Math.log(1000)) * W));
+  const x0 = loOn ? X(lo) : 0, x1 = hiOn ? X(hi) : W;
+  g.save();
+  g.fillStyle = 'rgba(255,255,255,0.05)';
+  g.fillRect(0, H - 3, W, 2);
+  if (x1 > x0) {
+    g.fillStyle = on ? hexA(color.startsWith('#') ? color : INK, 0.35) : 'rgba(120,120,125,0.3)';
+    g.fillRect(x0, H - 3, x1 - x0, 2);
+  }
+  g.fillStyle = on ? color : '#77777d';
+  if (on) {
+    g.shadowColor = color;
+    g.shadowBlur = 6;
+  }
+  if (loOn) g.fillRect(x0 - 0.75, H - 9, 1.5, 8);
+  if (hiOn) g.fillRect(x1 - 0.75, H - 9, 1.5, 8);
+  g.restore();
+}
+
 /** The dot that travels along a print while a note sounds: where in its shape the sound is now. */
 function liveDot(g: CanvasRenderingContext2D, pts: [number, number][], frac: number, color: string): void {
   const i = Math.max(0, Math.min(pts.length - 1, Math.round(frac * (pts.length - 1))));
@@ -576,6 +604,9 @@ interface KnobMod {
   fmt: (amount: number) => string;
   /** The modulated value right now, if the engine reports it (null when nothing sounds). */
   live?: () => number | null;
+  /** Whether the modulator is on (off = no ring); and what else to redraw on. */
+  on?: () => boolean;
+  deps?: string[];
 }
 /** The filter envelope → cutoff: ±1 is ±6 octaves on a 20 Hz – 20 kHz log dial. */
 const FENV_MOD: KnobMod = {
@@ -1013,7 +1044,9 @@ export class SynthView {
       const kr = r - 3;
       // Alternative dial looks (picked by the page's --knob-style), else the default below.
       const style = cs.getPropertyValue('--knob-style').trim();
-      if (style && style !== 'ring') drawKnobVariant(g, style, { cx, cy, r, n, av, zero, a0, a1, accent, off });
+      // A modulation that is on takes the place of the value arc with its own lighter ring.
+      const modOn = !!mod && (mod.on?.() ?? true) && Math.abs(this.num(mod.id)) > 1e-4;
+      if (style && style !== 'ring') drawKnobVariant(g, style, { cx, cy, r, n, av, zero, a0, a1, accent, off, noValue: modOn });
       else {
       // shadow under the knob
       g.save();
@@ -1042,7 +1075,7 @@ export class SynthView {
       g.beginPath();
       g.arc(cx, cy, kr - 1.6, a0, a1);
       g.stroke();
-      if (Math.abs(av - zero) > 0.02) {
+      if (Math.abs(av - zero) > 0.02 && !modOn) {
         g.save();
         g.strokeStyle = off ? '#4a4a50' : accent;
         if (!off) {
@@ -1091,15 +1124,15 @@ export class SynthView {
         const amt = this.num(mod.id);
         const m = Math.max(0, Math.min(1, n + mod.span(amt)));
         const am = a0 + (a1 - a0) * m;
-        if (Math.abs(am - av) > 0.01) {
+        if (modOn && Math.abs(am - av) > 0.01) {
           g.save();
           g.lineCap = 'round';
-          g.lineWidth = 1.8;
+          g.lineWidth = 2;
           g.strokeStyle = mod.color;
           g.shadowColor = mod.color;
           g.shadowBlur = 4;
           g.beginPath();
-          g.arc(cx, cy, r - 0.9, Math.min(av, am), Math.max(av, am));
+          g.arc(cx, cy, r - 1.5, Math.min(av, am), Math.max(av, am));
           g.stroke();
           g.restore();
         }
@@ -1112,7 +1145,7 @@ export class SynthView {
           g.shadowColor = mod.color;
           g.shadowBlur = 6;
           g.beginPath();
-          g.arc(cx + Math.cos(al) * (r - 0.9), cy + Math.sin(al) * (r - 0.9), 1.9, 0, 2 * Math.PI);
+          g.arc(cx + Math.cos(al) * (r - 1.5), cy + Math.sin(al) * (r - 1.5), 1.9, 0, 2 * Math.PI);
           g.fill();
           g.restore();
         }
@@ -1188,7 +1221,7 @@ export class SynthView {
       e.preventDefault();
       setN(toNormalized(p, this.num(id)) - Math.sign(e.deltaY) * (e.shiftKey ? 0.002 : 0.02));
     }, { passive: false });
-    this.watch([id, ...(mod ? [mod.id] : []), ...(opts.deps ?? [])], draw);
+    this.watch([id, ...(mod ? [mod.id, ...(mod.deps ?? [])] : []), ...(opts.deps ?? [])], draw);
     if (mod?.live) this.liveDraws.push(draw);
     return el;
   }
@@ -1791,38 +1824,30 @@ export class SynthView {
     return el;
   }
 
-  /** "→ CUTOFF +2.4 oct": where a modulator goes and how much; drag up/down to change it, double-click clears it. */
-  private modReadout(mod: KnobMod, target: string): HTMLElement {
-    const mp = getParam(mod.id)!;
-    const amt = h('span', 'mr-amt');
-    const el = h('span', 'mod-readout', h('span', 'mr-to', `→ ${target}`), amt);
-    el.title = 'How far this envelope sweeps the filter cutoff (the ring around Cutoff). Drag up/down to change it; double-click to clear it.';
-    let startY = 0, start = 0;
-    el.addEventListener('pointerdown', (e) => {
-      el.setPointerCapture(e.pointerId);
-      startY = e.clientY;
-      start = this.num(mod.id);
-    });
-    el.addEventListener('pointermove', (e) => {
-      if (!el.hasPointerCapture(e.pointerId)) return;
-      const span = e.shiftKey ? 1000 : 200;
-      const v = Math.max(mp.min!, Math.min(mp.max!, start + ((startY - e.clientY) / span) * (mp.max! - mp.min!) / 2));
-      this.set(mod.id, Math.round(v * 1e4) / 1e4);
-    });
-    el.addEventListener('pointerup', (e) => el.releasePointerCapture(e.pointerId));
-    el.addEventListener('dblclick', () => this.set(mod.id, 0));
-    this.watch([mod.id], () => {
-      const v = this.num(mod.id);
-      amt.textContent = mod.fmt(v);
-      el.classList.toggle('zero', Math.abs(v) < 1e-4);
-    });
-    return el;
-  }
-
   private envBox(prefix: 'amp_env' | 'mod_env', title: string, cls: string): HTMLElement {
-    // The filter envelope's "→ CUTOFF" amount sits in the print's top-right corner.
+    // The filter envelope has an on / off (as in Serum's envelopes on a dial): switched on with no
+    // amount, it starts at the last amount it had (or +2 oct) so its ring shows on Cutoff.
+    const power = prefix === 'mod_env' ? (el: HTMLElement) => {
+      const b = h('button', 'power', lamp());
+      b.title = getParam('mod_env.on')!.describes;
+      b.onclick = () => {
+        if (this.get('mod_env.on')) {
+          this.set('mod_env.on', false);
+          return;
+        }
+        if (Math.abs(this.num('filter.env_amount')) < 1e-4) this.set('filter.env_amount', this.remembered.get('filter.env_amount') ?? 0.33);
+        this.set('mod_env.on', true);
+      };
+      this.watch(['mod_env.on', 'filter.env_amount'], () => {
+        const amt = this.num('filter.env_amount');
+        if (Math.abs(amt) > 1e-4) this.remembered.set('filter.env_amount', amt);
+        b.classList.toggle('on', !!this.get('mod_env.on'));
+        el.classList.toggle('is-off', !this.get('mod_env.on'));
+      });
+      return b;
+    } : undefined;
     return this.obox(title, `env ${cls}`, {
-      corner: prefix === 'mod_env' ? [this.modReadout(FENV_MOD, 'CUTOFF')] : [],
+      power,
       print: this.envPrint(prefix, PRINT_W, PRINT_H),
       dials: [
         this.knob(`${prefix}.attack`, 'A', 'lg', { fmt: ms, parse: parseMs }),
@@ -1847,14 +1872,20 @@ export class SynthView {
     const drive = this.knob('drive.amount', 'Drive', 'lg', { disabled: () => !this.get('drive.on'), deps: ['drive.on'] });
     // Turning the drive up switches the drive stage on.
     drive.addEventListener('pointerdown', () => { if (!this.get('drive.on')) this.set('drive.on', true); }, true);
-    // The filter envelope's amount is the ring around Cutoff (as in Serum): Alt-drag the dial.
-    const cutoff = this.knob('filter.cutoff', 'Cutoff', 'lg', { mod: { ...FENV_MOD, live: () => this.liveFilter?.cutoff ?? null } });
-    cutoff.title += ' The outer ring is how far the filter envelope sweeps it: Alt-drag to set it, Alt-double-click to clear it.';
+    // As in Serum: while the filter envelope is on, its sweep is a lighter ring on Cutoff (in place
+    // of the dial's own arc), set with the small ENV dial beside it.
+    const fenvOn = () => !!this.get('mod_env.on');
+    const cutoff = this.knob('filter.cutoff', 'Cutoff', 'lg', { mod: { ...FENV_MOD, on: fenvOn, deps: ['mod_env.on'], live: () => this.liveFilter?.cutoff ?? null } });
+    cutoff.title += ' The lighter ring is how far the filter envelope sweeps it (the ENV dial beside it).';
+    const envAmt = this.knob('filter.env_amount', 'Env', 'tiny', { fmt: FENV_MOD.fmt, disabled: () => !fenvOn(), deps: ['mod_env.on'] });
+    envAmt.classList.add('k-fenv');
+    envAmt.title = 'Filter envelope amount: how far the filter envelope sweeps the cutoff (the lighter ring on Cutoff). Turning it switches the filter envelope on.';
+    envAmt.addEventListener('pointerdown', () => { if (!fenvOn()) this.set('mod_env.on', true); }, true);
     return this.obox('FILTER', 'c-flt main-filter box-flt', {
       power: (el) => this.boolPower('filter.on', el),
       head: [this.selector('filter.type'), this.keyTrack()],
       print: this.filterPrint(PRINT_W, PRINT_H),
-      dials: [routes, cutoff, this.knob('filter.resonance', 'Res', 'lg'), drive],
+      dials: [routes, envAmt, cutoff, this.knob('filter.resonance', 'Res', 'lg'), drive],
     });
   }
 
@@ -2339,7 +2370,7 @@ export class SynthView {
       if (on()) fillUnder(g, line, H - PAD, accentOf(cv), 0.12, 0.02);
       silver(g, line, on());
       // the low cut, as on every print (lit while Volume is on: the gate only works above it)
-      loCutStrip(g, W, H, this.num('wobble.lowcut'), on() && !!this.get('wobble.volume'), accentOf(cv));
+      bandStrip(g, W, H, this.num('wobble.lowcut'), this.num('wobble.highcut'), on() && !!this.get('wobble.volume'), accentOf(cv));
       // the points: a filled dot sits on the line (hard), a ring pulls the line (soft)
       const col = accentOf(cv);
       const pts = this.wobPoints(shape);
@@ -2524,7 +2555,9 @@ export class SynthView {
       b.title = getParam(id)!.describes;
       return b;
     };
-    const hz = (v: number) => (v <= 21 ? 'off' : v >= 1000 ? '1 kHz' : `${Math.round(v)} Hz`);
+    const kHz = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)} kHz` : `${Math.round(v)} Hz`);
+    const hz = (v: number) => (v <= 21 ? 'off' : kHz(v));
+    const hzHi = (v: number) => (v >= 19900 ? 'off' : kHz(v));
     const pct = (v: number) => `${Math.round(v * 100)}%`;
     const settings = h('div', 'c ob box-wob lfo5-settings',
       h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'SETTINGS')),
@@ -2537,10 +2570,12 @@ export class SynthView {
         },
         deps: ['wobble.depth'],
       })),
+      // two rows: Depth and Smooth, then the band the volume gate works in (Low cut, High cut)
       h('div', 'lfo5-sec lfo5-knobs',
         this.knob('wobble.depth', 'Depth', 'lg', { fmt: pct }),
+        this.knob('wobble.smooth', 'Smooth', 'lg', { fmt: pct }),
         this.knob('wobble.lowcut', 'Low cut', 'lg', { fmt: hz }),
-        this.knob('wobble.smooth', 'Smooth', 'lg', { fmt: pct })),
+        this.knob('wobble.highcut', 'High cut', 'lg', { fmt: hzHi })),
       h('div', 'lfo5-sec lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, sNext),
       h('div', 'lfo5-sec lfo5-targets', lampFor('wobble.cutoff', 'Cutoff'), lampFor('wobble.volume', 'Volume')));
 
@@ -2571,7 +2606,22 @@ export class SynthView {
       });
       tiles.push(tile);
     }
-    const palette = h('div', 'c ob box-wob lfo5-palette', ...tiles);
+    // A small button under the last tile opens a second page of 8 slots (empty for now).
+    const spare = Array.from({ length: 8 }, () => h('div', 'lfo5-tile empty'));
+    const more = h('button', 'lfo5-more', '›');
+    const palette = h('div', 'c ob box-wob lfo5-palette', ...tiles, ...spare, more);
+    let page2 = false;
+    const showPage = () => {
+      for (const t of tiles) t.style.display = page2 ? 'none' : '';
+      for (const t of spare) t.style.display = page2 ? '' : 'none';
+      more.textContent = page2 ? '‹' : '›';
+      more.title = page2 ? 'Back to the shapes' : '8 more slots';
+    };
+    more.onclick = () => {
+      page2 = !page2;
+      showPage();
+    };
+    showPage();
     return h('div', 'v2-main osc-page lfo-page', big, settings, palette);
   }
 
@@ -2666,13 +2716,15 @@ export class SynthView {
     if (deps.length) this.animDraws.push({ el: cv, f: draw, free: freeSrc });
     let x0 = 0, v0 = 0;
     const set = (v: number) => this.set(id, Math.round(Math.max(p.min!, Math.min(p.max!, v)) * 1000) / 1000);
-    cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); x0 = e.clientX; v0 = this.num(id); });
-    cv.addEventListener('pointermove', (e) => { if (cv.hasPointerCapture(e.pointerId)) set(v0 + ((e.clientX - x0) / (e.shiftKey ? 400 : 80))); });
-    cv.addEventListener('pointerup', (e) => cv.releasePointerCapture(e.pointerId));
-    cv.addEventListener('dblclick', () => set(0));
-    cv.addEventListener('wheel', (e) => { e.preventDefault(); set(this.num(id) - Math.sign(e.deltaY) * (e.shiftKey ? 0.002 : 0.01)); }, { passive: false });
+    // The number is the handle: drag it up / down (Shift = fine), scroll it, double-click for 0. The
+    // bar only shows the amount (and moves with its source).
+    val.addEventListener('pointerdown', (e) => { val.setPointerCapture(e.pointerId); x0 = e.clientY; v0 = this.num(id); });
+    val.addEventListener('pointermove', (e) => { if (val.hasPointerCapture(e.pointerId)) set(v0 + ((x0 - e.clientY) / (e.shiftKey ? 800 : 160))); });
+    val.addEventListener('pointerup', (e) => val.releasePointerCapture(e.pointerId));
+    val.addEventListener('dblclick', () => set(0));
+    val.addEventListener('wheel', (e) => { e.preventDefault(); set(this.num(id) - Math.sign(e.deltaY) * (e.shiftKey ? 0.002 : 0.01)); }, { passive: false });
+    val.title = `${p.label}: drag up / down (Shift = fine), double-click for 0`;
     const el = h('div', 'amt-wrap', cv, val);
-    el.title = `${p.label}: drag sideways, double-click for 0`;
     return el;
   }
 
@@ -2754,7 +2806,7 @@ export class SynthView {
         default: return Math.tanh(x * k) / Math.tanh(Math.max(1, k * 0.6));
       }
     };
-    const distLow = lg('dist.clean_below', 'Low', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
+    const distLow = lg('dist.clean_below', 'Lo cut', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
     distLow.title = 'Keeps everything below this frequency clean (the distortion only works on the part above it). Fully left = off.';
     const dist = this.obox('DISTORTION', 'fx-box box-dist', {
       power: (el) => this.boolPower('dist.on', el),
@@ -2774,8 +2826,8 @@ export class SynthView {
         const xs = Math.floor(x / hold) * hold, c = Math.round(Math.sin(xs * 2 * Math.PI * 2) * 0.9 * q) / q;
         const m = this.get('crush.on') && this.num('crush.mix') > 0 ? this.num('crush.mix') : 1;
         return Math.sin(x * 2 * Math.PI * 2) * 0.9 * (1 - m) + c * m;
-      }),
-      dials: [lg('crush.mix', 'Mix'), lg('crush.bits', 'Bits'), lg('crush.rate', 'Rate')],
+      }, false, { lowcut: 'crush.lowcut' }),
+      dials: [lg('crush.mix', 'Mix'), lg('crush.bits', 'Bits'), lg('crush.rate', 'Rate'), lowCut('crush')],
     });
 
     // Tape: a sine that wobbles in pitch (wow, drift), loses its top (age) and saturates (drive).
@@ -2789,8 +2841,8 @@ export class SynthView {
         const s = Math.sin(ph * 2 * Math.PI) + (1 - age) * 0.18 * Math.sin(ph * 6 * Math.PI);
         const k = 1 + 4 * d;
         return (Math.tanh(s * k) / Math.tanh(k)) * 0.85;
-      }),
-      dials: [lg('tape.age', 'Age'), lg('tape.wow', 'Wow'), lg('tape.drive', 'Drive'), drift],
+      }, false, { lowcut: 'tape.lowcut' }),
+      dials: [lg('tape.age', 'Age'), lg('tape.wow', 'Wow'), lg('tape.drive', 'Drive'), drift, lowCut('tape')],
     });
 
     const chorus = this.obox('CHORUS', 'fx-box box-chorus', {
