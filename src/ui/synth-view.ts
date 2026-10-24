@@ -721,8 +721,6 @@ export class SynthView {
   private animFrame = 0;
   /** The engine's live filter (what the print shows while notes sound), and the prints that draw it. */
   private liveFilter: { cutoff: number; res: number } | null = null;
-  /** The Wobbler filter's cutoff right now (Hz) from the engine, null when it is not working. */
-  private liveWobFc: number | null = null;
   /** The wobble's live phase (0..1) and what draws it. */
   private liveWob: number | null = null;
   private readonly wobDraws: (() => void)[] = [];
@@ -898,35 +896,6 @@ export class SynthView {
       requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
-  }
-
-  /** Follow the Wobbler filter's real cutoff (its print and its ghost on the OSC page's filter). */
-  setLiveWobFilter(read: () => number | null): void {
-    const step = () => {
-      const v = read(), was = this.liveWobFc;
-      if (!v !== !was || (v && was && Math.abs(v / was - 1) > 0.004)) {
-        this.liveWobFc = v;
-        for (const f of this.liveDraws) f();
-      }
-      requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }
-
-  /** Whether the Wobbler's own filter is working (on, heard, Cutoff target). */
-  private wobFilterOn(): boolean {
-    return !!this.get('wobble.on') && this.num('wobble.depth') > 0 && !!this.get('wobble.cutoff');
-  }
-
-  /**
-   * The Wobbler filter's response at f: the engine's 24 dB low-pass at fc (the first stage's
-   * resonance grows with Depth). With no live cutoff it shows where the filter sits fully open.
-   */
-  private wobFilterMag(f: number, fc?: number): number {
-    const d = Math.min(1, this.num('wobble.depth')), hc = this.num('wobble.highcut');
-    const hi = hc < 19900 ? hc : 18000;
-    const c = fc ?? this.liveWobFc ?? hi;
-    return response([['lp', c, 1 / (1.3 - 0.75 * d)], ['lp', c, Math.SQRT1_2]], f);
   }
 
   /** The preset's name and where it lives (shelf · frame · template), shown like a print's caption. */
@@ -1499,22 +1468,6 @@ export class SynthView {
       const st = stages();
       const on = !!this.get('filter.on');
       const top = 24, bottom = -48;
-      // The Wobbler's own filter, as a ghost behind the main one (it is after it in the sound).
-      if (this.wobFilterOn()) {
-        const gp: [number, number][] = [];
-        for (let i = 0; i <= W; i += 2) {
-          const d = 20 * Math.log10(this.wobFilterMag(20 * Math.pow(1000, i / W)) + 1e-9);
-          gp.push([i, H - ((Math.max(bottom, Math.min(top, d)) - bottom) / (top - bottom)) * H]);
-        }
-        g.save();
-        g.setLineDash([3, 3]);
-        g.strokeStyle = 'rgba(220,226,232,0.28)';
-        g.lineWidth = 1;
-        g.beginPath();
-        gp.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
-        g.stroke();
-        g.restore();
-      }
       const lift = on && this.get('drive.on') ? this.num('drive.amount') * 14 : 0;
       const ys: number[] = [];
       for (let i = 0; i <= W; i++) {
@@ -1564,7 +1517,7 @@ export class SynthView {
       }
       vignette(g, W, H);
     };
-    this.watch(['filter.type', 'filter.cutoff', 'filter.resonance', 'filter.vowel', 'filter.on', 'drive.on', 'drive.amount', 'filter.keytrack', 'wobble.on', 'wobble.depth', 'wobble.cutoff', 'wobble.highcut'], redraw);
+    this.watch(['filter.type', 'filter.cutoff', 'filter.resonance', 'filter.vowel', 'filter.on', 'drive.on', 'drive.amount', 'filter.keytrack'], redraw);
     this.liveDraws.push(redraw);
     // drag on the print: left/right = cutoff, up/down = resonance
     const cut = getParam('filter.cutoff')!, res = getParam('filter.resonance')!;
@@ -2297,6 +2250,10 @@ export class SynthView {
     try { return localStorage.getItem('lt.lfo5.lock') === '1'; } catch { return false; }
   })();
   private readonly lockViews: (() => void)[] = [];
+  /** The Wobbler's level right now (0..1, null when no note sounds) and whether it is on, for its tab's bar. */
+  private wobNow: number | null = null;
+  private wobOn = false;
+  private readonly wobLevelViews: (() => void)[] = [];
 
   /** Called when a preset (or roll) loads: carries the Wobbler over from the previous patch while locked. */
   keepLocked(next: Patch, prev: Patch | null): void {
@@ -2451,6 +2408,10 @@ export class SynthView {
     const drawDot = () => {
       og.clearRect(0, 0, W, H);
       const p = this.liveWob;
+      // what the Wobbler does right now (0..1), for the level bar under its tab (on every page)
+      this.wobNow = p !== null && on() && curve.length ? curve[Math.min(N, Math.round(p * N))] : null;
+      this.wobOn = on();
+      for (const f of this.wobLevelViews) f();
       if (p === null || !on() || ov.offsetParent === null || !curve.length) return;
       const x = X(p), y = Y(curve[Math.min(N, Math.round(p * N))]), col = accentOf(cv);
       og.save();
@@ -2613,7 +2574,7 @@ export class SynthView {
     const settings = h('div', 'c ob box-wob lfo5-settings',
       h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'SETTINGS')),
       // on means it is heard: switching it on with Depth at 0 sets Depth to 100%
-      h('div', 'lfo5-sec lfo5-row', h('div', 'lfo5-switch', this.bigToggle('wobble.on', 'Wobbler', {
+      h('div', 'lfo5-sec lfo5-switch', this.bigToggle('wobble.on', 'Wobbler', {
         isOn: on,
         turnOn: () => {
           if (this.num('wobble.depth') <= 0) this.set('wobble.depth', 1);
@@ -2621,15 +2582,14 @@ export class SynthView {
         },
         deps: ['wobble.depth'],
       })),
-      // the switch on the left; two rows of dials: Depth and Smooth, then the band (Low cut, High cut)
-      h('div', 'lfo5-knobs',
+      // two rows: Depth and Smooth, then the band the volume gate works in (Low cut, High cut)
+      h('div', 'lfo5-sec lfo5-knobs',
         this.knob('wobble.depth', 'Depth', 'lg', { fmt: pct }),
         this.knob('wobble.smooth', 'Smooth', 'lg', { fmt: pct }),
         this.knob('wobble.lowcut', 'Low cut', 'lg', { fmt: hz }),
-        this.knob('wobble.highcut', 'High cut', 'lg', { fmt: hzHi, fromMax: true }))),
-      h('div', 'lfo5-sec lfo5-bottom',
-        h('div', 'lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, sNext),
-        h('div', 'lfo5-targets', lampFor('wobble.cutoff', 'Cutoff'), lampFor('wobble.volume', 'Volume'))));
+        this.knob('wobble.highcut', 'High cut', 'lg', { fmt: hzHi, fromMax: true })),
+      h('div', 'lfo5-sec lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, sNext),
+      h('div', 'lfo5-sec lfo5-targets', lampFor('wobble.cutoff', 'Cutoff'), lampFor('wobble.volume', 'Volume')));
 
     // off (switched off, or Depth at 0): the settings go dark like any other box's, the switch stays lit
     this.watch(['wobble.on', 'wobble.depth'], () => {
@@ -2664,56 +2624,6 @@ export class SynthView {
     const more = h('button', 'lfo5-more', 'MORE ▾');
     more.title = '8 more shape slots';
     const palette = h('div', 'c ob box-wob lfo5-palette', ...tiles, more, menu);
-
-    // The Wobbler's own filter (top right, where the filter sits on the OSC page): its response
-    // where it is now, the range it sweeps (dashed: shut and open), the band outside which the
-    // sound is left alone.
-    const FW = 271, FH = 172;
-    const [fcv, fg] = canvas(FW, FH, 'disp');
-    const fdraw = () => {
-      paper(fg, FW, FH);
-      const X = (hz: number) => (Math.log(hz / 20) / Math.log(1000)) * FW;
-      fg.strokeStyle = 'rgba(232,226,216,0.04)';
-      for (const f of [100, 1000, 10000]) {
-        fg.beginPath();
-        fg.moveTo(X(f), 0);
-        fg.lineTo(X(f), FH);
-        fg.stroke();
-      }
-      const top = 18, bottom = -48;
-      const Y = (m: number) => FH - ((Math.max(bottom, Math.min(top, 20 * Math.log10(m + 1e-9))) - bottom) / (top - bottom)) * FH;
-      const curve = (fc?: number) => {
-        const pts: [number, number][] = [];
-        for (let i = 0; i <= FW; i++) pts.push([i, Y(this.wobFilterMag(20 * Math.pow(1000, i / FW), fc))]);
-        return pts;
-      };
-      const lit = this.wobFilterOn(), col = accentOf(fcv);
-      const lc = this.num('wobble.lowcut'), hc = this.num('wobble.highcut');
-      // outside the band: left alone (shaded)
-      fg.fillStyle = 'rgba(0,0,0,0.38)';
-      if (lc > 21) fg.fillRect(0, 0, X(lc), FH);
-      if (hc < 19900) fg.fillRect(X(hc), 0, FW - X(hc), FH);
-      // the sweep: shut (bottom of the band) and open (top), dashed
-      const lo = lc > 21 ? lc : 60, hi = hc < 19900 ? hc : 18000;
-      for (const fc of [lo, hi]) {
-        fg.save();
-        fg.setLineDash([3, 4]);
-        fg.strokeStyle = 'rgba(220,226,232,0.2)';
-        fg.beginPath();
-        curve(fc).forEach(([x, y], i) => (i ? fg.lineTo(x, y) : fg.moveTo(x, y)));
-        fg.stroke();
-        fg.restore();
-      }
-      const now = curve();
-      if (lit) fillUnder(fg, now, FH, col, 0.28, 0.08);
-      silver(fg, now, lit, toWhite(col, 0.55));
-      bandStrip(fg, FW, FH, lc, hc, lit, col);
-      vignette(fg, FW, FH);
-    };
-    this.watch(ids, fdraw);
-    this.liveDraws.push(fdraw);
-    const wobFilter = this.obox('FILTER', 'box-wob lfo5-filter', { print: fcv });
-    wobFilter.title = 'The Wobbler\'s own filter (Cutoff target): a 24 dB low-pass after the main filter that opens and shuts with the shape, inside the band between Low cut and High cut. It shows as a ghost behind the main filter on the OSC page.';
     const close = () => {
       menu.classList.remove('open');
       more.classList.remove('on');
@@ -2724,7 +2634,7 @@ export class SynthView {
       more.classList.toggle('on', menu.classList.contains('open'));
     };
     document.addEventListener('pointerdown', (e) => { if (!menu.contains(e.target as Node) && e.target !== more) close(); });
-    return h('div', 'v2-main osc-page lfo-page', big, wobFilter, settings, palette);
+    return h('div', 'v2-main osc-page lfo-page', big, settings, palette);
   }
 
   private matrixBox(): HTMLElement {
@@ -3477,7 +3387,22 @@ export class SynthView {
         b.disabled = true;
         b.title = 'Coming later (until then: "All controls" opens every control)';
       } else b.onclick = () => this.showTab(t);
-      if (t === 'WOBBLER') this.lockViews.push(() => b.classList.toggle('locked', this.lfo5Locked));
+      if (t === 'WOBBLER') {
+        this.lockViews.push(() => b.classList.toggle('locked', this.lfo5Locked));
+        // A level bar under the name while the Wobbler is on: it grows and shrinks with what the
+        // Wobbler does right now (owner's pick); off, the tab looks like any other.
+        const fill = h('span', 'tab-level-fill'), bar = h('span', 'tab-level', fill);
+        b.append(bar);
+        const view = () => {
+          bar.classList.toggle('on', this.wobOn);
+          fill.style.width = `${Math.round((this.wobNow ?? 0) * 100)}%`;
+        };
+        this.wobLevelViews.push(view);
+        this.watch(['wobble.on', 'wobble.depth'], () => {
+          this.wobOn = !!this.get('wobble.on') && this.num('wobble.depth') > 0;
+          view();
+        });
+      }
       this.tabBtns.set(t, b);
       tabs.append(b);
     }
