@@ -1540,7 +1540,8 @@ export class SynthView {
       fillUnder(g, pts, H, accentOf(cv));
       silver(g, pts, isOn());
       vignette(g, W, H);
-      points().forEach(([x, y], i) => handle(g, x, y, i === hot));
+      // the handles you drag only while the envelope is on
+      if (isOn()) points().forEach(([x, y], i) => handle(g, x, y, i === hot));
       // Where the playing note is in the envelope: a ball that runs along it (as in Serum), not
       // while the envelope is switched off.
       const at = isOn() ? playhead() : null;
@@ -1594,6 +1595,7 @@ export class SynthView {
       return [((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.height) * H];
     };
     cv.addEventListener('pointerdown', (e) => {
+      if (!isOn()) return;
       const [x, y] = local(e);
       let best = -1, bd = 18 * 18;
       points().forEach(([px, py], i) => {
@@ -1609,7 +1611,7 @@ export class SynthView {
     cv.addEventListener('pointermove', (e) => {
       if (!start || !cv.hasPointerCapture(e.pointerId)) {
         const [x, y] = local(e);
-        cv.style.cursor = points().some(([px, py]) => (px - x) ** 2 + (py - y) ** 2 < 18 * 18) ? 'grab' : '';
+        cv.style.cursor = isOn() && points().some(([px, py]) => (px - x) ** 2 + (py - y) ** 2 < 18 * 18) ? 'grab' : '';
         return;
       }
       const [x, y] = local(e);
