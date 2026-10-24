@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { WOB_TABLE, WOB_TEMPLATES, wobPointsAt, wobShapeAt, wobSmoothRadius, wobSmoothTable, wobTableAt } from '../src/engine/core/wobshape';
+import { WOB_MAX_POINTS, WOB_TABLE, WOB_TEMPLATES, wobPointsAt, wobShapeAt, wobSmoothRadius, wobSmoothTable, wobTableAt } from '../src/engine/core/wobshape';
 import { getParam } from '../src/schema';
 import { WOB_SHAPES, WOBBLE_BEATS, wobRateBeats } from '../src/engine/core/params';
 
@@ -75,5 +75,29 @@ describe('smooth', () => {
     expect(wobSmoothRadius(0)).toBe(0);
     const t = table(0);
     expect(wobTableAt(t, 0.46)).toBeCloseTo(1, 6);
+  });
+});
+
+describe('the palette and MORE shapes', () => {
+  const names = Object.keys(WOB_TEMPLATES);
+  it('every shape fits the custom slots, in order, from 0 to 1', () => {
+    for (const n of names) {
+      const pts = WOB_TEMPLATES[n];
+      expect(pts.length, n).toBeLessThanOrEqual(WOB_MAX_POINTS);
+      expect(pts[0].x, n).toBe(0);
+      expect(pts[pts.length - 1].x, n).toBe(1);
+      for (let i = 1; i < pts.length; i++) expect(pts[i].x, `${n} ${i}`).toBeGreaterThan(pts[i - 1].x);
+    }
+  });
+
+  it('no two shapes are near-duplicates', () => {
+    const curve = (n: string) => Array.from({ length: 256 }, (_, i) => wobPointsAt(WOB_TEMPLATES[n], i / 256));
+    const c = Object.fromEntries(names.map((n) => [n, curve(n)]));
+    for (let a = 0; a < names.length; a++) {
+      for (let b = a + 1; b < names.length; b++) {
+        const d = c[names[a]].reduce((acc, v, i) => acc + Math.abs(v - c[names[b]][i]), 0) / 256;
+        expect(d, `${names[a]} vs ${names[b]}`).toBeGreaterThan(0.15);
+      }
+    }
   });
 });

@@ -76,7 +76,7 @@ export function wobRateBeats(v: string): number {
 /** Beats per wobble cycle, by wobble.rate option. */
 export const WOBBLE_BEATS = getParam('wobble.rate')!.options!.map(wobRateBeats);
 /** The wobbler's shapes, by wobble.shape option. */
-export const WOB_SHAPES = ['saw down', 'sine', 'duck', 'square', 'sync gate', 'staircase', 'random', 'custom'];
+export const WOB_SHAPES = ['saw down', 'sine', 'duck', 'square', 'sync gate', 'staircase', 'random', 'custom', 'saw up', 'trance gate', 'swing gate', 'ratchet', 'brake', 'pulse decay', 'yoyo', 'triplet gate'];
 export const WOB_RANDOM = 6, WOB_CUSTOM = 7;
 
 /**
@@ -160,7 +160,7 @@ export const P = {
   phaserOn: ix('phaser.on'), delayOn: ix('delay.on'), reverbOn: ix('reverb.on'),
   wheelMove: ix('wheel.move'), wheelPreset: ix('wheel.preset'),
   wobDepth: ix('wobble.depth'), wobRate: ix('wobble.rate'), wobCutoff: ix('wobble.cutoff'), wobVolume: ix('wobble.volume'), wobShape: ix('wobble.shape'), wobLife: ix('wobble.life'), wobPts: ix('wobble.points'), wobPhase: ix('wobble.phase'), wobSmooth: ix('wobble.smooth'), wobLowcut: ix('wobble.lowcut'),
-  wobX: Array.from({ length: 12 }, (_, i) => ix(`wobble.x${i + 1}`)), wobY: Array.from({ length: 12 }, (_, i) => ix(`wobble.y${i + 1}`)), wobS: Array.from({ length: 12 }, (_, i) => ix(`wobble.s${i + 1}`)),
+  wobX: Array.from({ length: 32 }, (_, i) => ix(`wobble.x${i + 1}`)), wobY: Array.from({ length: 32 }, (_, i) => ix(`wobble.y${i + 1}`)), wobS: Array.from({ length: 32 }, (_, i) => ix(`wobble.s${i + 1}`)),
   flangerMix: ix('flanger.mix'), flangerRate: ix('flanger.rate'), flangerFb: ix('flanger.feedback'),
   delayMix: ix('delay.mix'), delayTime: ix('delay.time'), delayFb: ix('delay.feedback'), delayTone: ix('delay.tone'),
   reverbType: ix('reverb.type'), reverbDecay: ix('reverb.decay'), reverbPre: ix('reverb.predelay'), eqHighcut: ix('eq.highcut'),

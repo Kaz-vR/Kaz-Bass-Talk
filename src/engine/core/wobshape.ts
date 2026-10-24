@@ -1,10 +1,13 @@
 /**
- * The Wobbler's shapes. A shape is up to 12 points (time 0..1, level 0..1), each hard or soft,
+ * The Wobbler's shapes. A shape is up to WOB_MAX_POINTS points (time 0..1, level 0..1), each hard or soft,
  * as in ShaperBox: a hard point sits on the line (a corner); a soft point is not on the line but
  * pulls it towards itself, rounding the shape (a quadratic curve from halfway to its neighbours,
  * or from the neighbour itself when that one is hard). The first and last points are always on
  * the line. Shared by the engine and the page, so what you see is what you hear.
  */
+
+/** The most points a shape can have (the custom shape's slots in the schema: wobble.x/y/s1..32). */
+export const WOB_MAX_POINTS = 32;
 
 export interface WobPoint {
   x: number;
@@ -13,6 +16,44 @@ export interface WobPoint {
 }
 
 const pt = (x: number, y: number, s = false): WobPoint => ({ x, y, s });
+
+/** A gate pattern: pulses starting at `starts` (cycle fractions), each open for `lens` (same order), shut between. */
+function gate(starts: number[], lens: number[]): WobPoint[] {
+  const out: WobPoint[] = [];
+  starts.forEach((a, i) => {
+    if (a > 0) out.push(pt(a - 0.002, 0));
+    out.push(pt(a, 1), pt(a + lens[i], 1), pt(a + lens[i] + 0.002, 0));
+  });
+  out.push(pt(1, 0));
+  return out;
+}
+
+/** Plucks: each hit jumps open and falls fast, then gently (a soft point bends the fall), shut until the next. */
+function plucks(starts: number[], fall = 0.8): WobPoint[] {
+  const out: WobPoint[] = [];
+  starts.forEach((a, i) => {
+    const len = (starts[i + 1] ?? 1) - a;
+    if (a > 0) out.push(pt(a - 0.002, 0));
+    out.push(pt(a, 1), pt(a + 0.15 * len * fall, 0.28, true), pt(a + fall * len, 0));
+  });
+  out.push(pt(1, 0));
+  return out;
+}
+
+/** Rounded humps of the given lengths (fractions summing to 1), each up to `heights[i]`. */
+function humps(lens: number[], heights: number[] = []): WobPoint[] {
+  const out: WobPoint[] = [pt(0, 0)];
+  let a = 0;
+  lens.forEach((d, i) => {
+    const hgt = heights[i] ?? 1;
+    out.push(pt(a + 0.25 * d, hgt, true), pt(a + 0.75 * d, hgt, true), pt(a + d, 0));
+    a += d;
+  });
+  out[out.length - 1] = pt(1, 0);
+  return out;
+}
+
+const sixteenths = (steps: number[]) => steps.map((k) => k / 16);
 
 /** The palette's shapes as points (Random has none: it draws new steps every cycle). */
 export const WOB_TEMPLATES: Record<string, WobPoint[]> = {
@@ -28,6 +69,25 @@ export const WOB_TEMPLATES: Record<string, WobPoint[]> = {
   'sync gate': [pt(0, 1), pt(0.24, 1), pt(0.25, 0), pt(0.365, 0), pt(0.375, 1), pt(0.615, 1), pt(0.625, 0), pt(0.74, 0), pt(0.75, 1), pt(0.93, 1), pt(0.94, 0), pt(1, 0)],
   // four steps up
   staircase: [pt(0, 0), pt(0.245, 0), pt(0.25, 0.333), pt(0.495, 0.333), pt(0.5, 0.667), pt(0.745, 0.667), pt(0.75, 1), pt(1, 1)],
+
+  // ---- the MORE slots: each fills a gap the eight above leave
+  // the missing direction: swells open, slow then rushing, and snaps shut (the reverse sound;
+  // curved, so it isn't a smooth copy of the staircase)
+  'saw up': [pt(0, 0), pt(0.75, 0.08, true), pt(0.96, 1), pt(1, 0)],
+  // a busy 16th pattern, x.xx..x.x.xx..x. (square is one gate a cycle, sync gate a syncopated three)
+  'trance gate': gate(sixteenths([0, 2, 3, 6, 8, 10, 11, 14]), Array(8).fill(0.044)),
+  // long-short pairs: the gate with a shuffle (2/3 + 1/3 of each beat)
+  'swing gate': gate([0, 1 / 6, 0.25, 0.25 + 1 / 6, 0.5, 0.5 + 1 / 6, 0.75, 0.75 + 1 / 6], [0.12, 0.055, 0.12, 0.055, 0.12, 0.055, 0.12, 0.055]),
+  // hits that speed up through the cycle (1, then 2, then 4): a roll into the next bar
+  ratchet: plucks([0, 0.5, 0.625, 0.75, 0.8125, 0.875, 0.9375], 0.85),
+  // wobbles that slow down through the cycle, like tape stopping (the opposite of ratchet)
+  brake: humps([0.08, 0.1, 0.13, 0.17, 0.22, 0.3]),
+  // four plucks a cycle: a soft chop (a hit and a tail) rather than a hard gate
+  'pulse decay': plucks([0, 0.25, 0.5, 0.75], 0.85),
+  // two humps of different heights: wub-WUB, an accent the sine doesn't have
+  yoyo: humps([0.5, 0.5], [0.55, 1]),
+  // three even gates per half cycle: the triplet feel (swing is long-short, this is even)
+  'triplet gate': gate([0, 1, 2, 3, 4, 5].map((k) => k / 6), Array(6).fill(0.1)),
 };
 
 /** How many steps Random draws per cycle. */

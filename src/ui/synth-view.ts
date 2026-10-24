@@ -7,7 +7,7 @@ import { Biquad, ENV_ATTACK_BEND, ENV_FALL_BEND, envSegment } from '../engine/co
 import { fromNormalized, getParam, params, toNormalized, type ParamValue, type Patch } from '../schema';
 import { formatValue } from './params-panel';
 import { keyGrime, lightGrain, panelTexture } from './texture';
-import { WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobPointsAt, wobSmoothRadius, wobSmoothTable, wobTableAt, type WobPoint } from '../engine/core/wobshape';
+import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobPointsAt, wobSmoothRadius, wobSmoothTable, wobTableAt, type WobPoint } from '../engine/core/wobshape';
 
 type OnChange = (id: string, value: ParamValue) => void;
 
@@ -1906,20 +1906,47 @@ export class SynthView {
     // Turning the drive up switches the drive stage on.
     drive.addEventListener('pointerdown', () => { if (!this.get('drive.on')) this.set('drive.on', true); }, true);
     // As in Serum: while the filter envelope is on, its sweep is a lighter ring on Cutoff (in place
-    // of the dial's own arc), set with the small ENV dial beside it.
+    // of the dial's own arc), set with the glowing ENV number beside it (owner's pick: no second dial).
     const fenvOn = () => !!this.get('mod_env.on');
     const cutoff = this.knob('filter.cutoff', 'Cutoff', 'lg', { mod: { ...FENV_MOD, on: fenvOn, deps: ['mod_env.on'], live: () => this.liveFilter?.cutoff ?? null } });
-    cutoff.title += ' The lighter ring is how far the filter envelope sweeps it (the ENV dial beside it).';
-    const envAmt = this.knob('filter.env_amount', 'Env', 'tiny', { fmt: FENV_MOD.fmt, disabled: () => !fenvOn(), deps: ['mod_env.on'] });
-    envAmt.classList.add('k-fenv');
-    envAmt.title = 'Filter envelope amount: how far the filter envelope sweeps the cutoff (the lighter ring on Cutoff). Turning it switches the filter envelope on.';
-    envAmt.addEventListener('pointerdown', () => { if (!fenvOn()) this.set('mod_env.on', true); }, true);
+    cutoff.title += ' The lighter ring is how far the filter envelope sweeps it (the ENV number beside it).';
+    const envAmt = this.envNumber(fenvOn);
     return this.obox('FILTER', 'c-flt main-filter box-flt', {
       power: (el) => this.boolPower('filter.on', el),
       head: [this.selector('filter.type'), this.keyTrack()],
       print: this.filterPrint(PRINT_W, PRINT_H),
       dials: [routes, envAmt, cutoff, this.knob('filter.resonance', 'Res', 'lg'), drive],
     });
+  }
+
+  /**
+   * The filter envelope's amount as glowing text only ("ENV" over "+2.0", in octaves; owner's pick):
+   * drag it up / down (Shift = fine), scroll it, double-click for 0. Lit while the envelope is on,
+   * dark ink when it is off; dragging it switches the envelope on.
+   */
+  private envNumber(isOn: () => boolean): HTMLElement {
+    const id = 'filter.env_amount', p = getParam(id)!;
+    const val = h('span', 'envn-val');
+    const el = h('div', 'envn', h('span', 'envn-label', 'ENV'), val);
+    const set = (v: number) => this.set(id, Math.round(Math.max(p.min!, Math.min(p.max!, v)) * 1000) / 1000);
+    this.watch([id, 'mod_env.on'], () => {
+      const a = this.num(id), oct = a * 6;
+      val.textContent = Math.abs(oct) < 0.05 ? '0.0' : `${oct > 0 ? '+' : '−'}${Math.abs(oct).toFixed(1)}`;
+      el.classList.toggle('on', isOn() && Math.abs(oct) >= 0.05);
+    });
+    let y0 = 0, v0 = 0;
+    el.addEventListener('pointerdown', (e) => {
+      el.setPointerCapture(e.pointerId);
+      y0 = e.clientY;
+      v0 = this.num(id);
+      if (!isOn()) this.set('mod_env.on', true);
+    });
+    el.addEventListener('pointermove', (e) => { if (el.hasPointerCapture(e.pointerId)) set(v0 + (y0 - e.clientY) / (e.shiftKey ? 1200 : 240)); });
+    el.addEventListener('pointerup', (e) => el.releasePointerCapture(e.pointerId));
+    el.addEventListener('dblclick', () => set(0));
+    el.addEventListener('wheel', (e) => { e.preventDefault(); set(this.num(id) - Math.sign(e.deltaY) * (e.shiftKey ? 0.002 : 0.01)); }, { passive: false });
+    el.title = 'Filter envelope amount, in octaves: how far the filter envelope sweeps the cutoff (the lighter ring on Cutoff). Drag up / down (Shift = fine), double-click for 0. Dragging it switches the filter envelope on.';
+    return el;
   }
 
   /** Key tracking as an on/off lamp: off = 0, on = the amount the preset had (0.5 if it had none). */
@@ -2245,7 +2272,7 @@ export class SynthView {
 
   /** The custom shape's points from the patch. */
   private wobCustomPoints(): WobPoint[] {
-    const n = Math.max(2, Math.min(12, Math.round(this.num('wobble.points'))));
+    const n = Math.max(2, Math.min(WOB_MAX_POINTS, Math.round(this.num('wobble.points'))));
     return Array.from({ length: n }, (_, i) => ({ x: this.num(`wobble.x${i + 1}`), y: this.num(`wobble.y${i + 1}`), s: !!this.get(`wobble.s${i + 1}`) }));
   }
 
@@ -2288,8 +2315,8 @@ export class SynthView {
 
   /** Write points as the custom shape (and switch to it). */
   private setWobPoints(pts: WobPoint[]): void {
-    const sorted = [...pts].sort((a, b) => a.x - b.x).slice(0, 12);
-    for (let i = 0; i < 12; i++) {
+    const sorted = [...pts].sort((a, b) => a.x - b.x).slice(0, WOB_MAX_POINTS);
+    for (let i = 0; i < WOB_MAX_POINTS; i++) {
       const q = sorted[i] ?? { x: 1, y: 0, s: false };
       this.set(`wobble.x${i + 1}`, Math.round(q.x * 10000) / 10000);
       this.set(`wobble.y${i + 1}`, Math.round(q.y * 10000) / 10000);
@@ -2350,22 +2377,25 @@ export class SynthView {
     requestAnimationFrame(step);
   }
 
-  /** A big chrome toggle switch (a bat-handle on a hex nut, as on old studio gear) for a bool. */
+  /**
+   * A studio-console rocker for a bool (owner's pick): pressed in at the top (the lit "I") when on,
+   * at the bottom (the "O") when off. The face's light and shade swap with the state.
+   */
   private bigToggle(id: string, label: string, opts: { isOn?: () => boolean; turnOn?: () => void; deps?: string[] } = {}): HTMLElement {
-    const b = h('button', 'big-toggle');
-    b.innerHTML = `<span class="bt-on">ON</span>
-      <svg viewBox="0 0 80 110" width="84" height="116" aria-hidden="true">
+    const b = h('button', 'big-toggle rocker');
+    b.innerHTML = `<svg viewBox="0 0 60 96" width="60" height="96" aria-hidden="true">
         <defs>
-          <radialGradient id="btNut" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#f4f4f6"/><stop offset=".45" stop-color="#a9abb0"/><stop offset="1" stop-color="#3b3c40"/></radialGradient>
-          <linearGradient id="btRod" x1="0" x2="1"><stop offset="0" stop-color="#6d6f74"/><stop offset=".35" stop-color="#f6f6f8"/><stop offset=".6" stop-color="#b9bbc0"/><stop offset="1" stop-color="#4a4b50"/></linearGradient>
-          <radialGradient id="btTip" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#b8babf"/><stop offset="1" stop-color="#55565b"/></radialGradient>
+          <linearGradient id="rkOn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d2d32"/><stop offset=".5" stop-color="#1b1b1f"/><stop offset=".52" stop-color="#121215"/><stop offset="1" stop-color="#0c0c0e"/></linearGradient>
+          <linearGradient id="rkOff" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0c0c0e"/><stop offset=".48" stop-color="#121215"/><stop offset=".5" stop-color="#1b1b1f"/><stop offset="1" stop-color="#2d2d32"/></linearGradient>
+          <filter id="rkGlow" filterUnits="userSpaceOnUse" x="0" y="0" width="60" height="96"><feGaussianBlur stdDeviation="2.4" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
         </defs>
-        <circle cx="40" cy="55" r="30" fill="#060607" stroke="rgba(255,255,255,0.06)"/>
-        <polygon points="40,33 59,44 59,66 40,77 21,66 21,44" fill="url(#btNut)" stroke="#2a2b2e" stroke-width="1"/>
-        <circle cx="40" cy="55" r="11" fill="#1a1a1c" stroke="#77797e" stroke-width="1.2"/>
-        <g class="bt-lever"><rect x="35" y="16" width="10" height="40" rx="5" fill="url(#btRod)"/><circle cx="40" cy="16" r="8.5" fill="url(#btTip)" stroke="#3a3b3f" stroke-width=".8"/></g>
+        <rect x="2" y="2" width="56" height="92" rx="6" fill="#050506" stroke="rgba(255,255,255,0.09)"/>
+        <rect class="rk-face" x="7" y="7" width="46" height="82" rx="4"/>
+        <rect class="rk-press" x="7" y="7" width="46" height="41" rx="4" fill="rgba(0,0,0,0.25)"/>
+        <line class="rk-i" x1="30" y1="17" x2="30" y2="35" stroke-width="3" stroke-linecap="round"/>
+        <circle class="rk-o" cx="30" cy="70" r="7.5" fill="none" stroke-width="2.4"/>
       </svg>
-      <span class="bt-off">OFF</span><span class="bt-label">${label}</span>`;
+      <span class="bt-label">${label}</span>`;
     b.title = getParam(id)!.describes;
     const isOn = opts.isOn ?? (() => !!this.get(id));
     b.onclick = () => {
@@ -2386,7 +2416,7 @@ export class SynthView {
    */
   private buildLfoPage(): HTMLElement {
     const ids = ['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.phase', 'wobble.smooth', 'wobble.lowcut', 'wobble.cutoff', 'wobble.volume', 'wobble.points'];
-    for (let i = 1; i <= 12; i++) ids.push(`wobble.x${i}`, `wobble.y${i}`, `wobble.s${i}`);
+    for (let i = 1; i <= WOB_MAX_POINTS; i++) ids.push(`wobble.x${i}`, `wobble.y${i}`, `wobble.s${i}`);
     const on = () => !!this.get('wobble.on') && this.num('wobble.depth') > 0;
     const W = 870, H = 260, PAD = 14, GX = 16, GY = 8;
     const [cv, g] = canvas(W, H, 'disp');
@@ -2659,7 +2689,7 @@ export class SynthView {
         if (i > 0 && i < pts.length - 1) pts.splice(i, 1);
         else return;
       } else {
-        if (pts.length >= 12) return;
+        if (pts.length >= WOB_MAX_POINTS) return;
         const { x, y } = snap(at(e), e);
         if (x <= 0.002 || x >= 0.998) return;
         pts.push({ x, y, s: false });
@@ -2760,7 +2790,10 @@ export class SynthView {
     // The shape palette under the print (as in ShaperBox): one tile per shape, the chosen one lit.
     const TW = 96, TH = 46, TN = TW - 16;
     const tiles: HTMLElement[] = [];
-    for (const shape of getParam('wobble.shape')!.options!) {
+    // the first eight on the palette, the rest in MORE ▾
+    const allShapes = getParam('wobble.shape')!.options!;
+    const moreShapes = allShapes.slice(8);
+    for (const shape of allShapes) {
       const [tc, tgx] = canvas(TW, TH, 'disp');
       const tile = h('button', 'lfo5-tile', tc, h('span', 'lfo5-tile-name', shape.toUpperCase()));
       tile.title = `Shape: ${shape} (resets the shift)`;
@@ -2778,12 +2811,12 @@ export class SynthView {
       });
       tiles.push(tile);
     }
-    // MORE ▾ under the last tile opens a dropdown with 8 more slots (empty for now).
-    const spare = Array.from({ length: 8 }, () => h('div', 'lfo5-tile empty'));
-    const menu = h('div', 'lfo5-more-menu', ...spare);
+    // MORE ▾ under the last tile opens a dropdown with the 8 more shapes (lit while one of them is chosen).
+    const menu = h('div', 'lfo5-more-menu', ...tiles.slice(8));
     const more = h('button', 'lfo5-more', 'MORE ▾');
-    more.title = '8 more shape slots';
-    const palette = h('div', 'c ob box-wob lfo5-palette', ...tiles, more, menu);
+    more.title = '8 more shapes';
+    this.watch(['wobble.shape'], () => more.classList.toggle('picked', moreShapes.includes(String(this.get('wobble.shape')))));
+    const palette = h('div', 'c ob box-wob lfo5-palette', ...tiles.slice(0, 8), more, menu);
     const close = () => {
       menu.classList.remove('open');
       more.classList.remove('on');
@@ -2794,6 +2827,7 @@ export class SynthView {
       more.classList.toggle('on', menu.classList.contains('open'));
     };
     document.addEventListener('pointerdown', (e) => { if (!menu.contains(e.target as Node) && e.target !== more) close(); });
+    menu.addEventListener('click', (e) => { if ((e.target as Element).closest('.lfo5-tile')) close(); });
     return h('div', 'v2-main osc-page lfo-page', big, settings, palette);
   }
 

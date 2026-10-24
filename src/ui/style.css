@@ -1411,3 +1411,29 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .v2-bottom .seg-wrap { align-items: center; align-self: center; height: auto; padding: 0 !important; }
 .v2 .v2-bottom .seg { height: 24px; line-height: 24px; padding: 0 0 0 0.24em !important; }
 .v2 .v2-bottom .seg { margin: 0 !important; }
+/* The MORE shapes: tiles like the palette's; MORE stays lit while one of them is the shape. */
+.v2 .lfo5-more-menu .lfo5-tile { height: 70px; }
+.v2 .lfo5-more.picked { color: #fff; border-color: color-mix(in srgb, var(--knob-accent) 55%, transparent); text-shadow: 0 0 6px var(--knob-accent); }
+/* The Wobbler's rocker (owner's pick): on = pressed at the lit "I", off = pressed at the "O". */
+.v2 .rocker svg { filter: drop-shadow(0 6px 8px rgba(0,0,0,0.85)); }
+.v2 .rocker .rk-face { fill: url(#rkOff); transition: fill 80ms; }
+.v2 .rocker.on .rk-face { fill: url(#rkOn); }
+.v2 .rocker .rk-press { transform: translateY(41px); transition: transform 90ms ease-out; }
+.v2 .rocker.on .rk-press { transform: translateY(0); }
+.v2 .rocker .rk-i { stroke: #3a3a3f; }
+.v2 .rocker.on .rk-i { stroke: #fff; filter: url(#rkGlow); }
+.v2 .rocker .rk-o { stroke: #8a8a90; }
+.v2 .rocker.on .rk-o { stroke: #3e3e44; }
+.v2 .rocker .bt-label { margin-top: 10px; }
+.v2 .rocker.on .bt-label { color: #e8e8ec; text-shadow: 0 0 8px var(--knob-accent); }
+/* The filter envelope's amount as glowing text (owner's pick): dark ink off, lit when it sweeps. */
+.v2 .envn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; width: 40px; align-self: center; margin-bottom: 14px;
+  cursor: ns-resize; user-select: none; touch-action: none; }
+.v2 .envn-label { font-size: 8.5px; letter-spacing: 0.24em; color: #6a6a70; padding-left: 0.24em; }
+.v2 .envn-val { font-size: 14px; letter-spacing: 0.04em; color: #3c3c42; font-variant-numeric: tabular-nums; transition: color 120ms, text-shadow 120ms; }
+.v2 .envn.on .envn-val { color: #fff; text-shadow: 0 0 8px var(--knob-accent), 0 0 2px #fff; }
+.v2 .envn.on .envn-label { color: #a4a4aa; }
+.v2 .envn:hover .envn-val { color: #d8d8dc; }
+.v2 .envn.on:hover .envn-val { color: #fff; }
+.v2 .lfo-page > .lfo5-palette { z-index: 6; }
+.v2 .lfo-page > .lfo5-palette { overflow: visible !important; }

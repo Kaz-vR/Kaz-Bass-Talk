@@ -25,7 +25,7 @@
 // LFOs, drift sources, the texture bed and the FX are shared by all voices;
 // the mod matrix runs per voice, and FX targets follow the newest voice.
 
-import { WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobShapeAt, wobSmoothRadius, wobSmoothTable, wobTableAt } from './wobshape';
+import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobShapeAt, wobSmoothRadius, wobSmoothTable, wobTableAt } from './wobshape';
 import { PARAM_COUNT, params } from '../../schema';
 import { AUX_SLOT, Biquad, clamp, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
 import { Chorus, Delay, Flanger, Limiter, Phaser, Reverb } from './fx';
@@ -98,9 +98,9 @@ export class Synth {
   private wobBright = 0;
   private wobBrightTarget = 0;
   /** The custom shape's points (filled per block, no allocation) and its smoothed value. */
-  private readonly wobXs = new Float64Array(12);
-  private readonly wobYs = new Float64Array(12);
-  private readonly wobSs = new Float64Array(12);
+  private readonly wobXs = new Float64Array(WOB_MAX_POINTS);
+  private readonly wobYs = new Float64Array(WOB_MAX_POINTS);
+  private readonly wobSs = new Float64Array(WOB_MAX_POINTS);
   private wobV = 0;
   private wobShapeNow = 0;
   private wobPtsNow = 0;
@@ -642,7 +642,7 @@ export class Synth {
       let m = 0;
       if (shape === K.WOB_CUSTOM) {
         // Your own shape (points from the Wobbler page).
-        m = Math.max(2, Math.min(12, Math.round(cur[P.wobPts])));
+        m = Math.max(2, Math.min(WOB_MAX_POINTS, Math.round(cur[P.wobPts])));
         for (let k = 0; k < m; k++) {
           this.wobXs[k] = cur[P.wobX[k]];
           this.wobYs[k] = cur[P.wobY[k]];
