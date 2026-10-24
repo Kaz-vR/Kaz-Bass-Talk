@@ -640,6 +640,7 @@ export class SynthView {
   private readonly liveDraws: (() => void)[] = [];
   private modPage: HTMLElement | null = null;
   private fxPage: HTMLElement | null = null;
+  private lfoPage: HTMLElement | null = null;
   /** The synth page's height: every tab keeps it, so nothing jumps. */
   private pageHeight = 0;
   private readonly presetPage = h('div', 'v2-main preset-page');
@@ -2136,34 +2137,109 @@ export class SynthView {
     return box;
   }
 
-  private wobbleBox(): HTMLElement {
-    const W = PRINT_W, H = PRINT_H;
+  /** One wobble cycle's shape at phase p (0..1), -1..1. */
+  private wobShape(p: number): number {
+    const shape = String(this.get('wobble.shape'));
+    return shape === 'triangle' ? (p < 0.5 ? 4 * p - 1 : 3 - 4 * p) : shape === 'saw down' ? 1 - 2 * p : shape === 'square' ? (p < 0.5 ? 0.85 : -0.85) : Math.sin(2 * Math.PI * p);
+  }
+
+  /**
+   * The LFO page: LFO 5 (the wobble, on its own bar-locked clock) as one big print over the six
+   * left boxes (two bars at its rate, beats and bars marked, each cycle a little different with
+   * life), and its controls in the two boxes on the right.
+   */
+  private buildLfoPage(): HTMLElement {
+    const ids = ['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.life', 'wobble.target'];
+    const on = () => !!this.get('wobble.on') && this.num('wobble.depth') > 0;
+    const W = 870, H = 380;
     const [cv, g] = canvas(W, H, 'disp');
-    // Two bars of the wobble at its rate, each cycle a little different (life).
     const redraw = () => {
       paper(g, W, H);
+      const beats = syncBeats(String(this.get('wobble.rate'))), cycles = 8 / beats;
+      // the bars and beats of two bars, faint
+      for (let b = 0; b <= 8; b++) {
+        const x = Math.round((b / 8) * (W - 1)) + 0.5;
+        g.fillStyle = b % 4 === 0 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.045)';
+        g.fillRect(x, 0, 1, H);
+      }
+      g.fillStyle = 'rgba(255,255,255,0.05)';
+      g.fillRect(0, H / 2, W, 1);
       const target = String(this.get('wobble.target'));
-      const cycles = Math.min(16, 8 / syncBeats(String(this.get('wobble.rate')))), shape = String(this.get('wobble.shape'));
-      const dep = 0.3 + 0.7 * this.num('wobble.depth'), life = this.num('wobble.life');
-      const f = (p: number) => (shape === 'triangle' ? (p < 0.5 ? 4 * p - 1 : 3 - 4 * p) : shape === 'saw down' ? 1 - 2 * p : shape === 'square' ? (p < 0.5 ? 0.85 : -0.85) : Math.sin(2 * Math.PI * p));
+      const dep = 0.25 + 0.75 * this.num('wobble.depth'), life = this.num('wobble.life');
       const pts: [number, number][] = [];
       for (let i = 0; i <= W; i++) {
         const x = (i / W) * cycles, c = Math.floor(x), vary = 1 - life * 0.45 * (0.5 + 0.5 * Math.sin(c * 2.7 + 1));
-        let y = f(x - c) * dep * vary;
+        let y = this.wobShape(x - c) * dep * vary;
         if (target !== 'filter') y = Math.tanh(y * 2.2) / Math.tanh(2.2);
-        if (target.endsWith('texture')) y += 0.08 * Math.sin(i * 1.7) * Math.sin(i * 0.37);
-        pts.push([i, H / 2 - y * (H / 2 - 7)]);
+        if (target.endsWith('texture')) y += 0.05 * Math.sin(i * 0.9) * Math.sin(i * 0.23);
+        pts.push([i, H / 2 - y * (H / 2 - 24)]);
       }
-      silver(g, pts, !!this.get('wobble.on') && this.num('wobble.depth') > 0);
+      if (on()) fillUnder(g, pts, H, accentOf(cv), 0.1, 0.02);
+      silver(g, pts, on());
     };
-    this.watch(['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.life', 'wobble.target'], redraw);
-    const target = this.selector('wobble.target', { label: (o) => ({ filter: 'FILTER', 'filter + drive': 'FLT + DRV', 'filter + drive + texture': 'FLT + DRV + TEX' })[o] ?? o });
-    return this.obox('WOBBLE', 'box-wob', {
+    this.watch(ids, redraw);
+    const big = this.obox('LFO 5', 'box-wob lfo5-main', {
       power: (el) => this.boolPower('wobble.on', el),
-      head: [this.selector('wobble.rate', { label: (o) => o }), this.selector('wobble.shape'), target],
+      head: [h('span', 'lfo5-note', 'the wobble · locked to the tempo and the bar')],
+      corner: [h('span', 'lfo5-bars', '2 BARS')],
       print: cv,
+    });
+
+    // Right, top: the shape and rate, one cycle up close, depth and life.
+    const SW = PRINT_W, SH = PRINT_H;
+    const [scv, sg] = canvas(SW, SH, 'disp');
+    this.watch(ids, () => {
+      paper(sg, SW, SH);
+      const pts: [number, number][] = [];
+      for (let i = 0; i <= SW; i++) pts.push([i, SH / 2 - this.wobShape(i / SW) * (SH / 2 - 8)]);
+      silver(sg, pts, on());
+    });
+    const shapeBox = this.obox('SHAPE', 'box-wob', {
+      head: [this.selector('wobble.shape'), this.selector('wobble.rate', { label: (o) => o })],
+      print: scv,
       dials: [this.knob('wobble.depth', 'Depth', 'lg'), this.knob('wobble.life', 'Life', 'lg')],
     });
+
+    // Right, bottom: what it moves, as three lamps in signal order; the print lights the stages.
+    const [tcv, tg] = canvas(SW, SH, 'disp');
+    const stages = ['FILTER', 'DRIVE', 'TEXTURE'];
+    const reach = () => ({ filter: 1, 'filter + drive': 2, 'filter + drive + texture': 3 })[String(this.get('wobble.target'))] ?? 1;
+    this.watch(ids, () => {
+      paper(tg, SW, SH);
+      const n = reach(), col = accentOf(tcv);
+      tg.save();
+      tg.font = "500 9px 'LT Space', 'Space Grotesk', sans-serif";
+      tg.textAlign = 'center';
+      stages.forEach((st, i) => {
+        const x = (SW / 3) * (i + 0.5), lit = i < n && on();
+        tg.fillStyle = lit ? col : 'rgba(255,255,255,0.08)';
+        tg.shadowColor = col;
+        tg.shadowBlur = lit ? 10 : 0;
+        tg.beginPath();
+        tg.arc(x, SH / 2 - 8, lit ? 5 : 4, 0, 2 * Math.PI);
+        tg.fill();
+        tg.shadowBlur = 0;
+        tg.fillStyle = lit ? '#e8e8ec' : '#55555a';
+        tg.fillText(st.split('').join(String.fromCharCode(8202)), x, SH / 2 + 18);
+        if (i < 2) {
+          tg.fillStyle = i + 1 < n && on() ? col : 'rgba(255,255,255,0.08)';
+          tg.fillRect(x + 12, SH / 2 - 8.5, SW / 3 - 24, 1);
+        }
+      });
+      tg.restore();
+    });
+    const pick = (v: string, label: string) => {
+      const b = h('button', 'led', lamp(), label);
+      b.onclick = () => this.set('wobble.target', v);
+      this.watch(['wobble.target'], () => b.classList.toggle('on', this.get('wobble.target') === v));
+      return b;
+    };
+    const targetBox = this.obox('TARGET', 'box-wob', {
+      print: tcv,
+      dials: [h('div', 'lfo5-targets', pick('filter', 'Filter'), pick('filter + drive', '+ Drive'), pick('filter + drive + texture', '+ Texture'))],
+    });
+    targetBox.title = getParam('wobble.target')!.describes;
+    return h('div', 'v2-main osc-page lfo-page', big, shapeBox, targetBox);
   }
 
   private matrixBox(): HTMLElement {
@@ -2484,7 +2560,7 @@ export class SynthView {
   private showTab(t: string): void {
     for (const [name, b] of this.tabBtns) b.classList.toggle('on', name === t);
     if (this.oscPage!.style.display !== 'none') this.pageHeight = this.oscPage!.offsetHeight || this.pageHeight;
-    const pages: [string, HTMLElement][] = [['OSC', this.oscPage!], ['MOD', this.modPage!], ['FX', this.fxPage!], ['PRESETS', this.presetPage]];
+    const pages: [string, HTMLElement][] = [['OSC', this.oscPage!], ['MOD', this.modPage!], ['LFO', this.lfoPage!], ['FX', this.fxPage!], ['PRESETS', this.presetPage]];
     if (t === 'PRESETS') {
       this.pageShelf = this.presets?.current().shelf || this.pageShelf || (this.presets?.shelves()[0]?.id ?? '');
       this.renderPresetPage();
@@ -2889,7 +2965,7 @@ export class SynthView {
     this.page.style.setProperty('--light-grain', `url(${lightGrain()})`);
     this.page.style.setProperty('--key-grime', `url(${keyGrime()})`);
     const tabs = h('div', 'v2-tabs');
-    for (const [t, ready] of [['OSC', true], ['MOD', true], ['FX', true], ['PRESETS', true]] as const) {
+    for (const [t, ready] of [['OSC', true], ['MOD', true], ['LFO', true], ['FX', true], ['PRESETS', true]] as const) {
       const b = h('button', 'tab' + (t === 'OSC' ? ' on' : ''), t);
       if (!ready) {
         b.disabled = true;
@@ -2901,20 +2977,22 @@ export class SynthView {
     const cap = (n: string, name: string, note: string, zone: Zone) =>
       h('div', `zone-cap cap-${zone}`, h('span', 'cap-name', `${n}  ${name}`), h('span', 'cap-note', note), h('span', 'cap-line'));
     void cap;
-    void this.wobbleBox; // the wobble moves to its own place later (owner's call); until then it lives in "All controls"
     // Two rows of four boxes: OSC A, OSC B, amp envelope, filter; sub, noise, wobble, filter envelope.
     this.oscPage = h('div', 'v2-main osc-page',
       this.oscStrip(1), this.oscStrip(2), this.envBox('amp_env', 'AMP ENVELOPE', 'c-src box-amp'), this.filterBox(),
       this.subStrip(), this.noiseStrip(), this.scopeBox(), this.envBox('mod_env', 'FILTER ENVELOPE', 'c-flt box-fenv'));
     this.modPage = this.buildModPage();
+    this.lfoPage = this.buildLfoPage();
     this.fxPage = this.buildFxPage();
     this.presetPage.style.display = 'none';
     this.modPage.style.display = 'none';
     this.fxPage.style.display = 'none';
+    this.lfoPage.style.display = 'none';
     this.page.append(
       h('div', 'v2-top', h('div', 'v2-brand', h('span', 'brand-name', 'The Grimm'), h('span', 'brand-sub', 'Synthesizer')), this.presetSelector(), h('div', 'v2-top-right', tabs, this.zoomBtn)),
       this.oscPage,
       this.modPage,
+      this.lfoPage,
       this.fxPage,
       this.presetPage,
       this.bottomBar(),
