@@ -1330,3 +1330,5 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .lfo5-main.is-off .lfo5-rate { opacity: 0.55; }
 .v2 .lfo5-settings.is-off .led .lamp { background: #1a1a1d !important; box-shadow: none !important; border-color: rgba(255,255,255,0.12) !important; }
 .v2 .lfo5-settings.is-off .led { color: #4a4a50 !important; text-shadow: none !important; }
+/* An LFO / envelope switched on but used by no matrix row: say so clearly. */
+.v2 .mod-page2 > .mb:not(.is-off) .route-tag.none { color: #d8d8dc; text-shadow: 0 0 6px rgba(255,255,255,0.35); letter-spacing: 0.08em; }

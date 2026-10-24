@@ -177,6 +177,23 @@ export function validatePatch(input: unknown): ValidationResult {
   return { patch, issues };
 }
 
+/** The matrix sources with an on / off switch of their own. */
+const SWITCHED_SOURCES = ['env2', 'env3', 'lfo1', 'lfo2', 'lfo3', 'lfo4'];
+
+/**
+ * Switch off the LFOs and envelopes no matrix row uses (owner's call: a preset shows only what it
+ * uses). The sound is unchanged: an unused source does nothing. Run when a preset or roll loads.
+ */
+export function switchOffUnused(patch: Patch): void {
+  for (const src of SWITCHED_SOURCES) {
+    let used = false;
+    for (let n = 1; n <= MOD_SLOT_COUNT && !used; n++) {
+      used = patch[`mod${n}.source`] === src && patch[`mod${n}.dest`] !== 'none' && Number(patch[`mod${n}.amount`]) !== 0 && patch[`mod${n}.on`] !== false;
+    }
+    if (!used) patch[`${src}.on`] = false;
+  }
+}
+
 /** Matrix sources in reading order (rows and the source menu): the envelopes, the LFOs, what the player does, the machine's own life. */
 export const SRC_ORDER = ['env2', 'env3', 'mod_env', 'amp_env', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo_product', 'velocity', 'modwheel', 'keytrack', 'random', 'drift', 'drift_slow'];
 /** Destinations in signal order: pitch, the sources, drive and filter, dirt, level, effects, LFO rates. */

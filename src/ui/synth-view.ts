@@ -921,18 +921,9 @@ export class SynthView {
     this.values[id] = v;
     this.onChange(id, v);
     for (const f of this.watchers.get(id) ?? []) f();
-    // routing an LFO in the matrix switches it on
-    const lfo = /^mod\d+\.source$/.test(id) ? /^lfo(\d)$/.exec(String(v)) : null;
-    if (lfo && !this.get(`lfo${lfo[1]}.on`)) this.set(`lfo${lfo[1]}.on`, true);
-  }
-
-  /** Whether a mod source is used: a matrix row that is on, with a destination and an amount. */
-  private routed(src: string): boolean {
-    if (!this.get('mod.on')) return false;
-    for (let n = 1; n <= MOD_SLOTS; n++) {
-      if (String(this.get(`mod${n}.source`)) === src && String(this.get(`mod${n}.dest`)) !== 'none' && this.num(`mod${n}.amount`) !== 0 && this.get(`mod${n}.on`) !== false) return true;
-    }
-    return false;
+    // routing an LFO or envelope in the matrix switches it on
+    const src = /^mod\d+\.source$/.test(id) && /^(lfo\d|env[23])$/.test(String(v)) ? String(v) : null;
+    if (src && !this.get(`${src}.on`)) this.set(`${src}.on`, true);
   }
 
   /** Run `view` now, whenever one of `ids` changes, and when a patch loads. */
@@ -1248,16 +1239,13 @@ export class SynthView {
   }
 
   /** The power lamp of a part with its own on/off switch. */
-  private boolPower(id: string, card: HTMLElement, src?: string): HTMLElement {
+  private boolPower(id: string, card: HTMLElement): HTMLElement {
     const b = h('button', 'power', lamp());
     b.title = getParam(id)?.describes ?? '';
     b.onclick = () => this.set(id, !this.get(id));
-    // a mod source that no matrix row uses shows as off
-    this.watch(src ? [id, 'mod.on', ...MOD_IDS] : [id], () => {
-      const on = !!this.get(id) && (!src || this.routed(src));
-      b.classList.toggle('on', on);
-      card.classList.toggle('is-off', !on);
-      if (src) b.title = this.routed(src) ? getParam(id)?.describes ?? '' : 'Off: nothing in the mod matrix uses it';
+    this.watch([id], () => {
+      b.classList.toggle('on', !!this.get(id));
+      card.classList.toggle('is-off', !this.get(id));
     });
     return b;
   }
@@ -1997,7 +1985,7 @@ export class SynthView {
     const el = h('span', 'route-tag');
     this.watch([...MOD_IDS, 'mod.on'], () => {
       const t = this.routesOf(src);
-      el.textContent = t || 'not routed';
+      el.textContent = t || 'not connected to anything';
       el.classList.toggle('none', !t);
       el.title = t;
     });
@@ -2088,7 +2076,7 @@ export class SynthView {
       note.style.display = free ? 'none' : '';
     });
     return this.obox(`LFO ${n}`, `mb box-lfo${n}`, {
-      power: (el) => this.boolPower(`${L}.on`, el, L),
+      power: (el) => this.boolPower(`${L}.on`, el),
       head: [this.selector(`${L}.shape`, { label: (o) => LFO_SHAPE[o] ?? o }), h('span', 'lfo-retrig', this.toggle(`${L}.retrigger`, 'Retrig', 'small'))],
       corner: [this.routeTag(L)],
       print: this.lfoPrint(n, MB_PRINT_W, MB_PRINT_H),
@@ -2100,11 +2088,8 @@ export class SynthView {
   /** Env 2 (the slow bloom) and Env 3 (pitch bumps and drops, or anything else): ADSR, routed in the matrix. */
   private modEnvBox(n: 2 | 3): HTMLElement {
     const pct = (v: number) => `${Math.round(v * 100)}%`, E = `env${n}`;
-    // no switch of its own: on while a matrix row uses it
-    const power = h('span', 'power', lamp());
-    power.title = 'On while the mod matrix uses it';
-    const box = this.obox(`ENV ${n}`, `mb box-env${n}`, {
-      power,
+    return this.obox(`ENV ${n}`, `mb box-env${n}`, {
+      power: (el) => this.boolPower(`${E}.on`, el),
       corner: [this.routeTag(E)],
       print: this.envPrint(E, MB_PRINT_W, MB_PRINT_H),
       dials: [
@@ -2114,12 +2099,6 @@ export class SynthView {
         this.knob(`${E}.release`, 'R', 'lg', { fmt: ms, parse: parseMs }),
       ],
     });
-    this.watch(['mod.on', ...MOD_IDS], () => {
-      const on = this.routed(E);
-      power.classList.toggle('on', on);
-      box.classList.toggle('is-off', !on);
-    });
-    return box;
   }
 
   /** The custom shape's points from the patch. */
@@ -2552,19 +2531,22 @@ export class SynthView {
       dst.classList.add('mx-dst');
       const on = h('button', 'mx-on', lamp());
       on.title = 'This modulation on / off (keeps its settings)';
-      // a row from a switched-off LFO shows as off too; switching such a row on switches its LFO on
-      const lfoOf = () => /^lfo(\d)$/.exec(String(this.get(`mod${n}.source`)))?.[1];
-      const live = () => !!this.get(`mod${n}.on`) && (!lfoOf() || !!this.get(`lfo${lfoOf()}.on`));
+      // a row from a switched-off LFO or envelope shows as off too; switching it on switches the source on
+      const switched = () => {
+        const s = String(this.get(`mod${n}.source`));
+        return /^(lfo\d|env[23])$/.test(s) ? s : null;
+      };
+      const live = () => !!this.get(`mod${n}.on`) && (!switched() || !!this.get(`${switched()}.on`));
       on.onclick = () => {
         if (live()) this.set(`mod${n}.on`, false);
         else {
           this.set(`mod${n}.on`, true);
-          const l = lfoOf();
-          if (l) this.set(`lfo${l}.on`, true);
+          const s = switched();
+          if (s) this.set(`${s}.on`, true);
         }
       };
       const row = h('div', 'mx-row', on, h('span', 'mx-n', String(n).padStart(2, '0')), src, h('span', 'mx-arrow', '→'), dst);
-      this.watch([`mod${n}.on`, `mod${n}.source`, 'lfo1.on', 'lfo2.on', 'lfo3.on', 'lfo4.on'], () => {
+      this.watch([`mod${n}.on`, `mod${n}.source`, 'lfo1.on', 'lfo2.on', 'lfo3.on', 'lfo4.on', 'env2.on', 'env3.on'], () => {
         on.classList.toggle('on', live());
         row.classList.toggle('off', !live());
       });

@@ -1214,6 +1214,14 @@
       "describes": "Mod envelope fall time after release."
     },
     {
+      "id": "env2.on",
+      "label": "Env 2 on",
+      "type": "bool",
+      "default": true,
+      "group": "env2",
+      "describes": "Switches Env 2 on or off without losing its settings. Off, the matrix rows that use it do nothing."
+    },
+    {
       "id": "env2.attack",
       "label": "Env 2 attack",
       "type": "float",
@@ -1260,6 +1268,14 @@
       "unit": "ms",
       "group": "env2",
       "describes": "Fall time of env 2 after the key is released."
+    },
+    {
+      "id": "env3.on",
+      "label": "Env 3 on",
+      "type": "bool",
+      "default": true,
+      "group": "env3",
+      "describes": "Switches Env 3 on or off without losing its settings. Off, the matrix rows that use it do nothing."
     },
     {
       "id": "env3.attack",

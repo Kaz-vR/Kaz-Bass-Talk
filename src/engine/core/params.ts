@@ -155,7 +155,7 @@ export const P = {
   tapeDrive: ix('tape.drive'), tapeWow: ix('tape.wow'), tapeAge: ix('tape.age'),
   osc2Sync: ix('osc2.sync'),
   fmOn: ix('fm.on'), driveOn: ix('drive.on'), filterOn: ix('filter.on'), distOn: ix('dist.on'), crushOn: ix('crush.on'),
-  tapeOn: ix('tape.on'), vibOn: ix('vibrato.on'), lfoOn: [1, 2, 3, 4].map((n) => ix(`lfo${n}.on`)), wobOn: ix('wobble.on'),
+  tapeOn: ix('tape.on'), vibOn: ix('vibrato.on'), lfoOn: [1, 2, 3, 4].map((n) => ix(`lfo${n}.on`)), env2On: ix('env2.on'), env3On: ix('env3.on'), wobOn: ix('wobble.on'),
   modOn: ix('mod.on'), eqOn: ix('eq.on'), chorusOn: ix('chorus.on'), flangerOn: ix('flanger.on'),
   phaserOn: ix('phaser.on'), delayOn: ix('delay.on'), reverbOn: ix('reverb.on'),
   wheelMove: ix('wheel.move'), wheelPreset: ix('wheel.preset'),

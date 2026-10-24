@@ -5,7 +5,7 @@ import { EngineHost } from '../engine/host';
 import { arrayToPatch, inPlugin, PluginHost } from '../engine/plugin-host';
 import { roll, type Roll } from '../generator/randomizer';
 import { categories } from '../quality/categories';
-import { params, validatePatch, type ParamValue, type Patch } from '../schema';
+import { params, switchOffUnused, validatePatch, type ParamValue, type Patch } from '../schema';
 import { DEFAULT_LOOP_ID, library, loops } from './data';
 import { Keyboard } from './keyboard';
 import { initMidi } from './midi';
@@ -239,6 +239,7 @@ function loadRoll(e: RollEntry): void {
   currentRoll = e;
   reference = e.roll.patch;
   const prev = current;
+  switchOffUnused(reference); // (the preset as designed shows only what it uses)
   current = structuredClone(reference);
   synth.keepLocked(current, prev);
   showPatchInfo(current);
@@ -279,6 +280,7 @@ function loadPatch(index: number): void {
   // A preset can name its own audition loop (a short bass wants a riff, not long notes).
   if (typeof reference.meta.audition === 'string') setLoop(reference.meta.audition);
   const prev = current;
+  switchOffUnused(reference); // (the preset as designed shows only what it uses)
   current = structuredClone(reference);
   synth.keepLocked(current, prev);
   showPatchInfo(current);

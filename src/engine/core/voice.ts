@@ -476,8 +476,8 @@ export class Voice {
     src[K.SRC_VEL] = this.velocity;
     src[K.SRC_KEY] = clamp((this.pitch - KEYTRACK_CENTER) / 24, -1, 1);
     src[K.SRC_RANDOM] = this.noteRandom;
-    src[K.SRC_ENV2] = this.env2.level;
-    src[K.SRC_ENV3] = this.env3.level;
+    src[K.SRC_ENV2] = this.env2.level * cur[P.env2On];
+    src[K.SRC_ENV3] = this.env3.level * cur[P.env3On];
     const dst = this.dst;
     dst.set(xdst); // the mod wheel's move and the wobble, shared by all voices
     for (let s = 0; s < SLOT_COUNT; s++) {
