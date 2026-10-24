@@ -995,6 +995,9 @@ export class SynthView {
   }
 
   private set(id: string, v: ParamValue): void {
+    // The Wobbler's Low cut and High cut pick a band: they stop where they meet, never cross.
+    if (id === 'wobble.lowcut') v = Math.min(Number(v), this.num('wobble.highcut'));
+    if (id === 'wobble.highcut') v = Math.max(Number(v), this.num('wobble.lowcut'));
     if (this.values[id] === v) return;
     this.values[id] = v;
     this.onChange(id, v);
@@ -2323,7 +2326,7 @@ export class SynthView {
    * palette under it, and one SETTINGS column on the right.
    */
   private buildLfoPage(): HTMLElement {
-    const ids = ['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.phase', 'wobble.smooth', 'wobble.lowcut', 'wobble.cutoff', 'wobble.volume', 'wobble.points'];
+    const ids = ['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.phase', 'wobble.smooth', 'wobble.lowcut', 'wobble.highcut', 'wobble.cutoff', 'wobble.volume', 'wobble.points'];
     for (let i = 1; i <= 12; i++) ids.push(`wobble.x${i}`, `wobble.y${i}`, `wobble.s${i}`);
     const on = () => !!this.get('wobble.on') && this.num('wobble.depth') > 0;
     const W = 870, H = 260, PAD = 14, GX = 16, GY = 8;
@@ -2606,22 +2609,22 @@ export class SynthView {
       });
       tiles.push(tile);
     }
-    // A small button under the last tile opens a second page of 8 slots (empty for now).
+    // MORE ▾ under the last tile opens a dropdown with 8 more slots (empty for now).
     const spare = Array.from({ length: 8 }, () => h('div', 'lfo5-tile empty'));
-    const more = h('button', 'lfo5-more', '›');
-    const palette = h('div', 'c ob box-wob lfo5-palette', ...tiles, ...spare, more);
-    let page2 = false;
-    const showPage = () => {
-      for (const t of tiles) t.style.display = page2 ? 'none' : '';
-      for (const t of spare) t.style.display = page2 ? '' : 'none';
-      more.textContent = page2 ? '‹' : '›';
-      more.title = page2 ? 'Back to the shapes' : '8 more slots';
+    const menu = h('div', 'lfo5-more-menu', ...spare);
+    const more = h('button', 'lfo5-more', 'MORE ▾');
+    more.title = '8 more shape slots';
+    const palette = h('div', 'c ob box-wob lfo5-palette', ...tiles, more, menu);
+    const close = () => {
+      menu.classList.remove('open');
+      more.classList.remove('on');
     };
-    more.onclick = () => {
-      page2 = !page2;
-      showPage();
+    more.onclick = (e) => {
+      e.stopPropagation();
+      menu.classList.toggle('open');
+      more.classList.toggle('on', menu.classList.contains('open'));
     };
-    showPage();
+    document.addEventListener('pointerdown', (e) => { if (!menu.contains(e.target as Node) && e.target !== more) close(); });
     return h('div', 'v2-main osc-page lfo-page', big, settings, palette);
   }
 

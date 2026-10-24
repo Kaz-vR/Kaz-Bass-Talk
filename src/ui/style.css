@@ -1339,10 +1339,15 @@ html, body, .v2-wrap { background: #070708; }
 /* The matrix amount: drag the number up / down. */
 .v2 .amt-val { cursor: ns-resize; user-select: none; touch-action: none; }
 .v2 .amt-val:hover { color: #fff; text-shadow: 0 0 6px rgba(255,255,255,0.5); }
-/* The palette's second page: a small arrow under the last tile. */
+/* MORE ▾ under the last tile: opens a dropdown with 8 more slots, rising over the graph. */
 .v2 .lfo-page > .lfo5-palette { position: relative; }
-.v2 .lfo5-more { position: absolute; right: 4px; bottom: 1px; width: 18px; height: 12px; padding: 0; line-height: 10px; font-size: 11px;
-  background: transparent; border: 0; color: #5d5d62; cursor: pointer; }
-.v2 .lfo5-more:hover { color: #fff; text-shadow: 0 0 6px rgba(255,255,255,0.6); }
+.v2 .lfo5-more { position: absolute; right: 14px; bottom: -1px; height: 14px; padding: 0 8px; line-height: 14px; font-size: 9px; letter-spacing: 0.2em;
+  background: #0b0b0c; border: 1px solid rgba(255,255,255,0.12); border-bottom: 0; border-radius: 2px 2px 0 0; color: #9a9aa0; cursor: pointer; z-index: 3; }
+.v2 .lfo5-more:hover, .v2 .lfo5-more.on { color: #fff; border-color: rgba(255,255,255,0.25); text-shadow: 0 0 6px rgba(255,255,255,0.6); }
+.v2 .lfo5-more-menu { display: none; position: absolute; left: 0; right: 0; bottom: calc(100% + 4px); z-index: 20; grid-template-columns: repeat(8, 1fr); gap: 8px;
+  padding: 12px 14px; background: var(--light-grain, none) 0 0 / 192px 192px, #0b0b0c; background-blend-mode: multiply;
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 2px; box-shadow: 0 -14px 34px rgba(0,0,0,0.8); }
+.v2 .lfo5-more-menu.open { display: grid; }
+.v2 .lfo5-more-menu .lfo5-tile.empty { height: 70px; }
 .v2 .lfo-page > .lfo5-palette { grid-auto-rows: 1fr; }
 .v2 .lfo5-tile.empty { min-height: 60px; }
