@@ -1461,6 +1461,8 @@ export class SynthView {
   private envPrint(prefix: string, W: number, H: number): HTMLElement {
     const [cv, g] = canvas(W, H, 'disp');
     const ids = ['attack', 'decay', 'sustain', 'release'].map((s) => `${prefix}.${s}`);
+    // Env 2 / 3 have an on / off switch; the amp and filter envelopes are always on
+    const onId = `${prefix}.on`, isOn = () => !getParam(onId) || !!this.get(onId);
     let span = 1000;
     let hot = -1;
     const geo = () => {
@@ -1489,11 +1491,12 @@ export class SynthView {
       pts.push([X(a + d + hold), Y(s)]);
       for (let i = 1; i <= N; i++) pts.push([X(a + d + hold + (r * i) / N), Y(s * Math.exp((-5 * i) / N))]);
       fillUnder(g, pts, H, accentOf(cv));
-      silver(g, pts);
+      silver(g, pts, isOn());
       vignette(g, W, H);
       points().forEach(([x, y], i) => handle(g, x, y, i === hot));
-      // Where the playing note is in the envelope: a ball that runs along it (as in Serum).
-      const at = playhead();
+      // Where the playing note is in the envelope: a ball that runs along it (as in Serum), not
+      // while the envelope is switched off.
+      const at = isOn() ? playhead() : null;
       if (at) {
         const col = accentOf(cv);
         g.save();
@@ -1532,7 +1535,7 @@ export class SynthView {
       return [X(a + d + hold + tr), Y(v0 * Math.exp((-5 * tr) / Math.max(r, 1e-3)))];
     };
     this.dotDraws.push(draw);
-    this.watch(ids, () => {
+    this.watch(getParam(onId) ? [...ids, onId] : ids, () => {
       if (hot < 0) reSpan();
       draw();
     });
@@ -1981,13 +1984,11 @@ export class SynthView {
   }
 
   /** A source's routings as a short line ("→ cutoff +14%"), for a print's corner. */
+  /** "not connected to anything" while a switched-on LFO / envelope is used by no matrix row (what it is connected to shows in the matrix). */
   private routeTag(src: string): HTMLElement {
-    const el = h('span', 'route-tag');
-    this.watch([...MOD_IDS, 'mod.on'], () => {
-      const t = this.routesOf(src);
-      el.textContent = t || 'not connected to anything';
-      el.classList.toggle('none', !t);
-      el.title = t;
+    const el = h('span', 'route-tag none');
+    this.watch([...MOD_IDS, 'mod.on', `${src}.on`], () => {
+      el.textContent = this.get(`${src}.on`) !== false && !this.routesOf(src) ? 'not connected to anything' : '';
     });
     return el;
   }
