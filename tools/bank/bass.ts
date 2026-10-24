@@ -143,7 +143,7 @@ const def: CategoryDef = {
       texture: ['dust', 0.3, 0.35, 500],
       set: {
         'voice.octave': 1, 'sub.octave': -2, 'sub.level': 0.55, 'filter.cutoff': 300, 'filter.env_amount': 0.15, 'amp_env.sustain': 0.9,
-        'wobble.depth': 0.6, 'wobble.rate': '1/8', 'wobble.target': 'filter', 'wobble.life': 0.5,
+        'wobble.depth': 0.6, 'wobble.rate': '1/8', 'wobble.life': 0.5,
       },
     },
     // ------------------------------------------------ producer range: the roles this category was missing
@@ -268,7 +268,7 @@ const def: CategoryDef = {
       texture: ['dust', 0.35, 0.35, 500],
       set: {
         'osc2.level': 0.4, 'osc2.fine': -9, 'filter.cutoff': 340, 'filter.env_amount': 0.1, 'amp_env.sustain': 0.9, 'amp_env.release': 200,
-        'wobble.depth': 0.55, 'wobble.rate': '1/4', 'wobble.shape': 'saw down', 'wobble.target': 'filter', 'wobble.life': 0.6,
+        'wobble.depth': 0.55, 'wobble.rate': '1/4', 'wobble.shape': 'saw down', 'wobble.life': 0.6,
         'comp.pump': 0.35, 'comp.pump_rate': '1/4', 'sub.clip': 3, 'drive.amount': 0.82, 'dist.drive': 0.5, 'eq.mid_freq': 300, 'eq.mid_gain': -3,
       },
     },

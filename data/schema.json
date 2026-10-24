@@ -1760,19 +1760,20 @@
       "describes": "How often it wobbles, locked to the tempo and the bar: 1/8 is the classic wobble, 1/16 a fast growl, 1/4T and 1/8T triplet swing."
     },
     {
-      "id": "wobble.target",
-      "label": "Wobble target",
-      "type": "enum",
-      "options": [
-        "filter",
-        "vowel",
-        "volume",
-        "wavetable",
-        "fm"
-      ],
-      "default": "filter",
+      "id": "wobble.cutoff",
+      "label": "Wobble on cutoff",
+      "type": "bool",
+      "default": true,
       "group": "wobble",
-      "describes": "What the wobble moves. Cutoff: the classic wub (the filter swings shut and wide open with a resonant peak). Vowel: the formant filter talks (set the filter to formant). Volume: a tempo-locked gate that chops the sound. Wavetable: the wavetable oscillators sweep through their table. FM: the FM amount pulses, metallic bursts on the beat."
+      "describes": "The wobble moves the filter cutoff: the classic wub, the filter swinging shut and wide open with a resonant peak."
+    },
+    {
+      "id": "wobble.volume",
+      "label": "Wobble on volume",
+      "type": "bool",
+      "default": false,
+      "group": "wobble",
+      "describes": "The wobble moves the volume: a tempo-locked gate that chops the whole sound. With cutoff on too, the filter opens as the sound swells in."
     },
     {
       "id": "wobble.shape",

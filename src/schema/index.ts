@@ -126,13 +126,16 @@ export function validatePatch(input: unknown): ValidationResult {
   for (const p of params) {
     // Older patches had one shared FX low cut: each effect takes it as its own.
     const old = p.id.endsWith('.lowcut') && !(p.id in src) && 'fx.lowcut' in src ? 'fx.lowcut' : p.id;
-    let raw = src[old];
-    // The wobble's old filter + drive (+ texture) targets became plain cutoff.
-    if (p.id === 'wobble.target' && typeof raw === 'string' && raw.startsWith('filter +')) raw = 'filter';
-    patch[p.id] = old in src ? clampValue(p, raw, issues) : (p.default as ParamValue);
+    // The wobble's one target became two lamps: volume alone, otherwise cutoff.
+    if ((p.id === 'wobble.cutoff' || p.id === 'wobble.volume') && !(p.id in src) && 'wobble.target' in src) {
+      const vol = src['wobble.target'] === 'volume';
+      patch[p.id] = p.id === 'wobble.volume' ? vol : !vol;
+      continue;
+    }
+    patch[p.id] = old in src ? clampValue(p, src[old], issues) : (p.default as ParamValue);
   }
   for (const key of Object.keys(src)) {
-    if (key !== 'meta' && key !== 'fx.lowcut' && !indexById.has(key)) issues.push({ param: key, message: 'unknown parameter (dropped)' });
+    if (key !== 'meta' && key !== 'fx.lowcut' && key !== 'wobble.target' && !indexById.has(key)) issues.push({ param: key, message: 'unknown parameter (dropped)' });
   }
   sortModSlots(patch);
   return { patch, issues };

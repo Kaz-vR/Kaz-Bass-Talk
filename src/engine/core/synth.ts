@@ -612,31 +612,19 @@ export class Synth {
         }
         default: v = 0.5 - 0.5 * Math.cos(TWO_PI * p);
       }
-      // Each target swings around the preset's own setting (volume only ducks, never louder).
-      const a = depth * v * this.wobScale;
+      // Cutoff and volume, either or both: the cutoff swings around the preset's own setting,
+      // the volume only ducks (never louder).
       const swing = depth * (2 * v - 1) * this.wobScale;
-      switch (Math.round(cur[P.wobTarget])) {
-        case K.WOB_VOWEL:
-          // The formant filter talks: across most of the vowel range.
-          x[K.D_VOWEL] += 0.5 * swing;
-          break;
-        case K.WOB_VOLUME:
-          // A tempo-locked gate on the whole sound (sub, effects and tails too, as in ShaperBox):
-          // full level where the shape is up, down to silence at full depth.
-          this.wobGateTarget = 1 - Math.min(1, depth * this.wobScale) * (1 - v);
-          break;
-        case K.WOB_WAVETABLE:
-          x[K.D_OSC1_WT] += 0.5 * swing;
-          x[K.D_OSC2_WT] += 0.5 * swing;
-          break;
-        case K.WOB_FM:
-          x[K.D_FM] += 0.6 * a;
-          break;
-        default:
-          // The classic wub: the cutoff swings shut ("ooo") to wide open ("waaa"), about
-          // ±2.5 octaves at full depth, with a resonant peak that grows with depth.
-          x[K.D_CUTOFF] += 0.42 * swing + this.wobBright;
-          x[K.D_RES] += 0.15 * depth;
+      if (cur[P.wobCutoff] > 0.5) {
+        // The classic wub: shut ("ooo") to wide open ("waaa"), about ±2.5 octaves at full
+        // depth, with a resonant peak that grows with depth.
+        x[K.D_CUTOFF] += 0.42 * swing + this.wobBright;
+        x[K.D_RES] += 0.15 * depth;
+      }
+      if (cur[P.wobVolume] > 0.5) {
+        // A tempo-locked gate on the whole sound (sub, effects and tails too, as in ShaperBox):
+        // full level where the shape is up, down to silence at full depth.
+        this.wobGateTarget = 1 - Math.min(1, depth * this.wobScale) * (1 - v);
       }
     }
   }

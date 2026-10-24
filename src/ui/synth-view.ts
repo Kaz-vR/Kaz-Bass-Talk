@@ -2244,7 +2244,7 @@ export class SynthView {
    * phase while a note sounds. Under it the shape palette; on the right its controls.
    */
   private buildLfoPage(): HTMLElement {
-    const ids = ['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.life', 'wobble.target', 'wobble.points'];
+    const ids = ['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.life', 'wobble.cutoff', 'wobble.volume', 'wobble.points'];
     for (let i = 1; i <= 12; i++) ids.push(`wobble.x${i}`, `wobble.y${i}`, `wobble.s${i}`);
     const on = () => !!this.get('wobble.on') && this.num('wobble.depth') > 0;
     const W = 870, H = 260, PAD = 14, GX = 16, GY = 8;
@@ -2418,49 +2418,44 @@ export class SynthView {
       dials: [this.knob('wobble.depth', 'Depth', 'lg'), this.knob('wobble.life', 'Life', 'lg')],
     });
 
-    // Right, bottom: what it moves (one target), the print naming it and what it does; a target
-    // that can't be heard in this patch is dimmed, and the print says what it needs.
+    // Right, bottom: what it moves, cutoff and volume as two lamps (either or both); the print
+    // shows one cycle of each, the cutoff as a line and the volume as the gate it cuts.
     const [tcv, tg] = canvas(SW, SH, 'disp');
-    const TARGETS: { v: string; label: string; does: string; needs?: () => string | null }[] = [
-      { v: 'filter', label: 'Cutoff', does: 'the filter swings shut and open' },
-      { v: 'vowel', label: 'Vowel', does: 'the formant filter talks', needs: () => (this.get('filter.type') === 'formant' ? null : 'set the filter to formant') },
-      { v: 'volume', label: 'Volume', does: 'a gate that chops the whole sound' },
-      { v: 'wavetable', label: 'Wavetable', does: 'the table sweeps back and forth', needs: () => (this.get('osc1.wave') === 'wavetable' || this.get('osc2.wave') === 'wavetable' ? null : 'set an oscillator to wavetable') },
-      { v: 'fm', label: 'FM', does: 'metallic bursts on the beat', needs: () => (this.get('fm.on') ? null : 'switch FM on (All controls)') },
-    ];
-    const deps = [...ids, 'filter.type', 'osc1.wave', 'osc2.wave', 'fm.on'];
-    this.watch(deps, () => {
+    this.watch(ids, () => {
       paper(tg, SW, SH);
-      const t = TARGETS.find((x) => x.v === this.get('wobble.target')) ?? TARGETS[0];
-      const need = t.needs?.() ?? null, col = accentOf(tcv), lit = on() && !need;
+      const cut = !!this.get('wobble.cutoff'), vol = !!this.get('wobble.volume'), shape = String(this.get('wobble.shape'));
+      const col = accentOf(tcv), lit = on() && (cut || vol);
+      if (vol) {
+        // the volume: a filled body that swells and ducks with the shape
+        const pts: [number, number][] = [];
+        for (let i = 0; i <= SW; i++) pts.push([i, SH - 6 - this.wobValueFor(shape, i / SW) * (SH - 14)]);
+        if (lit) fillUnder(tg, pts, SH - 6, col, 0.32, 0.08);
+        else fillUnder(tg, pts, SH - 6, '#55555a', 0.25, 0.05);
+      }
+      if (cut) {
+        const pts: [number, number][] = [];
+        for (let i = 0; i <= SW; i++) pts.push([i, SH - 6 - this.wobValueFor(shape, i / SW) * (SH - 14)]);
+        silver(tg, pts, lit);
+      }
       tg.save();
-      tg.textAlign = 'center';
-      tg.font = "400 16px 'LT Space', 'Space Grotesk', sans-serif";
-      tg.fillStyle = lit ? '#f4f6fa' : '#6a6a70';
-      tg.shadowColor = col;
-      tg.shadowBlur = lit ? 12 : 0;
-      tg.fillText(t.label.toUpperCase().split('').join(String.fromCharCode(8202, 8202)), SW / 2, SH / 2 - 4);
-      tg.shadowBlur = 0;
+      tg.textAlign = 'right';
       tg.font = "400 9px 'LT Space', 'Space Grotesk', sans-serif";
-      tg.fillStyle = need ? col : '#6a6a70';
-      tg.fillText((need ?? t.does).toUpperCase().split('').join(String.fromCharCode(8202)), SW / 2, SH / 2 + 18);
+      tg.fillStyle = lit ? '#cfd4da' : '#55555a';
+      const what = cut && vol ? 'CUTOFF + VOLUME' : cut ? 'CUTOFF' : vol ? 'VOLUME' : 'NOTHING';
+      tg.fillText(what.split('').join(String.fromCharCode(8202)), SW - 4, 12);
       tg.restore();
     });
-    const pick = (t: (typeof TARGETS)[number]) => {
-      const b = h('button', 'led', lamp(), t.label);
-      b.onclick = () => this.set('wobble.target', t.v);
-      this.watch(deps, () => {
-        b.classList.toggle('on', this.get('wobble.target') === t.v);
-        b.classList.toggle('dim', !!t.needs?.());
-      });
-      b.title = `${t.label}: ${t.does}`;
+    const lampFor = (id: string, label: string) => {
+      const b = h('button', 'led', lamp(), label);
+      b.onclick = () => this.set(id, !this.get(id));
+      this.watch([id], () => b.classList.toggle('on', !!this.get(id)));
+      b.title = getParam(id)!.describes;
       return b;
     };
     const targetBox = this.obox('TARGET', 'box-wob', {
       print: tcv,
-      dials: [h('div', 'lfo5-targets', ...TARGETS.map(pick))],
+      dials: [h('div', 'lfo5-targets', lampFor('wobble.cutoff', 'Cutoff'), lampFor('wobble.volume', 'Volume'))],
     });
-    targetBox.title = getParam('wobble.target')!.describes;
 
     // The shape palette under the print (as in ShaperBox): one tile per shape, the chosen one lit;
     // the empty tiles are room for shapes still to come.
