@@ -112,8 +112,6 @@
   "env2.decay": 4000,
   "env2.sustain": 1,
   "env2.release": 800,
-  "pitch_env.amount": 12,
-  "pitch_env.decay": 60,
   "vibrato.depth": 0,
   "vibrato.rate": 5.2,
   "vibrato.delay": 350,
@@ -148,9 +146,9 @@
   "mod2.source": "drift",
   "mod2.dest": "dist_drive",
   "mod2.amount": 0.03,
-  "mod3.source": "none",
-  "mod3.dest": "none",
-  "mod3.amount": 0,
+  "mod3.source": "env3",
+  "mod3.dest": "pitch",
+  "mod3.amount": 0.5,
   "mod4.source": "none",
   "mod4.dest": "none",
   "mod4.amount": 0,
@@ -205,5 +203,10 @@
   "eq.highcut": 11000,
   "output.gain": -6.3,
   "output.crossover": 120,
-  "wheel.preset": "snarl"
+  "wheel.preset": "snarl",
+  "env3.attack": 0,
+  "env3.decay": 60,
+  "env3.sustain": 0,
+  "env3.release": 60,
+  "mod3.on": true
 }
