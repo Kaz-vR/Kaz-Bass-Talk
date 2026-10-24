@@ -1124,13 +1124,17 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .brand-sub { color: #5d5d62 !important; }
 .v2 .v2-sub, .v2 .pre-caret { display: none !important; }
 .v2 .pre-sel { top: 50% !important; transform: translate(-50%, -50%) !important; }
-.v2 .v2-brand { padding: 0 0 0 6px !important; gap: 12px !important; }
+.v2 .v2-brand { padding: 0 0 0 6px !important; position: relative; display: block !important; line-height: 1; }
+.v2 .brand-name { display: block; line-height: 1 !important; }
+.v2 .brand-sub { position: absolute; left: 6px; top: calc(100% + 10px); white-space: nowrap; }
+.v2 .v2-top-right { align-items: center !important; }
+.v2 .tab, .v2 .zoom { line-height: 1 !important; padding-top: 0 !important; padding-bottom: 0 !important; display: flex; align-items: center; }
 .v2 .v2-top-right { padding: 0 !important; }
 .v2 .v2-top::after { display: none; }
-.v2 .pre-row { gap: 40px; }
+.v2 .pre-row { gap: 14px; }
 .v2 .pre-step { color: #9a9aa0; font-size: 18px; font-weight: 300; background: transparent; border: 0; }
 .v2 .pre-step:hover { color: #fff; }
-.v2 .pre-name .v2-name { font-size: 14px !important; letter-spacing: 0.3em !important; color: #ececf0; text-shadow: 0 0 8px rgba(255,255,255,0.5); }
+.v2 .pre-name .v2-name { font-size: 13px !important; letter-spacing: 0.24em !important; color: #ececf0; text-shadow: 0 0 8px rgba(255,255,255,0.5); }
 .v2 .tab { color: #5d5d62 !important; border-bottom-color: transparent !important; } .v2 .tab.on { color: #fff !important; text-shadow: 0 0 8px rgba(255,255,255,0.8) !important; }
 .v2 .zoom { border: 0 !important; background: transparent !important; color: #8a8a90 !important; }
 /* the play bar: lit when on */
@@ -1143,13 +1147,14 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .kb-move { text-shadow: 0 0 6px rgba(255,255,255,0.5); }
 /* the oscilloscope fills its box: only the box's own dark edge shows around it */
 .v2 .osc-page > .box-scope { padding: 8px !important; display: flex; }
-.v2 .box-scope .scope-glass { flex: 1; border-radius: 2px; overflow: hidden; background: #181818; box-shadow: none; border: 0; position: relative; }
+.v2 .box-scope .scope-glass { flex: 1; border-radius: 2px; overflow: hidden; background: #0b0b0b; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05) !important; box-shadow: none; border: 0; position: relative; }
 .v2 .box-scope .scope-glass canvas { width: 100% !important; height: 100% !important; display: block; }
 .v2 .box-scope .scope-glass::after { content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.07), transparent 60%), radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.65) 100%),
-    repeating-linear-gradient(0deg, rgba(0,0,0,0.22) 0 1px, transparent 1px 3px); }
+  background: radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.04), transparent 60%), radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.55) 100%),
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 3px); }
 /* the keys fall into the dark, lit from the front (Cinema) */
-.v2 .kb-keys .key.white { background: var(--key-grime) 0 0 / 100% 100%, linear-gradient(180deg, #0c0c0c 0%, #2c2c2b 35%, #8a8a87 85%, #b8b8b5 100%) !important; background-blend-mode: multiply;
+.v2 .kb-keys { position: relative; z-index: 81; }
+.v2 .kb-keys .key.white { background: var(--light-grain) 0 0 / 192px 192px, linear-gradient(180deg, #0c0c0c 0%, #1e1e1e 20%, #3a3a39 45%, #7a7a78 75%, #a9a9a6 92%, #b4b4b1 100%) !important; background-blend-mode: multiply;
   border-left: 1px solid #000 !important; border-right: 1px solid #000 !important; box-shadow: none !important; }
 .v2 .kb-keys .key.black { background: linear-gradient(180deg, #000, #0b0b0b 85%, #1d1d1d) !important; box-shadow: 1px 3px 4px rgba(0,0,0,0.8) !important; }
 .v2 .kb-keys .key .lbl { color: #3e3e3d !important; }

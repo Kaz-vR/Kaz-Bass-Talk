@@ -865,25 +865,22 @@ export class SynthView {
     if (!g) return;
     const [W, H] = this.scopeSize;
     // phosphor persistence: the last frames fade instead of vanishing; a faint graticule
-    g.fillStyle = 'rgba(24,24,24,0.2)';
+    g.fillStyle = 'rgba(9,9,9,0.24)';
     g.fillRect(0, 0, W, H);
-    g.fillStyle = 'rgba(255,255,255,0.018)';
-    for (let i = 1; i < 8; i++) g.fillRect(Math.round((W * i) / 8), 0, 1, H);
-    for (let i = 1; i < 4; i++) g.fillRect(0, Math.round((H * i) / 4), W, 1);
     let start = 0;
     for (let i = 1; i < buf.length / 2; i++) if (buf[i - 1] < 0 && buf[i] >= 0) { start = i; break; }
     const n = Math.min(1600, buf.length - start);
     let pk = 0;
     for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(buf[start + i]));
     const gain = pk > 0.02 ? Math.min(4, 0.8 / pk) : 1; // keep quiet sounds visible
-    g.strokeStyle = 'rgba(236,236,236,0.92)';
-    g.lineWidth = 1.5;
-    g.shadowColor = 'rgba(255,255,255,0.85)';
-    g.shadowBlur = 8;
+    g.strokeStyle = 'rgba(246,246,246,1)';
+    g.lineWidth = 2;
+    g.shadowColor = 'rgba(255,255,255,0.7)';
+    g.shadowBlur = 6;
     g.beginPath();
     for (let i = 0; i < n; i++) {
       const x = (i / (n - 1)) * W;
-      const y = H / 2 - buf[start + i] * gain * (H * 0.4);
+      const y = H / 2 - buf[start + i] * gain * (H * 0.45);
       if (i) g.lineTo(x, y);
       else g.moveTo(x, y);
     }
@@ -1677,7 +1674,7 @@ export class SynthView {
     const [cv, g] = canvas(W, H, 'scope-screen');
     this.scopeG = g;
     this.scopeSize = [W, H];
-    g.fillStyle = '#181818';
+    g.fillStyle = '#0b0b0b';
     g.fillRect(0, 0, W, H);
     const el = h('div', 'c ob box-scope', h('div', 'scope-glass', cv));
     el.title = 'Oscilloscope: the sound coming out, as a waveform';
