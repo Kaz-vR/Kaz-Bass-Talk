@@ -127,3 +127,19 @@ describe('breath into the filter (N)', () => {
     expect(above(skip, 2000)).toBeGreaterThan(above(through, 2000) + 10);
   });
 });
+
+describe('pitch modulation and the sub', () => {
+  // the sub alone, on its clean direct path
+  const sub = { 'osc1.level': 0, 'osc2.level': 0, 'noise.level': 0, 'texture.level': 0, 'sub.level': 0.8, 'sub.direct': true };
+  const lfo = { 'lfo1.rate': 6, 'mod1.source': 'lfo1', 'mod1.amount': 0.02 };
+  it('Osc A+B pitch leaves the sub steady', () => {
+    const a = render(sub).left, b = render({ ...sub, ...lfo, 'mod1.dest': 'osc_pitch' }).left;
+    expect(diffDb(a, b)).toBeLessThan(-100);
+  });
+  it('Pitch moves the whole note, sub included (Env 3 → Pitch: an 808 drop)', () => {
+    const a = render(sub).left;
+    expect(diffDb(a, render({ ...sub, ...lfo, 'mod1.dest': 'pitch' }).left)).toBeGreaterThan(-30);
+    const drop = { 'env3.attack': 0, 'env3.decay': 150, 'env3.sustain': 0, 'mod1.source': 'env3', 'mod1.dest': 'pitch', 'mod1.amount': 0.5 };
+    expect(diffDb(a, render({ ...sub, ...drop }).left)).toBeGreaterThan(-30);
+  });
+});

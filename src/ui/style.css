@@ -964,7 +964,7 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .box-lfo3 { --knob-accent: #3fe3b6; }
 .v2 .box-lfo4 { --knob-accent: #9a7cff; }
 .v2 .box-env2 { --knob-accent: #5f9bff; }
-.v2 .box-pitch { --knob-accent: #e2c9a6; }
+.v2 .box-env3 { --knob-accent: #e2c9a6; }
 .v2 .box-vib { --knob-accent: #ff6fae; }
 .v2 .box-wob { --knob-accent: #a9dcff; }
 .v2 .box-matrix { --knob-accent: #d4d4da; grid-column: 3; grid-row: 1 / 5; display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; }
@@ -987,11 +987,13 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .mx-row[data-src="lfo3"] .mx-src .sel-name { color: #3fe3b6; }
 .v2 .mx-row[data-src="lfo4"] .mx-src .sel-name { color: #9a7cff; }
 .v2 .mx-row[data-src="env2"] .mx-src .sel-name { color: #5f9bff; }
+.v2 .mx-row[data-src="env3"] .mx-src .sel-name { color: #e2c9a6; }
 .v2 .mx-row[data-src="lfo1"] .amt { --knob-accent: #ff3d2e; }
 .v2 .mx-row[data-src="lfo2"] .amt { --knob-accent: #ff8a2a; }
 .v2 .mx-row[data-src="lfo3"] .amt { --knob-accent: #3fe3b6; }
 .v2 .mx-row[data-src="lfo4"] .amt { --knob-accent: #9a7cff; }
 .v2 .mx-row[data-src="env2"] .amt { --knob-accent: #5f9bff; }
+.v2 .mx-row[data-src="env3"] .amt { --knob-accent: #e2c9a6; }
 
 /* Touch (replaces VEL): a slider you drag sideways; the tick is the last note's velocity. */
 .v2 .kb-touch { position: relative; display: block; width: 44px; height: 6px; background: rgba(0,0,0,0.6); cursor: ew-resize; touch-action: none; margin-top: 3px; }
@@ -1187,6 +1189,7 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .mx-row[data-src="lfo3"] .mx-on { --knob-accent: #3fe3b6; }
 .v2 .mx-row[data-src="lfo4"] .mx-on { --knob-accent: #9a7cff; }
 .v2 .mx-row[data-src="env2"] .mx-on { --knob-accent: #5f9bff; }
+.v2 .mx-row[data-src="env3"] .mx-on { --knob-accent: #e2c9a6; }
 /* The four IN lamps (no label) centred on the dials beside them. */
 .v2 .ob-dials .ob-routes { align-self: flex-start !important; padding-bottom: 0 !important; margin-top: 5.5px; }
 

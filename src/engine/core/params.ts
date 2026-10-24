@@ -53,15 +53,15 @@ export const DELAY_BEATS = [0.125, 1 / 6, 0.25, 0.375, 1 / 3, 0.5, 0.75, 2 / 3, 
 
 // Mod matrix sources / destinations (schema option order).
 export const SRC_LFO1 = 1, SRC_LFO2 = 2, SRC_MOD_ENV = 3, SRC_AMP_ENV = 4, SRC_VEL = 5, SRC_KEY = 6, SRC_MODWHEEL = 7, SRC_RANDOM = 8,
-  SRC_DRIFT = 9, SRC_PRODUCT = 10, SRC_LFO3 = 11, SRC_LFO4 = 12, SRC_DRIFT_SLOW = 13, SRC_ENV2 = 14;
-export const SRC_COUNT = 15;
+  SRC_DRIFT = 9, SRC_PRODUCT = 10, SRC_LFO3 = 11, SRC_LFO4 = 12, SRC_DRIFT_SLOW = 13, SRC_ENV2 = 14, SRC_ENV3 = 15;
+export const SRC_COUNT = 16;
 export const D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_OSC2_WT = 5, D_OSC1_PW = 6, D_OSC2_PW = 7,
   D_OSC1_LEVEL = 8, D_OSC2_LEVEL = 9, D_DETUNE = 10, D_FM = 11, D_SUB = 12, D_NOISE = 13, D_DRIVE = 14,
   D_CUTOFF = 15, D_RES = 16, D_VOWEL = 17, D_DIST_DRIVE = 18, D_DIST_MIX = 19, D_AMP = 20, D_LFO1_RATE = 21, D_LFO2_RATE = 22,
   D_FM2 = 23, D_CRUSH = 24, D_LFO3_RATE = 25, D_LFO4_RATE = 26, D_CHORUS_DEPTH = 27, D_PHASER_MIX = 28,
   D_DELAY_TIME = 29, D_DELAY_MIX = 30, D_REVERB_MIX = 31, D_WIDTH = 32, D_TAPE_WOW = 33, D_DIST_TONE = 34, D_TEXTURE = 35,
-  D_VIBRATO = 36, D_BREATH = 37;
-export const DEST_COUNT = 38;
+  D_VIBRATO = 36, D_BREATH = 37, D_OSC_PITCH = 38;
+export const DEST_COUNT = 39;
 export const TEXTURE_GAIN = 0.5;
 
 /** Beats in a wobble.rate option: 1/8, 1/8T (triplet), 1/8d (dotted), 3/4, 1 Bar, 1.5 Bars … (a bar = 4 beats). */
@@ -91,13 +91,13 @@ export const WOB_RANDOM = 6, WOB_CUSTOM = 7;
  * leaves them out, the same way it switches off vibrato, breath and texture.
  */
 export const WHEEL_MOVING_DESTS = new Set([
-  D_NOISE, D_BREATH, D_VIBRATO, D_TAPE_WOW, D_DETUNE, D_TEXTURE, D_CRUSH, D_PITCH, D_LFO2_RATE, D_CHORUS_DEPTH, D_REVERB_MIX,
+  D_NOISE, D_BREATH, D_VIBRATO, D_TAPE_WOW, D_DETUNE, D_TEXTURE, D_CRUSH, D_PITCH, D_OSC_PITCH, D_LFO2_RATE, D_CHORUS_DEPTH, D_REVERB_MIX,
   D_DELAY_MIX, D_WIDTH,
 ]);
 
 export const WHEEL_MOVES: [dest: number, amount: number][][] = [
   // pressure: louder, brighter, grittier, a little breath and sharpness
-  [[D_AMP, 0.2], [D_CUTOFF, 0.22], [D_DRIVE, 0.25], [D_NOISE, 0.04], [D_BREATH, 0.12], [D_PITCH, 0.0008]],
+  [[D_AMP, 0.2], [D_CUTOFF, 0.22], [D_DRIVE, 0.25], [D_NOISE, 0.04], [D_BREATH, 0.12], [D_OSC_PITCH, 0.0008]],
   // snarl: distortion, resonance and bite
   [[D_DIST_DRIVE, 0.4], [D_DRIVE, 0.3], [D_RES, 0.22], [D_DIST_TONE, 0.15], [D_CUTOFF, 0.08], [D_AMP, -0.15]],
   // open: light comes in
@@ -107,7 +107,7 @@ export const WHEEL_MOVES: [dest: number, amount: number][][] = [
   // vibrato: a human vibrato, with a breath of air
   [[D_VIBRATO, 0.4], [D_BREATH, 0.05], [D_CUTOFF, 0.03]],
   // unstable: a dying machine
-  [[D_TAPE_WOW, 0.6], [D_DETUNE, 0.15], [D_CHORUS_DEPTH, 0.3], [D_PITCH, -0.002], [D_LFO2_RATE, 0.3]],
+  [[D_TAPE_WOW, 0.6], [D_DETUNE, 0.15], [D_CHORUS_DEPTH, 0.3], [D_OSC_PITCH, -0.002], [D_LFO2_RATE, 0.3]],
   // decay: the sound falls apart
   [[D_TAPE_WOW, 0.3], [D_CRUSH, 0.35], [D_DIST_TONE, -0.15], [D_CUTOFF, -0.12]],
   // bloom: it drifts away
@@ -166,7 +166,7 @@ export const P = {
   reverbTone: ix('reverb.tone'), eqHighcut: ix('eq.highcut'),
   amp: [ix('amp_env.attack'), ix('amp_env.decay'), ix('amp_env.sustain'), ix('amp_env.release')],
   mod: [ix('mod_env.attack'), ix('mod_env.decay'), ix('mod_env.sustain'), ix('mod_env.release')],
-  peAmount: ix('pitch_env.amount'), peDecay: ix('pitch_env.decay'),
+  env3: ['attack', 'decay', 'sustain', 'release'].map((s) => ix(`env3.${s}`)),
   vibDepth: ix('vibrato.depth'), vibRate: ix('vibrato.rate'), vibDelay: ix('vibrato.delay'), vibFade: ix('vibrato.fade'),
   chiff: ix('breath.chiff'), chiffDecay: ix('breath.decay'), breath: ix('breath.level'), breathTone: ix('breath.tone'),
   lfo: [1, 2, 3, 4].map((n) => ({

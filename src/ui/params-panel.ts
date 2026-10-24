@@ -12,7 +12,7 @@ const LAYERS: Record<string, string> = { osc1: 'osc1', osc2: 'osc2', sub: 'sub',
 
 const GROUP_TITLES: Record<string, string> = {
   voice: 'Voice', osc1: 'Oscillator 1', osc2: 'Oscillator 2', fm: 'FM', sub: 'Sub', noise: 'Noise', texture: 'Texture', drive: 'Drive',
-  string: 'String / Shepard', vibrato: 'Vibrato', breath: 'Breath', filter: 'Filter', dist: 'Distortion', crush: 'Bitcrusher', tape: 'Tape', clip: 'Mid clip', amp_env: 'Amp envelope', mod_env: 'Mod envelope', pitch_env: 'Pitch envelope',
+  string: 'String / Shepard', vibrato: 'Vibrato', breath: 'Breath', filter: 'Filter', dist: 'Distortion', crush: 'Bitcrusher', tape: 'Tape', clip: 'Mid clip', amp_env: 'Amp envelope', mod_env: 'Mod envelope', env3: 'Env 3',
   env2: 'Env 2 (bloom)', wheel: 'Mod wheel', wobble: 'Wobble', lfo1: 'LFO 1', lfo2: 'LFO 2', lfo3: 'LFO 3', lfo4: 'LFO 4', mod: 'Mod matrix', fx: 'Effects', eq: 'EQ', output: 'Output',
 };
 
@@ -36,7 +36,7 @@ const GROUP_TIPS: Record<string, string> = {
   amp_env: 'Volume over time for each note: attack, decay, sustain and release.',
   mod_env: 'A second envelope that sweeps the filter on each note (set its depth in the Filter box), and a source for the mod matrix.',
   env2: 'A slow envelope for long changes while a note is held (blooming open, swelling grit). Does nothing until routed in the mod matrix.',
-  pitch_env: 'A quick pitch drop or rise at the start of each note: kicks, 808 drops, zaps, scoops.',
+  env3: 'A third mod envelope. Routed to Pitch it gives a pitch drop or rise at the start of each note: kicks, 808 drops, zaps, scoops.',
   vibrato: 'A human vibrato that starts after a short delay and fades in, so notes start straight and then sing.',
   breath: 'The player\'s air: a short noisy puff at the start of each note plus a soft breathy band under it. Only sounds when the texture type is breath (the Noise strip).',
   lfo1: 'A slow or fast repeating (or smoothly random) movement. Does nothing until routed in the mod matrix; the line under the title shows where it goes.',
@@ -53,9 +53,9 @@ const GROUP_TIPS: Record<string, string> = {
 /** The page's sections, in the order the sound flows: play, sources, the dirt chain, envelopes, movement, space, out. */
 const SECTIONS: { id: string; title: string; hint: string; groups: string[] }[] = [
   { id: 'play', title: 'Play', hint: 'How it is played: voices, glide, touch, the mod wheel and a player\'s vibrato.', groups: ['voice', 'wheel', 'vibrato'] },
-  { id: 'sources', title: 'Sources', hint: 'What makes the sound: oscillators, FM, sub, noise, breath and the pitch at the start of a note.', groups: ['osc1', 'osc2', 'string', 'fm', 'sub', 'noise', 'breath', 'pitch_env'] },
+  { id: 'sources', title: 'Sources', hint: 'What makes the sound: oscillators, FM, sub, noise and breath.', groups: ['osc1', 'osc2', 'string', 'fm', 'sub', 'noise', 'breath'] },
   { id: 'tone', title: 'Tone and dirt', hint: 'The fixed chain, left to right: drive → filter → distortion → bitcrusher → tape → mid clip.', groups: ['drive', 'filter', 'dist', 'crush', 'tape', 'clip'] },
-  { id: 'shape', title: 'Shape over time', hint: 'Per-note envelopes: volume, the filter sweep and the slow bloom.', groups: ['amp_env', 'mod_env', 'env2'] },
+  { id: 'shape', title: 'Shape over time', hint: 'Per-note envelopes: volume, the filter sweep, the slow bloom and Env 3 (pitch bumps and drops).', groups: ['amp_env', 'mod_env', 'env2', 'env3'] },
   { id: 'movement', title: 'Movement', hint: 'What keeps it alive: the wobble, four LFOs, the other sources and the matrix that routes them.', groups: ['wobble', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'other', 'mod'] },
   { id: 'space', title: 'Space and finish', hint: 'After the voices, in order: the texture bed, effects (chorus → flanger → phaser → delay → reverb, each above its own low cut) and EQ.', groups: ['texture', 'fx', 'eq'] },
   { id: 'out', title: 'Output', hint: 'Final level. The limiter and the mono low end are always on.', groups: ['output'] },
@@ -79,7 +79,7 @@ export function formatValue(p: ParamDef, v: ParamValue): string {
 
 /** Mod sources with their own box show their routings there; the rest get the "Other sources" box. */
 const SOURCE_BOX: Record<string, string> = {
-  lfo1: 'lfo1', lfo2: 'lfo2', lfo3: 'lfo3', lfo4: 'lfo4', env2: 'env2', mod_env: 'mod_env', amp_env: 'amp_env',
+  lfo1: 'lfo1', lfo2: 'lfo2', lfo3: 'lfo3', lfo4: 'lfo4', env2: 'env2', env3: 'env3', mod_env: 'mod_env', amp_env: 'amp_env',
 };
 const OTHER_SOURCES: [string, string][] = [
   ['drift', 'Drift'], ['drift_slow', 'Drift slow'], ['random', 'Random (per note)'], ['velocity', 'Velocity'],
@@ -109,7 +109,7 @@ export class ParamsPanel {
   private emit(id: string, value: ParamValue): void {
     this.current = { ...this.current, [id]: value };
     this.onChange(id, value);
-    if (/^mod\d+\./.test(id) || id === 'filter.env_amount' || id === 'pitch_env.amount') this.refreshRoutes();
+    if (/^mod\d+\./.test(id) || id === 'filter.env_amount') this.refreshRoutes();
   }
 
   private routeEl(key: string): HTMLElement {
@@ -129,7 +129,6 @@ export class ParamsPanel {
     };
     add('amp_env', 'amp (always)');
     if (Number(c['filter.env_amount'] ?? 0) !== 0) add('mod_env', `filter cutoff (env amount ${formatValue(getParam('filter.env_amount')!, c['filter.env_amount'] as number)})`);
-    if (Number(c['pitch_env.amount'] ?? 0) !== 0) add('pitch_env', 'pitch');
     for (let n = 1; n <= MOD_SLOTS; n++) {
       const src = String(c[`mod${n}.source`] ?? 'none'), dest = String(c[`mod${n}.dest`] ?? 'none');
       const amt = Number(c[`mod${n}.amount`] ?? 0);
@@ -192,7 +191,7 @@ export class ParamsPanel {
       h.textContent = GROUP_TITLES[g] ?? g;
       if (GROUP_TIPS[g]) h.title = GROUP_TIPS[g];
       box.append(h);
-      if (Object.values(SOURCE_BOX).includes(g) || g === 'pitch_env') box.append(this.routeEl(g));
+      if (Object.values(SOURCE_BOX).includes(g)) box.append(this.routeEl(g));
       if (LAYERS[g]) h.append(this.monitorButtons(LAYERS[g]));
       if (g !== 'output' && g !== 'wheel') h.append(this.lockButton(g, box));
       const power = ps.find((p) => p.id === `${g}.on`);
@@ -580,7 +579,7 @@ export class ParamsPanel {
   setValue(id: string, v: ParamValue): void {
     this.current = { ...this.current, [id]: v };
     this.controls.get(id)?.set(v);
-    if (/^mod\d+\./.test(id) || id === 'filter.env_amount' || id === 'pitch_env.amount') this.refreshRoutes();
+    if (/^mod\d+\./.test(id) || id === 'filter.env_amount') this.refreshRoutes();
   }
 
   /** Show a patch. `reference` (the unedited version) highlights edited controls. */

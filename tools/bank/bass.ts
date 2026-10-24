@@ -31,7 +31,7 @@ const BASS_KIT: Mod[] = [
   ['random', 'filter_cutoff', 0.08],
   ['velocity', 'filter_cutoff', 0.15],
   ['drift_slow', 'drive', 0.15],
-  ['drift', 'pitch', 0.0012],
+  ['drift', 'osc_pitch', 0.0012],
   ['lfo4', 'width', 0.3],
   ['lfo3', 'tape_wow', 0.3],
   ['drift_slow', 'reverb_mix', 0.2],
@@ -130,7 +130,7 @@ const def: CategoryDef = {
       // A sine thump: the filter barely touches it, so the life is in the drive, the pitch and the level.
       mods: kit(BASS_KIT, [], {
         'lfo1>filter_cutoff': ['lfo1', 'drive', 0.15],
-        'random>filter_cutoff': ['random', 'pitch', 0.003],
+        'random>filter_cutoff': ['random', 'osc_pitch', 0.003],
         'velocity>filter_cutoff': ['velocity', 'amp', 0.2],
         'env2>filter_cutoff': null,
       }),

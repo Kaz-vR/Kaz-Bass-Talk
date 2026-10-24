@@ -111,13 +111,44 @@ function clampValue(p: ParamDef, raw: unknown, issues: ValidationIssue[]): Param
 }
 
 /**
+ * Older patches had a pitch envelope of their own and a matrix Pitch that never reached the sub.
+ * Now Env 3 → Pitch moves the whole note (sub included) and Osc A+B pitch only the oscillators, so:
+ * their Pitch rows become Osc A+B pitch, and the pitch envelope becomes Env 3 (an instant jump that
+ * decays) routed to Pitch, in a free slot or, when all 12 are used, in place of the smallest one.
+ */
+function migratePitchEnv(src: Record<string, unknown>): Record<string, unknown> {
+  if (!('pitch_env.amount' in src)) return src;
+  const out: Record<string, unknown> = { ...src };
+  for (let n = 1; n <= MOD_SLOT_COUNT; n++) if (out[`mod${n}.dest`] === 'pitch') out[`mod${n}.dest`] = 'osc_pitch';
+  const amount = Number(src['pitch_env.amount']) || 0, decay = Number(src['pitch_env.decay']) || 60;
+  if (Math.abs(amount) < 1e-6) return out;
+  out['env3.attack'] = 0;
+  out['env3.decay'] = decay;
+  out['env3.sustain'] = 0;
+  out['env3.release'] = decay;
+  const amt = (n: number) => Math.abs(Number(out[`mod${n}.amount`]) || 0);
+  const free = (n: number) => (out[`mod${n}.source`] ?? 'none') === 'none' || (out[`mod${n}.dest`] ?? 'none') === 'none' || amt(n) === 0;
+  let slot = 0;
+  for (let n = 1; n <= MOD_SLOT_COUNT && !slot; n++) if (free(n)) slot = n;
+  if (!slot) {
+    slot = 1;
+    for (let n = 2; n <= MOD_SLOT_COUNT; n++) if (amt(n) < amt(slot)) slot = n;
+  }
+  out[`mod${slot}.source`] = 'env3';
+  out[`mod${slot}.dest`] = 'pitch';
+  out[`mod${slot}.amount`] = Math.max(-1, Math.min(1, amount / 24));
+  out[`mod${slot}.on`] = true;
+  return out;
+}
+
+/**
  * Validate any patch-like object against the schema. Missing params get
  * defaults; out-of-range values are clamped; unknown keys are dropped.
  * Always returns a complete, safe patch plus a list of what was fixed.
  */
 export function validatePatch(input: unknown): ValidationResult {
   const issues: ValidationIssue[] = [];
-  const src = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
+  const src = migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>);
   const rawMeta = src.meta && typeof src.meta === 'object' ? (src.meta as PatchMeta) : undefined;
   const meta: PatchMeta = { ...(rawMeta ?? {}), name: typeof rawMeta?.name === 'string' ? rawMeta.name : 'Untitled' };
   if (!rawMeta) issues.push({ param: 'meta', message: 'missing meta' });
@@ -140,16 +171,16 @@ export function validatePatch(input: unknown): ValidationResult {
     patch[p.id] = old in src ? clampValue(p, src[old], issues) : (p.default as ParamValue);
   }
   for (const key of Object.keys(src)) {
-    if (key !== 'meta' && key !== 'fx.lowcut' && key !== 'wobble.target' && !indexById.has(key)) issues.push({ param: key, message: 'unknown parameter (dropped)' });
+    if (key !== 'meta' && key !== 'fx.lowcut' && key !== 'wobble.target' && !key.startsWith('pitch_env.') && !indexById.has(key)) issues.push({ param: key, message: 'unknown parameter (dropped)' });
   }
   sortModSlots(patch);
   return { patch, issues };
 }
 
 /** Matrix sources in reading order: the LFOs, Env 2 and the envelopes, what the hands do, the drifts. */
-const SRC_ORDER = ['lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo_product', 'env2', 'mod_env', 'amp_env', 'velocity', 'modwheel', 'keytrack', 'drift', 'drift_slow', 'random'];
+const SRC_ORDER = ['lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo_product', 'env2', 'env3', 'mod_env', 'amp_env', 'velocity', 'modwheel', 'keytrack', 'drift', 'drift_slow', 'random'];
 /** Destinations in signal order: pitch, the sources, drive and filter, dirt, level, effects, LFO rates. */
-const DEST_ORDER = ['pitch', 'osc1_pitch', 'osc2_pitch', 'vibrato_depth', 'osc1_wt_pos', 'osc2_wt_pos', 'osc1_pw', 'osc2_pw', 'osc1_level', 'osc2_level',
+const DEST_ORDER = ['pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'vibrato_depth', 'osc1_wt_pos', 'osc2_wt_pos', 'osc1_pw', 'osc2_pw', 'osc1_level', 'osc2_level',
   'unison_detune', 'fm_amount', 'fm2_amount', 'sub_level', 'noise_level', 'breath_level', 'texture_level', 'drive', 'filter_cutoff', 'filter_resonance',
   'filter_vowel', 'dist_drive', 'dist_mix', 'dist_tone', 'crush_mix', 'tape_wow', 'amp', 'chorus_depth', 'phaser_mix', 'delay_time', 'delay_mix',
   'reverb_mix', 'width', 'lfo1_rate', 'lfo2_rate', 'lfo3_rate', 'lfo4_rate'];

@@ -49,7 +49,7 @@ const SLOT_COUNT = K.SLOT_COUNT, SRC_COUNT = K.SRC_COUNT, DEST_COUNT = K.DEST_CO
 const VOWELS = K.VOWELS, FORMANT_GAIN = K.FORMANT_GAIN;
 const TABLE_N = TABLE_SIZE, TABLE_M = TABLE_MASK;
 const D = {
-  PITCH: K.D_PITCH, OSC1_PITCH: K.D_OSC1_PITCH, OSC2_PITCH: K.D_OSC2_PITCH, OSC1_WT: K.D_OSC1_WT, OSC2_WT: K.D_OSC2_WT,
+  PITCH: K.D_PITCH, OSC_PITCH: K.D_OSC_PITCH, OSC1_PITCH: K.D_OSC1_PITCH, OSC2_PITCH: K.D_OSC2_PITCH, OSC1_WT: K.D_OSC1_WT, OSC2_WT: K.D_OSC2_WT,
   OSC1_PW: K.D_OSC1_PW, OSC2_PW: K.D_OSC2_PW, OSC1_LEVEL: K.D_OSC1_LEVEL, OSC2_LEVEL: K.D_OSC2_LEVEL, DETUNE: K.D_DETUNE,
   FM: K.D_FM, SUB: K.D_SUB, NOISE: K.D_NOISE, DRIVE: K.D_DRIVE, CUTOFF: K.D_CUTOFF, RES: K.D_RES, VOWEL: K.D_VOWEL,
   DIST_DRIVE: K.D_DIST_DRIVE, DIST_MIX: K.D_DIST_MIX, AMP: K.D_AMP, FM2: K.D_FM2, CRUSH: K.D_CRUSH, TAPE_WOW: K.D_TAPE_WOW,
@@ -120,7 +120,7 @@ export class Voice {
   readonly ampEnv = new Envelope();
   private readonly modEnv = new Envelope();
   private readonly env2 = new Envelope(); // slow 'bloom' envelope, ticked at control rate
-  private pitchEnvLevel = 0;
+  private readonly env3 = new Envelope(); // a third mod envelope (pitch bumps and drops), control rate
   private readonly src = new Float64Array(SRC_COUNT);
   // LFO fade-in per voice, from this note's start: a shared fade would restart on every new
   // note and, in a fast arp or a chord, never get to fade in.
@@ -348,7 +348,7 @@ export class Voice {
     this.ampEnv.trigger();
     this.modEnv.trigger();
     this.env2.trigger();
-    this.pitchEnvLevel = 1;
+    this.env3.trigger();
     this.noteRandom = this.rng.next();
     for (let l = 0; l < 4; l++) this.lfoFade[l] = cur[P.lfo[l].fade] > 0 ? 0 : 1;
     this.noteTime = 0;
@@ -362,6 +362,7 @@ export class Voice {
     this.ampEnv.release();
     this.modEnv.release();
     this.env2.release();
+    this.env3.release();
   }
 
   /** Clear all DSP state (after a fault). */
@@ -370,6 +371,7 @@ export class Voice {
     this.ampEnv.reset();
     this.modEnv.reset();
     this.env2.reset();
+    this.env3.reset();
     this.ladL.reset();
     this.ladR.reset();
     for (let i = 0; i < 2; i++) {
@@ -443,8 +445,10 @@ export class Voice {
     this.modEnv.set(cur[P.mod[0]], cur[P.mod[1]], cur[P.mod[2]], cur[P.mod[3]], fs);
     this.env2.set(cur[P.env2[0]], cur[P.env2[1]], cur[P.env2[2]], cur[P.env2[3]], fs / CONTROL_BLOCK);
     if (this.env2.stage !== 0) this.env2.tick();
+    this.env3.set(cur[P.env3[0]], cur[P.env3[1]], cur[P.env3[2]], cur[P.env3[3]], fs / CONTROL_BLOCK);
+    if (this.env3.stage !== 0) this.env3.tick();
 
-    // Glide and pitch envelope.
+    // Glide.
     const glideMs = cur[P.glide];
     if (glideMs > 0.5) {
       const c = 1 - Math.exp((-CONTROL_BLOCK * 4.6) / ((glideMs / 1000) * fs));
@@ -452,7 +456,6 @@ export class Voice {
     } else {
       this.pitch = this.note;
     }
-    this.pitchEnvLevel *= Math.exp((-CONTROL_BLOCK * 4.6) / ((cur[P.peDecay] / 1000) * fs));
 
     // Mod matrix: global sources plus this voice's own.
     const src = this.src;
@@ -474,6 +477,7 @@ export class Voice {
     src[K.SRC_KEY] = clamp((this.pitch - KEYTRACK_CENTER) / 24, -1, 1);
     src[K.SRC_RANDOM] = this.noteRandom;
     src[K.SRC_ENV2] = this.env2.level;
+    src[K.SRC_ENV3] = this.env3.level;
     const dst = this.dst;
     dst.set(xdst); // the mod wheel's move and the wobble, shared by all voices
     for (let s = 0; s < SLOT_COUNT; s++) {
@@ -503,7 +507,9 @@ export class Voice {
     }
 
     // Pitch.
-    const basePitch = this.pitch + 12 * cur[P.octave] + 2 * bend + cur[P.peAmount] * this.pitchEnvLevel + 24 * dst[D.PITCH] + vib;
+    // Pitch moves the whole note (the sub too); Osc A+B pitch and vibrato only the two oscillators.
+    const notePitch = this.pitch + 12 * cur[P.octave] + 2 * bend + 24 * dst[D.PITCH];
+    const basePitch = notePitch + 24 * dst[D.OSC_PITCH] + vib;
 
     // Oscillators.
     for (let n = 0; n < 2; n++) {
@@ -629,10 +635,10 @@ export class Voice {
     this.fm2Inc = Math.min(0.45, carrier * cur[P.fm2Ratio]);
 
     // Sub, folded up an octave at a time if it would fall below 20 Hz (inaudible, wastes headroom).
-    // The sub follows the played note (glide, bend, pitch envelope) but never the
-    // pitch modulation (vibrato, drift, the mod matrix): it stays phase-locked under everything.
-    const subPitch = this.pitch + 12 * cur[P.octave] + 2 * bend + cur[P.peAmount] * this.pitchEnvLevel;
-    let subInc = this.toInc(subPitch + 12 * cur[P.subOct]);
+    // The sub follows the note: glide, bend and the matrix's Pitch (Env 3 → Pitch for an 808 drop).
+    // Osc A+B pitch, vibrato and drift move only the two oscillators, so a preset keeps its sub
+    // steady by sending its wobble there (as in Serum: the preset chooses, the engine doesn't).
+    let subInc = this.toInc(notePitch + 12 * cur[P.subOct]);
     while (subInc < 20 / fs) subInc *= 2;
     this.subInc = subInc;
     this.subLevel = clamp(cur[P.subLevel] + dst[D.SUB], 0, 1) * SUB_GAIN;

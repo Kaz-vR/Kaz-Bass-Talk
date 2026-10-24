@@ -56,7 +56,7 @@ const between = (r: Rand, lo: number, hi: number) => lo + (hi - lo) * r();
 /** Boxes a roll can swap in from another preset. */
 const SWAP_GROUPS = [
   'osc1', 'osc2', 'fm', 'string', 'sub', 'noise', 'texture', 'drive', 'filter', 'dist', 'crush', 'tape', 'amp_env', 'mod_env',
-  'env2', 'pitch_env', 'vibrato', 'breath', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'mod', 'fx', 'eq',
+  'env2', 'env3', 'vibrato', 'breath', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'mod', 'fx', 'eq',
 ];
 /** Never randomized: level and the low-end crossover are set by the leveler and the safety rules. */
 const FIXED = new Set(['output.gain', 'output.crossover', 'wheel.move']);
@@ -122,9 +122,16 @@ const IDEAS: Idea[] = [
     p['dist.drive'] = between(r, 0.3, 0.65);
     p['dist.mix'] = between(r, 0.4, 0.8);
   } },
-  { groups: ['pitch_env'], text: 'a pitch drop on every note', apply: (p, r) => {
-    p['pitch_env.amount'] = pick(r, [-1, 1]) * between(r, 7, 24);
-    p['pitch_env.decay'] = between(r, 40, 400);
+  { groups: ['env3', 'mod'], text: 'a pitch drop on every note', apply: (p, r) => {
+    p['env3.attack'] = 0;
+    p['env3.decay'] = between(r, 40, 400);
+    p['env3.sustain'] = 0;
+    p['env3.release'] = p['env3.decay'];
+    const n = freeSlot(p);
+    p[`mod${n}.source`] = 'env3';
+    p[`mod${n}.dest`] = 'pitch';
+    p[`mod${n}.amount`] = (pick(r, [-1, 1]) * between(r, 7, 24)) / 24;
+    p[`mod${n}.on`] = true;
   } },
   { groups: ['wobble'], text: 'a tempo wobble', apply: (p, r) => {
     p['wobble.depth'] = between(r, 0.35, 0.75);

@@ -23,7 +23,7 @@ const BELL_KIT: Mod[] = [
   ['drift_slow', 'drive', 0.2],
   ['lfo3', 'tape_wow', 0.3],
   ['lfo4', 'width', 0.25],
-  ['drift', 'pitch', 0.0015],
+  ['drift', 'osc_pitch', 0.0015],
   ['lfo1', 'delay_time', 0.04],
   ['drift_slow', 'reverb_mix', 0.2],
   ['lfo4', 'chorus_depth', 0.25],
@@ -141,7 +141,7 @@ const def: CategoryDef = {
         'amp_env.decay': 1500,
       },
       // No FM here: the life is in the pitch, the grit and the level. High tines ring out faster: the key lifts their level.
-      mods: BELL_KIT.map((m) => (m[1] === 'fm_amount' ? (m[0] === 'random' ? (['random', 'pitch', 0.006] as Mod) : m[0] === 'velocity' ? (['velocity', 'crush_mix', 0.15] as Mod) : m[0] === 'lfo1' ? (['lfo1', 'crush_mix', 0.25] as Mod) : (['keytrack', 'amp', 0.8] as Mod)) : m)),
+      mods: BELL_KIT.map((m) => (m[1] === 'fm_amount' ? (m[0] === 'random' ? (['random', 'osc_pitch', 0.006] as Mod) : m[0] === 'velocity' ? (['velocity', 'crush_mix', 0.15] as Mod) : m[0] === 'lfo1' ? (['lfo1', 'crush_mix', 0.25] as Mod) : (['keytrack', 'amp', 0.8] as Mod)) : m)),
     },
     // ------------------------------------------------ producer range: the roles this category was missing
     {

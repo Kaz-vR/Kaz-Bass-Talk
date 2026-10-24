@@ -529,7 +529,7 @@ const MOD_SLOTS = 12;
 const MOD_IDS = Array.from({ length: MOD_SLOTS }, (_, i) => [`mod${i + 1}.source`, `mod${i + 1}.dest`, `mod${i + 1}.amount`]).flat();
 const LFO_SHAPE: Record<string, string> = { sine: 'SINE', triangle: 'TRIANGLE', saw_up: 'SAW UP', saw_down: 'SAW DOWN', square: 'SQUARE', sample_hold: 'S & H', wander: 'WANDER' };
 const SRC_LABEL: Record<string, string> = {
-  none: '—', lfo1: 'LFO 1', lfo2: 'LFO 2', lfo3: 'LFO 3', lfo4: 'LFO 4', mod_env: 'Filter env', amp_env: 'Amp env', env2: 'Env 2', velocity: 'Velocity',
+  none: '—', lfo1: 'LFO 1', lfo2: 'LFO 2', lfo3: 'LFO 3', lfo4: 'LFO 4', mod_env: 'Filter env', amp_env: 'Amp env', env2: 'Env 2', env3: 'Env 3', velocity: 'Velocity',
   keytrack: 'Keytrack', modwheel: 'Mod wheel', random: 'Random', drift: 'Drift', drift_slow: 'Slow drift', lfo_product: 'LFO 1×2',
 };
 const DEST_LABEL: Record<string, string> = {
@@ -537,7 +537,7 @@ const DEST_LABEL: Record<string, string> = {
   osc1_level: 'A level', osc2_level: 'B level', unison_detune: 'Detune', fm_amount: 'FM', fm2_amount: 'FM 2', sub_level: 'Sub', noise_level: 'Noise', drive: 'Drive',
   filter_cutoff: 'Cutoff', filter_resonance: 'Res', filter_vowel: 'Vowel', dist_drive: 'Dist drive', dist_mix: 'Dist mix', dist_tone: 'Dist tone', amp: 'Amp',
   lfo1_rate: 'LFO 1 rate', lfo2_rate: 'LFO 2 rate', lfo3_rate: 'LFO 3 rate', lfo4_rate: 'LFO 4 rate', crush_mix: 'Crush', chorus_depth: 'Chorus', phaser_mix: 'Phaser',
-  delay_time: 'Delay time', delay_mix: 'Delay', reverb_mix: 'Reverb', width: 'Width', tape_wow: 'Tape wow', texture_level: 'Texture', vibrato_depth: 'Vibrato', breath_level: 'Breath',
+  delay_time: 'Delay time', delay_mix: 'Delay', reverb_mix: 'Reverb', width: 'Width', tape_wow: 'Tape wow', texture_level: 'Texture', vibrato_depth: 'Vibrato', osc_pitch: 'Osc A+B pitch', breath_level: 'Breath',
 };
 /** Beats in a note value like 1/4, 1/8D or 1/16T. */
 function syncBeats(v: string): number {
@@ -731,7 +731,7 @@ export class SynthView {
       for (const f of this.dotDraws) f();
       const now = performance.now();
       // The envelopes' balls and the MOD page's moving prints run until the longest release.
-      const longest = Math.max(this.num('amp_env.release'), this.num('mod_env.release'), this.num('env2.release'));
+      const longest = Math.max(this.num('amp_env.release'), this.num('mod_env.release'), this.num('env2.release'), this.num('env3.release'));
       const live = this.noteT0 >= 0 && (this.relT0 < 0 || now - this.relT0 < longest + 50);
       if (live) {
         this.anim.on = true;
@@ -775,8 +775,9 @@ export class SynthView {
       return Math.sin((2 * Math.PI * tt) / period) * (fade > 0 ? Math.min(1, t / fade) : 1);
     }
     switch (src) {
-      case 'env2': {
-        const a = this.num('env2.attack') / 1000, d = this.num('env2.decay') / 1000, sus = this.num('env2.sustain'), r = this.num('env2.release') / 1000;
+      case 'env2':
+      case 'env3': {
+        const a = this.num(`${src}.attack`) / 1000, d = this.num(`${src}.decay`) / 1000, sus = this.num(`${src}.sustain`), r = this.num(`${src}.release`) / 1000;
         const held = (x: number) => (x < a ? x / Math.max(a, 1e-3) : sus + (1 - sus) * Math.exp((-5 * (x - a)) / Math.max(d, 1e-3)));
         return this.anim.rel < 0 ? held(t) : held(t - this.anim.rel) * Math.exp((-5 * this.anim.rel) / Math.max(r, 1e-3));
       }
@@ -2046,99 +2047,19 @@ export class SynthView {
     });
   }
 
-  private env2Box(): HTMLElement {
-    const pct = (v: number) => `${Math.round(v * 100)}%`;
-    return this.obox('ENV 2', 'mb box-env2', {
-      corner: [this.routeTag('env2')],
-      print: this.envPrint('env2', MB_PRINT_W, MB_PRINT_H),
+  /** Env 2 (the slow bloom) and Env 3 (pitch bumps and drops, or anything else): ADSR, routed in the matrix. */
+  private modEnvBox(n: 2 | 3): HTMLElement {
+    const pct = (v: number) => `${Math.round(v * 100)}%`, E = `env${n}`;
+    return this.obox(`ENV ${n}`, `mb box-env${n}`, {
+      corner: [this.routeTag(E)],
+      print: this.envPrint(E, MB_PRINT_W, MB_PRINT_H),
       dials: [
-        this.knob('env2.attack', 'A', 'lg', { fmt: ms, parse: parseMs }),
-        this.knob('env2.decay', 'D', 'lg', { fmt: ms, parse: parseMs }),
-        this.knob('env2.sustain', 'S', 'lg', { fmt: pct, parse: parsePct }),
-        this.knob('env2.release', 'R', 'lg', { fmt: ms, parse: parseMs }),
+        this.knob(`${E}.attack`, 'A', 'lg', { fmt: ms, parse: parseMs }),
+        this.knob(`${E}.decay`, 'D', 'lg', { fmt: ms, parse: parseMs }),
+        this.knob(`${E}.sustain`, 'S', 'lg', { fmt: pct, parse: parsePct }),
+        this.knob(`${E}.release`, 'R', 'lg', { fmt: ms, parse: parseMs }),
       ],
     });
-  }
-
-  /**
-   * Pitch envelope and vibrato share one box: the title's two words switch which one you see
-   * (both keep working; a dot before each word glows while it is on). The bar switches the shown one.
-   */
-  private pitchVibBox(): HTMLElement {
-    const W = MB_PRINT_W, H = MB_PRINT_H;
-    let view: 'pitch' | 'vib' = 'pitch';
-    const peOn = () => this.num('pitch_env.amount') !== 0;
-    const vibOn = () => !!this.get('vibrato.on') && this.num('vibrato.depth') > 0;
-    // pitch envelope: on when its amount isn't 0 (the bar remembers the amount)
-    const togglePitch = () => {
-      const v = this.num('pitch_env.amount');
-      if (v !== 0) {
-        this.remembered.set('pitch_env.amount', v);
-        this.set('pitch_env.amount', 0);
-      } else this.set('pitch_env.amount', this.remembered.get('pitch_env.amount') ?? -12);
-    };
-    const [pcv, pg] = canvas(W, H, 'disp');
-    const drawPitch = () => {
-      const amt = this.num('pitch_env.amount'), dec = this.num('pitch_env.decay');
-      paper(pg, W, H);
-      const span = Math.max(200, dec * 3), a = Math.sign(amt) * Math.min(1, 0.25 + Math.abs(amt) / 32);
-      const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - a * Math.exp((-4.6 * (i / W) * span) / dec) * (H / 2 - 7)]);
-      silver(pg, pts, amt !== 0);
-      if (this.anim.on && amt !== 0) liveDot(pg, pts, Math.min(1, (this.anim.t * 1000) / span), accentOf(pcv));
-    };
-    this.watch(['pitch_env.amount', 'pitch_env.decay'], drawPitch);
-    this.animDraws.push({ el: pcv, f: drawPitch });
-    // vibrato: flat until the delay, then it fades in
-    const [vcv, vg] = canvas(W, H, 'disp');
-    const drawVib = () => {
-      paper(vg, W, H);
-      const span = 2000, d = this.num('vibrato.delay'), f = this.num('vibrato.fade'), dep = 0.3 + 0.7 * (this.num('vibrato.depth') / 100);
-      const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) {
-        const t = (i / W) * span, a = t < d ? 0 : Math.min(1, (t - d) / Math.max(1, f));
-        pts.push([i, H / 2 - Math.sin((t / 1000) * this.num('vibrato.rate') * 2 * Math.PI) * a * dep * (H / 2 - 7)]);
-      }
-      silver(vg, pts, vibOn());
-      if (this.anim.on && vibOn()) liveDot(vg, pts, Math.min(1, (this.anim.t * 1000) / span), accentOf(vcv));
-    };
-    this.watch(['vibrato.on', 'vibrato.depth', 'vibrato.rate', 'vibrato.delay', 'vibrato.fade'], drawVib);
-    this.animDraws.push({ el: vcv, f: drawVib });
-    const peDials = [this.knob('pitch_env.amount', 'Amount', 'lg', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v)} st` }), this.knob('pitch_env.decay', 'Decay', 'lg', { fmt: ms })];
-    const vibDials = [this.knob('vibrato.depth', 'Depth', 'lg'), this.knob('vibrato.rate', 'Rate', 'lg'), this.knob('vibrato.delay', 'Delay', 'lg', { fmt: ms }), this.knob('vibrato.fade', 'Fade', 'lg', { fmt: ms })];
-    const word = (label: string, v: 'pitch' | 'vib') => {
-      const b = h('button', 'fx-kind', h('span', 'kind-dot'), label);
-      b.onclick = () => {
-        view = v;
-        show();
-      };
-      return b;
-    };
-    const pBtn = word('PITCH ENV', 'pitch'), vBtn = word('VIBRATO', 'vib');
-    const power = h('button', 'power', lamp());
-    power.title = 'On / off (the one shown)';
-    power.onclick = () => (view === 'pitch' ? togglePitch() : this.set('vibrato.on', !this.get('vibrato.on')));
-    const box = this.obox(h('span', 'fx-kinds', pBtn, h('span', 'fx-kind-sep', '/'), vBtn), 'mb box-pitch', {
-      power,
-      print: h('div', 'pv-prints', pcv, vcv),
-      dials: [...peDials, ...vibDials],
-    });
-    const show = () => {
-      const pe = view === 'pitch';
-      pBtn.classList.toggle('on', pe);
-      vBtn.classList.toggle('on', !pe);
-      pBtn.classList.toggle('live', peOn());
-      vBtn.classList.toggle('live', vibOn());
-      pcv.style.display = pe ? '' : 'none';
-      vcv.style.display = pe ? 'none' : '';
-      for (const k of peDials) k.style.display = pe ? '' : 'none';
-      for (const k of vibDials) k.style.display = pe ? 'none' : '';
-      const on = pe ? peOn() : !!this.get('vibrato.on');
-      power.classList.toggle('on', on);
-      box.classList.toggle('is-off', !on);
-    };
-    this.watch(['pitch_env.amount', 'vibrato.on', 'vibrato.depth'], show);
-    return box;
   }
 
   /** The custom shape's points from the patch. */
@@ -2567,7 +2488,7 @@ export class SynthView {
     return h('div', 'v2-main mod-page2',
       this.lfoBox(1), this.lfoBox(2),
       this.lfoBox(3), this.lfoBox(4),
-      this.env2Box(), this.pitchVibBox(),
+      this.modEnvBox(2), this.modEnvBox(3),
       this.matrixBox());
   }
 

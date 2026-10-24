@@ -87,3 +87,17 @@ describe('schema', () => {
     expect(arr[i]).toBe(0);
   });
 });
+
+describe('old pitch envelope patches', () => {
+  it('become Env 3 → Pitch, and their Pitch rows Osc A+B pitch', () => {
+    const { patch } = validatePatch({ meta: { name: 'old' }, 'pitch_env.amount': 12, 'pitch_env.decay': 90, 'mod1.source': 'drift', 'mod1.dest': 'pitch', 'mod1.amount': 0.002 });
+    const slot = (src: string) => [...Array(12).keys()].map((i) => i + 1).find((i) => patch[`mod${i}.source`] === src)!;
+    expect(patch[`mod${slot('drift')}.dest`]).toBe('osc_pitch');
+    const n = slot('env3');
+    expect(patch[`mod${n}.dest`]).toBe('pitch');
+    expect(patch[`mod${n}.amount`]).toBeCloseTo(0.5);
+    expect(patch['env3.decay']).toBe(90);
+    expect(patch['env3.attack']).toBe(0);
+    expect('pitch_env.amount' in patch).toBe(false);
+  });
+});

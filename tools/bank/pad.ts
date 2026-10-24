@@ -204,7 +204,7 @@ const def: CategoryDef = {
       tags: ['pad', 'wobbly', 'detuned', 'warped', 'tape', 'uneasy', 'lorn', 'new'],
       texture: ['crackle', 0.65, 0.4, 2000],
       set: { 'tape.wow': 0.6, 'tape.age': 0.65, 'filter.cutoff': 900, 'texture.position': 'after dynamics' },
-      mods: kit(ALIVE, [['drift', 'pitch', 0.006]]),
+      mods: kit(ALIVE, [['drift', 'osc_pitch', 0.006]]),
     },
     {
       id: 'held-breath', name: 'Held Breath',

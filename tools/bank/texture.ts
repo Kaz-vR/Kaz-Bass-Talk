@@ -21,7 +21,7 @@ const TEXTURE_KIT: Mod[] = [
   ['lfo4', 'width', 0.3],
   ['env2', 'texture_level', 0.15],
   ['random', 'breath_level', 0.1],
-  ['drift', 'pitch', 0.0015],
+  ['drift', 'osc_pitch', 0.0015],
   ['lfo1', 'delay_time', 0.04],
   ['drift_slow', 'reverb_mix', 0.2],
   ['lfo4', 'chorus_depth', 0.25],

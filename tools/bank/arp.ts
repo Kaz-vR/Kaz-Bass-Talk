@@ -26,11 +26,11 @@ const SOFT_ARP_KIT: Mod[] = [
   ['lfo1', 'tape_wow', 0.35],
   ['lfo2', 'amp', -0.12],
   // Per-note detune: every note lands a few cents differently, like an old synth.
-  ['random', 'pitch', 0.0025],
+  ['random', 'osc_pitch', 0.0025],
   ['drift_slow', 'drive', 0.2],
   ['lfo3', 'delay_mix', 0.1],
   ['lfo4', 'width', 0.25],
-  ['drift', 'pitch', 0.0015],
+  ['drift', 'osc_pitch', 0.0015],
   ['lfo1', 'delay_time', 0.04],
   ['drift_slow', 'reverb_mix', 0.2],
   ['lfo4', 'chorus_depth', 0.25],

@@ -73,7 +73,7 @@ export const ALIVE: Mod[] = [
   ['drift_slow', 'drive', 0.15],
   ['lfo3', 'unison_detune', 0.06],
   ['lfo4', 'width', 0.35],
-  ['drift', 'pitch', 0.0012],
+  ['drift', 'osc_pitch', 0.0012],
   ['lfo1', 'delay_time', 0.04],
   ['drift_slow', 'reverb_mix', 0.2],
   ['lfo4', 'chorus_depth', 0.25],

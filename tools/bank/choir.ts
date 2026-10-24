@@ -150,7 +150,7 @@ const def: CategoryDef = {
       tags: ['choir', 'steady', 'still', 'clean', 'calm', 'sustained', 'lorn', 'new'],
       texture: ['air', 0.5, 0.3, 2000],
       set: { 'vibrato.depth': 0, 'tape.wow': 0.05, 'drive.amount': 0.35, 'dist.drive': 0.12, 'sub.level': 0.1 },
-      mods: kit(VOICE_KIT, [['lfo1', 'filter_vowel', 0.2], ['drift', 'pitch', 0.0005]]),
+      mods: kit(VOICE_KIT, [['lfo1', 'filter_vowel', 0.2], ['drift', 'osc_pitch', 0.0005]]),
     },
     {
       id: 'dark-mass-stab', name: 'Dark Mass Stab',

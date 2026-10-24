@@ -17,12 +17,12 @@ const base = {
 /** Every hit lands a little differently; the room and the grit wander slowly between hits. */
 const HIT_KIT: Mod[] = [
   ['random', 'drive', 0.15],
-  ['random', 'pitch', 0.004],
+  ['random', 'osc_pitch', 0.004],
   ['velocity', 'drive', 0.2],
   ['drift_slow', 'reverb_mix', 0.2],
   ['lfo1', 'filter_cutoff', 0.2],
   ['lfo4', 'width', 0.25],
-  ['drift', 'pitch', 0.0015],
+  ['drift', 'osc_pitch', 0.0015],
   ['lfo3', 'tape_wow', 0.3],
   ['random', 'noise_level', 0.15],
   ['velocity', 'filter_cutoff', 0.2],
@@ -115,7 +115,7 @@ const def: CategoryDef = {
         'env2.attack': 800, 'env2.sustain': 1,
         'amp_env.decay': 1500,
       },
-      mods: [...HIT_KIT, ['env2', 'pitch', -0.5]],
+      mods: [...HIT_KIT, ['env2', 'osc_pitch', -0.5]],
     },
     // ------------------------------------------------ iconic (LORN versions)
     {

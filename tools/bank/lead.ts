@@ -28,7 +28,7 @@ const SOFT_KIT: Mod[] = [
   ['drift_slow', 'drive', 0.2],
   ['lfo3', 'tape_wow', 0.3],
   ['lfo4', 'width', 0.35],
-  ['drift', 'pitch', 0.0015],
+  ['drift', 'osc_pitch', 0.0015],
   ['lfo1', 'delay_time', 0.04],
   ['drift_slow', 'reverb_mix', 0.2],
   ['lfo4', 'chorus_depth', 0.25],
@@ -335,7 +335,7 @@ const def: CategoryDef = {
       tags: ['lead', 'space-rock', 'squiggly', 'resonant', 'psychedelic', 'seventies', 'lorn'],
       texture: ['dust', 0.35, 0.35, 1200],
       set: { 'filter.cutoff': 900, 'filter.resonance': 0.55, 'lfo2.rate': 6, 'lfo2.shape': 'sine' },
-      mods: kit(LEAD_KIT, [], { 'lfo2>amp': ['lfo2', 'filter_cutoff', 0.25], 'lfo3>unison_detune': ['lfo3', 'pitch', 0.01] }),
+      mods: kit(LEAD_KIT, [], { 'lfo2>amp': ['lfo2', 'filter_cutoff', 0.25], 'lfo3>unison_detune': ['lfo3', 'osc_pitch', 0.01] }),
     },
     {
       id: 'warp-line', name: 'Warp Line', iconic: 2,
@@ -343,7 +343,7 @@ const def: CategoryDef = {
       tags: ['lead', 'tape', 'warped', 'wobbly', 'nostalgic', 'lo-fi', 'lorn'],
       texture: ['crackle', 0.4, 0.35, 1200],
       set: { 'tape.wow': 0.55, 'tape.age': 0.65 },
-      mods: kit(LEAD_KIT, [['drift', 'pitch', 0.008]]),
+      mods: kit(LEAD_KIT, [['drift', 'osc_pitch', 0.008]]),
     },
     // ------------------------------------------------ producer range: the roles this category was missing
     {

@@ -70,7 +70,7 @@ const def: CategoryDef = {
       tags: ['brass', 'detuned', 'drift', 'tape', 'wonky', 'unstable', 'lorn'],
       texture: ['crackle', 0.5, 0.3, 1500],
       set: { 'tape.wow': 0.45 },
-      mods: kit(BREATH_KIT, [['drift', 'pitch', 0.004]]),
+      mods: kit(BREATH_KIT, [['drift', 'osc_pitch', 0.004]]),
     },
     {
       id: 'warhorn', name: 'Warhorn',

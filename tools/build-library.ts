@@ -547,7 +547,7 @@ const D: Def[] = [
       // Smooth random flutter: a fixed-rate sample & hold would tick like a clock.
       'lfo2.shape': 'wander', 'lfo2.rate': 7, 'lfo2.retrigger': false,
     },
-    mods: [['drift', 'pitch', 0.006], ['lfo2', 'pitch', 0.003], ['velocity', 'filter_cutoff', 0.15]],
+    mods: [['drift', 'osc_pitch', 0.006], ['lfo2', 'osc_pitch', 0.003], ['velocity', 'filter_cutoff', 0.15]],
   },
   {
     dir: 'lorn-infra', family: 'sub', name: 'Infra Rumble',

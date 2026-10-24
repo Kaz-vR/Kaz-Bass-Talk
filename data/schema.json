@@ -1262,28 +1262,52 @@
       "describes": "Fall time of env 2 after the key is released."
     },
     {
-      "id": "pitch_env.amount",
-      "label": "Pitch envelope amount",
+      "id": "env3.attack",
+      "label": "Env 3 attack",
       "type": "float",
-      "min": -48,
-      "max": 48,
+      "min": 0,
+      "max": 10000,
       "default": 0,
-      "curve": "linear",
-      "unit": "st",
-      "group": "pitch_env",
-      "describes": "Pitch offset at the start of each note, decaying to zero. +12 to +24 with a short decay gives an 808/kick-style punch."
+      "curve": "pow",
+      "unit": "ms",
+      "group": "env3",
+      "describes": "Rise time of the third mod envelope. 0 = it starts at full, for a pitch bump or drop at the start of each note."
     },
     {
-      "id": "pitch_env.decay",
-      "label": "Pitch envelope decay",
+      "id": "env3.decay",
+      "label": "Env 3 decay",
       "type": "float",
       "min": 1,
       "max": 20000,
-      "default": 60,
+      "default": 120,
       "curve": "log",
       "unit": "ms",
-      "group": "pitch_env",
-      "describes": "How quickly the pitch envelope falls back to the played note."
+      "group": "env3",
+      "describes": "Fall time to the sustain level: with Env 3 → Pitch, how fast an 808 drop or a brass scoop settles."
+    },
+    {
+      "id": "env3.sustain",
+      "label": "Env 3 sustain",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "env3",
+      "describes": "Level env 3 holds while the key is down."
+    },
+    {
+      "id": "env3.release",
+      "label": "Env 3 release",
+      "type": "float",
+      "min": 1,
+      "max": 10000,
+      "default": 120,
+      "curve": "log",
+      "unit": "ms",
+      "group": "env3",
+      "describes": "Fall time of env 3 after the key is released."
     },
     {
       "id": "vibrato.on",
@@ -2279,7 +2303,8 @@
         "lfo3",
         "lfo4",
         "drift_slow",
-        "env2"
+        "env2",
+        "env3"
       ],
       "default": "none",
       "group": "mod",
@@ -2327,11 +2352,12 @@
         "dist_tone",
         "texture_level",
         "vibrato_depth",
-        "breath_level"
+        "breath_level",
+        "osc_pitch"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch moves the whole note, sub included (Env 3 → Pitch for 808 drops and scoops); Osc A+B pitch moves only the two oscillators, so the sub stays steady (for LFO, drift and random). Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod1.amount",
@@ -2372,7 +2398,8 @@
         "lfo3",
         "lfo4",
         "drift_slow",
-        "env2"
+        "env2",
+        "env3"
       ],
       "default": "none",
       "group": "mod",
@@ -2420,11 +2447,12 @@
         "dist_tone",
         "texture_level",
         "vibrato_depth",
-        "breath_level"
+        "breath_level",
+        "osc_pitch"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch moves the whole note, sub included (Env 3 → Pitch for 808 drops and scoops); Osc A+B pitch moves only the two oscillators, so the sub stays steady (for LFO, drift and random). Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod2.amount",
@@ -2465,7 +2493,8 @@
         "lfo3",
         "lfo4",
         "drift_slow",
-        "env2"
+        "env2",
+        "env3"
       ],
       "default": "none",
       "group": "mod",
@@ -2513,11 +2542,12 @@
         "dist_tone",
         "texture_level",
         "vibrato_depth",
-        "breath_level"
+        "breath_level",
+        "osc_pitch"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch moves the whole note, sub included (Env 3 → Pitch for 808 drops and scoops); Osc A+B pitch moves only the two oscillators, so the sub stays steady (for LFO, drift and random). Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod3.amount",
@@ -2558,7 +2588,8 @@
         "lfo3",
         "lfo4",
         "drift_slow",
-        "env2"
+        "env2",
+        "env3"
       ],
       "default": "none",
       "group": "mod",
@@ -2606,11 +2637,12 @@
         "dist_tone",
         "texture_level",
         "vibrato_depth",
-        "breath_level"
+        "breath_level",
+        "osc_pitch"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch moves the whole note, sub included (Env 3 → Pitch for 808 drops and scoops); Osc A+B pitch moves only the two oscillators, so the sub stays steady (for LFO, drift and random). Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod4.amount",
@@ -2651,7 +2683,8 @@
         "lfo3",
         "lfo4",
         "drift_slow",
-        "env2"
+        "env2",
+        "env3"
       ],
       "default": "none",
       "group": "mod",
@@ -2699,11 +2732,12 @@
         "dist_tone",
         "texture_level",
         "vibrato_depth",
-        "breath_level"
+        "breath_level",
+        "osc_pitch"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch moves the whole note, sub included (Env 3 → Pitch for 808 drops and scoops); Osc A+B pitch moves only the two oscillators, so the sub stays steady (for LFO, drift and random). Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod5.amount",
@@ -2744,7 +2778,8 @@
         "lfo3",
         "lfo4",
         "drift_slow",
-        "env2"
+        "env2",
+        "env3"
       ],
       "default": "none",
       "group": "mod",
@@ -2792,11 +2827,12 @@
         "dist_tone",
         "texture_level",
         "vibrato_depth",
-        "breath_level"
+        "breath_level",
+        "osc_pitch"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch moves the whole note, sub included (Env 3 → Pitch for 808 drops and scoops); Osc A+B pitch moves only the two oscillators, so the sub stays steady (for LFO, drift and random). Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod6.amount",
@@ -2837,7 +2873,8 @@
         "lfo3",
         "lfo4",
         "drift_slow",
-        "env2"
+        "env2",
+        "env3"
       ],
       "default": "none",
       "group": "mod",
@@ -2885,11 +2922,12 @@
         "dist_tone",
         "texture_level",
         "vibrato_depth",
-        "breath_level"
+        "breath_level",
+        "osc_pitch"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch moves the whole note, sub included (Env 3 → Pitch for 808 drops and scoops); Osc A+B pitch moves only the two oscillators, so the sub stays steady (for LFO, drift and random). Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod7.amount",
@@ -2930,7 +2968,8 @@
         "lfo3",
         "lfo4",
         "drift_slow",
-        "env2"
+        "env2",
+        "env3"
       ],
       "default": "none",
       "group": "mod",
@@ -2978,11 +3017,12 @@
         "dist_tone",
         "texture_level",
         "vibrato_depth",
-        "breath_level"
+        "breath_level",
+        "osc_pitch"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch moves the whole note, sub included (Env 3 → Pitch for 808 drops and scoops); Osc A+B pitch moves only the two oscillators, so the sub stays steady (for LFO, drift and random). Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod8.amount",
@@ -3023,7 +3063,8 @@
         "lfo3",
         "lfo4",
         "drift_slow",
-        "env2"
+        "env2",
+        "env3"
       ],
       "default": "none",
       "group": "mod",
@@ -3071,11 +3112,12 @@
         "dist_tone",
         "texture_level",
         "vibrato_depth",
-        "breath_level"
+        "breath_level",
+        "osc_pitch"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch moves the whole note, sub included (Env 3 → Pitch for 808 drops and scoops); Osc A+B pitch moves only the two oscillators, so the sub stays steady (for LFO, drift and random). Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod9.amount",
@@ -3116,7 +3158,8 @@
         "lfo3",
         "lfo4",
         "drift_slow",
-        "env2"
+        "env2",
+        "env3"
       ],
       "default": "none",
       "group": "mod",
@@ -3164,11 +3207,12 @@
         "dist_tone",
         "texture_level",
         "vibrato_depth",
-        "breath_level"
+        "breath_level",
+        "osc_pitch"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch moves the whole note, sub included (Env 3 → Pitch for 808 drops and scoops); Osc A+B pitch moves only the two oscillators, so the sub stays steady (for LFO, drift and random). Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod10.amount",
@@ -3209,7 +3253,8 @@
         "lfo3",
         "lfo4",
         "drift_slow",
-        "env2"
+        "env2",
+        "env3"
       ],
       "default": "none",
       "group": "mod",
@@ -3257,11 +3302,12 @@
         "dist_tone",
         "texture_level",
         "vibrato_depth",
-        "breath_level"
+        "breath_level",
+        "osc_pitch"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch moves the whole note, sub included (Env 3 → Pitch for 808 drops and scoops); Osc A+B pitch moves only the two oscillators, so the sub stays steady (for LFO, drift and random). Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod11.amount",
@@ -3302,7 +3348,8 @@
         "lfo3",
         "lfo4",
         "drift_slow",
-        "env2"
+        "env2",
+        "env3"
       ],
       "default": "none",
       "group": "mod",
@@ -3350,11 +3397,12 @@
         "dist_tone",
         "texture_level",
         "vibrato_depth",
-        "breath_level"
+        "breath_level",
+        "osc_pitch"
       ],
       "default": "none",
       "group": "mod",
-      "describes": "Parameter this slot modulates. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
+      "describes": "Parameter this slot modulates. Pitch moves the whole note, sub included (Env 3 → Pitch for 808 drops and scoops); Osc A+B pitch moves only the two oscillators, so the sub stays steady (for LFO, drift and random). Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; delay time: ±1 = ×/÷ 2 (tape-style pitch smear); width: ±1 = mono .. double; others: ±1 = full range."
     },
     {
       "id": "mod12.amount",

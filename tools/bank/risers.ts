@@ -16,14 +16,14 @@ const base = {
 
 /** The build: one slow envelope moving everything at once, with independent motion on top. */
 const RISE_KIT: Mod[] = [
-  ['env2', 'pitch', 0.5],
+  ['env2', 'osc_pitch', 0.5],
   ['env2', 'filter_cutoff', 0.45],
   ['env2', 'noise_level', 0.3],
   ['env2', 'reverb_mix', 0.25],
   ['env2', 'width', 0.15],
   ['lfo1', 'filter_cutoff', 0.12],
   ['lfo2', 'amp', -0.18],
-  ['drift', 'pitch', 0.0015],
+  ['drift', 'osc_pitch', 0.0015],
   ['lfo3', 'tape_wow', 0.3],
   ['lfo4', 'unison_detune', 0.08],
   ['drift_slow', 'drive', 0.2],
@@ -48,7 +48,7 @@ const def: CategoryDef = {
       tags: ['fall', 'downer', 'collapse', 'pitch', 'closing', 'cinematic', 'lorn'],
       texture: ['rumble', 0.45, 0.3, 3000],
       set: { 'filter.cutoff': 1500 },
-      mods: kit(RISE_KIT, [['env2', 'pitch', -0.75], ['env2', 'filter_cutoff', -0.4], ['env2', 'noise_level', 0.2]]),
+      mods: kit(RISE_KIT, [['env2', 'osc_pitch', -0.75], ['env2', 'filter_cutoff', -0.4], ['env2', 'noise_level', 0.2]]),
     },
     {
       id: 'static-climb', name: 'Static Climb',
@@ -56,7 +56,7 @@ const def: CategoryDef = {
       tags: ['riser', 'noise', 'static', 'sweep', 'build', 'transition', 'lorn'],
       texture: ['dust', 0.5, 0.45, 2500],
       set: { 'osc1.level': 0.4, 'noise.level': 0.06, 'filter.cutoff': 200, 'filter.resonance': 0.45, 'dist.drive': 0.45, 'eq.highcut': 3000 },
-      mods: kit(RISE_KIT, [['env2', 'filter_cutoff', 0.2], ['env2', 'noise_level', 0.3], ['env2', 'pitch', 0.25]]),
+      mods: kit(RISE_KIT, [['env2', 'filter_cutoff', 0.2], ['env2', 'noise_level', 0.3], ['env2', 'osc_pitch', 0.25]]),
     },
     {
       id: 'siren-rise', name: 'Siren Rise',
@@ -72,7 +72,7 @@ const def: CategoryDef = {
       tags: ['fall', 'tape-stop', 'pitch', 'dying', 'slowdown', 'transition', 'lorn'],
       texture: ['crackle', 0.45, 0.3, 2000],
       set: { 'env2.attack': 3000, 'filter.cutoff': 1200, 'tape.wow': 0.4 },
-      mods: kit(RISE_KIT, [['env2', 'pitch', -1], ['env2', 'filter_cutoff', -0.3]], { 'env2>noise_level': ['env2', 'amp', -0.6] }),
+      mods: kit(RISE_KIT, [['env2', 'osc_pitch', -1], ['env2', 'filter_cutoff', -0.3]], { 'env2>noise_level': ['env2', 'amp', -0.6] }),
     },
     {
       id: 'pressure', name: 'Pressure',
@@ -88,7 +88,7 @@ const def: CategoryDef = {
       tags: ['fall', 'sinking', 'slow', 'descent', 'rumble', 'dark', 'lorn'],
       texture: ['rumble', 0.4, 0.3, 3000],
       set: { 'filter.cutoff': 900 },
-      mods: kit(RISE_KIT, [['env2', 'pitch', -0.25], ['env2', 'filter_cutoff', -0.3]], { 'env2>noise_level': ['env2', 'texture_level', 0.4] }),
+      mods: kit(RISE_KIT, [['env2', 'osc_pitch', -0.25], ['env2', 'filter_cutoff', -0.3]], { 'env2>noise_level': ['env2', 'texture_level', 0.4] }),
     },
     {
       id: 'engine-windup', name: 'Engine Wind-Up',
@@ -96,7 +96,7 @@ const def: CategoryDef = {
       tags: ['riser', 'machine', 'comb', 'metallic', 'spin-up', 'industrial', 'lorn'],
       texture: ['rumble', 0.45, 0.4, 2500],
       set: { 'filter.type': 'comb', 'filter.cutoff': 120, 'filter.resonance': 0.45, 'filter.keytrack': 0 },
-      mods: kit(RISE_KIT, [['env2', 'filter_cutoff', 0.6], ['env2', 'pitch', 0.25]]),
+      mods: kit(RISE_KIT, [['env2', 'filter_cutoff', 0.6], ['env2', 'osc_pitch', 0.25]]),
     },
     {
       id: 'breathless', name: 'Breathless',
@@ -113,7 +113,7 @@ const def: CategoryDef = {
       tags: ['riser', 'octave', 'huge', 'build', 'epic', 'cinematic', 'lorn'],
       texture: ['air', 0.45, 0.35, 3000],
       set: { 'osc2.wave': 'saw', 'osc2.semi': 12, 'osc2.level': 0.3, 'chorus.mix': 0.3, 'chorus.mode': 'ensemble', 'reverb.mix': 0.5 },
-      mods: kit(RISE_KIT, [['env2', 'pitch', 1]]),
+      mods: kit(RISE_KIT, [['env2', 'osc_pitch', 1]]),
       allow: { 'consistency:brightOct': { why: 'a noise-based sound: its brightness comes from noise, which has no note to be dark against' } },
     },
     // ------------------------------------------------ filling the gaps
@@ -154,7 +154,7 @@ const def: CategoryDef = {
       tags: ['risers', 'scream', 'fold', 'pulse', 'aggressive', 'build', 'lorn', 'new'],
       texture: ['dust', 0.5, 0.4, 2000],
       set: { 'osc1.wave': 'pulse', 'osc1.pulse_width': 0.3, 'dist.type': 'fold', 'dist.drive': 0.45, 'dist.mix': 0.6, 'osc1.unison_spread': 0.45, 'chorus.mix': 0.08, 'dist.post_tone': 0.25, 'eq.highcut': 4500 },
-      mods: kit(RISE_KIT, [['env2', 'pitch', 0.7]]),
+      mods: kit(RISE_KIT, [['env2', 'osc_pitch', 0.7]]),
     },
     {
       id: 'drop-fall', name: 'Drop Fall',
@@ -162,7 +162,7 @@ const def: CategoryDef = {
       tags: ['risers', 'fall', 'impact', 'hard-start', 'downlifter', 'dark', 'lorn', 'new'],
       texture: ['crackle', 0.5, 0.35, 2000],
       set: { 'amp_env.attack': 2, 'env2.attack': 4000, 'filter.cutoff': 1500 },
-      mods: kit(RISE_KIT, [['env2', 'pitch', -1], ['env2', 'filter_cutoff', -0.4], ['lfo1', 'filter_cutoff', 0.4], ['drift_slow', 'drive', 0.35]], { 'env2>noise_level': ['env2', 'amp', -0.5] }),
+      mods: kit(RISE_KIT, [['env2', 'osc_pitch', -1], ['env2', 'filter_cutoff', -0.4], ['lfo1', 'filter_cutoff', 0.4], ['drift_slow', 'drive', 0.35]], { 'env2>noise_level': ['env2', 'amp', -0.5] }),
     },
     {
       id: 'glass-rise', name: 'Glass Rise',

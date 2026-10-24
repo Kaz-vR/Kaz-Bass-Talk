@@ -29,7 +29,7 @@ const KEYS_KIT: Mod[] = [
   ['drift_slow', 'drive', 0.2],
   ['lfo3', 'tape_wow', 0.3],
   ['lfo4', 'width', 0.25],
-  ['drift', 'pitch', 0.0015],
+  ['drift', 'osc_pitch', 0.0015],
   ['lfo1', 'delay_time', 0.04],
   ['drift_slow', 'reverb_mix', 0.2],
   ['lfo4', 'chorus_depth', 0.25],
@@ -260,7 +260,7 @@ const def: CategoryDef = {
       tags: ['keys', 'melodica', 'reed', 'breathy', 'sad', 'wobbly', 'lorn'],
       texture: ['air', 0.35, 0.35, 900],
       set: { 'osc1.wave': 'pulse', 'osc1.pulse_width': 0.3, 'osc2.wave': 'saw', 'osc2.level': 0.2, 'fm.amount': 0, 'fm.punch': 0, 'breath.level': 0.3, 'breath.tone': 0.45, 'breath.chiff': 0.25, 'amp_env.attack': 40, 'amp_env.decay': 800, 'amp_env.sustain': 0.9, 'amp_env.release': 150, 'vibrato.depth': 14, 'vibrato.rate': 4.8, 'vibrato.delay': 300, 'vibrato.fade': 500, 'filter.cutoff': 1700, 'voice.polyphony': 4 },
-      mods: kit(FILTER_KEYS_KIT, [], { 'lfo2>amp': ['lfo2', 'breath_level', 0.15], 'drift>pitch': ['drift', 'pitch', 0.004] }),
+      mods: kit(FILTER_KEYS_KIT, [], { 'lfo2>amp': ['lfo2', 'breath_level', 0.15], 'drift>pitch': ['drift', 'osc_pitch', 0.004] }),
     },
     {
       id: 'harbour-reed', name: 'Harbour Reed', iconic: 2, audition: 'chords',

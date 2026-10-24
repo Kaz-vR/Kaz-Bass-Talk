@@ -51,7 +51,7 @@ export const INGREDIENTS: Record<string, (p: Patch) => boolean> = {
   'amp:swell': (p) => num(p, 'amp_env.attack') >= 500,
   'modenv:snappy': (p) => num(p, 'filter.env_amount') >= 0.2 && num(p, 'mod_env.decay') <= 300,
   'modenv:slow': (p) => num(p, 'filter.env_amount') >= 0.15 && num(p, 'mod_env.attack') >= 300,
-  'pitch-env': (p) => Math.abs(num(p, 'pitch_env.amount')) >= 2,
+  'pitch-env': (p) => slots(p).some((s) => s.src === 'env3' && s.dst === 'pitch' && Math.abs(s.amt) * 24 >= 2),
   'move:synced': (p) => lfoUsed(p, (n) => p[`lfo${n}.sync`] !== 'free'),
   'move:retrigger': (p) => lfoUsed(p, (n) => p[`lfo${n}.retrigger`] === true),
   'move:fade-in': (p) => lfoUsed(p, (n) => num(p, `lfo${n}.fade`) > 0),
