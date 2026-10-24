@@ -115,6 +115,9 @@ Hand-designed presets, at most 35 per shelf (Pluck and Arp count together; the 1
 
 The Bass Atlas patches (`tools/build-library.ts`) are not held to the style checks.
 
+**The bank will be rebuilt from scratch once the synth is done (owner's call).** Until then, existing presets are not adjusted to engine or UI changes beyond what keeps them loading (migrations in `validatePatch`); no re-checks. Before the rebuild, a **rulebook** for creating presets gets written (not yet: it waits until the synth is settled, so it isn't redone). Notes for it so far:
+- A rhythmic wobble or gate comes from the Wobbler, never from an LFO in the matrix (LFOs are for life: wander, drift, slow motion; tremolo as a playing technique is still open).
+
 **No hidden octave (owner's rule):** every preset's register shows where the user sees it, on oscillator 1 and 2 and the sub. `voice.octave` stays 0 (the builders fold it in: `tools/lib/octave.ts`; the click layer's pitch follows the sub's octave), the old UI doesn't show it, and `tests/library.test.ts` enforces it.
 
 ### 5. Sound-design rules — `src/quality/rules`
