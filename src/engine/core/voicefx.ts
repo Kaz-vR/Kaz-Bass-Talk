@@ -192,7 +192,7 @@ export class Shepard {
 
 export const CLICK_NOISE = 0, CLICK_CLICK = 1, CLICK_KNOCK = 2, CLICK_KICK = 3;
 
-export const TEX_CRACKLE = 0, TEX_DUST = 1, TEX_RUMBLE = 2, TEX_AIR = 3, TEX_BREATH = 4;
+export const TEX_CRACKLE = 0, TEX_DUST = 1, TEX_RUMBLE = 2, TEX_AIR = 3, TEX_BREATH = 4, TEX_TAPE = 5, TEX_STATIC = 6, TEX_HUM = 7, TEX_WIND = 8, TEX_MACHINE = 9;
 
 /**
  * Texture bed: crackle (vinyl pops over faint surface noise), dust (fine
@@ -222,20 +222,40 @@ export class Texture {
   /** Breath's soft puff at each new note (set by trigger(), dies away in ~150 ms). */
   private puff = 0;
 
+  // Tape hiss dropouts, static bursts, hum and machine phases, wind gusts.
+  private dropT = 0;
+  private dropG = 1;
+  private flutPh = 0;
+  private burstCount = 0;
+  private burstLvl = 0;
+  private burstG = 0;
+  private humPh = 0;
+  private gust = 0;
+  private gustTarget = 0;
+  private gustCount = 0;
+  private machPh = 0;
+  private cyclePh = 0;
+  private readonly svf3 = new Svf();
+
   /** A new note started: breath takes a small breath in. */
   trigger(): void {
     this.puff = 1;
   }
 
   reset(): void {
+    this.svf3.reset();
     this.svfL.reset();
     this.svfR.reset();
     this.svf2.reset();
     this.lpL = this.lpR = 0;
   }
 
-  /** One stereo sample into out[0], out[1]. tone 0..1 (dark..bright). */
-  process(type: number, tone: number, fs: number, out: Float64Array): void {
+  /**
+   * One stereo sample into out[0], out[1]. tone 0..1 (dark..bright); character 0..1 is the
+   * variation within the type, its middle (0.5) each type as it always was.
+   */
+  process(type: number, tone: number, character: number, fs: number, out: Float64Array): void {
+    const k = character - 0.5;
     // Slow level wander (new target every 0.4-1.6 s).
     if (--this.wanderCount <= 0) {
       this.wanderTarget = this.rngW.next();
@@ -247,21 +267,24 @@ export class Texture {
     switch (type) {
       case TEX_CRACKLE: {
         // Sparse pops of random size (mostly small, a few big) ringing a resonant band, over faint surface hiss.
-        const p = (6 + 30 * tone) / fs;
+        // character: clean vinyl (few pops, little surface) .. a broken record (many, big)
+        const p = ((6 + 30 * tone) / fs) * Math.pow(2, 4 * k);
         const g = Math.tan((Math.PI * Math.min(1500 * Math.pow(4, tone), fs * 0.4)) / fs);
-        const el = 0.5 * (this.rngL.next() + 1) < p ? popSize(this.rngL) : 0;
-        const er = 0.5 * (this.rngR.next() + 1) < p ? popSize(this.rngR) : 0;
+        const pop = 1 + 1.2 * k;
+        const el = 0.5 * (this.rngL.next() + 1) < p ? popSize(this.rngL) * pop : 0;
+        const er = 0.5 * (this.rngR.next() + 1) < p ? popSize(this.rngR) * pop : 0;
         this.svfL.process(el, g, 1.1);
         this.svfR.process(er, g, 1.1);
         this.lpL += (this.rngL.next() - this.lpL) * 0.25;
         this.lpR += (this.rngR.next() - this.lpR) * 0.25;
-        l = 24 * this.svfL.bp + 0.27 * this.lpL;
-        r = 24 * this.svfR.bp + 0.27 * this.lpR;
+        l = 24 * this.svfL.bp + 0.27 * (1 + k) * this.lpL;
+        r = 24 * this.svfR.bp + 0.27 * (1 + k) * this.lpR;
         break;
       }
       case TEX_DUST: {
         // Dense tiny ticks, high-passed: fine grit.
-        const p = (250 + 900 * tone) / fs;
+        // character: sparse .. dense grit
+        const p = ((250 + 900 * tone) / fs) * Math.pow(2, 3 * k);
         const g = Math.tan((Math.PI * Math.min(2500 * Math.pow(2.5, tone), fs * 0.4)) / fs);
         const el = 0.5 * (this.rngL.next() + 1) < p ? this.rngL.next() : 0;
         const er = 0.5 * (this.rngR.next() + 1) < p ? this.rngR.next() : 0;
@@ -276,19 +299,106 @@ export class Texture {
         const g = Math.tan((Math.PI * (140 + 260 * tone)) / fs);
         this.svfL.process(this.rngL.next(), g, 0.9);
         this.svf2.process(this.svfL.lp, Math.tan((Math.PI * 110) / fs), 1.2);
-        l = r = 2.4 * this.svf2.hp * (0.6 + 0.4 * w);
+        // character: steady .. churning
+        const m = 0.4 * (1 + 2 * k);
+        l = r = 2.4 * this.svf2.hp * (1 - m + m * w);
         break;
       }
       case TEX_BREATH: {
         // Breath: a narrower, mouth-like band of noise (500 Hz .. 8 kHz with tone), a soft puff at
         // each new note, and the same slow wander as the other beds.
         this.puff *= Math.exp(-1 / (0.15 * fs));
-        const g = Math.tan((Math.PI * Math.min(500 * Math.pow(16, tone), fs * 0.4)) / fs);
-        this.svfL.process(this.rngL.next(), g, 1.1);
-        this.svfR.process(this.rngR.next(), g, 1.1);
-        const a = 2.4 * (0.75 + 0.25 * w) * (1 + 1.2 * this.puff);
+        // character: a soft exhale .. a harsh, narrow inhale with a bigger puff
+        const g = Math.tan((Math.PI * Math.min(500 * Math.pow(16, tone) * Math.pow(2, k), fs * 0.4)) / fs);
+        const q = 1.1 * Math.pow(2, -1.5 * k);
+        this.svfL.process(this.rngL.next(), g, q);
+        this.svfR.process(this.rngR.next(), g, q);
+        const a = 1.85 * (0.75 + 0.25 * w) * (1 + 1.2 * (1 + 2 * k) * this.puff) * Math.sqrt(q / 1.1);
         l = this.svfL.bp * a;
         r = this.svfR.bp * a;
+        break;
+      }
+      case TEX_TAPE: {
+        // Tape hiss: high, fine hiss; character: clean .. worn (flutter and short dropouts).
+        const g = Math.tan((Math.PI * Math.min(2000 * Math.pow(4, tone), fs * 0.4)) / fs);
+        this.svfL.process(this.rngL.next(), g, 1.4);
+        this.svfR.process(this.rngR.next(), g, 1.4);
+        const worn = Math.max(0, 2 * k);
+        if (this.dropT > 0) this.dropT--;
+        else if (worn > 0 && 0.5 * (this.rngW.next() + 1) < (1.5 * worn) / fs) this.dropT = Math.round((0.04 + 0.08 * 0.5 * (this.rngW.next() + 1)) * fs);
+        this.dropG += ((this.dropT > 0 ? 0.15 : 1) - this.dropG) * (200 / fs);
+        this.flutPh += 6 / fs;
+        if (this.flutPh >= 1) this.flutPh -= 1;
+        const a = 0.48 * this.dropG * (1 - 0.3 * worn * (0.5 + 0.5 * Math.sin(2 * Math.PI * this.flutPh))) * (0.9 + 0.1 * w);
+        l = this.svfL.hp * a;
+        r = this.svfR.hp * a;
+        break;
+      }
+      case TEX_STATIC: {
+        // Radio static: a band of noise that jumps between levels in bursts, with pops;
+        // character: soft static .. a broken transmission (gaps, more pops).
+        if (--this.burstCount <= 0) {
+          const u = 0.5 * (this.rngW.next() + 1);
+          this.burstLvl = u < 0.25 + 0.5 * character ? (u < 0.15 * character ? 0 : 0.3 + 0.7 * u) : 0.6 + 0.4 * u;
+          this.burstCount = Math.round((0.02 + 0.18 * 0.5 * (this.rngW.next() + 1)) * fs);
+        }
+        this.burstG += (this.burstLvl - this.burstG) * (400 / fs);
+        const g = Math.tan((Math.PI * Math.min(1500 * Math.pow(3, tone), fs * 0.4)) / fs);
+        const pop = 0.5 * (this.rngW.next() + 1) < (5 + 60 * character) / fs ? this.rngW.next() * 6 : 0;
+        this.svfL.process(this.rngL.next() + pop, g, 1.2);
+        this.svfR.process(this.rngR.next() + pop, g, 1.2);
+        l = 1.8 * this.svfL.bp * this.burstG;
+        r = 1.8 * this.svfR.bp * this.burstG;
+        break;
+      }
+      case TEX_HUM: {
+        // Mains hum: the 2nd to 8th harmonics of 50 Hz (100 Hz up, so it stays off the sub), tone
+        // leans to the upper ones; character: clean .. dirty, buzzing (driven harder). Mono.
+        this.humPh += 50 / fs;
+        if (this.humPh >= 1) this.humPh -= 1;
+        let x = 0;
+        for (let n = 2; n <= 8; n++) x += Math.sin(2 * Math.PI * n * this.humPh) * Math.pow(1 / n, 1.6 - 1.4 * tone);
+        const drive = 1 + 8 * character * character;
+        x = Math.tanh(x * drive) / Math.tanh(drive);
+        l = r = 0.32 * x * (0.85 + 0.15 * w) + 0.02 * this.rngL.next();
+        break;
+      }
+      case TEX_WIND: {
+        // Wind: noise through a band that wanders with slow gusts; character: a breeze .. howling
+        // (a narrower, whistling band and stronger gusts).
+        if (--this.gustCount <= 0) {
+          this.gustTarget = this.rngW.next();
+          this.gustCount = Math.round((1.5 + 1.25 * (this.rngW.next() + 1)) * fs);
+        }
+        this.gust += (this.gustTarget - this.gust) * (1.2 / fs);
+        const f = Math.min(300 * Math.pow(10, tone) * Math.pow(2, 1.2 * this.gust), fs * 0.4);
+        const g = Math.tan((Math.PI * f) / fs), q = 1.6 - 1.4 * character;
+        this.svfL.process(this.rngL.next(), g, q);
+        this.svfR.process(this.rngR.next(), g, q);
+        const a = 6.2 * Math.sqrt(q / 1.6) * (0.45 + 0.55 * (0.5 + 0.5 * this.gust) * (1 + character));
+        l = this.svfL.bp * a;
+        r = this.svfR.bp * a;
+        break;
+      }
+      case TEX_MACHINE: {
+        // A distant machine: a low drone (harmonics of ~90-250 Hz with tone), muffled noise and a
+        // slow working cycle; character: smooth ventilation .. clanking (ticks every cycle).
+        const f0 = 90 * Math.pow(2.8, tone);
+        this.machPh += f0 / fs;
+        if (this.machPh >= 1) this.machPh -= 1;
+        // the working cycle; clanking adds a tick four times per cycle
+        const before = this.cyclePh;
+        this.cyclePh += 0.7 / fs;
+        if (this.cyclePh >= 1) this.cyclePh -= 1;
+        const tick = character > 0.5 && Math.floor(this.cyclePh * 4) !== Math.floor(before * 4) ? 8 * (character - 0.5) : 0;
+        const drone = Math.sin(2 * Math.PI * this.machPh) * 0.5 + Math.sin(4 * Math.PI * this.machPh) * 0.3 + Math.sin(6 * Math.PI * this.machPh) * 0.15;
+        this.svfL.process(this.rngL.next(), Math.tan((Math.PI * 600 * Math.pow(2, tone)) / fs), 1.0);
+        this.svf3.process(tick, Math.tan((Math.PI * 2500) / fs), 0.15);
+        // character: smooth (more drone, a gentle cycle) .. rough (more noise, a deeper cycle)
+        const cyc = 1 - 0.6 * character * (0.5 + 0.5 * Math.sin(2 * Math.PI * this.cyclePh));
+        const x = (0.35 * (1.5 - character) * drone + 0.9 * (0.5 + character) * this.svfL.lp) * cyc * (0.85 + 0.15 * w) + 1.5 * this.svf3.bp;
+        this.svf2.process(x, Math.tan((Math.PI * 80) / fs), 0.9);
+        l = r = 1.2 * this.svf2.hp;
         break;
       }
       default: {
@@ -299,7 +409,8 @@ export class Texture {
           this.breathCount = Math.round((2 + 1.5 * (this.rngW.next() + 1)) * fs);
         }
         this.breath += (this.breathTarget - this.breath) * (1.5 / fs);
-        const b = Math.exp(0.46 * this.breath);
+        // character: still .. drafty (deeper breathing)
+        const b = Math.exp(0.46 * (1 + 2 * k) * this.breath);
         const g = Math.tan((Math.PI * Math.min(1000 * Math.pow(6, tone), fs * 0.4)) / fs);
         this.svfL.process(this.rngL.next(), g, 1.5);
         this.svfR.process(this.rngR.next(), g, 1.5);

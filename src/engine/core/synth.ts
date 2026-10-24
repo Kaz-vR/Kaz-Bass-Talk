@@ -168,6 +168,7 @@ export class Synth {
   private texGain = 0;
   private texType = 0;
   private texTone = 0.4;
+  private texChar = 0.5;
   private texAtk = 0.001;
   private texRel = 0.999;
   private texLpL = 0;
@@ -806,6 +807,7 @@ export class Synth {
     this.texGain = tex * tex * TEXTURE_GAIN;
     this.texType = cur[P.texType];
     this.texTone = clamp(cur[P.texTone], 0, 1);
+    this.texChar = clamp(cur[P.texChar], 0, 1);
     // The bed swells in with the note: never faster than ~a third of the amp attack.
     this.texAtk = 1 - Math.exp(-1 / (Math.max(0.03, cur[P.amp[0]] / 3000) * fs));
     this.texRel = Math.exp(-4.6 / ((cur[P.texTail] / 1000) * fs));
@@ -969,7 +971,7 @@ export class Synth {
       // Texture bed (swells in with the notes, lingers for its tail, silent otherwise).
       if (this.texGain > 0 && (this.anyGate || this.texEnv > 1e-5)) {
         this.texEnv = this.anyGate ? this.texEnv + (1 - this.texEnv) * this.texAtk : this.texEnv * this.texRel;
-        this.texture.process(this.texType, this.texTone, this.sampleRate, out);
+        this.texture.process(this.texType, this.texTone, this.texChar, this.sampleRate, out);
         let tl = out[0], tr = out[1];
         if (cur[P.tapeAge] > 0) {
           // Worn tape dulls the texture the same way it dulls the voice.

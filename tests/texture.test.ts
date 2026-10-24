@@ -1,4 +1,4 @@
-// Texture bed: crackle, dust, rumble, air. Follows the notes with its own
+// Texture bed: all ten types (crackle … machine). Follows the notes with its own
 // tail, stays silent between notes, keeps off the sub, and leaves the rest of
 // the patch untouched.
 import { describe, expect, it } from 'vitest';
@@ -11,7 +11,7 @@ const base = {
   meta: { name: 't' }, 'voice.analog': 0, 'sub.level': 0.5, 'filter.cutoff': 800, 'amp_env.attack': 1, 'amp_env.sustain': 1, 'amp_env.release': 30,
   'osc1.wave': 'saw', 'osc1.level': 0.7, 'texture.level': 0.8, 'texture.tail': 300,
 };
-const TYPES = ['crackle', 'dust', 'rumble', 'air'];
+const TYPES = ['crackle', 'dust', 'rumble', 'air', 'breath', 'tape hiss', 'static', 'hum', 'wind', 'machine'];
 /** Texture alone: the same render minus the render without texture. */
 function bed(p: object, seconds: number, tail = 0) {
   const a = renderPatch(p, heldNote(45, 1), { seconds, tail });
@@ -42,6 +42,24 @@ describe('texture bed', () => {
     let d = 0;
     for (let i = 0; i < a.left.length; i++) d = Math.max(d, Math.abs(a.left[i] - b.left[i]));
     expect(d).toBe(0);
+  });
+
+  it.each(TYPES)('%s: Character changes it', (type) => {
+    const a = bed({ ...base, 'texture.type': type, 'texture.character': 0 }, 0.5).left;
+    const b = bed({ ...base, 'texture.type': type, 'texture.character': 1 }, 0.5).left;
+    let d = 0, e = 0;
+    for (let i = 0.1 * FS; i < 0.45 * FS; i++) {
+      d += (a[i] - b[i]) ** 2;
+      e += a[i] ** 2 + b[i] ** 2;
+    }
+    expect(d / e).toBeGreaterThan(0.01);
+  });
+
+  it.each(['hum', 'machine'])('%s stays off the sub', (type) => {
+    const x = bed({ ...base, 'texture.type': type, 'texture.level': 1 }, 1);
+    const mid = Float64Array.from(x.left, (v, i) => 0.5 * (v + x.right[i]));
+    const s = powerSpectrum(mid, FS, Math.round(0.05 * FS), Math.round(0.45 * FS), 8192);
+    expect(bandPower(s, 20, 60)).toBeLessThan(bandPower(s, 100, 600) * 0.1);
   });
 
   it('rumble is mono and stays off the sub', () => {
