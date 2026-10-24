@@ -1322,3 +1322,6 @@ html, body, .v2-wrap { background: #070708; }
 /* LFO boxes: RETRIG at the right of the title row, HZ / SYNC just left of the rate dial. */
 .v2 .mod-page2 .ob-head .lfo-retrig { margin-left: auto; }
 .v2 .mod-page2 .ob-dials .lfo-sync { align-self: center; margin-right: 2px; }
+/* An unused LFO / envelope (nothing in the matrix uses it) reads as off: print greyed and dim. */
+.v2 .mod-page2 > .mb.is-off .ob-print, .v2 .mod-page2 > .mb.is-off .ob-corner { opacity: 0.3; filter: grayscale(1); }
+.v2 .mod-page2 > .mb.is-off .ob-dials { opacity: 0.4; }

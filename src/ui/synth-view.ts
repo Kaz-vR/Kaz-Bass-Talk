@@ -526,7 +526,7 @@ function ghosts(g: CanvasRenderingContext2D, sets: [number, number][][], color: 
 }
 
 const MOD_SLOTS = 12;
-const MOD_IDS = Array.from({ length: MOD_SLOTS }, (_, i) => [`mod${i + 1}.source`, `mod${i + 1}.dest`, `mod${i + 1}.amount`]).flat();
+const MOD_IDS = Array.from({ length: MOD_SLOTS }, (_, i) => [`mod${i + 1}.source`, `mod${i + 1}.dest`, `mod${i + 1}.amount`, `mod${i + 1}.on`]).flat();
 const LFO_SHAPE: Record<string, string> = { sine: 'SINE', triangle: 'TRIANGLE', saw_up: 'SAW UP', saw_down: 'SAW DOWN', square: 'SQUARE', sample_hold: 'S & H', wander: 'WANDER' };
 /** The matrix menus in columns: envelopes, LFOs, the player, the drifts (as the rows are sorted); destinations in signal order. */
 const MX_SRC_GROUPS: [string, string[]][] = [
@@ -921,6 +921,18 @@ export class SynthView {
     this.values[id] = v;
     this.onChange(id, v);
     for (const f of this.watchers.get(id) ?? []) f();
+    // routing an LFO in the matrix switches it on
+    const lfo = /^mod\d+\.source$/.test(id) ? /^lfo(\d)$/.exec(String(v)) : null;
+    if (lfo && !this.get(`lfo${lfo[1]}.on`)) this.set(`lfo${lfo[1]}.on`, true);
+  }
+
+  /** Whether a mod source is used: a matrix row that is on, with a destination and an amount. */
+  private routed(src: string): boolean {
+    if (!this.get('mod.on')) return false;
+    for (let n = 1; n <= MOD_SLOTS; n++) {
+      if (String(this.get(`mod${n}.source`)) === src && String(this.get(`mod${n}.dest`)) !== 'none' && this.num(`mod${n}.amount`) !== 0 && this.get(`mod${n}.on`) !== false) return true;
+    }
+    return false;
   }
 
   /** Run `view` now, whenever one of `ids` changes, and when a patch loads. */
@@ -1236,13 +1248,16 @@ export class SynthView {
   }
 
   /** The power lamp of a part with its own on/off switch. */
-  private boolPower(id: string, card: HTMLElement): HTMLElement {
+  private boolPower(id: string, card: HTMLElement, src?: string): HTMLElement {
     const b = h('button', 'power', lamp());
     b.title = getParam(id)?.describes ?? '';
     b.onclick = () => this.set(id, !this.get(id));
-    this.watch([id], () => {
-      b.classList.toggle('on', !!this.get(id));
-      card.classList.toggle('is-off', !this.get(id));
+    // a mod source that no matrix row uses shows as off
+    this.watch(src ? [id, 'mod.on', ...MOD_IDS] : [id], () => {
+      const on = !!this.get(id) && (!src || this.routed(src));
+      b.classList.toggle('on', on);
+      card.classList.toggle('is-off', !on);
+      if (src) b.title = this.routed(src) ? getParam(id)?.describes ?? '' : 'Off: nothing in the mod matrix uses it';
     });
     return b;
   }
@@ -1970,7 +1985,7 @@ export class SynthView {
     const out: string[] = [];
     for (let n = 1; n <= MOD_SLOTS; n++) {
       const amt = this.num(`mod${n}.amount`), dest = String(this.get(`mod${n}.dest`));
-      if (String(this.get(`mod${n}.source`)) !== src || dest === 'none' || amt === 0 || !this.get('mod.on')) continue;
+      if (String(this.get(`mod${n}.source`)) !== src || dest === 'none' || amt === 0 || !this.get('mod.on') || this.get(`mod${n}.on`) === false) continue;
       const pct = Math.abs(amt) < 0.01 ? (amt * 100).toFixed(1) : String(Math.round(amt * 100));
       out.push(`${(DEST_LABEL[dest] ?? dest).toLowerCase()} ${amt > 0 ? '+' : ''}${pct}%`);
     }
@@ -2073,7 +2088,7 @@ export class SynthView {
       note.style.display = free ? 'none' : '';
     });
     return this.obox(`LFO ${n}`, `mb box-lfo${n}`, {
-      power: (el) => this.boolPower(`${L}.on`, el),
+      power: (el) => this.boolPower(`${L}.on`, el, L),
       head: [this.selector(`${L}.shape`, { label: (o) => LFO_SHAPE[o] ?? o }), h('span', 'lfo-retrig', this.toggle(`${L}.retrigger`, 'Retrig', 'small'))],
       corner: [this.routeTag(L)],
       print: this.lfoPrint(n, MB_PRINT_W, MB_PRINT_H),
@@ -2085,7 +2100,11 @@ export class SynthView {
   /** Env 2 (the slow bloom) and Env 3 (pitch bumps and drops, or anything else): ADSR, routed in the matrix. */
   private modEnvBox(n: 2 | 3): HTMLElement {
     const pct = (v: number) => `${Math.round(v * 100)}%`, E = `env${n}`;
-    return this.obox(`ENV ${n}`, `mb box-env${n}`, {
+    // no switch of its own: on while a matrix row uses it
+    const power = h('span', 'power', lamp());
+    power.title = 'On while the mod matrix uses it';
+    const box = this.obox(`ENV ${n}`, `mb box-env${n}`, {
+      power,
       corner: [this.routeTag(E)],
       print: this.envPrint(E, MB_PRINT_W, MB_PRINT_H),
       dials: [
@@ -2095,6 +2114,12 @@ export class SynthView {
         this.knob(`${E}.release`, 'R', 'lg', { fmt: ms, parse: parseMs }),
       ],
     });
+    this.watch(['mod.on', ...MOD_IDS], () => {
+      const on = this.routed(E);
+      power.classList.toggle('on', on);
+      box.classList.toggle('is-off', !on);
+    });
+    return box;
   }
 
   /** The custom shape's points from the patch. */
