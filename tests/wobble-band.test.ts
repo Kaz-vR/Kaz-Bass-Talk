@@ -1,5 +1,4 @@
-// The Wobbler's band: only what lies between Low cut and High cut is wobbled; below and above it
-// the sound stays steady.
+// The Wobbler's low cut: only what lies above it is wobbled; below it the sound stays steady.
 import { describe, expect, it } from 'vitest';
 import { Biquad } from '../src/engine/core/dsp';
 import { renderPatch } from '../src/engine/core/render';
@@ -22,11 +21,8 @@ function swing(x: Float32Array, lo: number, hi: number): number {
   return Math.max(...lv) - Math.min(...lv);
 }
 
-describe('wobbler band', () => {
-  const x = renderPatch({ ...base, 'wobble.lowcut': 500, 'wobble.highcut': 2000 }, heldNote(45, 3), { seconds: 2, sampleRate: FS }).left;
-  it('gates the band between the cuts', () => expect(swing(x, 600, 1500)).toBeGreaterThan(8));
-  it('leaves below and above the band steady', () => {
-    expect(swing(x, 20, 200)).toBeLessThan(2);
-    expect(swing(x, 4000, 20000)).toBeLessThan(3);
-  });
+describe('wobbler low cut', () => {
+  const x = renderPatch({ ...base, 'wobble.lowcut': 500 }, heldNote(45, 3), { seconds: 2, sampleRate: FS }).left;
+  it('gates what is above the cut', () => expect(swing(x, 900, 3000)).toBeGreaterThan(8));
+  it('leaves what is below the cut steady', () => expect(swing(x, 20, 200)).toBeLessThan(2));
 });

@@ -1276,7 +1276,7 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .lfo5-settings > .ob-head { margin-bottom: 4px; }
 .v2 .lfo5-sec { display: flex; align-items: center; justify-content: center; border-top: 1px solid rgba(255,255,255,0.04); }
 .v2 .lfo5-switch { flex: 1.5; border-top: 0; }
-.v2 .lfo5-knobs { flex: 2; display: grid !important; grid-template-columns: repeat(2, auto); justify-content: center; column-gap: 26px; row-gap: 10px; align-content: center; }
+.v2 .lfo5-knobs { flex: 1.2; display: flex; gap: 14px; }
 .v2 .lfo5-shift { flex: 0.6; gap: 12px; }
 .v2 .lfo5-shift .k-label { margin-right: 6px; }
 .v2 .lfo-page .lfo5-targets { flex: 0.7; height: auto !important; }

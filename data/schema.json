@@ -1926,19 +1926,7 @@
       "curve": "log",
       "unit": "Hz",
       "group": "wobble",
-      "describes": "The volume shape only works above this frequency, so the low end stays steady under the gate. 20 Hz = from the very bottom."
-    },
-    {
-      "id": "wobble.highcut",
-      "label": "Wobbler high cut",
-      "type": "float",
-      "min": 20,
-      "max": 20000,
-      "default": 20000,
-      "curve": "log",
-      "unit": "Hz",
-      "group": "wobble",
-      "describes": "The volume shape only works below this frequency; above it the sound stays steady. With Low cut it picks the band that is gated. 20 kHz = to the very top."
+      "describes": "Below this frequency the Wobbler leaves the sound alone (gate and its own filter work only above it), so the low end stays steady. 20 Hz = the whole sound."
     },
     {
       "id": "wobble.points",

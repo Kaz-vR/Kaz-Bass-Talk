@@ -159,7 +159,7 @@ export const P = {
   modOn: ix('mod.on'), eqOn: ix('eq.on'), chorusOn: ix('chorus.on'), flangerOn: ix('flanger.on'),
   phaserOn: ix('phaser.on'), delayOn: ix('delay.on'), reverbOn: ix('reverb.on'),
   wheelMove: ix('wheel.move'), wheelPreset: ix('wheel.preset'),
-  wobDepth: ix('wobble.depth'), wobRate: ix('wobble.rate'), wobCutoff: ix('wobble.cutoff'), wobVolume: ix('wobble.volume'), wobShape: ix('wobble.shape'), wobLife: ix('wobble.life'), wobPts: ix('wobble.points'), wobPhase: ix('wobble.phase'), wobSmooth: ix('wobble.smooth'), wobLowcut: ix('wobble.lowcut'), wobHighcut: ix('wobble.highcut'),
+  wobDepth: ix('wobble.depth'), wobRate: ix('wobble.rate'), wobCutoff: ix('wobble.cutoff'), wobVolume: ix('wobble.volume'), wobShape: ix('wobble.shape'), wobLife: ix('wobble.life'), wobPts: ix('wobble.points'), wobPhase: ix('wobble.phase'), wobSmooth: ix('wobble.smooth'), wobLowcut: ix('wobble.lowcut'),
   wobX: Array.from({ length: 12 }, (_, i) => ix(`wobble.x${i + 1}`)), wobY: Array.from({ length: 12 }, (_, i) => ix(`wobble.y${i + 1}`)), wobS: Array.from({ length: 12 }, (_, i) => ix(`wobble.s${i + 1}`)),
   flangerMix: ix('flanger.mix'), flangerRate: ix('flanger.rate'), flangerFb: ix('flanger.feedback'),
   delayMix: ix('delay.mix'), delayTime: ix('delay.time'), delayFb: ix('delay.feedback'), delayTone: ix('delay.tone'),

@@ -113,8 +113,8 @@ export class Synth {
   private readonly wobRand = new Float64Array(WOB_RANDOM_STEPS);
   private wobRandCycle = -1;
   /** The volume shape's crossover (two one-poles per side): below the low cut the gate leaves the sound alone. */
-  /** The Wobbler's band splits (per side: low LP ×2, low HP ×2, high LP ×2, high HP ×2). */
-  private readonly wobBand = [0, 1].map(() => Array.from({ length: 8 }, () => new Biquad()));
+  /** The Wobbler's low cut split (per side: LP ×2, HP ×2: a Linkwitz-Riley pair). */
+  private readonly wobBand = [0, 1].map(() => Array.from({ length: 4 }, () => new Biquad()));
   private wobBandLc = -1;
   /** The Wobbler's own filter (Cutoff target): two SVFs per side, its g (stepped per sample) and damping. */
   private readonly wobSvf = [0, 1].map(() => [new Svf(), new Svf()]);
@@ -125,7 +125,6 @@ export class Synth {
   private wobK = 1.3;
   /** The Wobbler filter's cutoff right now (Hz), -1 when it is not working; read by the page. */
   liveWobFc = -1;
-  private wobBandHc = -1;
   /** The volume target's gain, ramped per sample towards its target so the gate never clicks. */
   private wobGate = 1;
   private wobGateTarget = 1;
@@ -667,10 +666,10 @@ export class Synth {
       // only ducks (never louder).
       if (cur[P.wobCutoff] > 0.5) {
         // The classic wub, on the Wobbler's own filter (the main filter is never touched): a
-        // 24 dB low-pass that opens to the top of the band where the shape is up and shuts towards
-        // its bottom where it is down, with a resonant peak that grows with depth.
-        const lc = cur[P.wobLowcut], hc = cur[P.wobHighcut];
-        const lo = lc > 21 ? lc : 60, hi = Math.min(hc < 19900 ? hc : 18000, this.sampleRate * 0.45);
+        // 24 dB low-pass that opens wide where the shape is up and shuts towards the low cut
+        // where it is down, with a resonant peak that grows with depth.
+        const lc = cur[P.wobLowcut];
+        const lo = lc > 21 ? lc : 60, hi = Math.min(18000, this.sampleRate * 0.45);
         const d = Math.min(1, depth * this.wobScale);
         const fc = Math.max(20, Math.min(hi, hi * Math.pow(lo / hi, d * (1 - v)) * Math.pow(2, 6 * this.wobBright)));
         const gT = Math.tan((Math.PI * fc) / this.sampleRate);
@@ -692,21 +691,16 @@ export class Synth {
   }
 
   /**
-   * One side through the Wobbler: the band between its cuts (all of it when both are off) goes
-   * through its own low-pass (the Cutoff target) and its gate (the Volume target); below and above
-   * the band the sound passes as it is.
+   * One side through the Wobbler: what is above its low cut (all of it when the cut is off) goes
+   * through its own low-pass (the Cutoff target) and its gate (the Volume target); below the cut
+   * the sound passes as it is.
    */
-  private wobSide(x: number, c: number, loOn: boolean, hiOn: boolean, g: number, filt: boolean): number {
+  private wobSide(x: number, c: number, loOn: boolean, g: number, filt: boolean): number {
     const f = this.wobBand[c];
-    let low = 0, rest = x, top = 0;
+    let low = 0, mid = x;
     if (loOn) {
       low = f[1].process(f[0].process(x));
-      rest = f[3].process(f[2].process(x));
-    }
-    let mid = rest;
-    if (hiOn) {
-      mid = f[5].process(f[4].process(rest));
-      top = f[7].process(f[6].process(rest));
+      mid = f[3].process(f[2].process(x));
     }
     if (filt) {
       const sv = this.wobSvf[c];
@@ -714,7 +708,7 @@ export class Synth {
       sv[1].process(sv[0].lp, this.wobG, Math.SQRT2);
       mid = sv[1].lp;
     }
-    return low + top + mid * g;
+    return low + mid * g;
   }
 
   /** The wobble shape set up for this block, unsmoothed, at q (0..1). */
@@ -1074,30 +1068,19 @@ export class Synth {
         this.wobGate += (this.wobGateTarget - this.wobGate) * 0.02;
         this.wobG += this.wobGStep;
         if (Math.abs(this.wobGate - 1) < 1e-6 && this.wobGateTarget === 1) this.wobGate = 1;
-        // Only the band between Low cut and High cut is gated: below and above it the sound stays
-        // steady. 24 dB/oct Linkwitz-Riley splits (as in multiband plugins), so the band is clean.
-        const lc = cur[P.wobLowcut], hc = cur[P.wobHighcut], loOn = lc > 21, hiOn = hc < 19900;
-        if (lc !== this.wobBandLc || hc !== this.wobBandHc) {
+        // Only what is above the low cut is wobbled: below it the sound stays steady. A 24 dB/oct
+        // Linkwitz-Riley split (as in multiband plugins), so the cut is clean.
+        const lc = cur[P.wobLowcut], loOn = lc > 21;
+        if (lc !== this.wobBandLc) {
           this.wobBandLc = lc;
-          this.wobBandHc = hc;
           const fs = this.sampleRate, q = Math.SQRT1_2;
-          for (const c of [0, 1]) {
-            const f = this.wobBand[c];
-            if (loOn) for (let k = 0; k < 2; k++) {
-              f[k].setLowpass(lc, q, fs);
-              f[2 + k].setHighpass(lc, q, fs);
-            }
-            if (hiOn) for (let k = 0; k < 2; k++) {
-              f[4 + k].setLowpass(hc, q, fs);
-              f[6 + k].setHighpass(hc, q, fs);
-            }
+          if (loOn) for (const f of this.wobBand) for (let k = 0; k < 2; k++) {
+            f[k].setLowpass(lc, q, fs);
+            f[2 + k].setHighpass(lc, q, fs);
           }
         }
-        // (a band that is closed, Low cut at High cut, gates nothing)
-        const g = lc < hc ? this.wobGate : 1;
-        const filt = this.wobFiltOn && lc < hc;
-        l = this.wobSide(l, 0, loOn, hiOn, g, filt);
-        r = this.wobSide(r, 1, loOn, hiOn, g, filt);
+        l = this.wobSide(l, 0, loOn, this.wobGate, this.wobFiltOn);
+        r = this.wobSide(r, 1, loOn, this.wobGate, this.wobFiltOn);
       }
 
       // Subsonic / DC filter.

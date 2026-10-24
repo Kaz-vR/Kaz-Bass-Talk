@@ -171,7 +171,7 @@ export function validatePatch(input: unknown): ValidationResult {
     patch[p.id] = old in src ? clampValue(p, src[old], issues) : (p.default as ParamValue);
   }
   for (const key of Object.keys(src)) {
-    if (key !== 'meta' && key !== 'fx.lowcut' && key !== 'wobble.target' && !key.startsWith('pitch_env.') && !indexById.has(key)) issues.push({ param: key, message: 'unknown parameter (dropped)' });
+    if (key !== 'meta' && key !== 'fx.lowcut' && key !== 'wobble.target' && key !== 'wobble.highcut' && !key.startsWith('pitch_env.') && !indexById.has(key)) issues.push({ param: key, message: 'unknown parameter (dropped)' });
   }
   sortModSlots(patch);
   return { patch, issues };

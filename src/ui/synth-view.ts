@@ -495,33 +495,6 @@ function loCutStrip(g: CanvasRenderingContext2D, W: number, H: number, hz: numbe
   g.restore();
 }
 
-/**
- * A band on a print (the Wobbler's Low cut and High cut): the frequency strip along the bottom
- * (20 Hz – 20 kHz, log), lit between the two cuts, dark outside them, a tick at each cut that is
- * set. Both off (20 Hz and 20 kHz) = nothing.
- */
-function bandStrip(g: CanvasRenderingContext2D, W: number, H: number, lo: number, hi: number, on: boolean, color: string): void {
-  const loOn = lo > 21, hiOn = hi < 19900;
-  if (!loOn && !hiOn) return;
-  const X = (hz: number) => Math.max(1, Math.min(W - 1, (Math.log(hz / 20) / Math.log(1000)) * W));
-  const x0 = loOn ? X(lo) : 0, x1 = hiOn ? X(hi) : W;
-  g.save();
-  g.fillStyle = 'rgba(255,255,255,0.05)';
-  g.fillRect(0, H - 3, W, 2);
-  if (x1 > x0) {
-    g.fillStyle = on ? hexA(color.startsWith('#') ? color : INK, 0.35) : 'rgba(120,120,125,0.3)';
-    g.fillRect(x0, H - 3, x1 - x0, 2);
-  }
-  g.fillStyle = on ? color : '#77777d';
-  if (on) {
-    g.shadowColor = color;
-    g.shadowBlur = 6;
-  }
-  if (loOn) g.fillRect(x0 - 0.75, H - 9, 1.5, 8);
-  if (hiOn) g.fillRect(x1 - 0.75, H - 9, 1.5, 8);
-  g.restore();
-}
-
 /** The dot that travels along a print while a note sounds: where in its shape the sound is now. */
 function liveDot(g: CanvasRenderingContext2D, pts: [number, number][], frac: number, color: string): void {
   const i = Math.max(0, Math.min(pts.length - 1, Math.round(frac * (pts.length - 1))));
@@ -995,9 +968,6 @@ export class SynthView {
   }
 
   private set(id: string, v: ParamValue): void {
-    // The Wobbler's Low cut and High cut pick a band: they stop where they meet, never cross.
-    if (id === 'wobble.lowcut') v = Math.min(Number(v), this.num('wobble.highcut'));
-    if (id === 'wobble.highcut') v = Math.max(Number(v), this.num('wobble.lowcut'));
     if (this.values[id] === v) return;
     this.values[id] = v;
     this.onChange(id, v);
@@ -2331,7 +2301,7 @@ export class SynthView {
    * palette under it, and one SETTINGS column on the right.
    */
   private buildLfoPage(): HTMLElement {
-    const ids = ['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.phase', 'wobble.smooth', 'wobble.lowcut', 'wobble.highcut', 'wobble.cutoff', 'wobble.volume', 'wobble.points'];
+    const ids = ['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.phase', 'wobble.smooth', 'wobble.lowcut', 'wobble.cutoff', 'wobble.volume', 'wobble.points'];
     for (let i = 1; i <= 12; i++) ids.push(`wobble.x${i}`, `wobble.y${i}`, `wobble.s${i}`);
     const on = () => !!this.get('wobble.on') && this.num('wobble.depth') > 0;
     const W = 870, H = 260, PAD = 14, GX = 16, GY = 8;
@@ -2378,7 +2348,7 @@ export class SynthView {
       if (on()) fillUnder(g, line, H - PAD, accentOf(cv), 0.12, 0.02);
       silver(g, line, on());
       // the low cut, as on every print (lit while Volume is on: the gate only works above it)
-      bandStrip(g, W, H, this.num('wobble.lowcut'), this.num('wobble.highcut'), on() && !!this.get('wobble.volume'), accentOf(cv));
+      loCutStrip(g, W, H, this.num('wobble.lowcut'), on(), accentOf(cv));
       // the points: a filled dot sits on the line (hard), a ring pulls the line (soft)
       const col = accentOf(cv);
       const pts = this.wobPoints(shape);
@@ -2569,7 +2539,6 @@ export class SynthView {
     };
     const kHz = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)} kHz` : `${Math.round(v)} Hz`);
     const hz = (v: number) => (v <= 21 ? 'off' : kHz(v));
-    const hzHi = (v: number) => (v >= 19900 ? 'off' : kHz(v));
     const pct = (v: number) => `${Math.round(v * 100)}%`;
     const settings = h('div', 'c ob box-wob lfo5-settings',
       h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'SETTINGS')),
@@ -2582,12 +2551,10 @@ export class SynthView {
         },
         deps: ['wobble.depth'],
       })),
-      // two rows: Depth and Smooth, then the band the volume gate works in (Low cut, High cut)
       h('div', 'lfo5-sec lfo5-knobs',
         this.knob('wobble.depth', 'Depth', 'lg', { fmt: pct }),
         this.knob('wobble.smooth', 'Smooth', 'lg', { fmt: pct }),
-        this.knob('wobble.lowcut', 'Low cut', 'lg', { fmt: hz }),
-        this.knob('wobble.highcut', 'High cut', 'lg', { fmt: hzHi, fromMax: true })),
+        this.knob('wobble.lowcut', 'Low cut', 'lg', { fmt: hz })),
       h('div', 'lfo5-sec lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, sNext),
       h('div', 'lfo5-sec lfo5-targets', lampFor('wobble.cutoff', 'Cutoff'), lampFor('wobble.volume', 'Volume')));
 
