@@ -1325,3 +1325,8 @@ html, body, .v2-wrap { background: #070708; }
 /* An unused LFO / envelope (nothing in the matrix uses it) reads as off: print greyed and dim. */
 .v2 .mod-page2 > .mb.is-off .ob-print, .v2 .mod-page2 > .mb.is-off .ob-corner { opacity: 0.3; filter: grayscale(1); }
 .v2 .mod-page2 > .mb.is-off .ob-dials { opacity: 0.4; }
+/* The Wobbler off: its dials, shift and target lamps go dark like any other box (the switch stays as it is). */
+.v2 .lfo5-settings.is-off .lfo5-knobs, .v2 .lfo5-settings.is-off .lfo5-shift, .v2 .lfo5-settings.is-off .lfo5-targets { opacity: 0.4; filter: grayscale(1); }
+.v2 .lfo5-main.is-off .lfo5-rate { opacity: 0.55; }
+.v2 .lfo5-settings.is-off .led .lamp { background: #1a1a1d !important; box-shadow: none !important; border-color: rgba(255,255,255,0.12) !important; }
+.v2 .lfo5-settings.is-off .led { color: #4a4a50 !important; text-shadow: none !important; }

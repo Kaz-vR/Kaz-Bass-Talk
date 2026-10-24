@@ -2512,6 +2512,12 @@ export class SynthView {
       h('div', 'lfo5-sec lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, sNext),
       h('div', 'lfo5-sec lfo5-targets', lampFor('wobble.cutoff', 'Cutoff'), lampFor('wobble.volume', 'Volume')));
 
+    // off (switched off, or Depth at 0): the settings go dark like any other box's, the switch stays lit
+    this.watch(['wobble.on', 'wobble.depth'], () => {
+      settings.classList.toggle('is-off', !on());
+      big.classList.toggle('is-off', !on());
+    });
+
     // The shape palette under the print (as in ShaperBox): one tile per shape, the chosen one lit.
     const TW = 96, TH = 46, TN = TW - 16;
     const tiles: HTMLElement[] = [];
