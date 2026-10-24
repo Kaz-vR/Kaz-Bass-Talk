@@ -168,7 +168,7 @@ export class Synth {
   private texGain = 0;
   private texType = 0;
   private texTone = 0.4;
-  private texChar = 0.5;
+  private texDensity = 0.5;
   /** The bed's playback rate (2^octave, like tape run slower or faster) and its resampler: the last two frames and the position between them. */
   private texRate = 1;
   private texPos = 1;
@@ -812,7 +812,7 @@ export class Synth {
     this.texGain = tex * tex * TEXTURE_GAIN;
     this.texType = cur[P.texType];
     this.texTone = clamp(cur[P.texTone], 0, 1);
-    this.texChar = clamp(cur[P.texChar], 0, 1);
+    this.texDensity = clamp(cur[P.texDensity], 0, 1);
     this.texRate = Math.pow(2, Math.round(clamp(cur[P.texOct], -2, 1)));
     // The bed swells in with the note: never faster than ~a third of the amp attack.
     this.texAtk = 1 - Math.exp(-1 / (Math.max(0.03, cur[P.amp[0]] / 3000) * fs));
@@ -982,7 +982,7 @@ export class Synth {
         this.texPos += this.texRate;
         while (this.texPos >= 1) {
           this.texPos -= 1;
-          this.texture.process(this.texType, this.texTone, this.texChar, this.sampleRate, out);
+          this.texture.process(this.texType, this.texTone, this.texDensity, this.sampleRate, out);
           this.texPrev[0] = this.texCur[0];
           this.texPrev[1] = this.texCur[1];
           this.texCur[0] = out[0];

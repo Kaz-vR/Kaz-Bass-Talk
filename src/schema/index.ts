@@ -166,6 +166,19 @@ function migrateAttackCurve(src: Record<string, unknown>): Record<string, unknow
   return { ...src, 'amp_env.attack_bend': 0.15 - 0.75 * Math.max(0, Math.min(1, Number(src['amp_env.attack_curve']) || 0)) };
 }
 
+/**
+ * The noise strip lost hum and machine (owner's call: no tonal beds); they load as rumble. Its
+ * Character dial became Density (same place, 0.5 still each type's classic sound).
+ */
+function migrateTexture(src: Record<string, unknown>): Record<string, unknown> {
+  const t = src['texture.type'];
+  if (t !== 'hum' && t !== 'machine' && !('texture.character' in src)) return src;
+  const out: Record<string, unknown> = { ...src };
+  if (t === 'hum' || t === 'machine') out['texture.type'] = 'rumble';
+  if ('texture.character' in src && !('texture.density' in src)) out['texture.density'] = src['texture.character'];
+  return out;
+}
+
 function migrateReverb(src: Record<string, unknown>): Record<string, unknown> {
   if (!('reverb.size' in src) || 'reverb.decay' in src) return src;
   const out: Record<string, unknown> = { ...src };
@@ -182,7 +195,7 @@ function migrateReverb(src: Record<string, unknown>): Record<string, unknown> {
  */
 export function validatePatch(input: unknown): ValidationResult {
   const issues: ValidationIssue[] = [];
-  const src = migrateAttackCurve(migrateReverb(migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>))));
+  const src = migrateTexture(migrateAttackCurve(migrateReverb(migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>)))));
   const rawMeta = src.meta && typeof src.meta === 'object' ? (src.meta as PatchMeta) : undefined;
   const meta: PatchMeta = { ...(rawMeta ?? {}), name: typeof rawMeta?.name === 'string' ? rawMeta.name : 'Untitled' };
   if (!rawMeta) issues.push({ param: 'meta', message: 'missing meta' });
@@ -205,7 +218,7 @@ export function validatePatch(input: unknown): ValidationResult {
     patch[p.id] = old in src ? clampValue(p, src[old], issues) : (p.default as ParamValue);
   }
   for (const key of Object.keys(src)) {
-    if (key !== 'meta' && key !== 'fx.lowcut' && key !== 'wobble.target' && key !== 'wobble.highcut' && key !== 'reverb.size' && key !== 'amp_env.attack_curve' && key !== 'reverb.tone' && !key.startsWith('pitch_env.') && !key.startsWith('breath.') && !indexById.has(key)) issues.push({ param: key, message: 'unknown parameter (dropped)' });
+    if (key !== 'meta' && key !== 'fx.lowcut' && key !== 'wobble.target' && key !== 'wobble.highcut' && key !== 'reverb.size' && key !== 'amp_env.attack_curve' && key !== 'texture.character' && key !== 'reverb.tone' && !key.startsWith('pitch_env.') && !key.startsWith('breath.') && !indexById.has(key)) issues.push({ param: key, message: 'unknown parameter (dropped)' });
   }
   sortModSlots(patch);
   return { patch, issues };

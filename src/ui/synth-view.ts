@@ -1430,7 +1430,10 @@ export class SynthView {
       const type = String(this.get('texture.type'));
       const breath = type === 'breath';
       const lvl = this.num('texture.level');
-      const tone = this.num('texture.tone'), ch = this.num('texture.character');
+      const tone = this.num('texture.tone'), ch = this.num('texture.density');
+      // the noise types get thicker with Density (a fuller, rougher trace), the grains more frequent
+      const grain = type === 'crackle' || type === 'dust' || type === 'static';
+      const thick = grain ? 1 : 0.55 + 0.9 * ch;
       const tail = Math.min(1, this.num('texture.tail') / 3000);
       // the octave stretches the bed in time, as tape run slower: fewer, broader grains and slower cycles
       const rate = Math.pow(2, this.num('texture.octave'));
@@ -1438,24 +1441,25 @@ export class SynthView {
       const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) - 0.5;
       const pts: [number, number][] = [];
       for (let i = 0; i <= W; i += 1.5 / rate) {
-        // each type's grain, varied by Character
+        // each type's grain, varied by Density
         const x = (i / W) * rate;
-        const pop = (type === 'crackle' && Math.abs(r()) > 0.5 - 0.08 * ch) || (type === 'static' && Math.abs(r()) > 0.49 - 0.04 * ch) ? 3 : 1;
+        const pop = (type === 'crackle' && Math.abs(r()) > 0.5 - 0.03 * Math.pow(2, 5 * (ch - 0.5)) * 0.4) || (type === 'static' && Math.abs(r()) > 0.495 - 0.012 * Math.pow(2, 4 * (ch - 0.5))) ? 3 : 1;
         // breath: a small puff at the start of the note, then like the other beds
         const env = breath ? 0.7 + 0.3 * Math.exp(-(i / W) * 14) : type === 'rumble' ? 0.6 : 1;
         const fade = Math.min(1, Math.max(0, (1 - i / W) / Math.max(0.05, 0.25 + 0.75 * tail)) * 1.6);
-        let y = r() * (H - 10) * (0.25 + 0.75 * lvl) * pop * env * fade * (type === 'air' ? 0.6 : 1);
-        if (type === 'hum') y = (Math.sin(x * 2 * Math.PI * 9) * 0.6 + Math.sin(x * 2 * Math.PI * 18) * 0.25 * (0.5 + ch)) * (H - 14) * 0.5 * (0.3 + 0.7 * lvl) * fade + y * 0.06;
-        if (type === 'wind') y *= 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(x * 2 * Math.PI * 1.3 + 1)) * (0.6 + 0.6 * ch);
-        if (type === 'machine') y = y * 0.45 * (1 - 0.3 * Math.sin(x * 2 * Math.PI * 3)) + Math.sin(x * 2 * Math.PI * 14) * (H - 14) * 0.18 * (0.3 + 0.7 * lvl) * fade + (ch > 0.5 && Math.abs(Math.sin(x * Math.PI * 3)) < 0.03 ? (H - 14) * 0.4 * (ch - 0.5) * 2 : 0);
-        if (type === 'tape hiss') y *= 0.4 * (ch > 0.5 && Math.abs(Math.sin(x * Math.PI * 2.3)) < 0.08 * (ch - 0.5) * 2 ? 0.2 : 1);
-        if (type === 'static') y *= Math.abs(Math.sin(x * 37)) > 0.3 * ch ? 0.8 : 0.1;
+        // crackle is pops only: a quiet line between them
+        let y = r() * (H - 10) * (0.25 + 0.75 * lvl) * pop * env * fade * (type === 'air' ? 0.6 : 1) * thick * (type === 'crackle' && pop === 1 ? 0.06 : 1);
+        if (type === 'wind') y *= 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(x * 2 * Math.PI * 1.3 + 1));
+        if (type === 'tape hiss') y *= 0.4;
+        if (type === 'dust') y *= 0.5 + ch;
+        // a crackle pop is a sharp spike from the quiet line
+        if (type === 'crackle' && pop > 1) y = (r() < 0 ? -1 : 1) * (0.35 + Math.abs(r())) * (H - 14) * 0.9 * (0.3 + 0.7 * lvl) * fade;
         pts.push([i, H / 2 + y]);
       }
-      silver(g, smoothY(pts, (1 - tone) * 4 * Math.min(1, rate)), lvl > 0);
+      silver(g, smoothY(pts, type === 'crackle' ? 0 : (1 - tone) * 4 * Math.min(1, rate)), lvl > 0);
       if (String(this.get('texture.filter_type')).startsWith('high')) loCutStrip(g, W, H, this.num('texture.filter_cutoff'), lvl > 0, accentOf(cv));
     };
-    this.watch(['texture.type', 'texture.level', 'texture.tone', 'texture.character', 'texture.octave', 'texture.tail', 'texture.filter_cutoff', 'texture.filter_type'], redraw);
+    this.watch(['texture.type', 'texture.level', 'texture.tone', 'texture.density', 'texture.octave', 'texture.tail', 'texture.filter_cutoff', 'texture.filter_type'], redraw);
     return cv;
   }
 
@@ -1808,7 +1812,7 @@ export class SynthView {
    */
   private noiseStrip(): HTMLElement {
     // The same four dials and Direct out for every noise type, breath included (owner's call).
-    const dials = [this.knob('texture.tone', 'Tone', 'lg'), this.knob('texture.character', 'Character', 'lg'), this.knob('texture.tail', 'Tail', 'lg'),
+    const dials = [this.knob('texture.tone', 'Tone', 'lg'), this.knob('texture.density', 'Density', 'lg'), this.knob('texture.tail', 'Tail', 'lg'),
       this.lowCut('texture.filter_cutoff', 'texture.filter_type'), this.knob('texture.level', 'Level', 'lg')];
     const direct = this.exclusive('texture.direct', 'filter.route_n', 'Direct out', 'small direct-out');
     const power = (el: HTMLElement) => {
@@ -1831,10 +1835,8 @@ export class SynthView {
       power,
       // the types in family columns, as the matrix menus are
       head: [this.selector('texture.type', { groups: [
-        ['VINYL · TAPE', ['crackle', 'dust', 'tape hiss']],
-        ['AIR · BREATH', ['air', 'breath', 'wind']],
-        ['ELECTRIC', ['hum', 'static']],
-        ['WORLD', ['rumble', 'machine']],
+        ['GRAIN', ['crackle', 'dust', 'static']],
+        ['NOISE', ['tape hiss', 'air', 'breath', 'wind', 'rumble']],
       ] }), h('div', 'ob-chips',
         this.chip('OCT', () => this.num('texture.octave'), (v) => this.set('texture.octave', v), -2, 1, ['texture.octave'], 'Noise octave: plays the bed slower (darker, bigger) or faster, like tape')), direct],
       print: this.noisePrint(PRINT_W, PRINT_H),

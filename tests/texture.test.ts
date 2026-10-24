@@ -1,17 +1,18 @@
-// Texture bed: all ten types (crackle … machine). Follows the notes with its own
+// Texture bed: all eight types (crackle … wind). Follows the notes with its own
 // tail, stays silent between notes, keeps off the sub, and leaves the rest of
 // the patch untouched.
 import { describe, expect, it } from 'vitest';
 import { renderPatch } from '../src/engine/core/render';
 import { bandPower, powerSpectrum } from '../src/analysis/spectrum';
 import { heldNote, rms } from './helpers/audio';
+import { Texture, TEX_CRACKLE, TEX_DUST, TEX_STATIC, TEX_TAPE } from '../src/engine/core/voicefx';
 
 const FS = 48000;
 const base = {
   meta: { name: 't' }, 'voice.analog': 0, 'sub.level': 0.5, 'filter.cutoff': 800, 'amp_env.attack': 1, 'amp_env.sustain': 1, 'amp_env.release': 30,
   'osc1.wave': 'saw', 'osc1.level': 0.7, 'texture.level': 0.8, 'texture.tail': 300,
 };
-const TYPES = ['crackle', 'dust', 'rumble', 'air', 'breath', 'tape hiss', 'static', 'hum', 'wind', 'machine'];
+const TYPES = ['crackle', 'dust', 'rumble', 'air', 'breath', 'tape hiss', 'static', 'wind'];
 /** Texture alone: the same render minus the render without texture. */
 function bed(p: object, seconds: number, tail = 0) {
   const a = renderPatch(p, heldNote(45, 1), { seconds, tail });
@@ -30,7 +31,8 @@ describe('texture bed', () => {
 
   it.each(TYPES)('%s lingers for its tail, then goes silent', (type) => {
     // Note: 0.5 s held, released; the loop then rests (heldNote(…, 1) is 1 beat on, 1 off at 120 BPM).
-    const x = bed({ ...base, 'texture.type': type, 'texture.tail': 400 }, 0.95);
+    // (crackle denser here: a handful of sparse pops is too few to measure a tail on)
+    const x = bed({ ...base, 'texture.type': type, 'texture.tail': 400, 'texture.density': type === 'crackle' ? 0.9 : 0.5 }, 0.95);
     const during = rms(x.left, 0.2 * FS, 0.45 * FS);
     expect(rms(x.left, 0.52 * FS, 0.7 * FS)).toBeGreaterThan(during * 0.05);
     expect(rms(x.left, 0.88 * FS, 0.95 * FS)).toBeLessThan(during * 0.05);
@@ -44,9 +46,9 @@ describe('texture bed', () => {
     expect(d).toBe(0);
   });
 
-  it.each(TYPES)('%s: Character changes it', (type) => {
-    const a = bed({ ...base, 'texture.type': type, 'texture.character': 0 }, 0.5).left;
-    const b = bed({ ...base, 'texture.type': type, 'texture.character': 1 }, 0.5).left;
+  it.each(TYPES)('%s: Density changes it', (type) => {
+    const a = bed({ ...base, 'texture.type': type, 'texture.density': 0 }, 0.5).left;
+    const b = bed({ ...base, 'texture.type': type, 'texture.density': 1 }, 0.5).left;
     let d = 0, e = 0;
     for (let i = 0.1 * FS; i < 0.45 * FS; i++) {
       d += (a[i] - b[i]) ** 2;
@@ -84,11 +86,48 @@ describe('texture bed', () => {
     expect(d / e).toBeGreaterThan(0.05);
   });
 
-  it.each(['hum', 'machine'])('%s stays off the sub', (type) => {
-    const x = bed({ ...base, 'texture.type': type, 'texture.level': 1 }, 1);
-    const mid = Float64Array.from(x.left, (v, i) => 0.5 * (v + x.right[i]));
-    const s = powerSpectrum(mid, FS, Math.round(0.05 * FS), Math.round(0.45 * FS), 8192);
-    expect(bandPower(s, 20, 60)).toBeLessThan(bandPower(s, 100, 600) * 0.1);
+  // straight from the bed (no voice, no envelope), a few seconds of it
+  const raw = (type: number, density = 0.5, seconds = 3) => {
+    const t = new Texture(), o = new Float64Array(2), x = new Float64Array(seconds * FS);
+    for (let i = 0; i < x.length; i++) {
+      t.process(type, 0.5, density, FS, o);
+      x[i] = o[0];
+    }
+    return x;
+  };
+
+  it('crackle is pops only: silent between them', () => {
+    const x = raw(TEX_CRACKLE);
+    const a = Float64Array.from(x, Math.abs).sort();
+    // most of the time nothing at all (no surface hiss under the pops)
+    expect(a[Math.floor(a.length * 0.5)]).toBeLessThan(a[a.length - 1] * 0.002);
+  });
+
+  it.each([['tape hiss', TEX_TAPE], ['static', TEX_STATIC]] as const)('%s has no rhythm: its level stays even at any density', (_, type) => {
+    for (const d of [0, 0.5, 1]) {
+      const x = raw(type, d);
+      const hop = 0.05 * FS, lv: number[] = [];
+      for (let i = 0; i + hop <= x.length; i += hop) {
+        let e = 0;
+        for (let j = i; j < i + hop; j++) e += x[j] * x[j];
+        lv.push(10 * Math.log10(e / hop));
+      }
+      lv.sort((p, q) => p - q);
+      // 50 ms frames within a few dB of each other (the old bursts and dropouts swung 10 dB and more)
+      expect(lv[Math.floor(lv.length * 0.95)] - lv[Math.floor(lv.length * 0.05)]).toBeLessThan(3);
+    }
+  });
+
+  it('more density: more grains on crackle, dust and static', () => {
+    const count = (x: Float64Array) => {
+      let n = 0, peak = 0;
+      for (const v of x) peak = Math.max(peak, Math.abs(v));
+      for (let i = 1; i < x.length; i++) if (Math.abs(x[i]) > 0.3 * peak && Math.abs(x[i - 1]) <= 0.3 * peak) n++;
+      return n;
+    };
+    for (const type of [TEX_CRACKLE, TEX_DUST]) expect(count(raw(type, 1))).toBeGreaterThan(count(raw(type, 0)) * 2);
+    const e = (x: Float64Array) => x.reduce((a, v) => a + v * v, 0);
+    expect(e(raw(TEX_STATIC, 1))).toBeGreaterThan(e(raw(TEX_STATIC, 0)));
   });
 
   it('rumble is mono and stays off the sub', () => {

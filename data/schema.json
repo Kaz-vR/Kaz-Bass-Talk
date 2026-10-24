@@ -670,13 +670,11 @@
         "breath",
         "tape hiss",
         "static",
-        "hum",
-        "wind",
-        "machine"
+        "wind"
       ],
       "default": "crackle",
       "group": "texture",
-      "describes": "What the Noise strip plays, a bed under the sound that swells in with each note and lingers for its tail: crackle (vinyl pops), dust (fine grit), tape hiss, air (a broad breathy band), breath (mouth-like, a soft puff at each note), wind (gusts), hum (mains hum, kept above the sub), static (radio static), rumble (a low dark hum kept above the sub), machine (a distant machine)."
+      "describes": "What the Noise strip plays, a bed under the sound that swells in with each note and lingers for its tail. Grains: crackle (vinyl pops), dust (fine grit), static (grainy radio fizz). Noise: tape hiss, air (a broad breathy band), breath (mouth-like, a soft puff at each note), wind (gusts), rumble (low and dark, kept above the sub). No pitch and no rhythm in any of them."
     },
     {
       "id": "texture.level",
@@ -703,8 +701,8 @@
       "describes": "Darker (0) to brighter (1); for crackle also sparser to busier."
     },
     {
-      "id": "texture.character",
-      "label": "Texture character",
+      "id": "texture.density",
+      "label": "Texture density",
       "type": "float",
       "min": 0,
       "max": 1,
@@ -712,7 +710,7 @@
       "curve": "linear",
       "unit": "",
       "group": "texture",
-      "describes": "The variation within the type: crackle clean to broken record, dust sparse to dense, tape hiss clean to worn with dropouts, air still to drafty, breath soft exhale to harsh inhale, wind breeze to howling, hum clean to buzzing, static soft to broken transmission, rumble steady to churning, machine smooth to clanking. The middle is each type as it was."
+      "describes": "How much there is. On the grains how many: crackle a rare pop to a broken record, dust a few specks to grit, static a soft fizz to a crunchy one. On the noise how thick (how much of the range it fills): tape hiss thin to full, air a wisp to a wall, breath narrow to a big open exhale, wind a breeze to a gale, rumble a narrow growl to a heavy one. The middle is each type's classic sound."
     },
     {
       "id": "texture.octave",
@@ -724,7 +722,7 @@
       "curve": "linear",
       "unit": "oct",
       "group": "texture",
-      "describes": "Plays the noise bed slower or faster, like tape: down an octave everything gets darker and slower (crackle becomes dark thumps, hiss sinks to rumble, wind and machines slow down, hum drops), up an octave it gets smaller and quicker."
+      "describes": "Plays the noise bed slower or faster, like tape: down an octave everything gets darker and slower (crackle becomes dark thumps, hiss sinks to rumble, wind slows down), up an octave it gets smaller and quicker."
     },
     {
       "id": "texture.tail",
