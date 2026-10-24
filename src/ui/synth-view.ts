@@ -1019,7 +1019,7 @@ export class SynthView {
   // ------------------------------------------------------------------ controls
 
   /** A dial bound to a float/int parameter. Big = the controls that matter most, small = details. */
-  private knob(id: string, label: string, size: Size = 'mid', opts: { fmt?: (v: number) => string; parse?: (text: string) => number | null; disabled?: () => boolean; deps?: string[]; showValue?: boolean; mod?: KnobMod } = {}): HTMLElement {
+  private knob(id: string, label: string, size: Size = 'mid', opts: { fmt?: (v: number) => string; parse?: (text: string) => number | null; disabled?: () => boolean; deps?: string[]; showValue?: boolean; mod?: KnobMod; fromMax?: boolean } = {}): HTMLElement {
     const p = getParam(id)!;
     const mod = opts.mod;
     const px = PX[size];
@@ -1040,7 +1040,8 @@ export class SynthView {
       const r = px / 2, cx = r, cy = r;
       g.clearRect(0, 0, px, px);
       const a0 = 0.75 * Math.PI, a1 = 2.25 * Math.PI;
-      const zero = bipolar ? a0 + (a1 - a0) * toNormalized(p, 0) : a0;
+      // (a high cut lights from the right: fully right = off = no light)
+      const zero = opts.fromMax ? a1 : bipolar ? a0 + (a1 - a0) * toNormalized(p, 0) : a0;
       const av = a0 + (a1 - a0) * n;
       const cs = getComputedStyle(el);
       const accent = cs.getPropertyValue('--knob-accent').trim() || '#ff8f75';
@@ -2578,7 +2579,7 @@ export class SynthView {
         this.knob('wobble.depth', 'Depth', 'lg', { fmt: pct }),
         this.knob('wobble.smooth', 'Smooth', 'lg', { fmt: pct }),
         this.knob('wobble.lowcut', 'Low cut', 'lg', { fmt: hz }),
-        this.knob('wobble.highcut', 'High cut', 'lg', { fmt: hzHi })),
+        this.knob('wobble.highcut', 'High cut', 'lg', { fmt: hzHi, fromMax: true })),
       h('div', 'lfo5-sec lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, sNext),
       h('div', 'lfo5-sec lfo5-targets', lampFor('wobble.cutoff', 'Cutoff'), lampFor('wobble.volume', 'Volume')));
 
