@@ -4,7 +4,7 @@
 // the same patch as the full parameter view under it (opened with "All controls"), so both always
 // show the same values.
 import { Biquad } from '../engine/core/dsp';
-import { fromNormalized, getParam, toNormalized, type ParamValue, type Patch } from '../schema';
+import { fromNormalized, getParam, params, toNormalized, type ParamValue, type Patch } from '../schema';
 import { formatValue } from './params-panel';
 import { keyGrime, lightGrain, panelTexture } from './texture';
 import { wobShapeAt } from '../engine/core/wobshape';
@@ -2190,6 +2190,40 @@ export class SynthView {
     this.set('wobble.shape', 'custom');
   }
 
+  /** LFO 5 lock: while on, switching presets keeps LFO 5 (every wobble.* setting) as it is. */
+  private lfo5Locked = (() => {
+    try { return localStorage.getItem('lt.lfo5.lock') === '1'; } catch { return false; }
+  })();
+  private readonly lockViews: (() => void)[] = [];
+
+  /** Called when a preset (or roll) loads: carries LFO 5 over from the previous patch while locked. */
+  keepLocked(next: Patch, prev: Patch | null): void {
+    if (!this.lfo5Locked || !prev) return;
+    const from = prev as Record<string, unknown>, to = next as Record<string, unknown>;
+    for (const p of params) if (p.id.startsWith('wobble.')) to[p.id] = from[p.id] ?? p.default;
+  }
+
+  private setLfo5Lock(on: boolean): void {
+    this.lfo5Locked = on;
+    try { localStorage.setItem('lt.lfo5.lock', on ? '1' : '0'); } catch { /* private window: the lock just isn't remembered */ }
+    for (const f of this.lockViews) f();
+  }
+
+  /** A padlock in LFO 5's title row: closed and lit = LFO 5 stays when you switch presets. */
+  private lfo5LockButton(): HTMLElement {
+    const b = h('button', 'lfo5-lock');
+    const draw = () => {
+      const on = this.lfo5Locked;
+      b.classList.toggle('on', on);
+      b.innerHTML = `<svg viewBox="0 0 14 16" width="11" height="13" aria-hidden="true"><path d="${on ? 'M3.5 7V4.8a3.5 3.5 0 0 1 7 0V7' : 'M3.5 7V4.8a3.5 3.5 0 0 1 6.6-1.6'}" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><rect x="1.5" y="7" width="11" height="8" rx="1.2" fill="${on ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.4"/></svg><span>${on ? 'LOCKED' : 'LOCK'}</span>`;
+      b.title = on ? 'LFO 5 is locked: switching presets keeps it as it is. Click to unlock.' : 'Lock LFO 5: switching presets keeps it as it is.';
+    };
+    b.onclick = () => this.setLfo5Lock(!this.lfo5Locked);
+    this.lockViews.push(draw);
+    draw();
+    return b;
+  }
+
   /** The engine's wobble phase for the LFO page's dot (0..1, null when off or silent). */
   setLiveWobble(read: () => number | null): void {
     const step = () => {
@@ -2364,7 +2398,7 @@ export class SynthView {
     this.watch(['wobble.rate'], () => { rate.textContent = `1 CYCLE = ${this.get('wobble.rate')}`; });
     const big = this.obox('LFO 5', 'box-wob lfo5-main', {
       power: (el) => this.boolPower('wobble.on', el),
-      head: [h('span', 'lfo5-note', 'the wobble · locked to the tempo and the bar'), rate],
+      head: [h('span', 'lfo5-note', 'the wobble · locked to the tempo and the bar'), rate, this.lfo5LockButton()],
       print: edit,
     });
 
@@ -3181,6 +3215,7 @@ export class SynthView {
         b.disabled = true;
         b.title = 'Coming later (until then: "All controls" opens every control)';
       } else b.onclick = () => this.showTab(t);
+      if (t === 'LFO') this.lockViews.push(() => b.classList.toggle('locked', this.lfo5Locked));
       this.tabBtns.set(t, b);
       tabs.append(b);
     }

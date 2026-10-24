@@ -238,7 +238,9 @@ function toggleStar(e: RollEntry): void {
 function loadRoll(e: RollEntry): void {
   currentRoll = e;
   reference = e.roll.patch;
+  const prev = current;
   current = structuredClone(reference);
+  synth.keepLocked(current, prev);
   showPatchInfo(current);
   panel.show(current, reference);
   synth.show(current);
@@ -276,7 +278,9 @@ function loadPatch(index: number): void {
   reference = library[index];
   // A preset can name its own audition loop (a short bass wants a riff, not long notes).
   if (typeof reference.meta.audition === 'string') setLoop(reference.meta.audition);
+  const prev = current;
   current = structuredClone(reference);
+  synth.keepLocked(current, prev);
   showPatchInfo(current);
   panel.show(current, reference);
   synth.show(current);

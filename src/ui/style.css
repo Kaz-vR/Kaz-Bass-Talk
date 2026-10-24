@@ -1253,3 +1253,11 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .lfo5-edit { position: relative; line-height: 0; }
 .v2 .lfo5-edit .lfo5-overlay { position: absolute; left: 0; top: 0; cursor: crosshair; touch-action: none; background: transparent !important; border: 0 !important; box-shadow: none !important; }
 .v2 .lfo5-main .ob-head .lfo5-bars { margin-left: auto; }
+/* LFO 5's lock: a padlock in its title row; while locked the LFO tab carries a small lock too. */
+.v2 .lfo5-lock { display: flex; align-items: center; gap: 6px; margin-left: 18px; background: transparent; border: 0; padding: 0; cursor: pointer;
+  color: #5d5d62; font-size: 9px; letter-spacing: 0.2em; }
+.v2 .lfo5-lock:hover { color: #c8c8cc; }
+.v2 .lfo5-lock.on { color: #fff; text-shadow: 0 0 8px rgba(255,255,255,0.6); }
+.v2 .lfo5-lock.on svg { filter: drop-shadow(0 0 4px var(--knob-accent)); color: var(--knob-accent); }
+.v2 .tab.locked { position: relative; }
+.v2 .tab.locked::after { content: ""; position: absolute; right: -9px; top: 50%; width: 4px; height: 4px; margin-top: -2px; border-radius: 1px; background: #a9dcff; box-shadow: 0 0 6px #a9dcff; }
