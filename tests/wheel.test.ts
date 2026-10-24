@@ -73,7 +73,8 @@ describe('mod wheel', () => {
 });
 
 describe('wobble', () => {
-  const wob = { ...base, 'texture.level': 0, 'reverb.mix': 0, 'filter.cutoff': 200, 'wobble.depth': 1, 'wobble.life': 0, 'voice.analog': 0 };
+  // (the main filter open: the Wobbler sweeps its own filter, after the main one)
+  const wob = { ...base, 'texture.level': 0, 'reverb.mix': 0, 'filter.cutoff': 20000, 'wobble.depth': 1, 'wobble.life': 0, 'voice.analog': 0 };
   /** Brightness (first-difference energy ratio) in consecutive windows. */
   const brightness = (x: Float32Array, win: number, n: number) =>
     Array.from({ length: n }, (_, k) => {
@@ -121,7 +122,7 @@ describe('wobble', () => {
       return Array.from({ length: 12 }, (_, c) => b.slice(8 * (c + 2), 8 * (c + 3)).reduce((s, v) => s + v, 0) / 8);
     };
     const spread = (v: number[]) => (Math.max(...v) - Math.min(...v)) / Math.max(...v);
-    expect(spread(peaks(0))).toBeLessThan(0.05);
+    expect(spread(peaks(0))).toBeLessThan(0.08); // (an open saw: a little window-to-window jitter)
     expect(spread(peaks(1))).toBeGreaterThan(0.15);
   });
 });

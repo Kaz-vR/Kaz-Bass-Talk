@@ -1351,3 +1351,19 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .lfo5-more-menu .lfo5-tile.empty { height: 70px; }
 .v2 .lfo-page > .lfo5-palette { grid-auto-rows: 1fr; }
 .v2 .lfo5-tile.empty { min-height: 60px; }
+/* Wobbler page, right column: its own filter on top (where the OSC page's filter sits), the
+   settings under it: the switch left of the 2 x 2 dials, then shift and the two targets. */
+.v2 .lfo-page > .lfo5-filter { grid-column: 4 !important; grid-row: 1 / 3 !important; grid-template-rows: 28px 1fr !important; }
+.v2 .lfo-page > .lfo5-filter .ob-print { align-items: center; justify-content: center; }
+.v2 .lfo-page > .lfo5-settings { grid-row: 3 / 5 !important; padding: 10px 12px 8px !important; }
+.v2 .lfo5-settings > .ob-head { margin-bottom: 0; }
+.v2 .lfo5-sec.lfo5-row { flex: 1; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 16px; border-top: 0; }
+.v2 .lfo5-row .lfo5-switch { flex: none; display: flex; }
+.v2 .lfo5-row .big-toggle svg { width: 58px; height: 80px; }
+.v2 .lfo5-row .big-toggle .bt-label { margin-top: 4px; font-size: 8px; }
+.v2 .lfo5-row .lfo5-knobs { flex: none; display: grid !important; grid-template-columns: repeat(2, auto); column-gap: 18px; row-gap: 6px; }
+.v2 .lfo5-sec.lfo5-bottom { flex: none; display: flex; justify-content: space-between; align-items: center; padding-top: 6px; }
+.v2 .lfo5-bottom .lfo5-shift { display: flex; align-items: center; gap: 8px; flex: none; }
+.v2 .lfo5-bottom .lfo5-targets { display: flex !important; gap: 14px !important; height: auto !important; flex: none; }
+.v2 .lfo5-settings.is-off .lfo5-bottom { opacity: 0.4; filter: grayscale(1); }
+.v2 .big-toggle:focus, .v2 .big-toggle:focus-visible { outline: none; }

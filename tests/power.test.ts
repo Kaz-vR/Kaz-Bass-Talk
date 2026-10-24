@@ -41,7 +41,8 @@ describe('power switches', () => {
 
   it('filter off opens the filter fully', () => {
     const off = render({ ...busy, 'filter.on': false });
-    const open = render({ ...busy, 'filter.cutoff': 20000, 'filter.resonance': 0, 'mod1.amount': 0, 'wobble.depth': 0 });
+    // (the Wobbler has its own filter after the main one, so it plays in both)
+    const open = render({ ...busy, 'filter.cutoff': 20000, 'filter.resonance': 0, 'mod1.amount': 0 });
     expect(diffDb(open, off)).toBeLessThan(-60);
   });
 });

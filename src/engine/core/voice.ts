@@ -49,7 +49,7 @@ const SLOT_COUNT = K.SLOT_COUNT, SRC_COUNT = K.SRC_COUNT, DEST_COUNT = K.DEST_CO
 const VOWELS = K.VOWELS, FORMANT_GAIN = K.FORMANT_GAIN;
 const TABLE_N = TABLE_SIZE, TABLE_M = TABLE_MASK;
 const D = {
-  PITCH: K.D_PITCH, OSC_PITCH: K.D_OSC_PITCH, WOB_CUT: K.D_WOB_CUT, OSC1_PITCH: K.D_OSC1_PITCH, OSC2_PITCH: K.D_OSC2_PITCH, OSC1_WT: K.D_OSC1_WT, OSC2_WT: K.D_OSC2_WT,
+  PITCH: K.D_PITCH, OSC_PITCH: K.D_OSC_PITCH, OSC1_PITCH: K.D_OSC1_PITCH, OSC2_PITCH: K.D_OSC2_PITCH, OSC1_WT: K.D_OSC1_WT, OSC2_WT: K.D_OSC2_WT,
   OSC1_PW: K.D_OSC1_PW, OSC2_PW: K.D_OSC2_PW, OSC1_LEVEL: K.D_OSC1_LEVEL, OSC2_LEVEL: K.D_OSC2_LEVEL, DETUNE: K.D_DETUNE,
   FM: K.D_FM, SUB: K.D_SUB, NOISE: K.D_NOISE, DRIVE: K.D_DRIVE, CUTOFF: K.D_CUTOFF, RES: K.D_RES, VOWEL: K.D_VOWEL,
   DIST_DRIVE: K.D_DIST_DRIVE, DIST_MIX: K.D_DIST_MIX, AMP: K.D_AMP, FM2: K.D_FM2, CRUSH: K.D_CRUSH, TAPE_WOW: K.D_TAPE_WOW,
@@ -673,15 +673,7 @@ export class Voice {
       6 * cur[P.envAmt] * cur[P.modEnvOn] * (1 + 1.5 * this.accentAmt) * this.modEnv.level + 6 * dst[D.CUTOFF] + 0.12 * this.analog * this.noteCutoffJitter;
     // Low-pass gate: the cutoff closes together with the amp envelope.
     if (this.filterType === FILTER_LPG) octs += 1.5 * Math.log2(Math.max(this.ampEnv.level, 0.002));
-    let fc = cur[P.cutoff] * Math.pow(2, octs);
-    // The Wobbler's swing: inside its band (Low cut .. High cut) only, so below and above the band
-    // the sound stays as the preset has it.
-    const wob = dst[D.WOB_CUT];
-    if (wob !== 0) {
-      const lo = Math.min(cur[P.wobLowcut] > 21 ? cur[P.wobLowcut] : 0, fc), hi = Math.max(cur[P.wobHighcut] < 19900 ? cur[P.wobHighcut] : Infinity, fc);
-      fc = clamp(fc * Math.pow(2, 6 * wob), lo, hi);
-    }
-    fc = clamp(fc, 20, Math.min(20000, fs * 0.45));
+    const fc = clamp(cur[P.cutoff] * Math.pow(2, octs), 20, Math.min(20000, fs * 0.45));
     const gTarget = Math.tan((Math.PI * fc) / fsOs);
     this.fcNow = fc;
     this.resNow = res;

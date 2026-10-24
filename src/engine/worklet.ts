@@ -45,6 +45,8 @@ class LowTalkProcessor extends AudioWorkletProcessor {
       ctl[1].fill(this.synth.liveRes);
       if (ctl.length >= 3) ctl[2].fill(this.synth.liveWob);
       // channels 3-6: each LFO's phase (0..1), 7-10: its value (-1..1); they always run
+      // channel 11: the Wobbler filter's cutoff (Hz, -1 when it is not working)
+      if (ctl.length >= 12) ctl[11].fill(this.synth.liveWobFc);
       if (ctl.length >= 11) {
         for (let l = 0; l < 4; l++) {
           ctl[3 + l].fill(this.synth.lfoPhase[l]);

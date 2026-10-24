@@ -61,9 +61,7 @@ export const D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_O
   D_FM2 = 23, D_CRUSH = 24, D_LFO3_RATE = 25, D_LFO4_RATE = 26, D_CHORUS_DEPTH = 27, D_PHASER_MIX = 28,
   D_DELAY_TIME = 29, D_DELAY_MIX = 30, D_REVERB_MIX = 31, D_WIDTH = 32, D_TAPE_WOW = 33, D_DIST_TONE = 34, D_TEXTURE = 35,
   D_VIBRATO = 36, D_BREATH = 37, D_OSC_PITCH = 38;
-/** The Wobbler's cutoff swing (internal, not a matrix destination: it stays inside the Wobbler's band). */
-export const D_WOB_CUT = 39;
-export const DEST_COUNT = 40;
+export const DEST_COUNT = 39;
 export const TEXTURE_GAIN = 0.5;
 
 /** Beats in a wobble.rate option: 1/8, 1/8T (triplet), 1/8d (dotted), 3/4, 1 Bar, 1.5 Bars … (a bar = 4 beats). */
