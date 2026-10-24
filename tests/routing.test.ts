@@ -120,7 +120,7 @@ describe('texture bed', () => {
 });
 
 describe('breath into the filter (N)', () => {
-  const breath = { 'osc1.level': 0, 'osc2.level': 0, 'sub.level': 0, 'texture.type': 'breath', 'texture.level': 0.8, 'filter.cutoff': 200 };
+  const breath = { 'osc1.level': 0, 'osc2.level': 0, 'sub.level': 0, 'texture.type': 'air hit', 'texture.level': 0.8, 'filter.cutoff': 200 };
   it('with N on, breath goes through the filter; off, it skips a dark filter and keeps its air', () => {
     const through = render({ ...breath, 'filter.route_n': true }).left;
     const skip = render({ ...breath, 'filter.route_n': false }).left;

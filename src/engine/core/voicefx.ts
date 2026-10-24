@@ -192,9 +192,14 @@ export class Shepard {
 
 export const CLICK_NOISE = 0, CLICK_CLICK = 1, CLICK_KNOCK = 2, CLICK_KICK = 3;
 
-export const TEX_CRACKLE = 0, TEX_DUST = 1, TEX_RUMBLE = 2, TEX_AIR = 3, TEX_BREATH = 4, TEX_TAPE = 5, TEX_STATIC = 6, TEX_WIND = 7;
-/** The HIT types: crackle, dust and static as one burst per note (fading over Tail), nothing between. */
-export const TEX_CRACKLE_HIT = 8, TEX_DUST_HIT = 9, TEX_STATIC_HIT = 10;
+export const TEX_CRACKLE = 0, TEX_DUST = 1, TEX_RUMBLE = 2, TEX_AIR = 3, TEX_AIR_HIT = 4, TEX_TAPE = 5, TEX_STATIC = 6;
+/**
+ * The HIT types: each bed as one burst per note (fading over Tail), nothing between. Air's hit is
+ * the breath. Grain hits start on their first grain; noise hits swell in over ~10 ms.
+ */
+export const TEX_CRACKLE_HIT = 7, TEX_DUST_HIT = 8, TEX_STATIC_HIT = 9, TEX_TAPE_HIT = 10, TEX_RUMBLE_HIT = 11;
+/** The bed each type plays (a hit plays its bed), by texture.type index. */
+const TEX_BED = [TEX_CRACKLE, TEX_DUST, TEX_RUMBLE, TEX_AIR, TEX_AIR, TEX_TAPE, TEX_STATIC, TEX_CRACKLE, TEX_DUST, TEX_STATIC, TEX_TAPE, TEX_RUMBLE];
 
 /**
  * Texture bed. Grains: crackle (vinyl pops, nothing else), dust (fine grit),
@@ -227,12 +232,9 @@ export class Texture {
   private puffOut = 0;
   puffLen = 0.7;
 
-  // Static's fast flicker (too fast to hear as rhythm: it is the grain) and wind's gusts.
+  // Static's fast flicker (too fast to hear as rhythm: it is the grain).
   private flick = 0;
   private flickG = 1;
-  private gust = 0;
-  private gustTarget = 0;
-  private gustCount = 0;
 
   /** The newest note's velocity (0..1): a harder note, a bigger puff or burst. */
   private hitVel = 1;
@@ -270,15 +272,17 @@ export class Texture {
     this.wander += (this.wanderTarget - this.wander) * (8 / fs);
     const w = 1 + 0.45 * this.wander;
     // HIT: the same generator as the bed it is named after, inside one burst per note
-    const hit = type >= TEX_CRACKLE_HIT;
-    if (hit) type = type === TEX_CRACKLE_HIT ? TEX_CRACKLE : type === TEX_DUST_HIT ? TEX_DUST : TEX_STATIC;
-    if (hit || type === TEX_BREATH) {
+    const typeIn = type;
+    const hit = type === TEX_AIR_HIT || type >= TEX_CRACKLE_HIT;
+    type = TEX_BED[type] ?? TEX_AIR;
+    const grain = type === TEX_CRACKLE || type === TEX_DUST || type === TEX_STATIC;
+    if (hit) {
       this.puffIn += (1 - this.puffIn) * (1 / (0.01 * fs));
       this.puffOut *= Math.exp(-4.6 / (Math.max(0.02, this.puffLen) * fs));
     }
-    // a burst is short: its grains come four times as often as in the bed, and the first lands on the note
-    const boost = hit ? 4 : 1;
-    const kick = hit && this.hitKick;
+    // a grain burst is short: its grains come four times as often as in the bed, and the first lands on the note
+    const boost = hit && grain ? 4 : 1;
+    const kick = hit && grain && this.hitKick;
     if (kick) this.hitKick = false;
     let l: number, r: number;
     switch (type) {
@@ -317,19 +321,6 @@ export class Texture {
         l = r = (2.4 / Math.sqrt(wide)) * this.svf2.hp * (0.6 + 0.4 * w);
         break;
       }
-      case TEX_BREATH: {
-        // Breath: one puff at each new note and nothing between (owner's call: no sustained
-        // breath, air covers that). A mouth-like band of noise (500 Hz .. 8 kHz with Tone) swells in
-        // over ~10 ms and fades over Tail. density: a narrow, mouthy puff .. a big, open breath.
-        const g = Math.tan((Math.PI * Math.min(500 * Math.pow(16, tone), fs * 0.4)) / fs);
-        const q = 1.1 * wide;
-        this.svfL.process(this.rngL.next(), g, q);
-        this.svfR.process(this.rngR.next(), g, q);
-        const a = 3.5 * Math.sqrt(wide) * this.puffIn * this.puffOut * this.hitVel;
-        l = this.svfL.bp * a;
-        r = this.svfR.bp * a;
-        break;
-      }
       case TEX_TAPE: {
         // Tape hiss: a steady, fine hiss above Tone's corner. density: thin and fine .. thick and
         // full (the corner comes down, so more of the range hisses).
@@ -356,23 +347,6 @@ export class Texture {
         r = 1.6 * this.svfR.bp;
         break;
       }
-      case TEX_WIND: {
-        // Wind: noise through a broad band that wanders with slow gusts (never narrow enough to
-        // whistle). density: a light breeze .. a thick gale.
-        if (--this.gustCount <= 0) {
-          this.gustTarget = this.rngW.next();
-          this.gustCount = Math.round((1.5 + 1.25 * (this.rngW.next() + 1)) * fs);
-        }
-        this.gust += (this.gustTarget - this.gust) * (1.2 / fs);
-        const f = Math.min(300 * Math.pow(10, tone) * Math.pow(2, 1.2 * this.gust), fs * 0.4);
-        const g = Math.tan((Math.PI * f) / fs), q = 0.9 * wide;
-        this.svfL.process(this.rngL.next(), g, q);
-        this.svfR.process(this.rngR.next(), g, q);
-        const a = 4.6 * Math.sqrt(wide) * (0.45 + 0.825 * (0.5 + 0.5 * this.gust));
-        l = this.svfL.bp * a;
-        r = this.svfR.bp * a;
-        break;
-      }
       default: {
         // Air: a broad band of breathy noise that swells and fades like slow
         // breathing: a new target every 2-5 s, glided to, about ±4 dB.
@@ -391,15 +365,46 @@ export class Texture {
         r = 2.4 * Math.sqrt(wide) * this.svfR.bp * b;
       }
     }
-    // a HIT starts at once (its first grain is the attack) and fades over Tail
+    // a HIT fades over Tail: a grain hit starts at once (its first grain is the attack), a noise
+    // hit swells in over ~10 ms so it never clicks
     if (hit) {
-      const e = this.puffOut * this.hitVel;
+      const e = (grain ? 1 : this.puffIn) * this.puffOut * this.hitVel;
       l *= e;
       r *= e;
     }
+    // every type at the same loudness (K-weighted) across its Tone, so switching types keeps the level
+    const g = texTrim(typeIn, tone);
+    l *= g;
+    r *= g;
     out[0] = l;
     out[1] = r;
   }
+}
+
+/**
+ * Loudness trim per type (dB) at Tone 0, 0.25, 0.5, 0.75, 1 (measured K-weighted at Density 0.5,
+ * hits over their burst), so every type plays at the same loudness wherever its Tone is. Made by
+ * tools/level-texture.ts (run it with this table at 0 after changing a type's sound).
+ */
+const TEX_TRIM_DB: number[][] = [
+  [7.8, 6, 4.4, 3.1, 2.1],
+  [4.4, 1.5, -0.2, -1.3, -2.1],
+  [11.4, 8, 6.2, 5, 4],
+  [1.5, -0.8, -2.9, -4.6, -5.8],
+  [8.6, 6.3, 4.2, 2.5, 1.3],
+  [-2.5, -2.3, -2.1, -1.7, -1.1],
+  [1.7, 0.2, -1, -2.1, -3.1],
+  [3.7, 1.9, 0.4, -0.9, -1.9],
+  [8.8, 6.4, 5.1, 4, 3.4],
+  [6.2, 4.8, 3.5, 2.4, 1.5],
+  [4.4, 4.6, 4.8, 5.2, 5.8],
+  [18, 14.7, 12.9, 11.7, 10.8],
+];
+const TEX_TRIM = TEX_TRIM_DB.map((row) => row.map((db) => Math.pow(10, db / 20)));
+function texTrim(type: number, tone: number): number {
+  const row = TEX_TRIM[type] ?? TEX_TRIM[0];
+  const f = Math.max(0, Math.min(1, tone)) * 4, i = Math.min(3, Math.floor(f));
+  return row[i] + (row[i + 1] - row[i]) * (f - i);
 }
 
 /** Pop amplitude: mostly small, occasionally big, random polarity. */

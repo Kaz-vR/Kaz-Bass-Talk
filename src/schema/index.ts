@@ -149,8 +149,19 @@ function migrateBreath(src: Record<string, unknown>): Record<string, unknown> {
   if (!('breath.level' in src) && !('breath.chiff' in src)) return src;
   const out: Record<string, unknown> = { ...src };
   if (src['texture.type'] === 'breath') {
+    // The old breath was a chiff (a puff at the attack) plus a sustained level. Now the puff is
+    // air hit and a sustained breath is the air bed, so each sound gets the one it leaned on:
+    // brass, bowed strings and plucked keys their attack puff; choirs, flutes and pads their air.
     const level = Number(src['breath.level']) || 0, chiff = Number(src['breath.chiff']) || 0;
-    out['texture.level'] = level > 0 ? level : chiff * 0.8;
+    const decay = Number(src['breath.decay']) || 120;
+    if (chiff >= level) {
+      out['texture.type'] = 'air hit';
+      out['texture.level'] = Math.max(0.15, Math.min(0.7, chiff * 1.2));
+      out['texture.tail'] = Math.max(150, Math.min(900, decay * 3));
+    } else {
+      out['texture.type'] = 'air';
+      out['texture.level'] = Math.max(0.08, Math.min(0.6, level * 1.3));
+    }
     if ('breath.tone' in src) out['texture.tone'] = src['breath.tone'];
   }
   return out;
@@ -167,14 +178,16 @@ function migrateAttackCurve(src: Record<string, unknown>): Record<string, unknow
 }
 
 /**
- * The noise strip lost hum and machine (owner's call: no tonal beds); they load as rumble. Its
- * Character dial became Density (same place, 0.5 still each type's classic sound).
+ * The noise strip lost hum and machine (owner's call: no tonal beds; they load as rumble) and wind
+ * (it loads as air); breath is now air's hit ("air hit"). Its Character dial became Density (same
+ * place, 0.5 still each type's classic sound).
  */
 function migrateTexture(src: Record<string, unknown>): Record<string, unknown> {
   const t = src['texture.type'];
-  if (t !== 'hum' && t !== 'machine' && !('texture.character' in src)) return src;
+  const renamed: Record<string, string> = { hum: 'rumble', machine: 'rumble', wind: 'air', breath: 'air hit' };
+  if (!(String(t) in renamed) && !('texture.character' in src)) return src;
   const out: Record<string, unknown> = { ...src };
-  if (t === 'hum' || t === 'machine') out['texture.type'] = 'rumble';
+  if (String(t) in renamed) out['texture.type'] = renamed[String(t)];
   if ('texture.character' in src && !('texture.density' in src)) out['texture.density'] = src['texture.character'];
   return out;
 }

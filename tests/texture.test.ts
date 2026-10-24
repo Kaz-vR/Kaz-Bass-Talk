@@ -1,10 +1,12 @@
-// Texture bed: all eight types (crackle … wind). Follows the notes with its own
+// Texture bed: the six beds (crackle … static) and their six hits. Follows the notes with its own
 // tail, stays silent between notes, keeps off the sub, and leaves the rest of
 // the patch untouched.
 import { describe, expect, it } from 'vitest';
 import { renderPatch } from '../src/engine/core/render';
 import { bandPower, powerSpectrum } from '../src/analysis/spectrum';
 import { heldNote, rms } from './helpers/audio';
+import { textureLoudness } from '../src/engine/core/loudness';
+import { validatePatch } from '../src/schema';
 import { Texture, TEX_CRACKLE, TEX_CRACKLE_HIT, TEX_DUST, TEX_DUST_HIT, TEX_STATIC, TEX_STATIC_HIT, TEX_TAPE } from '../src/engine/core/voicefx';
 
 const FS = 48000;
@@ -12,7 +14,8 @@ const base = {
   meta: { name: 't' }, 'voice.analog': 0, 'sub.level': 0.5, 'filter.cutoff': 800, 'amp_env.attack': 1, 'amp_env.sustain': 1, 'amp_env.release': 30,
   'osc1.wave': 'saw', 'osc1.level': 0.7, 'texture.level': 0.8, 'texture.tail': 300,
 };
-const TYPES = ['crackle', 'dust', 'rumble', 'air', 'breath', 'tape hiss', 'static', 'wind'];
+const TYPES = ['crackle', 'dust', 'rumble', 'air', 'tape hiss', 'static'];
+const HITS = ['crackle hit', 'dust hit', 'static hit', 'tape hiss hit', 'air hit', 'rumble hit'];
 /** Texture alone: the same render minus the render without texture. */
 function bed(p: object, seconds: number, tail = 0) {
   const a = renderPatch(p, heldNote(45, 1), { seconds, tail });
@@ -29,8 +32,7 @@ describe('texture bed', () => {
     expect(rms(x.left, 0.1 * FS, 0.45 * FS)).toBeGreaterThan(1e-3);
   });
 
-  // (breath is a puff per note, its own tests are in instrument.test.ts)
-  it.each(TYPES.filter((t) => t !== 'breath'))('%s lingers for its tail, then goes silent', (type) => {
+  it.each(TYPES)('%s lingers for its tail, then goes silent', (type) => {
     // Note: 0.5 s held, released; the loop then rests (heldNote(…, 1) is 1 beat on, 1 off at 120 BPM).
     // (crackle denser here: a handful of sparse pops is too few to measure a tail on)
     const x = bed({ ...base, 'texture.type': type, 'texture.tail': 400, 'texture.density': type === 'crackle' ? 0.9 : 0.5 }, 0.95);
@@ -58,7 +60,7 @@ describe('texture bed', () => {
     expect(d / e).toBeGreaterThan(0.01);
   });
 
-  it.each(['dust', 'rumble', 'air', 'breath', 'static', 'wind'])('%s: an octave down is darker, an octave up brighter', (type) => {
+  it.each(['dust', 'rumble', 'air', 'static'])('%s: an octave down is darker, an octave up brighter', (type) => {
     const centroid = (oct: number) => {
       const x = bed({ ...base, 'texture.type': type, 'texture.octave': oct, 'filter.route_n': false }, 0.5);
       const m = Float64Array.from(x.left, (v, i) => 0.5 * (v + x.right[i]));
@@ -140,7 +142,7 @@ describe('texture bed', () => {
     expect(bandPower(s, 20, 60)).toBeLessThan(bandPower(s, 120, 400) * 0.1);
   });
 
-  it.each(['crackle hit', 'dust hit', 'static hit'])('%s: one burst on each note, nothing between', (type) => {
+  it.each(HITS)('%s: one burst on each note, nothing between', (type) => {
     const p = { ...base, 'osc1.level': 0, 'sub.level': 0, 'texture.type': type, 'texture.tail': 250, 'texture.level': 1 };
     const r = renderPatch(p, heldNote(45, 4), { seconds: 1 }).left;
     const start = rms(r, 0, 0.08 * FS), late = rms(r, 0.6 * FS, 0.95 * FS);
@@ -162,6 +164,28 @@ describe('texture bed', () => {
     };
     expect(burst(1)).toBeGreaterThan(0.01);
     expect(burst(1)).toBeGreaterThan(burst(0.2) * 1.5);
+  });
+
+  it('every type plays at the same loudness, wherever its Tone is', () => {
+    const all: number[] = [];
+    for (let type = 0; type < 12; type++) {
+      for (const tone of [0, 0.4, 0.85]) all.push(textureLoudness(new Texture(), type, tone, 0.5, FS));
+    }
+    expect(Math.max(...all) - Math.min(...all)).toBeLessThan(3);
+  });
+
+  it('old types load as their nearest: wind as air, breath as air hit, hum and machine as rumble', () => {
+    expect(validatePatch({ 'texture.type': 'wind' }).patch['texture.type']).toBe('air');
+    expect(validatePatch({ 'texture.type': 'breath' }).patch['texture.type']).toBe('air hit');
+    expect(validatePatch({ 'texture.type': 'hum' }).patch['texture.type']).toBe('rumble');
+  });
+
+  it('an old breath goes where it leaned: an attack chiff becomes air hit, a sustained breath the air bed', () => {
+    const brass = validatePatch({ 'texture.type': 'breath', 'breath.chiff': 0.35, 'breath.level': 0.12, 'breath.decay': 100 }).patch;
+    expect(brass['texture.type']).toBe('air hit');
+    expect(brass['texture.tail']).toBe(300);
+    const choir = validatePatch({ 'texture.type': 'breath', 'breath.chiff': 0.1, 'breath.level': 0.45 }).patch;
+    expect(choir['texture.type']).toBe('air');
   });
 
   it('crackle and air are stereo', () => {

@@ -667,17 +667,18 @@
         "dust",
         "rumble",
         "air",
-        "breath",
+        "air hit",
         "tape hiss",
         "static",
-        "wind",
         "crackle hit",
         "dust hit",
-        "static hit"
+        "static hit",
+        "tape hiss hit",
+        "rumble hit"
       ],
       "default": "crackle",
       "group": "texture",
-      "describes": "What the Noise strip plays, a bed under the sound that swells in with each note and lingers for its tail. Grains: crackle (vinyl pops), dust (fine grit), static (grainy radio fizz). Noise: tape hiss, air (a broad breathy band), wind (gusts), rumble (low and dark, kept above the sub). Hit, one burst at each new note fading over Tail and nothing between (harder notes burst bigger): breath, crackle hit, dust hit, static hit (the same sounds as crackle, dust and static). No pitch and no rhythm in any of them."
+      "describes": "What the Noise strip plays. Grain: crackle (vinyl pops), dust (fine grit), static (grainy radio fizz). Noise: tape hiss, air (a broad breathy band), rumble (low and dark, kept above the sub). Grain and noise play under the whole note and linger for Tail. Hit: each of the six as one burst at each new note, fading over Tail, nothing between, harder notes bursting bigger; air hit is the breath (a puff on each note, for brass, flutes, bowed and blown sounds). No pitch and no rhythm in any of them. Every type plays at the same loudness."
     },
     {
       "id": "texture.level",
@@ -713,7 +714,7 @@
       "curve": "linear",
       "unit": "",
       "group": "texture",
-      "describes": "How much there is. On the grains how many: crackle a rare pop to a broken record, dust a few specks to grit, static a soft fizz to a crunchy one. On the noise how thick (how much of the range it fills): tape hiss thin to full, air a wisp to a wall, breath a narrow, mouthy puff to a big open breath, wind a breeze to a gale, rumble a narrow growl to a heavy one. The middle is each type's classic sound."
+      "describes": "How much there is. On the grains how many: crackle a rare pop to a broken record, dust a few specks to grit, static a soft fizz to a crunchy one. On the noise how thick (how much of the range it fills): tape hiss thin to full, air a wisp to a wall, rumble a narrow growl to a heavy one. The hits do the same inside their burst. The middle is each type's classic sound."
     },
     {
       "id": "texture.octave",
@@ -737,7 +738,7 @@
       "curve": "log",
       "unit": "ms",
       "group": "texture",
-      "describes": "How long the texture lingers after a note ends; on the hit types (breath, crackle hit, dust hit, static hit), how long each burst lasts."
+      "describes": "How long the texture lingers after a note ends; on the hit types, how long each burst lasts."
     },
     {
       "id": "texture.pan",

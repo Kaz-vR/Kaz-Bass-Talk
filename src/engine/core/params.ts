@@ -19,7 +19,7 @@ export const OS = 2; // oversampling factor of the nonlinear section
 // Section Qs of an 8th-order Butterworth filter.
 export const XO_Q = [0.5098, 0.6013, 0.9000, 2.5629];
 export const SAW_FRAME = 2 * FRAMES_PER_SEGMENT; // keyframe 2 of the morph table is a pure saw
-/** texture.type option index of breath (the Noise strip's per-note breath instead of a bed). */
+/** texture.type index of air hit (the breath): the matrix's Breath destination moves its level. */
 export const TEX_BREATH = 4;
 export const KEYTRACK_CENTER = 48; // C3: filter.cutoff is the actual cutoff at this note
 

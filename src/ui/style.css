@@ -1440,3 +1440,4 @@ html, body, .v2-wrap { background: #070708; }
 /* Noise's title row fits its longest type ("crackle hit") with OCT and Direct out. */
 .v2 .box-noise .ob-head { gap: 8px !important; }
 .v2 .box-noise .ob-head .sel-name { letter-spacing: 0.06em !important; }
+.v2 .box-noise.long-name .ob-head .sel-name { font-size: 9px !important; letter-spacing: 0.02em !important; }

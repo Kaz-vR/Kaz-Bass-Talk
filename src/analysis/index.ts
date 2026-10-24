@@ -467,7 +467,7 @@ export function analyzePatch(input: unknown, loop: Loop, opts: AnalyzeOptions = 
   };
   const lowX = probe(PROBE_NOTES.low), midX = probe(PROBE_NOTES.mid), highX = probe(PROBE_NOTES.high);
   // Texture: the same note without the bed; the difference is the bed (it has its own random generators).
-  const hasTexture = (p['texture.level'] as number) > 0 && p['texture.type'] !== 'breath';
+  const hasTexture = (p['texture.level'] as number) > 0 && !String(p['texture.type']).endsWith(' hit');
   const noTex: Patch = { ...p, meta: p.meta, 'texture.level': 0 };
   const holdEnd = Math.round(hold * fs);
   const settle = Math.round(0.25 * fs);
