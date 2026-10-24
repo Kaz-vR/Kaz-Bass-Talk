@@ -715,6 +715,18 @@
       "describes": "The variation within the type: crackle clean to broken record, dust sparse to dense, tape hiss clean to worn with dropouts, air still to drafty, breath soft exhale to harsh inhale, wind breeze to howling, hum clean to buzzing, static soft to broken transmission, rumble steady to churning, machine smooth to clanking. The middle is each type as it was."
     },
     {
+      "id": "texture.octave",
+      "label": "Noise octave",
+      "type": "int",
+      "min": -2,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "oct",
+      "group": "texture",
+      "describes": "Plays the noise bed slower or faster, like tape: down an octave everything gets darker and slower (crackle becomes dark thumps, hiss sinks to rumble, wind and machines slow down, hum drops), up an octave it gets smaller and quicker."
+    },
+    {
       "id": "texture.tail",
       "label": "Texture tail",
       "type": "float",

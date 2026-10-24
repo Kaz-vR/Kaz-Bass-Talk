@@ -55,6 +55,35 @@ describe('texture bed', () => {
     expect(d / e).toBeGreaterThan(0.01);
   });
 
+  it.each(['dust', 'rumble', 'air', 'breath', 'static', 'wind'])('%s: an octave down is darker, an octave up brighter', (type) => {
+    const centroid = (oct: number) => {
+      const x = bed({ ...base, 'texture.type': type, 'texture.octave': oct, 'filter.route_n': false }, 0.5);
+      const m = Float64Array.from(x.left, (v, i) => 0.5 * (v + x.right[i]));
+      const sp = powerSpectrum(m, FS, Math.round(0.1 * FS), Math.round(0.45 * FS), 8192);
+      let num = 0, den = 0;
+      for (let f = 100; f < 16000; f *= 1.1) {
+        const p = bandPower(sp, f, f * 1.1);
+        num += p * f;
+        den += p;
+      }
+      return num / den;
+    };
+    const down = centroid(-1), mid = centroid(0), up = centroid(1);
+    expect(down).toBeLessThan(mid * 0.85);
+    expect(up).toBeGreaterThan(mid * 1.1);
+  });
+
+  it.each(TYPES)('%s: the octave changes it', (type) => {
+    const a = bed({ ...base, 'texture.type': type }, 0.5).left;
+    const b = bed({ ...base, 'texture.type': type, 'texture.octave': -1 }, 0.5).left;
+    let d = 0, e = 0;
+    for (let i = 0.1 * FS; i < 0.45 * FS; i++) {
+      d += (a[i] - b[i]) ** 2;
+      e += a[i] ** 2 + b[i] ** 2;
+    }
+    expect(d / e).toBeGreaterThan(0.05);
+  });
+
   it.each(['hum', 'machine'])('%s stays off the sub', (type) => {
     const x = bed({ ...base, 'texture.type': type, 'texture.level': 1 }, 1);
     const mid = Float64Array.from(x.left, (v, i) => 0.5 * (v + x.right[i]));

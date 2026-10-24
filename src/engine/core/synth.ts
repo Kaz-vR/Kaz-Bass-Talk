@@ -169,6 +169,11 @@ export class Synth {
   private texType = 0;
   private texTone = 0.4;
   private texChar = 0.5;
+  /** The bed's playback rate (2^octave, like tape run slower or faster) and its resampler: the last two frames and the position between them. */
+  private texRate = 1;
+  private texPos = 1;
+  private readonly texPrev = new Float64Array(2);
+  private readonly texCur = new Float64Array(2);
   private texAtk = 0.001;
   private texRel = 0.999;
   private texLpL = 0;
@@ -808,6 +813,7 @@ export class Synth {
     this.texType = cur[P.texType];
     this.texTone = clamp(cur[P.texTone], 0, 1);
     this.texChar = clamp(cur[P.texChar], 0, 1);
+    this.texRate = Math.pow(2, Math.round(clamp(cur[P.texOct], -2, 1)));
     // The bed swells in with the note: never faster than ~a third of the amp attack.
     this.texAtk = 1 - Math.exp(-1 / (Math.max(0.03, cur[P.amp[0]] / 3000) * fs));
     this.texRel = Math.exp(-4.6 / ((cur[P.texTail] / 1000) * fs));
@@ -971,8 +977,19 @@ export class Synth {
       // Texture bed (swells in with the notes, lingers for its tail, silent otherwise).
       if (this.texGain > 0 && (this.anyGate || this.texEnv > 1e-5)) {
         this.texEnv = this.anyGate ? this.texEnv + (1 - this.texEnv) * this.texAtk : this.texEnv * this.texRel;
-        this.texture.process(this.texType, this.texTone, this.texChar, this.sampleRate, out);
-        let tl = out[0], tr = out[1];
+        // Octave: run the bed at 2^oct of the sample rate (its filters and pulses scale with it, as on
+        // tape) and read it back with linear interpolation (slower also loses a little top: darker).
+        this.texPos += this.texRate;
+        while (this.texPos >= 1) {
+          this.texPos -= 1;
+          this.texture.process(this.texType, this.texTone, this.texChar, this.sampleRate, out);
+          this.texPrev[0] = this.texCur[0];
+          this.texPrev[1] = this.texCur[1];
+          this.texCur[0] = out[0];
+          this.texCur[1] = out[1];
+        }
+        const tf = this.texPos;
+        let tl = this.texPrev[0] + (this.texCur[0] - this.texPrev[0]) * tf, tr = this.texPrev[1] + (this.texCur[1] - this.texPrev[1]) * tf;
         if (cur[P.tapeAge] > 0) {
           // Worn tape dulls the texture the same way it dulls the voice.
           this.texLpL += (tl - this.texLpL) * this.texLpCoef;

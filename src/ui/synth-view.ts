@@ -1432,12 +1432,14 @@ export class SynthView {
       const lvl = this.num('texture.level');
       const tone = this.num('texture.tone'), ch = this.num('texture.character');
       const tail = Math.min(1, this.num('texture.tail') / 3000);
+      // the octave stretches the bed in time, as tape run slower: fewer, broader grains and slower cycles
+      const rate = Math.pow(2, this.num('texture.octave'));
       let seed = 3 + type.length;
       const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) - 0.5;
       const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i += 1.5) {
+      for (let i = 0; i <= W; i += 1.5 / rate) {
         // each type's grain, varied by Character
-        const x = i / W;
+        const x = (i / W) * rate;
         const pop = (type === 'crackle' && Math.abs(r()) > 0.5 - 0.08 * ch) || (type === 'static' && Math.abs(r()) > 0.49 - 0.04 * ch) ? 3 : 1;
         // breath: a small puff at the start of the note, then like the other beds
         const env = breath ? 0.7 + 0.3 * Math.exp(-(i / W) * 14) : type === 'rumble' ? 0.6 : 1;
@@ -1450,10 +1452,10 @@ export class SynthView {
         if (type === 'static') y *= Math.abs(Math.sin(x * 37)) > 0.3 * ch ? 0.8 : 0.1;
         pts.push([i, H / 2 + y]);
       }
-      silver(g, smoothY(pts, (1 - tone) * 4), lvl > 0);
+      silver(g, smoothY(pts, (1 - tone) * 4 * Math.min(1, rate)), lvl > 0);
       if (String(this.get('texture.filter_type')).startsWith('high')) loCutStrip(g, W, H, this.num('texture.filter_cutoff'), lvl > 0, accentOf(cv));
     };
-    this.watch(['texture.type', 'texture.level', 'texture.tone', 'texture.character', 'texture.tail', 'texture.filter_cutoff', 'texture.filter_type'], redraw);
+    this.watch(['texture.type', 'texture.level', 'texture.tone', 'texture.character', 'texture.octave', 'texture.tail', 'texture.filter_cutoff', 'texture.filter_type'], redraw);
     return cv;
   }
 
@@ -1516,28 +1518,11 @@ export class SynthView {
       if (on && st !== 'formant') {
         const fc = fcNow();
         const x = Math.max(4, Math.min(W - 4, (Math.log(fc / 20) / Math.log(1000)) * W));
-        // Key tracking: how far the cutoff follows the keyboard (two octaves of notes either way).
-        const kt = this.num('filter.keytrack');
-        if (kt > 0) {
-          const span = (2 * kt * Math.log(2)) / Math.log(1000) * W;
-          g.save();
-          g.strokeStyle = hexA(accentOf(cv).startsWith('#') ? accentOf(cv) : INK, 0.55);
-          g.lineWidth = 1;
-          g.beginPath();
-          g.moveTo(x - span, H - 4);
-          g.lineTo(x + span, H - 4);
-          g.moveTo(x - span, H - 7);
-          g.lineTo(x - span, H - 1);
-          g.moveTo(x + span, H - 7);
-          g.lineTo(x + span, H - 1);
-          g.stroke();
-          g.restore();
-        }
         handle(g, x, ys[Math.round(x)] ?? H / 2);
       }
       vignette(g, W, H);
     };
-    this.watch(['filter.type', 'filter.cutoff', 'filter.resonance', 'filter.vowel', 'filter.on', 'drive.on', 'drive.amount', 'filter.keytrack'], redraw);
+    this.watch(['filter.type', 'filter.cutoff', 'filter.resonance', 'filter.vowel', 'filter.on', 'drive.on', 'drive.amount'], redraw);
     this.liveDraws.push(redraw);
     // drag on the print: left/right = cutoff, up/down = resonance
     const cut = getParam('filter.cutoff')!, res = getParam('filter.resonance')!;
@@ -1850,7 +1835,8 @@ export class SynthView {
         ['AIR · BREATH', ['air', 'breath', 'wind']],
         ['ELECTRIC', ['hum', 'static']],
         ['WORLD', ['rumble', 'machine']],
-      ] }), direct],
+      ] }), h('div', 'ob-chips',
+        this.chip('OCT', () => this.num('texture.octave'), (v) => this.set('texture.octave', v), -2, 1, ['texture.octave'], 'Noise octave: plays the bed slower (darker, bigger) or faster, like tape')), direct],
       print: this.noisePrint(PRINT_W, PRINT_H),
       dials,
     });
