@@ -6,8 +6,7 @@
 import { Biquad } from '../engine/core/dsp';
 import { fromNormalized, getParam, toNormalized, type ParamValue, type Patch } from '../schema';
 import { formatValue } from './params-panel';
-import { drawScene } from './scene';
-import { decaySignal, keyGrime, lightGrain, panelTexture } from './texture';
+import { keyGrime, lightGrain, panelTexture } from './texture';
 
 type OnChange = (id: string, value: ParamValue) => void;
 
@@ -855,7 +854,7 @@ export class SynthView {
     const d = 20 * Math.log10(level + 1e-6);
     const lit = Math.round(Math.max(0, Math.min(1, (d + 48) / 48)) * N);
     for (let i = 0; i < N; i++) {
-      g.fillStyle = i < lit ? (i > 11 ? 'rgba(255,90,70,0.95)' : `rgba(230,230,236,${0.45 + i * 0.035})`) : 'rgba(255,255,255,0.07)';
+      g.fillStyle = i < lit ? `rgba(236,236,240,${0.45 + i * 0.04})` : 'rgba(255,255,255,0.07)';
       g.fillRect(i * 6, 0, 3, H);
     }
   }
@@ -866,9 +865,9 @@ export class SynthView {
     if (!g) return;
     const [W, H] = this.scopeSize;
     // phosphor persistence: the last frames fade instead of vanishing; a faint graticule
-    g.fillStyle = 'rgba(5,7,6,0.34)';
+    g.fillStyle = 'rgba(24,24,24,0.2)';
     g.fillRect(0, 0, W, H);
-    g.fillStyle = 'rgba(180,230,210,0.05)';
+    g.fillStyle = 'rgba(255,255,255,0.018)';
     for (let i = 1; i < 8; i++) g.fillRect(Math.round((W * i) / 8), 0, 1, H);
     for (let i = 1; i < 4; i++) g.fillRect(0, Math.round((H * i) / 4), W, 1);
     let start = 0;
@@ -877,9 +876,9 @@ export class SynthView {
     let pk = 0;
     for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(buf[start + i]));
     const gain = pk > 0.02 ? Math.min(4, 0.8 / pk) : 1; // keep quiet sounds visible
-    g.strokeStyle = 'rgba(216,240,230,0.95)';
-    g.lineWidth = 1.6;
-    g.shadowColor = 'rgba(190,240,215,0.9)';
+    g.strokeStyle = 'rgba(236,236,236,0.92)';
+    g.lineWidth = 1.5;
+    g.shadowColor = 'rgba(255,255,255,0.85)';
     g.shadowBlur = 8;
     g.beginPath();
     for (let i = 0; i < n; i++) {
@@ -1217,14 +1216,6 @@ export class SynthView {
     }, { passive: false });
     this.watch(ids, () => { v.textContent = String(Math.round(get())); });
     return el;
-  }
-
-  /** A box with its power lamp and title. */
-  private card(title: string, zone: Zone, cls = ''): [HTMLElement, HTMLElement, HTMLElement] {
-    const head = h('div', 'c-head', h('span', 'c-title', title));
-    const body = h('div', 'c-body');
-    const el = h('div', `c c-${zone} ${cls}`, head, body);
-    return [el, head, body];
   }
 
   // ------------------------------------------------------------------ displays
@@ -1680,15 +1671,15 @@ export class SynthView {
 
   // ------------------------------------------------------------------ the middle: scope + amp envelope
 
+  /** The oscilloscope fills its box; the box's own dark edge shows around the screen. */
   private scopeBox(): HTMLElement {
-    const W = 232, H = 150;
+    const W = 279, H = 205;
     const [cv, g] = canvas(W, H, 'scope-screen');
     this.scopeG = g;
     this.scopeSize = [W, H];
-    g.fillStyle = '#090807';
+    g.fillStyle = '#181818';
     g.fillRect(0, 0, W, H);
-    const [el, , body] = this.card('OSCILLOSCOPE', 'src', 'box-scope');
-    body.append(h('div', 'scope-glass', cv));
+    const el = h('div', 'c ob box-scope', h('div', 'scope-glass', cv));
     el.title = 'Oscilloscope: the sound coming out, as a waveform';
     return el;
   }
@@ -1860,8 +1851,8 @@ export class SynthView {
 
   /** ‹ name ▾ › in the top middle: arrows step through the shelf, the name opens the list. */
   private presetSelector(): HTMLElement {
-    const prev = h('button', 'pre-step', '‹');
-    const next = h('button', 'pre-step', '›');
+    const prev = h('button', 'pre-step', '<');
+    const next = h('button', 'pre-step', '>');
     prev.title = 'Previous preset on this shelf';
     next.title = 'Next preset on this shelf';
     prev.onclick = () => this.presets?.step(-1);
@@ -2874,13 +2865,6 @@ export class SynthView {
   // ------------------------------------------------------------------ the page
 
   /** The header's scene (code-drawn for now; a painted image can replace it). */
-  private sceneCanvas(): HTMLElement {
-    const cv = h('canvas', 'v2-scene');
-    drawScene(cv, DESIGN_WIDTH, 150);
-    decaySignal(cv);
-    return cv;
-  }
-
   private build(): void {
     this.page.style.setProperty('--dust', `url(${panelTexture()})`);
     this.page.style.setProperty('--light-grain', `url(${lightGrain()})`);
@@ -2898,24 +2882,25 @@ export class SynthView {
     const cap = (n: string, name: string, note: string, zone: Zone) =>
       h('div', `zone-cap cap-${zone}`, h('span', 'cap-name', `${n}  ${name}`), h('span', 'cap-note', note), h('span', 'cap-line'));
     void cap;
-    void this.scopeBox; // the oscilloscope comes back later; its place is an empty box for now
+    void this.wobbleBox; // the wobble moves to its own place later (owner's call); until then it lives in "All controls"
     // Two rows of four boxes: OSC A, OSC B, amp envelope, filter; sub, noise, wobble, filter envelope.
     this.oscPage = h('div', 'v2-main osc-page',
       this.oscStrip(1), this.oscStrip(2), this.envBox('amp_env', 'AMP ENVELOPE', 'c-src box-amp'), this.filterBox(),
-      this.subStrip(), this.noiseStrip(), this.wobbleBox(), this.envBox('mod_env', 'FILTER ENVELOPE', 'c-flt box-fenv'));
+      this.subStrip(), this.noiseStrip(), this.scopeBox(), this.envBox('mod_env', 'FILTER ENVELOPE', 'c-flt box-fenv'));
     this.modPage = this.buildModPage();
     this.fxPage = this.buildFxPage();
     this.presetPage.style.display = 'none';
     this.modPage.style.display = 'none';
     this.fxPage.style.display = 'none';
     this.page.append(
-      h('div', 'v2-top', this.sceneCanvas(), h('div', 'v2-brand', h('span', 'brand-name', 'The Grimm'), h('span', 'brand-sub', 'Synthesizer')), this.presetSelector(), h('div', 'v2-top-right', tabs, this.zoomBtn)),
+      h('div', 'v2-top', h('div', 'v2-brand', h('span', 'brand-name', 'The Grimm'), h('span', 'brand-sub', 'Synthesizer')), this.presetSelector(), h('div', 'v2-top-right', tabs, this.zoomBtn)),
       this.oscPage,
       this.modPage,
       this.fxPage,
       this.presetPage,
       this.bottomBar(),
       this.keyboardStrip(),
+      h('div', 'film'),
     );
   }
 }
