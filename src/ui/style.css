@@ -1154,9 +1154,19 @@ html, body, .v2-wrap { background: #070708; }
     repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 3px); }
 /* the keys fall into the dark, lit from the front (Cinema) */
 .v2 .kb-keys { position: relative; z-index: 81; }
-.v2 .kb-keys .key.white { background: var(--light-grain) 0 0 / 192px 192px, linear-gradient(180deg, #0c0c0c 0%, #1e1e1e 20%, #3a3a39 45%, #7a7a78 75%, #a9a9a6 92%, #b4b4b1 100%) !important; background-blend-mode: multiply;
+.v2 .kb-keys .key.white { background: linear-gradient(180deg, #a6a6a3, #b9b9b6 96%, #9a9a97) !important;
   border-left: 1px solid #000 !important; border-right: 1px solid #000 !important; box-shadow: none !important; }
 .v2 .kb-keys .key.black { background: linear-gradient(180deg, #000, #0b0b0b 85%, #1d1d1d) !important; box-shadow: 1px 3px 4px rgba(0,0,0,0.8) !important; }
 .v2 .kb-keys .key .lbl { color: #3e3e3d !important; }
 .v2 .kb-keys .key.down.white { background: linear-gradient(180deg, #0c0c0c 0%, #3a3a39 35%, #bdbdba 85%, #e8e8e5 100%) !important; box-shadow: inset 0 -3px 0 #fff, 0 0 12px rgba(255,255,255,0.25) !important; }
 .v2 .kb-keys .key.down.black { background: linear-gradient(180deg, #000, #1a1a1a 70%, #5a5a5a) !important; }
+
+/* The keys sit further back: one smooth shadow over the whole keyboard, cast from the panel above,
+   so the boxes seem to stand out towards the viewer. No grain on the keys. */
+.v2 .kb-keys::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 5;
+  background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.78) 18%, rgba(0,0,0,0.58) 42%, rgba(0,0,0,0.3) 68%, rgba(0,0,0,0.1) 90%, rgba(0,0,0,0.04) 100%);
+  box-shadow: inset 0 14px 18px -8px rgba(0,0,0,0.95), inset 10px 0 14px -10px rgba(0,0,0,0.8), inset -10px 0 14px -10px rgba(0,0,0,0.8); }
+.v2 .kb-keys .key.black { background: linear-gradient(180deg, #050505, #0e0e0e 88%, #1c1c1c) !important; }
+.v2 .kb-keys .key.down.white { background: linear-gradient(180deg, #d8d8d5, #f2f2ef) !important; box-shadow: none !important; }
+.v2 .kb-keys .key.down.black { background: linear-gradient(180deg, #1a1a1a, #4a4a4a) !important; }
+.v2 .v2-bottom { position: relative; z-index: 82; box-shadow: 0 10px 16px rgba(0,0,0,0.85) !important; }
