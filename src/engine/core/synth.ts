@@ -436,7 +436,7 @@ export class Synth {
     if (!pick) return;
     const fresh = !pick.active;
     pick.start(note, velocity, false, true, ++this.order);
-    this.onTrigger();
+    this.onTrigger(velocity);
     if (fresh) pick.control(this.gsrc, this.bend, this.xdst);
   }
 
@@ -463,14 +463,14 @@ export class Synth {
     const retrigger = !(legato && overlapping);
     const fresh = !v.active;
     v.start(note, velocity, glide && !(legato && !overlapping), retrigger, ++this.order);
-    if (retrigger) this.onTrigger();
+    if (retrigger) this.onTrigger(velocity);
     // A voice waking from silence gets its coefficients now, not at the next block.
     if (fresh) v.control(this.gsrc, this.bend, this.xdst);
   }
 
   /** A note (re)started its envelopes: retrigger LFOs that ask for it (fade-ins are per voice, see Voice). */
-  private onTrigger(): void {
-    this.texture.trigger();
+  private onTrigger(velocity = 1): void {
+    this.texture.trigger(velocity);
     for (let l = 0; l < LFO_COUNT; l++) {
       if (this.cur[P.lfo[l].retrig] > 0.5) {
         this.lfoPhase[l] = 0;

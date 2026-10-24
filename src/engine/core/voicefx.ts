@@ -193,6 +193,8 @@ export class Shepard {
 export const CLICK_NOISE = 0, CLICK_CLICK = 1, CLICK_KNOCK = 2, CLICK_KICK = 3;
 
 export const TEX_CRACKLE = 0, TEX_DUST = 1, TEX_RUMBLE = 2, TEX_AIR = 3, TEX_BREATH = 4, TEX_TAPE = 5, TEX_STATIC = 6, TEX_WIND = 7;
+/** The HIT types: crackle, dust and static as one burst per note (fading over Tail), nothing between. */
+export const TEX_CRACKLE_HIT = 8, TEX_DUST_HIT = 9, TEX_STATIC_HIT = 10;
 
 /**
  * Texture bed. Grains: crackle (vinyl pops, nothing else), dust (fine grit),
@@ -232,10 +234,17 @@ export class Texture {
   private gustTarget = 0;
   private gustCount = 0;
 
-  /** A new note started: breath puffs. */
-  trigger(): void {
+  /** The newest note's velocity (0..1): a harder note, a bigger puff or burst. */
+  private hitVel = 1;
+  /** A burst starts with a grain right on the note, so every hit has its attack. */
+  private hitKick = false;
+
+  /** A new note started: breath puffs, the HIT types burst. */
+  trigger(velocity = 1): void {
     this.puffIn = 0;
     this.puffOut = 1;
+    this.hitVel = 0.35 + 0.65 * Math.max(0, Math.min(1, velocity));
+    this.hitKick = true;
   }
 
   reset(): void {
@@ -260,15 +269,26 @@ export class Texture {
     }
     this.wander += (this.wanderTarget - this.wander) * (8 / fs);
     const w = 1 + 0.45 * this.wander;
+    // HIT: the same generator as the bed it is named after, inside one burst per note
+    const hit = type >= TEX_CRACKLE_HIT;
+    if (hit) type = type === TEX_CRACKLE_HIT ? TEX_CRACKLE : type === TEX_DUST_HIT ? TEX_DUST : TEX_STATIC;
+    if (hit || type === TEX_BREATH) {
+      this.puffIn += (1 - this.puffIn) * (1 / (0.01 * fs));
+      this.puffOut *= Math.exp(-4.6 / (Math.max(0.02, this.puffLen) * fs));
+    }
+    // a burst is short: its grains come four times as often as in the bed, and the first lands on the note
+    const boost = hit ? 4 : 1;
+    const kick = hit && this.hitKick;
+    if (kick) this.hitKick = false;
     let l: number, r: number;
     switch (type) {
       case TEX_CRACKLE: {
         // Vinyl pops only: random sizes (mostly small, a few big) ringing a resonant band (Tone).
         // density: a rare pop .. a broken record
-        const p = (16 / fs) * Math.pow(2, 5 * k);
+        const p = ((16 * boost) / fs) * Math.pow(2, 5 * k);
         const g = Math.tan((Math.PI * Math.min(1500 * Math.pow(4, tone), fs * 0.4)) / fs);
-        const el = 0.5 * (this.rngL.next() + 1) < p ? popSize(this.rngL) : 0;
-        const er = 0.5 * (this.rngR.next() + 1) < p ? popSize(this.rngR) : 0;
+        const el = kick ? 0.8 : 0.5 * (this.rngL.next() + 1) < p ? popSize(this.rngL) : 0;
+        const er = kick ? -0.7 : 0.5 * (this.rngR.next() + 1) < p ? popSize(this.rngR) : 0;
         this.svfL.process(el, g, 1.1);
         this.svfR.process(er, g, 1.1);
         l = 40 * this.svfL.bp;
@@ -280,8 +300,8 @@ export class Texture {
         // density: sparse .. dense grit
         const p = ((250 + 900 * tone) / fs) * Math.pow(2, 3 * k);
         const g = Math.tan((Math.PI * Math.min(2500 * Math.pow(2.5, tone), fs * 0.4)) / fs);
-        const el = 0.5 * (this.rngL.next() + 1) < p ? this.rngL.next() : 0;
-        const er = 0.5 * (this.rngR.next() + 1) < p ? this.rngR.next() : 0;
+        const el = kick ? 0.9 : 0.5 * (this.rngL.next() + 1) < p ? this.rngL.next() : 0;
+        const er = kick ? -0.9 : 0.5 * (this.rngR.next() + 1) < p ? this.rngR.next() : 0;
         this.svfL.process(el, g, 0.9);
         this.svfR.process(er, g, 0.9);
         l = 4 * this.svfL.hp * w;
@@ -301,13 +321,11 @@ export class Texture {
         // Breath: one puff at each new note and nothing between (owner's call: no sustained
         // breath, air covers that). A mouth-like band of noise (500 Hz .. 8 kHz with Tone) swells in
         // over ~10 ms and fades over Tail. density: a narrow, mouthy puff .. a big, open breath.
-        this.puffIn += (1 - this.puffIn) * (1 / (0.01 * fs));
-        this.puffOut *= Math.exp(-4.6 / (Math.max(0.02, this.puffLen) * fs));
         const g = Math.tan((Math.PI * Math.min(500 * Math.pow(16, tone), fs * 0.4)) / fs);
         const q = 1.1 * wide;
         this.svfL.process(this.rngL.next(), g, q);
         this.svfR.process(this.rngR.next(), g, q);
-        const a = 3.5 * Math.sqrt(wide) * this.puffIn * this.puffOut;
+        const a = 3.5 * Math.sqrt(wide) * this.puffIn * this.puffOut * this.hitVel;
         l = this.svfL.bp * a;
         r = this.svfR.bp * a;
         break;
@@ -331,7 +349,7 @@ export class Texture {
           this.flick = Math.round(fs / (300 + 300 * (this.rngW.next() + 1)));
         }
         const g = Math.tan((Math.PI * Math.min(1500 * Math.pow(3, tone), fs * 0.4)) / fs);
-        const pop = 0.5 * (this.rngW.next() + 1) < (35 * Math.pow(2, 4 * k)) / fs ? this.rngW.next() * 6 : 0;
+        const pop = kick ? 6 : 0.5 * (this.rngW.next() + 1) < (35 * boost * Math.pow(2, 4 * k)) / fs ? this.rngW.next() * 6 : 0;
         this.svfL.process(this.rngL.next() * this.flickG + pop, g, 1.2);
         this.svfR.process(this.rngR.next() * this.flickG + pop, g, 1.2);
         l = 1.6 * this.svfL.bp;
@@ -372,6 +390,12 @@ export class Texture {
         l = 2.4 * Math.sqrt(wide) * this.svfL.bp * b;
         r = 2.4 * Math.sqrt(wide) * this.svfR.bp * b;
       }
+    }
+    // a HIT starts at once (its first grain is the attack) and fades over Tail
+    if (hit) {
+      const e = this.puffOut * this.hitVel;
+      l *= e;
+      r *= e;
     }
     out[0] = l;
     out[1] = r;

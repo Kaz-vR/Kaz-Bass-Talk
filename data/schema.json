@@ -670,11 +670,14 @@
         "breath",
         "tape hiss",
         "static",
-        "wind"
+        "wind",
+        "crackle hit",
+        "dust hit",
+        "static hit"
       ],
       "default": "crackle",
       "group": "texture",
-      "describes": "What the Noise strip plays, a bed under the sound that swells in with each note and lingers for its tail. Grains: crackle (vinyl pops), dust (fine grit), static (grainy radio fizz). Noise: tape hiss, air (a broad breathy band), breath (one puff at each new note, nothing between), wind (gusts), rumble (low and dark, kept above the sub). No pitch and no rhythm in any of them."
+      "describes": "What the Noise strip plays, a bed under the sound that swells in with each note and lingers for its tail. Grains: crackle (vinyl pops), dust (fine grit), static (grainy radio fizz). Noise: tape hiss, air (a broad breathy band), wind (gusts), rumble (low and dark, kept above the sub). Hit, one burst at each new note fading over Tail and nothing between (harder notes burst bigger): breath, crackle hit, dust hit, static hit (the same sounds as crackle, dust and static). No pitch and no rhythm in any of them."
     },
     {
       "id": "texture.level",
@@ -734,7 +737,7 @@
       "curve": "log",
       "unit": "ms",
       "group": "texture",
-      "describes": "How long the texture lingers after a note ends; on breath, how long each puff lasts."
+      "describes": "How long the texture lingers after a note ends; on the hit types (breath, crackle hit, dust hit, static hit), how long each burst lasts."
     },
     {
       "id": "texture.pan",

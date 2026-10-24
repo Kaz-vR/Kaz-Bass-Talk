@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { renderPatch } from '../src/engine/core/render';
 import { bandPower, powerSpectrum } from '../src/analysis/spectrum';
 import { heldNote, rms } from './helpers/audio';
-import { Texture, TEX_CRACKLE, TEX_DUST, TEX_STATIC, TEX_TAPE } from '../src/engine/core/voicefx';
+import { Texture, TEX_CRACKLE, TEX_CRACKLE_HIT, TEX_DUST, TEX_DUST_HIT, TEX_STATIC, TEX_STATIC_HIT, TEX_TAPE } from '../src/engine/core/voicefx';
 
 const FS = 48000;
 const base = {
@@ -138,6 +138,30 @@ describe('texture bed', () => {
     expect(rms(Float32Array.from(side), 0.1 * FS, 0.45 * FS)).toBeLessThan(1e-6);
     const s = powerSpectrum(mid, FS, Math.round(0.05 * FS), Math.round(0.45 * FS), 8192);
     expect(bandPower(s, 20, 60)).toBeLessThan(bandPower(s, 120, 400) * 0.1);
+  });
+
+  it.each(['crackle hit', 'dust hit', 'static hit'])('%s: one burst on each note, nothing between', (type) => {
+    const p = { ...base, 'osc1.level': 0, 'sub.level': 0, 'texture.type': type, 'texture.tail': 250, 'texture.level': 1 };
+    const r = renderPatch(p, heldNote(45, 4), { seconds: 1 }).left;
+    const start = rms(r, 0, 0.08 * FS), late = rms(r, 0.6 * FS, 0.95 * FS);
+    expect(start).toBeGreaterThan(1e-3);
+    expect(late).toBeLessThan(start * 0.01);
+  });
+
+  it.each([['crackle hit', TEX_CRACKLE_HIT], ['dust hit', TEX_DUST_HIT], ['static hit', TEX_STATIC_HIT]] as const)('%s always starts with its attack, and harder notes burst bigger', (_, type) => {
+    const burst = (vel: number) => {
+      const t = new Texture(), o = new Float64Array(2);
+      t.puffLen = 0.3;
+      t.trigger(vel);
+      let peak = 0;
+      for (let i = 0; i < 0.01 * FS; i++) {
+        t.process(type, 0.5, 0.5, FS, o);
+        peak = Math.max(peak, Math.abs(o[0]));
+      }
+      return peak;
+    };
+    expect(burst(1)).toBeGreaterThan(0.01);
+    expect(burst(1)).toBeGreaterThan(burst(0.2) * 1.5);
   });
 
   it('crackle and air are stereo', () => {
