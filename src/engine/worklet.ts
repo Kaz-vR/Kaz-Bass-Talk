@@ -44,6 +44,13 @@ class LowTalkProcessor extends AudioWorkletProcessor {
       ctl[0].fill(this.synth.liveCutoff);
       ctl[1].fill(this.synth.liveRes);
       if (ctl.length >= 3) ctl[2].fill(this.synth.liveWob);
+      // channels 3-6: each LFO's phase (0..1), 7-10: its value (-1..1); they always run
+      if (ctl.length >= 11) {
+        for (let l = 0; l < 4; l++) {
+          ctl[3 + l].fill(this.synth.lfoPhase[l]);
+          ctl[7 + l].fill(this.synth.lfoValue[l]);
+        }
+      }
     }
     return true;
   }

@@ -346,6 +346,7 @@ $('start').querySelector('button')!.addEventListener('click', async () => {
   const engine = host;
   synth.setLiveFilter(() => engine.liveFilter());
   synth.setLiveWobble(() => engine.liveWobble());
+  synth.setLiveLfos(() => engine.liveLfos());
   initMidi({
     noteOn: (n, v) => { host?.noteOn(n, v); keyboard.mark(n, true); synth.noteOn(); },
     noteOff: (n) => { host?.noteOff(n); keyboard.mark(n, false); synth.noteOff(); },

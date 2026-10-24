@@ -122,8 +122,9 @@ export class Synth {
   private tempo = 120;
 
   // Shared modulation.
-  private readonly lfoPhase = new Float64Array(LFO_COUNT);
-  private readonly lfoValue = new Float64Array(LFO_COUNT);
+  /** Where each LFO is in its cycle (0..1) and its value (-1..1); also read by the page's dots. */
+  readonly lfoPhase = new Float64Array(LFO_COUNT);
+  readonly lfoValue = new Float64Array(LFO_COUNT);
   private readonly lfoHold = new Float64Array(LFO_COUNT); // current random value (S&H; wander end point)
   private readonly lfoPrev = new Float64Array(LFO_COUNT); // previous random value (wander start point)
   private readonly gsrc = new Float64Array(SRC_COUNT);

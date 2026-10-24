@@ -646,7 +646,31 @@ export class SynthView {
    * envelope and vibrato; the matrix's amount bars), and the clock they read: seconds since the note started and since it
    * was released (-1 while held), and the amp envelope's level right now.
    */
-  private readonly animDraws: { el: HTMLElement; f: () => void }[] = [];
+  private readonly animDraws: { el: HTMLElement; f: () => void; free?: () => boolean }[] = [];
+  /**
+   * The LFOs and drifts run all the time, not only while a note sounds, so their dots and matrix
+   * bars keep moving whenever they are on screen (30 fps; the envelopes still wait for a note).
+   */
+  private liveLfo: { phase: number[]; value: number[] } | null = null;
+  private readLfos: (() => { phase: number[]; value: number[] }) | null = null;
+  /** Wraps of each LFO's phase seen so far, to place its dot across the cycles its print shows. */
+  private readonly lfoCycles = [0, 0, 0, 0];
+
+  /** The engine's real LFO phases and values (the dots and bars follow them, as the Wobbler's dot does). */
+  setLiveLfos(read: () => { phase: number[]; value: number[] }): void {
+    this.readLfos = read;
+    let frame = 0;
+    const step = () => {
+      if (frame++ % 2 === 0) {
+        const v = this.readLfos?.() ?? null;
+        if (v && this.liveLfo) for (let l = 0; l < 4; l++) if (v.phase[l] < this.liveLfo.phase[l] - 0.5) this.lfoCycles[l]++;
+        this.liveLfo = v;
+        if (!this.anim.on) for (const a of this.animDraws) if (a.free?.() && a.el.offsetParent !== null) a.f();
+      }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
   private readonly anim = { on: false, t: 0, rel: -1, amp: 0 };
   private lastVel = 0.8;
   private animFrame = 0;
@@ -784,9 +808,11 @@ export class SynthView {
     if (m) {
       const L = `lfo${m[1]}`, sync = String(this.get(`${L}.sync`));
       const period = sync === 'free' ? 1 / Math.max(0.01, this.num(`${L}.rate`)) : syncBeats(sync) * 0.5;
-      const tt = this.get(`${L}.retrigger`) ? t : now;
-      const fade = this.num(`${L}.fade`) / 1000;
-      return Math.sin((2 * Math.PI * tt) / period) * (fade > 0 ? Math.min(1, t / fade) : 1);
+      const tt = this.get(`${L}.retrigger`) && this.anim.on ? t : now;
+      const fade = this.num(`${L}.fade`) / 1000, faded = this.anim.on && fade > 0 ? Math.min(1, t / fade) : 1;
+      // the engine's real value when it is running, else an estimate
+      const live = this.liveLfo?.value[Number(m[1]) - 1];
+      return (live ?? Math.sin((2 * Math.PI * tt) / period)) * faded;
     }
     switch (src) {
       case 'env2':
@@ -2050,13 +2076,16 @@ export class SynthView {
         g.restore();
       }
       // While playing: a dot at where the LFO is now (from the note's start when it retriggers).
-      if (this.anim.on && this.get(`${L}.on`)) {
-        const t = this.get(`${L}.retrigger`) ? this.anim.t : performance.now() / 1000;
+      // (always: the LFO runs whether or not a note sounds; retriggered from the last note's start)
+      if (this.get(`${L}.on`)) {
+        // the engine's real phase when it is running, else the page's own clock
+        const live = this.liveLfo;
+        const t = live ? (this.lfoCycles[n - 1] + live.phase[n - 1]) * period : this.get(`${L}.retrigger`) && this.anim.on ? this.anim.t : performance.now() / 1000;
         liveDot(g, pts, (t % span) / span, accentOf(cv));
       }
     };
     this.watch([`${L}.shape`, `${L}.fade`, `${L}.rate`, `${L}.sync`, `${L}.on`, `${L}.retrigger`], redraw);
-    this.animDraws.push({ el: cv, f: redraw });
+    this.animDraws.push({ el: cv, f: redraw, free: () => !!this.get(`${L}.on`) });
     return cv;
   }
 
@@ -2584,9 +2613,15 @@ export class SynthView {
     const W = 92, H = 14;
     const [cv, g] = canvas(W, H, 'amt');
     const val = h('span', 'amt-val');
+    const freeSrc = () => {
+      const src = deps[0] ? String(this.get(deps[0])) : '';
+      if (/^lfo\d$/.test(src)) return !!this.get(`${src}.on`);
+      return /^(lfo_product|drift|drift_slow)$/.test(src);
+    };
     const draw = () => {
-      // While a note sounds the bar moves with its source (deps[0] is the slot's source).
-      const v = this.num(id) * (this.anim.on && deps[0] ? this.sourceNow(String(this.get(deps[0]))) : 1), mid = W / 2, col = accentOf(cv);
+      // The bar moves with its source (deps[0] is the slot's source): LFOs and drifts all the
+      // time, the rest while a note sounds.
+      const v = this.num(id) * (deps[0] && (this.anim.on || freeSrc()) ? this.sourceNow(String(this.get(deps[0]))) : 1), mid = W / 2, col = accentOf(cv);
       g.clearRect(0, 0, W, H);
       g.fillStyle = 'rgba(255,255,255,0.06)';
       g.fillRect(0, H / 2 - 1, W, 2);
@@ -2605,7 +2640,7 @@ export class SynthView {
       val.classList.toggle('zero', amt === 0);
     };
     this.watch([id, ...deps], draw);
-    if (deps.length) this.animDraws.push({ el: cv, f: draw });
+    if (deps.length) this.animDraws.push({ el: cv, f: draw, free: freeSrc });
     let x0 = 0, v0 = 0;
     const set = (v: number) => this.set(id, Math.round(Math.max(p.min!, Math.min(p.max!, v)) * 1000) / 1000);
     cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); x0 = e.clientX; v0 = this.num(id); });
