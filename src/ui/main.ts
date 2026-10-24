@@ -12,6 +12,10 @@ import { initMidi } from './midi';
 import { ParamsPanel } from './params-panel';
 import { Scope } from './scope';
 import { SynthView, type PresetSource } from './synth-view';
+import { installDropdowns } from './dropdown';
+
+// Every dropdown opens the page's own menu, not the operating system's.
+installDropdowns();
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 

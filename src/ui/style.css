@@ -1189,3 +1189,36 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .mx-row[data-src="env2"] .mx-on { --knob-accent: #5f9bff; }
 /* The four IN lamps (no label) centred on the dials beside them. */
 .v2 .ob-dials .ob-routes { align-self: flex-start !important; padding-bottom: 0 !important; margin-top: 5.5px; }
+
+/* ---- Dropdown menus (src/ui/dropdown.ts): a dark panel in the page's style; the current choice
+   lit in its box's colour, the rest quiet ink that lights up under the pointer. ---- */
+.v2 .sel-name, .v2 select { cursor: pointer; }
+.dd-menu { position: fixed; z-index: 1000; min-width: 150px; max-height: 340px; overflow-y: auto; padding: 6px 0;
+  background: var(--light-grain, none) 0 0 / 192px 192px, #0b0b0c; background-blend-mode: multiply;
+  border: 1px solid rgba(255,255,255,0.08); border-top-color: rgba(255,255,255,0.13); border-radius: 2px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.85), 0 2px 6px rgba(0,0,0,0.9);
+  font-family: 'LT Space', 'Space Grotesk', sans-serif; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) transparent;
+  animation: dd-in 90ms ease-out; }
+@keyframes dd-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+.dd-menu.dd-cols { display: grid; grid-template-columns: repeat(3, auto); grid-auto-flow: row; max-height: none; padding: 6px 4px; }
+.dd-item { position: relative; display: block; width: 100%; text-align: left; white-space: nowrap; background: transparent; border: 0; cursor: pointer;
+  padding: 6px 22px 6px 26px; font: 400 10px/1.2 'LT Space', 'Space Grotesk', sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: #77777d; outline: none; }
+.dd-item:hover, .dd-item:focus-visible { color: #f2f2f4; background: rgba(255,255,255,0.035); text-shadow: 0 0 8px rgba(255,255,255,0.45); }
+.dd-item.on { color: #fff; text-shadow: 0 0 8px rgba(255,255,255,0.5); }
+.dd-item.on::before { content: ''; position: absolute; left: 11px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%;
+  background: var(--dd-accent); box-shadow: 0 0 6px var(--dd-accent), 0 0 2px var(--dd-accent); }
+.dd-item:disabled { color: #3a3a3e; cursor: default; text-shadow: none; background: transparent; }
+.v2 select.dd-open, .v2 .dd-open { color: #fff !important; }
+/* The preset menu in the same style as the other menus. */
+.v2 .pre-menu { background: var(--light-grain, none) 0 0 / 192px 192px, #0b0b0c !important; background-blend-mode: multiply; border: 1px solid rgba(255,255,255,0.08) !important;
+  border-top-color: rgba(255,255,255,0.13) !important; box-shadow: 0 18px 40px rgba(0,0,0,0.85), 0 2px 6px rgba(0,0,0,0.9) !important; z-index: 1000; scrollbar-width: thin; }
+.v2 .pre-shelves, .v2 .pre-list { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) transparent; }
+.v2 .pre-shelf, .v2 .pre-item { border: 0 !important; background: transparent !important; color: #77777d !important; font-weight: 400 !important;
+  font-size: 10px !important; letter-spacing: 0.18em; text-transform: uppercase; padding: 7px 10px !important; }
+.v2 .pre-shelf:hover, .v2 .pre-item:hover { color: #f2f2f4 !important; background: rgba(255,255,255,0.035) !important; text-shadow: 0 0 8px rgba(255,255,255,0.45); }
+.v2 .pre-shelf.on, .v2 .pre-item.on { color: #fff !important; text-shadow: 0 0 8px rgba(255,255,255,0.5); }
+.v2 .pre-shelf .lamp { width: 5px; height: 5px; border: 0; background: rgba(255,255,255,0.12); }
+.v2 .pre-shelf.on .lamp { background: #fff; box-shadow: 0 0 6px #fff, 0 0 2px #fff; }
+.v2 .pre-count { color: #4a4a50 !important; letter-spacing: 0.05em; }
+.v2 .pre-tpl { color: #5a5a60 !important; font-weight: 400 !important; letter-spacing: 0.1em; }
+.v2 .pre-item.on .pre-tpl { color: #cfcfd4 !important; }
