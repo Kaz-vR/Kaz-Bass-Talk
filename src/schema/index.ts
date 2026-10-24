@@ -142,13 +142,29 @@ function migratePitchEnv(src: Record<string, unknown>): Record<string, unknown> 
 }
 
 /**
+ * Older patches gave breath its own dials (chiff, decay, tone, level); now it plays from the Noise
+ * strip's own (Level with an attack puff that grows with it, Tone, Tail = the puff's length).
+ */
+function migrateBreath(src: Record<string, unknown>): Record<string, unknown> {
+  if (!('breath.level' in src) && !('breath.chiff' in src)) return src;
+  const out: Record<string, unknown> = { ...src };
+  if (src['texture.type'] === 'breath') {
+    const level = Number(src['breath.level']) || 0, chiff = Number(src['breath.chiff']) || 0;
+    out['texture.level'] = level > 0 ? level : chiff * 0.8;
+    if ('breath.tone' in src) out['texture.tone'] = src['breath.tone'];
+    if ('breath.decay' in src) out['texture.tail'] = src['breath.decay'];
+  }
+  return out;
+}
+
+/**
  * Validate any patch-like object against the schema. Missing params get
  * defaults; out-of-range values are clamped; unknown keys are dropped.
  * Always returns a complete, safe patch plus a list of what was fixed.
  */
 export function validatePatch(input: unknown): ValidationResult {
   const issues: ValidationIssue[] = [];
-  const src = migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>);
+  const src = migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>));
   const rawMeta = src.meta && typeof src.meta === 'object' ? (src.meta as PatchMeta) : undefined;
   const meta: PatchMeta = { ...(rawMeta ?? {}), name: typeof rawMeta?.name === 'string' ? rawMeta.name : 'Untitled' };
   if (!rawMeta) issues.push({ param: 'meta', message: 'missing meta' });
@@ -171,7 +187,7 @@ export function validatePatch(input: unknown): ValidationResult {
     patch[p.id] = old in src ? clampValue(p, src[old], issues) : (p.default as ParamValue);
   }
   for (const key of Object.keys(src)) {
-    if (key !== 'meta' && key !== 'fx.lowcut' && key !== 'wobble.target' && key !== 'wobble.highcut' && !key.startsWith('pitch_env.') && !indexById.has(key)) issues.push({ param: key, message: 'unknown parameter (dropped)' });
+    if (key !== 'meta' && key !== 'fx.lowcut' && key !== 'wobble.target' && key !== 'wobble.highcut' && !key.startsWith('pitch_env.') && !key.startsWith('breath.') && !indexById.has(key)) issues.push({ param: key, message: 'unknown parameter (dropped)' });
   }
   sortModSlots(patch);
   return { patch, issues };

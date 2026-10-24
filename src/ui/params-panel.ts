@@ -53,7 +53,7 @@ const GROUP_TIPS: Record<string, string> = {
 /** The page's sections, in the order the sound flows: play, sources, the dirt chain, envelopes, movement, space, out. */
 const SECTIONS: { id: string; title: string; hint: string; groups: string[] }[] = [
   { id: 'play', title: 'Play', hint: 'How it is played: voices, glide, touch, the mod wheel and a player\'s vibrato.', groups: ['voice', 'wheel', 'vibrato'] },
-  { id: 'sources', title: 'Sources', hint: 'What makes the sound: oscillators, FM, sub, noise and breath.', groups: ['osc1', 'osc2', 'string', 'fm', 'sub', 'noise', 'breath'] },
+  { id: 'sources', title: 'Sources', hint: 'What makes the sound: oscillators, FM, sub and noise (breath is a texture type).', groups: ['osc1', 'osc2', 'string', 'fm', 'sub', 'noise'] },
   { id: 'tone', title: 'Tone and dirt', hint: 'The fixed chain, left to right: drive → filter → distortion → bitcrusher → tape → mid clip.', groups: ['drive', 'filter', 'dist', 'crush', 'tape', 'clip'] },
   { id: 'shape', title: 'Shape over time', hint: 'Per-note envelopes: volume, the filter sweep, the slow bloom and Env 3 (pitch bumps and drops).', groups: ['amp_env', 'mod_env', 'env2', 'env3'] },
   { id: 'movement', title: 'Movement', hint: 'What keeps it alive: the wobble, four LFOs, the other sources and the matrix that routes them.', groups: ['wobble', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'other', 'mod'] },

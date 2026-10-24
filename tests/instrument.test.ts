@@ -42,28 +42,31 @@ describe('delayed vibrato', () => {
 });
 
 describe('breath', () => {
-  it('chiff is a noise burst at the attack that dies away', () => {
-    const p = { ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': true, 'breath.chiff': 1, 'breath.decay': 80 };
+  it('starts with a puff (as long as Tail) that settles into the steady breath', () => {
+    const p = { ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': true, 'texture.level': 1, 'texture.tail': 80 };
     const r = renderPatch(p, heldNote(57, 4), { seconds: 1 });
-    expect(rms(r.left, 0.005 * FS, 0.05 * FS)).toBeGreaterThan(rms(r.left, 0.6 * FS, 0.9 * FS) * 20);
+    expect(rms(r.left, 0.005 * FS, 0.03 * FS)).toBeGreaterThan(rms(r.left, 0.6 * FS, 0.9 * FS) * 1.8);
   });
   it('sustained breath follows the note and sits where its tone says', () => {
-    const dark = mono(renderPatch({ ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': true, 'breath.level': 0.8, 'breath.tone': 0.1 }, heldNote(57, 4), { seconds: 1 }));
-    const airy = mono(renderPatch({ ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': true, 'breath.level': 0.8, 'breath.tone': 0.9 }, heldNote(57, 4), { seconds: 1 }));
+    const dark = mono(renderPatch({ ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': true, 'texture.level': 0.8, 'texture.tone': 0.1 }, heldNote(57, 4), { seconds: 1 }));
+    const airy = mono(renderPatch({ ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': true, 'texture.level': 0.8, 'texture.tone': 0.9 }, heldNote(57, 4), { seconds: 1 }));
     const ratio = (x: Float64Array) => { const s = powerSpectrum(x, FS, 0.3 * FS, 0.9 * FS, 8192); return bandPower(s, 3000, 12000) / bandPower(s, 200, 1500); };
     expect(rms(Float32Array.from(dark), 0.3 * FS, 0.9 * FS)).toBeGreaterThan(1e-3);
     expect(ratio(airy)).toBeGreaterThan(ratio(dark) * 10);
   });
-  it('only sounds with the Noise strip on breath (the bed is silent then)', () => {
-    const p = { ...base, 'osc1.level': 0, 'breath.level': 0.8, 'texture.level': 0 };
-    const off = mono(renderPatch({ ...p, 'texture.type': 'air' }, heldNote(57, 4), { seconds: 1 }));
-    expect(rms(Float32Array.from(off), 0.3 * FS, 0.9 * FS)).toBeLessThan(1e-6);
-    const bed = { ...base, 'osc1.level': 0, 'texture.type': 'breath', 'texture.level': 0.8 };
-    expect(rms(Float32Array.from(mono(renderPatch(bed, heldNote(57, 4), { seconds: 1 }))), 0.3 * FS, 0.9 * FS)).toBeLessThan(1e-6);
+  it('plays from the Noise strip\'s Level: 0 is silent', () => {
+    const p = { ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': true, 'texture.level': 0 };
+    expect(rms(Float32Array.from(mono(renderPatch(p, heldNote(57, 4), { seconds: 1 }))), 0.3 * FS, 0.9 * FS)).toBeLessThan(1e-6);
+  });
+  it('Lo cut takes its lows away', () => {
+    const p = { ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': false, 'texture.level': 0.8, 'texture.tone': 0.3 };
+    const low = (x: Float64Array) => bandPower(powerSpectrum(x, FS, 0.3 * FS, 0.9 * FS, 8192), 100, 600);
+    const cut = mono(renderPatch({ ...p, 'texture.filter_type': 'high 24', 'texture.filter_cutoff': 1500 }, heldNote(57, 4), { seconds: 1 }));
+    expect(low(cut)).toBeLessThan(low(mono(renderPatch(p, heldNote(57, 4), { seconds: 1 }))) * 0.3);
   });
   it('goes through the filter', () => {
-    const open = mono(renderPatch({ ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': true, 'breath.level': 0.8, 'breath.tone': 0.8 }, heldNote(57, 4), { seconds: 1 }));
-    const shut = mono(renderPatch({ ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': true, 'breath.level': 0.8, 'breath.tone': 0.8, 'filter.cutoff': 300 }, heldNote(57, 4), { seconds: 1 }));
+    const open = mono(renderPatch({ ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': true, 'texture.level': 0.8, 'texture.tone': 0.8 }, heldNote(57, 4), { seconds: 1 }));
+    const shut = mono(renderPatch({ ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': true, 'texture.level': 0.8, 'texture.tone': 0.8, 'filter.cutoff': 300 }, heldNote(57, 4), { seconds: 1 }));
     expect(rms(Float32Array.from(shut), 0.3 * FS, 0.9 * FS)).toBeLessThan(rms(Float32Array.from(open), 0.3 * FS, 0.9 * FS) * 0.3);
   });
 });

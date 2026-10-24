@@ -1414,54 +1414,6 @@
       "describes": "How long the vibrato takes to reach full depth after its delay."
     },
     {
-      "id": "breath.chiff",
-      "label": "Breath chiff",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0,
-      "curve": "linear",
-      "unit": "",
-      "group": "breath",
-      "describes": "A short burst of breath or bow noise at the start of each note, through the filter: the attack of brass, flutes and bowed strings. Only sounds when the Noise type is breath."
-    },
-    {
-      "id": "breath.decay",
-      "label": "Chiff decay",
-      "type": "float",
-      "min": 5,
-      "max": 1000,
-      "default": 120,
-      "curve": "log",
-      "unit": "ms",
-      "group": "breath",
-      "describes": "How long the attack noise lasts. Only sounds when the Noise type is breath."
-    },
-    {
-      "id": "breath.level",
-      "label": "Breath level",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0,
-      "curve": "linear",
-      "unit": "",
-      "group": "breath",
-      "describes": "Breath noise that sustains with the note (follows the amp envelope): airy brass, breathy voices, bowing. Only sounds when the Noise type is breath."
-    },
-    {
-      "id": "breath.tone",
-      "label": "Breath tone",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0.5,
-      "curve": "linear",
-      "unit": "",
-      "group": "breath",
-      "describes": "Where the breath noise sits: dark (0, ~500 Hz) to airy (1, ~8 kHz). Only sounds when the Noise type is breath."
-    },
-    {
       "id": "lfo1.on",
       "label": "LFO 1 on",
       "type": "bool",

@@ -162,6 +162,9 @@ export class Voice {
   private chiffAmt = 0;
   private breathLvl = 0;
   private breathOn = false;
+  /** Breath's lo cut (the Noise strip's): one-pole pair coefficient (0 = off) and its state. */
+  private breathHp = 0;
+  private readonly breathHpS = new Float64Array(2);
   private accentAmt = 0;
   private subPhase = 0;
   // Hard sync: the master's phase and increment (oscillator 1's pitch, no unison), and whether it's on.
@@ -405,6 +408,7 @@ export class Voice {
     for (const st of this.strings) st.reset();
     for (const sh of this.shepards) sh.reset();
     this.breathSvf.reset();
+    this.breathHpS.fill(0);
     this.crusher.reset();
     this.tape.reset();
     this.subClip.reset();
@@ -650,12 +654,16 @@ export class Voice {
     this.subInc = subInc;
     this.subLevel = clamp(cur[P.subLevel] + dst[D.SUB], 0, 1) * SUB_GAIN;
     this.noiseLevel = clamp(cur[P.noise] + dst[D.NOISE], 0, 1) * 0.5;
-    this.chiffAmt = this.breathType ? cur[P.chiff] : 0;
-    this.breathLvl = this.breathType ? clamp(cur[P.breath] + dst[D.BREATH], 0, 1) : 0;
-    this.breathOn = this.chiffAmt > 0 || this.breathLvl > 0;
+    // Breath plays from the Noise strip's own dials, as the beds do: Level (with an attack puff
+    // that grows with it), Tone (brightness), Tail (how long the puff lasts) and Lo cut.
+    this.breathLvl = this.breathType ? clamp(cur[P.texLevel] + dst[D.BREATH], 0, 1) : 0;
+    this.chiffAmt = this.breathLvl;
+    this.breathOn = this.breathLvl > 0;
     if (this.breathOn) {
-      this.breathG = Math.tan((Math.PI * Math.min(500 * Math.pow(16, cur[P.breathTone]), fs * 0.45)) / fs);
-      this.chiffCoef = Math.exp(-4.6 / ((cur[P.chiffDecay] / 1000) * fs));
+      this.breathG = Math.tan((Math.PI * Math.min(500 * Math.pow(16, cur[P.texTone]), fs * 0.45)) / fs);
+      this.chiffCoef = Math.exp(-4.6 / ((cur[P.texTail] / 1000) * fs));
+      const ft = cur[P.texFType], hz = cur[P.texFCut];
+      this.breathHp = (ft === 3 || ft === 4) && hz > 21 ? Math.exp((-TWO_PI * hz) / fs) : 0;
     }
 
     // Pre-filter drive.
@@ -1093,7 +1101,13 @@ export class Voice {
         this.chiffEnv *= this.chiffCoef;
         const ba = this.chiffAmt * this.chiffEnv + 0.5 * this.breathLvl;
         this.breathSvf.process(this.rng.next(), this.breathG, 1.1);
-        const b = this.breathSvf.bp * ba * 1.6;
+        let b = this.breathSvf.bp * ba * 1.6;
+        if (this.breathHp > 0) {
+          const c = this.breathHp, s = this.breathHpS;
+          s[0] = b + c * (s[0] - b);
+          s[1] = s[0] + c * (s[1] - s[0]);
+          b -= s[1];
+        }
         if (this.routeBr) {
           l += b;
           r += b;

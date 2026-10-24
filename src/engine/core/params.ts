@@ -168,7 +168,7 @@ export const P = {
   mod: [ix('mod_env.attack'), ix('mod_env.decay'), ix('mod_env.sustain'), ix('mod_env.release')],
   env3: ['attack', 'decay', 'sustain', 'release'].map((s) => ix(`env3.${s}`)),
   vibDepth: ix('vibrato.depth'), vibRate: ix('vibrato.rate'), vibDelay: ix('vibrato.delay'), vibFade: ix('vibrato.fade'),
-  chiff: ix('breath.chiff'), chiffDecay: ix('breath.decay'), breath: ix('breath.level'), breathTone: ix('breath.tone'),
+
   lfo: [1, 2, 3, 4].map((n) => ({
     shape: ix(`lfo${n}.shape`), rate: ix(`lfo${n}.rate`), sync: ix(`lfo${n}.sync`), retrig: ix(`lfo${n}.retrigger`), fade: ix(`lfo${n}.fade`),
   })),

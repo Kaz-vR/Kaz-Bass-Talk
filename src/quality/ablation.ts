@@ -54,7 +54,7 @@ export function ingredients(p: Patch): Ingredient[] {
   if (n(p, 'noise.level') > 0.005) add('noise', 'noise', { 'noise.level': 0 });
   if (n(p, 'fm.amount') > 0.01 || n(p, 'fm.punch') > 0.01 || n(p, 'fm2.amount') > 0.01) add('fm', 'FM', { 'fm.amount': 0, 'fm.punch': 0, 'fm2.amount': 0 });
   const breath = p['texture.type'] === 'breath';
-  if (breath && (n(p, 'breath.chiff') > 0.01 || n(p, 'breath.level') > 0.01)) add('breath', 'breath', { 'breath.chiff': 0, 'breath.level': 0 });
+  if (breath && n(p, 'texture.level') > 0.01) add('breath', 'breath', { 'texture.level': 0 });
   if (n(p, 'vibrato.depth') > 0.5) add('vibrato', 'vibrato', { 'vibrato.depth': 0 });
   if (Math.abs(n(p, 'filter.env_amount')) > 0.01) add('filterEnv', 'filter envelope', { 'filter.env_amount': 0 });
   if (n(p, 'drive.amount') > 0.02) add('drive', 'pre-filter drive', { 'drive.amount': 0 });

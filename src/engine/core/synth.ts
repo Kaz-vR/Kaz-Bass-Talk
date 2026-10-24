@@ -377,7 +377,7 @@ export class Synth {
     if (!hear('osc2')) { zero(P.osc[1].level); block(K.D_OSC2_LEVEL); }
     if (!hear('sub')) { zero(P.subLevel); block(K.D_SUB); }
     if (!hear('noise')) { zero(P.noise); block(K.D_NOISE); }
-    if (!hear('breath')) { zero(P.breath, P.chiff); block(K.D_BREATH); }
+    if (!hear('breath') && r[P.texType] === K.TEX_BREATH) { zero(P.texLevel); block(K.D_BREATH); }
     // Tape age hisses on its own: with every layer of the oscillator path silent (e.g. the sub
     // soloed), the tape goes quiet too, so a solo only plays what it names.
     if (!hear('osc1') && !hear('osc2') && !hear('noise') && !hear('breath')) {

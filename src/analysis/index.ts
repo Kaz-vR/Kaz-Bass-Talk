@@ -420,8 +420,6 @@ export function frozen(p: Patch): Patch {
   q['vibrato.depth'] = 0;
   // The wobble sweeps the filter (motion, not fizz).
   q['wobble.depth'] = 0;
-  q['breath.chiff'] = 0;
-  q['breath.level'] = 0;
   // A deliberately dissonant layer (not an octave or fifth) has no harmonic
   // lattice, so it would read as aliasing: leave it out of the frozen probe.
   if (!harmonicInterval(q['osc2.semi'] as number)) q['osc2.level'] = 0;

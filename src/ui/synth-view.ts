@@ -1388,22 +1388,23 @@ export class SynthView {
       paper(g, W, H);
       const type = String(this.get('texture.type'));
       const breath = type === 'breath';
-      const lvl = breath ? Math.max(this.num('breath.level'), this.num('breath.chiff')) : this.num('texture.level');
-      const tone = this.num(breath ? 'breath.tone' : 'texture.tone');
-      const tail = breath ? 0 : Math.min(1, this.num('texture.tail') / 3000);
+      const lvl = this.num('texture.level');
+      const tone = this.num('texture.tone');
+      const tail = Math.min(1, this.num('texture.tail') / 3000);
       let seed = 3 + type.length;
       const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) - 0.5;
       const pts: [number, number][] = [];
       for (let i = 0; i <= W; i += 1.5) {
         const pop = type === 'crackle' && Math.abs(r()) > 0.46 ? 3 : 1;
-        const env = type === 'breath' ? Math.sin((i / W) * Math.PI) : type === 'rumble' ? 0.6 : 1;
+        // breath: an attack puff (as long as Tail) settling into the steady breath
+        const env = breath ? 0.45 + 0.55 * Math.exp((-(i / W) * 4) / Math.max(0.03, tail)) : type === 'rumble' ? 0.6 : 1;
         const fade = breath ? 1 : Math.min(1, Math.max(0, (1 - i / W) / Math.max(0.05, 0.25 + 0.75 * tail)) * 1.6);
         pts.push([i, H / 2 + r() * (H - 10) * (0.25 + 0.75 * lvl) * pop * env * fade * (type === 'air' ? 0.6 : 1)]);
       }
       silver(g, smoothY(pts, (1 - tone) * 4), lvl > 0);
-      if (!breath && String(this.get('texture.filter_type')).startsWith('high')) loCutStrip(g, W, H, this.num('texture.filter_cutoff'), lvl > 0, accentOf(cv));
+      if (String(this.get('texture.filter_type')).startsWith('high')) loCutStrip(g, W, H, this.num('texture.filter_cutoff'), lvl > 0, accentOf(cv));
     };
-    this.watch(['texture.type', 'texture.level', 'breath.level', 'breath.chiff', 'texture.tone', 'texture.tail', 'breath.tone', 'breath.decay', 'texture.filter_cutoff', 'texture.filter_type'], redraw);
+    this.watch(['texture.type', 'texture.level', 'texture.tone', 'texture.tail', 'texture.filter_cutoff', 'texture.filter_type'], redraw);
     return cv;
   }
 
@@ -1741,45 +1742,34 @@ export class SynthView {
    */
   private noiseStrip(): HTMLElement {
     const isBreath = () => this.get('texture.type') === 'breath';
-    const bed = [this.knob('texture.tone', 'Tone', 'lg'), this.knob('texture.tail', 'Tail', 'lg'),
+    // The same four dials for every noise type, breath included (owner's call): Tone, Tail (for
+    // breath: how long its attack puff lasts), Lo cut, Level.
+    const dials = [this.knob('texture.tone', 'Tone', 'lg'), this.knob('texture.tail', 'Tail', 'lg'),
       this.lowCut('texture.filter_cutoff', 'texture.filter_type'), this.knob('texture.level', 'Level', 'lg')];
-    const breath = [this.knob('breath.chiff', 'Chiff', 'lg'), this.knob('breath.decay', 'Decay', 'lg'),
-      this.knob('breath.tone', 'Tone', 'lg'), this.knob('breath.level', 'Level', 'lg')];
     const direct = this.exclusive('texture.direct', 'filter.route_n', 'Direct out', 'small direct-out');
     const power = (el: HTMLElement) => {
       const b = h('button', 'power', lamp());
       b.title = 'On / off';
-      const ids = () => (isBreath() ? ['breath.level', 'breath.chiff'] : ['texture.level']);
-      const on = () => ids().some((id) => this.num(id) > 0);
+      const on = () => this.num('texture.level') > 0;
       b.onclick = () => {
         if (on()) {
-          for (const id of ids()) {
-            this.remembered.set(id, this.num(id));
-            this.set(id, 0);
-          }
-        } else {
-          const id = ids()[0];
-          this.set(id, this.remembered.get(id) ?? (isBreath() ? 0.3 : 0.5));
-          if (isBreath() && this.remembered.has('breath.chiff')) this.set('breath.chiff', this.remembered.get('breath.chiff')!);
-        }
+          this.remembered.set('texture.level', this.num('texture.level'));
+          this.set('texture.level', 0);
+        } else this.set('texture.level', this.remembered.get('texture.level') ?? (isBreath() ? 0.3 : 0.5));
       };
-      this.watch(['texture.type', 'texture.level', 'breath.level', 'breath.chiff'], () => {
+      this.watch(['texture.type', 'texture.level'], () => {
         b.classList.toggle('on', on());
         el.classList.toggle('is-off', !on());
       });
       return b;
     };
-    this.watch(['texture.type'], () => {
-      const br = isBreath();
-      for (const k of bed) k.style.display = br ? 'none' : '';
-      for (const k of breath) k.style.display = br ? '' : 'none';
-      direct.style.visibility = br ? 'hidden' : '';
-    });
+    // (breath plays inside each voice, so it has no direct out)
+    this.watch(['texture.type'], () => { direct.style.visibility = isBreath() ? 'hidden' : ''; });
     return this.obox('NOISE', 'c-src noise box-noise', {
       power,
       head: [this.selector('texture.type'), direct],
       print: this.noisePrint(PRINT_W, PRINT_H),
-      dials: [bed[0], bed[1], breath[0], breath[1], bed[2], bed[3], breath[2], breath[3]],
+      dials,
     });
   }
 
