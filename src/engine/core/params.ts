@@ -162,7 +162,7 @@ export const P = {
     shape: ix(`lfo${n}.shape`), rate: ix(`lfo${n}.rate`), sync: ix(`lfo${n}.sync`), retrig: ix(`lfo${n}.retrigger`), fade: ix(`lfo${n}.fade`),
   })),
   env2: [ix('env2.attack'), ix('env2.decay'), ix('env2.sustain'), ix('env2.release')],
-  slots: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => ({ src: ix(`mod${n}.source`), dst: ix(`mod${n}.dest`), amt: ix(`mod${n}.amount`) })),
+  slots: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => ({ src: ix(`mod${n}.source`), dst: ix(`mod${n}.dest`), amt: ix(`mod${n}.amount`), on: ix(`mod${n}.on`) })),
   chorusMix: ix('chorus.mix'), chorusDepth: ix('chorus.depth'), phaserMix: ix('phaser.mix'), phaserRate: ix('phaser.rate'),
   reverbMix: ix('reverb.mix'), reverbSize: ix('reverb.size'),
   /** Each modulation / space effect's own low cut: it only works above it. */

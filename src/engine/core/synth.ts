@@ -325,7 +325,7 @@ export class Synth {
     if (off(P.tapeOn)) { zero(P.tapeDrive, P.tapeWow, P.tapeAge); block(K.D_TAPE_WOW); }
     if (off(P.vibOn)) { zero(P.vibDepth); block(K.D_VIBRATO); }
     if (off(P.wobOn)) zero(P.wobDepth);
-    if (off(P.modOn)) for (const s of P.slots) t[s.amt] = 0;
+    for (const s of P.slots) if (off(P.modOn) || off(s.on)) t[s.amt] = 0;
     if (off(P.eqOn)) { zero(P.eqLow, P.eqMid, P.eqHigh); t[P.eqHighcut] = 20000; }
     if (off(P.chorusOn)) { zero(P.chorusMix); block(K.D_CHORUS_DEPTH); }
     if (off(P.flangerOn)) zero(P.flangerMix);

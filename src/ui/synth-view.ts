@@ -1608,9 +1608,9 @@ export class SynthView {
   private subStrip(): HTMLElement {
     return this.obox('SUB', 'c-src sub box-sub', {
       power: (el) => this.levelPower('sub.level', el),
-      corner: [this.toggle('sub.direct', 'Direct', 'small')],
       head: [this.selector('sub.wave'), h('div', 'ob-chips',
-        this.chip('OCT', () => this.num('sub.octave'), (v) => this.set('sub.octave', v), -2, -1, ['sub.octave'], 'Sub octave'))],
+        this.chip('OCT', () => this.num('sub.octave'), (v) => this.set('sub.octave', v), -2, -1, ['sub.octave'], 'Sub octave')),
+        this.toggle('sub.direct', 'Direct out', 'small direct-out')],
       print: this.subPrint(PRINT_W, PRINT_H),
       dials: [this.knob('sub.clip', 'Clip', 'lg'), this.knob('sub.level', 'Level', 'lg')],
     });
@@ -1627,7 +1627,7 @@ export class SynthView {
       this.lowCut('texture.filter_cutoff', 'texture.filter_type'), this.knob('texture.level', 'Level', 'lg')];
     const breath = [this.knob('breath.chiff', 'Chiff', 'lg'), this.knob('breath.decay', 'Decay', 'lg'),
       this.knob('breath.tone', 'Tone', 'lg'), this.knob('breath.level', 'Level', 'lg')];
-    const direct = this.toggle('texture.direct', 'Direct', 'small');
+    const direct = this.toggle('texture.direct', 'Direct out', 'small direct-out');
     const power = (el: HTMLElement) => {
       const b = h('button', 'power', lamp());
       b.title = 'On / off';
@@ -1659,8 +1659,7 @@ export class SynthView {
     });
     return this.obox('NOISE', 'c-src noise box-noise', {
       power,
-      corner: [direct],
-      head: [this.selector('texture.type')],
+      head: [this.selector('texture.type'), direct],
       print: this.noisePrint(PRINT_W, PRINT_H),
       dials: [bed[0], bed[1], breath[0], breath[1], bed[2], bed[3], breath[2], breath[3]],
     });
@@ -1728,10 +1727,10 @@ export class SynthView {
   private filterBox(): HTMLElement {
     // What goes into the filter, in the order of the sources: A, B, S, N.
     const routes = h('div', 'ob-routes', h('span', 'ob-routes-label', 'IN'),
-      this.toggle('filter.route_a', 'A', 'route'),
-      this.toggle('filter.route_b', 'B', 'route'),
-      this.toggle('filter.route_s', 'S', 'route'),
-      this.toggle('filter.route_n', 'N', 'route'),
+      this.toggle('filter.route_a', 'A', 'route route-a'),
+      this.toggle('filter.route_b', 'B', 'route route-b'),
+      this.toggle('filter.route_s', 'S', 'route route-s'),
+      this.toggle('filter.route_n', 'N', 'route route-n'),
     );
     routes.title = 'What goes through the filter, in the order of the sources: oscillator A, oscillator B, sub, noise (a texture bed or breath)';
     const drive = this.knob('drive.amount', 'Drive', 'lg', { disabled: () => !this.get('drive.on'), deps: ['drive.on'] });
@@ -1744,7 +1743,7 @@ export class SynthView {
       power: (el) => this.boolPower('filter.on', el),
       head: [this.selector('filter.type'), this.keyTrack()],
       print: this.filterPrint(PRINT_W, PRINT_H),
-      dials: [cutoff, this.knob('filter.resonance', 'Res', 'lg'), drive, routes],
+      dials: [routes, cutoff, this.knob('filter.resonance', 'Res', 'lg'), drive],
     });
   }
 
@@ -2158,7 +2157,14 @@ export class SynthView {
       const dst = this.selector(`mod${n}.dest`, { label: (o) => DEST_LABEL[o] ?? o });
       src.classList.add('mx-src');
       dst.classList.add('mx-dst');
-      const row = h('div', 'mx-row', h('span', 'mx-n', String(n).padStart(2, '0')), src, h('span', 'mx-arrow', '→'), dst);
+      const on = h('button', 'mx-on', lamp());
+      on.title = 'This modulation on / off (keeps its settings)';
+      on.onclick = () => this.set(`mod${n}.on`, !this.get(`mod${n}.on`));
+      const row = h('div', 'mx-row', on, h('span', 'mx-n', String(n).padStart(2, '0')), src, h('span', 'mx-arrow', '→'), dst);
+      this.watch([`mod${n}.on`], () => {
+        on.classList.toggle('on', !!this.get(`mod${n}.on`));
+        row.classList.toggle('off', !this.get(`mod${n}.on`));
+      });
       // The source's name and amount in its own box colour (LFO 1 red, Env 2 blue …); empty slots
       // fade. Registered before the amount bar, so the bar draws in the right colour.
       this.watch([`mod${n}.source`, `mod${n}.dest`, `mod${n}.amount`], () => {

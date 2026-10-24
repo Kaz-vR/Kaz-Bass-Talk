@@ -157,7 +157,7 @@ export function sortModSlots(patch: Patch): void {
   };
   const slots = Array.from({ length: MOD_SLOT_COUNT }, (_, i) => {
     const n = i + 1;
-    return { src: patch[`mod${n}.source`], dest: patch[`mod${n}.dest`], amt: patch[`mod${n}.amount`], i };
+    return { src: patch[`mod${n}.source`], dest: patch[`mod${n}.dest`], amt: patch[`mod${n}.amount`], on: patch[`mod${n}.on`] ?? true, i };
   });
   const used = (s: (typeof slots)[number]) => s.src !== 'none' && s.dest !== 'none' && s.amt !== 0;
   slots.sort((a, b) =>
@@ -169,6 +169,7 @@ export function sortModSlots(patch: Patch): void {
     patch[`mod${n}.source`] = s.src;
     patch[`mod${n}.dest`] = s.dest;
     patch[`mod${n}.amount`] = s.amt;
+    patch[`mod${n}.on`] = s.on;
   });
 }
 

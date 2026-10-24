@@ -1892,6 +1892,14 @@
       "describes": "Depth and direction of this modulation."
     },
     {
+      "id": "mod1.on",
+      "label": "Mod 1 on",
+      "type": "bool",
+      "default": true,
+      "group": "mod",
+      "describes": "Switches this modulation on or off without losing its settings."
+    },
+    {
       "id": "mod2.source",
       "label": "Mod 2 source",
       "type": "enum",
@@ -1975,6 +1983,14 @@
       "unit": "",
       "group": "mod",
       "describes": "Depth and direction of this modulation."
+    },
+    {
+      "id": "mod2.on",
+      "label": "Mod 2 on",
+      "type": "bool",
+      "default": true,
+      "group": "mod",
+      "describes": "Switches this modulation on or off without losing its settings."
     },
     {
       "id": "mod3.source",
@@ -2062,6 +2078,14 @@
       "describes": "Depth and direction of this modulation."
     },
     {
+      "id": "mod3.on",
+      "label": "Mod 3 on",
+      "type": "bool",
+      "default": true,
+      "group": "mod",
+      "describes": "Switches this modulation on or off without losing its settings."
+    },
+    {
       "id": "mod4.source",
       "label": "Mod 4 source",
       "type": "enum",
@@ -2145,6 +2169,14 @@
       "unit": "",
       "group": "mod",
       "describes": "Depth and direction of this modulation."
+    },
+    {
+      "id": "mod4.on",
+      "label": "Mod 4 on",
+      "type": "bool",
+      "default": true,
+      "group": "mod",
+      "describes": "Switches this modulation on or off without losing its settings."
     },
     {
       "id": "mod5.source",
@@ -2232,6 +2264,14 @@
       "describes": "Depth and direction of this modulation."
     },
     {
+      "id": "mod5.on",
+      "label": "Mod 5 on",
+      "type": "bool",
+      "default": true,
+      "group": "mod",
+      "describes": "Switches this modulation on or off without losing its settings."
+    },
+    {
       "id": "mod6.source",
       "label": "Mod 6 source",
       "type": "enum",
@@ -2315,6 +2355,14 @@
       "unit": "",
       "group": "mod",
       "describes": "Depth and direction of this modulation."
+    },
+    {
+      "id": "mod6.on",
+      "label": "Mod 6 on",
+      "type": "bool",
+      "default": true,
+      "group": "mod",
+      "describes": "Switches this modulation on or off without losing its settings."
     },
     {
       "id": "mod7.source",
@@ -2402,6 +2450,14 @@
       "describes": "Depth and direction of this modulation."
     },
     {
+      "id": "mod7.on",
+      "label": "Mod 7 on",
+      "type": "bool",
+      "default": true,
+      "group": "mod",
+      "describes": "Switches this modulation on or off without losing its settings."
+    },
+    {
       "id": "mod8.source",
       "label": "Mod 8 source",
       "type": "enum",
@@ -2485,6 +2541,14 @@
       "unit": "",
       "group": "mod",
       "describes": "Depth and direction of this modulation."
+    },
+    {
+      "id": "mod8.on",
+      "label": "Mod 8 on",
+      "type": "bool",
+      "default": true,
+      "group": "mod",
+      "describes": "Switches this modulation on or off without losing its settings."
     },
     {
       "id": "mod9.source",
@@ -2572,6 +2636,14 @@
       "describes": "Depth and direction of this modulation."
     },
     {
+      "id": "mod9.on",
+      "label": "Mod 9 on",
+      "type": "bool",
+      "default": true,
+      "group": "mod",
+      "describes": "Switches this modulation on or off without losing its settings."
+    },
+    {
       "id": "mod10.source",
       "label": "Mod 10 source",
       "type": "enum",
@@ -2655,6 +2727,14 @@
       "unit": "",
       "group": "mod",
       "describes": "Depth and direction of this modulation."
+    },
+    {
+      "id": "mod10.on",
+      "label": "Mod 10 on",
+      "type": "bool",
+      "default": true,
+      "group": "mod",
+      "describes": "Switches this modulation on or off without losing its settings."
     },
     {
       "id": "mod11.source",
@@ -2742,6 +2822,14 @@
       "describes": "Depth and direction of this modulation."
     },
     {
+      "id": "mod11.on",
+      "label": "Mod 11 on",
+      "type": "bool",
+      "default": true,
+      "group": "mod",
+      "describes": "Switches this modulation on or off without losing its settings."
+    },
+    {
       "id": "mod12.source",
       "label": "Mod 12 source",
       "type": "enum",
@@ -2825,6 +2913,14 @@
       "unit": "",
       "group": "mod",
       "describes": "Depth and direction of this modulation."
+    },
+    {
+      "id": "mod12.on",
+      "label": "Mod 12 on",
+      "type": "bool",
+      "default": true,
+      "group": "mod",
+      "describes": "Switches this modulation on or off without losing its settings."
     },
     {
       "id": "chorus.on",
