@@ -25,6 +25,7 @@
 // LFOs, drift sources, the texture bed and the FX are shared by all voices;
 // the mod matrix runs per voice, and FX targets follow the newest voice.
 
+import { wobShapeAt } from './wobshape';
 import { PARAM_COUNT, params } from '../../schema';
 import { AUX_SLOT, Biquad, clamp, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
 import { Chorus, Delay, Flanger, Limiter, Phaser, Reverb } from './fx';
@@ -93,6 +94,13 @@ export class Synth {
   private wobBrightTarget = 0;
   /** How far the wobble moves the texture bed's tone (filter + drive + texture). */
   private wobTexTone = 0;
+  /** The custom shape's points (filled per block, no allocation) and its smoothed value. */
+  private readonly wobXs = new Float64Array(12);
+  private readonly wobYs = new Float64Array(12);
+  private readonly wobSs = new Float64Array(12);
+  private wobV = 0;
+  /** Where the wobble is in its cycle (0..1) for the LFO page's dot; -1 when it is off. */
+  liveWob = -1;
   private tempo = 120;
 
   // Shared modulation.
@@ -564,11 +572,13 @@ export class Synth {
       for (const [d, a] of move) if (!this.wheelFrozen || !K.WHEEL_MOVING_DESTS.has(d)) x[d] += a * w;
     }
     const depth = cur[P.wobDepth];
+    this.liveWob = -1;
     if (depth > 1e-4) {
       // Locked to the bar.
       const cycle = K.WOBBLE_BEATS[Math.round(cur[P.wobRate])] ?? 0.5;
       const n = Math.floor(this.beatPos / cycle);
       const p = (this.beatPos - n * cycle) / cycle;
+      this.liveWob = p;
       if (n !== this.wobCycle) {
         // Life: every cycle swings a little deeper or shallower and sits a little brighter or darker.
         this.wobCycle = n;
@@ -586,6 +596,18 @@ export class Synth {
         case K.WOB_SAW_DOWN: v = p < 0.95 ? 1 - p / 0.95 : (p - 0.95) / 0.05; break;
         // Soft-edged square.
         case K.WOB_SQUARE: v = 0.5 + 0.5 * Math.tanh(6 * Math.sin(TWO_PI * p)); break;
+        case K.WOB_CUSTOM: {
+          // Your own shape (points from the LFO page), lightly smoothed so a jump never clicks.
+          const n = Math.max(2, Math.min(12, Math.round(cur[P.wobPts])));
+          for (let i = 0; i < n; i++) {
+            this.wobXs[i] = cur[P.wobX[i]];
+            this.wobYs[i] = cur[P.wobY[i]];
+            this.wobSs[i] = cur[P.wobS[i]] > 0.5 ? 1 : 0;
+          }
+          this.wobV += (wobShapeAt(this.wobXs, this.wobYs, this.wobSs, n, p) - this.wobV) * 0.35;
+          v = this.wobV;
+          break;
+        }
         default: v = 0.5 - 0.5 * Math.cos(TWO_PI * p);
       }
       // A classic wobble swings both ways around the preset's cutoff: shut

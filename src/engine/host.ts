@@ -13,6 +13,7 @@ export class EngineHost {
   /** Read the engine's live filter (output 2: cutoff, resonance). */
   private readonly ctlCut: AnalyserNode;
   private readonly ctlRes: AnalyserNode;
+  private readonly ctlWob: AnalyserNode;
   private readonly ctlBuf = new Float32Array(32);
 
   private constructor(ctx: AudioContext, node: AudioWorkletNode) {
@@ -23,13 +24,15 @@ export class EngineHost {
     this.analyser.smoothingTimeConstant = 0.6;
     node.connect(ctx.destination);
     node.connect(this.analyser);
-    const split = ctx.createChannelSplitter(2);
+    const split = ctx.createChannelSplitter(3);
     node.connect(split, 1);
     this.ctlCut = ctx.createAnalyser();
     this.ctlRes = ctx.createAnalyser();
-    this.ctlCut.fftSize = this.ctlRes.fftSize = 32;
+    this.ctlWob = ctx.createAnalyser();
+    this.ctlCut.fftSize = this.ctlRes.fftSize = this.ctlWob.fftSize = 32;
     split.connect(this.ctlCut, 0);
     split.connect(this.ctlRes, 1);
+    split.connect(this.ctlWob, 2);
   }
 
   /** The newest sounding voice's cutoff (Hz) and resonance, or null when nothing sounds. */
@@ -41,13 +44,20 @@ export class EngineHost {
     return { cutoff, res: this.ctlBuf[31] };
   }
 
+  /** Where the wobble (LFO 5) is in its cycle, 0..1, or null when it is off or silent. */
+  liveWobble(): number | null {
+    this.ctlWob.getFloatTimeDomainData(this.ctlBuf);
+    const p = this.ctlBuf[31];
+    return p >= 0 && this.liveFilter() ? p : null;
+  }
+
   static async create(): Promise<EngineHost> {
     const ctx = new AudioContext({ latencyHint: 'interactive' });
     await ctx.audioWorklet.addModule(workletUrl);
     const node = new AudioWorkletNode(ctx, PROCESSOR_NAME, {
       numberOfInputs: 0,
       numberOfOutputs: 2,
-      outputChannelCount: [2, 2],
+      outputChannelCount: [2, 3],
     });
     return new EngineHost(ctx, node);
   }

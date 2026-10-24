@@ -1780,11 +1780,12 @@
         "sine",
         "triangle",
         "saw down",
-        "square"
+        "square",
+        "custom"
       ],
       "default": "sine",
       "group": "wobble",
-      "describes": "Sine is smooth, triangle more even, saw down opens hard and falls (a zap), square chops between closed and open."
+      "describes": "Sine is smooth, triangle more even, saw down opens hard and falls (a zap), square chops between closed and open. Custom is your own shape, drawn as points on the LFO page."
     },
     {
       "id": "wobble.life",
@@ -1797,6 +1798,402 @@
       "unit": "",
       "group": "wobble",
       "describes": "How differently each wobble comes out: depth and brightness change a little every cycle, so it never sounds like a clock. 0 is machine-exact."
+    },
+    {
+      "id": "wobble.points",
+      "label": "Wobble custom points",
+      "type": "int",
+      "min": 2,
+      "max": 12,
+      "default": 3,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "How many points the custom wobble shape has."
+    },
+    {
+      "id": "wobble.x1",
+      "label": "Wobble point 1 time",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "Where this point of the custom shape sits in the cycle (0 = start, 1 = end)."
+    },
+    {
+      "id": "wobble.y1",
+      "label": "Wobble point 1 level",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "How far this point of the custom shape opens (0 = shut, 1 = wide open)."
+    },
+    {
+      "id": "wobble.s1",
+      "label": "Wobble point 1 soft",
+      "type": "bool",
+      "default": true,
+      "group": "wobble",
+      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+    },
+    {
+      "id": "wobble.x2",
+      "label": "Wobble point 2 time",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "Where this point of the custom shape sits in the cycle (0 = start, 1 = end)."
+    },
+    {
+      "id": "wobble.y2",
+      "label": "Wobble point 2 level",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "How far this point of the custom shape opens (0 = shut, 1 = wide open)."
+    },
+    {
+      "id": "wobble.s2",
+      "label": "Wobble point 2 soft",
+      "type": "bool",
+      "default": true,
+      "group": "wobble",
+      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+    },
+    {
+      "id": "wobble.x3",
+      "label": "Wobble point 3 time",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "Where this point of the custom shape sits in the cycle (0 = start, 1 = end)."
+    },
+    {
+      "id": "wobble.y3",
+      "label": "Wobble point 3 level",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "How far this point of the custom shape opens (0 = shut, 1 = wide open)."
+    },
+    {
+      "id": "wobble.s3",
+      "label": "Wobble point 3 soft",
+      "type": "bool",
+      "default": true,
+      "group": "wobble",
+      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+    },
+    {
+      "id": "wobble.x4",
+      "label": "Wobble point 4 time",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "Where this point of the custom shape sits in the cycle (0 = start, 1 = end)."
+    },
+    {
+      "id": "wobble.y4",
+      "label": "Wobble point 4 level",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "How far this point of the custom shape opens (0 = shut, 1 = wide open)."
+    },
+    {
+      "id": "wobble.s4",
+      "label": "Wobble point 4 soft",
+      "type": "bool",
+      "default": false,
+      "group": "wobble",
+      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+    },
+    {
+      "id": "wobble.x5",
+      "label": "Wobble point 5 time",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "Where this point of the custom shape sits in the cycle (0 = start, 1 = end)."
+    },
+    {
+      "id": "wobble.y5",
+      "label": "Wobble point 5 level",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "How far this point of the custom shape opens (0 = shut, 1 = wide open)."
+    },
+    {
+      "id": "wobble.s5",
+      "label": "Wobble point 5 soft",
+      "type": "bool",
+      "default": false,
+      "group": "wobble",
+      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+    },
+    {
+      "id": "wobble.x6",
+      "label": "Wobble point 6 time",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "Where this point of the custom shape sits in the cycle (0 = start, 1 = end)."
+    },
+    {
+      "id": "wobble.y6",
+      "label": "Wobble point 6 level",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "How far this point of the custom shape opens (0 = shut, 1 = wide open)."
+    },
+    {
+      "id": "wobble.s6",
+      "label": "Wobble point 6 soft",
+      "type": "bool",
+      "default": false,
+      "group": "wobble",
+      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+    },
+    {
+      "id": "wobble.x7",
+      "label": "Wobble point 7 time",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "Where this point of the custom shape sits in the cycle (0 = start, 1 = end)."
+    },
+    {
+      "id": "wobble.y7",
+      "label": "Wobble point 7 level",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "How far this point of the custom shape opens (0 = shut, 1 = wide open)."
+    },
+    {
+      "id": "wobble.s7",
+      "label": "Wobble point 7 soft",
+      "type": "bool",
+      "default": false,
+      "group": "wobble",
+      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+    },
+    {
+      "id": "wobble.x8",
+      "label": "Wobble point 8 time",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "Where this point of the custom shape sits in the cycle (0 = start, 1 = end)."
+    },
+    {
+      "id": "wobble.y8",
+      "label": "Wobble point 8 level",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "How far this point of the custom shape opens (0 = shut, 1 = wide open)."
+    },
+    {
+      "id": "wobble.s8",
+      "label": "Wobble point 8 soft",
+      "type": "bool",
+      "default": false,
+      "group": "wobble",
+      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+    },
+    {
+      "id": "wobble.x9",
+      "label": "Wobble point 9 time",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "Where this point of the custom shape sits in the cycle (0 = start, 1 = end)."
+    },
+    {
+      "id": "wobble.y9",
+      "label": "Wobble point 9 level",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "How far this point of the custom shape opens (0 = shut, 1 = wide open)."
+    },
+    {
+      "id": "wobble.s9",
+      "label": "Wobble point 9 soft",
+      "type": "bool",
+      "default": false,
+      "group": "wobble",
+      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+    },
+    {
+      "id": "wobble.x10",
+      "label": "Wobble point 10 time",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "Where this point of the custom shape sits in the cycle (0 = start, 1 = end)."
+    },
+    {
+      "id": "wobble.y10",
+      "label": "Wobble point 10 level",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "How far this point of the custom shape opens (0 = shut, 1 = wide open)."
+    },
+    {
+      "id": "wobble.s10",
+      "label": "Wobble point 10 soft",
+      "type": "bool",
+      "default": false,
+      "group": "wobble",
+      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+    },
+    {
+      "id": "wobble.x11",
+      "label": "Wobble point 11 time",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "Where this point of the custom shape sits in the cycle (0 = start, 1 = end)."
+    },
+    {
+      "id": "wobble.y11",
+      "label": "Wobble point 11 level",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "How far this point of the custom shape opens (0 = shut, 1 = wide open)."
+    },
+    {
+      "id": "wobble.s11",
+      "label": "Wobble point 11 soft",
+      "type": "bool",
+      "default": false,
+      "group": "wobble",
+      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+    },
+    {
+      "id": "wobble.x12",
+      "label": "Wobble point 12 time",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "Where this point of the custom shape sits in the cycle (0 = start, 1 = end)."
+    },
+    {
+      "id": "wobble.y12",
+      "label": "Wobble point 12 level",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "How far this point of the custom shape opens (0 = shut, 1 = wide open)."
+    },
+    {
+      "id": "wobble.s12",
+      "label": "Wobble point 12 soft",
+      "type": "bool",
+      "default": false,
+      "group": "wobble",
+      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
     },
     {
       "id": "mod.on",

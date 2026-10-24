@@ -7,6 +7,10 @@ import { Biquad } from '../engine/core/dsp';
 import { fromNormalized, getParam, toNormalized, type ParamValue, type Patch } from '../schema';
 import { formatValue } from './params-panel';
 import { keyGrime, lightGrain, panelTexture } from './texture';
+import { wobShapeAt } from '../engine/core/wobshape';
+
+/** A point of the custom wobble shape: time and level 0..1, soft or hard corner. */
+interface WobPoint { x: number; y: number; s: boolean }
 
 type OnChange = (id: string, value: ParamValue) => void;
 
@@ -637,6 +641,9 @@ export class SynthView {
   private animFrame = 0;
   /** The engine's live filter (what the print shows while notes sound), and the prints that draw it. */
   private liveFilter: { cutoff: number; res: number } | null = null;
+  /** The wobble's live phase (0..1) and what draws it. */
+  private liveWob: number | null = null;
+  private readonly wobDraws: (() => void)[] = [];
   private readonly liveDraws: (() => void)[] = [];
   private modPage: HTMLElement | null = null;
   private fxPage: HTMLElement | null = null;
@@ -2137,52 +2144,228 @@ export class SynthView {
     return box;
   }
 
-  /** One wobble cycle's shape at phase p (0..1), -1..1. */
-  private wobShape(p: number): number {
-    const shape = String(this.get('wobble.shape'));
-    return shape === 'triangle' ? (p < 0.5 ? 4 * p - 1 : 3 - 4 * p) : shape === 'saw down' ? 1 - 2 * p : shape === 'square' ? (p < 0.5 ? 0.85 : -0.85) : Math.sin(2 * Math.PI * p);
+  /** The built-in shapes as editable points, so editing one starts from what you hear. */
+  private static readonly WOB_TEMPLATES: Record<string, WobPoint[]> = {
+    sine: [{ x: 0, y: 0, s: true }, { x: 0.5, y: 1, s: true }, { x: 1, y: 0, s: true }],
+    triangle: [{ x: 0, y: 0, s: false }, { x: 0.5, y: 1, s: false }, { x: 1, y: 0, s: false }],
+    'saw down': [{ x: 0, y: 1, s: false }, { x: 0.95, y: 0, s: false }, { x: 1, y: 1, s: false }],
+    square: [{ x: 0, y: 0.5, s: true }, { x: 0.05, y: 1, s: true }, { x: 0.45, y: 1, s: true }, { x: 0.55, y: 0, s: true }, { x: 0.95, y: 0, s: true }, { x: 1, y: 0.5, s: true }],
+  };
+
+  /** The custom shape's points from the patch. */
+  private wobCustomPoints(): WobPoint[] {
+    const n = Math.max(2, Math.min(12, Math.round(this.num('wobble.points'))));
+    return Array.from({ length: n }, (_, i) => ({ x: this.num(`wobble.x${i + 1}`), y: this.num(`wobble.y${i + 1}`), s: !!this.get(`wobble.s${i + 1}`) }));
+  }
+
+  /** The points shown for a shape: the custom ones, or a built-in shape's template. */
+  private wobPoints(shape = String(this.get('wobble.shape'))): WobPoint[] {
+    return shape === 'custom' ? this.wobCustomPoints() : SynthView.WOB_TEMPLATES[shape] ?? SynthView.WOB_TEMPLATES.sine;
+  }
+
+  /** A shape's value (0 = shut .. 1 = open) at phase p, exactly as the engine plays it. */
+  private wobValueFor(shape: string, p: number): number {
+    switch (shape) {
+      case 'triangle': return p < 0.5 ? 2 * p : 2 - 2 * p;
+      case 'saw down': return p < 0.95 ? 1 - p / 0.95 : (p - 0.95) / 0.05;
+      case 'square': return 0.5 + 0.5 * Math.tanh(6 * Math.sin(2 * Math.PI * p));
+      case 'custom': {
+        const pts = this.wobCustomPoints();
+        return wobShapeAt(pts.map((q) => q.x), pts.map((q) => q.y), pts.map((q) => q.s), pts.length, p);
+      }
+      default: return 0.5 - 0.5 * Math.cos(2 * Math.PI * p);
+    }
+  }
+
+  /** Write points as the custom shape (and switch to it). */
+  private setWobPoints(pts: WobPoint[]): void {
+    const sorted = [...pts].sort((a, b) => a.x - b.x).slice(0, 12);
+    for (let i = 0; i < 12; i++) {
+      const q = sorted[i] ?? { x: 1, y: 0, s: false };
+      this.set(`wobble.x${i + 1}`, Math.round(q.x * 10000) / 10000);
+      this.set(`wobble.y${i + 1}`, Math.round(q.y * 10000) / 10000);
+      this.set(`wobble.s${i + 1}`, q.s);
+    }
+    this.set('wobble.points', sorted.length);
+    this.set('wobble.shape', 'custom');
+  }
+
+  /** The engine's wobble phase for the LFO page's dot (0..1, null when off or silent). */
+  setLiveWobble(read: () => number | null): void {
+    const step = () => {
+      const v = read();
+      if (v !== this.liveWob) {
+        this.liveWob = v;
+        for (const f of this.wobDraws) f();
+      }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
   /**
-   * The LFO page: LFO 5 (the wobble, on its own bar-locked clock) as one big print over the six
-   * left boxes (two bars at its rate, beats and bars marked, each cycle a little different with
-   * life), and its controls in the two boxes on the right.
+   * The LFO page: LFO 5 (the wobble, on its own bar-locked clock) as one cycle you can draw, as in
+   * ShaperBox: drag a point (Shift snaps to the grid), click it for a soft or hard corner,
+   * double-click a point to remove it or empty space to add one. A dot follows the engine's real
+   * phase while a note sounds. Under it the shape palette; on the right its controls.
    */
   private buildLfoPage(): HTMLElement {
-    const ids = ['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.life', 'wobble.target'];
+    const ids = ['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.life', 'wobble.target', 'wobble.points'];
+    for (let i = 1; i <= 12; i++) ids.push(`wobble.x${i}`, `wobble.y${i}`, `wobble.s${i}`);
     const on = () => !!this.get('wobble.on') && this.num('wobble.depth') > 0;
-    const W = 870, H = 260;
+    const W = 870, H = 260, PAD = 14, GX = 16, GY = 8;
     const [cv, g] = canvas(W, H, 'disp');
+    const [ov, og] = canvas(W, H, 'lfo5-overlay');
+    const X = (x: number) => PAD + x * (W - 2 * PAD), Y = (y: number) => PAD + (1 - y) * (H - 2 * PAD);
+    let hover = -1, drag = -1;
     const redraw = () => {
       paper(g, W, H);
-      const beats = syncBeats(String(this.get('wobble.rate'))), cycles = 8 / beats;
-      // the bars and beats of two bars, faint
-      for (let b = 0; b <= 8; b++) {
-        const x = Math.round((b / 8) * (W - 1)) + 0.5;
-        g.fillStyle = b % 4 === 0 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.045)';
-        g.fillRect(x, 0, 1, H);
+      // the grid the points snap to (Shift): sixteenths across, eighths up
+      for (let i = 0; i <= GX; i++) {
+        g.fillStyle = i % 4 === 0 ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.035)';
+        g.fillRect(Math.round(X(i / GX)), PAD, 1, H - 2 * PAD);
       }
-      g.fillStyle = 'rgba(255,255,255,0.05)';
-      g.fillRect(0, H / 2, W, 1);
-      const target = String(this.get('wobble.target'));
-      const dep = 0.25 + 0.75 * this.num('wobble.depth'), life = this.num('wobble.life');
-      const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) {
-        const x = (i / W) * cycles, c = Math.floor(x), vary = 1 - life * 0.45 * (0.5 + 0.5 * Math.sin(c * 2.7 + 1));
-        let y = this.wobShape(x - c) * dep * vary;
-        if (target !== 'filter') y = Math.tanh(y * 2.2) / Math.tanh(2.2);
-        if (target.endsWith('texture')) y += 0.05 * Math.sin(i * 0.9) * Math.sin(i * 0.23);
-        pts.push([i, H / 2 - y * (H / 2 - 24)]);
+      for (let j = 0; j <= GY; j++) {
+        g.fillStyle = j % 4 === 0 ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)';
+        g.fillRect(PAD, Math.round(Y(j / GY)), W - 2 * PAD, 1);
       }
-      if (on()) fillUnder(g, pts, H, accentOf(cv), 0.1, 0.02);
-      silver(g, pts, on());
+      const shape = String(this.get('wobble.shape'));
+      const line: [number, number][] = [];
+      for (let i = 0; i <= W - 2 * PAD; i++) {
+        const p = i / (W - 2 * PAD);
+        line.push([X(p), Y(this.wobValueFor(shape, p))]);
+      }
+      if (on()) fillUnder(g, line, H - PAD, accentOf(cv), 0.12, 0.02);
+      silver(g, line, on());
+      // the points: a filled dot is a hard corner, a ring a soft one
+      const col = accentOf(cv);
+      this.wobPoints(shape).forEach((q, i) => {
+        const r = i === hover || i === drag ? 6 : 4.5;
+        g.save();
+        g.shadowColor = col;
+        g.shadowBlur = on() ? 10 : 0;
+        g.beginPath();
+        g.arc(X(q.x), Y(q.y), r, 0, 2 * Math.PI);
+        if (q.s) {
+          g.fillStyle = '#060607';
+          g.fill();
+          g.lineWidth = 1.6;
+          g.strokeStyle = on() ? '#f2f6fa' : '#6a6a70';
+          g.stroke();
+        } else {
+          g.fillStyle = on() ? '#f2f6fa' : '#6a6a70';
+          g.fill();
+        }
+        g.restore();
+      });
     };
     this.watch(ids, redraw);
+    // the moving dot: where the wobble is right now
+    const drawDot = () => {
+      og.clearRect(0, 0, W, H);
+      const p = this.liveWob;
+      if (p === null || !on() || ov.offsetParent === null) return;
+      const x = X(p), y = Y(this.wobValueFor(String(this.get('wobble.shape')), p)), col = accentOf(cv);
+      og.save();
+      og.fillStyle = 'rgba(255,255,255,0.06)';
+      og.fillRect(Math.round(x), PAD, 1, H - 2 * PAD);
+      og.shadowColor = col;
+      og.shadowBlur = 14;
+      og.fillStyle = '#ffffff';
+      og.beginPath();
+      og.arc(x, y, 5, 0, 2 * Math.PI);
+      og.fill();
+      og.restore();
+    };
+    this.wobDraws.push(drawDot);
+
+    // editing
+    const at = (e: PointerEvent | MouseEvent) => {
+      const r = ov.getBoundingClientRect();
+      return { x: Math.max(0, Math.min(1, ((e.clientX - r.left) * (W / r.width) - PAD) / (W - 2 * PAD))), y: Math.max(0, Math.min(1, 1 - ((e.clientY - r.top) * (H / r.height) - PAD) / (H - 2 * PAD))) };
+    };
+    const hit = (e: PointerEvent | MouseEvent) => {
+      const r = ov.getBoundingClientRect(), mx = (e.clientX - r.left) * (W / r.width), my = (e.clientY - r.top) * (H / r.height);
+      let best = -1, bd = 10;
+      this.wobPoints().forEach((q, i) => {
+        const d = Math.hypot(X(q.x) - mx, Y(q.y) - my);
+        if (d < bd) { bd = d; best = i; }
+      });
+      return best;
+    };
+    let moved = false, clickTimer = 0;
+    ov.addEventListener('pointerdown', (e) => {
+      const i = hit(e);
+      if (i < 0) return;
+      ov.setPointerCapture(e.pointerId);
+      drag = i;
+      moved = false;
+    });
+    ov.addEventListener('pointermove', (e) => {
+      if (drag < 0) {
+        const i = hit(e);
+        if (i !== hover) { hover = i; ov.style.cursor = i >= 0 ? 'grab' : 'crosshair'; redraw(); }
+        return;
+      }
+      const pts = this.wobPoints().map((q) => ({ ...q }));
+      let { x, y } = at(e);
+      if (e.shiftKey) {
+        x = Math.round(x * GX) / GX;
+        y = Math.round(y * GY) / GY;
+      }
+      const last = pts.length - 1;
+      // the first and last points stay at the start and end of the cycle; the rest keep their order
+      x = drag === 0 ? 0 : drag === last ? 1 : Math.max(pts[drag - 1].x + 0.002, Math.min(pts[drag + 1].x - 0.002, x));
+      if (Math.abs(x - pts[drag].x) < 1e-6 && Math.abs(y - pts[drag].y) < 1e-6) return;
+      moved = true;
+      pts[drag] = { ...pts[drag], x, y };
+      this.setWobPoints(pts);
+    });
+    ov.addEventListener('pointerup', (e) => {
+      if (drag < 0) return;
+      ov.releasePointerCapture(e.pointerId);
+      const i = drag;
+      drag = -1;
+      // a click (no drag) switches the corner between soft and hard, unless a double-click follows
+      if (!moved) {
+        clearTimeout(clickTimer);
+        clickTimer = window.setTimeout(() => {
+          const pts = this.wobPoints().map((q) => ({ ...q }));
+          if (pts[i]) pts[i].s = !pts[i].s;
+          this.setWobPoints(pts);
+        }, 230);
+      }
+      redraw();
+    });
+    ov.addEventListener('dblclick', (e) => {
+      clearTimeout(clickTimer);
+      const pts = this.wobPoints().map((q) => ({ ...q }));
+      const i = hit(e);
+      if (i >= 0) {
+        // double-click a point: remove it (the first and last stay)
+        if (i > 0 && i < pts.length - 1) pts.splice(i, 1);
+        else return;
+      } else {
+        if (pts.length >= 12) return;
+        let { x, y } = at(e);
+        if (e.shiftKey) {
+          x = Math.round(x * GX) / GX;
+          y = Math.round(y * GY) / GY;
+        }
+        if (x <= 0.002 || x >= 0.998) return;
+        pts.push({ x, y, s: false });
+      }
+      this.setWobPoints(pts);
+    });
+    ov.addEventListener('pointerleave', () => { if (hover >= 0) { hover = -1; redraw(); } });
+    ov.title = 'Drag a point (Shift snaps to the grid) · click it for a soft or hard corner · double-click a point to remove it, empty space to add one';
+    const edit = h('div', 'lfo5-edit', cv, ov);
+    const rate = h('span', 'lfo5-bars');
+    this.watch(['wobble.rate'], () => { rate.textContent = `1 CYCLE = ${this.get('wobble.rate')}`; });
     const big = this.obox('LFO 5', 'box-wob lfo5-main', {
       power: (el) => this.boolPower('wobble.on', el),
-      head: [h('span', 'lfo5-note', 'the wobble · locked to the tempo and the bar')],
-      corner: [h('span', 'lfo5-bars', '2 BARS')],
-      print: cv,
+      head: [h('span', 'lfo5-note', 'the wobble · locked to the tempo and the bar'), rate],
+      print: edit,
     });
 
     // Right, top: the shape and rate, one cycle up close, depth and life.
@@ -2191,7 +2374,8 @@ export class SynthView {
     this.watch(ids, () => {
       paper(sg, SW, SH);
       const pts: [number, number][] = [];
-      for (let i = 0; i <= SW; i++) pts.push([i, SH / 2 - this.wobShape(i / SW) * (SH / 2 - 8)]);
+      const shape = String(this.get('wobble.shape'));
+      for (let i = 0; i <= SW; i++) pts.push([i, SH - 8 - this.wobValueFor(shape, i / SW) * (SH - 16)]);
       silver(sg, pts, on());
     });
     const shapeBox = this.obox('SHAPE', 'box-wob', {
@@ -2249,13 +2433,12 @@ export class SynthView {
       const tile = h('button', 'lfo5-tile', tc, h('span', 'lfo5-tile-name', shape.toUpperCase()));
       tile.title = `Shape: ${shape}`;
       tile.onclick = () => this.set('wobble.shape', shape);
-      this.watch(['wobble.shape', 'wobble.on', 'wobble.depth'], () => {
+      this.watch(ids, () => {
         const chosen = this.get('wobble.shape') === shape;
         tile.classList.toggle('on', chosen);
         paper(tgx, TW, TH);
         const pts: [number, number][] = [];
-        const f = (p: number) => (shape === 'triangle' ? (p < 0.5 ? 4 * p - 1 : 3 - 4 * p) : shape === 'saw down' ? 1 - 2 * p : shape === 'square' ? (p < 0.5 ? 0.85 : -0.85) : Math.sin(2 * Math.PI * p));
-        for (let i = 0; i <= TW - 16; i++) pts.push([8 + i, TH / 2 - f(i / (TW - 16)) * (TH / 2 - 7)]);
+        for (let i = 0; i <= TW - 16; i++) pts.push([8 + i, TH - 7 - this.wobValueFor(shape, i / (TW - 16)) * (TH - 14)]);
         silver(tgx, pts, chosen && on());
       });
       tiles.push(tile);

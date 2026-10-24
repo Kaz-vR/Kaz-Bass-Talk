@@ -1249,3 +1249,7 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .lfo5-tile.on .lfo5-tile-name { color: #f0f0f2; text-shadow: 0 0 6px rgba(255,255,255,0.5); }
 .v2 .lfo5-tile.empty { cursor: default; border-style: dashed; border-color: rgba(255,255,255,0.05); background: transparent; }
 .v2 .lfo5-tile-plus { color: #2e2e32; font-size: 16px; font-weight: 300; }
+/* LFO 5's editor: the drawn shape with the moving dot on a canvas laid over it. */
+.v2 .lfo5-edit { position: relative; line-height: 0; }
+.v2 .lfo5-edit .lfo5-overlay { position: absolute; left: 0; top: 0; cursor: crosshair; touch-action: none; background: transparent !important; border: 0 !important; box-shadow: none !important; }
+.v2 .lfo5-main .ob-head .lfo5-bars { margin-left: auto; }

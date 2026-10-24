@@ -43,6 +43,7 @@ class LowTalkProcessor extends AudioWorkletProcessor {
     if (ctl && ctl.length >= 2) {
       ctl[0].fill(this.synth.liveCutoff);
       ctl[1].fill(this.synth.liveRes);
+      if (ctl.length >= 3) ctl[2].fill(this.synth.liveWob);
     }
     return true;
   }

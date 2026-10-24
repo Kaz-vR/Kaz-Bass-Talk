@@ -67,7 +67,7 @@ export const TEXTURE_GAIN = 0.5;
 /** Beats per wobble cycle, by wobble.rate option (1/2 … 1/32); all divide a 4-beat bar. */
 export const WOBBLE_BEATS = [2, 1, 2 / 3, 0.5, 1 / 3, 0.25, 1 / 6, 0.125];
 export const WOB_FILTER = 0, WOB_FILTER_DRIVE = 1, WOB_FILTER_DRIVE_TEXTURE = 2;
-export const WOB_SINE = 0, WOB_TRI = 1, WOB_SAW_DOWN = 2, WOB_SQUARE = 3;
+export const WOB_SINE = 0, WOB_TRI = 1, WOB_SAW_DOWN = 2, WOB_SQUARE = 3, WOB_CUSTOM = 4;
 
 /**
  * Mod wheel moves (wheel.preset option order): what a fully raised wheel adds
@@ -149,7 +149,8 @@ export const P = {
   modOn: ix('mod.on'), eqOn: ix('eq.on'), chorusOn: ix('chorus.on'), flangerOn: ix('flanger.on'),
   phaserOn: ix('phaser.on'), delayOn: ix('delay.on'), reverbOn: ix('reverb.on'),
   wheelMove: ix('wheel.move'), wheelPreset: ix('wheel.preset'),
-  wobDepth: ix('wobble.depth'), wobRate: ix('wobble.rate'), wobTarget: ix('wobble.target'), wobShape: ix('wobble.shape'), wobLife: ix('wobble.life'),
+  wobDepth: ix('wobble.depth'), wobRate: ix('wobble.rate'), wobTarget: ix('wobble.target'), wobShape: ix('wobble.shape'), wobLife: ix('wobble.life'), wobPts: ix('wobble.points'),
+  wobX: Array.from({ length: 12 }, (_, i) => ix(`wobble.x${i + 1}`)), wobY: Array.from({ length: 12 }, (_, i) => ix(`wobble.y${i + 1}`)), wobS: Array.from({ length: 12 }, (_, i) => ix(`wobble.s${i + 1}`)),
   flangerMix: ix('flanger.mix'), flangerRate: ix('flanger.rate'), flangerFb: ix('flanger.feedback'),
   delayMix: ix('delay.mix'), delayTime: ix('delay.time'), delayFb: ix('delay.feedback'), delayTone: ix('delay.tone'),
   reverbTone: ix('reverb.tone'), eqHighcut: ix('eq.highcut'),
