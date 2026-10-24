@@ -1233,3 +1233,19 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .lfo-page .lfo5-main .ob-dials { display: none; }
 .v2 .lfo-page .lfo5-main .ob-print { overflow: hidden; }
 .v2 .lfo-page > .lfo5-main { grid-template-rows: 28px 1fr; }
+/* LFO page in four half-height rows: LFO 5 over three, the shape palette under it; SHAPE and TARGET
+   on the right, two rows each. */
+.v2 .lfo-page { grid-template-rows: repeat(4, 109.5px) !important; }
+.v2 .lfo-page .lfo5-main { grid-row: 1 / 4 !important; }
+.v2 .lfo-page > .box-wob:not(.lfo5-main):not(.lfo5-palette):nth-child(2) { grid-column: 4; grid-row: 1 / 3; }
+.v2 .lfo-page > .box-wob:not(.lfo5-main):not(.lfo5-palette):nth-child(3) { grid-column: 4; grid-row: 3 / 5; }
+.v2 .lfo-page > .lfo5-palette { grid-column: 1 / 4; grid-row: 4; display: grid !important; grid-template-columns: repeat(8, 1fr); grid-template-rows: none !important;
+  gap: 8px; padding: 12px 14px !important; align-items: stretch; }
+.v2 .lfo5-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 4px 0 6px;
+  background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.05); border-radius: 2px; cursor: pointer; }
+.v2 .lfo5-tile:hover { border-color: rgba(255,255,255,0.14); }
+.v2 .lfo5-tile.on { border-color: color-mix(in srgb, var(--knob-accent) 55%, transparent); box-shadow: inset 0 0 18px -6px var(--knob-accent); }
+.v2 .lfo5-tile-name { font-size: 8.5px; letter-spacing: 0.2em; color: #5d5d62; }
+.v2 .lfo5-tile.on .lfo5-tile-name { color: #f0f0f2; text-shadow: 0 0 6px rgba(255,255,255,0.5); }
+.v2 .lfo5-tile.empty { cursor: default; border-style: dashed; border-color: rgba(255,255,255,0.05); background: transparent; }
+.v2 .lfo5-tile-plus { color: #2e2e32; font-size: 16px; font-weight: 300; }

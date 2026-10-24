@@ -2151,7 +2151,7 @@ export class SynthView {
   private buildLfoPage(): HTMLElement {
     const ids = ['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.life', 'wobble.target'];
     const on = () => !!this.get('wobble.on') && this.num('wobble.depth') > 0;
-    const W = 870, H = 380;
+    const W = 870, H = 260;
     const [cv, g] = canvas(W, H, 'disp');
     const redraw = () => {
       paper(g, W, H);
@@ -2239,7 +2239,34 @@ export class SynthView {
       dials: [h('div', 'lfo5-targets', pick('filter', 'Filter'), pick('filter + drive', '+ Drive'), pick('filter + drive + texture', '+ Texture'))],
     });
     targetBox.title = getParam('wobble.target')!.describes;
-    return h('div', 'v2-main osc-page lfo-page', big, shapeBox, targetBox);
+
+    // The shape palette under the print (as in ShaperBox): one tile per shape, the chosen one lit;
+    // the empty tiles are room for shapes still to come.
+    const SLOTS = 8, TW = 96, TH = 46;
+    const tiles: HTMLElement[] = [];
+    for (const shape of getParam('wobble.shape')!.options!) {
+      const [tc, tgx] = canvas(TW, TH, 'disp');
+      const tile = h('button', 'lfo5-tile', tc, h('span', 'lfo5-tile-name', shape.toUpperCase()));
+      tile.title = `Shape: ${shape}`;
+      tile.onclick = () => this.set('wobble.shape', shape);
+      this.watch(['wobble.shape', 'wobble.on', 'wobble.depth'], () => {
+        const chosen = this.get('wobble.shape') === shape;
+        tile.classList.toggle('on', chosen);
+        paper(tgx, TW, TH);
+        const pts: [number, number][] = [];
+        const f = (p: number) => (shape === 'triangle' ? (p < 0.5 ? 4 * p - 1 : 3 - 4 * p) : shape === 'saw down' ? 1 - 2 * p : shape === 'square' ? (p < 0.5 ? 0.85 : -0.85) : Math.sin(2 * Math.PI * p));
+        for (let i = 0; i <= TW - 16; i++) pts.push([8 + i, TH / 2 - f(i / (TW - 16)) * (TH / 2 - 7)]);
+        silver(tgx, pts, chosen && on());
+      });
+      tiles.push(tile);
+    }
+    while (tiles.length < SLOTS) {
+      const empty = h('div', 'lfo5-tile empty', h('span', 'lfo5-tile-plus', '+'));
+      empty.title = 'More shapes coming';
+      tiles.push(empty);
+    }
+    const palette = h('div', 'c ob box-wob lfo5-palette', ...tiles);
+    return h('div', 'v2-main osc-page lfo-page', big, shapeBox, targetBox, palette);
   }
 
   private matrixBox(): HTMLElement {
