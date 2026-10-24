@@ -7,7 +7,7 @@ import { Biquad } from '../engine/core/dsp';
 import { fromNormalized, getParam, params, toNormalized, type ParamValue, type Patch } from '../schema';
 import { formatValue } from './params-panel';
 import { keyGrime, lightGrain, panelTexture } from './texture';
-import { WOB_RANDOM_STEPS, WOB_TEMPLATES, wobPointsAt, type WobPoint } from '../engine/core/wobshape';
+import { WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobPointsAt, wobSmoothRadius, wobSmoothTable, wobTableAt, type WobPoint } from '../engine/core/wobshape';
 
 type OnChange = (id: string, value: ParamValue) => void;
 
@@ -2151,7 +2151,7 @@ export class SynthView {
   private wobPoints(shape = String(this.get('wobble.shape'))): WobPoint[] {
     if (shape === 'custom') return this.wobCustomPoints();
     if (shape === 'random') return [];
-    return WOB_TEMPLATES[shape] ?? WOB_TEMPLATES.sine;
+    return WOB_TEMPLATES[shape] ?? WOB_TEMPLATES['saw down'];
   }
 
   /** A shape's level (0 = shut .. 1 = open) at q in the drawn cycle; Random shows a fixed example. */
@@ -2162,30 +2162,27 @@ export class SynthView {
   private static readonly WOB_RANDOM_PREVIEW = [0.62, 0.18, 0.86, 0.4, 0.95, 0.08, 0.55, 0.3];
 
   /**
-   * One cycle as heard, sampled at n + 1 points across the cycle: shifted, and run through Smooth
-   * the way the engine glides (two cycles at 120 BPM, keeping the second, so the wrap is right).
+   * One cycle as heard, sampled at n + 1 points across the cycle: Smooth rounds the corners with the
+   * engine's own table (wobSmoothTable), then the shift moves it along.
    */
   private wobCurve(shape: string, n: number): number[] {
     let ph = this.num('wobble.phase');
     if (shape !== String(this.get('wobble.shape'))) ph = 0; // palette tiles show the shape as drawn
-    const raw = (x: number) => {
-      let q = x - ph;
-      q -= Math.floor(q);
-      return this.wobValueFor(shape, q);
-    };
-    const sm = this.num('wobble.smooth');
-    const cycleSec = (syncBeats(String(this.get('wobble.rate'))) * 60) / 120;
-    const tau = sm > 1e-4 ? 0.002 + 0.12 * sm * sm : 0.0015;
-    // (at 0 the engine's few-ms anti-click glide is too small to draw)
-    const a = sm > 1e-4 ? 1 - Math.exp(-cycleSec / n / tau) : 1;
-    let v = raw(0);
+    const r = wobSmoothRadius(this.num('wobble.smooth'));
+    let at = (q: number) => this.wobValueFor(shape, q);
+    if (r > 0) {
+      wobSmoothTable(at, r, this.wobTable, this.wobTmp);
+      at = (q) => wobTableAt(this.wobTable, q);
+    }
     const out: number[] = [];
-    for (let k = 0; k <= 2 * n; k++) {
-      v += (raw((k % n) / n) - v) * a;
-      if (k >= n) out.push(v);
+    for (let k = 0; k <= n; k++) {
+      const q = k / n - ph;
+      out.push(at(q - Math.floor(q)));
     }
     return out;
   }
+  private readonly wobTable = new Float64Array(WOB_TABLE);
+  private readonly wobTmp = new Float64Array(WOB_TABLE);
 
   /** Write points as the custom shape (and switch to it). */
   private setWobPoints(pts: WobPoint[]): void {
@@ -2309,6 +2306,8 @@ export class SynthView {
       const line: [number, number][] = curve.map((v, i) => [X(i / N), Y(v)]);
       if (on()) fillUnder(g, line, H - PAD, accentOf(cv), 0.12, 0.02);
       silver(g, line, on());
+      // the low cut, as on every print (lit while Volume is on: the gate only works above it)
+      loCutStrip(g, W, H, this.num('wobble.lowcut'), on() && !!this.get('wobble.volume'), accentOf(cv));
       // the points: a filled dot sits on the line (hard), a ring pulls the line (soft)
       const col = accentOf(cv);
       const pts = this.wobPoints(shape);
@@ -2433,30 +2432,48 @@ export class SynthView {
     ov.title = 'Drag a point (Shift snaps to the grid) · click it: on the line (hard) or pulling the line (soft) · double-click a point to remove it, empty space to add one';
     const edit = h('div', 'lfo5-edit', cv, ov);
 
-    // the rate in the title row: click for the list, or step with the arrows
+    // the rate in the title row: a big value that opens the rate menu (triplet / straight / dotted
+    // columns, as in ShaperBox), and arrows either side that step shorter / longer
     const rateP = getParam('wobble.rate')!;
     const rateSel = h('select', 'sel-name lfo5-rate-sel');
-    for (const o of rateP.options!) rateSel.append(new Option(o, o));
+    const groups: [string, (o: string) => boolean][] = [['TRIPLET', (o) => o.endsWith('T')], ['STRAIGHT', (o) => !/[Td]$/.test(o) && o !== '3/4' && !/^(1\.5|3) /.test(o)], ['DOTTED', (o) => o.endsWith('d') || o === '3/4' || /^(1\.5|3) /.test(o)]];
+    for (const [name, has] of groups) {
+      const og = document.createElement('optgroup');
+      og.label = name;
+      for (const o of rateP.options!) if (has(o)) og.append(new Option(o, o));
+      rateSel.append(og);
+    }
+    // free rates (not locked to the tempo) aren't in the engine yet: shown, but not offered
+    const free = document.createElement('optgroup');
+    free.label = 'FREE';
+    for (const o of ['Hertz', 'ms']) {
+      const opt = new Option(o, `free:${o}`);
+      opt.disabled = true;
+      free.append(opt);
+    }
+    rateSel.append(free);
+    rateSel.dataset.ddStep = '1';
     rateSel.onchange = () => this.set('wobble.rate', rateSel.value);
+    // the arrows step within the current column (straight stays straight, triplet stays triplet)
     const stepRate = (d: number) => {
-      const o = rateP.options!, i = o.indexOf(String(this.get('wobble.rate')));
+      const cur = String(this.get('wobble.rate'));
+      const o = rateP.options!.filter((x) => (groups.find(([, has]) => has(cur)) ?? groups[1])[1](x)), i = o.indexOf(cur);
       this.set('wobble.rate', o[Math.max(0, Math.min(o.length - 1, i + d))]);
     };
-    const rPrev = h('button', 'lfo5-arrow', '<'), rNext = h('button', 'lfo5-arrow', '>');
-    rPrev.title = 'Slower';
-    rNext.title = 'Faster';
+    const rPrev = h('button', 'lfo5-arrow lfo5-rate-arrow', '‹'), rNext = h('button', 'lfo5-arrow lfo5-rate-arrow', '›');
+    rPrev.title = 'Shorter (faster)';
+    rNext.title = 'Longer (slower)';
     rPrev.onclick = () => stepRate(-1);
     rNext.onclick = () => stepRate(1);
     this.watch(['wobble.rate'], () => { rateSel.value = String(this.get('wobble.rate')); });
-    const rate = h('div', 'lfo5-rate', h('span', 'lfo5-rate-label', 'RATE'), rateSel, rPrev, rNext);
+    const rate = h('div', 'lfo5-rate', h('span', 'lfo5-rate-label', 'RATE'), rPrev, rateSel, rNext);
     rate.title = rateP.describes;
     const big = this.obox('WOBBLER', 'box-wob lfo5-main', {
       head: [rate, this.lfo5LockButton()],
       print: edit,
     });
 
-    // SETTINGS: the switch, mix / low cut / smooth, the shift arrows, the two targets
-    const shiftVal = h('span', 'lfo5-shift-val');
+    // SETTINGS: the switch, depth / low cut / smooth, the shift arrows, the two targets
     const shift = (d: number) => {
       let v = Math.round(this.num('wobble.phase') * GX) + d;
       v = ((v % GX) + GX) % GX;
@@ -2467,10 +2484,7 @@ export class SynthView {
     sNext.title = 'Move the shape later (a sixteenth of the cycle)';
     sPrev.onclick = () => shift(-1);
     sNext.onclick = () => shift(1);
-    this.watch(['wobble.phase'], () => {
-      const v = Math.round(this.num('wobble.phase') * GX);
-      shiftVal.textContent = v === 0 ? '0' : `+${v}/16`;
-    });
+    this.watch(['wobble.phase'], () => sPrev.parentElement?.classList.toggle('shifted', this.num('wobble.phase') > 1e-6));
     const lampFor = (id: string, label: string) => {
       const b = h('button', 'led', lamp(), label);
       b.onclick = () => this.set(id, !this.get(id));
@@ -2484,10 +2498,10 @@ export class SynthView {
       h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'SETTINGS')),
       h('div', 'lfo5-sec lfo5-switch', this.bigToggle('wobble.on', 'Wobbler')),
       h('div', 'lfo5-sec lfo5-knobs',
-        this.knob('wobble.depth', 'Mix', 'lg', { fmt: pct }),
+        this.knob('wobble.depth', 'Depth', 'lg', { fmt: pct }),
         this.knob('wobble.lowcut', 'Low cut', 'lg', { fmt: hz }),
         this.knob('wobble.smooth', 'Smooth', 'lg', { fmt: pct })),
-      h('div', 'lfo5-sec lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, shiftVal, sNext),
+      h('div', 'lfo5-sec lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, sNext),
       h('div', 'lfo5-sec lfo5-targets', lampFor('wobble.cutoff', 'Cutoff'), lampFor('wobble.volume', 'Volume')));
 
     // The shape palette under the print (as in ShaperBox): one tile per shape, the chosen one lit.
@@ -2496,8 +2510,11 @@ export class SynthView {
     for (const shape of getParam('wobble.shape')!.options!) {
       const [tc, tgx] = canvas(TW, TH, 'disp');
       const tile = h('button', 'lfo5-tile', tc, h('span', 'lfo5-tile-name', shape.toUpperCase()));
-      tile.title = `Shape: ${shape}`;
-      tile.onclick = () => this.set('wobble.shape', shape);
+      tile.title = `Shape: ${shape} (resets the shift)`;
+      tile.onclick = () => {
+        this.set('wobble.phase', 0);
+        this.set('wobble.shape', shape);
+      };
       this.watch(ids, () => {
         const chosen = this.get('wobble.shape') === shape;
         tile.classList.toggle('on', chosen);

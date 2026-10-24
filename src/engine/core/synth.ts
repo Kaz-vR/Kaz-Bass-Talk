@@ -25,7 +25,7 @@
 // LFOs, drift sources, the texture bed and the FX are shared by all voices;
 // the mod matrix runs per voice, and FX targets follow the newest voice.
 
-import { WOB_RANDOM_STEPS, WOB_TEMPLATES, wobShapeAt } from './wobshape';
+import { WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobShapeAt, wobSmoothRadius, wobSmoothTable, wobTableAt } from './wobshape';
 import { PARAM_COUNT, params } from '../../schema';
 import { AUX_SLOT, Biquad, clamp, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
 import { Chorus, Delay, Flanger, Limiter, Phaser, Reverb } from './fx';
@@ -102,6 +102,13 @@ export class Synth {
   private readonly wobYs = new Float64Array(12);
   private readonly wobSs = new Float64Array(12);
   private wobV = 0;
+  private wobShapeNow = 0;
+  private wobPtsNow = 0;
+  private wobSig = NaN;
+  private readonly wobTable = new Float64Array(WOB_TABLE);
+  private readonly wobTmp = new Float64Array(WOB_TABLE);
+  /** The current shape, unsmoothed, at q (made once, so the table rebuild never allocates). */
+  private readonly wobRawFn = (q: number): number => this.wobRaw(q);
   /** Random's steps for the current cycle. */
   private readonly wobRand = new Float64Array(WOB_RANDOM_STEPS);
   private wobRandCycle = -1;
@@ -606,31 +613,39 @@ export class Synth {
       let q = p - cur[P.wobPhase];
       q -= Math.floor(q);
       const shape = Math.round(cur[P.wobShape]);
-      let target: number;
-      if (shape === K.WOB_RANDOM) {
+      if (shape === K.WOB_RANDOM && this.wobRandCycle !== n) {
         // New steps every cycle, never repeating.
-        if (this.wobRandCycle !== n) {
-          this.wobRandCycle = n;
-          for (let k = 0; k < WOB_RANDOM_STEPS; k++) this.wobRand[k] = 0.5 + 0.5 * this.wobRng.next();
-        }
-        target = this.wobRand[Math.min(WOB_RANDOM_STEPS - 1, Math.floor(q * WOB_RANDOM_STEPS))];
-      } else if (shape === K.WOB_CUSTOM) {
+        this.wobRandCycle = n;
+        for (let k = 0; k < WOB_RANDOM_STEPS; k++) this.wobRand[k] = 0.5 + 0.5 * this.wobRng.next();
+      }
+      let m = 0;
+      if (shape === K.WOB_CUSTOM) {
         // Your own shape (points from the Wobbler page).
-        const m = Math.max(2, Math.min(12, Math.round(cur[P.wobPts])));
+        m = Math.max(2, Math.min(12, Math.round(cur[P.wobPts])));
         for (let k = 0; k < m; k++) {
           this.wobXs[k] = cur[P.wobX[k]];
           this.wobYs[k] = cur[P.wobY[k]];
           this.wobSs[k] = cur[P.wobS[k]] > 0.5 ? 1 : 0;
         }
-        target = wobShapeAt(this.wobXs, this.wobYs, this.wobSs, m, q);
-      } else {
-        const t = WOB_TEMPLATE_ARRAYS[shape] ?? WOB_TEMPLATE_ARRAYS[0];
-        target = wobShapeAt(t.xs, t.ys, t.ss, t.n, q);
       }
-      // Smooth (as in ShaperBox): a glide towards the shape; even at 0 a few ms, so a jump never clicks.
-      const sm = cur[P.wobSmooth];
-      const glide = sm > 1e-4 ? 1 - Math.exp(-BLOCK / (this.sampleRate * (0.002 + 0.12 * sm * sm))) : 0.35;
-      this.wobV += (target - this.wobV) * glide;
+      this.wobShapeNow = shape;
+      this.wobPtsNow = m;
+      // Smooth (as in ShaperBox): the corners rounded in place, from a table rebuilt only when the
+      // shape or the amount changes. Even at 0 a few ms of glide, so a jump never clicks.
+      const r = wobSmoothRadius(cur[P.wobSmooth]);
+      let target: number;
+      if (r === 0) target = this.wobRaw(q);
+      else {
+        let sig = shape * 7919 + r * 104729 + m * 13;
+        if (shape === K.WOB_RANDOM) sig += n * 1.618;
+        for (let k = 0; k < m; k++) sig += this.wobXs[k] * (k + 1.31) * 3.7 + this.wobYs[k] * (k + 2.17) * 5.3 + this.wobSs[k] * (k + 3.1);
+        if (sig !== this.wobSig) {
+          this.wobSig = sig;
+          wobSmoothTable(this.wobRawFn, r, this.wobTable, this.wobTmp);
+        }
+        target = wobTableAt(this.wobTable, q);
+      }
+      this.wobV += (target - this.wobV) * 0.35;
       const v = this.wobV;
       // Cutoff and volume, either or both: the cutoff swings around the preset's own setting,
       // the volume only ducks (never louder).
@@ -647,6 +662,15 @@ export class Synth {
         this.wobGateTarget = 1 - Math.min(1, depth * this.wobScale) * (1 - v);
       }
     }
+  }
+
+  /** The wobble shape set up for this block, unsmoothed, at q (0..1). */
+  private wobRaw(q: number): number {
+    const shape = this.wobShapeNow;
+    if (shape === K.WOB_RANDOM) return this.wobRand[Math.min(WOB_RANDOM_STEPS - 1, Math.floor(q * WOB_RANDOM_STEPS))];
+    if (shape === K.WOB_CUSTOM) return wobShapeAt(this.wobXs, this.wobYs, this.wobSs, this.wobPtsNow, q);
+    const t = WOB_TEMPLATE_ARRAYS[shape] ?? WOB_TEMPLATE_ARRAYS[0];
+    return wobShapeAt(t.xs, t.ys, t.ss, t.n, q);
   }
 
   private control(): void {

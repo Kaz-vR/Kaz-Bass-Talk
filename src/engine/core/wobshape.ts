@@ -86,3 +86,39 @@ export function wobShapeAt(xs: ArrayLike<number>, ys: ArrayLike<number>, soft: A
 export function wobPointsAt(pts: readonly WobPoint[], p: number): number {
   return wobShapeAt(pts.map((q) => q.x), pts.map((q) => q.y), pts.map((q) => q.s), pts.length, p);
 }
+
+/** Points in a smoothed shape's table (one cycle). */
+export const WOB_TABLE = 256;
+
+/** Smooth's window (half-width in table points): 0 = off; at 1 the averaging spans a quarter cycle. */
+export function wobSmoothRadius(sm: number): number {
+  return Math.round(Math.max(0, Math.min(1, sm)) * (WOB_TABLE / 16));
+}
+
+/**
+ * Smooth, as in ShaperBox: the shape's corners rounded where they are (not delayed like a glide).
+ * One cycle of `f` is sampled into `out` (WOB_TABLE points), then averaged twice over a window of
+ * 2r + 1 points that wraps around the cycle (a triangle, so the curve stays smooth). Shared by the
+ * engine and the page, so the line you see is the one you hear. `tmp` is scratch of the same size.
+ */
+export function wobSmoothTable(f: (p: number) => number, r: number, out: Float64Array, tmp: Float64Array): void {
+  const N = out.length;
+  for (let i = 0; i < N; i++) out[i] = f(i / N);
+  if (r < 1) return;
+  const w = 2 * r + 1;
+  for (let pass = 0; pass < 2; pass++) {
+    let acc = 0;
+    for (let k = -r; k <= r; k++) acc += out[(k + N) % N];
+    for (let i = 0; i < N; i++) {
+      tmp[i] = acc / w;
+      acc += out[(i + r + 1) % N] - out[(i - r + N) % N];
+    }
+    out.set(tmp);
+  }
+}
+
+/** A smoothed table's value at phase p (0..1), interpolated, wrapping around the cycle. */
+export function wobTableAt(t: ArrayLike<number>, p: number): number {
+  const N = t.length, f = (p - Math.floor(p)) * N, i = Math.floor(f) % N, u = f - Math.floor(f);
+  return t[i] + (t[(i + 1) % N] - t[i]) * u;
+}

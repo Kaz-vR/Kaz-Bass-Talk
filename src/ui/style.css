@@ -1276,16 +1276,32 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .lfo5-knobs { flex: 1.2; gap: 14px; }
 .v2 .lfo5-shift { flex: 0.6; gap: 12px; }
 .v2 .lfo5-shift .k-label { margin-right: 6px; }
-.v2 .lfo5-shift-val { min-width: 44px; text-align: center; font-size: 11px; letter-spacing: 0.12em; color: #e8ecf0; }
 .v2 .lfo-page .lfo5-targets { flex: 0.7; height: auto !important; }
-/* the rate, in the title row */
-.v2 .lfo5-rate { display: flex; align-items: center; gap: 8px; margin: 0 auto; }
-.v2 .lfo5-rate-label { font-size: 9px; letter-spacing: 0.2em; color: #5d5d62; }
-.v2 .lfo5-rate-sel { min-width: 58px; text-align: center; font-size: 12px !important; letter-spacing: 0.14em; color: #f0f2f4 !important; padding: 2px 8px !important;
-  border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 2px; background: rgba(0,0,0,0.35) !important; }
+/* the rate, in the title row: a big value with big arrows either side */
+.v2 .lfo5-rate { display: flex; align-items: center; gap: 6px; margin: 0 auto; }
+.v2 .lfo5-rate-label { font-size: 9px; letter-spacing: 0.22em; color: #5d5d62; margin-right: 6px; }
+.v2 .lfo5-rate-sel { min-width: 104px; height: 24px; text-align: center; text-align-last: center; font-size: 14px !important; letter-spacing: 0.14em; text-transform: none !important; color: #f4f6f8 !important;
+  padding: 0 12px !important; border: 1px solid rgba(255,255,255,0.12) !important; border-radius: 2px; background: rgba(0,0,0,0.4) !important;
+  text-shadow: 0 0 8px rgba(255,255,255,0.35); }
+.v2 .lfo5-rate-sel:hover { border-color: rgba(255,255,255,0.26) !important; }
 .v2 .lfo5-arrow { background: transparent; border: 1px solid rgba(255,255,255,0.08); border-radius: 2px; color: #9a9aa0; width: 22px; height: 20px; font-size: 11px; line-height: 1;
   cursor: pointer; padding: 0; }
+.v2 .lfo5-arrow.lfo5-rate-arrow { width: 28px; height: 24px; font-size: 17px; }
 .v2 .lfo5-arrow:hover { color: #fff; border-color: rgba(255,255,255,0.22); text-shadow: 0 0 6px rgba(255,255,255,0.6); }
+.v2 .lfo5-arrow:active { background: rgba(255,255,255,0.06); }
+/* grouped menus (the rate): a column per group with its heading, the current value lit as a cell, a footer to step */
+.dd-menu.dd-groups { max-height: none; padding: 0; overflow: visible; }
+.dd-group-cols { display: flex; gap: 0; padding: 4px 4px 6px; }
+.dd-group { display: flex; flex-direction: column; min-width: 96px; padding: 0 2px; }
+.dd-group + .dd-group { border-left: 1px solid rgba(255,255,255,0.05); }
+.dd-group-head { padding: 9px 10px 7px; font: 500 9px/1 'LT Space', 'Space Grotesk', sans-serif; letter-spacing: 0.26em; color: #4c4c52; }
+.dd-groups .dd-item { padding: 5px 10px; margin: 1px 0; border-radius: 1px; letter-spacing: 0.12em; text-transform: none; }
+.dd-groups .dd-item.on { color: #050506; text-shadow: none; background: var(--dd-accent); box-shadow: 0 0 10px var(--dd-accent); }
+.dd-groups .dd-item.on::before { display: none; }
+.dd-foot { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-top: 1px solid rgba(255,255,255,0.07); background: rgba(0,0,0,0.35); }
+.dd-foot-val { flex: 1; font: 400 12px/1 'LT Space', 'Space Grotesk', sans-serif; letter-spacing: 0.14em; color: #f2f2f4; text-shadow: 0 0 8px rgba(255,255,255,0.4); }
+.dd-foot-arrow { width: 26px; height: 22px; padding: 0; background: transparent; border: 1px solid rgba(255,255,255,0.1); border-radius: 2px; color: #a4a4aa; font-size: 15px; line-height: 1; cursor: pointer; }
+.dd-foot-arrow:hover { color: #fff; border-color: rgba(255,255,255,0.25); text-shadow: 0 0 6px rgba(255,255,255,0.6); }
 .v2 .lfo5-main .ob-head .lfo5-lock { margin-left: 0; }
 /* the big chrome toggle */
 .v2 .big-toggle { position: relative; display: grid; grid-template-columns: auto; justify-items: center; background: transparent; border: 0; cursor: pointer; padding: 0; }

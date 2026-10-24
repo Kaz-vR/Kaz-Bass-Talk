@@ -21,29 +21,81 @@ function choose(sel: HTMLSelectElement, value: string): void {
   sel.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+function item(sel: HTMLSelectElement, o: HTMLOptionElement): HTMLButtonElement {
+  const it = document.createElement('button');
+  it.className = 'dd-item';
+  it.textContent = o.text;
+  it.disabled = o.disabled;
+  it.dataset.value = o.value;
+  if (o.value === sel.value) it.classList.add('on');
+  it.onclick = (e) => {
+    e.stopPropagation();
+    choose(sel, o.value);
+  };
+  return it;
+}
+
+const visible = (o: HTMLOptionElement) => !o.hidden && o.style.display !== 'none';
+
 function show(sel: HTMLSelectElement): void {
   close();
   const accent = getComputedStyle(sel).getPropertyValue('--knob-accent').trim() || '#ffffff';
-  const items = [...sel.options].filter((o) => !o.hidden && o.style.display !== 'none');
   const menu = document.createElement('div');
   menu.className = 'dd-menu';
   menu.style.setProperty('--dd-accent', accent);
-  if (items.length > 14) menu.classList.add('dd-cols');
-  let current: HTMLElement | null = null;
-  for (const o of items) {
-    const it = document.createElement('button');
-    it.className = 'dd-item';
-    it.textContent = o.text;
-    it.disabled = o.disabled;
-    if (o.value === sel.value) {
-      it.classList.add('on');
-      current = it;
+  const groups = [...sel.children].filter((c): c is HTMLOptGroupElement => c instanceof HTMLOptGroupElement);
+  if (groups.length) {
+    // option groups become columns with a heading each (the Wobbler's rate menu)
+    menu.classList.add('dd-groups');
+    const cols = document.createElement('div');
+    cols.className = 'dd-group-cols';
+    for (const gr of groups) {
+      const col = document.createElement('div');
+      col.className = 'dd-group';
+      const head = document.createElement('div');
+      head.className = 'dd-group-head';
+      head.textContent = gr.label;
+      col.append(head);
+      for (const o of [...gr.children] as HTMLOptionElement[]) if (visible(o)) col.append(item(sel, o));
+      cols.append(col);
     }
-    it.onclick = (e) => {
-      e.stopPropagation();
-      choose(sel, o.value);
+    menu.append(cols);
+  } else {
+    const items = [...sel.options].filter(visible);
+    if (items.length > 14) menu.classList.add('dd-cols');
+    for (const o of items) menu.append(item(sel, o));
+  }
+  if (sel.dataset.ddStep) {
+    // a footer with the current value and arrows that step through the options, keeping the menu open
+    const foot = document.createElement('div');
+    foot.className = 'dd-foot';
+    const val = document.createElement('span');
+    val.className = 'dd-foot-val';
+    const arrow = (txt: string, d: number) => {
+      const b = document.createElement('button');
+      b.className = 'dd-foot-arrow';
+      b.textContent = txt;
+      b.onclick = (e) => {
+        e.stopPropagation();
+        // (within the current option's group, when the options are grouped)
+        const cur = sel.selectedOptions[0], scope = cur?.parentElement instanceof HTMLOptGroupElement ? cur.parentElement : sel;
+        const opts = [...scope.querySelectorAll('option')].filter((o) => visible(o) && !o.disabled), i = opts.findIndex((o) => o.value === sel.value);
+        const next = opts[Math.max(0, Math.min(opts.length - 1, i + d))];
+        if (!next || next.value === sel.value) return;
+        sel.value = next.value;
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        sel.dispatchEvent(new Event('input', { bubbles: true }));
+        mark();
+      };
+      return b;
     };
-    menu.append(it);
+    const mark = () => {
+      val.textContent = sel.selectedOptions[0]?.text ?? '';
+      for (const it of menu.querySelectorAll<HTMLElement>('.dd-item')) it.classList.toggle('on', it.dataset.value === sel.value);
+    };
+    foot.append(val, arrow('‹', -1), arrow('›', 1));
+    menu.append(foot);
+    mark();
   }
   document.body.append(menu);
   sel.classList.add('dd-open');
@@ -57,8 +109,9 @@ function show(sel: HTMLSelectElement): void {
   if (top + m.height > window.innerHeight - pad) top = Math.max(pad, r.top - 6 - m.height);
   menu.style.left = `${left}px`;
   menu.style.top = `${top}px`;
+  const current = menu.querySelector<HTMLElement>('.dd-item.on');
   current?.scrollIntoView({ block: 'nearest' });
-  (current ?? (menu.firstElementChild as HTMLElement | null))?.focus({ preventScroll: true });
+  (current ?? menu.querySelector<HTMLElement>('.dd-item'))?.focus({ preventScroll: true });
 }
 
 /** Take over every <select> in the document (now and later). */

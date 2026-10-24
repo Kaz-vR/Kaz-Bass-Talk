@@ -2,7 +2,7 @@
 // enum option indices, mod matrix sources/destinations, gain staging.
 // Enum indices must match the option order in data/schema.json.
 
-import { paramIndex } from '../../schema';
+import { getParam, paramIndex } from '../../schema';
 import { fastTanh } from './dsp';
 import { FRAMES_PER_SEGMENT } from './wavetable';
 
@@ -64,10 +64,19 @@ export const D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_O
 export const DEST_COUNT = 38;
 export const TEXTURE_GAIN = 0.5;
 
-/** Beats per wobble cycle, by wobble.rate option (1/2 … 1/32); all divide a 4-beat bar. */
-export const WOBBLE_BEATS = [2, 1, 2 / 3, 0.5, 1 / 3, 0.25, 1 / 6, 0.125];
+/** Beats in a wobble.rate option: 1/8, 1/8T (triplet), 1/8d (dotted), 3/4, 1 Bar, 1.5 Bars … (a bar = 4 beats). */
+export function wobRateBeats(v: string): number {
+  const bars = /^([\d.]+) Bars?$/.exec(v);
+  if (bars) return 4 * Number(bars[1]);
+  const m = /^(\d+)\/(\d+)([dT]?)$/.exec(v);
+  if (!m) return 0.5;
+  const b = (4 * Number(m[1])) / Number(m[2]);
+  return m[3] === 'd' ? b * 1.5 : m[3] === 'T' ? (b * 2) / 3 : b;
+}
+/** Beats per wobble cycle, by wobble.rate option. */
+export const WOBBLE_BEATS = getParam('wobble.rate')!.options!.map(wobRateBeats);
 /** The wobbler's shapes, by wobble.shape option. */
-export const WOB_SHAPES = ['sine', 'duck', 'saw down', 'square', 'sync gate', 'staircase', 'random', 'custom'];
+export const WOB_SHAPES = ['saw down', 'sine', 'duck', 'square', 'sync gate', 'staircase', 'random', 'custom'];
 export const WOB_RANDOM = 6, WOB_CUSTOM = 7;
 
 /**

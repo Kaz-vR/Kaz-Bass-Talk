@@ -1731,7 +1731,7 @@
     },
     {
       "id": "wobble.depth",
-      "label": "Wobbler mix",
+      "label": "Wobbler depth",
       "type": "float",
       "min": 0,
       "max": 1,
@@ -1739,25 +1739,40 @@
       "curve": "linear",
       "unit": "",
       "group": "wobble",
-      "describes": "How much of the wobbler you hear: 0 leaves the sound untouched, 1 is the full shape."
+      "describes": "How deep the wobbler swings: 0 leaves the sound untouched, 1 is the full shape."
     },
     {
       "id": "wobble.rate",
       "label": "Wobble rate",
       "type": "enum",
       "options": [
-        "1/2",
-        "1/4",
-        "1/4T",
-        "1/8",
-        "1/8T",
-        "1/16",
+        "1/128",
+        "1/64",
+        "1/32",
         "1/16T",
-        "1/32"
+        "1/16",
+        "1/8T",
+        "1/16d",
+        "1/8",
+        "1/4T",
+        "1/8d",
+        "1/4",
+        "1/2T",
+        "1/4d",
+        "1/2",
+        "3/4",
+        "1 Bar",
+        "1.5 Bars",
+        "2 Bars",
+        "3 Bars",
+        "4 Bars",
+        "8 Bars",
+        "16 Bars",
+        "32 Bars"
       ],
       "default": "1/8",
       "group": "wobble",
-      "describes": "How often it wobbles, locked to the tempo and the bar: 1/8 is the classic wobble, 1/16 a fast growl, 1/4T and 1/8T triplet swing."
+      "describes": "How long one cycle lasts, locked to the tempo and the bar: 1/8 is the classic wobble, 1/16 a fast growl, T triplet swing, d dotted, the bars a slow sweep."
     },
     {
       "id": "wobble.cutoff",
@@ -1780,18 +1795,18 @@
       "label": "Wobbler shape",
       "type": "enum",
       "options": [
+        "saw down",
         "sine",
         "duck",
-        "saw down",
         "square",
         "sync gate",
         "staircase",
         "random",
         "custom"
       ],
-      "default": "sine",
+      "default": "saw down",
       "group": "wobble",
-      "describes": "Sine is smooth; duck drops on the beat and curves back up (the sidechain pump); saw down opens hard and falls; square chops between open and shut; sync gate plays a 3-3-2 rhythm; staircase climbs in four steps; random draws new steps every cycle; custom is your own shape, drawn on the Wobbler page."
+      "describes": "Saw down opens hard and falls; sine is smooth; duck drops on the beat and curves back up (the sidechain pump); square chops between open and shut; sync gate plays a 3-3-2 rhythm; staircase climbs in four steps; random draws new steps every cycle; custom is your own shape, drawn on the Wobbler page."
     },
     {
       "id": "wobble.life",
