@@ -709,7 +709,8 @@ export class Synth {
       if (cur[P.texFKey] > 0.5) hz *= Math.pow(2, (lead.pitch + 12 * cur[P.octave] - K.KEYTRACK_CENTER) / 12);
       this.texF.set(kind, p24, hz, fs);
     }
-    const routeN = cur[P.routeN] > 0.5;
+    // Direct out wins: a bed on its own clean path never goes through the filter copy.
+    const routeN = cur[P.routeN] > 0.5 && cur[P.texDirect] < 0.5;
     if (routeN && !this.texRouteN) {
       this.texNL.reset();
       this.texNR.reset();

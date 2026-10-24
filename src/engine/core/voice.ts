@@ -582,7 +582,8 @@ export class Voice {
     }
     this.routeA = cur[P.routeA] > 0.5;
     this.routeB = cur[P.routeB] > 0.5;
-    this.routeS = cur[P.routeS] > 0.5;
+    // Direct out wins: a sub on its own clean path never goes into the filter.
+    this.routeS = cur[P.routeS] > 0.5 && cur[P.subDirect] < 0.5;
     // Breath is the Noise strip's breath type; N decides whether it goes through the filter.
     this.breathType = cur[P.texType] === K.TEX_BREATH;
     this.routeBr = cur[P.routeN] > 0.5;

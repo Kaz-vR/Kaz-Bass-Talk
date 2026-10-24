@@ -54,9 +54,15 @@ describe('sub', () => {
   });
 
   it('S sends the sub through the main filter (a 30 Hz low-pass nearly silences it)', () => {
-    const clean = render({ ...subOnly, 'filter.cutoff': 30 }).left;
-    const routed = render({ ...subOnly, 'filter.cutoff': 30, 'filter.route_s': true }).left;
+    const clean = render({ ...subOnly, 'filter.cutoff': 30, 'sub.direct': false }).left;
+    const routed = render({ ...subOnly, 'filter.cutoff': 30, 'sub.direct': false, 'filter.route_s': true }).left;
     expect(db(routed)).toBeLessThan(db(clean) - 10);
+  });
+
+  it('direct out wins over S: a sub on its clean path never goes into the filter', () => {
+    const clean = render({ ...subOnly, 'filter.cutoff': 30 }).left;
+    const both = render({ ...subOnly, 'filter.cutoff': 30, 'filter.route_s': true }).left;
+    expect(Math.abs(db(both) - db(clean))).toBeLessThan(0.5);
   });
 });
 

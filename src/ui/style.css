@@ -1187,3 +1187,5 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .mx-row[data-src="lfo3"] .mx-on { --knob-accent: #3fe3b6; }
 .v2 .mx-row[data-src="lfo4"] .mx-on { --knob-accent: #9a7cff; }
 .v2 .mx-row[data-src="env2"] .mx-on { --knob-accent: #5f9bff; }
+/* The four IN lamps (no label) centred on the dials beside them. */
+.v2 .ob-dials .ob-routes { align-self: flex-start !important; padding-bottom: 0 !important; margin-top: 5.5px; }

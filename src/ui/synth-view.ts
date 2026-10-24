@@ -1160,6 +1160,22 @@ export class SynthView {
     return b;
   }
 
+  /**
+   * A lamp switch that can't be on together with `other`: switching it on switches `other` off.
+   * Used for Direct out against the filter's S / N lamps (a source on its own clean path can't
+   * also go through the filter; the engine enforces the same rule, Direct out winning).
+   */
+  private exclusive(id: string, other: string, label: string, cls = ''): HTMLElement {
+    const b = this.toggle(id, label, cls);
+    b.onclick = () => {
+      const on = !this.get(id);
+      if (on && this.get(other)) this.set(other, false);
+      this.set(id, on);
+    };
+    this.watch([other], () => b.classList.toggle('on', !!this.get(id) && !(id.startsWith('filter.') && this.get(other))));
+    return b;
+  }
+
   /** The power lamp of a part that is switched on and off by its level (remembering the level). */
   private levelPower(levelId: string, card: HTMLElement, fallback?: number): HTMLElement {
     const b = h('button', 'power', lamp());
@@ -1610,7 +1626,7 @@ export class SynthView {
       power: (el) => this.levelPower('sub.level', el),
       head: [this.selector('sub.wave'), h('div', 'ob-chips',
         this.chip('OCT', () => this.num('sub.octave'), (v) => this.set('sub.octave', v), -2, -1, ['sub.octave'], 'Sub octave')),
-        this.toggle('sub.direct', 'Direct out', 'small direct-out')],
+        this.exclusive('sub.direct', 'filter.route_s', 'Direct out', 'small direct-out')],
       print: this.subPrint(PRINT_W, PRINT_H),
       dials: [this.knob('sub.clip', 'Clip', 'lg'), this.knob('sub.level', 'Level', 'lg')],
     });
@@ -1627,7 +1643,7 @@ export class SynthView {
       this.lowCut('texture.filter_cutoff', 'texture.filter_type'), this.knob('texture.level', 'Level', 'lg')];
     const breath = [this.knob('breath.chiff', 'Chiff', 'lg'), this.knob('breath.decay', 'Decay', 'lg'),
       this.knob('breath.tone', 'Tone', 'lg'), this.knob('breath.level', 'Level', 'lg')];
-    const direct = this.toggle('texture.direct', 'Direct out', 'small direct-out');
+    const direct = this.exclusive('texture.direct', 'filter.route_n', 'Direct out', 'small direct-out');
     const power = (el: HTMLElement) => {
       const b = h('button', 'power', lamp());
       b.title = 'On / off';
@@ -1726,11 +1742,11 @@ export class SynthView {
 
   private filterBox(): HTMLElement {
     // What goes into the filter, in the order of the sources: A, B, S, N.
-    const routes = h('div', 'ob-routes', h('span', 'ob-routes-label', 'IN'),
+    const routes = h('div', 'ob-routes',
       this.toggle('filter.route_a', 'A', 'route route-a'),
       this.toggle('filter.route_b', 'B', 'route route-b'),
-      this.toggle('filter.route_s', 'S', 'route route-s'),
-      this.toggle('filter.route_n', 'N', 'route route-n'),
+      this.exclusive('filter.route_s', 'sub.direct', 'S', 'route route-s'),
+      this.exclusive('filter.route_n', 'texture.direct', 'N', 'route route-n'),
     );
     routes.title = 'What goes through the filter, in the order of the sources: oscillator A, oscillator B, sub, noise (a texture bed or breath)';
     const drive = this.knob('drive.amount', 'Drive', 'lg', { disabled: () => !this.get('drive.on'), deps: ['drive.on'] });
