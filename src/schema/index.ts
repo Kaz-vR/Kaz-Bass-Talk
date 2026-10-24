@@ -177,8 +177,8 @@ export function validatePatch(input: unknown): ValidationResult {
   return { patch, issues };
 }
 
-/** Matrix sources in reading order (rows and the source menu): the LFOs, the envelopes, what the player does, the machine's own life. */
-export const SRC_ORDER = ['lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo_product', 'env2', 'env3', 'mod_env', 'amp_env', 'velocity', 'modwheel', 'keytrack', 'random', 'drift', 'drift_slow'];
+/** Matrix sources in reading order (rows and the source menu): the envelopes, the LFOs, what the player does, the machine's own life. */
+export const SRC_ORDER = ['env2', 'env3', 'mod_env', 'amp_env', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo_product', 'velocity', 'modwheel', 'keytrack', 'random', 'drift', 'drift_slow'];
 /** Destinations in signal order: pitch, the sources, drive and filter, dirt, level, effects, LFO rates. */
 export const DEST_ORDER = ['pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'vibrato_depth', 'osc1_wt_pos', 'osc2_wt_pos', 'osc1_pw', 'osc2_pw', 'osc1_level', 'osc2_level',
   'unison_detune', 'fm_amount', 'fm2_amount', 'sub_level', 'noise_level', 'breath_level', 'texture_level', 'drive', 'filter_cutoff', 'filter_resonance',
@@ -187,8 +187,8 @@ export const DEST_ORDER = ['pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'vi
 const MOD_SLOT_COUNT = 12;
 
 /**
- * Put the 12 mod-matrix slots in reading order: everything from LFO 1 first, then LFO 2, 3, 4,
- * Env 2, velocity / wheel / keytrack, the drifts and random; the same source's rows together, in
+ * Put the 12 mod-matrix slots in reading order: the envelopes first, then LFO 1, 2, 3, 4,
+ * velocity / wheel / keytrack, random and the drifts; the same source's rows together, in
  * signal order of their destinations; empty slots last. The slots are summed, so the sound is
  * unchanged. Runs on every patch that is loaded (presets, rolls, saved sounds).
  */

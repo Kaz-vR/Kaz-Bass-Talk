@@ -528,10 +528,10 @@ function ghosts(g: CanvasRenderingContext2D, sets: [number, number][][], color: 
 const MOD_SLOTS = 12;
 const MOD_IDS = Array.from({ length: MOD_SLOTS }, (_, i) => [`mod${i + 1}.source`, `mod${i + 1}.dest`, `mod${i + 1}.amount`]).flat();
 const LFO_SHAPE: Record<string, string> = { sine: 'SINE', triangle: 'TRIANGLE', saw_up: 'SAW UP', saw_down: 'SAW DOWN', square: 'SQUARE', sample_hold: 'S & H', wander: 'WANDER' };
-/** The matrix menus in columns: LFOs, envelopes, the player, the drifts (as the rows are sorted); destinations in signal order. */
+/** The matrix menus in columns: envelopes, LFOs, the player, the drifts (as the rows are sorted); destinations in signal order. */
 const MX_SRC_GROUPS: [string, string[]][] = [
-  ['LFO', ['none', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo_product']],
-  ['ENVELOPE', ['env2', 'env3', 'mod_env', 'amp_env']],
+  ['ENVELOPE', ['none', 'env2', 'env3', 'mod_env', 'amp_env']],
+  ['LFO', ['lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo_product']],
   ['PLAYER', ['velocity', 'modwheel', 'keytrack']],
   ['DRIFT', ['random', 'drift', 'drift_slow']],
 ];
@@ -2074,10 +2074,11 @@ export class SynthView {
     });
     return this.obox(`LFO ${n}`, `mb box-lfo${n}`, {
       power: (el) => this.boolPower(`${L}.on`, el),
-      head: [this.selector(`${L}.shape`, { label: (o) => LFO_SHAPE[o] ?? o }), sync, this.toggle(`${L}.retrigger`, 'Retrig', 'small')],
+      head: [this.selector(`${L}.shape`, { label: (o) => LFO_SHAPE[o] ?? o }), h('span', 'lfo-retrig', this.toggle(`${L}.retrigger`, 'Retrig', 'small'))],
       corner: [this.routeTag(L)],
       print: this.lfoPrint(n, MB_PRINT_W, MB_PRINT_H),
-      dials: [rate, note, this.knob(`${L}.fade`, 'Fade', 'lg', { fmt: ms })],
+      // HZ / SYNC sits just left of the rate it switches
+      dials: [h('div', 'lfo-sync', sync), rate, note, this.knob(`${L}.fade`, 'Fade', 'lg', { fmt: ms })],
     });
   }
 
@@ -2200,7 +2201,7 @@ export class SynthView {
   }
 
   /** A big chrome toggle switch (a bat-handle on a hex nut, as on old studio gear) for a bool. */
-  private bigToggle(id: string, label: string): HTMLElement {
+  private bigToggle(id: string, label: string, opts: { isOn?: () => boolean; turnOn?: () => void; deps?: string[] } = {}): HTMLElement {
     const b = h('button', 'big-toggle');
     b.innerHTML = `<span class="bt-on">ON</span>
       <svg viewBox="0 0 80 110" width="84" height="116" aria-hidden="true">
@@ -2216,8 +2217,13 @@ export class SynthView {
       </svg>
       <span class="bt-off">OFF</span><span class="bt-label">${label}</span>`;
     b.title = getParam(id)!.describes;
-    b.onclick = () => this.set(id, !this.get(id));
-    this.watch([id], () => b.classList.toggle('on', !!this.get(id)));
+    const isOn = opts.isOn ?? (() => !!this.get(id));
+    b.onclick = () => {
+      if (isOn()) this.set(id, false);
+      else if (opts.turnOn) opts.turnOn();
+      else this.set(id, true);
+    };
+    this.watch([id, ...(opts.deps ?? [])], () => b.classList.toggle('on', isOn()));
     return b;
   }
 
@@ -2257,7 +2263,21 @@ export class SynthView {
         g.fillRect(PAD, Math.round(Y(j / GY)), W - 2 * PAD, 1);
       }
       const shape = String(this.get('wobble.shape'));
-      curve = this.wobCurve(shape, N);
+      const full = this.wobCurve(shape, N);
+      // Depth scales the swing as heard: the volume gate dips from the top, the cutoff swings
+      // around the middle. The full-depth shape stays as a faint guide (the points sit on it).
+      const d = this.num('wobble.depth'), vol = !!this.get('wobble.volume');
+      curve = full.map((v) => (vol ? 1 - d * (1 - v) : 0.5 + d * (v - 0.5)));
+      if (d < 0.999) {
+        g.save();
+        g.setLineDash([3, 4]);
+        g.strokeStyle = 'rgba(220,226,232,0.22)';
+        g.lineWidth = 1;
+        g.beginPath();
+        full.forEach((v, i) => (i ? g.lineTo(X(i / N), Y(v)) : g.moveTo(X(i / N), Y(v))));
+        g.stroke();
+        g.restore();
+      }
       const line: [number, number][] = curve.map((v, i) => [X(i / N), Y(v)]);
       if (on()) fillUnder(g, line, H - PAD, accentOf(cv), 0.12, 0.02);
       silver(g, line, on());
@@ -2451,7 +2471,15 @@ export class SynthView {
     const pct = (v: number) => `${Math.round(v * 100)}%`;
     const settings = h('div', 'c ob box-wob lfo5-settings',
       h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'SETTINGS')),
-      h('div', 'lfo5-sec lfo5-switch', this.bigToggle('wobble.on', 'Wobbler')),
+      // on means it is heard: switching it on with Depth at 0 sets Depth to 100%
+      h('div', 'lfo5-sec lfo5-switch', this.bigToggle('wobble.on', 'Wobbler', {
+        isOn: on,
+        turnOn: () => {
+          if (this.num('wobble.depth') <= 0) this.set('wobble.depth', 1);
+          this.set('wobble.on', true);
+        },
+        deps: ['wobble.depth'],
+      })),
       h('div', 'lfo5-sec lfo5-knobs',
         this.knob('wobble.depth', 'Depth', 'lg', { fmt: pct }),
         this.knob('wobble.lowcut', 'Low cut', 'lg', { fmt: hz }),
@@ -2520,9 +2548,9 @@ export class SynthView {
    */
   private buildModPage(): HTMLElement {
     return h('div', 'v2-main mod-page2',
+      this.modEnvBox(2), this.modEnvBox(3),
       this.lfoBox(1), this.lfoBox(2),
       this.lfoBox(3), this.lfoBox(4),
-      this.modEnvBox(2), this.modEnvBox(3),
       this.matrixBox());
   }
 

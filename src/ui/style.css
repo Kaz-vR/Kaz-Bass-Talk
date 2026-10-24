@@ -1318,3 +1318,7 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .v2-tabs { gap: 22px !important; }
 .v2 .v2-top-right { gap: 18px !important; }
 .v2 .big-toggle .bt-off { margin-top: -10px; }
+
+/* LFO boxes: RETRIG at the right of the title row, HZ / SYNC just left of the rate dial. */
+.v2 .mod-page2 .ob-head .lfo-retrig { margin-left: auto; }
+.v2 .mod-page2 .ob-dials .lfo-sync { align-self: center; margin-right: 2px; }
