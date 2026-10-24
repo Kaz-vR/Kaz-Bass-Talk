@@ -177,10 +177,10 @@ export function validatePatch(input: unknown): ValidationResult {
   return { patch, issues };
 }
 
-/** Matrix sources in reading order: the LFOs, Env 2 and the envelopes, what the hands do, the drifts. */
-const SRC_ORDER = ['lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo_product', 'env2', 'env3', 'mod_env', 'amp_env', 'velocity', 'modwheel', 'keytrack', 'drift', 'drift_slow', 'random'];
+/** Matrix sources in reading order (rows and the source menu): the LFOs, the envelopes, what the player does, the machine's own life. */
+export const SRC_ORDER = ['lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo_product', 'env2', 'env3', 'mod_env', 'amp_env', 'velocity', 'modwheel', 'keytrack', 'random', 'drift', 'drift_slow'];
 /** Destinations in signal order: pitch, the sources, drive and filter, dirt, level, effects, LFO rates. */
-const DEST_ORDER = ['pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'vibrato_depth', 'osc1_wt_pos', 'osc2_wt_pos', 'osc1_pw', 'osc2_pw', 'osc1_level', 'osc2_level',
+export const DEST_ORDER = ['pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'vibrato_depth', 'osc1_wt_pos', 'osc2_wt_pos', 'osc1_pw', 'osc2_pw', 'osc1_level', 'osc2_level',
   'unison_detune', 'fm_amount', 'fm2_amount', 'sub_level', 'noise_level', 'breath_level', 'texture_level', 'drive', 'filter_cutoff', 'filter_resonance',
   'filter_vowel', 'dist_drive', 'dist_mix', 'dist_tone', 'crush_mix', 'tape_wow', 'amp', 'chorus_depth', 'phaser_mix', 'delay_time', 'delay_mix',
   'reverb_mix', 'width', 'lfo1_rate', 'lfo2_rate', 'lfo3_rate', 'lfo4_rate'];

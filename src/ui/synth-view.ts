@@ -528,6 +528,20 @@ function ghosts(g: CanvasRenderingContext2D, sets: [number, number][][], color: 
 const MOD_SLOTS = 12;
 const MOD_IDS = Array.from({ length: MOD_SLOTS }, (_, i) => [`mod${i + 1}.source`, `mod${i + 1}.dest`, `mod${i + 1}.amount`]).flat();
 const LFO_SHAPE: Record<string, string> = { sine: 'SINE', triangle: 'TRIANGLE', saw_up: 'SAW UP', saw_down: 'SAW DOWN', square: 'SQUARE', sample_hold: 'S & H', wander: 'WANDER' };
+/** The matrix menus in columns: LFOs, envelopes, the player, the drifts (as the rows are sorted); destinations in signal order. */
+const MX_SRC_GROUPS: [string, string[]][] = [
+  ['LFO', ['none', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo_product']],
+  ['ENVELOPE', ['env2', 'env3', 'mod_env', 'amp_env']],
+  ['PLAYER', ['velocity', 'modwheel', 'keytrack']],
+  ['DRIFT', ['random', 'drift', 'drift_slow']],
+];
+const MX_DEST_GROUPS: [string, string[]][] = [
+  ['PITCH', ['none', 'pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'vibrato_depth']],
+  ['SOURCES', ['osc1_wt_pos', 'osc2_wt_pos', 'osc1_pw', 'osc2_pw', 'osc1_level', 'osc2_level', 'unison_detune', 'fm_amount', 'fm2_amount', 'sub_level', 'noise_level', 'breath_level', 'texture_level']],
+  ['FILTER · DIRT', ['drive', 'filter_cutoff', 'filter_resonance', 'filter_vowel', 'dist_drive', 'dist_mix', 'dist_tone', 'crush_mix', 'tape_wow']],
+  ['LEVEL · FX', ['amp', 'chorus_depth', 'phaser_mix', 'delay_time', 'delay_mix', 'reverb_mix', 'width']],
+  ['LFO RATE', ['lfo1_rate', 'lfo2_rate', 'lfo3_rate', 'lfo4_rate']],
+];
 const SRC_LABEL: Record<string, string> = {
   none: '—', lfo1: 'LFO 1', lfo2: 'LFO 2', lfo3: 'LFO 3', lfo4: 'LFO 4', mod_env: 'Filter env', amp_env: 'Amp env', env2: 'Env 2', env3: 'Env 3', velocity: 'Velocity',
   keytrack: 'Keytrack', modwheel: 'Mod wheel', random: 'Random', drift: 'Drift', drift_slow: 'Slow drift', lfo_product: 'LFO 1×2',
@@ -537,7 +551,7 @@ const DEST_LABEL: Record<string, string> = {
   osc1_level: 'A level', osc2_level: 'B level', unison_detune: 'Detune', fm_amount: 'FM', fm2_amount: 'FM 2', sub_level: 'Sub', noise_level: 'Noise', drive: 'Drive',
   filter_cutoff: 'Cutoff', filter_resonance: 'Res', filter_vowel: 'Vowel', dist_drive: 'Dist drive', dist_mix: 'Dist mix', dist_tone: 'Dist tone', amp: 'Amp',
   lfo1_rate: 'LFO 1 rate', lfo2_rate: 'LFO 2 rate', lfo3_rate: 'LFO 3 rate', lfo4_rate: 'LFO 4 rate', crush_mix: 'Crush', chorus_depth: 'Chorus', phaser_mix: 'Phaser',
-  delay_time: 'Delay time', delay_mix: 'Delay', reverb_mix: 'Reverb', width: 'Width', tape_wow: 'Tape wow', texture_level: 'Texture', vibrato_depth: 'Vibrato', osc_pitch: 'Osc A+B pitch', breath_level: 'Breath',
+  delay_time: 'Delay time', delay_mix: 'Delay', reverb_mix: 'Reverb', width: 'Width', tape_wow: 'Tape wow', texture_level: 'Texture', vibrato_depth: 'Vibrato', osc_pitch: 'A+B pitch', breath_level: 'Breath',
 };
 /** Beats in a note value like 1/4, 1/8D or 1/16T. */
 function syncBeats(v: string): number {
@@ -1130,18 +1144,38 @@ export class SynthView {
   }
 
   /** A dropdown for an enum parameter (‹ › step through it, the name opens the list). */
-  private selector(id: string, opts: { label?: (o: string) => string; deps?: string[] } = {}): HTMLElement {
+  private selector(id: string, opts: { label?: (o: string) => string; deps?: string[]; groups?: [string, readonly string[]][] } = {}): HTMLElement {
     const p = getParam(id)!;
     const sel = h('select', 'sel-name');
     const name = (o: string) => (opts.label ?? ((x: string) => x.replace(/_/g, ' ')))(o).toUpperCase();
-    for (const o of p.options!) sel.append(new Option(name(o), o));
+    let list: string[];
+    if (opts.groups) {
+      // the menu in columns with headings (the dropdown draws an <optgroup> as a column)
+      list = [];
+      const used = new Set(opts.groups.flatMap(([, os]) => os));
+      const groups = opts.groups.map(([t, os]) => [t, os.filter((o) => p.options!.includes(o))] as const);
+      const rest = p.options!.filter((o) => !used.has(o));
+      if (rest.length) groups[groups.length - 1][1].push(...rest);
+      for (const [title, os] of groups) {
+        const og = document.createElement('optgroup');
+        og.label = title;
+        for (const o of os) {
+          og.append(new Option(name(o), o));
+          list.push(o);
+        }
+        sel.append(og);
+      }
+    } else {
+      list = p.options!;
+      for (const o of list) sel.append(new Option(name(o), o));
+    }
     const pick = (to: string) => {
       if (String(this.get(id)) !== to) this.set(id, to);
     };
     sel.onchange = () => pick(sel.value);
     const step = (d: number) => {
-      const i = p.options!.indexOf(String(this.get(id)));
-      pick(p.options![(i + d + p.options!.length) % p.options!.length]);
+      const i = list.indexOf(String(this.get(id)));
+      pick(list[(i + d + list.length) % list.length]);
     };
     const prev = h('button', 'sel-btn', '‹');
     const next = h('button', 'sel-btn', '›');
@@ -1150,7 +1184,7 @@ export class SynthView {
     const el = h('div', 'sel', sel, prev, next);
     el.title = `${p.label}: ${p.describes}`;
     this.watch([id, ...(opts.deps ?? [])], () => {
-      p.options!.forEach((o, i) => { sel.options[i].text = name(o); });
+      list.forEach((o, i) => { sel.options[i].text = name(o); });
       sel.value = String(this.get(id));
     });
     return el;
@@ -2453,8 +2487,8 @@ export class SynthView {
   private matrixBox(): HTMLElement {
     const rows: HTMLElement[] = [];
     for (let n = 1; n <= MOD_SLOTS; n++) {
-      const src = this.selector(`mod${n}.source`, { label: (o) => SRC_LABEL[o] ?? o });
-      const dst = this.selector(`mod${n}.dest`, { label: (o) => DEST_LABEL[o] ?? o });
+      const src = this.selector(`mod${n}.source`, { label: (o) => SRC_LABEL[o] ?? o, groups: MX_SRC_GROUPS });
+      const dst = this.selector(`mod${n}.dest`, { label: (o) => DEST_LABEL[o] ?? o, groups: MX_DEST_GROUPS });
       src.classList.add('mx-src');
       dst.classList.add('mx-dst');
       const on = h('button', 'mx-on', lamp());
