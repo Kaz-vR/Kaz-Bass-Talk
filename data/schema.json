@@ -671,7 +671,7 @@
       ],
       "default": "crackle",
       "group": "texture",
-      "describes": "What the Noise strip plays: a texture bed under the sound (crackle is vinyl pops, dust is fine grit, rumble is a low dark hum kept above the sub, air is breathy noise) or breath, per-note breath noise (chiff and a sustained level, set in the breath controls). With breath picked the bed is silent."
+      "describes": "What the Noise strip plays, a bed under the sound that swells in with each note and lingers for its tail: crackle is vinyl pops, dust is fine grit, rumble is a low dark hum kept above the sub, air is a broad breathy band, breath is a narrower, mouth-like breath with a soft puff at each new note."
     },
     {
       "id": "texture.level",

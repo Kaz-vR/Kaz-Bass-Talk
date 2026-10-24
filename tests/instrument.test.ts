@@ -1,5 +1,5 @@
-// Instrument additions for the preset bank: delayed vibrato, breath (attack
-// chiff and sustained), and the long envelope ranges risers and bells need.
+// Instrument additions for the preset bank: delayed vibrato, breath (a Noise bed with a puff
+// at each note), and the long envelope ranges risers and bells need.
 import { describe, expect, it } from 'vitest';
 import { renderPatch } from '../src/engine/core/render';
 import { bandPower, powerSpectrum } from '../src/analysis/spectrum';
@@ -42,10 +42,15 @@ describe('delayed vibrato', () => {
 });
 
 describe('breath', () => {
-  it('starts with a puff (as long as Tail) that settles into the steady breath', () => {
-    const p = { ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': true, 'texture.level': 1, 'texture.tail': 80 };
+  it('is a bed like the others: a soft puff at each new note, then steady', () => {
+    const p = { ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': false, 'texture.level': 1 };
     const r = renderPatch(p, heldNote(57, 4), { seconds: 1 });
-    expect(rms(r.left, 0.005 * FS, 0.03 * FS)).toBeGreaterThan(rms(r.left, 0.6 * FS, 0.9 * FS) * 1.8);
+    expect(rms(r.left, 0.04 * FS, 0.1 * FS)).toBeGreaterThan(rms(r.left, 0.6 * FS, 0.9 * FS) * 1.2);
+  });
+  it('lingers for its Tail after the note, like the other beds', () => {
+    const p = { ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': false, 'texture.level': 1, 'amp_env.release': 5 };
+    const tail = (ms: number) => rms(renderPatch({ ...p, 'texture.tail': ms }, heldNote(57, 1), { seconds: 2 }).left, 0.65 * FS, 0.9 * FS);
+    expect(tail(1500)).toBeGreaterThan(tail(50) * 10);
   });
   it('sustained breath follows the note and sits where its tone says', () => {
     const dark = mono(renderPatch({ ...base, 'osc1.level': 0, 'texture.type': 'breath', 'filter.route_n': true, 'texture.level': 0.8, 'texture.tone': 0.1 }, heldNote(57, 4), { seconds: 1 }));

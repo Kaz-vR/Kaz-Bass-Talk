@@ -1396,9 +1396,9 @@ export class SynthView {
       const pts: [number, number][] = [];
       for (let i = 0; i <= W; i += 1.5) {
         const pop = type === 'crackle' && Math.abs(r()) > 0.46 ? 3 : 1;
-        // breath: an attack puff (as long as Tail) settling into the steady breath
-        const env = breath ? 0.45 + 0.55 * Math.exp((-(i / W) * 4) / Math.max(0.03, tail)) : type === 'rumble' ? 0.6 : 1;
-        const fade = breath ? 1 : Math.min(1, Math.max(0, (1 - i / W) / Math.max(0.05, 0.25 + 0.75 * tail)) * 1.6);
+        // breath: a small puff at the start of the note, then like the other beds
+        const env = breath ? 0.7 + 0.3 * Math.exp(-(i / W) * 14) : type === 'rumble' ? 0.6 : 1;
+        const fade = Math.min(1, Math.max(0, (1 - i / W) / Math.max(0.05, 0.25 + 0.75 * tail)) * 1.6);
         pts.push([i, H / 2 + r() * (H - 10) * (0.25 + 0.75 * lvl) * pop * env * fade * (type === 'air' ? 0.6 : 1)]);
       }
       silver(g, smoothY(pts, (1 - tone) * 4), lvl > 0);
@@ -1741,9 +1741,7 @@ export class SynthView {
    * bed; chiff, decay, tone and level for breath.
    */
   private noiseStrip(): HTMLElement {
-    const isBreath = () => this.get('texture.type') === 'breath';
-    // The same four dials for every noise type, breath included (owner's call): Tone, Tail (for
-    // breath: how long its attack puff lasts), Lo cut, Level.
+    // The same four dials and Direct out for every noise type, breath included (owner's call).
     const dials = [this.knob('texture.tone', 'Tone', 'lg'), this.knob('texture.tail', 'Tail', 'lg'),
       this.lowCut('texture.filter_cutoff', 'texture.filter_type'), this.knob('texture.level', 'Level', 'lg')];
     const direct = this.exclusive('texture.direct', 'filter.route_n', 'Direct out', 'small direct-out');
@@ -1755,7 +1753,7 @@ export class SynthView {
         if (on()) {
           this.remembered.set('texture.level', this.num('texture.level'));
           this.set('texture.level', 0);
-        } else this.set('texture.level', this.remembered.get('texture.level') ?? (isBreath() ? 0.3 : 0.5));
+        } else this.set('texture.level', this.remembered.get('texture.level') ?? 0.5);
       };
       this.watch(['texture.type', 'texture.level'], () => {
         b.classList.toggle('on', on());
@@ -1763,8 +1761,6 @@ export class SynthView {
       });
       return b;
     };
-    // (breath plays inside each voice, so it has no direct out)
-    this.watch(['texture.type'], () => { direct.style.visibility = isBreath() ? 'hidden' : ''; });
     return this.obox('NOISE', 'c-src noise box-noise', {
       power,
       head: [this.selector('texture.type'), direct],

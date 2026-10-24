@@ -377,7 +377,6 @@ export class Synth {
     if (!hear('osc2')) { zero(P.osc[1].level); block(K.D_OSC2_LEVEL); }
     if (!hear('sub')) { zero(P.subLevel); block(K.D_SUB); }
     if (!hear('noise')) { zero(P.noise); block(K.D_NOISE); }
-    if (!hear('breath') && r[P.texType] === K.TEX_BREATH) { zero(P.texLevel); block(K.D_BREATH); }
     // Tape age hisses on its own: with every layer of the oscillator path silent (e.g. the sub
     // soloed), the tape goes quiet too, so a solo only plays what it names.
     if (!hear('osc1') && !hear('osc2') && !hear('noise') && !hear('breath')) {
@@ -465,6 +464,7 @@ export class Synth {
 
   /** A note (re)started its envelopes: retrigger LFOs that ask for it (fade-ins are per voice, see Voice). */
   private onTrigger(): void {
+    this.texture.trigger();
     for (let l = 0; l < LFO_COUNT; l++) {
       if (this.cur[P.lfo[l].retrig] > 0.5) {
         this.lfoPhase[l] = 0;
@@ -801,9 +801,9 @@ export class Synth {
     }
 
     // Texture bed.
-    const tex = clamp(cur[P.texLevel] + dst[K.D_TEXTURE], 0, 1);
-    // With breath picked the Noise strip plays per-note breath (in the voices): the bed is silent.
-    this.texGain = cur[P.texType] === K.TEX_BREATH ? 0 : tex * tex * TEXTURE_GAIN;
+    // (breath is one of the bed's types; the matrix's Breath destination moves it like Texture)
+    const tex = clamp(cur[P.texLevel] + dst[K.D_TEXTURE] + (cur[P.texType] === K.TEX_BREATH ? dst[K.D_BREATH] : 0), 0, 1);
+    this.texGain = tex * tex * TEXTURE_GAIN;
     this.texType = cur[P.texType];
     this.texTone = clamp(cur[P.texTone], 0, 1);
     // The bed swells in with the note: never faster than ~a third of the amp attack.

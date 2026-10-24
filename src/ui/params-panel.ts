@@ -8,7 +8,7 @@ type OnWheel = (value: number) => void;
 type OnMonitor = (solo: string[], mute: string[]) => void;
 
 /** Sound layers with solo / mute, by box. */
-const LAYERS: Record<string, string> = { osc1: 'osc1', osc2: 'osc2', sub: 'sub', noise: 'noise', breath: 'breath', texture: 'texture' };
+const LAYERS: Record<string, string> = { osc1: 'osc1', osc2: 'osc2', sub: 'sub', noise: 'noise', texture: 'texture' };
 
 const GROUP_TITLES: Record<string, string> = {
   voice: 'Voice', osc1: 'Oscillator 1', osc2: 'Oscillator 2', fm: 'FM', sub: 'Sub', noise: 'Noise', texture: 'Texture', drive: 'Drive',

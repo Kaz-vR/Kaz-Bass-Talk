@@ -154,17 +154,6 @@ export class Voice {
   private noteTime = 0;
   private vibPhase = 0;
   private vibRate = 5;
-  // Breath: band-passed noise through the filter, an attack chiff plus a sustained level.
-  private readonly breathSvf = new Svf();
-  private breathG = 0.1;
-  private chiffEnv = 0;
-  private chiffCoef = 0.99;
-  private chiffAmt = 0;
-  private breathLvl = 0;
-  private breathOn = false;
-  /** Breath's lo cut (the Noise strip's): one-pole pair coefficient (0 = off) and its state. */
-  private breathHp = 0;
-  private readonly breathHpS = new Float64Array(2);
   private accentAmt = 0;
   private subPhase = 0;
   // Hard sync: the master's phase and increment (oscillator 1's pitch, no unison), and whether it's on.
@@ -190,8 +179,6 @@ export class Voice {
   private routeA = true;
   private routeB = true;
   private routeS = false;
-  private routeBr = true;
-  private breathType = false;
   private subDirect = true;
   /** Some source skips the drive and main filter: it gets its own oversampled path. */
   private bypassOn = false;
@@ -362,7 +349,6 @@ export class Voice {
     this.noteTime = 0;
     this.vibPhase = 0.5 * (this.rng.next() + 1);
     this.vibRate = cur[P.vibRate] * (1 + 0.05 * this.rng.next());
-    this.chiffEnv = 1;
   }
 
   release(): void {
@@ -407,8 +393,6 @@ export class Voice {
     this.combR.reset();
     for (const st of this.strings) st.reset();
     for (const sh of this.shepards) sh.reset();
-    this.breathSvf.reset();
-    this.breathHpS.fill(0);
     this.crusher.reset();
     this.tape.reset();
     this.subClip.reset();
@@ -601,9 +585,6 @@ export class Voice {
     this.routeB = cur[P.routeB] > 0.5;
     // Direct out wins: a sub on its own clean path never goes into the filter.
     this.routeS = cur[P.routeS] > 0.5 && cur[P.subDirect] < 0.5;
-    // Breath is the Noise strip's breath type; N decides whether it goes through the filter.
-    this.breathType = cur[P.texType] === K.TEX_BREATH;
-    this.routeBr = cur[P.routeN] > 0.5;
     {
       let hz = Infinity;
       for (let n = 0; n < 2; n++) {
@@ -614,7 +595,7 @@ export class Voice {
       this.postCut.set(on ? 1 : 0, true, on ? hz : 20, fs);
     }
     this.subDirect = cur[P.subDirect] > 0.5;
-    const bypass = !this.routeA || !this.routeB || (this.breathType && !this.routeBr);
+    const bypass = !this.routeA || !this.routeB;
     if (bypass && !this.bypassOn) {
       this.upBL.reset();
       this.upBR.reset();
@@ -654,17 +635,6 @@ export class Voice {
     this.subInc = subInc;
     this.subLevel = clamp(cur[P.subLevel] + dst[D.SUB], 0, 1) * SUB_GAIN;
     this.noiseLevel = clamp(cur[P.noise] + dst[D.NOISE], 0, 1) * 0.5;
-    // Breath plays from the Noise strip's own dials, as the beds do: Level (with an attack puff
-    // that grows with it), Tone (brightness), Tail (how long the puff lasts) and Lo cut.
-    this.breathLvl = this.breathType ? clamp(cur[P.texLevel] + dst[D.BREATH], 0, 1) : 0;
-    this.chiffAmt = this.breathLvl;
-    this.breathOn = this.breathLvl > 0;
-    if (this.breathOn) {
-      this.breathG = Math.tan((Math.PI * Math.min(500 * Math.pow(16, cur[P.texTone]), fs * 0.45)) / fs);
-      this.chiffCoef = Math.exp(-4.6 / ((cur[P.texTail] / 1000) * fs));
-      const ft = cur[P.texFType], hz = cur[P.texFCut];
-      this.breathHp = (ft === 3 || ft === 4) && hz > 21 ? Math.exp((-TWO_PI * hz) / fs) : 0;
-    }
 
     // Pre-filter drive.
     const drive = clamp(cur[P.drive] + dst[D.DRIVE], 0, 1);
@@ -1096,25 +1066,6 @@ export class Voice {
         const nz = this.rng.next() * this.noiseLevel;
         l += nz;
         r += nz;
-      }
-      if (this.breathOn) {
-        this.chiffEnv *= this.chiffCoef;
-        const ba = this.chiffAmt * this.chiffEnv + 0.5 * this.breathLvl;
-        this.breathSvf.process(this.rng.next(), this.breathG, 1.1);
-        let b = this.breathSvf.bp * ba * 1.6;
-        if (this.breathHp > 0) {
-          const c = this.breathHp, s = this.breathHpS;
-          s[0] = b + c * (s[0] - b);
-          s[1] = s[0] + c * (s[1] - s[0]);
-          b -= s[1];
-        }
-        if (this.routeBr) {
-          l += b;
-          r += b;
-        } else {
-          byL += b;
-          byR += b;
-        }
       }
       // Sub: clean, mono, phase-stable (in poly mode only the lowest note carries it). Its own
       // filter and clip shape it; with "sub into filter" (S) it joins the oscillators instead.

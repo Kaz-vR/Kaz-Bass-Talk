@@ -53,15 +53,13 @@ export function ingredients(p: Patch): Ingredient[] {
   if (n(p, 'sub.level') > 0.02) add('sub', 'sub', { 'sub.level': 0 });
   if (n(p, 'noise.level') > 0.005) add('noise', 'noise', { 'noise.level': 0 });
   if (n(p, 'fm.amount') > 0.01 || n(p, 'fm.punch') > 0.01 || n(p, 'fm2.amount') > 0.01) add('fm', 'FM', { 'fm.amount': 0, 'fm.punch': 0, 'fm2.amount': 0 });
-  const breath = p['texture.type'] === 'breath';
-  if (breath && n(p, 'texture.level') > 0.01) add('breath', 'breath', { 'texture.level': 0 });
   if (n(p, 'vibrato.depth') > 0.5) add('vibrato', 'vibrato', { 'vibrato.depth': 0 });
   if (Math.abs(n(p, 'filter.env_amount')) > 0.01) add('filterEnv', 'filter envelope', { 'filter.env_amount': 0 });
   if (n(p, 'drive.amount') > 0.02) add('drive', 'pre-filter drive', { 'drive.amount': 0 });
   if (n(p, 'dist.mix') > 0.02 && n(p, 'dist.drive') > 0.01) add('dist', 'distortion', { 'dist.mix': 0 });
   if (n(p, 'crush.mix') > 0.01) add('crush', 'bitcrusher', { 'crush.mix': 0 });
   if (n(p, 'tape.drive') > 0.01 || n(p, 'tape.wow') > 0.01 || n(p, 'tape.age') > 0.01) add('tape', 'tape', { 'tape.drive': 0, 'tape.wow': 0, 'tape.age': 0 });
-  if (!breath && n(p, 'texture.level') > 0.01) add('texture', 'texture bed', { 'texture.level': 0 });
+  if (n(p, 'texture.level') > 0.01) add('texture', 'texture bed', { 'texture.level': 0 });
   for (const fx of ['chorus', 'flanger', 'phaser', 'delay', 'reverb']) {
     if (n(p, `${fx}.mix`) > 0.01) add(fx, fx, { [`${fx}.mix`]: 0 });
   }

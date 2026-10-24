@@ -142,8 +142,8 @@ function migratePitchEnv(src: Record<string, unknown>): Record<string, unknown> 
 }
 
 /**
- * Older patches gave breath its own dials (chiff, decay, tone, level); now it plays from the Noise
- * strip's own (Level with an attack puff that grows with it, Tone, Tail = the puff's length).
+ * Older patches gave breath its own dials (chiff, decay, tone, level) and played it inside each
+ * voice; now it is one of the Noise strip's beds with the strip's own dials (Level, Tone, Tail).
  */
 function migrateBreath(src: Record<string, unknown>): Record<string, unknown> {
   if (!('breath.level' in src) && !('breath.chiff' in src)) return src;
@@ -152,7 +152,6 @@ function migrateBreath(src: Record<string, unknown>): Record<string, unknown> {
     const level = Number(src['breath.level']) || 0, chiff = Number(src['breath.chiff']) || 0;
     out['texture.level'] = level > 0 ? level : chiff * 0.8;
     if ('breath.tone' in src) out['texture.tone'] = src['breath.tone'];
-    if ('breath.decay' in src) out['texture.tail'] = src['breath.decay'];
   }
   return out;
 }

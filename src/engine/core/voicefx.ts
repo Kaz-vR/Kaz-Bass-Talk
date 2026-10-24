@@ -192,7 +192,7 @@ export class Shepard {
 
 export const CLICK_NOISE = 0, CLICK_CLICK = 1, CLICK_KNOCK = 2, CLICK_KICK = 3;
 
-export const TEX_CRACKLE = 0, TEX_DUST = 1, TEX_RUMBLE = 2, TEX_AIR = 3;
+export const TEX_CRACKLE = 0, TEX_DUST = 1, TEX_RUMBLE = 2, TEX_AIR = 3, TEX_BREATH = 4;
 
 /**
  * Texture bed: crackle (vinyl pops over faint surface noise), dust (fine
@@ -219,6 +219,13 @@ export class Texture {
   private breath = 0;
   private breathTarget = 0;
   private breathCount = 0;
+  /** Breath's soft puff at each new note (set by trigger(), dies away in ~150 ms). */
+  private puff = 0;
+
+  /** A new note started: breath takes a small breath in. */
+  trigger(): void {
+    this.puff = 1;
+  }
 
   reset(): void {
     this.svfL.reset();
@@ -270,6 +277,18 @@ export class Texture {
         this.svfL.process(this.rngL.next(), g, 0.9);
         this.svf2.process(this.svfL.lp, Math.tan((Math.PI * 110) / fs), 1.2);
         l = r = 2.4 * this.svf2.hp * (0.6 + 0.4 * w);
+        break;
+      }
+      case TEX_BREATH: {
+        // Breath: a narrower, mouth-like band of noise (500 Hz .. 8 kHz with tone), a soft puff at
+        // each new note, and the same slow wander as the other beds.
+        this.puff *= Math.exp(-1 / (0.15 * fs));
+        const g = Math.tan((Math.PI * Math.min(500 * Math.pow(16, tone), fs * 0.4)) / fs);
+        this.svfL.process(this.rngL.next(), g, 1.1);
+        this.svfR.process(this.rngR.next(), g, 1.1);
+        const a = 2.4 * (0.75 + 0.25 * w) * (1 + 1.2 * this.puff);
+        l = this.svfL.bp * a;
+        r = this.svfR.bp * a;
         break;
       }
       default: {
