@@ -130,7 +130,7 @@ const IDEAS: Idea[] = [
     p['wobble.depth'] = between(r, 0.35, 0.75);
     p['wobble.rate'] = pick(r, ['1/4', '1/8', '1/8T', '1/16', '1/4T']);
     p['wobble.shape'] = pick(r, ['sine', 'triangle', 'saw down', 'square']);
-    p['wobble.target'] = pick(r, ['filter', 'filter + drive', 'filter + drive + texture']);
+    p['wobble.target'] = pick(r, ['filter', 'filter', 'wavetable', 'fm', 'volume']);
   } },
   { groups: ['crush'], text: 'crushed digital grain', apply: (p, r) => {
     p['crush.mix'] = between(r, 0.25, 0.5);

@@ -126,7 +126,10 @@ export function validatePatch(input: unknown): ValidationResult {
   for (const p of params) {
     // Older patches had one shared FX low cut: each effect takes it as its own.
     const old = p.id.endsWith('.lowcut') && !(p.id in src) && 'fx.lowcut' in src ? 'fx.lowcut' : p.id;
-    patch[p.id] = old in src ? clampValue(p, src[old], issues) : (p.default as ParamValue);
+    let raw = src[old];
+    // The wobble's old filter + drive (+ texture) targets became plain cutoff.
+    if (p.id === 'wobble.target' && typeof raw === 'string' && raw.startsWith('filter +')) raw = 'filter';
+    patch[p.id] = old in src ? clampValue(p, raw, issues) : (p.default as ParamValue);
   }
   for (const key of Object.keys(src)) {
     if (key !== 'meta' && key !== 'fx.lowcut' && !indexById.has(key)) issues.push({ param: key, message: 'unknown parameter (dropped)' });

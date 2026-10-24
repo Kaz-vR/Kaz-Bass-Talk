@@ -87,7 +87,7 @@ describe('wobble', () => {
 
   it('depth 0 is off: nothing changes', () => {
     const a = renderPatch({ ...base }, heldNote(45, 4), { seconds: 2, sampleRate: FS }).left;
-    const b = renderPatch({ ...base, 'wobble.rate': '1/16', 'wobble.target': 'filter + drive' }, heldNote(45, 4), { seconds: 2, sampleRate: FS }).left;
+    const b = renderPatch({ ...base, 'wobble.rate': '1/16', 'wobble.target': 'volume' }, heldNote(45, 4), { seconds: 2, sampleRate: FS }).left;
     expect(diffDb(a, b)).toBeLessThan(-200);
   });
 
@@ -102,14 +102,22 @@ describe('wobble', () => {
     return n / Math.sqrt(da * db);
   };
 
-  it.each(['filter', 'filter + drive'])('%s: moves the tone through each cycle and repeats with the tempo', (target) => {
+  // Each target, in a patch where it can be heard.
+  const where: Record<string, Record<string, unknown>> = {
+    filter: { 'filter.type': 'lowpass' },
+    vowel: { 'filter.type': 'formant', 'filter.cutoff': 2000 },
+    wavetable: { 'filter.type': 'lowpass', 'filter.cutoff': 4000, 'osc1.wave': 'wavetable' },
+    fm: { 'filter.type': 'lowpass', 'filter.cutoff': 4000, 'fm.on': true, 'fm.punch': 0, 'fm.ratio': 2, 'fm.feedback': 0 },
+  };
+  it.each(Object.keys(where))('%s: moves the tone through each cycle and repeats with the tempo', (target) => {
     // 120 BPM, 1/8: a cycle every 0.25 s; windows of 1/8 cycle, skipping the first cycle.
     // A3 (220 Hz): a whole number of waveform periods per cycle, so the oscillator lines up too.
-    const x = renderPatch({ ...wob, 'wobble.target': target, 'filter.type': 'lowpass' }, heldNote(57, 4), { seconds: 2, sampleRate: FS }).left;
+    const x = renderPatch({ ...wob, ...where[target], 'wobble.target': target }, heldNote(57, 4), { seconds: 2, sampleRate: FS }).left;
     const b = brightness(x, (0.25 * FS) / 8, 32).slice(8);
     expect(Math.max(...b) / Math.min(...b)).toBeGreaterThan(1.3);
     // One cycle later the tone is where it was; half a cycle later it isn't.
-    expect(corr(b.slice(0, 16), b.slice(8, 24))).toBeGreaterThan(0.9);
+    // (FM's sidebands shimmer against the measuring windows, so its repeat reads a little lower.)
+    expect(corr(b.slice(0, 16), b.slice(8, 24))).toBeGreaterThan(target === 'fm' ? 0.8 : 0.9);
     expect(corr(b.slice(0, 16), b.slice(4, 20))).toBeLessThan(0.5);
   });
 
@@ -126,18 +134,19 @@ describe('wobble', () => {
   });
 });
 
-describe('wobble on the texture bed', () => {
-  it('filter + drive + texture moves the bed; the other targets leave it alone', () => {
-    // The bed alone (solo), so only its own movement is measured.
-    const p = { meta: { name: 't' }, 'osc1.wave': 'saw', 'amp_env.sustain': 1, 'texture.level': 0.6, 'texture.type': 'dust', 'wobble.depth': 1, 'wobble.life': 0 };
-    const bed = (target: string) => renderPatch({ ...p, 'wobble.target': target }, heldNote(57, 4), { seconds: 1.5, sampleRate: 24000, monitor: { solo: ['texture'] } }).left;
-    const still = renderPatch({ ...p, 'wobble.depth': 0 }, heldNote(57, 4), { seconds: 1.5, sampleRate: 24000, monitor: { solo: ['texture'] } }).left;
-    const diff = (a: Float32Array, b: Float32Array) => {
-      let d = 0, e = 0;
-      for (let i = 0; i < a.length; i++) { d += (a[i] - b[i]) ** 2; e += a[i] ** 2; }
-      return 10 * Math.log10(d / e + 1e-30);
-    };
-    expect(diff(still, bed('filter + drive'))).toBeLessThan(-60);
-    expect(diff(still, bed('filter + drive + texture'))).toBeGreaterThan(-15);
+describe('wobble on the volume', () => {
+  it('gates the level with each cycle and never makes it louder', () => {
+    const p = { meta: { name: 't' }, 'osc1.wave': 'saw', 'amp_env.sustain': 1, 'wobble.depth': 1, 'wobble.life': 0, 'wobble.rate': '1/8', 'reverb.mix': 0, 'delay.mix': 0, 'texture.level': 0 };
+    const still = renderPatch({ ...p, 'wobble.depth': 0 }, heldNote(57, 4), { seconds: 2, sampleRate: 24000 }).left;
+    const gated = renderPatch({ ...p, 'wobble.target': 'volume' }, heldNote(57, 4), { seconds: 2, sampleRate: 24000 }).left;
+    const win = 24000 * 0.25 / 8;
+    const rms = (x: Float32Array) => Array.from({ length: 48 }, (_, k) => {
+      let e = 0;
+      for (let i = (k + 8) * win; i < (k + 9) * win; i++) e += x[i] ** 2;
+      return Math.sqrt(e / win);
+    });
+    const r = rms(gated), r0 = rms(still);
+    expect(Math.max(...r) / Math.max(1e-9, Math.min(...r))).toBeGreaterThan(4);
+    expect(Math.max(...r)).toBeLessThan(Math.max(...r0) * 1.05);
   });
 });

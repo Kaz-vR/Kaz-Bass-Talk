@@ -1261,3 +1261,5 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .lfo5-lock.on svg { filter: drop-shadow(0 0 4px var(--knob-accent)); color: var(--knob-accent); }
 .v2 .tab.locked { position: relative; }
 .v2 .tab.locked::after { content: ""; position: absolute; right: -9px; top: 50%; width: 4px; height: 4px; margin-top: -2px; border-radius: 1px; background: #a9dcff; box-shadow: 0 0 6px #a9dcff; }
+.v2 .lfo5-targets { display: grid !important; grid-template-columns: repeat(3, auto); gap: 8px 16px !important; justify-content: center; align-content: center; }
+.v2 .lfo5-targets .led.dim:not(.on) { opacity: 0.4; }

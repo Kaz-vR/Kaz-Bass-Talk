@@ -2418,43 +2418,47 @@ export class SynthView {
       dials: [this.knob('wobble.depth', 'Depth', 'lg'), this.knob('wobble.life', 'Life', 'lg')],
     });
 
-    // Right, bottom: what it moves, as three lamps in signal order; the print lights the stages.
+    // Right, bottom: what it moves (one target), the print naming it and what it does; a target
+    // that can't be heard in this patch is dimmed, and the print says what it needs.
     const [tcv, tg] = canvas(SW, SH, 'disp');
-    const stages = ['FILTER', 'DRIVE', 'TEXTURE'];
-    const reach = () => ({ filter: 1, 'filter + drive': 2, 'filter + drive + texture': 3 })[String(this.get('wobble.target'))] ?? 1;
-    this.watch(ids, () => {
+    const TARGETS: { v: string; label: string; does: string; needs?: () => string | null }[] = [
+      { v: 'filter', label: 'Cutoff', does: 'the filter swings shut and open' },
+      { v: 'vowel', label: 'Vowel', does: 'the formant filter talks', needs: () => (this.get('filter.type') === 'formant' ? null : 'set the filter to formant') },
+      { v: 'volume', label: 'Volume', does: 'a gate that chops the whole sound' },
+      { v: 'wavetable', label: 'Wavetable', does: 'the table sweeps back and forth', needs: () => (this.get('osc1.wave') === 'wavetable' || this.get('osc2.wave') === 'wavetable' ? null : 'set an oscillator to wavetable') },
+      { v: 'fm', label: 'FM', does: 'metallic bursts on the beat', needs: () => (this.get('fm.on') ? null : 'switch FM on (All controls)') },
+    ];
+    const deps = [...ids, 'filter.type', 'osc1.wave', 'osc2.wave', 'fm.on'];
+    this.watch(deps, () => {
       paper(tg, SW, SH);
-      const n = reach(), col = accentOf(tcv);
+      const t = TARGETS.find((x) => x.v === this.get('wobble.target')) ?? TARGETS[0];
+      const need = t.needs?.() ?? null, col = accentOf(tcv), lit = on() && !need;
       tg.save();
-      tg.font = "500 9px 'LT Space', 'Space Grotesk', sans-serif";
       tg.textAlign = 'center';
-      stages.forEach((st, i) => {
-        const x = (SW / 3) * (i + 0.5), lit = i < n && on();
-        tg.fillStyle = lit ? col : 'rgba(255,255,255,0.08)';
-        tg.shadowColor = col;
-        tg.shadowBlur = lit ? 10 : 0;
-        tg.beginPath();
-        tg.arc(x, SH / 2 - 8, lit ? 5 : 4, 0, 2 * Math.PI);
-        tg.fill();
-        tg.shadowBlur = 0;
-        tg.fillStyle = lit ? '#e8e8ec' : '#55555a';
-        tg.fillText(st.split('').join(String.fromCharCode(8202)), x, SH / 2 + 18);
-        if (i < 2) {
-          tg.fillStyle = i + 1 < n && on() ? col : 'rgba(255,255,255,0.08)';
-          tg.fillRect(x + 12, SH / 2 - 8.5, SW / 3 - 24, 1);
-        }
-      });
+      tg.font = "400 16px 'LT Space', 'Space Grotesk', sans-serif";
+      tg.fillStyle = lit ? '#f4f6fa' : '#6a6a70';
+      tg.shadowColor = col;
+      tg.shadowBlur = lit ? 12 : 0;
+      tg.fillText(t.label.toUpperCase().split('').join(String.fromCharCode(8202, 8202)), SW / 2, SH / 2 - 4);
+      tg.shadowBlur = 0;
+      tg.font = "400 9px 'LT Space', 'Space Grotesk', sans-serif";
+      tg.fillStyle = need ? col : '#6a6a70';
+      tg.fillText((need ?? t.does).toUpperCase().split('').join(String.fromCharCode(8202)), SW / 2, SH / 2 + 18);
       tg.restore();
     });
-    const pick = (v: string, label: string) => {
-      const b = h('button', 'led', lamp(), label);
-      b.onclick = () => this.set('wobble.target', v);
-      this.watch(['wobble.target'], () => b.classList.toggle('on', this.get('wobble.target') === v));
+    const pick = (t: (typeof TARGETS)[number]) => {
+      const b = h('button', 'led', lamp(), t.label);
+      b.onclick = () => this.set('wobble.target', t.v);
+      this.watch(deps, () => {
+        b.classList.toggle('on', this.get('wobble.target') === t.v);
+        b.classList.toggle('dim', !!t.needs?.());
+      });
+      b.title = `${t.label}: ${t.does}`;
       return b;
     };
     const targetBox = this.obox('TARGET', 'box-wob', {
       print: tcv,
-      dials: [h('div', 'lfo5-targets', pick('filter', 'Filter'), pick('filter + drive', '+ Drive'), pick('filter + drive + texture', '+ Texture'))],
+      dials: [h('div', 'lfo5-targets', ...TARGETS.map(pick))],
     });
     targetBox.title = getParam('wobble.target')!.describes;
 

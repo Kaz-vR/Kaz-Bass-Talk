@@ -1765,12 +1765,14 @@
       "type": "enum",
       "options": [
         "filter",
-        "filter + drive",
-        "filter + drive + texture"
+        "vowel",
+        "volume",
+        "wavetable",
+        "fm"
       ],
       "default": "filter",
       "group": "wobble",
-      "describes": "Filter: the classic wub (the filter swings shut and wide open with a resonant peak). Filter + drive: the same wub with the drive in front of the filter pulsing along, so it growls. Filter + drive + texture: the texture bed wobbles with it too (it opens, brightens and swells on each wub)."
+      "describes": "What the wobble moves. Cutoff: the classic wub (the filter swings shut and wide open with a resonant peak). Vowel: the formant filter talks (set the filter to formant). Volume: a tempo-locked gate that chops the sound. Wavetable: the wavetable oscillators sweep through their table. FM: the FM amount pulses, metallic bursts on the beat."
     },
     {
       "id": "wobble.shape",

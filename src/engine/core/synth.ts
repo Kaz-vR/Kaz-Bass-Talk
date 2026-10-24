@@ -92,13 +92,14 @@ export class Synth {
   private wobScaleTarget = 1;
   private wobBright = 0;
   private wobBrightTarget = 0;
-  /** How far the wobble moves the texture bed's tone (filter + drive + texture). */
-  private wobTexTone = 0;
   /** The custom shape's points (filled per block, no allocation) and its smoothed value. */
   private readonly wobXs = new Float64Array(12);
   private readonly wobYs = new Float64Array(12);
   private readonly wobSs = new Float64Array(12);
   private wobV = 0;
+  /** The volume target's gain, ramped per sample towards its target so the gate never clicks. */
+  private wobGate = 1;
+  private wobGateTarget = 1;
   /** Where the wobble is in its cycle (0..1) for the LFO page's dot; -1 when it is off. */
   liveWob = -1;
   private tempo = 120;
@@ -475,6 +476,7 @@ export class Synth {
     this.texture.reset();
     this.texEnv = this.texLpL = this.texLpR = 0;
     this.wobCycle = -1;
+    this.wobGate = this.wobGateTarget = 1;
     this.wobScale = this.wobScaleTarget = 1;
     this.wobBright = this.wobBrightTarget = 0;
     this.hcL.reset();
@@ -564,7 +566,6 @@ export class Synth {
     const cur = this.cur;
     const x = this.xdst;
     x.fill(0);
-    this.wobTexTone = 0;
     const w = this.wheel;
     if (w > 1e-4) {
       const sel = Math.round(cur[P.wheelMove]);
@@ -573,6 +574,7 @@ export class Synth {
     }
     const depth = cur[P.wobDepth];
     this.liveWob = -1;
+    this.wobGateTarget = 1;
     if (depth > 1e-4) {
       // Locked to the bar.
       const cycle = K.WOBBLE_BEATS[Math.round(cur[P.wobRate])] ?? 0.5;
@@ -610,27 +612,31 @@ export class Synth {
         }
         default: v = 0.5 - 0.5 * Math.cos(TWO_PI * p);
       }
-      // A classic wobble swings both ways around the preset's cutoff: shut
-      // ("ooo") to wide open ("waaa"), about ±2.5 octaves at full depth, with
-      // a resonant peak that grows with depth.
+      // Each target swings around the preset's own setting (volume only ducks, never louder).
       const a = depth * v * this.wobScale;
       const swing = depth * (2 * v - 1) * this.wobScale;
-      const target = Math.round(cur[P.wobTarget]);
-      if (target === K.WOB_FILTER_DRIVE_TEXTURE) {
-        // The bed opens, brightens and swells with each wub.
-        this.wobTexTone = 0.35 * swing;
-        x[K.D_TEXTURE] += 0.3 * swing;
-      }
-      if (target === K.WOB_FILTER_DRIVE || target === K.WOB_FILTER_DRIVE_TEXTURE) {
-        // The drive in front of the filter pulses with each opening, so the
-        // dirt opens with the filter instead of refilling the closed part.
-        x[K.D_CUTOFF] += 0.38 * swing + this.wobBright;
-        x[K.D_RES] += 0.12 * depth;
-        x[K.D_DRIVE] += 0.4 * a;
-        x[K.D_DIST_DRIVE] += 0.1 * a;
-      } else {
-        x[K.D_CUTOFF] += 0.42 * swing + this.wobBright;
-        x[K.D_RES] += 0.15 * depth;
+      switch (Math.round(cur[P.wobTarget])) {
+        case K.WOB_VOWEL:
+          // The formant filter talks: across most of the vowel range.
+          x[K.D_VOWEL] += 0.5 * swing;
+          break;
+        case K.WOB_VOLUME:
+          // A tempo-locked gate on the whole sound (sub, effects and tails too, as in ShaperBox):
+          // full level where the shape is up, down to silence at full depth.
+          this.wobGateTarget = 1 - Math.min(1, depth * this.wobScale) * (1 - v);
+          break;
+        case K.WOB_WAVETABLE:
+          x[K.D_OSC1_WT] += 0.5 * swing;
+          x[K.D_OSC2_WT] += 0.5 * swing;
+          break;
+        case K.WOB_FM:
+          x[K.D_FM] += 0.6 * a;
+          break;
+        default:
+          // The classic wub: the cutoff swings shut ("ooo") to wide open ("waaa"), about
+          // ±2.5 octaves at full depth, with a resonant peak that grows with depth.
+          x[K.D_CUTOFF] += 0.42 * swing + this.wobBright;
+          x[K.D_RES] += 0.15 * depth;
       }
     }
   }
@@ -720,7 +726,7 @@ export class Synth {
     // With breath picked the Noise strip plays per-note breath (in the voices): the bed is silent.
     this.texGain = cur[P.texType] === K.TEX_BREATH ? 0 : tex * tex * TEXTURE_GAIN;
     this.texType = cur[P.texType];
-    this.texTone = clamp(cur[P.texTone] + this.wobTexTone, 0, 1);
+    this.texTone = clamp(cur[P.texTone], 0, 1);
     // The bed swells in with the note: never faster than ~a third of the amp attack.
     this.texAtk = 1 - Math.exp(-1 / (Math.max(0.03, cur[P.amp[0]] / 3000) * fs));
     this.texRel = Math.exp(-4.6 / ((cur[P.texTail] / 1000) * fs));
@@ -976,6 +982,14 @@ export class Synth {
       if (texDirect) {
         l += texL;
         r += texR;
+      }
+
+      // LFO 5 on the volume: the gate, ~2 ms per step.
+      if (this.wobGate !== 1 || this.wobGateTarget !== 1) {
+        this.wobGate += (this.wobGateTarget - this.wobGate) * 0.02;
+        if (Math.abs(this.wobGate - 1) < 1e-6 && this.wobGateTarget === 1) this.wobGate = 1;
+        l *= this.wobGate;
+        r *= this.wobGate;
       }
 
       // Subsonic / DC filter.
