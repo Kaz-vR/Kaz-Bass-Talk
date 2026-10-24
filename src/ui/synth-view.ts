@@ -7,10 +7,7 @@ import { Biquad } from '../engine/core/dsp';
 import { fromNormalized, getParam, params, toNormalized, type ParamValue, type Patch } from '../schema';
 import { formatValue } from './params-panel';
 import { keyGrime, lightGrain, panelTexture } from './texture';
-import { wobShapeAt } from '../engine/core/wobshape';
-
-/** A point of the custom wobble shape: time and level 0..1, soft or hard corner. */
-interface WobPoint { x: number; y: number; s: boolean }
+import { WOB_RANDOM_STEPS, WOB_TEMPLATES, wobPointsAt, type WobPoint } from '../engine/core/wobshape';
 
 type OnChange = (id: string, value: ParamValue) => void;
 
@@ -2144,37 +2141,50 @@ export class SynthView {
     return box;
   }
 
-  /** The built-in shapes as editable points, so editing one starts from what you hear. */
-  private static readonly WOB_TEMPLATES: Record<string, WobPoint[]> = {
-    sine: [{ x: 0, y: 0, s: true }, { x: 0.5, y: 1, s: true }, { x: 1, y: 0, s: true }],
-    triangle: [{ x: 0, y: 0, s: false }, { x: 0.5, y: 1, s: false }, { x: 1, y: 0, s: false }],
-    'saw down': [{ x: 0, y: 1, s: false }, { x: 0.95, y: 0, s: false }, { x: 1, y: 1, s: false }],
-    square: [{ x: 0, y: 0.5, s: true }, { x: 0.05, y: 1, s: true }, { x: 0.45, y: 1, s: true }, { x: 0.55, y: 0, s: true }, { x: 0.95, y: 0, s: true }, { x: 1, y: 0.5, s: true }],
-  };
-
   /** The custom shape's points from the patch. */
   private wobCustomPoints(): WobPoint[] {
     const n = Math.max(2, Math.min(12, Math.round(this.num('wobble.points'))));
     return Array.from({ length: n }, (_, i) => ({ x: this.num(`wobble.x${i + 1}`), y: this.num(`wobble.y${i + 1}`), s: !!this.get(`wobble.s${i + 1}`) }));
   }
 
-  /** The points shown for a shape: the custom ones, or a built-in shape's template. */
+  /** The points shown for a shape: the custom ones, a preset shape's template, none for Random. */
   private wobPoints(shape = String(this.get('wobble.shape'))): WobPoint[] {
-    return shape === 'custom' ? this.wobCustomPoints() : SynthView.WOB_TEMPLATES[shape] ?? SynthView.WOB_TEMPLATES.sine;
+    if (shape === 'custom') return this.wobCustomPoints();
+    if (shape === 'random') return [];
+    return WOB_TEMPLATES[shape] ?? WOB_TEMPLATES.sine;
   }
 
-  /** A shape's value (0 = shut .. 1 = open) at phase p, exactly as the engine plays it. */
-  private wobValueFor(shape: string, p: number): number {
-    switch (shape) {
-      case 'triangle': return p < 0.5 ? 2 * p : 2 - 2 * p;
-      case 'saw down': return p < 0.95 ? 1 - p / 0.95 : (p - 0.95) / 0.05;
-      case 'square': return 0.5 + 0.5 * Math.tanh(6 * Math.sin(2 * Math.PI * p));
-      case 'custom': {
-        const pts = this.wobCustomPoints();
-        return wobShapeAt(pts.map((q) => q.x), pts.map((q) => q.y), pts.map((q) => q.s), pts.length, p);
-      }
-      default: return 0.5 - 0.5 * Math.cos(2 * Math.PI * p);
+  /** A shape's level (0 = shut .. 1 = open) at q in the drawn cycle; Random shows a fixed example. */
+  private wobValueFor(shape: string, q: number): number {
+    if (shape === 'random') return SynthView.WOB_RANDOM_PREVIEW[Math.min(WOB_RANDOM_STEPS - 1, Math.floor(q * WOB_RANDOM_STEPS))];
+    return wobPointsAt(this.wobPoints(shape), q);
+  }
+  private static readonly WOB_RANDOM_PREVIEW = [0.62, 0.18, 0.86, 0.4, 0.95, 0.08, 0.55, 0.3];
+
+  /**
+   * One cycle as heard, sampled at n + 1 points across the cycle: shifted, and run through Smooth
+   * the way the engine glides (two cycles at 120 BPM, keeping the second, so the wrap is right).
+   */
+  private wobCurve(shape: string, n: number): number[] {
+    let ph = this.num('wobble.phase');
+    if (shape !== String(this.get('wobble.shape'))) ph = 0; // palette tiles show the shape as drawn
+    const raw = (x: number) => {
+      let q = x - ph;
+      q -= Math.floor(q);
+      return this.wobValueFor(shape, q);
+    };
+    const sm = this.num('wobble.smooth');
+    const cycleSec = (syncBeats(String(this.get('wobble.rate'))) * 60) / 120;
+    const tau = sm > 1e-4 ? 0.002 + 0.12 * sm * sm : 0.0015;
+    // (at 0 the engine's few-ms anti-click glide is too small to draw)
+    const a = sm > 1e-4 ? 1 - Math.exp(-cycleSec / n / tau) : 1;
+    let v = raw(0);
+    const out: number[] = [];
+    for (let k = 0; k <= 2 * n; k++) {
+      v += (raw((k % n) / n) - v) * a;
+      if (k >= n) out.push(v);
     }
+    return out;
   }
 
   /** Write points as the custom shape (and switch to it). */
@@ -2190,13 +2200,13 @@ export class SynthView {
     this.set('wobble.shape', 'custom');
   }
 
-  /** LFO 5 lock: while on, switching presets keeps LFO 5 (every wobble.* setting) as it is. */
+  /** Wobbler lock: while on, switching presets keeps the Wobbler (every wobble.* setting) as it is. */
   private lfo5Locked = (() => {
     try { return localStorage.getItem('lt.lfo5.lock') === '1'; } catch { return false; }
   })();
   private readonly lockViews: (() => void)[] = [];
 
-  /** Called when a preset (or roll) loads: carries LFO 5 over from the previous patch while locked. */
+  /** Called when a preset (or roll) loads: carries the Wobbler over from the previous patch while locked. */
   keepLocked(next: Patch, prev: Patch | null): void {
     if (!this.lfo5Locked || !prev) return;
     const from = prev as Record<string, unknown>, to = next as Record<string, unknown>;
@@ -2209,14 +2219,14 @@ export class SynthView {
     for (const f of this.lockViews) f();
   }
 
-  /** A padlock in LFO 5's title row: closed and lit = LFO 5 stays when you switch presets. */
+  /** A padlock in the Wobbler's title row: closed and lit = it stays when you switch presets. */
   private lfo5LockButton(): HTMLElement {
     const b = h('button', 'lfo5-lock');
     const draw = () => {
       const on = this.lfo5Locked;
       b.classList.toggle('on', on);
       b.innerHTML = `<svg viewBox="0 0 14 16" width="11" height="13" aria-hidden="true"><path d="${on ? 'M3.5 7V4.8a3.5 3.5 0 0 1 7 0V7' : 'M3.5 7V4.8a3.5 3.5 0 0 1 6.6-1.6'}" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><rect x="1.5" y="7" width="11" height="8" rx="1.2" fill="${on ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.4"/></svg><span>${on ? 'LOCKED' : 'LOCK'}</span>`;
-      b.title = on ? 'LFO 5 is locked: switching presets keeps it as it is. Click to unlock.' : 'Lock LFO 5: switching presets keeps it as it is.';
+      b.title = on ? 'The Wobbler is locked: switching presets keeps it as it is. Click to unlock.' : 'Lock the Wobbler: switching presets keeps it as it is.';
     };
     b.onclick = () => this.setLfo5Lock(!this.lfo5Locked);
     this.lockViews.push(draw);
@@ -2224,7 +2234,7 @@ export class SynthView {
     return b;
   }
 
-  /** The engine's wobble phase for the LFO page's dot (0..1, null when off or silent). */
+  /** The engine's wobble phase for the Wobbler's dot (0..1, null when off or silent). */
   setLiveWobble(read: () => number | null): void {
     const step = () => {
       const v = read();
@@ -2237,21 +2247,52 @@ export class SynthView {
     requestAnimationFrame(step);
   }
 
+  /** A big chrome toggle switch (a bat-handle on a hex nut, as on old studio gear) for a bool. */
+  private bigToggle(id: string, label: string): HTMLElement {
+    const b = h('button', 'big-toggle');
+    b.innerHTML = `<span class="bt-on">ON</span>
+      <svg viewBox="0 0 80 110" width="84" height="116" aria-hidden="true">
+        <defs>
+          <radialGradient id="btNut" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#f4f4f6"/><stop offset=".45" stop-color="#a9abb0"/><stop offset="1" stop-color="#3b3c40"/></radialGradient>
+          <linearGradient id="btRod" x1="0" x2="1"><stop offset="0" stop-color="#6d6f74"/><stop offset=".35" stop-color="#f6f6f8"/><stop offset=".6" stop-color="#b9bbc0"/><stop offset="1" stop-color="#4a4b50"/></linearGradient>
+          <radialGradient id="btTip" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#b8babf"/><stop offset="1" stop-color="#55565b"/></radialGradient>
+        </defs>
+        <circle cx="40" cy="55" r="30" fill="#060607" stroke="rgba(255,255,255,0.06)"/>
+        <polygon points="40,33 59,44 59,66 40,77 21,66 21,44" fill="url(#btNut)" stroke="#2a2b2e" stroke-width="1"/>
+        <circle cx="40" cy="55" r="11" fill="#1a1a1c" stroke="#77797e" stroke-width="1.2"/>
+        <g class="bt-lever"><rect x="35" y="16" width="10" height="40" rx="5" fill="url(#btRod)"/><circle cx="40" cy="16" r="8.5" fill="url(#btTip)" stroke="#3a3b3f" stroke-width=".8"/></g>
+      </svg>
+      <span class="bt-off">OFF</span><span class="bt-label">${label}</span>`;
+    b.title = getParam(id)!.describes;
+    b.onclick = () => this.set(id, !this.get(id));
+    this.watch([id], () => b.classList.toggle('on', !!this.get(id)));
+    return b;
+  }
+
   /**
-   * The LFO page: LFO 5 (the wobble, on its own bar-locked clock) as one cycle you can draw, as in
-   * ShaperBox: drag a point (Shift snaps to the grid), click it for a soft or hard corner,
-   * double-click a point to remove it or empty space to add one. A dot follows the engine's real
-   * phase while a note sounds. Under it the shape palette; on the right its controls.
+   * The Wobbler page (owner's layout): the shape you draw over the six left boxes, as in ShaperBox
+   * (a hard point sits on the line, a soft one pulls the line towards itself; drag a point, Shift
+   * snaps to the grid, click it for soft / hard, double-click a point to remove it or empty space
+   * to add one), the rate in its title row, a dot following the engine's real phase, the shape
+   * palette under it, and one SETTINGS column on the right.
    */
   private buildLfoPage(): HTMLElement {
-    const ids = ['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.life', 'wobble.cutoff', 'wobble.volume', 'wobble.points'];
+    const ids = ['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.phase', 'wobble.smooth', 'wobble.lowcut', 'wobble.cutoff', 'wobble.volume', 'wobble.points'];
     for (let i = 1; i <= 12; i++) ids.push(`wobble.x${i}`, `wobble.y${i}`, `wobble.s${i}`);
     const on = () => !!this.get('wobble.on') && this.num('wobble.depth') > 0;
     const W = 870, H = 260, PAD = 14, GX = 16, GY = 8;
     const [cv, g] = canvas(W, H, 'disp');
     const [ov, og] = canvas(W, H, 'lfo5-overlay');
     const X = (x: number) => PAD + x * (W - 2 * PAD), Y = (y: number) => PAD + (1 - y) * (H - 2 * PAD);
-    let hover = -1, drag = -1;
+    // a point's place on screen after the shift (the end point sits where the start does)
+    const shown = (x: number) => {
+      const ph = this.num('wobble.phase');
+      if (ph < 1e-6) return x;
+      const d = x + ph;
+      return x >= 1 ? ph : d - Math.floor(d);
+    };
+    let hover = -1, drag = -1, curve: number[] = [];
+    const N = W - 2 * PAD;
     const redraw = () => {
       paper(g, W, H);
       // the grid the points snap to (Shift): sixteenths across, eighths up
@@ -2264,23 +2305,22 @@ export class SynthView {
         g.fillRect(PAD, Math.round(Y(j / GY)), W - 2 * PAD, 1);
       }
       const shape = String(this.get('wobble.shape'));
-      const line: [number, number][] = [];
-      for (let i = 0; i <= W - 2 * PAD; i++) {
-        const p = i / (W - 2 * PAD);
-        line.push([X(p), Y(this.wobValueFor(shape, p))]);
-      }
+      curve = this.wobCurve(shape, N);
+      const line: [number, number][] = curve.map((v, i) => [X(i / N), Y(v)]);
       if (on()) fillUnder(g, line, H - PAD, accentOf(cv), 0.12, 0.02);
       silver(g, line, on());
-      // the points: a filled dot is a hard corner, a ring a soft one
+      // the points: a filled dot sits on the line (hard), a ring pulls the line (soft)
       const col = accentOf(cv);
-      this.wobPoints(shape).forEach((q, i) => {
-        const r = i === hover || i === drag ? 6 : 4.5;
+      const pts = this.wobPoints(shape);
+      pts.forEach((q, i) => {
+        const r = i === hover || i === drag ? 6 : 4.5, px = X(shown(q.x)), py = Y(q.y);
+        const soft = q.s && i > 0 && i < pts.length - 1;
         g.save();
         g.shadowColor = col;
         g.shadowBlur = on() ? 10 : 0;
         g.beginPath();
-        g.arc(X(q.x), Y(q.y), r, 0, 2 * Math.PI);
-        if (q.s) {
+        g.arc(px, py, r, 0, 2 * Math.PI);
+        if (soft) {
           g.fillStyle = '#060607';
           g.fill();
           g.lineWidth = 1.6;
@@ -2298,8 +2338,8 @@ export class SynthView {
     const drawDot = () => {
       og.clearRect(0, 0, W, H);
       const p = this.liveWob;
-      if (p === null || !on() || ov.offsetParent === null) return;
-      const x = X(p), y = Y(this.wobValueFor(String(this.get('wobble.shape')), p)), col = accentOf(cv);
+      if (p === null || !on() || ov.offsetParent === null || !curve.length) return;
+      const x = X(p), y = Y(curve[Math.min(N, Math.round(p * N))]), col = accentOf(cv);
       og.save();
       og.fillStyle = 'rgba(255,255,255,0.06)';
       og.fillRect(Math.round(x), PAD, 1, H - 2 * PAD);
@@ -2313,16 +2353,20 @@ export class SynthView {
     };
     this.wobDraws.push(drawDot);
 
-    // editing
+    // editing (in the shape's own time: the shift is taken back out)
     const at = (e: PointerEvent | MouseEvent) => {
       const r = ov.getBoundingClientRect();
-      return { x: Math.max(0, Math.min(1, ((e.clientX - r.left) * (W / r.width) - PAD) / (W - 2 * PAD))), y: Math.max(0, Math.min(1, 1 - ((e.clientY - r.top) * (H / r.height) - PAD) / (H - 2 * PAD))) };
+      const dx = Math.max(0, Math.min(1, ((e.clientX - r.left) * (W / r.width) - PAD) / (W - 2 * PAD)));
+      let x = dx - this.num('wobble.phase');
+      x -= Math.floor(x);
+      return { x, y: Math.max(0, Math.min(1, 1 - ((e.clientY - r.top) * (H / r.height) - PAD) / (H - 2 * PAD))) };
     };
+    const snap = (v: { x: number; y: number }, e: MouseEvent) => (e.shiftKey ? { x: Math.round(v.x * GX) / GX, y: Math.round(v.y * GY) / GY } : v);
     const hit = (e: PointerEvent | MouseEvent) => {
       const r = ov.getBoundingClientRect(), mx = (e.clientX - r.left) * (W / r.width), my = (e.clientY - r.top) * (H / r.height);
       let best = -1, bd = 10;
       this.wobPoints().forEach((q, i) => {
-        const d = Math.hypot(X(q.x) - mx, Y(q.y) - my);
+        const d = Math.hypot(X(shown(q.x)) - mx, Y(q.y) - my);
         if (d < bd) { bd = d; best = i; }
       });
       return best;
@@ -2342,11 +2386,7 @@ export class SynthView {
         return;
       }
       const pts = this.wobPoints().map((q) => ({ ...q }));
-      let { x, y } = at(e);
-      if (e.shiftKey) {
-        x = Math.round(x * GX) / GX;
-        y = Math.round(y * GY) / GY;
-      }
+      let { x, y } = snap(at(e), e);
       const last = pts.length - 1;
       // the first and last points stay at the start and end of the cycle; the rest keep their order
       x = drag === 0 ? 0 : drag === last ? 1 : Math.max(pts[drag - 1].x + 0.002, Math.min(pts[drag + 1].x - 0.002, x));
@@ -2360,12 +2400,13 @@ export class SynthView {
       ov.releasePointerCapture(e.pointerId);
       const i = drag;
       drag = -1;
-      // a click (no drag) switches the corner between soft and hard, unless a double-click follows
+      // a click (no drag) switches a point between hard (on the line) and soft (pulling it), unless
+      // a double-click follows; the first and last points always stay on the line
       if (!moved) {
         clearTimeout(clickTimer);
         clickTimer = window.setTimeout(() => {
           const pts = this.wobPoints().map((q) => ({ ...q }));
-          if (pts[i]) pts[i].s = !pts[i].s;
+          if (pts[i] && i > 0 && i < pts.length - 1) pts[i].s = !pts[i].s;
           this.setWobPoints(pts);
         }, 230);
       }
@@ -2373,6 +2414,7 @@ export class SynthView {
     });
     ov.addEventListener('dblclick', (e) => {
       clearTimeout(clickTimer);
+      if (this.get('wobble.shape') === 'random') return;
       const pts = this.wobPoints().map((q) => ({ ...q }));
       const i = hit(e);
       if (i >= 0) {
@@ -2381,69 +2423,53 @@ export class SynthView {
         else return;
       } else {
         if (pts.length >= 12) return;
-        let { x, y } = at(e);
-        if (e.shiftKey) {
-          x = Math.round(x * GX) / GX;
-          y = Math.round(y * GY) / GY;
-        }
+        const { x, y } = snap(at(e), e);
         if (x <= 0.002 || x >= 0.998) return;
         pts.push({ x, y, s: false });
       }
       this.setWobPoints(pts);
     });
     ov.addEventListener('pointerleave', () => { if (hover >= 0) { hover = -1; redraw(); } });
-    ov.title = 'Drag a point (Shift snaps to the grid) · click it for a soft or hard corner · double-click a point to remove it, empty space to add one';
+    ov.title = 'Drag a point (Shift snaps to the grid) · click it: on the line (hard) or pulling the line (soft) · double-click a point to remove it, empty space to add one';
     const edit = h('div', 'lfo5-edit', cv, ov);
-    const rate = h('span', 'lfo5-bars');
-    this.watch(['wobble.rate'], () => { rate.textContent = `1 CYCLE = ${this.get('wobble.rate')}`; });
-    const big = this.obox('LFO 5', 'box-wob lfo5-main', {
-      power: (el) => this.boolPower('wobble.on', el),
-      head: [h('span', 'lfo5-note', 'the wobble · locked to the tempo and the bar'), rate, this.lfo5LockButton()],
+
+    // the rate in the title row: click for the list, or step with the arrows
+    const rateP = getParam('wobble.rate')!;
+    const rateSel = h('select', 'sel-name lfo5-rate-sel');
+    for (const o of rateP.options!) rateSel.append(new Option(o, o));
+    rateSel.onchange = () => this.set('wobble.rate', rateSel.value);
+    const stepRate = (d: number) => {
+      const o = rateP.options!, i = o.indexOf(String(this.get('wobble.rate')));
+      this.set('wobble.rate', o[Math.max(0, Math.min(o.length - 1, i + d))]);
+    };
+    const rPrev = h('button', 'lfo5-arrow', '<'), rNext = h('button', 'lfo5-arrow', '>');
+    rPrev.title = 'Slower';
+    rNext.title = 'Faster';
+    rPrev.onclick = () => stepRate(-1);
+    rNext.onclick = () => stepRate(1);
+    this.watch(['wobble.rate'], () => { rateSel.value = String(this.get('wobble.rate')); });
+    const rate = h('div', 'lfo5-rate', h('span', 'lfo5-rate-label', 'RATE'), rateSel, rPrev, rNext);
+    rate.title = rateP.describes;
+    const big = this.obox('WOBBLER', 'box-wob lfo5-main', {
+      head: [rate, this.lfo5LockButton()],
       print: edit,
     });
 
-    // Right, top: the shape and rate, one cycle up close, depth and life.
-    const SW = PRINT_W, SH = PRINT_H;
-    const [scv, sg] = canvas(SW, SH, 'disp');
-    this.watch(ids, () => {
-      paper(sg, SW, SH);
-      const pts: [number, number][] = [];
-      const shape = String(this.get('wobble.shape'));
-      for (let i = 0; i <= SW; i++) pts.push([i, SH - 8 - this.wobValueFor(shape, i / SW) * (SH - 16)]);
-      silver(sg, pts, on());
-    });
-    const shapeBox = this.obox('SHAPE', 'box-wob', {
-      head: [this.selector('wobble.shape'), this.selector('wobble.rate', { label: (o) => o })],
-      print: scv,
-      dials: [this.knob('wobble.depth', 'Depth', 'lg'), this.knob('wobble.life', 'Life', 'lg')],
-    });
-
-    // Right, bottom: what it moves, cutoff and volume as two lamps (either or both); the print
-    // shows one cycle of each, the cutoff as a line and the volume as the gate it cuts.
-    const [tcv, tg] = canvas(SW, SH, 'disp');
-    this.watch(ids, () => {
-      paper(tg, SW, SH);
-      const cut = !!this.get('wobble.cutoff'), vol = !!this.get('wobble.volume'), shape = String(this.get('wobble.shape'));
-      const col = accentOf(tcv), lit = on() && (cut || vol);
-      if (vol) {
-        // the volume: a filled body that swells and ducks with the shape
-        const pts: [number, number][] = [];
-        for (let i = 0; i <= SW; i++) pts.push([i, SH - 6 - this.wobValueFor(shape, i / SW) * (SH - 14)]);
-        if (lit) fillUnder(tg, pts, SH - 6, col, 0.32, 0.08);
-        else fillUnder(tg, pts, SH - 6, '#55555a', 0.25, 0.05);
-      }
-      if (cut) {
-        const pts: [number, number][] = [];
-        for (let i = 0; i <= SW; i++) pts.push([i, SH - 6 - this.wobValueFor(shape, i / SW) * (SH - 14)]);
-        silver(tg, pts, lit);
-      }
-      tg.save();
-      tg.textAlign = 'right';
-      tg.font = "400 9px 'LT Space', 'Space Grotesk', sans-serif";
-      tg.fillStyle = lit ? '#cfd4da' : '#55555a';
-      const what = cut && vol ? 'CUTOFF + VOLUME' : cut ? 'CUTOFF' : vol ? 'VOLUME' : 'NOTHING';
-      tg.fillText(what.split('').join(String.fromCharCode(8202)), SW - 4, 12);
-      tg.restore();
+    // SETTINGS: the switch, mix / low cut / smooth, the shift arrows, the two targets
+    const shiftVal = h('span', 'lfo5-shift-val');
+    const shift = (d: number) => {
+      let v = Math.round(this.num('wobble.phase') * GX) + d;
+      v = ((v % GX) + GX) % GX;
+      this.set('wobble.phase', v / GX);
+    };
+    const sPrev = h('button', 'lfo5-arrow', '<'), sNext = h('button', 'lfo5-arrow', '>');
+    sPrev.title = 'Move the shape earlier (a sixteenth of the cycle)';
+    sNext.title = 'Move the shape later (a sixteenth of the cycle)';
+    sPrev.onclick = () => shift(-1);
+    sNext.onclick = () => shift(1);
+    this.watch(['wobble.phase'], () => {
+      const v = Math.round(this.num('wobble.phase') * GX);
+      shiftVal.textContent = v === 0 ? '0' : `+${v}/16`;
     });
     const lampFor = (id: string, label: string) => {
       const b = h('button', 'led', lamp(), label);
@@ -2452,14 +2478,20 @@ export class SynthView {
       b.title = getParam(id)!.describes;
       return b;
     };
-    const targetBox = this.obox('TARGET', 'box-wob', {
-      print: tcv,
-      dials: [h('div', 'lfo5-targets', lampFor('wobble.cutoff', 'Cutoff'), lampFor('wobble.volume', 'Volume'))],
-    });
+    const hz = (v: number) => (v <= 21 ? 'off' : v >= 1000 ? '1 kHz' : `${Math.round(v)} Hz`);
+    const pct = (v: number) => `${Math.round(v * 100)}%`;
+    const settings = h('div', 'c ob box-wob lfo5-settings',
+      h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'SETTINGS')),
+      h('div', 'lfo5-sec lfo5-switch', this.bigToggle('wobble.on', 'Wobbler')),
+      h('div', 'lfo5-sec lfo5-knobs',
+        this.knob('wobble.depth', 'Mix', 'lg', { fmt: pct }),
+        this.knob('wobble.lowcut', 'Low cut', 'lg', { fmt: hz }),
+        this.knob('wobble.smooth', 'Smooth', 'lg', { fmt: pct })),
+      h('div', 'lfo5-sec lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, shiftVal, sNext),
+      h('div', 'lfo5-sec lfo5-targets', lampFor('wobble.cutoff', 'Cutoff'), lampFor('wobble.volume', 'Volume')));
 
-    // The shape palette under the print (as in ShaperBox): one tile per shape, the chosen one lit;
-    // the empty tiles are room for shapes still to come.
-    const SLOTS = 8, TW = 96, TH = 46;
+    // The shape palette under the print (as in ShaperBox): one tile per shape, the chosen one lit.
+    const TW = 96, TH = 46, TN = TW - 16;
     const tiles: HTMLElement[] = [];
     for (const shape of getParam('wobble.shape')!.options!) {
       const [tc, tgx] = canvas(TW, TH, 'disp');
@@ -2471,18 +2503,13 @@ export class SynthView {
         tile.classList.toggle('on', chosen);
         paper(tgx, TW, TH);
         const pts: [number, number][] = [];
-        for (let i = 0; i <= TW - 16; i++) pts.push([8 + i, TH - 7 - this.wobValueFor(shape, i / (TW - 16)) * (TH - 14)]);
+        for (let i = 0; i <= TN; i++) pts.push([8 + i, TH - 7 - this.wobValueFor(shape, i / TN) * (TH - 14)]);
         silver(tgx, pts, chosen && on());
       });
       tiles.push(tile);
     }
-    while (tiles.length < SLOTS) {
-      const empty = h('div', 'lfo5-tile empty', h('span', 'lfo5-tile-plus', '+'));
-      empty.title = 'More shapes coming';
-      tiles.push(empty);
-    }
     const palette = h('div', 'c ob box-wob lfo5-palette', ...tiles);
-    return h('div', 'v2-main osc-page lfo-page', big, shapeBox, targetBox, palette);
+    return h('div', 'v2-main osc-page lfo-page', big, settings, palette);
   }
 
   private matrixBox(): HTMLElement {
@@ -2803,7 +2830,7 @@ export class SynthView {
   private showTab(t: string): void {
     for (const [name, b] of this.tabBtns) b.classList.toggle('on', name === t);
     if (this.oscPage!.style.display !== 'none') this.pageHeight = this.oscPage!.offsetHeight || this.pageHeight;
-    const pages: [string, HTMLElement][] = [['OSC', this.oscPage!], ['MOD', this.modPage!], ['LFO', this.lfoPage!], ['FX', this.fxPage!], ['PRESETS', this.presetPage]];
+    const pages: [string, HTMLElement][] = [['OSC', this.oscPage!], ['MOD', this.modPage!], ['WOBBLER', this.lfoPage!], ['FX', this.fxPage!], ['PRESETS', this.presetPage]];
     if (t === 'PRESETS') {
       this.pageShelf = this.presets?.current().shelf || this.pageShelf || (this.presets?.shelves()[0]?.id ?? '');
       this.renderPresetPage();
@@ -3208,13 +3235,13 @@ export class SynthView {
     this.page.style.setProperty('--light-grain', `url(${lightGrain()})`);
     this.page.style.setProperty('--key-grime', `url(${keyGrime()})`);
     const tabs = h('div', 'v2-tabs');
-    for (const [t, ready] of [['OSC', true], ['MOD', true], ['LFO', true], ['FX', true], ['PRESETS', true]] as const) {
+    for (const [t, ready] of [['OSC', true], ['MOD', true], ['WOBBLER', true], ['FX', true], ['PRESETS', true]] as const) {
       const b = h('button', 'tab' + (t === 'OSC' ? ' on' : ''), t);
       if (!ready) {
         b.disabled = true;
         b.title = 'Coming later (until then: "All controls" opens every control)';
       } else b.onclick = () => this.showTab(t);
-      if (t === 'LFO') this.lockViews.push(() => b.classList.toggle('locked', this.lfo5Locked));
+      if (t === 'WOBBLER') this.lockViews.push(() => b.classList.toggle('locked', this.lfo5Locked));
       this.tabBtns.set(t, b);
       tabs.append(b);
     }

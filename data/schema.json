@@ -1731,7 +1731,7 @@
     },
     {
       "id": "wobble.depth",
-      "label": "Wobble depth",
+      "label": "Wobbler mix",
       "type": "float",
       "min": 0,
       "max": 1,
@@ -1739,7 +1739,7 @@
       "curve": "linear",
       "unit": "",
       "group": "wobble",
-      "describes": "How far the wobble swings. 0 is off. It moves the tone before the distortion, so the sound growls rather than just pulsing in level."
+      "describes": "How much of the wobbler you hear: 0 leaves the sound untouched, 1 is the full shape."
     },
     {
       "id": "wobble.rate",
@@ -1777,18 +1777,21 @@
     },
     {
       "id": "wobble.shape",
-      "label": "Wobble shape",
+      "label": "Wobbler shape",
       "type": "enum",
       "options": [
         "sine",
-        "triangle",
+        "duck",
         "saw down",
         "square",
+        "sync gate",
+        "staircase",
+        "random",
         "custom"
       ],
       "default": "sine",
       "group": "wobble",
-      "describes": "Sine is smooth, triangle more even, saw down opens hard and falls (a zap), square chops between closed and open. Custom is your own shape, drawn as points on the LFO page."
+      "describes": "Sine is smooth; duck drops on the beat and curves back up (the sidechain pump); saw down opens hard and falls; square chops between open and shut; sync gate plays a 3-3-2 rhythm; staircase climbs in four steps; random draws new steps every cycle; custom is your own shape, drawn on the Wobbler page."
     },
     {
       "id": "wobble.life",
@@ -1801,6 +1804,42 @@
       "unit": "",
       "group": "wobble",
       "describes": "How differently each wobble comes out: depth and brightness change a little every cycle, so it never sounds like a clock. 0 is machine-exact."
+    },
+    {
+      "id": "wobble.phase",
+      "label": "Wobbler shift",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "Moves the shape later in its cycle (0 = as drawn), so a gate or duck can land off the beat."
+    },
+    {
+      "id": "wobble.smooth",
+      "label": "Wobbler smooth",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "Rounds off the shape's edges and jumps, as in ShaperBox: 0 keeps it sharp, higher glides between levels."
+    },
+    {
+      "id": "wobble.lowcut",
+      "label": "Wobbler low cut",
+      "type": "float",
+      "min": 20,
+      "max": 1000,
+      "default": 20,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "wobble",
+      "describes": "The volume shape only works above this frequency, so the low end stays steady under the gate. 20 Hz = the whole sound."
     },
     {
       "id": "wobble.points",
@@ -1842,9 +1881,9 @@
       "id": "wobble.s1",
       "label": "Wobble point 1 soft",
       "type": "bool",
-      "default": true,
+      "default": false,
       "group": "wobble",
-      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+      "describes": "A soft point is not on the line but pulls it towards itself, rounding the shape; a hard point sits on the line in a corner."
     },
     {
       "id": "wobble.x2",
@@ -1876,7 +1915,7 @@
       "type": "bool",
       "default": true,
       "group": "wobble",
-      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+      "describes": "A soft point is not on the line but pulls it towards itself, rounding the shape; a hard point sits on the line in a corner."
     },
     {
       "id": "wobble.x3",
@@ -1906,9 +1945,9 @@
       "id": "wobble.s3",
       "label": "Wobble point 3 soft",
       "type": "bool",
-      "default": true,
+      "default": false,
       "group": "wobble",
-      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+      "describes": "A soft point is not on the line but pulls it towards itself, rounding the shape; a hard point sits on the line in a corner."
     },
     {
       "id": "wobble.x4",
@@ -1940,7 +1979,7 @@
       "type": "bool",
       "default": false,
       "group": "wobble",
-      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+      "describes": "A soft point is not on the line but pulls it towards itself, rounding the shape; a hard point sits on the line in a corner."
     },
     {
       "id": "wobble.x5",
@@ -1972,7 +2011,7 @@
       "type": "bool",
       "default": false,
       "group": "wobble",
-      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+      "describes": "A soft point is not on the line but pulls it towards itself, rounding the shape; a hard point sits on the line in a corner."
     },
     {
       "id": "wobble.x6",
@@ -2004,7 +2043,7 @@
       "type": "bool",
       "default": false,
       "group": "wobble",
-      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+      "describes": "A soft point is not on the line but pulls it towards itself, rounding the shape; a hard point sits on the line in a corner."
     },
     {
       "id": "wobble.x7",
@@ -2036,7 +2075,7 @@
       "type": "bool",
       "default": false,
       "group": "wobble",
-      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+      "describes": "A soft point is not on the line but pulls it towards itself, rounding the shape; a hard point sits on the line in a corner."
     },
     {
       "id": "wobble.x8",
@@ -2068,7 +2107,7 @@
       "type": "bool",
       "default": false,
       "group": "wobble",
-      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+      "describes": "A soft point is not on the line but pulls it towards itself, rounding the shape; a hard point sits on the line in a corner."
     },
     {
       "id": "wobble.x9",
@@ -2100,7 +2139,7 @@
       "type": "bool",
       "default": false,
       "group": "wobble",
-      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+      "describes": "A soft point is not on the line but pulls it towards itself, rounding the shape; a hard point sits on the line in a corner."
     },
     {
       "id": "wobble.x10",
@@ -2132,7 +2171,7 @@
       "type": "bool",
       "default": false,
       "group": "wobble",
-      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+      "describes": "A soft point is not on the line but pulls it towards itself, rounding the shape; a hard point sits on the line in a corner."
     },
     {
       "id": "wobble.x11",
@@ -2164,7 +2203,7 @@
       "type": "bool",
       "default": false,
       "group": "wobble",
-      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+      "describes": "A soft point is not on the line but pulls it towards itself, rounding the shape; a hard point sits on the line in a corner."
     },
     {
       "id": "wobble.x12",
@@ -2196,7 +2235,7 @@
       "type": "bool",
       "default": false,
       "group": "wobble",
-      "describes": "A soft corner rounds the line through this point; a hard one meets it in a sharp corner."
+      "describes": "A soft point is not on the line but pulls it towards itself, rounding the shape; a hard point sits on the line in a corner."
     },
     {
       "id": "mod.on",

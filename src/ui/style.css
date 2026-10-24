@@ -1263,3 +1263,39 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .tab.locked::after { content: ""; position: absolute; right: -9px; top: 50%; width: 4px; height: 4px; margin-top: -2px; border-radius: 1px; background: #a9dcff; box-shadow: 0 0 6px #a9dcff; }
 .v2 .lfo5-targets { display: flex !important; gap: 28px !important; justify-content: center; align-items: center; }
 .v2 .lfo5-targets .led.dim:not(.on) { opacity: 0.4; }
+
+/* ---- The Wobbler page (owner's layout): the shape over three columns and three half rows, the
+   palette under it, one SETTINGS column on the right. ---- */
+.v2 .lfo-page > .lfo5-main { grid-column: 1 / 4 !important; grid-row: 1 / 4 !important; }
+.v2 .lfo-page > .lfo5-palette { grid-column: 1 / 4 !important; grid-row: 4 !important; grid-template-columns: repeat(8, 1fr) !important; }
+.v2 .lfo-page > .lfo5-settings { grid-column: 4 !important; grid-row: 1 / 5 !important; display: flex !important; flex-direction: column; align-items: stretch;
+  gap: 0; padding: 12px 14px 14px !important; grid-template-rows: none !important; }
+.v2 .lfo5-settings > .ob-head { margin-bottom: 4px; }
+.v2 .lfo5-sec { display: flex; align-items: center; justify-content: center; border-top: 1px solid rgba(255,255,255,0.04); }
+.v2 .lfo5-switch { flex: 1.5; border-top: 0; }
+.v2 .lfo5-knobs { flex: 1.2; gap: 14px; }
+.v2 .lfo5-shift { flex: 0.6; gap: 12px; }
+.v2 .lfo5-shift .k-label { margin-right: 6px; }
+.v2 .lfo5-shift-val { min-width: 44px; text-align: center; font-size: 11px; letter-spacing: 0.12em; color: #e8ecf0; }
+.v2 .lfo-page .lfo5-targets { flex: 0.7; height: auto !important; }
+/* the rate, in the title row */
+.v2 .lfo5-rate { display: flex; align-items: center; gap: 8px; margin: 0 auto; }
+.v2 .lfo5-rate-label { font-size: 9px; letter-spacing: 0.2em; color: #5d5d62; }
+.v2 .lfo5-rate-sel { min-width: 58px; text-align: center; font-size: 12px !important; letter-spacing: 0.14em; color: #f0f2f4 !important; padding: 2px 8px !important;
+  border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 2px; background: rgba(0,0,0,0.35) !important; }
+.v2 .lfo5-arrow { background: transparent; border: 1px solid rgba(255,255,255,0.08); border-radius: 2px; color: #9a9aa0; width: 22px; height: 20px; font-size: 11px; line-height: 1;
+  cursor: pointer; padding: 0; }
+.v2 .lfo5-arrow:hover { color: #fff; border-color: rgba(255,255,255,0.22); text-shadow: 0 0 6px rgba(255,255,255,0.6); }
+.v2 .lfo5-main .ob-head .lfo5-lock { margin-left: 0; }
+/* the big chrome toggle */
+.v2 .big-toggle { position: relative; display: grid; grid-template-columns: auto; justify-items: center; background: transparent; border: 0; cursor: pointer; padding: 0; }
+.v2 .big-toggle svg { display: block; filter: drop-shadow(0 6px 8px rgba(0,0,0,0.85)); }
+.v2 .big-toggle .bt-lever { transform-origin: 40px 55px; transform: rotate(180deg); transition: transform 140ms cubic-bezier(.3,1.6,.5,1); }
+.v2 .big-toggle.on .bt-lever { transform: rotate(0deg); }
+.v2 .big-toggle .bt-on, .v2 .big-toggle .bt-off { font-size: 9px; letter-spacing: 0.24em; color: #4a4a50; }
+.v2 .big-toggle.on .bt-on { color: #fff; text-shadow: 0 0 8px var(--knob-accent), 0 0 2px #fff; }
+.v2 .big-toggle:not(.on) .bt-off { color: #9a9aa0; }
+.v2 .big-toggle .bt-label { margin-top: 8px; font-size: 9px; letter-spacing: 0.26em; color: #76767c; text-transform: uppercase; }
+.v2 .v2-tabs { gap: 22px !important; }
+.v2 .v2-top-right { gap: 18px !important; }
+.v2 .big-toggle .bt-off { margin-top: -10px; }

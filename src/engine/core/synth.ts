@@ -25,7 +25,7 @@
 // LFOs, drift sources, the texture bed and the FX are shared by all voices;
 // the mod matrix runs per voice, and FX targets follow the newest voice.
 
-import { wobShapeAt } from './wobshape';
+import { WOB_RANDOM_STEPS, WOB_TEMPLATES, wobShapeAt } from './wobshape';
 import { PARAM_COUNT, params } from '../../schema';
 import { AUX_SLOT, Biquad, clamp, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
 import { Chorus, Delay, Flanger, Limiter, Phaser, Reverb } from './fx';
@@ -43,6 +43,11 @@ export const MAX_VOICES = 8;
 // some module transforms (tsx / vite-node).
 const P = K.P;
 const BLOCK = K.CONTROL_BLOCK;
+/** The wobbler's preset shapes as typed arrays, by wobble.shape option (made once, not on the audio thread). */
+const WOB_TEMPLATE_ARRAYS = K.WOB_SHAPES.map((name) => {
+  const pts = WOB_TEMPLATES[name] ?? WOB_TEMPLATES.sine;
+  return { n: pts.length, xs: Float64Array.from(pts, (q) => q.x), ys: Float64Array.from(pts, (q) => q.y), ss: Float64Array.from(pts, (q) => (q.s ? 1 : 0)) };
+});
 const N_PARAMS = PARAM_COUNT;
 const LFO_COUNT = K.LFO_COUNT, SRC_COUNT = K.SRC_COUNT;
 const SYNC_BEATS = K.SYNC_BEATS, DELAY_BEATS = K.DELAY_BEATS, LFO_RATE_DEST = K.LFO_RATE_DEST;
@@ -97,6 +102,11 @@ export class Synth {
   private readonly wobYs = new Float64Array(12);
   private readonly wobSs = new Float64Array(12);
   private wobV = 0;
+  /** Random's steps for the current cycle. */
+  private readonly wobRand = new Float64Array(WOB_RANDOM_STEPS);
+  private wobRandCycle = -1;
+  /** The volume shape's crossover (two one-poles per side): below the low cut the gate leaves the sound alone. */
+  private wobLp = new Float64Array(4);
   /** The volume target's gain, ramped per sample towards its target so the gate never clicks. */
   private wobGate = 1;
   private wobGateTarget = 1;
@@ -477,6 +487,7 @@ export class Synth {
     this.texEnv = this.texLpL = this.texLpR = 0;
     this.wobCycle = -1;
     this.wobGate = this.wobGateTarget = 1;
+    this.wobLp.fill(0);
     this.wobScale = this.wobScaleTarget = 1;
     this.wobBright = this.wobBrightTarget = 0;
     this.hcL.reset();
@@ -591,27 +602,36 @@ export class Synth {
       // Glide to the new cycle's depth and brightness (~30 ms) so the change never steps.
       this.wobScale += (this.wobScaleTarget - this.wobScale) * 0.1;
       this.wobBright += (this.wobBrightTarget - this.wobBright) * 0.05;
-      let v: number;
-      switch (Math.round(cur[P.wobShape])) {
-        case K.WOB_TRI: v = p < 0.5 ? 2 * p : 2 - 2 * p; break;
-        // Opens hard and falls; the last 5% ramps back up so the wrap doesn't click.
-        case K.WOB_SAW_DOWN: v = p < 0.95 ? 1 - p / 0.95 : (p - 0.95) / 0.05; break;
-        // Soft-edged square.
-        case K.WOB_SQUARE: v = 0.5 + 0.5 * Math.tanh(6 * Math.sin(TWO_PI * p)); break;
-        case K.WOB_CUSTOM: {
-          // Your own shape (points from the LFO page), lightly smoothed so a jump never clicks.
-          const n = Math.max(2, Math.min(12, Math.round(cur[P.wobPts])));
-          for (let i = 0; i < n; i++) {
-            this.wobXs[i] = cur[P.wobX[i]];
-            this.wobYs[i] = cur[P.wobY[i]];
-            this.wobSs[i] = cur[P.wobS[i]] > 0.5 ? 1 : 0;
-          }
-          this.wobV += (wobShapeAt(this.wobXs, this.wobYs, this.wobSs, n, p) - this.wobV) * 0.35;
-          v = this.wobV;
-          break;
+      // The shape, shifted later in the cycle by the shift setting.
+      let q = p - cur[P.wobPhase];
+      q -= Math.floor(q);
+      const shape = Math.round(cur[P.wobShape]);
+      let target: number;
+      if (shape === K.WOB_RANDOM) {
+        // New steps every cycle, never repeating.
+        if (this.wobRandCycle !== n) {
+          this.wobRandCycle = n;
+          for (let k = 0; k < WOB_RANDOM_STEPS; k++) this.wobRand[k] = 0.5 + 0.5 * this.wobRng.next();
         }
-        default: v = 0.5 - 0.5 * Math.cos(TWO_PI * p);
+        target = this.wobRand[Math.min(WOB_RANDOM_STEPS - 1, Math.floor(q * WOB_RANDOM_STEPS))];
+      } else if (shape === K.WOB_CUSTOM) {
+        // Your own shape (points from the Wobbler page).
+        const m = Math.max(2, Math.min(12, Math.round(cur[P.wobPts])));
+        for (let k = 0; k < m; k++) {
+          this.wobXs[k] = cur[P.wobX[k]];
+          this.wobYs[k] = cur[P.wobY[k]];
+          this.wobSs[k] = cur[P.wobS[k]] > 0.5 ? 1 : 0;
+        }
+        target = wobShapeAt(this.wobXs, this.wobYs, this.wobSs, m, q);
+      } else {
+        const t = WOB_TEMPLATE_ARRAYS[shape] ?? WOB_TEMPLATE_ARRAYS[0];
+        target = wobShapeAt(t.xs, t.ys, t.ss, t.n, q);
       }
+      // Smooth (as in ShaperBox): a glide towards the shape; even at 0 a few ms, so a jump never clicks.
+      const sm = cur[P.wobSmooth];
+      const glide = sm > 1e-4 ? 1 - Math.exp(-BLOCK / (this.sampleRate * (0.002 + 0.12 * sm * sm))) : 0.35;
+      this.wobV += (target - this.wobV) * glide;
+      const v = this.wobV;
       // Cutoff and volume, either or both: the cutoff swings around the preset's own setting,
       // the volume only ducks (never louder).
       const swing = depth * (2 * v - 1) * this.wobScale;
@@ -976,8 +996,19 @@ export class Synth {
       if (this.wobGate !== 1 || this.wobGateTarget !== 1) {
         this.wobGate += (this.wobGateTarget - this.wobGate) * 0.02;
         if (Math.abs(this.wobGate - 1) < 1e-6 && this.wobGateTarget === 1) this.wobGate = 1;
-        l *= this.wobGate;
-        r *= this.wobGate;
+        const lc = cur[P.wobLowcut];
+        if (lc > 21) {
+          const c = Math.exp((-2 * Math.PI * lc) / this.sampleRate), lp = this.wobLp;
+          lp[0] = l + c * (lp[0] - l);
+          lp[1] = lp[0] + c * (lp[1] - lp[0]);
+          lp[2] = r + c * (lp[2] - r);
+          lp[3] = lp[2] + c * (lp[3] - lp[2]);
+          l = lp[1] + (l - lp[1]) * this.wobGate;
+          r = lp[3] + (r - lp[3]) * this.wobGate;
+        } else {
+          l *= this.wobGate;
+          r *= this.wobGate;
+        }
       }
 
       // Subsonic / DC filter.

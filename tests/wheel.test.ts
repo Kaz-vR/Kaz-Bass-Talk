@@ -157,3 +157,54 @@ describe('wobble on cutoff and volume together', () => {
     expect(diff(both, vol)).toBeGreaterThan(-20);
   });
 });
+
+describe('wobbler settings', () => {
+  const base = { meta: { name: 't' }, 'osc1.wave': 'saw', 'amp_env.sustain': 1, 'wobble.depth': 1, 'wobble.life': 0, 'wobble.rate': '1/4',
+    'wobble.cutoff': false, 'wobble.volume': true, 'wobble.shape': 'square', 'reverb.mix': 0, 'delay.mix': 0, 'texture.level': 0, 'voice.analog': 0 };
+  const SR = 24000;
+  const env = (x: Float32Array, win: number) => Array.from({ length: Math.floor(x.length / win) }, (_, k) => {
+    let e = 0;
+    for (let i = k * win; i < (k + 1) * win; i++) e += x[i] ** 2;
+    return Math.sqrt(e / win);
+  });
+  const render = (p: Record<string, unknown>, sec = 2) => renderPatch({ ...base, ...p }, heldNote(57, 4), { seconds: sec, sampleRate: SR }).left;
+
+  it('shift moves the shape later in its cycle', () => {
+    // 1/4 at 120 BPM: a cycle every 0.5 s; windows of 1/16 cycle
+    const win = (0.5 * SR) / 16;
+    const a = env(render({}), win).slice(16, 48), b = env(render({ 'wobble.phase': 0.25 }), win).slice(16, 48);
+    const err = (k: number) => a.reduce((s, v, i) => (i + k < b.length ? s + Math.abs(v - b[i + k]) : s), 0);
+    expect(err(4)).toBeLessThan(err(0) * 0.3);
+  });
+
+  it('smooth rounds the gate: the level glides instead of jumping', () => {
+    // one period of the sub (A2) per window, so only the level is measured, not the waveform
+    const win = Math.round(SR / 110);
+    const jump = (x: Float32Array) => {
+      const e = env(x, win).slice(20, 80);
+      let m = 0;
+      for (let i = 1; i < e.length; i++) m = Math.max(m, Math.abs(e[i] - e[i - 1]));
+      return m;
+    };
+    expect(jump(render({ 'wobble.smooth': 0.8 }))).toBeLessThan(jump(render({})) * 0.5);
+  });
+
+  it('low cut keeps the low end steady under the gate', () => {
+    const p = { 'osc1.wave': 'sine', 'osc1.level': 0, 'sub.level': 1 };
+    const win = (0.5 * SR) / 8;
+    const swing = (x: Float32Array) => {
+      const e = env(x, win).slice(8);
+      return Math.max(...e) / Math.max(1e-9, Math.min(...e));
+    };
+    expect(swing(render({ ...p }))).toBeGreaterThan(4);
+    expect(swing(render({ ...p, 'wobble.lowcut': 400 }))).toBeLessThan(1.5);
+  });
+
+  it('random draws new steps every cycle', () => {
+    const win = (0.5 * SR) / 8;
+    const e = env(render({ 'wobble.shape': 'random' }, 3), win);
+    const c1 = e.slice(8, 16), c2 = e.slice(16, 24);
+    const diff = c1.reduce((s, v, i) => s + Math.abs(v - c2[i]), 0) / c1.reduce((s, v) => s + v, 0);
+    expect(diff).toBeGreaterThan(0.2);
+  });
+});
