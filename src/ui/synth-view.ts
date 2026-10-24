@@ -655,6 +655,8 @@ export class SynthView {
   private readLfos: (() => { phase: number[]; value: number[] }) | null = null;
   /** Wraps of each LFO's phase seen so far, to place its dot across the cycles its print shows. */
   private readonly lfoCycles = [0, 0, 0, 0];
+  /** Until when (ms) a retriggered LFO's restart is expected: its phase drop is the restart, not a cycle. */
+  private readonly lfoRetrigUntil = [0, 0, 0, 0];
 
   /** The engine's real LFO phases and values (the dots and bars follow them, as the Wobbler's dot does). */
   setLiveLfos(read: () => { phase: number[]; value: number[] }): void {
@@ -663,7 +665,19 @@ export class SynthView {
     const step = () => {
       if (frame++ % 2 === 0) {
         const v = this.readLfos?.() ?? null;
-        if (v && this.liveLfo) for (let l = 0; l < 4; l++) if (v.phase[l] < this.liveLfo.phase[l] - 0.5) this.lfoCycles[l]++;
+        if (v && this.liveLfo) {
+          const now = performance.now();
+          for (let l = 0; l < 4; l++) {
+            const restart = now < this.lfoRetrigUntil[l];
+            // a drop in phase is a new cycle, or (just after a note) the retrigger's restart
+            if (v.phase[l] < this.liveLfo.phase[l] - (restart ? 0.02 : 0.5)) {
+              if (restart) {
+                this.lfoCycles[l] = 0;
+                this.lfoRetrigUntil[l] = 0;
+              } else this.lfoCycles[l]++;
+            }
+          }
+        }
         this.liveLfo = v;
         if (!this.anim.on) for (const a of this.animDraws) if (a.free?.() && a.el.offsetParent !== null) a.f();
       }
@@ -748,6 +762,13 @@ export class SynthView {
     if (!legato) {
       this.noteT0 = performance.now();
       this.relT0 = -1;
+      // A retriggered LFO starts its shape again: its dot goes back to the start of the print.
+      for (let l = 0; l < 4; l++) {
+        if (this.get(`lfo${l + 1}.retrigger`)) {
+          this.lfoCycles[l] = 0;
+          this.lfoRetrigUntil[l] = this.noteT0 + 200;
+        }
+      }
     }
     this.runDots();
   }
