@@ -4781,6 +4781,34 @@
       "describes": "Below this frequency the sound passes the GRIND chain clean (a 24 dB/oct split). Fully left = off."
     },
     {
+      "id": "grind.key",
+      "label": "Grind key",
+      "type": "bool",
+      "default": false,
+      "group": "grind",
+      "describes": "Every stage follows the note: Freq is where a filter sits at C3, an octave up moves them all an octave up."
+    },
+    {
+      "id": "grind.oneshot",
+      "label": "Grind one shot",
+      "type": "bool",
+      "default": false,
+      "group": "grind",
+      "describes": "Stages that move with the note sweep once, from the top of their range to the bottom at Rate, and stay there until the next note."
+    },
+    {
+      "id": "grind.ott",
+      "label": "Grind OTT",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind",
+      "describes": "Upward and downward compression in three bands at the end of the chain (as Ableton's OTT): quiet grit comes up, peaks come down. Level-matched: denser, not louder. 0 = off."
+    },
+    {
       "id": "grind1.on",
       "label": "Grind 1 on",
       "type": "bool",

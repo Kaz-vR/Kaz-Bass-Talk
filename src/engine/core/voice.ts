@@ -107,6 +107,8 @@ export class Voice {
   private grindOn = false;
   /** The bar position in beats (0..4), set by the synth before control(): GRIND's beat movement. */
   beatPos = 0;
+  /** The tempo in beats per second (set with beatPos). */
+  bps = 2;
 
   // Note state.
   note = 48; // target note
@@ -671,7 +673,7 @@ export class Voice {
     const res = clamp(cur[P.res] + dst[D.RES] + 0.15 * this.accentAmt, 0, 1);
     const fsOs = fs * OS;
     this.grindOn = cur[P.grindOn] > 0.5;
-    if (this.grindOn) this.grind.control(cur, this.beatPos, fs, fsOs, CONTROL_BLOCK * OS, this.rng);
+    if (this.grindOn) this.grind.control(cur, this.beatPos, this.bps, (this.pitch + 12 * cur[P.octave] - K.KEYTRACK_CENTER) / 12, fs, fsOs, CONTROL_BLOCK * OS, this.rng);
     let octs = (cur[P.keytrack] * (this.pitch + 12 * cur[P.octave] - KEYTRACK_CENTER)) / 12 +
       6 * cur[P.envAmt] * cur[P.modEnvOn] * (1 + 1.5 * this.accentAmt) * this.modEnv.level + 6 * dst[D.CUTOFF] + 0.12 * this.analog * this.noteCutoffJitter;
     // Low-pass gate: the cutoff closes together with the amp envelope.

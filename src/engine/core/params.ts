@@ -208,7 +208,7 @@ export const P = {
   /** The EQ's four bands (low shelf / high-pass, two bells / notches, high shelf / low-pass) and its gain scale. */
   eq: [1, 2, 3, 4].map((n) => ({ type: ix(`eq.b${n}_type`), freq: ix(`eq.b${n}_freq`), gain: ix(`eq.b${n}_gain`), q: ix(`eq.b${n}_q`) })), eqScale: ix('eq.scale'),
   outGain: ix('output.gain'), crossover: ix('output.crossover'), poly: ix('voice.polyphony'),
-  grindOn: ix('grind.on'), grindMix: ix('grind.mix'), grindLowcut: ix('grind.lowcut'),
+  grindOn: ix('grind.on'), grindMix: ix('grind.mix'), grindLowcut: ix('grind.lowcut'), grindKey: ix('grind.key'), grindOneShot: ix('grind.oneshot'), grindOtt: ix('grind.ott'),
   grind: [1, 2, 3, 4].map((n) => ({
     on: ix(`grind${n}.on`), filter: ix(`grind${n}.filter`), freq: ix(`grind${n}.freq`), range: ix(`grind${n}.range`), move: ix(`grind${n}.move`),
     rate: ix(`grind${n}.rate`), sync: ix(`grind${n}.sync`), res: ix(`grind${n}.res`), dtype: ix(`grind${n}.drive_type`), drive: ix(`grind${n}.drive`), mix: ix(`grind${n}.mix`),

@@ -100,3 +100,29 @@ describe('four-band EQ', () => {
     expect([patch['eq.b1_gain'], patch['eq.b2_gain'], patch['eq.b2_freq'], patch['eq.b4_gain'], patch['eq.b1_freq'], patch['eq.b4_freq']]).toEqual([-2, -3, 320, -1, 100, 5000]);
   });
 });
+
+describe('grind key, one shot and OTT', () => {
+  const one = { ...saw, 'grind.on': true, 'grind2.on': false, 'grind3.on': false, 'grind4.on': false, 'grind1.filter': 'band', 'grind1.range': 0, 'grind1.drive': 0 };
+  const at = (p: Record<string, unknown>, note: number) => mono(renderPatch(p as never, heldNote(note, 4), { seconds: 0.6 }));
+  it('KEY moves the filter with the note', () => {
+    // a band at 500 Hz: two octaves up the note's partials fall into a different place; with KEY the band follows
+    const k = { ...one, 'grind.key': true }, nk = one;
+    const ratio = (p: Record<string, unknown>) => rms(Float32Array.from(at(p, 60)), 0.2 * FS, 0.5 * FS) / rms(Float32Array.from(at(p, 36)), 0.2 * FS, 0.5 * FS);
+    expect(Math.abs(Math.log(ratio(k)) - Math.log(ratio(nk)))).toBeGreaterThan(0.05);
+  });
+  it('ONE SHOT sweeps once and stays: the end of a held note no longer moves', () => {
+    const p = { ...saw, 'grind.on': true, 'grind2.on': false, 'grind3.on': false, 'grind4.on': false, 'grind1.move': 'note', 'grind1.rate': 0.5, 'grind1.range': 3, 'grind.oneshot': true };
+    const a = mono(renderPatch(p as never, heldNote(36, 4), { seconds: 1.6 }));
+    const seg = (t: number) => rms(Float32Array.from(a), Math.round(t * FS), Math.round((t + 0.1) * FS));
+    expect(Math.abs(seg(1.2) / seg(1.4) - 1)).toBeLessThan(0.05);
+  });
+  it('OTT changes the sound, stays finite and level-matched', () => {
+    const p = { ...saw, 'grind.on': true, 'grind1.drive': 0.5 };
+    const a = at(p, 36), b = at({ ...p, 'grind.ott': 1 }, 36);
+    expect(b.every(Number.isFinite)).toBe(true);
+    expect(diff(a, b, 0.2 * FS, 0.5 * FS)).toBeGreaterThan(0.01);
+    const r = rms(Float32Array.from(b), 0.2 * FS, 0.5 * FS) / rms(Float32Array.from(a), 0.2 * FS, 0.5 * FS);
+    expect(r).toBeGreaterThan(0.5);
+    expect(r).toBeLessThan(2);
+  });
+});

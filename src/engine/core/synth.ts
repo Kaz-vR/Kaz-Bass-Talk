@@ -451,6 +451,7 @@ export class Synth {
     this.onTrigger(velocity);
     if (fresh) {
       pick.beatPos = this.beatPos;
+      pick.bps = this.tempo / 60;
       pick.control(this.gsrc, this.bend, this.xdst);
     }
   }
@@ -482,6 +483,7 @@ export class Synth {
     // A voice waking from silence gets its coefficients now, not at the next block.
     if (fresh) {
       v.beatPos = this.beatPos;
+      v.bps = this.tempo / 60;
       v.control(this.gsrc, this.bend, this.xdst);
     }
   }
@@ -795,6 +797,7 @@ export class Synth {
       }
       if (v.active || v.gate) {
         v.beatPos = this.beatPos;
+        v.bps = this.tempo / 60;
         v.control(src, this.bend, this.xdst);
       }
     }
@@ -880,7 +883,7 @@ export class Synth {
     const tg = cur[P.grindOn] > 0.5 && !this.texDirect;
     if (tg && !this.texGrindOn) this.texGrind.reset();
     this.texGrindOn = tg;
-    if (tg) this.texGrind.control(cur, this.beatPos, fs, fs, BLOCK, this.rng);
+    if (tg) this.texGrind.control(cur, this.beatPos, this.tempo / 60, (lead.pitch + 12 * cur[P.octave] - K.KEYTRACK_CENTER) / 12, fs, fs, BLOCK, this.rng);
 
     // The bar clock (the wobble locks to it).
     this.beatPos += (this.tempo / 60) * (BLOCK / fs);

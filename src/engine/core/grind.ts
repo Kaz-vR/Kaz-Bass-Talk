@@ -149,6 +149,23 @@ export class Grind {
   private lastLc = -1;
   private mix = 1;
   private readonly split = Array.from({ length: 8 }, () => new Biquad()); // per channel: LP, LP, HP, HP
+  /*
+   * OTT (grind.ott): three bands (split at 88 Hz and 2.5 kHz, as Ableton's OTT), each pushed towards
+   * one level from both sides (quiet detail up, peaks down: upward and downward compression), at
+   * Amount; the result is matched to the chain's own level, so more is denser, not louder.
+   */
+  private ottAmt = 0;
+  private ottFs = 0;
+  private readonly ottX = Array.from({ length: 16 }, () => new Biquad()); // per channel: LP1 ×2, HP1 ×2, LP2 ×2, HP2 ×2
+  private readonly ottEnv = new Float64Array(3);
+  private readonly ottBands = new Float64Array(6); // this sample's bands: left low / mid / high, then right
+  private readonly ottGain = new Float64Array(3).fill(1);
+  private ottAtk = 0;
+  private ottRel = 0;
+  private ottIn = 0;
+  private ottOut = 0;
+  private ottLvl = 0;
+  private ottTick = 0;
   private dcX = new Float64Array(2);
   private dcY = new Float64Array(2);
   private dcR = 0.999;
@@ -159,6 +176,48 @@ export class Grind {
       s.wTo = rng.next();
       s.wPos = 0.5 * (rng.next() + 1);
     }
+  }
+
+  private ottSetup(fsOs: number): void {
+    this.ottFs = fsOs;
+    for (let c = 0; c < 2; c++) for (let j = 0; j < 2; j++) {
+      const o = 8 * c;
+      this.ottX[o + j].setLowpass(88, Math.SQRT1_2, fsOs);
+      this.ottX[o + 2 + j].setHighpass(88, Math.SQRT1_2, fsOs);
+      this.ottX[o + 4 + j].setLowpass(2500, Math.SQRT1_2, fsOs);
+      this.ottX[o + 6 + j].setHighpass(2500, Math.SQRT1_2, fsOs);
+    }
+    this.ottAtk = 1 - Math.exp(-1 / (0.003 * fsOs));
+    this.ottRel = 1 - Math.exp(-1 / (0.08 * fsOs));
+    this.ottLvl = 1 - Math.exp(-1 / (0.3 * fsOs));
+  }
+
+  /** One stereo sample through the OTT, into this.l / this.r. */
+  private ott(l: number, r: number): void {
+    const x = this.ottX, amt = this.ottAmt;
+    const lo0 = x[1].process(x[0].process(l)), rest0 = x[3].process(x[2].process(l));
+    const lo1 = x[9].process(x[8].process(r)), rest1 = x[11].process(x[10].process(r));
+    const mid0 = x[5].process(x[4].process(rest0)), hi0 = x[7].process(x[6].process(rest0));
+    const mid1 = x[13].process(x[12].process(rest1)), hi1 = x[15].process(x[14].process(rest1));
+    const bd = this.ottBands;
+    bd[0] = lo0; bd[1] = mid0; bd[2] = hi0; bd[3] = lo1; bd[4] = mid1; bd[5] = hi1;
+    const env = this.ottEnv, gain = this.ottGain, recompute = (this.ottTick = (this.ottTick + 1) & 3) === 0;
+    let ol = 0, or = 0;
+    for (let b = 0; b < 3; b++) {
+      const a = Math.max(Math.abs(bd[b]), Math.abs(bd[b + 3]));
+      env[b] += (a - env[b]) * (a > env[b] ? this.ottAtk : this.ottRel);
+      // towards 0.25 from both sides: ratio grows with Amount, the boost capped at +24 dB
+      if (recompute) gain[b] = Math.min(16, Math.max(1 / 16, Math.pow(0.25 / Math.max(env[b], 1e-4), 0.75 * amt)));
+      ol += bd[b] * gain[b];
+      or += bd[b + 3] * gain[b];
+    }
+    // level matched: the output follows the chain's own loudness
+    const k = this.ottLvl;
+    this.ottIn += (Math.abs(l) + Math.abs(r) - this.ottIn) * k;
+    this.ottOut += (Math.abs(ol) + Math.abs(or) - this.ottOut) * k;
+    const match = this.ottOut > 1e-6 ? Math.min(4, this.ottIn / this.ottOut) : 1;
+    this.l = l + (ol * match - l) * Math.min(1, amt * 4);
+    this.r = r + (or * match - r) * Math.min(1, amt * 4);
   }
 
   /** A new note: movement that follows the note starts again. */
@@ -179,13 +238,18 @@ export class Grind {
     this.dcX.fill(0);
     this.dcY.fill(0);
     for (const f of this.split) f.reset();
+    for (const f of this.ottX) f.reset();
+    this.ottEnv.fill(0);
+    this.ottGain.fill(1);
+    this.ottIn = this.ottOut = 0;
   }
 
   /**
    * Control-rate update: movement and coefficients. `beatPos` is the bar position in beats (0..4),
-   * `n` the oversampled samples until the next update.
+   * `bps` the tempo in beats per second, `keyOct` the note in octaves from C3 (for KEY), `n` the samples
+   * until the next update.
    */
-  control(cur: Float64Array, beatPos: number, fs: number, fsOs: number, n: number, rng: Rng): void {
+  control(cur: Float64Array, beatPos: number, bps: number, keyOct: number, fs: number, fsOs: number, n: number, rng: Rng): void {
     const dt = n / fsOs;
     this.dcR = 1 - (TWO_PI * 10) / fsOs;
     this.mix = cur[P.grindMix];
@@ -198,6 +262,10 @@ export class Grind {
         this.split[4 * c + 2 + j].setHighpass(Math.min(lc, fs * 0.45), Math.SQRT1_2, fsOs);
       }
     }
+    // KEY: every stage follows the note (Freq is where it sits at C3); ONE SHOT: note movement sweeps once and holds
+    const key = cur[P.grindKey] > 0.5 ? Math.pow(2, keyOct) : 1, oneShot = cur[P.grindOneShot] > 0.5;
+    this.ottAmt = cur[P.grindOtt];
+    if (this.ottAmt > 0 && fsOs !== this.ottFs) this.ottSetup(fsOs);
     for (let i = 0; i < GRIND_STAGES; i++) {
       const s = this.stages[i], gp = P.grind[i];
       s.on = cur[gp.on] > 0.5;
@@ -207,7 +275,12 @@ export class Grind {
       }
       const rate = cur[gp.rate], wander = cur[gp.move] === GM_WANDER;
       let m: number;
-      if (cur[gp.sync] > 0.5) {
+      if (oneShot && !wander) {
+        // half a cycle from the top of the range to the bottom, then it stays there until the next note
+        const hz = cur[gp.sync] > 0.5 ? bps / GRIND_BEATS[grindBeat(rate)] : grindHz(rate);
+        s.phase = Math.min(0.5, s.phase + hz * dt);
+        m = Math.cos(TWO_PI * s.phase);
+      } else if (cur[gp.sync] > 0.5) {
         // synced: the cycle follows the synth's bar clock
         const p = beatPos / GRIND_BEATS[grindBeat(rate)], cycle = Math.floor(p), f = p - cycle;
         if (wander) {
@@ -231,7 +304,7 @@ export class Grind {
         if (s.phase >= 1) s.phase -= Math.floor(s.phase);
         m = Math.cos(TWO_PI * s.phase); // from the top at every note
       }
-      const fc = Math.min(Math.max(cur[gp.freq] * Math.pow(2, 0.5 * cur[gp.range] * m), 20), fs * 0.45);
+      const fc = Math.min(Math.max(cur[gp.freq] * key * Math.pow(2, 0.5 * cur[gp.range] * m), 20), fs * 0.45);
       s.fcNow = fc;
       const ftype = cur[gp.filter];
       if (ftype !== s.ftype) {
@@ -303,8 +376,14 @@ export class Grind {
     dx[0] = l;
     dy[1] = r - dx[1] + R * dy[1];
     dx[1] = r;
+    let wl = dy[0], wr = dy[1];
+    if (this.ottAmt > 0) {
+      this.ott(wl, wr);
+      wl = this.l;
+      wr = this.r;
+    }
     const m = this.mix;
-    this.l = lowL + hiL + (dy[0] - hiL) * m;
-    this.r = lowR + hiR + (dy[1] - hiR) * m;
+    this.l = lowL + hiL + (wl - hiL) * m;
+    this.r = lowR + hiR + (wr - hiR) * m;
   }
 }

@@ -3489,7 +3489,7 @@ export class SynthView {
       return b;
     });
     count.title = 'How many stages ROLL uses: AUTO picks a random number each time.';
-    const vary = h('button', 'gr-roll gr-quiet', 'VARY MOVEMENT');
+    const vary = h('button', 'gr-roll gr-quiet', 'VARY');
     vary.title = 'Keep the filters and drives, roll only how they move (what moves them, how far, how fast)';
     vary.onclick = () => this.grindRoll([1, 2, 3, 4].filter((n) => !this.grindLocks[n - 1] && !!this.get(`grind${n}.on`)), true);
     const fill = h('div', 'glide-fill');
@@ -3534,8 +3534,10 @@ export class SynthView {
     rocker.classList.add('gr-rocker');
     const lowcut = this.knob('grind.lowcut', 'Lo cut', 'mid', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
     const mix = this.knob('grind.mix', 'Mix', 'mid', { fmt: (v) => `${Math.round(v * 100)}%` });
+    const ott = this.knob('grind.ott', 'OTT', 'mid', { fmt: (v) => `${Math.round(v * 100)}%` });
+    const lamps = h('span', 'gr-lamps', this.toggle('grind.key', 'KEY', 'small'), this.toggle('grind.oneshot', 'ONE SHOT', 'small'));
     const head = h('div', 'ob-head', h('span', 'c-title', 'GRIND'), roll, count,
-      h('span', 'gr-sub', 'WEIRDNESS'), weird, vary, h('span', 'gr-sub', 'RECENT'), recent, h('span', 'gr-knobs', lowcut, mix), rocker);
+      h('span', 'gr-sub', 'WEIRD'), weird, vary, h('span', 'gr-sub', 'RECENT'), recent, lamps, h('span', 'gr-knobs', ott, lowcut, mix), rocker);
     strip.append(head);
     page.append(strip, ...cards);
     return page;
