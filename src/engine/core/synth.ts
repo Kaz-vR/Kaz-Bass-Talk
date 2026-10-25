@@ -813,7 +813,7 @@ export class Synth {
     this.texType = cur[P.texType];
     this.texTone = clamp(cur[P.texTone], 0, 1);
     this.texDensity = clamp(cur[P.texDensity], 0, 1);
-    this.texRate = Math.pow(2, Math.round(clamp(cur[P.texOct], -2, 1)));
+    this.texRate = Math.pow(2, Math.round(clamp(cur[P.texOct], -6, 6)));
     // The bed swells in with the note: never faster than ~a third of the amp attack.
     this.texAtk = 1 - Math.exp(-1 / (Math.max(0.03, cur[P.amp[0]] / 3000) * fs));
     this.texRel = Math.exp(-4.6 / ((cur[P.texTail] / 1000) * fs));
