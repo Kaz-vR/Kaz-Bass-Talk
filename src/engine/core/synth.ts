@@ -440,7 +440,10 @@ export class Synth {
     const fresh = !pick.active;
     pick.start(note, velocity, false, true, ++this.order);
     this.onTrigger(velocity);
-    if (fresh) pick.control(this.gsrc, this.bend, this.xdst);
+    if (fresh) {
+      pick.beatPos = this.beatPos;
+      pick.control(this.gsrc, this.bend, this.xdst);
+    }
   }
 
   noteOff(note: number): void {
@@ -468,7 +471,10 @@ export class Synth {
     v.start(note, velocity, glide && !(legato && !overlapping), retrigger, ++this.order);
     if (retrigger) this.onTrigger(velocity);
     // A voice waking from silence gets its coefficients now, not at the next block.
-    if (fresh) v.control(this.gsrc, this.bend, this.xdst);
+    if (fresh) {
+      v.beatPos = this.beatPos;
+      v.control(this.gsrc, this.bend, this.xdst);
+    }
   }
 
   /** A note (re)started its envelopes: retrigger LFOs that ask for it (fade-ins are per voice, see Voice). */
@@ -777,7 +783,10 @@ export class Synth {
         anyGate = true;
         if (!lowest || v.note < lowest.note) lowest = v;
       }
-      if (v.active || v.gate) v.control(src, this.bend, this.xdst);
+      if (v.active || v.gate) {
+        v.beatPos = this.beatPos;
+        v.control(src, this.bend, this.xdst);
+      }
     }
     this.anyGate = anyGate;
     this.liveCutoff = lead.active ? lead.fcNow : 0;

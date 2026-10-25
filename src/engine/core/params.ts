@@ -45,6 +45,33 @@ export function tanhIntegral(x: number): number {
   const x2 = x * x;
   return x2 / 18 + (4 / 3) * Math.log(x2 + 3);
 }
+/*
+ * Fuzz: a guitar fuzz pedal's curve, piecewise linear so its antiderivative is exact (for ADAA).
+ * A small dead zone around zero (the transistor not yet conducting) makes it sputter and break up
+ * as a note dies away; the bias makes it lopsided (the top clips hard at 1, the bottom earlier at
+ * -0.55), for the gnarly even and odd harmonics; the slope is steep so it saturates early.
+ */
+export const FUZZ_DEAD = 0.1, FUZZ_SLOPE = 2.4, FUZZ_TOP = 1, FUZZ_BOTTOM = -0.55;
+const FUZZ_VP = FUZZ_DEAD + FUZZ_TOP / FUZZ_SLOPE, FUZZ_VN = -FUZZ_DEAD + FUZZ_BOTTOM / FUZZ_SLOPE;
+export function fuzz(v: number): number {
+  if (v > FUZZ_DEAD) return v >= FUZZ_VP ? FUZZ_TOP : FUZZ_SLOPE * (v - FUZZ_DEAD);
+  if (v < -FUZZ_DEAD) return v <= FUZZ_VN ? FUZZ_BOTTOM : FUZZ_SLOPE * (v + FUZZ_DEAD);
+  return 0;
+}
+export function fuzzIntegral(v: number): number {
+  const h = 0.5 * FUZZ_SLOPE;
+  if (v > FUZZ_DEAD) return v >= FUZZ_VP ? h * (FUZZ_VP - FUZZ_DEAD) ** 2 + FUZZ_TOP * (v - FUZZ_VP) : h * (v - FUZZ_DEAD) ** 2;
+  if (v < -FUZZ_DEAD) return v <= FUZZ_VN ? h * (FUZZ_VN + FUZZ_DEAD) ** 2 + FUZZ_BOTTOM * (v - FUZZ_VN) : h * (v + FUZZ_DEAD) ** 2;
+  return 0;
+}
+/*
+ * The bias grows with the drive (FUZZ_BIAS_REL of the input before the gain): heavy clipping turns
+ * any curve into a near square, which has no even harmonics however lopsided its levels are, but a
+ * bias that keeps pace with the gain keeps the square lopsided in time (an uneven duty cycle), the
+ * gnarly octave of a real fuzz at any drive; and a dying note slides off the bias and sputters out.
+ */
+export const FUZZ_BIAS_REL = 0.12;
+
 export const LFO_SINE = 0, LFO_TRI = 1, LFO_SAW_UP = 2, LFO_SAW_DOWN = 3, LFO_SQUARE = 4, LFO_SH = 5, LFO_WANDER = 6;
 export const LFO_COUNT = 4;
 export const SLOT_COUNT = 12;
@@ -180,5 +207,10 @@ export const P = {
   fxLowcut: ['chorus', 'flanger', 'phaser', 'delay', 'reverb'].map((f) => ix(`${f}.lowcut`)),
   eqLow: ix('eq.low_gain'), eqMid: ix('eq.mid_gain'), eqMidFreq: ix('eq.mid_freq'), eqHigh: ix('eq.high_gain'),
   outGain: ix('output.gain'), crossover: ix('output.crossover'), poly: ix('voice.polyphony'),
+  grindOn: ix('grind.on'),
+  grind: [1, 2, 3, 4].map((n) => ({
+    on: ix(`grind${n}.on`), filter: ix(`grind${n}.filter`), freq: ix(`grind${n}.freq`), range: ix(`grind${n}.range`), move: ix(`grind${n}.move`),
+    rate: ix(`grind${n}.rate`), res: ix(`grind${n}.res`), dtype: ix(`grind${n}.drive_type`), drive: ix(`grind${n}.drive`), mix: ix(`grind${n}.mix`),
+  })),
 };
 

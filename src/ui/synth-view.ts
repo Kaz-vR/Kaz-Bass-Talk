@@ -7,6 +7,8 @@ import { Biquad, ENV_ATTACK_BEND, ENV_FALL_BEND, envSegment } from '../engine/co
 import { fromNormalized, getParam, params, toNormalized, type ParamValue, type Patch } from '../schema';
 import { formatValue } from './params-panel';
 import { keyGrime, lightGrain, panelTexture } from './texture';
+import { GRIND_BEAT_NAMES, grindBeat, grindGain, grindHz } from '../engine/core/grind';
+import * as K from '../engine/core/params';
 import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobPointsAt, wobSmoothRadius, wobSmoothTable, wobTableAt, type WobPoint } from '../engine/core/wobshape';
 
 type OnChange = (id: string, value: ParamValue) => void;
@@ -742,6 +744,12 @@ export class SynthView {
   private readonly liveDraws: (() => void)[] = [];
   private modPage: HTMLElement | null = null;
   private fxPage: HTMLElement | null = null;
+  private grindPage: HTMLElement | null = null;
+  /** GRIND: which stages ROLL / VARY leave alone, how wild a roll is, the last rolls (newest first). */
+  private readonly grindLocks = [false, false, false, false];
+  private grindWeird = 0.3;
+  private readonly grindRecent: Record<string, ParamValue>[] = [];
+  private grindRecentView: () => void = () => {};
   private lfoPage: HTMLElement | null = null;
   /** The synth page's height: every tab keeps it, so nothing jumps. */
   private pageHeight = 0;
@@ -3200,13 +3208,204 @@ export class SynthView {
     return h('div', 'v2-main osc-page fx-page2', dist, crush, tape, chorus, mfx, delay, reverb, eq);
   }
 
+  // ------------------------------------------------------------------ the GRIND page
+
+  /**
+   * GRIND: four stage cards (a moving filter over its drive, each with a die and a lock) and a
+   * strip along the bottom: the chain's power, ROLL, weirdness, VARY MOVEMENT and the recent rolls.
+   */
+  private buildGrindPage(): HTMLElement {
+    const ids = (n: number) => GRIND_KEYS.map((k) => `grind${n}.${k}`);
+    const allIds = ['grind.on', ...[1, 2, 3, 4].flatMap(ids)];
+    const page = h('div', 'v2-main osc-page grind-page');
+    const lg = (id: string, label: string, opts: Parameters<SynthView['knob']>[3] = {}) => this.knob(id, label, 'lg', opts);
+    const stageOn = (n: number) => () => !!this.get('grind.on') && !!this.get(`grind${n}.on`);
+    for (let n = 1; n <= 4; n++) {
+      const pre = `grind${n}`;
+      const card = h('div', `c ob gr-stage gr-s${n}`);
+      // filter print: its response where it sits, dotted where it swings to, and its range as a strip
+      const W = PRINT_W, FH = 96, DH = 56;
+      const [fcv, fg] = canvas(W, FH, 'disp');
+      const drawFilter = () => {
+        paper(fg, W, FH);
+        const on = stageOn(n)(), col = on ? accentOf(fcv) : '#4a4a50';
+        const st = this.grindStage(n), r = st.range / 2;
+        const curve = (fc: number): [number, number][] => {
+          const pts: [number, number][] = [];
+          for (let i = 0; i <= W; i += 2) pts.push([i, grindY(grindMag(st, fc, 20 * Math.pow(1000, i / W)), FH)]);
+          return pts;
+        };
+        if (on && r > 0.01) {
+          const lo = st.freq * Math.pow(2, -r), hi = st.freq * Math.pow(2, r);
+          fg.save();
+          fg.setLineDash([2, 3]);
+          fg.strokeStyle = hexA(col, 0.35);
+          fg.lineWidth = 1;
+          for (const f of [lo, hi]) {
+            fg.beginPath();
+            curve(f).forEach(([x, y], i) => (i ? fg.lineTo(x, y) : fg.moveTo(x, y)));
+            fg.stroke();
+          }
+          fg.restore();
+          const x0 = freqX(lo, W), x1 = freqX(hi, W);
+          fg.fillStyle = hexA(col, 0.05);
+          fg.fillRect(x0, 0, x1 - x0, FH - 4);
+          fg.fillStyle = col;
+          fg.globalAlpha = 0.8;
+          fg.fillRect(x0, FH - 3, Math.max(1.5, x1 - x0), 1.5);
+          fg.globalAlpha = 1;
+        }
+        const pts = curve(st.freq);
+        if (on) fillUnder(fg, pts, FH, col, 0.16);
+        silver(fg, pts, on);
+      };
+      this.watch(['grind.on', ...ids(n)], drawFilter);
+      // drive print: two cycles of a sine through the stage's drive
+      const [dcv, dg] = canvas(W, DH, 'disp');
+      const drawDrive = () => {
+        paper(dg, W, DH);
+        const on = stageOn(n)() && this.num(`${pre}.drive`) > 0;
+        const type = String(this.get(`${pre}.drive_type`)), drive = this.num(`${pre}.drive`), mix = this.num(`${pre}.mix`);
+        const pts: [number, number][] = [];
+        for (let i = 0; i <= W; i++) {
+          const s = Math.sin((i / W) * 4 * Math.PI) * 0.9;
+          const y = mix * grindShape(type, s, drive) + (1 - mix) * s;
+          pts.push([i, DH / 2 - Math.max(-1.05, Math.min(1.05, y)) * (DH / 2 - 5)]);
+        }
+        silver(dg, pts, on);
+      };
+      this.watch(['grind.on', `${pre}.on`, `${pre}.drive_type`, `${pre}.drive`, `${pre}.mix`], drawDrive);
+      // the die re-rolls this stage, the lock keeps it when the whole chain rolls
+      const dice = h('button', 'gr-ic gr-dice');
+      dice.innerHTML = DICE_SVG;
+      dice.title = `Roll stage ${n}: a new filter, movement and drive`;
+      dice.onclick = () => this.grindRoll([n]);
+      const lock = h('button', 'gr-ic gr-lock');
+      const drawLock = () => {
+        const on = this.grindLocks[n - 1];
+        lock.classList.toggle('on', on);
+        lock.innerHTML = lockSvg(on);
+        lock.title = on ? `Stage ${n} is locked: ROLL and VARY leave it as it is. Click to unlock.` : `Lock stage ${n}: ROLL and VARY leave it as it is.`;
+      };
+      lock.onclick = () => {
+        this.grindLocks[n - 1] = !this.grindLocks[n - 1];
+        drawLock();
+      };
+      drawLock();
+      const rateFmt = (v: number) => (this.get(`${pre}.move`) === 'beat' ? GRIND_BEAT_NAMES[grindBeat(v)] : `${grindHz(v).toFixed(grindHz(v) < 1 ? 2 : 1)} Hz`);
+      const head = h('div', 'ob-head', this.boolPower(`${pre}.on`, card), h('span', 'c-title', String(n)), this.selector(`${pre}.filter`), h('span', 'gr-icons', dice, lock));
+      const moves = h('div', 'gr-moves', h('span', 'gr-moves-label', 'MOVES'), this.selector(`${pre}.move`));
+      const fprint = h('div', 'ob-print gr-fprint', fcv);
+      const fdials = h('div', 'ob-dials', lg(`${pre}.freq`, 'Freq'), lg(`${pre}.range`, 'Range', { fmt: (v) => `${v.toFixed(1)} oct` }),
+        lg(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.move`] }), lg(`${pre}.res`, 'Res'));
+      const drow = h('div', 'gr-drive-row', h('span', 'gr-sub', 'DRIVE'), this.selector(`${pre}.drive_type`));
+      const ddials = h('div', 'ob-dials', lg(`${pre}.drive`, 'Drive'), lg(`${pre}.mix`, 'Mix'));
+      card.append(head, moves, fprint, fdials, drow, h('div', 'ob-print gr-dprint', dcv), ddials);
+      this.watch(['grind.on'], () => card.classList.toggle('chain-off', !this.get('grind.on')));
+      page.append(card);
+    }
+
+    // the strip: power, ROLL, weirdness, VARY MOVEMENT, recent rolls
+    const strip = h('div', 'c ob gr-strip');
+    const roll = h('button', 'gr-roll');
+    roll.innerHTML = `${DICE_SVG}<span>ROLL</span>`;
+    roll.title = 'Roll the whole chain: new filters, movement and drives (locked stages stay as they are)';
+    roll.onclick = () => this.grindRoll([1, 2, 3, 4].filter((n) => !this.grindLocks[n - 1]));
+    const vary = h('button', 'gr-roll gr-quiet', 'VARY MOVEMENT');
+    vary.title = 'Keep the filters and drives, roll only how they move (what moves them, how far, how fast)';
+    vary.onclick = () => this.grindRoll([1, 2, 3, 4].filter((n) => !this.grindLocks[n - 1]), true);
+    const fill = h('div', 'glide-fill');
+    const weird = h('div', 'glide-track gr-weird', fill);
+    const showWeird = () => { fill.style.width = `${this.grindWeird * 100}%`; };
+    const fromX = (x: number) => {
+      const r = weird.getBoundingClientRect();
+      this.grindWeird = Math.round(Math.max(0, Math.min(1, (x - r.left) / r.width)) * 100) / 100;
+      showWeird();
+    };
+    weird.addEventListener('pointerdown', (e) => { weird.setPointerCapture(e.pointerId); fromX(e.clientX); });
+    weird.addEventListener('pointermove', (e) => { if (weird.hasPointerCapture(e.pointerId)) fromX(e.clientX); });
+    weird.title = 'Weirdness: low rolls the classic neuro moves (notches, phasers, talking formants, gentle drive); high goes anywhere, harder and stranger.';
+    showWeird();
+    const recent = h('div', 'gr-recent');
+    this.grindRecentView = () => {
+      recent.replaceChildren();
+      const now = JSON.stringify(allIds.map((id) => this.get(id)));
+      for (const snap of this.grindRecent) {
+        const [cv, g] = canvas(70, 26, 'disp');
+        const cur = JSON.stringify(allIds.map((id) => snap[id]));
+        const t = h('button', 'gr-thumb' + (cur === now ? ' on' : ''), cv);
+        t.title = 'Go back to this roll';
+        t.onclick = () => {
+          for (const id of allIds) this.set(id, snap[id]);
+          this.grindRecentView();
+        };
+        recent.append(t);
+        const pts: [number, number][] = [];
+        for (let i = 0; i <= 70; i++) {
+          const f = 20 * Math.pow(1000, i / 70);
+          let m = 1;
+          for (let n = 1; n <= 4; n++) if (snap[`grind${n}.on`]) m *= grindMag(this.grindStage(n, snap), Number(snap[`grind${n}.freq`]), f);
+          pts.push([i, grindY(m, 26)]);
+        }
+        silver(g, pts, cur === now, cur === now ? '#ffffff' : '#77777d');
+      }
+    };
+    this.watch(allIds, () => this.grindRecentView());
+    const head = h('div', 'ob-head', this.boolPower('grind.on', strip), h('span', 'c-title', 'GRIND'), roll,
+      h('span', 'gr-sub', 'WEIRDNESS'), weird, vary, h('span', 'gr-sub', 'RECENT'), recent);
+    strip.append(head);
+    page.append(strip);
+    return page;
+  }
+
+  /** A GRIND stage's settings (from the patch on screen, or from a stored roll). */
+  private grindStage(n: number, from?: Record<string, ParamValue>): GrindView {
+    const v = (k: string) => (from ? from[`grind${n}.${k}`] : this.get(`grind${n}.${k}`));
+    return { filter: String(v('filter')), freq: Number(v('freq')), range: Number(v('range')), res: Number(v('res')) };
+  }
+
+  /**
+   * Roll GRIND stages (`only movement`: VARY, keeping the filters and drives). Low weirdness keeps
+   * to the classic neuro moves; high goes anywhere. The chain switches on, and the roll joins the
+   * recent rolls.
+   */
+  private grindRoll(stages: number[], movementOnly = false): void {
+    const w = this.grindWeird, rnd = Math.random;
+    const pick = <T,>(xs: readonly T[]) => xs[Math.floor(rnd() * xs.length)];
+    const between = (a: number, b: number) => a + (b - a) * rnd();
+    const logBetween = (a: number, b: number) => a * Math.pow(b / a, rnd());
+    const round = (v: number, d = 100) => Math.round(v * d) / d;
+    for (const n of stages) {
+      const pre = `grind${n}`;
+      const move = rnd() < 0.7 - 0.4 * w ? pick(['beat', 'note']) : pick(['note', 'beat', 'wander']);
+      this.set(`${pre}.move`, move);
+      this.set(`${pre}.range`, round(between(0.6, 1.8 + 2 * w), 10));
+      // beat: 1/4 … 1/16 when tame; note / wander: 0.5 … 6 Hz when tame
+      this.set(`${pre}.rate`, round(move === 'beat' ? (w < 0.5 ? pick([0.4, 0.6, 0.8]) : pick([0, 0.2, 0.4, 0.6, 0.8, 1])) : between(0.3 - 0.3 * w, 0.65 + 0.3 * w)));
+      if (movementOnly) continue;
+      this.set(`${pre}.on`, true);
+      this.set(`${pre}.filter`, rnd() < 0.75 - 0.5 * w ? pick(['notch', 'phaser', 'formant', 'comb']) : pick(['notch', 'peak', 'band', 'comb', 'phaser', 'formant']));
+      this.set(`${pre}.freq`, Math.round(logBetween(180 - 100 * w, 2400 + 5000 * w)));
+      this.set(`${pre}.res`, round(between(0.35, 0.75 + 0.2 * w)));
+      this.set(`${pre}.drive_type`, w < 0.3 ? pick(['soft', 'tube', 'fold', 'soft']) : pick(['soft', 'hard', 'fold', 'tube', 'fuzz']));
+      this.set(`${pre}.drive`, round(between(0.12, 0.4 + 0.5 * w)));
+      this.set(`${pre}.mix`, round(between(0.75, 1)));
+    }
+    this.set('grind.on', true);
+    const snap: Record<string, ParamValue> = { 'grind.on': true };
+    for (let n = 1; n <= 4; n++) for (const k of GRIND_KEYS) snap[`grind${n}.${k}`] = this.get(`grind${n}.${k}`);
+    this.grindRecent.unshift(snap);
+    this.grindRecent.length = Math.min(this.grindRecent.length, 6);
+    this.grindRecentView();
+  }
+
   // ------------------------------------------------------------------ the PRESETS page
 
   /** Switch between the synth page (OSC) and the preset browser (PRESETS). */
   private showTab(t: string): void {
     for (const [name, b] of this.tabBtns) b.classList.toggle('on', name === t);
     if (this.oscPage!.style.display !== 'none') this.pageHeight = this.oscPage!.offsetHeight || this.pageHeight;
-    const pages: [string, HTMLElement][] = [['OSC', this.oscPage!], ['MOD', this.modPage!], ['WOBBLER', this.lfoPage!], ['FX', this.fxPage!], ['PRESETS', this.presetPage]];
+    const pages: [string, HTMLElement][] = [['OSC', this.oscPage!], ['MOD', this.modPage!], ['WOBBLER', this.lfoPage!], ['GRIND', this.grindPage!], ['FX', this.fxPage!], ['PRESETS', this.presetPage]];
     if (t === 'PRESETS') {
       this.pageShelf = this.presets?.current().shelf || this.pageShelf || (this.presets?.shelves()[0]?.id ?? '');
       this.renderPresetPage();
@@ -3611,7 +3810,7 @@ export class SynthView {
     this.page.style.setProperty('--light-grain', `url(${lightGrain()})`);
     this.page.style.setProperty('--key-grime', `url(${keyGrime()})`);
     const tabs = h('div', 'v2-tabs');
-    for (const [t, ready] of [['OSC', true], ['MOD', true], ['WOBBLER', true], ['FX', true], ['PRESETS', true]] as const) {
+    for (const [t, ready] of [['OSC', true], ['MOD', true], ['WOBBLER', true], ['GRIND', true], ['FX', true], ['PRESETS', true]] as const) {
       const b = h('button', 'tab' + (t === 'OSC' ? ' on' : ''), t);
       if (!ready) {
         b.disabled = true;
@@ -3646,6 +3845,8 @@ export class SynthView {
     this.modPage = this.buildModPage();
     this.lfoPage = this.buildLfoPage();
     this.fxPage = this.buildFxPage();
+    this.grindPage = this.buildGrindPage();
+    this.grindPage.style.display = 'none';
     this.presetPage.style.display = 'none';
     this.modPage.style.display = 'none';
     this.fxPage.style.display = 'none';
@@ -3655,6 +3856,7 @@ export class SynthView {
       this.oscPage,
       this.modPage,
       this.lfoPage,
+      this.grindPage,
       this.fxPage,
       this.presetPage,
       this.bottomBar(),
@@ -3663,6 +3865,72 @@ export class SynthView {
     );
   }
 }
+
+// ------------------------------------------------------------------ GRIND prints
+
+/** A GRIND stage's parameters (grind<n>.*), in the order a roll snapshot keeps them. */
+const GRIND_KEYS = ['on', 'filter', 'freq', 'range', 'move', 'rate', 'res', 'drive_type', 'drive', 'mix'];
+type GrindView = { filter: string; freq: number; range: number; res: number };
+type Cx = [number, number];
+const cmul = (a: Cx, b: Cx): Cx => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]];
+const cdiv = (a: Cx, b: Cx): Cx => { const d = b[0] * b[0] + b[1] * b[1]; return [(a[0] * b[0] + a[1] * b[1]) / d, (a[1] * b[0] - a[0] * b[1]) / d]; };
+const cabs = (a: Cx): number => Math.hypot(a[0], a[1]);
+/** A state-variable band-pass (s / (s² + ks + 1)) at w = f / fc. */
+const svfBp = (w: number, k: number): Cx => cdiv([0, w], [1 - w * w, k * w]);
+
+/** |H| of a GRIND stage's filter (as the engine plays it) at f, with its centre at fc. */
+function grindMag(st: GrindView, fc: number, f: number): number {
+  const w = f / fc, res = st.res;
+  switch (st.filter) {
+    case 'notch': {
+      const k = 1.6 * (1 - res) + 0.08;
+      return cabs(cdiv([1 - w * w, 0], [1 - w * w, k * w]));
+    }
+    case 'peak': {
+      const k = 1.2 * (1 - res) + 0.15, pk = 1 + 5 * res, bp = svfBp(w, k);
+      return cabs([1 + pk * k * bp[0], pk * k * bp[1]]) / (1 + 0.35 * pk);
+    }
+    case 'band': {
+      const k = 1.4 * (1 - res) + 0.1;
+      return 1.6 * k * cabs(svfBp(w, k));
+    }
+    case 'comb': {
+      const fb = 0.92 * res, ph = 2 * Math.PI * w;
+      return (1 - 0.55 * fb) / cabs([1 - fb * Math.cos(ph), fb * Math.sin(ph)]);
+    }
+    case 'phaser': {
+      const fb = 0.75 * res, ap1 = cdiv([1, -w], [1, w]);
+      const ap4 = cmul(cmul(ap1, ap1), cmul(ap1, ap1));
+      const v = cdiv(ap4, [1 - fb * ap4[0], -fb * ap4[1]]);
+      return 0.5 * cabs([1 + v[0], v[1]]);
+    }
+    default: {
+      const k = 1 / (2 + 10 * res), a = svfBp(w, k), b = svfBp(w / 2.6, k);
+      return 2.2 * k * cabs([a[0] + 0.6 * b[0], a[1] + 0.6 * b[1]]);
+    }
+  }
+}
+/** A magnitude on a print: -30 … +12 dB, 0 dB about two thirds up. */
+function grindY(mag: number, H: number): number {
+  const db = 20 * Math.log10(Math.max(mag, 1e-4));
+  return H - 6 - Math.max(0, Math.min(1, (db + 30) / 42)) * (H - 12);
+}
+/** A frequency's x on a print (20 Hz … 20 kHz, log). */
+const freqX = (f: number, W: number): number => Math.max(0, Math.min(W, (Math.log(f / 20) / Math.log(1000)) * W));
+/** A sample through a GRIND drive at full level (the engine's curves; its level matching left out so the shape reads). */
+function grindShape(type: string, x: number, drive: number): number {
+  const u = grindGain(drive) * x;
+  switch (type) {
+    case 'hard': return Math.max(-1, Math.min(1, u));
+    case 'fold': return Math.sin((Math.PI / 2) * u);
+    case 'tube': return Math.tanh(u + K.TUBE_BIAS) - K.TUBE_OFFSET;
+    case 'fuzz': { const b = K.FUZZ_BIAS_REL * grindGain(drive); return K.fuzz(u + b) - K.fuzz(b); }
+    default: return Math.tanh(u);
+  }
+}
+const DICE_SVG = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="5.2" cy="5.2" r="1.2" fill="currentColor"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/><circle cx="10.8" cy="10.8" r="1.2" fill="currentColor"/></svg>';
+const lockSvg = (on: boolean): string =>
+  `<svg viewBox="0 0 14 16" width="11" height="13" aria-hidden="true"><path d="${on ? 'M3.5 7V4.8a3.5 3.5 0 0 1 7 0V7' : 'M3.5 7V4.8a3.5 3.5 0 0 1 6.6-1.6'}" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><rect x="1.5" y="7" width="11" height="8" rx="1.2" fill="${on ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.4"/></svg>`;
 
 function hexA(hex: string, a: number): string {
   const n = parseInt(hex.slice(1), 16);

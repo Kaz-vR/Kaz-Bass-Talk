@@ -12,6 +12,7 @@
 
 import { AUX_SLOT, Biquad, clamp, Clipper, Envelope, Ladder, OSC_SLOT, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
 import { Crusher, Tape } from './fx';
+import { Grind } from './grind';
 import { Downsampler2x, OVERSAMPLE_LATENCY, Upsampler2x } from './oversample';
 import * as K from './params';
 import { Comb, DiodeLadder, KarplusString, Shepard } from './voicefx';
@@ -45,32 +46,7 @@ const FILTER_COMB = K.FILTER_COMB, FILTER_LPG = K.FILTER_LPG, FILTER_HP = K.FILT
 const DIST_SOFT = K.DIST_SOFT, DIST_HARD = K.DIST_HARD, DIST_FOLD = K.DIST_FOLD, DIST_FUZZ = K.DIST_FUZZ;
 const TUBE_BIAS = K.TUBE_BIAS, TUBE_OFFSET = K.TUBE_OFFSET, HALF_PI = K.HALF_PI;
 
-/*
- * Fuzz: a guitar fuzz pedal's curve, piecewise linear so its antiderivative is exact (for ADAA).
- * A small dead zone around zero (the transistor not yet conducting) makes it sputter and break up
- * as a note dies away; the bias makes it lopsided (the top clips hard at 1, the bottom earlier at
- * -0.55), for the gnarly even and odd harmonics; the slope is steep so it saturates early.
- */
-const FUZZ_DEAD = 0.1, FUZZ_SLOPE = 2.4, FUZZ_TOP = 1, FUZZ_BOTTOM = -0.55;
-const FUZZ_VP = FUZZ_DEAD + FUZZ_TOP / FUZZ_SLOPE, FUZZ_VN = -FUZZ_DEAD + FUZZ_BOTTOM / FUZZ_SLOPE;
-function fuzz(v: number): number {
-  if (v > FUZZ_DEAD) return v >= FUZZ_VP ? FUZZ_TOP : FUZZ_SLOPE * (v - FUZZ_DEAD);
-  if (v < -FUZZ_DEAD) return v <= FUZZ_VN ? FUZZ_BOTTOM : FUZZ_SLOPE * (v + FUZZ_DEAD);
-  return 0;
-}
-function fuzzIntegral(v: number): number {
-  const h = 0.5 * FUZZ_SLOPE;
-  if (v > FUZZ_DEAD) return v >= FUZZ_VP ? h * (FUZZ_VP - FUZZ_DEAD) ** 2 + FUZZ_TOP * (v - FUZZ_VP) : h * (v - FUZZ_DEAD) ** 2;
-  if (v < -FUZZ_DEAD) return v <= FUZZ_VN ? h * (FUZZ_VN + FUZZ_DEAD) ** 2 + FUZZ_BOTTOM * (v - FUZZ_VN) : h * (v + FUZZ_DEAD) ** 2;
-  return 0;
-}
-/*
- * The bias grows with the drive (FUZZ_BIAS_REL of the input before the gain): heavy clipping turns
- * any curve into a near square, which has no even harmonics however lopsided its levels are, but a
- * bias that keeps pace with the gain keeps the square lopsided in time (an uneven duty cycle), the
- * gnarly octave of a real fuzz at any drive; and a dying note slides off the bias and sputters out.
- */
-const FUZZ_BIAS_REL = 0.12;
+const fuzz = K.fuzz, fuzzIntegral = K.fuzzIntegral, FUZZ_BIAS_REL = K.FUZZ_BIAS_REL;
 const tanh = K.tanh, tanhIntegral = K.tanhIntegral;
 const SLOT_COUNT = K.SLOT_COUNT, SRC_COUNT = K.SRC_COUNT, DEST_COUNT = K.DEST_COUNT;
 const VOWELS = K.VOWELS, FORMANT_GAIN = K.FORMANT_GAIN;
@@ -123,6 +99,10 @@ export class Voice {
   private readonly cur: Float64Array;
   private readonly table: Float32Array;
   private readonly rng: Rng;
+  private grind!: Grind;
+  private grindOn = false;
+  /** The bar position in beats (0..4), set by the synth before control(): GRIND's beat movement. */
+  beatPos = 0;
 
   // Note state.
   note = 48; // target note
@@ -303,6 +283,7 @@ export class Voice {
     this.cur = cur;
     this.table = table;
     this.rng = new Rng(seed);
+    this.grind = new Grind(this.rng);
     this.subRamp = 1 / (0.01 * fs);
     this.combL = new Comb(Math.ceil((fs * OS) / 20));
     this.combR = new Comb(Math.ceil((fs * OS) / 20));
@@ -361,7 +342,9 @@ export class Voice {
       this.diodeR.reset();
       this.fm2Phase = 0;
       this.fmPrevOut = 0;
+      this.grind.reset();
     }
+    this.grind.noteOn();
     this.noteCutoffJitter = this.rng.next();
     // Per-note excitations: FM punch, string pluck.
     this.fmEnv = 1;
@@ -683,6 +666,8 @@ export class Voice {
     this.accentAmt = cur[P.accent] * clamp((this.velocity - 0.6) / 0.4, 0, 1);
     const res = clamp(cur[P.res] + dst[D.RES] + 0.15 * this.accentAmt, 0, 1);
     const fsOs = fs * OS;
+    this.grindOn = cur[P.grindOn] > 0.5;
+    if (this.grindOn) this.grind.control(cur, this.beatPos, fs, fsOs, CONTROL_BLOCK * OS, this.rng);
     let octs = (cur[P.keytrack] * (this.pitch + 12 * cur[P.octave] - KEYTRACK_CENTER)) / 12 +
       6 * cur[P.envAmt] * cur[P.modEnvOn] * (1 + 1.5 * this.accentAmt) * this.modEnv.level + 6 * dst[D.CUTOFF] + 0.12 * this.analog * this.noteCutoffJitter;
     // Low-pass gate: the cutoff closes together with the amp envelope.
@@ -882,6 +867,12 @@ export class Voice {
 
   /** One oversampled stereo sample through drive → filter → distortion into osOut[slot], osOut[slot + 1]. */
   private nonlinear(l: number, r: number, slot: number, bl: number, br: number): void {
+    // GRIND chain (moving filter → drive, four times) before the drive and main filter.
+    if (this.grindOn) {
+      this.grind.process(l, r);
+      l = this.grind.l;
+      r = this.grind.r;
+    }
     // Pre-filter drive.
     if (this.driveMix > 0) {
       const dc = this.driveComp, dm = this.driveMix;

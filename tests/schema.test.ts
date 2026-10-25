@@ -6,8 +6,8 @@ import {
 describe('schema', () => {
   it('has around 200 parameters with unique ids', () => {
     expect(params.length).toBeGreaterThanOrEqual(75);
-    // (the custom wobble shape's 32 points add 97)
-    expect(params.length).toBeLessThanOrEqual(380);
+    // (the custom wobble shape's 32 points add 97, GRIND's four stages 41)
+    expect(params.length).toBeLessThanOrEqual(430);
     expect(new Set(params.map((p) => p.id)).size).toBe(params.length);
   });
 

@@ -1441,3 +1441,40 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .box-noise .ob-head { gap: 8px !important; }
 .v2 .box-noise .ob-head .sel-name { letter-spacing: 0.06em !important; }
 .v2 .box-noise.long-name .ob-head .sel-name { font-size: 9px !important; letter-spacing: 0.02em !important; }
+
+/* ---- GRIND: four stage cards (a moving filter over its drive) and the roll strip along the bottom ---- */
+.v2 .grind-page { grid-template-rows: minmax(0, 1fr) 62px !important; height: 452px; }
+.v2 .grind-page > .gr-stage { display: flex !important; flex-direction: column; row-gap: 0; padding: 12px !important; min-height: 0; }
+.v2 .gr-s1 { --knob-accent: #a9dcff; } .v2 .gr-s2 { --knob-accent: #9a7cff; }
+.v2 .gr-s3 { --knob-accent: #3fe3b6; } .v2 .gr-s4 { --knob-accent: #5f9bff; }
+.v2 .gr-stage .ob-head { height: 24px; flex: none; }
+.v2 .gr-stage .ob-print { flex: none; }
+.v2 .gr-stage .gr-fprint { margin-top: 2px; }
+.v2 .gr-stage .ob-dials { flex: none; gap: 6px; }
+.v2 .gr-stage .gr-dprint { margin-top: 2px; }
+.v2 .gr-stage.is-off .ob-print, .v2 .gr-stage.is-off .ob-dials, .v2 .gr-stage.is-off .gr-drive-row,
+.v2 .gr-stage.chain-off .ob-print, .v2 .gr-stage.chain-off .ob-dials, .v2 .gr-stage.chain-off .gr-drive-row { opacity: 0.45; }
+.v2 .gr-icons { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.v2 .gr-ic { background: transparent; border: 0; padding: 0; color: #7c7c82; cursor: pointer; display: flex; align-items: center; }
+.v2 .gr-ic:hover { color: #d8d8dc; }
+.v2 .gr-ic.on { color: var(--knob-accent); filter: drop-shadow(0 0 4px var(--knob-accent)); }
+.v2 .gr-moves { display: flex; align-items: center; justify-content: flex-end; gap: 8px; height: 18px; margin-top: 4px; flex: none; }
+.v2 .gr-moves .sel-btn { display: none; }
+.v2 .gr-moves-label, .v2 .gr-sub { font-size: 9px; letter-spacing: 0.22em; color: #6e6e74; text-transform: uppercase; white-space: nowrap; }
+.v2 .gr-moves .sel-name { font-size: 9.5px !important; }
+.v2 .gr-drive-row { display: flex; align-items: center; gap: 10px; height: 22px; margin-top: 8px; flex: none; }
+.v2 .gr-drive-row .sel-btn { display: none; }
+.v2 .grind-page > .gr-strip { grid-column: 1 / -1; display: flex !important; align-items: center; padding: 0 14px !important; }
+.v2 .gr-strip .ob-head { gap: 14px; width: 100%; }
+.v2 .gr-roll { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 16px; background: transparent; border: 1px solid rgba(255,255,255,0.22);
+  color: #fff; font: inherit; font-size: 10.5px; letter-spacing: 0.3em; text-shadow: 0 0 8px rgba(255,255,255,0.55); cursor: pointer; white-space: nowrap; }
+.v2 .gr-roll:hover { border-color: rgba(255,255,255,0.5); }
+.v2 .gr-roll.gr-quiet { border-color: rgba(255,255,255,0.1); color: #a0a0a6; text-shadow: none; }
+.v2 .gr-roll.gr-quiet:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+.v2 .gr-weird { flex: none; width: 110px; }
+.v2 .gr-recent { display: flex; gap: 8px; margin-left: 2px; }
+.v2 .gr-thumb { width: 78px; height: 32px; padding: 0; background: transparent; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.v2 .gr-thumb:hover { border-color: rgba(255,255,255,0.25); }
+.v2 .gr-thumb.on { border-color: rgba(255,255,255,0.45); box-shadow: 0 0 12px rgba(255,255,255,0.06); }
+.v2 .v2-top .v2-tabs .tab { padding-left: 7px !important; padding-right: 5px !important; }
+.v2 .v2-top .v2-tabs .tab::before, .v2 .v2-top .v2-tabs .tab-level { left: 7px !important; right: 5px !important; }
