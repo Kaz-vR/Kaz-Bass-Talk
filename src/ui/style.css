@@ -1445,8 +1445,10 @@ html, body, .v2-wrap { background: #070708; }
 /* ---- GRIND: four stage cards (a moving filter over its drive) and the roll strip along the bottom ---- */
 .v2 .grind-page { grid-template-rows: 62px minmax(0, 1fr) !important; height: 452px; }
 .v2 .grind-page > .gr-stage { display: flex !important; flex-direction: column; row-gap: 0; padding: 12px !important; min-height: 0; }
-.v2 .gr-s1 { --knob-accent: #a9dcff; } .v2 .gr-s2 { --knob-accent: #9a7cff; }
-.v2 .gr-s3 { --knob-accent: #3fe3b6; } .v2 .gr-s4 { --knob-accent: #5f9bff; }
+/* GRIND is the dirt tab: four stages in fire colours (red, orange, amber, crimson), the strip's knobs red */
+.v2 .gr-s1 { --knob-accent: #ff3b2f; } .v2 .gr-s2 { --knob-accent: #ff7a1f; }
+.v2 .gr-s3 { --knob-accent: #ffc02e; } .v2 .gr-s4 { --knob-accent: #e8306e; }
+.v2 .gr-strip .gr-knobs { --knob-accent: #ff3b2f; }
 .v2 .gr-stage .ob-head { height: 24px; flex: none; }
 .v2 .gr-stage .ob-print { flex: none; }
 .v2 .gr-stage .gr-fprint { margin-top: 2px; }
