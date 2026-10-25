@@ -263,8 +263,8 @@ export function switchOffUnused(patch: Patch): void {
 /** Matrix sources in reading order (rows and the source menu): the envelopes, the LFOs, what the player does, the machine's own life. */
 export const SRC_ORDER = ['env2', 'env3', 'mod_env', 'amp_env', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo_product', 'velocity', 'modwheel', 'keytrack', 'random', 'drift', 'drift_slow'];
 /** Destinations in signal order: pitch, the sources, drive and filter, dirt, level, effects, LFO rates. */
-export const DEST_ORDER = ['pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'vibrato_depth', 'osc1_wt_pos', 'osc2_wt_pos', 'osc1_pw', 'osc2_pw', 'osc1_level', 'osc2_level',
-  'unison_detune', 'fm_amount', 'fm2_amount', 'sub_level', 'noise_level', 'breath_level', 'texture_level', 'noise_pitch', 'drive', 'filter_cutoff', 'filter_resonance',
+export const DEST_ORDER = ['pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'noise_pitch', 'vibrato_depth', 'osc1_wt_pos', 'osc2_wt_pos', 'osc1_pw', 'osc2_pw', 'osc1_level', 'osc2_level',
+  'unison_detune', 'fm_amount', 'fm2_amount', 'sub_level', 'noise_level', 'breath_level', 'texture_level', 'drive', 'filter_cutoff', 'filter_resonance',
   'filter_vowel', 'dist_drive', 'dist_mix', 'dist_tone', 'crush_mix', 'tape_wow', 'amp', 'chorus_depth', 'phaser_mix', 'delay_time', 'delay_mix',
   'reverb_mix', 'width', 'lfo1_rate', 'lfo2_rate', 'lfo3_rate', 'lfo4_rate'];
 const MOD_SLOT_COUNT = 12;
