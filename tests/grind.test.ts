@@ -74,6 +74,10 @@ describe('grind mix, low cut and the noise bed', () => {
     const cut = diff(render({ ...on, 'grind.lowcut': 2000 }), render(saw), 0.2 * FS, 0.9 * FS);
     expect(cut).toBeLessThan(full);
   });
+  it('a full low cut keeps the level (the drives match any input level, so the highs alone are not boosted)', () => {
+    const lc = rms(Float32Array.from(render({ ...on, 'grind.lowcut': 2000 })), 0.2 * FS, 0.9 * FS), dry = rms(Float32Array.from(render(saw)), 0.2 * FS, 0.9 * FS);
+    expect(Math.abs(20 * Math.log10(lc / dry))).toBeLessThan(1.5);
+  });
   it('the noise bed goes through GRIND, except on Direct out', () => {
     const tex = { ...saw, 'osc1.level': 0, 'texture.type': 'tape hiss', 'texture.level': 0.8 };
     const dry = render(tex), wet = render({ ...tex, 'grind.on': true, 'grind1.drive': 0.9, 'grind1.filter': 'comb' });
@@ -116,13 +120,15 @@ describe('grind key, one shot and OTT', () => {
     const seg = (t: number) => rms(Float32Array.from(a), Math.round(t * FS), Math.round((t + 0.1) * FS));
     expect(Math.abs(seg(1.2) / seg(1.4) - 1)).toBeLessThan(0.05);
   });
-  it('OTT changes the sound, stays finite and level-matched', () => {
-    const p = { ...saw, 'grind.on': true, 'grind1.drive': 0.5 };
-    const a = at(p, 36), b = at({ ...p, 'grind.ott': 1 }, 36);
+  it('OTT squashes a decaying note: louder, and its tail comes up much more than its attack', () => {
+    const p = { ...saw, 'grind.on': true, 'amp_env.decay': 200, 'amp_env.sustain': 0.3, 'amp_env.release': 600 };
+    const loop = { id: 'x', name: 'x', description: '', bpm: 120, length_beats: 8, notes: [{ start: 0, dur: 1, note: 36, vel: 0.9 }] };
+    const db = (x: Float64Array, a: number, b: number) => 10 * Math.log10(Array.from(x.subarray(Math.round(a * FS), Math.round(b * FS))).reduce((s, v) => s + v * v, 0) / ((b - a) * FS));
+    const a = mono(renderPatch(p as never, loop as never, { seconds: 1.6, tail: 0 }));
+    const b = mono(renderPatch({ ...p, 'grind.ott': 1 } as never, loop as never, { seconds: 1.6, tail: 0 }));
     expect(b.every(Number.isFinite)).toBe(true);
-    expect(diff(a, b, 0.2 * FS, 0.5 * FS)).toBeGreaterThan(0.01);
-    const r = rms(Float32Array.from(b), 0.2 * FS, 0.5 * FS) / rms(Float32Array.from(a), 0.2 * FS, 0.5 * FS);
-    expect(r).toBeGreaterThan(0.5);
-    expect(r).toBeLessThan(2);
+    const lift = (t0: number, t1: number) => db(b, t0, t1) - db(a, t0, t1);
+    expect(lift(0.3, 0.45)).toBeGreaterThan(4);
+    expect(lift(0.75, 0.95)).toBeGreaterThan(lift(0.01, 0.06) + 6);
   });
 });

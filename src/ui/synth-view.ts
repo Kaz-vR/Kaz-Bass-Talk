@@ -3448,7 +3448,10 @@ export class SynthView {
         drawLock();
       };
       drawLock();
-      const rateFmt = (v: number) => (this.get(`${pre}.sync`) ? GRIND_BEAT_NAMES[grindBeat(v)] : `${grindHz(v).toFixed(grindHz(v) < 1 ? 2 : 1)} Hz`);
+      // ONE SHOT on a stage that moves with the note: Rate is how long the sweep takes
+      const rateFmt = (v: number) => (this.get(`${pre}.sync`) ? GRIND_BEAT_NAMES[grindBeat(v)]
+        : this.get('grind.oneshot') && this.get(`${pre}.move`) === 'note' ? `${Math.round(500 / grindHz(v))} ms`
+          : `${grindHz(v).toFixed(grindHz(v) < 1 ? 2 : 1)} Hz`);
       // switching a stage on while the chain is off switches the chain on too
       const power = this.boolPower(`${pre}.on`, card);
       power.onclick = () => {
@@ -3462,7 +3465,7 @@ export class SynthView {
       const moves = h('div', 'gr-moves', h('span', 'gr-moves-label', 'MOVES'), this.selector(`${pre}.move`));
       const fprint = h('div', 'ob-print gr-fprint', fcv);
       const fdials = h('div', 'ob-dials', lg(`${pre}.freq`, 'Freq'), lg(`${pre}.range`, 'Range', { fmt: (v) => `${v.toFixed(1)} oct` }),
-        lg(`${pre}.res`, 'Res'), lg(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.sync`] }), sync);
+        lg(`${pre}.res`, 'Res'), lg(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.sync`, `${pre}.move`, 'grind.oneshot'] }), sync);
       const drow = h('div', 'gr-drive-row', h('span', 'gr-sub', 'DRIVE'), this.selector(`${pre}.drive_type`));
       const ddials = h('div', 'ob-dials', lg(`${pre}.drive`, 'Drive'), lg(`${pre}.mix`, 'Mix'));
       card.append(head, moves, fprint, fdials, drow, h('div', 'ob-print gr-dprint', dcv), ddials);

@@ -29,7 +29,7 @@ import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobShapeAt,
 import { PARAM_COUNT, params } from '../../schema';
 import { AUX_SLOT, Biquad, clamp, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
 import { Chorus, Delay, Flanger, Limiter, OctaveDown, Phaser, Reverb } from './fx';
-import { Grind } from './grind';
+import { Grind, Ott } from './grind';
 import { OVERSAMPLE_LATENCY } from './oversample';
 import * as K from './params';
 import { Voice } from './voice';
@@ -144,6 +144,8 @@ export class Synth {
   /** The texture bed's own GRIND chain (the bed is shared, so it follows the newest note), when not on Direct out. */
   private readonly texGrind = new Grind(new Rng(0x6a1d));
   private texGrindOn = false;
+  /** GRIND's OTT, after the amp envelopes (on the voices and the noise bed, before the effects). */
+  private readonly ott = new Ott();
   // Slow random 'drift' modulation source.
   private driftVal = 0;
   private driftTarget = 0;
@@ -883,6 +885,7 @@ export class Synth {
     const tg = cur[P.grindOn] > 0.5 && !this.texDirect;
     if (tg && !this.texGrindOn) this.texGrind.reset();
     this.texGrindOn = tg;
+    this.ott.set(cur[P.grindOn] > 0.5 ? cur[P.grindOtt] : 0, cur[P.grindLowcut], fs);
     if (tg) this.texGrind.control(cur, this.beatPos, this.tempo / 60, (lead.pitch + 12 * cur[P.octave] - K.KEYTRACK_CENTER) / 12, fs, fs, BLOCK, this.rng);
 
     // The bar clock (the wobble locks to it).
@@ -1064,6 +1067,11 @@ export class Synth {
         }
         l += texL;
         r += texR;
+      }
+      if (this.ott.on) {
+        this.ott.process(l, r);
+        l = this.ott.l;
+        r = this.ott.r;
       }
 
       // Effects, each only on what is above its own low cut (the part below passes dry).

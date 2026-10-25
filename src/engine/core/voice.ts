@@ -320,6 +320,8 @@ export class Voice {
     this.gate = true;
     this.order = order;
     this.tail = 40;
+    // GRIND's note movement starts again on every new note, legato notes too
+    this.grind.noteOn();
     if (!retrigger) return;
     this.velocity = clamp(velocity, 0, 1);
     const cur = this.cur;
@@ -350,7 +352,6 @@ export class Voice {
       this.fmPrevOut = 0;
       this.grind.reset();
     }
-    this.grind.noteOn();
     this.noteCutoffJitter = this.rng.next();
     // Per-note excitations: FM punch, string pluck.
     this.fmEnv = 1;

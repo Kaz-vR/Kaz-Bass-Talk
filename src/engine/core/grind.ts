@@ -26,6 +26,20 @@ export const grindBeat = (rate: number): number => Math.round(Math.min(1, Math.m
 /** The drive's gain for grind<n>.drive (0..1). */
 export const grindGain = (drive: number): number => 1 + 29 * drive * drive;
 const COMB_LEN = 4096;
+// OTT: Ableton's OTT preset (low, mid, high band)
+const OTT_ABOVE = [-33.8, -30.2, -35.5]; // dB, downward 1:66 over it
+const OTT_BELOW = [-40.8, -41.8, -40.8]; // dB, upward 4.17:1 under it
+const OTT_BAND_DB = [10.3, 5.7, 10.3];
+const OTT_ATTACK = [0.0478, 0.0224, 0.0135];
+const OTT_RELEASE = [0.282, 0.282, 0.132];
+const OTT_MAX_UP = 36; // dB: the most a band is pulled up (the silence between notes stays silent)
+/**
+ * The synth's bus runs far below the full-scale levels Ableton's thresholds assume: the detector sees
+ * it OTT_IN_DB hotter (an input gain on the detector only), and OTT_MAKEUP_DB after the bands makes
+ * full Depth come out louder and denser, as OTT does.
+ */
+const OTT_IN_DB = 18;
+const OTT_MAKEUP_DB = 15;
 const TWO_PI = 2 * Math.PI;
 
 class Stage {
@@ -51,7 +65,9 @@ class Stage {
   // drive
   driveOn = false;
   gain = 1;
-  comp = 1;
+  /** Level matching: followers of what goes into the drive and what comes out, so more drive is dirtier, not louder, at any input level. */
+  inEnv = 0;
+  outEnv = 0;
   mix = 1;
   bias = 0;
   offset = 0;
@@ -149,26 +165,10 @@ export class Grind {
   private lastLc = -1;
   private mix = 1;
   private readonly split = Array.from({ length: 8 }, () => new Biquad()); // per channel: LP, LP, HP, HP
-  /*
-   * OTT (grind.ott): three bands (split at 88 Hz and 2.5 kHz, as Ableton's OTT), each pushed towards
-   * one level from both sides (quiet detail up, peaks down: upward and downward compression), at
-   * Amount; the result is matched to the chain's own level, so more is denser, not louder.
-   */
-  private ottAmt = 0;
-  private ottFs = 0;
-  private readonly ottX = Array.from({ length: 16 }, () => new Biquad()); // per channel: LP1 ×2, HP1 ×2, LP2 ×2, HP2 ×2
-  private readonly ottEnv = new Float64Array(3);
-  private readonly ottBands = new Float64Array(6); // this sample's bands: left low / mid / high, then right
-  private readonly ottGain = new Float64Array(3).fill(1);
-  private ottAtk = 0;
-  private ottRel = 0;
-  private ottIn = 0;
-  private ottOut = 0;
-  private ottLvl = 0;
-  private ottTick = 0;
   private dcX = new Float64Array(2);
   private dcY = new Float64Array(2);
   private dcR = 0.999;
+  private envK = 0.001;
 
   constructor(rng: Rng) {
     for (const s of this.stages) {
@@ -176,48 +176,6 @@ export class Grind {
       s.wTo = rng.next();
       s.wPos = 0.5 * (rng.next() + 1);
     }
-  }
-
-  private ottSetup(fsOs: number): void {
-    this.ottFs = fsOs;
-    for (let c = 0; c < 2; c++) for (let j = 0; j < 2; j++) {
-      const o = 8 * c;
-      this.ottX[o + j].setLowpass(88, Math.SQRT1_2, fsOs);
-      this.ottX[o + 2 + j].setHighpass(88, Math.SQRT1_2, fsOs);
-      this.ottX[o + 4 + j].setLowpass(2500, Math.SQRT1_2, fsOs);
-      this.ottX[o + 6 + j].setHighpass(2500, Math.SQRT1_2, fsOs);
-    }
-    this.ottAtk = 1 - Math.exp(-1 / (0.003 * fsOs));
-    this.ottRel = 1 - Math.exp(-1 / (0.08 * fsOs));
-    this.ottLvl = 1 - Math.exp(-1 / (0.3 * fsOs));
-  }
-
-  /** One stereo sample through the OTT, into this.l / this.r. */
-  private ott(l: number, r: number): void {
-    const x = this.ottX, amt = this.ottAmt;
-    const lo0 = x[1].process(x[0].process(l)), rest0 = x[3].process(x[2].process(l));
-    const lo1 = x[9].process(x[8].process(r)), rest1 = x[11].process(x[10].process(r));
-    const mid0 = x[5].process(x[4].process(rest0)), hi0 = x[7].process(x[6].process(rest0));
-    const mid1 = x[13].process(x[12].process(rest1)), hi1 = x[15].process(x[14].process(rest1));
-    const bd = this.ottBands;
-    bd[0] = lo0; bd[1] = mid0; bd[2] = hi0; bd[3] = lo1; bd[4] = mid1; bd[5] = hi1;
-    const env = this.ottEnv, gain = this.ottGain, recompute = (this.ottTick = (this.ottTick + 1) & 3) === 0;
-    let ol = 0, or = 0;
-    for (let b = 0; b < 3; b++) {
-      const a = Math.max(Math.abs(bd[b]), Math.abs(bd[b + 3]));
-      env[b] += (a - env[b]) * (a > env[b] ? this.ottAtk : this.ottRel);
-      // towards 0.25 from both sides: ratio grows with Amount, the boost capped at +24 dB
-      if (recompute) gain[b] = Math.min(16, Math.max(1 / 16, Math.pow(0.25 / Math.max(env[b], 1e-4), 0.75 * amt)));
-      ol += bd[b] * gain[b];
-      or += bd[b + 3] * gain[b];
-    }
-    // level matched: the output follows the chain's own loudness
-    const k = this.ottLvl;
-    this.ottIn += (Math.abs(l) + Math.abs(r) - this.ottIn) * k;
-    this.ottOut += (Math.abs(ol) + Math.abs(or) - this.ottOut) * k;
-    const match = this.ottOut > 1e-6 ? Math.min(4, this.ottIn / this.ottOut) : 1;
-    this.l = l + (ol * match - l) * Math.min(1, amt * 4);
-    this.r = r + (or * match - r) * Math.min(1, amt * 4);
   }
 
   /** A new note: movement that follows the note starts again. */
@@ -238,10 +196,6 @@ export class Grind {
     this.dcX.fill(0);
     this.dcY.fill(0);
     for (const f of this.split) f.reset();
-    for (const f of this.ottX) f.reset();
-    this.ottEnv.fill(0);
-    this.ottGain.fill(1);
-    this.ottIn = this.ottOut = 0;
   }
 
   /**
@@ -252,6 +206,7 @@ export class Grind {
   control(cur: Float64Array, beatPos: number, bps: number, keyOct: number, fs: number, fsOs: number, n: number, rng: Rng): void {
     const dt = n / fsOs;
     this.dcR = 1 - (TWO_PI * 10) / fsOs;
+    this.envK = 1 - Math.exp(-1 / (0.05 * fsOs));
     this.mix = cur[P.grindMix];
     const lc = cur[P.grindLowcut];
     if (lc !== this.lastLc) {
@@ -264,8 +219,6 @@ export class Grind {
     }
     // KEY: every stage follows the note (Freq is where it sits at C3); ONE SHOT: note movement sweeps once and holds
     const key = cur[P.grindKey] > 0.5 ? Math.pow(2, keyOct) : 1, oneShot = cur[P.grindOneShot] > 0.5;
-    this.ottAmt = cur[P.grindOtt];
-    if (this.ottAmt > 0 && fsOs !== this.ottFs) this.ottSetup(fsOs);
     for (let i = 0; i < GRIND_STAGES; i++) {
       const s = this.stages[i], gp = P.grind[i];
       s.on = cur[gp.on] > 0.5;
@@ -276,10 +229,11 @@ export class Grind {
       const rate = cur[gp.rate], wander = cur[gp.move] === GM_WANDER;
       let m: number;
       if (oneShot && !wander) {
-        // half a cycle from the top of the range to the bottom, then it stays there until the next note
+        // an envelope, not an LFO: from the top of the range it falls fast, then settles at the bottom
+        // and stays there until the next note; Rate sets how long the fall takes (its time = half a cycle)
         const hz = cur[gp.sync] > 0.5 ? bps / GRIND_BEATS[grindBeat(rate)] : grindHz(rate);
-        s.phase = Math.min(0.5, s.phase + hz * dt);
-        m = Math.cos(TWO_PI * s.phase);
+        s.phase += dt;
+        m = -1 + 2 * Math.exp((-s.phase * 2 * hz) * 3);
       } else if (cur[gp.sync] > 0.5) {
         // synced: the cycle follows the synth's bar clock
         const p = beatPos / GRIND_BEATS[grindBeat(rate)], cycle = Math.floor(p), f = p - cycle;
@@ -332,7 +286,6 @@ export class Grind {
       s.driveOn = drive > 0.001;
       s.mix = cur[gp.mix];
       s.gain = grindGain(drive);
-      s.comp = 1 / (1 + 0.1 * (s.gain - 1));
       const dtype = cur[gp.dtype];
       const bias = dtype === DIST_FUZZ ? K.FUZZ_BIAS_REL * s.gain : 0;
       if (dtype !== s.dtype || bias !== s.bias) {
@@ -365,8 +318,12 @@ export class Grind {
       l = s.filter(l, 0, s.g, pos);
       r = s.filter(r, 1, s.g, pos);
       if (s.driveOn) {
-        l += (s.shape(l, 0) * s.comp - l) * s.mix;
-        r += (s.shape(r, 1) * s.comp - r) * s.mix;
+        const dl = s.shape(l, 0), dr = s.shape(r, 1), k = this.envK;
+        s.inEnv += (Math.abs(l) + Math.abs(r) - s.inEnv) * k;
+        s.outEnv += (Math.abs(dl) + Math.abs(dr) - s.outEnv) * k;
+        const match = s.outEnv > 1e-9 ? Math.min(2, s.inEnv / s.outEnv) : 1;
+        l += (dl * match - l) * s.mix;
+        r += (dr * match - r) * s.mix;
       }
     }
     this.combPos = (pos + 1) & (COMB_LEN - 1);
@@ -376,14 +333,113 @@ export class Grind {
     dx[0] = l;
     dy[1] = r - dx[1] + R * dy[1];
     dx[1] = r;
-    let wl = dy[0], wr = dy[1];
-    if (this.ottAmt > 0) {
-      this.ott(wl, wr);
-      wl = this.l;
-      wr = this.r;
-    }
+    const wl = dy[0], wr = dy[1];
     const m = this.mix;
     this.l = lowL + hiL + (wl - hiL) * m;
     this.r = lowR + hiR + (wr - hiR) * m;
+  }
+}
+
+/**
+ * GRIND's OTT (grind.ott), as Ableton's OTT preset / Xfer's OTT, on the whole synth after the amp
+ * envelopes (the voices' sum and the noise bed, before the effects; the clean sub stays out): three
+ * bands split at 88 Hz and 2.5 kHz, each squashed hard from above (1:66 over its upper threshold) and
+ * pulled up hard from below (4.17:1 under its lower one), with the preset's band gains and attack /
+ * release times. The knob is Depth (dry / wet; the dry is the same bands summed, so no phasing).
+ * Below GRIND's Lo cut the sound passes clean.
+ */
+export class Ott {
+  l = 0;
+  r = 0;
+  private amt = 0;
+  private fs = 0;
+  private lcOn = false;
+  private lastLc = -1;
+  private readonly split = Array.from({ length: 8 }, () => new Biquad());
+  private readonly x = Array.from({ length: 16 }, () => new Biquad()); // per channel: LP1 ×2, HP1 ×2, LP2 ×2, HP2 ×2
+  private readonly env = new Float64Array(3);
+  private readonly gain = new Float64Array(3).fill(1);
+  private readonly bd = new Float64Array(6);
+  private readonly atk = new Float64Array(3);
+  private readonly rel = new Float64Array(3);
+  private tick = 0;
+
+  get on(): boolean {
+    return this.amt > 0;
+  }
+
+  /** Control rate: Depth (0 = off) and the Lo cut. */
+  set(depth: number, lowcut: number, fs: number): void {
+    if (depth > 0 && this.amt === 0) this.reset();
+    this.amt = depth;
+    if (depth <= 0) return;
+    if (fs !== this.fs) {
+      this.fs = fs;
+      this.lastLc = -1;
+      for (let c = 0; c < 2; c++) for (let j = 0; j < 2; j++) {
+        const o = 8 * c;
+        this.x[o + j].setLowpass(88, Math.SQRT1_2, fs);
+        this.x[o + 2 + j].setHighpass(88, Math.SQRT1_2, fs);
+        this.x[o + 4 + j].setLowpass(2500, Math.SQRT1_2, fs);
+        this.x[o + 6 + j].setHighpass(2500, Math.SQRT1_2, fs);
+      }
+      for (let b = 0; b < 3; b++) {
+        this.atk[b] = 1 - Math.exp(-1 / (OTT_ATTACK[b] * fs));
+        this.rel[b] = 1 - Math.exp(-1 / (OTT_RELEASE[b] * fs));
+      }
+    }
+    if (lowcut !== this.lastLc) {
+      this.lastLc = lowcut;
+      this.lcOn = lowcut > 21;
+      if (this.lcOn) for (let c = 0; c < 2; c++) for (let j = 0; j < 2; j++) {
+        this.split[4 * c + j].setLowpass(Math.min(lowcut, fs * 0.45), Math.SQRT1_2, fs);
+        this.split[4 * c + 2 + j].setHighpass(Math.min(lowcut, fs * 0.45), Math.SQRT1_2, fs);
+      }
+    }
+  }
+
+  reset(): void {
+    for (const f of this.x) f.reset();
+    for (const f of this.split) f.reset();
+    this.env.fill(0);
+    this.gain.fill(1);
+  }
+
+  /** One stereo sample, into l / r. */
+  process(inL: number, inR: number): void {
+    let lowL = 0, lowR = 0, l = inL, r = inR;
+    if (this.lcOn) {
+      const sp = this.split;
+      lowL = sp[1].process(sp[0].process(inL));
+      l = sp[3].process(sp[2].process(inL));
+      lowR = sp[5].process(sp[4].process(inR));
+      r = sp[7].process(sp[6].process(inR));
+    }
+    const x = this.x, bd = this.bd;
+    const rest0 = x[3].process(x[2].process(l)), rest1 = x[11].process(x[10].process(r));
+    bd[0] = x[1].process(x[0].process(l));
+    bd[1] = x[5].process(x[4].process(rest0));
+    bd[2] = x[7].process(x[6].process(rest0));
+    bd[3] = x[9].process(x[8].process(r));
+    bd[4] = x[13].process(x[12].process(rest1));
+    bd[5] = x[15].process(x[14].process(rest1));
+    const env = this.env, gain = this.gain, recompute = (this.tick = (this.tick + 1) & 3) === 0;
+    let ol = 0, or = 0;
+    for (let b = 0; b < 3; b++) {
+      const a = Math.max(Math.abs(bd[b]), Math.abs(bd[b + 3]));
+      env[b] += (a - env[b]) * (a > env[b] ? this.atk[b] : this.rel[b]);
+      if (recompute) {
+        const lvl = 20 * Math.log10(env[b] + 1e-9) + OTT_IN_DB;
+        let g = 0;
+        if (lvl > OTT_ABOVE[b]) g = (OTT_ABOVE[b] - lvl) * (1 - 1 / 66);
+        else if (lvl < OTT_BELOW[b] && lvl > -90) g = Math.min(OTT_MAX_UP, (OTT_BELOW[b] - lvl) * (1 - 1 / 4.17));
+        gain[b] = Math.pow(10, (g + OTT_BAND_DB[b] + OTT_MAKEUP_DB) / 20);
+      }
+      ol += bd[b] * gain[b];
+      or += bd[b + 3] * gain[b];
+    }
+    const dl = bd[0] + bd[1] + bd[2], dr = bd[3] + bd[4] + bd[5], d = this.amt;
+    this.l = lowL + dl + (ol - dl) * d;
+    this.r = lowR + dr + (or - dr) * d;
   }
 }
