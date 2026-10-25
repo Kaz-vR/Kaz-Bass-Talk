@@ -22,10 +22,10 @@ describe('grind', () => {
     const b = mono(renderPatch({ ...saw, 'grind.on': false, 'grind1.drive': 1 }, heldNote(36, 4), { seconds: 1 }));
     expect(diff(off, b, 0, FS)).toBe(0);
   });
-  for (const filter of ['notch', 'peak', 'band', 'comb', 'phaser', 'formant']) {
-    for (const move of ['note', 'beat', 'wander']) {
-      it(`${filter} / ${move}: changes the sound, stays finite and level-matched`, () => {
-        const p = { ...saw, 'grind.on': true, 'grind1.filter': filter, 'grind1.move': move, 'grind2.on': false, 'grind3.on': false, 'grind4.on': false };
+  for (const filter of ['notch', 'peak', 'band', 'comb', 'phaser']) {
+    for (const [move, sync] of [['note', false], ['note', true], ['wander', false], ['wander', true]] as const) {
+      it(`${filter} / ${move}${sync ? ' synced' : ''}: changes the sound, stays finite and level-matched`, () => {
+        const p = { ...saw, 'grind.on': true, 'grind1.filter': filter, 'grind1.move': move, 'grind1.sync': sync, 'grind2.on': false, 'grind3.on': false, 'grind4.on': false };
         const a = mono(renderPatch(p, heldNote(36, 4), { seconds: 1 }));
         expect(a.every(Number.isFinite)).toBe(true);
         expect(diff(off, a, 0.2 * FS, 0.9 * FS)).toBeGreaterThan(0.01);
@@ -50,5 +50,15 @@ describe('grind', () => {
     const a = mono(renderPatch(p, heldNote(36, 4), { seconds: 1 }));
     expect(a.every(Number.isFinite)).toBe(true);
     expect(Math.max(...a.map(Math.abs))).toBeLessThan(1);
+  });
+});
+
+describe('grind migration', () => {
+  it('beat becomes note with Sync on, formant becomes peak', async () => {
+    const { validatePatch } = await import('../src/schema');
+    const { patch } = validatePatch({ meta: { name: 't' }, 'grind1.move': 'beat', 'grind2.filter': 'formant' });
+    expect(patch['grind1.move']).toBe('note');
+    expect(patch['grind1.sync']).toBe(true);
+    expect(patch['grind2.filter']).toBe('peak');
   });
 });

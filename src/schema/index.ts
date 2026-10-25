@@ -182,6 +182,20 @@ function migrateAttackCurve(src: Record<string, unknown>): Record<string, unknow
  * (it loads as air); breath is now air's hit ("air hit"). Its Character dial became Density (same
  * place, 0.5 still each type's classic sound).
  */
+/** GRIND before it lost its beat movement and formant filter: beat became note with Sync on, formant a peak. */
+function migrateGrind(src: Record<string, unknown>): Record<string, unknown> {
+  if (![1, 2, 3, 4].some((n) => src[`grind${n}.move`] === 'beat' || src[`grind${n}.filter`] === 'formant')) return src;
+  const out: Record<string, unknown> = { ...src };
+  for (let n = 1; n <= 4; n++) {
+    if (out[`grind${n}.move`] === 'beat') {
+      out[`grind${n}.move`] = 'note';
+      out[`grind${n}.sync`] = true;
+    }
+    if (out[`grind${n}.filter`] === 'formant') out[`grind${n}.filter`] = 'peak';
+  }
+  return out;
+}
+
 function migrateTexture(src: Record<string, unknown>): Record<string, unknown> {
   const t = src['texture.type'];
   const renamed: Record<string, string> = { hum: 'rumble', machine: 'rumble', wind: 'air', breath: 'air hit' };
@@ -208,7 +222,7 @@ function migrateReverb(src: Record<string, unknown>): Record<string, unknown> {
  */
 export function validatePatch(input: unknown): ValidationResult {
   const issues: ValidationIssue[] = [];
-  const src = migrateTexture(migrateAttackCurve(migrateReverb(migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>)))));
+  const src = migrateGrind(migrateTexture(migrateAttackCurve(migrateReverb(migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>))))));
   const rawMeta = src.meta && typeof src.meta === 'object' ? (src.meta as PatchMeta) : undefined;
   const meta: PatchMeta = { ...(rawMeta ?? {}), name: typeof rawMeta?.name === 'string' ? rawMeta.name : 'Untitled' };
   if (!rawMeta) issues.push({ param: 'meta', message: 'missing meta' });

@@ -100,6 +100,10 @@ export class Voice {
   private readonly table: Float32Array;
   private readonly rng: Rng;
   private grind!: Grind;
+  /** Where GRIND stage i's filter is right now (Hz), or -1 when the stage (or the chain) is off. */
+  grindFc(i: number): number {
+    return this.grindOn ? this.grind.stages[i].fcNow : -1;
+  }
   private grindOn = false;
   /** The bar position in beats (0..4), set by the synth before control(): GRIND's beat movement. */
   beatPos = 0;

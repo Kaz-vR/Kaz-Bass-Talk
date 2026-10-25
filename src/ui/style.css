@@ -1443,7 +1443,7 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .box-noise.long-name .ob-head .sel-name { font-size: 9px !important; letter-spacing: 0.02em !important; }
 
 /* ---- GRIND: four stage cards (a moving filter over its drive) and the roll strip along the bottom ---- */
-.v2 .grind-page { grid-template-rows: minmax(0, 1fr) 62px !important; height: 452px; }
+.v2 .grind-page { grid-template-rows: 62px minmax(0, 1fr) !important; height: 452px; }
 .v2 .grind-page > .gr-stage { display: flex !important; flex-direction: column; row-gap: 0; padding: 12px !important; min-height: 0; }
 .v2 .gr-s1 { --knob-accent: #a9dcff; } .v2 .gr-s2 { --knob-accent: #9a7cff; }
 .v2 .gr-s3 { --knob-accent: #3fe3b6; } .v2 .gr-s4 { --knob-accent: #5f9bff; }
@@ -1478,3 +1478,12 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-thumb.on { border-color: rgba(255,255,255,0.45); box-shadow: 0 0 12px rgba(255,255,255,0.06); }
 .v2 .v2-top .v2-tabs .tab { padding-left: 7px !important; padding-right: 5px !important; }
 .v2 .v2-top .v2-tabs .tab::before, .v2 .v2-top .v2-tabs .tab-level { left: 7px !important; right: 5px !important; }
+/* GRIND: the strip on top, HZ / SYNC stacked right of Rate, the Wobbler's rocker on its side */
+.v2 .gr-stage .ob-dials { align-items: center; }
+.v2 .gr-sync { flex-direction: column; align-items: flex-start; gap: 3px; margin-left: 2px; margin-bottom: 14px; }
+.v2 .gr-sync .fx-kind-sep { display: none; }
+.v2 .gr-sync .fx-kind { padding: 0; font-size: 9px !important; letter-spacing: 0.16em !important; }
+.v2 .gr-strip .gr-recent { margin-left: 0; }
+.v2 .gr-rocker { position: relative; width: 66px; height: 42px; margin-left: auto; flex: none; }
+.v2 .gr-rocker svg { position: absolute; left: 50%; top: 50%; margin: -48px 0 0 -30px; transform: rotate(-90deg) scale(0.66); }
+.v2 .gr-rocker .bt-label { display: none; }

@@ -4624,10 +4624,10 @@
       "id": "grind1.filter",
       "label": "Grind 1 filter",
       "type": "enum",
-      "options": ["notch", "peak", "band", "comb", "phaser", "formant"],
+      "options": ["notch", "peak", "band", "comb", "phaser"],
       "default": "notch",
       "group": "grind1",
-      "describes": "The stage's moving filter. Notch cuts a hollow dip (the classic neuro sweep); peak pushes a band into the drive; band keeps only a narrow band; comb rings metallic at the frequency and its harmonics; phaser carves two moving notches; formant is two vowel-like bands moving together (talking)."
+      "describes": "The stage's moving filter. Notch cuts a hollow dip (the classic neuro sweep); peak pushes a band into the drive; band keeps only a narrow band; comb rings metallic at the frequency and its harmonics; phaser carves two moving notches."
     },
     {
       "id": "grind1.freq",
@@ -4657,10 +4657,10 @@
       "id": "grind1.move",
       "label": "Grind 1 moves",
       "type": "enum",
-      "options": ["note", "beat", "wander"],
+      "options": ["note", "wander"],
       "default": "note",
       "group": "grind1",
-      "describes": "What moves the filter: note = restarts with every note (from the top of its range); beat = locked to the tempo; wander = smooth random, never repeating."
+      "describes": "How the filter moves: note = a sweep that restarts with every note (from the top of its range); wander = smooth random, never repeating."
     },
     {
       "id": "grind1.rate",
@@ -4672,7 +4672,15 @@
       "curve": "linear",
       "unit": "",
       "group": "grind1",
-      "describes": "How fast the filter moves: 0.1-25 Hz for note and wander, 1 bar to 1/32 for beat."
+      "describes": "How fast the filter moves: 0.1-25 Hz, or 1 bar to 1/32 when synced."
+    },
+    {
+      "id": "grind1.sync",
+      "label": "Grind 1 sync",
+      "type": "bool",
+      "default": false,
+      "group": "grind1",
+      "describes": "Rate in Hz (off: free running, the most alive) or synced to the tempo (on: 1 bar to 1/32)."
     },
     {
       "id": "grind1.res",
@@ -4731,10 +4739,10 @@
       "id": "grind2.filter",
       "label": "Grind 2 filter",
       "type": "enum",
-      "options": ["notch", "peak", "band", "comb", "phaser", "formant"],
+      "options": ["notch", "peak", "band", "comb", "phaser"],
       "default": "phaser",
       "group": "grind2",
-      "describes": "The stage's moving filter. Notch cuts a hollow dip (the classic neuro sweep); peak pushes a band into the drive; band keeps only a narrow band; comb rings metallic at the frequency and its harmonics; phaser carves two moving notches; formant is two vowel-like bands moving together (talking)."
+      "describes": "The stage's moving filter. Notch cuts a hollow dip (the classic neuro sweep); peak pushes a band into the drive; band keeps only a narrow band; comb rings metallic at the frequency and its harmonics; phaser carves two moving notches."
     },
     {
       "id": "grind2.freq",
@@ -4764,10 +4772,10 @@
       "id": "grind2.move",
       "label": "Grind 2 moves",
       "type": "enum",
-      "options": ["note", "beat", "wander"],
-      "default": "beat",
+      "options": ["note", "wander"],
+      "default": "note",
       "group": "grind2",
-      "describes": "What moves the filter: note = restarts with every note (from the top of its range); beat = locked to the tempo; wander = smooth random, never repeating."
+      "describes": "How the filter moves: note = a sweep that restarts with every note (from the top of its range); wander = smooth random, never repeating."
     },
     {
       "id": "grind2.rate",
@@ -4779,7 +4787,15 @@
       "curve": "linear",
       "unit": "",
       "group": "grind2",
-      "describes": "How fast the filter moves: 0.1-25 Hz for note and wander, 1 bar to 1/32 for beat."
+      "describes": "How fast the filter moves: 0.1-25 Hz, or 1 bar to 1/32 when synced."
+    },
+    {
+      "id": "grind2.sync",
+      "label": "Grind 2 sync",
+      "type": "bool",
+      "default": false,
+      "group": "grind2",
+      "describes": "Rate in Hz (off: free running, the most alive) or synced to the tempo (on: 1 bar to 1/32)."
     },
     {
       "id": "grind2.res",
@@ -4838,10 +4854,10 @@
       "id": "grind3.filter",
       "label": "Grind 3 filter",
       "type": "enum",
-      "options": ["notch", "peak", "band", "comb", "phaser", "formant"],
+      "options": ["notch", "peak", "band", "comb", "phaser"],
       "default": "comb",
       "group": "grind3",
-      "describes": "The stage's moving filter. Notch cuts a hollow dip (the classic neuro sweep); peak pushes a band into the drive; band keeps only a narrow band; comb rings metallic at the frequency and its harmonics; phaser carves two moving notches; formant is two vowel-like bands moving together (talking)."
+      "describes": "The stage's moving filter. Notch cuts a hollow dip (the classic neuro sweep); peak pushes a band into the drive; band keeps only a narrow band; comb rings metallic at the frequency and its harmonics; phaser carves two moving notches."
     },
     {
       "id": "grind3.freq",
@@ -4871,10 +4887,10 @@
       "id": "grind3.move",
       "label": "Grind 3 moves",
       "type": "enum",
-      "options": ["note", "beat", "wander"],
+      "options": ["note", "wander"],
       "default": "wander",
       "group": "grind3",
-      "describes": "What moves the filter: note = restarts with every note (from the top of its range); beat = locked to the tempo; wander = smooth random, never repeating."
+      "describes": "How the filter moves: note = a sweep that restarts with every note (from the top of its range); wander = smooth random, never repeating."
     },
     {
       "id": "grind3.rate",
@@ -4886,7 +4902,15 @@
       "curve": "linear",
       "unit": "",
       "group": "grind3",
-      "describes": "How fast the filter moves: 0.1-25 Hz for note and wander, 1 bar to 1/32 for beat."
+      "describes": "How fast the filter moves: 0.1-25 Hz, or 1 bar to 1/32 when synced."
+    },
+    {
+      "id": "grind3.sync",
+      "label": "Grind 3 sync",
+      "type": "bool",
+      "default": false,
+      "group": "grind3",
+      "describes": "Rate in Hz (off: free running, the most alive) or synced to the tempo (on: 1 bar to 1/32)."
     },
     {
       "id": "grind3.res",
@@ -4945,10 +4969,10 @@
       "id": "grind4.filter",
       "label": "Grind 4 filter",
       "type": "enum",
-      "options": ["notch", "peak", "band", "comb", "phaser", "formant"],
-      "default": "formant",
+      "options": ["notch", "peak", "band", "comb", "phaser"],
+      "default": "peak",
       "group": "grind4",
-      "describes": "The stage's moving filter. Notch cuts a hollow dip (the classic neuro sweep); peak pushes a band into the drive; band keeps only a narrow band; comb rings metallic at the frequency and its harmonics; phaser carves two moving notches; formant is two vowel-like bands moving together (talking)."
+      "describes": "The stage's moving filter. Notch cuts a hollow dip (the classic neuro sweep); peak pushes a band into the drive; band keeps only a narrow band; comb rings metallic at the frequency and its harmonics; phaser carves two moving notches."
     },
     {
       "id": "grind4.freq",
@@ -4978,10 +5002,10 @@
       "id": "grind4.move",
       "label": "Grind 4 moves",
       "type": "enum",
-      "options": ["note", "beat", "wander"],
-      "default": "beat",
+      "options": ["note", "wander"],
+      "default": "wander",
       "group": "grind4",
-      "describes": "What moves the filter: note = restarts with every note (from the top of its range); beat = locked to the tempo; wander = smooth random, never repeating."
+      "describes": "How the filter moves: note = a sweep that restarts with every note (from the top of its range); wander = smooth random, never repeating."
     },
     {
       "id": "grind4.rate",
@@ -4993,7 +5017,15 @@
       "curve": "linear",
       "unit": "",
       "group": "grind4",
-      "describes": "How fast the filter moves: 0.1-25 Hz for note and wander, 1 bar to 1/32 for beat."
+      "describes": "How fast the filter moves: 0.1-25 Hz, or 1 bar to 1/32 when synced."
+    },
+    {
+      "id": "grind4.sync",
+      "label": "Grind 4 sync",
+      "type": "bool",
+      "default": false,
+      "group": "grind4",
+      "describes": "Rate in Hz (off: free running, the most alive) or synced to the tempo (on: 1 bar to 1/32)."
     },
     {
       "id": "grind4.res",

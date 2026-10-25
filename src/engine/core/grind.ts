@@ -1,8 +1,8 @@
 // GRIND: the neuro-bass chain. Four stages between the oscillators and the drive / main filter,
 // each a moving filter into its own drive (filter → drive → filter → drive …, the way the sound is
 // built by stacking), run at the oversampled rate like the rest of the nonlinear section.
-// Each stage's filter moves on its own: restarted by every note, locked to the beat, or wandering
-// at random; the chain only ever sees what goes into the main filter (A / B), so the sub stays clean.
+// Each stage's filter moves on its own, restarted by every note or wandering at random, at a rate
+// in Hz (free, for life) or synced to the bar; the chain only ever sees what goes into the main filter (A / B), so the sub stays clean.
 
 import { Rng, Svf } from './dsp';
 import * as K from './params';
@@ -14,18 +14,17 @@ const DIST_SOFT = K.DIST_SOFT, DIST_HARD = K.DIST_HARD, DIST_FOLD = K.DIST_FOLD,
 
 export const GRIND_STAGES = 4;
 /** grind<n>.filter option order. */
-export const GF_NOTCH = 0, GF_PEAK = 1, GF_BAND = 2, GF_COMB = 3, GF_PHASER = 4, GF_FORMANT = 5;
+export const GF_NOTCH = 0, GF_PEAK = 1, GF_BAND = 2, GF_COMB = 3, GF_PHASER = 4;
 /** grind<n>.move option order. */
-export const GM_NOTE = 0, GM_BEAT = 1, GM_WANDER = 2;
-/** Beats per cycle when a stage moves with the beat, by rate (0..1 in six steps). */
+export const GM_NOTE = 0, GM_WANDER = 1;
+/** Beats per cycle when a stage's rate is synced (grind<n>.sync), by rate (0..1 in six steps). */
 export const GRIND_BEATS = [4, 2, 1, 0.5, 0.25, 0.125];
 export const GRIND_BEAT_NAMES = ['1 BAR', '1/2', '1/4', '1/8', '1/16', '1/32'];
-/** A stage's rate in Hz (note and wander movement): 0.1 Hz … 25.6 Hz. */
+/** A stage's rate in Hz (when not synced): 0.1 Hz … 25.6 Hz. */
 export const grindHz = (rate: number): number => 0.1 * Math.pow(2, rate * 8);
 export const grindBeat = (rate: number): number => Math.round(Math.min(1, Math.max(0, rate)) * 5);
 /** The drive's gain for grind<n>.drive (0..1). */
 export const grindGain = (drive: number): number => 1 + 29 * drive * drive;
-const FORMANT_RATIO = 2.6;
 const COMB_LEN = 4096;
 const TWO_PI = 2 * Math.PI;
 
@@ -38,6 +37,9 @@ class Stage {
   wFrom = 0;
   wTo = 0;
   wPos = 0;
+  wCycle = -1;
+  /** Where the filter is right now (Hz), for the page; -1 while the stage is off. */
+  fcNow = -1;
   // filter coefficients, stepped per sample over a control block
   g = 0.05;
   gStep = 0;
@@ -54,7 +56,6 @@ class Stage {
   bias = 0;
   offset = 0;
   readonly svf = [new Svf(), new Svf()];
-  readonly svf2 = [new Svf(), new Svf()];
   readonly ap = new Float64Array(10); // 4 allpass states + the feedback, per channel
   readonly comb = [new Float32Array(COMB_LEN), new Float32Array(COMB_LEN)];
   readonly adaaU = new Float64Array(2);
@@ -120,7 +121,7 @@ class Stage {
         buf[pos] = y;
         return y * (1 - 0.55 * this.fb);
       }
-      case GF_PHASER: {
+      default: {
         // four first-order allpasses (TPT) with feedback, mixed with the dry: two moving notches
         const s = this.ap, o = ch * 5, G = g / (1 + g);
         let v = x + this.fb * s[o + 4];
@@ -132,13 +133,6 @@ class Stage {
         }
         s[o + 4] = v;
         return 0.5 * (x + v);
-      }
-      default: {
-        // two vowel-like formants a fixed ratio apart, moving together: the talking
-        const a = this.svf[ch], b = this.svf2[ch];
-        a.process(x, g, this.k);
-        b.process(x, Math.min(g * FORMANT_RATIO, 8), this.k);
-        return (a.bp + 0.6 * b.bp) * this.k * 2.2;
       }
     }
   }
@@ -171,7 +165,6 @@ export class Grind {
   reset(): void {
     for (const s of this.stages) {
       for (const f of s.svf) f.reset();
-      for (const f of s.svf2) f.reset();
       s.ap.fill(0);
       s.comb[0].fill(0);
       s.comb[1].fill(0);
@@ -192,14 +185,24 @@ export class Grind {
     for (let i = 0; i < GRIND_STAGES; i++) {
       const s = this.stages[i], gp = P.grind[i];
       s.on = cur[gp.on] > 0.5;
-      if (!s.on) continue;
-      const rate = cur[gp.rate], move = cur[gp.move];
+      if (!s.on) {
+        s.fcNow = -1;
+        continue;
+      }
+      const rate = cur[gp.rate], wander = cur[gp.move] === GM_WANDER;
       let m: number;
-      if (move === GM_BEAT) {
-        const beats = GRIND_BEATS[grindBeat(rate)];
-        const p = beatPos / beats;
-        m = Math.cos(TWO_PI * (p - Math.floor(p)));
-      } else if (move === GM_WANDER) {
+      if (cur[gp.sync] > 0.5) {
+        // synced: the cycle follows the synth's bar clock
+        const p = beatPos / GRIND_BEATS[grindBeat(rate)], cycle = Math.floor(p), f = p - cycle;
+        if (wander) {
+          if (cycle !== s.wCycle) {
+            s.wCycle = cycle;
+            s.wFrom = s.wTo;
+            s.wTo = rng.next();
+          }
+          m = s.wFrom + (s.wTo - s.wFrom) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+        } else m = Math.cos(TWO_PI * f);
+      } else if (wander) {
         s.wPos += grindHz(rate) * dt;
         if (s.wPos >= 1) {
           s.wPos -= Math.floor(s.wPos);
@@ -213,12 +216,12 @@ export class Grind {
         m = Math.cos(TWO_PI * s.phase); // from the top at every note
       }
       const fc = Math.min(Math.max(cur[gp.freq] * Math.pow(2, 0.5 * cur[gp.range] * m), 20), fs * 0.45);
+      s.fcNow = fc;
       const ftype = cur[gp.filter];
       if (ftype !== s.ftype) {
         s.ftype = ftype;
         for (const f of s.svf) f.reset();
-        for (const f of s.svf2) f.reset();
-        s.ap.fill(0);
+          s.ap.fill(0);
       }
       const res = cur[gp.res];
       const gT = Math.tan((Math.PI * fc) / fsOs);
@@ -233,8 +236,7 @@ export class Grind {
           s.fb = 0.92 * res;
           break;
         }
-        case GF_PHASER: s.fb = 0.75 * res; break;
-        default: s.k = 1 / (2 + 10 * res);
+        default: s.fb = 0.75 * res; // phaser
       }
       // Drive.
       const drive = cur[gp.drive];

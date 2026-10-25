@@ -182,6 +182,8 @@ export class Synth {
   private anyGate = false;
   /** The newest sounding voice's filter, for the UI's moving filter print: cutoff in Hz (0 = no voice sounding), resonance. */
   liveCutoff = 0;
+  /** Each GRIND stage's filter frequency right now (Hz, the newest voice's), -1 when off or silent. */
+  readonly liveGrind = new Float64Array(4).fill(-1);
   liveRes = 0;
 
   /** Position in the bar, in beats [0, 4): the wobble's clock. */
@@ -790,6 +792,7 @@ export class Synth {
     }
     this.anyGate = anyGate;
     this.liveCutoff = lead.active ? lead.fcNow : 0;
+    for (let i = 0; i < 4; i++) this.liveGrind[i] = lead.active ? lead.grindFc(i) : -1;
     this.liveRes = lead.resNow;
     if (this.poly > 1) {
       for (let i = 0; i < MAX_VOICES; i++) {
