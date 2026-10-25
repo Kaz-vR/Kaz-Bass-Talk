@@ -184,6 +184,28 @@ describe('texture bed', () => {
     expect(Math.abs(centroid(72, false) / centroid(48, false) - 1)).toBeLessThan(0.05);
   });
 
+  it('the matrix\'s Noise pitch moves the noise speed (down darker, up brighter)', () => {
+    const centroid = (amount: number) => {
+      const p = {
+        ...base, 'osc1.level': 0, 'sub.level': 0, 'texture.type': 'air', 'texture.level': 1,
+        'env3.on': true, 'env3.attack': 1, 'env3.sustain': 1, 'mod1.source': 'env3', 'mod1.dest': 'noise_pitch', 'mod1.amount': amount, 'mod1.on': true,
+      };
+      const r = renderPatch(p, heldNote(60, 4), { seconds: 0.6 });
+      const m = Float64Array.from(r.left, (v, i) => 0.5 * (v + r.right[i]));
+      const sp = powerSpectrum(m, FS, Math.round(0.15 * FS), Math.round(0.55 * FS), 8192);
+      let num = 0, den = 0;
+      for (let f = 60; f < 16000; f *= 1.1) {
+        const p2 = bandPower(sp, f, f * 1.1);
+        num += p2 * f;
+        den += p2;
+      }
+      return num / den;
+    };
+    const mid = centroid(0);
+    expect(centroid(-0.3)).toBeLessThan(mid * 0.7);
+    expect(centroid(0.15)).toBeGreaterThan(mid * 1.2);
+  });
+
   it('every type plays at the same loudness, wherever its Tone is', () => {
     const all: number[] = [];
     for (let type = 0; type < 12; type++) {

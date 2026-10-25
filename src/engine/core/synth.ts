@@ -814,8 +814,9 @@ export class Synth {
     this.texTone = clamp(cur[P.texTone], 0, 1);
     this.texDensity = clamp(cur[P.texDensity], 0, 1);
     // Its speed (octaves): OCT, plus with KEY on the newest note's glided pitch and the bend from
-    // middle C, as a sample played across the keyboard; always within -6..+2.
-    const texOct = Math.round(cur[P.texOct]) + (cur[P.texKey] > 0.5 ? (lead.pitch + 12 * cur[P.octave] + 2 * this.bend - 60) / 12 : 0);
+    // middle C, as a sample played across the keyboard, plus the matrix's Noise pitch (±6 octaves
+    // at full amount: Env 3 for a tape stop on every note, an LFO for a roar-to-fizz swing); always within -6..+2.
+    const texOct = Math.round(cur[P.texOct]) + (cur[P.texKey] > 0.5 ? (lead.pitch + 12 * cur[P.octave] + 2 * this.bend - 60) / 12 : 0) + 6 * dst[K.D_NOISE_PITCH];
     this.texRate = Math.pow(2, clamp(texOct, -6, 2));
     // The bed swells in with the note: never faster than ~a third of the amp attack.
     this.texAtk = 1 - Math.exp(-1 / (Math.max(0.03, cur[P.amp[0]] / 3000) * fs));

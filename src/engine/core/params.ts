@@ -60,8 +60,8 @@ export const D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_O
   D_CUTOFF = 15, D_RES = 16, D_VOWEL = 17, D_DIST_DRIVE = 18, D_DIST_MIX = 19, D_AMP = 20, D_LFO1_RATE = 21, D_LFO2_RATE = 22,
   D_FM2 = 23, D_CRUSH = 24, D_LFO3_RATE = 25, D_LFO4_RATE = 26, D_CHORUS_DEPTH = 27, D_PHASER_MIX = 28,
   D_DELAY_TIME = 29, D_DELAY_MIX = 30, D_REVERB_MIX = 31, D_WIDTH = 32, D_TAPE_WOW = 33, D_DIST_TONE = 34, D_TEXTURE = 35,
-  D_VIBRATO = 36, D_BREATH = 37, D_OSC_PITCH = 38;
-export const DEST_COUNT = 39;
+  D_VIBRATO = 36, D_BREATH = 37, D_OSC_PITCH = 38, D_NOISE_PITCH = 39;
+export const DEST_COUNT = 40;
 export const TEXTURE_GAIN = 0.5;
 
 /** Beats in a wobble.rate option: 1/8, 1/8T (triplet), 1/8d (dotted), 3/4, 1 Bar, 1.5 Bars … (a bar = 4 beats). */
