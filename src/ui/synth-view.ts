@@ -1410,7 +1410,8 @@ export class SynthView {
     // The octave sets how many cycles show, level the height, the clip flattens the tops.
     const redraw = () => {
       paper(g, W, H);
-      const cycles = (W / 90) * (this.num('sub.octave') <= -2 ? 0.5 : 1), lvl = this.num('sub.level');
+      // one cycle per 90 px at -1, doubling with every octave up (capped so it stays readable)
+      const cycles = (W / 90) * Math.min(8, Math.pow(2, this.num('sub.octave') + 1)), lvl = this.num('sub.level');
       const k = 1 + this.num('sub.clip') / 3, clip = (v: number) => (k > 1.01 ? Math.tanh(v * k) / Math.tanh(k) : v);
       const pts: [number, number][] = [];
       for (let i = 0; i <= W; i++) pts.push([i, H / 2 - clip(waveShape(String(this.get('sub.wave')), ((i / W) * cycles) % 1, 0.5, 0)) * (H / 2 - 9) * (0.3 + 0.6 * lvl)]);
@@ -1800,7 +1801,7 @@ export class SynthView {
     return this.obox('SUB', 'c-src sub box-sub', {
       power: (el) => this.levelPower('sub.level', el),
       head: [this.selector('sub.wave'), h('div', 'ob-chips',
-        this.chip('OCT', () => this.num('sub.octave'), (v) => this.set('sub.octave', v), -2, -1, ['sub.octave'], 'Sub octave')),
+        this.chip('OCT', () => this.num('sub.octave'), (v) => this.set('sub.octave', v), -4, 4, ['sub.octave'], 'Sub octave: -4 to +4 against the played note')),
         this.exclusive('sub.direct', 'filter.route_s', 'Direct out', 'small direct-out')],
       print: this.subPrint(PRINT_W, PRINT_H),
       dials: [this.knob('sub.clip', 'Clip', 'lg'), this.knob('sub.level', 'Level', 'lg')],

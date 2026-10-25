@@ -570,12 +570,12 @@
       "id": "sub.octave",
       "label": "Sub octave",
       "type": "int",
-      "min": -2,
-      "max": -1,
+      "min": -4,
+      "max": 4,
       "default": -1,
       "unit": "oct",
       "group": "sub",
-      "describes": "Sub pitch below the played note. -1 is the usual; -2 is very deep rumble."
+      "describes": "The sub's octave against the played note, -4 to +4. -1 is the usual sub; -2 a very deep rumble; 0 and up turn it into a clean, mono sine (or triangle, square) layer at or above the note. Notes that would fall below 20 Hz fold up an octave."
     },
     {
       "id": "sub.level",

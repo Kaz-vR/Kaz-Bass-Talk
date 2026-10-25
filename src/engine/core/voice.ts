@@ -634,6 +634,8 @@ export class Voice {
     // the sub while the oscillators stay.
     let subInc = this.toInc(notePitch + 12 * cur[P.subOct] + 24 * dst[D.SUB_PITCH]);
     while (subInc < 20 / fs) subInc *= 2;
+    // (and high up, at +4 on a high note, it stays well below Nyquist)
+    while (subInc > 0.45) subInc *= 0.5;
     this.subInc = subInc;
     this.subLevel = clamp(cur[P.subLevel] + dst[D.SUB], 0, 1) * SUB_GAIN;
     this.noiseLevel = clamp(cur[P.noise] + dst[D.NOISE], 0, 1) * 0.5;
