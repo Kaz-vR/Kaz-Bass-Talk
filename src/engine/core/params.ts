@@ -147,7 +147,7 @@ export const P = {
   texPan: ix('texture.pan'), texDirect: ix('texture.direct'), texFType: ix('texture.filter_type'), texFCut: ix('texture.filter_cutoff'), texFKey: ix('texture.filter_key'),
   routeA: ix('filter.route_a'), routeB: ix('filter.route_b'), routeN: ix('filter.route_n'), routeS: ix('filter.route_s'), postCut: ix('clip.low_cut'), fMix: ix('filter.mix'),
   noise: ix('noise.level'), drive: ix('drive.amount'),
-  texType: ix('texture.type'), texLevel: ix('texture.level'), texTone: ix('texture.tone'), texDensity: ix('texture.density'), texOct: ix('texture.octave'), texTail: ix('texture.tail'),
+  texType: ix('texture.type'), texLevel: ix('texture.level'), texTone: ix('texture.tone'), texDensity: ix('texture.density'), texOct: ix('texture.octave'), texKey: ix('texture.key'), texTail: ix('texture.tail'),
   fType: ix('filter.type'), cutoff: ix('filter.cutoff'), res: ix('filter.resonance'), keytrack: ix('filter.keytrack'),
   envAmt: ix('filter.env_amount'), modEnvOn: ix('mod_env.on'), vowel: ix('filter.vowel'),
   dType: ix('dist.type'), dDrive: ix('dist.drive'), dMix: ix('dist.mix'), dTone: ix('dist.post_tone'), dSplit: ix('dist.clean_below'),

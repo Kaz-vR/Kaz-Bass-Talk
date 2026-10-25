@@ -813,7 +813,10 @@ export class Synth {
     this.texType = cur[P.texType];
     this.texTone = clamp(cur[P.texTone], 0, 1);
     this.texDensity = clamp(cur[P.texDensity], 0, 1);
-    this.texRate = Math.pow(2, Math.round(clamp(cur[P.texOct], -6, 6)));
+    // Its speed (octaves): OCT, plus with KEY on the newest note's glided pitch and the bend from
+    // middle C, as a sample played across the keyboard; always within -6..+2.
+    const texOct = Math.round(cur[P.texOct]) + (cur[P.texKey] > 0.5 ? (lead.pitch + 12 * cur[P.octave] + 2 * this.bend - 60) / 12 : 0);
+    this.texRate = Math.pow(2, clamp(texOct, -6, 2));
     // The bed swells in with the note: never faster than ~a third of the amp attack.
     this.texAtk = 1 - Math.exp(-1 / (Math.max(0.03, cur[P.amp[0]] / 3000) * fs));
     this.texRel = Math.exp(-4.6 / ((cur[P.texTail] / 1000) * fs));

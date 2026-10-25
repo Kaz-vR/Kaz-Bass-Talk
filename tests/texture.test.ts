@@ -166,6 +166,24 @@ describe('texture bed', () => {
     expect(burst(1)).toBeGreaterThan(burst(0.2) * 1.5);
   });
 
+  it('KEY: the noise follows the note (higher is faster, brighter); off, the note makes no difference', () => {
+    const centroid = (note: number, key: boolean) => {
+      const p = { ...base, 'osc1.level': 0, 'sub.level': 0, 'texture.type': 'air', 'texture.key': key, 'texture.level': 1 };
+      const r = renderPatch(p, heldNote(note, 4), { seconds: 0.6 });
+      const m = Float64Array.from(r.left, (v, i) => 0.5 * (v + r.right[i]));
+      const sp = powerSpectrum(m, FS, Math.round(0.15 * FS), Math.round(0.55 * FS), 8192);
+      let num = 0, den = 0;
+      for (let f = 60; f < 16000; f *= 1.1) {
+        const p2 = bandPower(sp, f, f * 1.1);
+        num += p2 * f;
+        den += p2;
+      }
+      return num / den;
+    };
+    expect(centroid(72, true)).toBeGreaterThan(centroid(48, true) * 1.4);
+    expect(Math.abs(centroid(72, false) / centroid(48, false) - 1)).toBeLessThan(0.05);
+  });
+
   it('every type plays at the same loudness, wherever its Tone is', () => {
     const all: number[] = [];
     for (let type = 0; type < 12; type++) {

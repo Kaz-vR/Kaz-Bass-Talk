@@ -1845,8 +1845,10 @@ export class SynthView {
         ['HIT', ['crackle hit', 'dust hit', 'static hit']],
         ['HIT', ['tape hiss hit', 'air hit', 'rumble hit']],
       ] }), h('div', 'ob-chips',
-        this.chip('OCT', () => this.num('texture.octave'), (v) => this.set('texture.octave', v), -6, 6, ['texture.octave'], 'Noise octave: plays the bed slower (darker, bigger) or faster, like tape')), direct],
+        this.chip('OCT', () => this.num('texture.octave'), (v) => this.set('texture.octave', v), -6, 2, ['texture.octave'], 'Noise octave: plays the bed slower (darker, bigger) or faster, like tape; with KEY on, where middle C sits')), direct],
       print: this.noisePrint(PRINT_W, PRINT_H),
+      // KEY: the noise plays across the keyboard like a sample (its speed follows the note, glide and bend)
+      corner: [this.toggle('texture.key', 'Key', 'small')],
       dials,
     });
   }

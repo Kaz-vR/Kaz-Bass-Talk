@@ -721,12 +721,20 @@
       "label": "Noise octave",
       "type": "int",
       "min": -6,
-      "max": 6,
+      "max": 2,
       "default": 0,
       "curve": "linear",
       "unit": "oct",
       "group": "texture",
-      "describes": "Plays the noise bed slower or faster, like tape: down an octave everything gets darker and slower (crackle becomes dark thumps, hiss sinks to rumble, wind slows down), up an octave it gets smaller and quicker."
+      "describes": "Plays the bed slower or faster, like tape (-6 to +2 octaves): down everything gets darker, slower and bigger (crackle becomes slow dark thumps, hiss sinks to rumble), up it gets smaller and quicker. With KEY on this is where middle C sits, and the notes move it from there."
+    },
+    {
+      "id": "texture.key",
+      "label": "Noise key",
+      "type": "bool",
+      "default": false,
+      "group": "texture",
+      "describes": "Makes the noise playable: its speed follows the note like a sample played across the keyboard (middle C at the OCT setting, each octave up twice as fast, down half as fast), with glide and pitch bend sliding it (glide from a high note to a low one for a tape stop). The bed is shared, so with chords it follows the newest note."
     },
     {
       "id": "texture.tail",
