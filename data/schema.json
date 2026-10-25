@@ -846,11 +846,12 @@
         "diode",
         "notch",
         "comb",
-        "lpg"
+        "lpg",
+        "highpass"
       ],
       "default": "lowpass",
       "group": "filter",
-      "describes": "Low-pass is the classic 4-pole bass filter; band-pass is nasal and thin; formant makes vowels; diode is the squelchy 18 dB 303 filter; notch carves a moving hole (grinding, phasey); comb rings at the cutoff pitch (metallic, robotic, growly); lpg is a West-Coast low-pass gate that closes with the note for woody, acoustic thumps."
+      "describes": "Low-pass is the classic 4-pole bass filter; band-pass is nasal and thin; formant makes vowels; diode is the squelchy 18 dB 303 filter; notch carves a moving hole (grinding, phasey); comb rings at the cutoff pitch (metallic, robotic, growly); lpg is a West-Coast low-pass gate that closes with the note for woody, acoustic thumps; high-pass is a 4-pole high-pass that takes the bottom away (sweep it up to thin a sound out for a build or a radio-like break)."
     },
     {
       "id": "filter.cutoff",
@@ -984,11 +985,12 @@
         "soft",
         "hard",
         "fold",
-        "tube"
+        "tube",
+        "fuzz"
       ],
       "default": "soft",
       "group": "dist",
-      "describes": "Soft is warm and round; hard is aggressive and buzzy; fold is metallic, growly and vocal; tube is asymmetric and thick, adding even harmonics like a driven valve amp."
+      "describes": "Soft is warm and round; hard is aggressive and buzzy; fold is metallic, growly and vocal; tube is asymmetric and thick, adding even harmonics like a driven valve amp; fuzz is a guitar pedal: lopsided, gnarly clipping that sputters and breaks up as a note dies away."
     },
     {
       "id": "dist.drive",
@@ -4437,6 +4439,18 @@
       "unit": "ms",
       "group": "fx",
       "describes": "How long the reverb waits before it starts. More keeps the note's attack clear in front of its space."
+    },
+    {
+      "id": "reverb.octave",
+      "label": "Reverb octave",
+      "type": "int",
+      "min": -1,
+      "max": 0,
+      "default": 0,
+      "curve": "linear",
+      "unit": "oct",
+      "group": "fx",
+      "describes": "-1 shifts what goes into the reverb an octave down, so a note sinks into a huge, dark cloud an octave below itself (the reverb's Lo cut still keeps it off the low end)."
     },
     {
       "id": "chorus.lowcut",

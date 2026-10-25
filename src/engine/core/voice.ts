@@ -41,9 +41,36 @@ const SUB_ROUTE_GAIN = 1 / (VOICE_GAIN * PRE_FILTER_GAIN * POST_FILTER_GAIN);
 const WAVE_SINE = K.WAVE_SINE, WAVE_TRI = K.WAVE_TRI, WAVE_SAW = K.WAVE_SAW, WAVE_PULSE = K.WAVE_PULSE, WAVE_PWMSAW = K.WAVE_PWMSAW;
 const WAVE_STRING = K.WAVE_STRING, WAVE_SHEPARD = K.WAVE_SHEPARD;
 const FILTER_LP = K.FILTER_LP, FILTER_BP = K.FILTER_BP, FILTER_DIODE = K.FILTER_DIODE, FILTER_NOTCH = K.FILTER_NOTCH;
-const FILTER_COMB = K.FILTER_COMB, FILTER_LPG = K.FILTER_LPG;
-const DIST_SOFT = K.DIST_SOFT, DIST_HARD = K.DIST_HARD, DIST_FOLD = K.DIST_FOLD;
+const FILTER_COMB = K.FILTER_COMB, FILTER_LPG = K.FILTER_LPG, FILTER_HP = K.FILTER_HP;
+const DIST_SOFT = K.DIST_SOFT, DIST_HARD = K.DIST_HARD, DIST_FOLD = K.DIST_FOLD, DIST_FUZZ = K.DIST_FUZZ;
 const TUBE_BIAS = K.TUBE_BIAS, TUBE_OFFSET = K.TUBE_OFFSET, HALF_PI = K.HALF_PI;
+
+/*
+ * Fuzz: a guitar fuzz pedal's curve, piecewise linear so its antiderivative is exact (for ADAA).
+ * A small dead zone around zero (the transistor not yet conducting) makes it sputter and break up
+ * as a note dies away; the bias makes it lopsided (the top clips hard at 1, the bottom earlier at
+ * -0.55), for the gnarly even and odd harmonics; the slope is steep so it saturates early.
+ */
+const FUZZ_DEAD = 0.1, FUZZ_SLOPE = 2.4, FUZZ_TOP = 1, FUZZ_BOTTOM = -0.55;
+const FUZZ_VP = FUZZ_DEAD + FUZZ_TOP / FUZZ_SLOPE, FUZZ_VN = -FUZZ_DEAD + FUZZ_BOTTOM / FUZZ_SLOPE;
+function fuzz(v: number): number {
+  if (v > FUZZ_DEAD) return v >= FUZZ_VP ? FUZZ_TOP : FUZZ_SLOPE * (v - FUZZ_DEAD);
+  if (v < -FUZZ_DEAD) return v <= FUZZ_VN ? FUZZ_BOTTOM : FUZZ_SLOPE * (v + FUZZ_DEAD);
+  return 0;
+}
+function fuzzIntegral(v: number): number {
+  const h = 0.5 * FUZZ_SLOPE;
+  if (v > FUZZ_DEAD) return v >= FUZZ_VP ? h * (FUZZ_VP - FUZZ_DEAD) ** 2 + FUZZ_TOP * (v - FUZZ_VP) : h * (v - FUZZ_DEAD) ** 2;
+  if (v < -FUZZ_DEAD) return v <= FUZZ_VN ? h * (FUZZ_VN + FUZZ_DEAD) ** 2 + FUZZ_BOTTOM * (v - FUZZ_VN) : h * (v + FUZZ_DEAD) ** 2;
+  return 0;
+}
+/*
+ * The bias grows with the drive (FUZZ_BIAS_REL of the input before the gain): heavy clipping turns
+ * any curve into a near square, which has no even harmonics however lopsided its levels are, but a
+ * bias that keeps pace with the gain keeps the square lopsided in time (an uneven duty cycle), the
+ * gnarly octave of a real fuzz at any drive; and a dying note slides off the bias and sputters out.
+ */
+const FUZZ_BIAS_REL = 0.12;
 const tanh = K.tanh, tanhIntegral = K.tanhIntegral;
 const SLOT_COUNT = K.SLOT_COUNT, SRC_COUNT = K.SRC_COUNT, DEST_COUNT = K.DEST_COUNT;
 const VOWELS = K.VOWELS, FORMANT_GAIN = K.FORMANT_GAIN;
@@ -201,6 +228,8 @@ export class Voice {
   private readonly ladR = new Ladder();
   private readonly diodeL = new DiodeLadder();
   private readonly diodeR = new DiodeLadder();
+  private readonly hpL = [new Svf(), new Svf()];
+  private readonly hpR = [new Svf(), new Svf()];
   private readonly notchL = [new Svf(), new Svf()];
   private readonly notchR = [new Svf(), new Svf()];
   private readonly lpgL = new Svf();
@@ -230,6 +259,9 @@ export class Voice {
   // Distortion.
   private distType = DIST_SOFT;
   private distGain = 1;
+  /** Fuzz: its bias (it follows the drive) and the curve's output at zero input (taken off so silence stays silent). */
+  private fuzzBias = FUZZ_BIAS_REL;
+  private fuzzOffset = fuzz(FUZZ_BIAS_REL);
   private distAmt = 0;
   private toneCoef = 1;
   private toneL = 0;
@@ -388,7 +420,7 @@ export class Voice {
     for (const f of this.split) f.reset();
     this.diodeL.reset();
     this.diodeR.reset();
-    for (const f of [...this.notchL, ...this.notchR, this.lpgL, this.lpgR]) f.reset();
+    for (const f of [...this.notchL, ...this.notchR, ...this.hpL, ...this.hpR, this.lpgL, this.lpgR]) f.reset();
     this.combL.reset();
     this.combR.reset();
     for (const st of this.strings) st.reset();
@@ -676,6 +708,9 @@ export class Voice {
       this.combFb = 0.96 * res;
     } else if (this.filterType === FILTER_LPG) {
       this.k = 1.4 - 1.1 * res;
+    } else if (this.filterType === FILTER_HP) {
+      // 4-pole high-pass: two 2-pole stages (Butterworth at res 0), the resonance on the sharper one
+      this.k = 0.765 * (1 - res) + 0.05;
     } else {
       const v = clamp(cur[P.vowel] + dst[D.VOWEL], 0, 1) * 4;
       const vi = Math.min(3, Math.floor(v));
@@ -693,6 +728,16 @@ export class Voice {
     const dMix = clamp(cur[P.dMix] + dst[D.DIST_MIX], 0, 1);
     this.distAmt = Math.min(1, dDrive * 5) * dMix;
     this.distGain = 1 + 49 * dDrive * dDrive;
+    if (this.distType === DIST_FUZZ) {
+      const b = FUZZ_BIAS_REL * this.distGain;
+      if (b !== this.fuzzBias) {
+        this.fuzzBias = b;
+        this.fuzzOffset = fuzz(b);
+        // keep the ADAA state on the moved curve
+        this.adaaF[0] = this.curveIntegral(this.adaaU[0]);
+        this.adaaF[1] = this.curveIntegral(this.adaaU[1]);
+      }
+    }
     const dTone = clamp(cur[P.dTone] + dst[D.DIST_TONE], 0, 1);
     if (dTone !== this.lastTone) {
       const toneHz = 300 * Math.pow(20000 / 300, dTone);
@@ -802,6 +847,7 @@ export class Voice {
       case DIST_SOFT: return tanh(u);
       case DIST_HARD: return u > 1 ? 1 : u < -1 ? -1 : u;
       case DIST_FOLD: return Math.sin(HALF_PI * u);
+      case DIST_FUZZ: return fuzz(u + this.fuzzBias) - this.fuzzOffset; // fuzz pedal: lopsided, gated
       default: return tanh(u + TUBE_BIAS) - TUBE_OFFSET; // tube: asymmetric, even harmonics
     }
   }
@@ -812,6 +858,7 @@ export class Voice {
       case DIST_SOFT: return tanhIntegral(u);
       case DIST_HARD: return u > 1 ? u - 0.5 : u < -1 ? -u - 0.5 : 0.5 * u * u;
       case DIST_FOLD: return -Math.cos(HALF_PI * u) / HALF_PI;
+      case DIST_FUZZ: return fuzzIntegral(u + this.fuzzBias) - this.fuzzOffset * u;
       default: return tanhIntegral(u + TUBE_BIAS) - TUBE_OFFSET * u;
     }
   }
@@ -872,6 +919,14 @@ export class Voice {
     } else if (this.filterType === FILTER_COMB) {
       l = this.combL.process(l, this.combDelay, this.combFb);
       r = this.combR.process(r, this.combDelay, this.combFb);
+    } else if (this.filterType === FILTER_HP) {
+      const k = this.k, hl = this.hpL, hr = this.hpR;
+      hl[0].process(l, g, 1.848);
+      hl[1].process(hl[0].hp, g, k);
+      l = hl[1].hp;
+      hr[0].process(r, g, 1.848);
+      hr[1].process(hr[0].hp, g, k);
+      r = hr[1].hp;
     } else if (this.filterType === FILTER_LPG) {
       this.lpgL.process(l, g, this.k);
       this.lpgR.process(r, g, this.k);

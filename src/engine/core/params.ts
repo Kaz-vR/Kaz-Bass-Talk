@@ -31,8 +31,8 @@ export const SUB_GAIN = 0.55;
 
 // Enum option indices (must match data/schema.json order).
 export const WAVE_SINE = 0, WAVE_TRI = 1, WAVE_SAW = 2, WAVE_PULSE = 3, WAVE_PWMSAW = 5, WAVE_STRING = 6, WAVE_SHEPARD = 7; // 4 = wavetable
-export const FILTER_LP = 0, FILTER_BP = 1, FILTER_DIODE = 3, FILTER_NOTCH = 4, FILTER_COMB = 5, FILTER_LPG = 6; // 2 = formant
-export const DIST_SOFT = 0, DIST_HARD = 1, DIST_FOLD = 2; // 3 = tube
+export const FILTER_LP = 0, FILTER_BP = 1, FILTER_DIODE = 3, FILTER_NOTCH = 4, FILTER_COMB = 5, FILTER_LPG = 6, FILTER_HP = 7; // 2 = formant
+export const DIST_SOFT = 0, DIST_HARD = 1, DIST_FOLD = 2, DIST_FUZZ = 4; // 3 = tube
 export const TUBE_BIAS = 0.4;
 export const TUBE_OFFSET = Math.tanh(TUBE_BIAS);
 export const HALF_PI = Math.PI / 2;
@@ -163,7 +163,7 @@ export const P = {
   wobX: Array.from({ length: 32 }, (_, i) => ix(`wobble.x${i + 1}`)), wobY: Array.from({ length: 32 }, (_, i) => ix(`wobble.y${i + 1}`)), wobS: Array.from({ length: 32 }, (_, i) => ix(`wobble.s${i + 1}`)),
   flangerMix: ix('flanger.mix'), flangerRate: ix('flanger.rate'), flangerFb: ix('flanger.feedback'),
   delayMix: ix('delay.mix'), delayTime: ix('delay.time'), delayFb: ix('delay.feedback'), delayTone: ix('delay.tone'),
-  reverbType: ix('reverb.type'), reverbDecay: ix('reverb.decay'), reverbPre: ix('reverb.predelay'), eqHighcut: ix('eq.highcut'),
+  reverbType: ix('reverb.type'), reverbDecay: ix('reverb.decay'), reverbPre: ix('reverb.predelay'), reverbOct: ix('reverb.octave'), eqHighcut: ix('eq.highcut'),
   amp: [ix('amp_env.attack'), ix('amp_env.decay'), ix('amp_env.sustain'), ix('amp_env.release')],
   mod: [ix('mod_env.attack'), ix('mod_env.decay'), ix('mod_env.sustain'), ix('mod_env.release')],
   env3: ['attack', 'decay', 'sustain', 'release'].map((s) => ix(`env3.${s}`)),

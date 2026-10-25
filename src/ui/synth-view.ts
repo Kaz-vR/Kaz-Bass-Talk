@@ -1479,6 +1479,7 @@ export class SynthView {
         case 'lowpass': return [['lp', fc, 0.54 + res * 5], ['lp', fc, 1.31]];
         case 'diode': return [['lp', fc, 0.6 + res * 4], ['lp', fc * 1.6, 0.6]];
         case 'lpg': return [['lp', fc, 0.7 + res * 2]];
+        case 'highpass': return [['hp', fc, 0.54], ['hp', fc, 1.31 + res * 5]];
         case 'bandpass': return [['bp', fc, 1 + res * 6], ['bp', fc, 1 + res * 6]];
         case 'notch': return [['notch', fc, 0.7 + res * 4]];
         case 'comb': return 'comb';
@@ -3022,6 +3023,12 @@ export class SynthView {
           const b = 0.25;
           return (Math.tanh(x * k + b) - Math.tanh(b)) / (1 - Math.tanh(b) * 0.4);
         }
+        case 'fuzz': {
+          // the pedal's curve as the engine plays it: a dead zone, then lopsided hard clipping
+          const b = 0.12 * k * 1.5, v = x * k * 1.5 + b, d = 0.1, sl = 2.4;
+          const f = (u: number) => (u > d ? Math.min(1, sl * (u - d)) : u < -d ? Math.max(-0.55, sl * (u + d)) : 0);
+          return f(v) - f(b);
+        }
         default: return Math.tanh(x * k) / Math.tanh(Math.max(1, k * 0.6));
       }
     };
@@ -3146,8 +3153,9 @@ export class SynthView {
     // cathedral's slow bloom), Decay as its length (log, 0.2-20 s across the print).
     const reverb = this.obox('REVERB', 'fx-box box-reverb', {
       power: (el) => this.boolPower('reverb.on', el),
-      head: [this.selector('reverb.type')],
-      print: this.fxSpikes(['reverb.type', 'reverb.decay', 'reverb.predelay', 'reverb.mix', 'reverb.on'], lit('reverb.on', 'reverb.mix'), () => {
+      head: [this.selector('reverb.type'), h('div', 'ob-chips',
+        this.chip('OCT', () => this.num('reverb.octave'), (v) => this.set('reverb.octave', v), -1, 0, ['reverb.octave'], 'Reverb octave: -1 lets each note sink into a dark cloud an octave below itself'))],
+      print: this.fxSpikes(['reverb.type', 'reverb.decay', 'reverb.predelay', 'reverb.mix', 'reverb.on', 'reverb.octave'], lit('reverb.on', 'reverb.mix'), () => {
         const type = String(this.get('reverb.type'));
         const len = 0.08 + 0.92 * (Math.log(this.num('reverb.decay') / 0.2) / Math.log(100));
         const mix = 0.35 + 0.65 * Math.min(1, this.num('reverb.mix') * 2.5);
@@ -3155,7 +3163,9 @@ export class SynthView {
         const rise = ({ room: 0.01, plate: 0.004, hall: 0.05, cathedral: 0.12 } as Record<string, number>)[type] ?? 0.05;
         const grain = ({ room: 0.75, plate: 0.15, hall: 0.4, cathedral: 0.45 } as Record<string, number>)[type] ?? 0.4;
         const out: [number, number][] = [];
-        for (let i = 0; i < 80; i++) {
+        // an octave down: half as many, broader grains (the tail moves at half speed)
+        const step = this.num('reverb.octave') < 0 ? 2 : 1;
+        for (let i = 0; i < 80; i += step) {
           const x = i / 80;
           if (x < gap) continue;
           const t = x - gap;

@@ -28,7 +28,7 @@
 import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobShapeAt, wobSmoothRadius, wobSmoothTable, wobTableAt } from './wobshape';
 import { PARAM_COUNT, params } from '../../schema';
 import { AUX_SLOT, Biquad, clamp, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
-import { Chorus, Delay, Flanger, Limiter, Phaser, Reverb } from './fx';
+import { Chorus, Delay, Flanger, Limiter, OctaveDown, Phaser, Reverb } from './fx';
 import { OVERSAMPLE_LATENCY } from './oversample';
 import * as K from './params';
 import { Voice } from './voice';
@@ -211,6 +211,8 @@ export class Synth {
   private readonly chorus: Chorus;
   private readonly phaser: Phaser;
   private readonly reverb: Reverb;
+  /** The reverb's -1 octave: its input shifted down before its Lo cut. */
+  private readonly verbOct: OctaveDown;
   private readonly eqL = [new Biquad(), new Biquad(), new Biquad()];
   private readonly eqR = [new Biquad(), new Biquad(), new Biquad()];
   private readonly dcL = [new Biquad(), new Biquad()];
@@ -254,6 +256,7 @@ export class Synth {
     this.chorus = new Chorus(sampleRate);
     this.phaser = new Phaser(sampleRate);
     this.reverb = new Reverb(sampleRate);
+    this.verbOct = new OctaveDown(sampleRate);
     this.flanger = new Flanger(sampleRate);
     this.delay = new Delay(sampleRate);
     this.limiter = new Limiter(sampleRate, K.LIMITER_CEILING_DB);
@@ -502,6 +505,7 @@ export class Synth {
     this.chorus.reset();
     this.phaser.reset();
     this.reverb.reset();
+    this.verbOct.reset();
     this.limiter.reset();
     this.postDcXL = this.postDcYL = this.postDcXR = this.postDcYR = 0;
     for (let i = 0; i < 2; i++) {
@@ -1063,7 +1067,13 @@ export class Synth {
       }
       const rMix = this.reverbMix;
       if (rMix > 1e-4) {
-        this.reverb.process(0.5 * (hpL[4].process(l) + hpR[4].process(r)), cur[P.reverbType], cur[P.reverbDecay], cur[P.reverbPre], out);
+        let vin: number;
+        if (cur[P.reverbOct] < -0.5) {
+          // an octave down first, then the Lo cut, so the deeper cloud still stays off the low end
+          const sh = this.verbOct.process(0.5 * (l + r));
+          vin = 0.5 * (hpL[4].process(sh) + hpR[4].process(sh));
+        } else vin = 0.5 * (hpL[4].process(l) + hpR[4].process(r));
+        this.reverb.process(vin, cur[P.reverbType], cur[P.reverbDecay], cur[P.reverbPre], out);
         l += out[0] * rMix;
         r += out[1] * rMix;
       }

@@ -478,6 +478,50 @@ export class Delay {
   }
 }
 
+/**
+ * Octave-down pitch shifter for the reverb's input: two read taps sliding through a short delay
+ * line at half speed, crossfaded (sin²/cos²) so each tap is silent while it jumps back. A slight
+ * grain and movement in the shifted signal, which the reverb smears into its tail.
+ */
+export class OctaveDown {
+  private readonly buf: Float32Array;
+  private w = 0;
+  private ph = 0;
+  private readonly win: number;
+
+  constructor(fs: number) {
+    this.win = Math.round(0.06 * fs);
+    this.buf = new Float32Array(this.win * 2 + 8);
+  }
+
+  reset(): void {
+    this.buf.fill(0);
+    this.ph = 0;
+  }
+
+  process(x: number): number {
+    const n = this.buf.length;
+    this.buf[this.w] = x;
+    // each tap's delay grows by half a sample per sample: it reads at half speed (an octave down)
+    this.ph += 0.5 / this.win;
+    if (this.ph >= 1) this.ph -= 1;
+    let y = 0;
+    for (let t = 0; t < 2; t++) {
+      let p = this.ph + 0.5 * t;
+      if (p >= 1) p -= 1;
+      const d = 2 + p * this.win;
+      let r = this.w - d;
+      if (r < 0) r += n;
+      const i = Math.floor(r), f = r - i;
+      const v = this.buf[i] * (1 - f) + this.buf[i + 1 === n ? 0 : i + 1] * f;
+      const s = Math.sin(Math.PI * p);
+      y += v * s * s;
+    }
+    this.w = this.w + 1 === n ? 0 : this.w + 1;
+    return y;
+  }
+}
+
 export const VERB_ROOM = 0, VERB_PLATE = 1, VERB_HALL = 2, VERB_CATHEDRAL = 3;
 
 /** Per type: tank size (× the base lengths), input diffusion, tank damping (Hz), modulation depth (ms), early build-up, output level (the types level-matched). */
