@@ -25,8 +25,8 @@ let loopId = DEFAULT_LOOP_ID;
 
 // The browser's AudioWorklet engine, or the plugin's C++ engine when this page is the plugin window.
 let host: EngineHost | PluginHost | null = null;
-let current: Patch = structuredClone(library[0]);
-let reference: Patch = library[0];
+let reference: Patch = library[Math.max(0, library.findIndex((p) => p.meta.name === 'Classic Reese'))];
+let current: Patch = structuredClone(reference);
 
 // Browser groups: the bank categories (13 shelves), then the Bass Atlas (one patch per bass type, no category).
 const ATLAS = 'atlas';
@@ -51,8 +51,15 @@ library.forEach((p, i) => {
   const g = groups.find((x) => x.id === (SHELF[cat] ?? cat))!;
   g.items.push(i);
 });
-let currentIndex = groups[0].items[0] ?? 0;
-let currentGroup = groups[0];
+// The synth opens on Classic Reese, first on the Dark Basses shelf (owner's call).
+const START = library.findIndex((p) => p.meta.name === 'Classic Reese');
+if (START >= 0) {
+  const g = groups.find((x) => x.items.includes(START))!;
+  g.items.splice(g.items.indexOf(START), 1);
+  g.items.unshift(START);
+}
+let currentIndex = START >= 0 ? START : (groups[0].items[0] ?? 0);
+let currentGroup = groups.find((g) => g.items.includes(currentIndex)) ?? groups[0];
 
 // Undo / redo: every edit gesture and every preset or roll load is a step.
 const history = new UndoHistory();

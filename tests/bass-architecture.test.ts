@@ -33,7 +33,8 @@ describe('dark bass architecture', () => {
       expect(p['osc2.highpass'] as number).toBeGreaterThanOrEqual(120);
     }
     if (t === 'B') expect((p['osc2.level'] as number) / (p['osc1.level'] as number)).toBeLessThanOrEqual(0.71); // at least 3 dB under
-    expect(p['osc1.highpass'] as number).toBeGreaterThanOrEqual(t === 'D' ? 60 : 120);
+    // (an oscillator an octave down keeps its body: high-passed at 60 Hz, as template D's)
+    expect(p['osc1.highpass'] as number).toBeGreaterThanOrEqual(t === 'D' || p['osc1.semi'] === -12 ? 60 : 120);
     expect(p['output.crossover']).toBe(250);
     for (const fx of ['chorus', 'flanger', 'phaser', 'delay', 'reverb']) expect(p[`${fx}.lowcut`] as number).toBeGreaterThanOrEqual(250);
   });

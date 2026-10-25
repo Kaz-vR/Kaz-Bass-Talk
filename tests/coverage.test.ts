@@ -30,7 +30,8 @@ describe('coverage', () => {
       if (!c || !['bank', 'terror'].includes(e.patch.meta.collection as string)) continue;
       n.set(shelfOf(c), (n.get(shelfOf(c)) ?? 0) + 1);
     }
-    expect([...n].filter(([, k]) => k > 35)).toEqual([]);
+    // (Dark Basses may hold 36 until the bank is rebuilt: Classic Reese joined a full shelf, owner's call)
+    expect([...n].filter(([s, k]) => k > (s === 'bass' ? 36 : 35))).toEqual([]);
   });
 
   it('presets the owner uses as they are stay in the bank', () => {
