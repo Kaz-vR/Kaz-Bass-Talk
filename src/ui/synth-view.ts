@@ -571,7 +571,7 @@ const MX_SRC_GROUPS: [string, string[]][] = [
   ['DRIFT', ['random', 'drift', 'drift_slow']],
 ];
 const MX_DEST_GROUPS: [string, string[]][] = [
-  ['PITCH', ['none', 'pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'noise_pitch', 'vibrato_depth']],
+  ['PITCH', ['none', 'pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'sub_pitch', 'noise_pitch', 'vibrato_depth']],
   ['SOURCES', ['osc1_wt_pos', 'osc2_wt_pos', 'osc1_pw', 'osc2_pw', 'osc1_level', 'osc2_level', 'unison_detune', 'fm_amount', 'fm2_amount', 'sub_level', 'noise_level', 'breath_level', 'texture_level']],
   ['FILTER · DIRT', ['drive', 'filter_cutoff', 'filter_resonance', 'filter_vowel', 'dist_drive', 'dist_mix', 'dist_tone', 'crush_mix', 'tape_wow']],
   ['LEVEL · FX', ['amp', 'chorus_depth', 'phaser_mix', 'delay_time', 'delay_mix', 'reverb_mix', 'width']],
@@ -586,7 +586,7 @@ const DEST_LABEL: Record<string, string> = {
   osc1_level: 'A level', osc2_level: 'B level', unison_detune: 'Detune', fm_amount: 'FM', fm2_amount: 'FM 2', sub_level: 'Sub', noise_level: 'Noise', drive: 'Drive',
   filter_cutoff: 'Cutoff', filter_resonance: 'Res', filter_vowel: 'Vowel', dist_drive: 'Dist drive', dist_mix: 'Dist mix', dist_tone: 'Dist tone', amp: 'Amp',
   lfo1_rate: 'LFO 1 rate', lfo2_rate: 'LFO 2 rate', lfo3_rate: 'LFO 3 rate', lfo4_rate: 'LFO 4 rate', crush_mix: 'Crush', chorus_depth: 'Chorus', phaser_mix: 'Phaser',
-  delay_time: 'Delay time', delay_mix: 'Delay', reverb_mix: 'Reverb', width: 'Width', tape_wow: 'Tape wow', texture_level: 'Texture', vibrato_depth: 'Vibrato', osc_pitch: 'A+B pitch', breath_level: 'Breath', noise_pitch: 'Noise pitch',
+  delay_time: 'Delay time', delay_mix: 'Delay', reverb_mix: 'Reverb', width: 'Width', tape_wow: 'Tape wow', texture_level: 'Texture', vibrato_depth: 'Vibrato', osc_pitch: 'A+B pitch', breath_level: 'Breath', noise_pitch: 'Noise pitch', sub_pitch: 'Sub pitch',
 };
 /** Beats in a note value like 1/4, 1/8D or 1/16T. */
 function syncBeats(v: string): number {

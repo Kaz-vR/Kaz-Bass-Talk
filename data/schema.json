@@ -3101,7 +3101,8 @@
         "vibrato_depth",
         "breath_level",
         "osc_pitch",
-        "noise_pitch"
+        "noise_pitch",
+        "sub_pitch"
       ],
       "default": "none",
       "group": "mod",
@@ -3197,7 +3198,8 @@
         "vibrato_depth",
         "breath_level",
         "osc_pitch",
-        "noise_pitch"
+        "noise_pitch",
+        "sub_pitch"
       ],
       "default": "none",
       "group": "mod",
@@ -3293,7 +3295,8 @@
         "vibrato_depth",
         "breath_level",
         "osc_pitch",
-        "noise_pitch"
+        "noise_pitch",
+        "sub_pitch"
       ],
       "default": "none",
       "group": "mod",
@@ -3389,7 +3392,8 @@
         "vibrato_depth",
         "breath_level",
         "osc_pitch",
-        "noise_pitch"
+        "noise_pitch",
+        "sub_pitch"
       ],
       "default": "none",
       "group": "mod",
@@ -3485,7 +3489,8 @@
         "vibrato_depth",
         "breath_level",
         "osc_pitch",
-        "noise_pitch"
+        "noise_pitch",
+        "sub_pitch"
       ],
       "default": "none",
       "group": "mod",
@@ -3581,7 +3586,8 @@
         "vibrato_depth",
         "breath_level",
         "osc_pitch",
-        "noise_pitch"
+        "noise_pitch",
+        "sub_pitch"
       ],
       "default": "none",
       "group": "mod",
@@ -3677,7 +3683,8 @@
         "vibrato_depth",
         "breath_level",
         "osc_pitch",
-        "noise_pitch"
+        "noise_pitch",
+        "sub_pitch"
       ],
       "default": "none",
       "group": "mod",
@@ -3773,7 +3780,8 @@
         "vibrato_depth",
         "breath_level",
         "osc_pitch",
-        "noise_pitch"
+        "noise_pitch",
+        "sub_pitch"
       ],
       "default": "none",
       "group": "mod",
@@ -3869,7 +3877,8 @@
         "vibrato_depth",
         "breath_level",
         "osc_pitch",
-        "noise_pitch"
+        "noise_pitch",
+        "sub_pitch"
       ],
       "default": "none",
       "group": "mod",
@@ -3965,7 +3974,8 @@
         "vibrato_depth",
         "breath_level",
         "osc_pitch",
-        "noise_pitch"
+        "noise_pitch",
+        "sub_pitch"
       ],
       "default": "none",
       "group": "mod",
@@ -4061,7 +4071,8 @@
         "vibrato_depth",
         "breath_level",
         "osc_pitch",
-        "noise_pitch"
+        "noise_pitch",
+        "sub_pitch"
       ],
       "default": "none",
       "group": "mod",
@@ -4157,7 +4168,8 @@
         "vibrato_depth",
         "breath_level",
         "osc_pitch",
-        "noise_pitch"
+        "noise_pitch",
+        "sub_pitch"
       ],
       "default": "none",
       "group": "mod",

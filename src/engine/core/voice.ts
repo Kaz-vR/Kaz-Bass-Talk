@@ -53,7 +53,7 @@ const D = {
   OSC1_PW: K.D_OSC1_PW, OSC2_PW: K.D_OSC2_PW, OSC1_LEVEL: K.D_OSC1_LEVEL, OSC2_LEVEL: K.D_OSC2_LEVEL, DETUNE: K.D_DETUNE,
   FM: K.D_FM, SUB: K.D_SUB, NOISE: K.D_NOISE, DRIVE: K.D_DRIVE, CUTOFF: K.D_CUTOFF, RES: K.D_RES, VOWEL: K.D_VOWEL,
   DIST_DRIVE: K.D_DIST_DRIVE, DIST_MIX: K.D_DIST_MIX, AMP: K.D_AMP, FM2: K.D_FM2, CRUSH: K.D_CRUSH, TAPE_WOW: K.D_TAPE_WOW,
-  DIST_TONE: K.D_DIST_TONE, VIBRATO: K.D_VIBRATO, BREATH: K.D_BREATH,
+  DIST_TONE: K.D_DIST_TONE, VIBRATO: K.D_VIBRATO, BREATH: K.D_BREATH, SUB_PITCH: K.D_SUB_PITCH,
 };
 
 /** Offsets (in grid steps) of interior unison voices from an even spread. */
@@ -629,8 +629,10 @@ export class Voice {
     // Sub, folded up an octave at a time if it would fall below 20 Hz (inaudible, wastes headroom).
     // The sub follows the note: glide, bend and the matrix's Pitch (Env 3 → Pitch for an 808 drop).
     // Osc A+B pitch, vibrato and drift move only the two oscillators, so a preset keeps its sub
-    // steady by sending its wobble there (as in Serum: the preset chooses, the engine doesn't).
-    let subInc = this.toInc(notePitch + 12 * cur[P.subOct]);
+    // steady by sending its wobble there (as in Serum: the preset chooses, the engine doesn't);
+    // Sub pitch moves the sub alone (±2 octaves at full amount, like Pitch): a drop or scoop on
+    // the sub while the oscillators stay.
+    let subInc = this.toInc(notePitch + 12 * cur[P.subOct] + 24 * dst[D.SUB_PITCH]);
     while (subInc < 20 / fs) subInc *= 2;
     this.subInc = subInc;
     this.subLevel = clamp(cur[P.subLevel] + dst[D.SUB], 0, 1) * SUB_GAIN;
