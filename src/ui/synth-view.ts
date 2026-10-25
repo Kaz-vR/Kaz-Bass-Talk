@@ -748,6 +748,8 @@ export class SynthView {
   /** GRIND: which stages ROLL / VARY leave alone, how wild a roll is, the last rolls (newest first). */
   private readonly grindLocks = [false, false, false, false];
   private grindWeird = 0.3;
+  /** How many stages ROLL uses: 0 = random (AUTO), 1-4. */
+  private grindCount = 0;
   private readonly grindRecent: Record<string, ParamValue>[] = [];
   private grindRecentView: () => void = () => {};
   /** Each GRIND stage's filter frequency right now (from the engine, -1 when silent) and the prints that follow it. */
@@ -1048,6 +1050,8 @@ export class SynthView {
     // routing an LFO or envelope in the matrix switches it on
     const src = /^mod\d+\.source$/.test(id) && /^(lfo\d|env[23])$/.test(String(v)) ? String(v) : null;
     if (src && !this.get(`${src}.on`)) this.set(`${src}.on`, true);
+    // touching the filter envelope (a dial, a point, a bend) switches it on
+    if (/^mod_env\.(attack|decay|sustain|release)(_bend)?$/.test(id) && !this.get('mod_env.on')) this.fenvOn();
   }
 
   /** Run `view` now, whenever one of `ids` changes, and when a patch loads. */
@@ -1902,6 +1906,12 @@ export class SynthView {
     return el;
   }
 
+  /** Switch the filter envelope on: with no amount it starts at the last amount it had (or +2 oct). */
+  private fenvOn(): void {
+    if (Math.abs(this.num('filter.env_amount')) < 1e-4) this.set('filter.env_amount', this.remembered.get('filter.env_amount') ?? 0.33);
+    this.set('mod_env.on', true);
+  }
+
   private envBox(prefix: 'amp_env' | 'mod_env', title: string, cls: string): HTMLElement {
     // The filter envelope has an on / off (as in Serum's envelopes on a dial): switched on with no
     // amount, it starts at the last amount it had (or +2 oct) so its ring shows on Cutoff.
@@ -1913,8 +1923,7 @@ export class SynthView {
           this.set('mod_env.on', false);
           return;
         }
-        if (Math.abs(this.num('filter.env_amount')) < 1e-4) this.set('filter.env_amount', this.remembered.get('filter.env_amount') ?? 0.33);
-        this.set('mod_env.on', true);
+        this.fenvOn();
       };
       this.watch(['mod_env.on', 'filter.env_amount'], () => {
         const amt = this.num('filter.env_amount');
@@ -3218,25 +3227,127 @@ export class SynthView {
       dials: [lg('reverb.mix', 'Mix'), lg('reverb.decay', 'Decay'), lg('reverb.predelay', 'Pre-delay'), lowCut('reverb')],
     });
 
-    // The EQ's real response (the engine's shelves, peak and high cut).
-    const eqBands = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
-    const eq = this.obox('EQ', 'fx-box box-eq', {
-      power: (el) => this.boolPower('eq.on', el),
-      print: this.fxLine(['eq.low_gain', 'eq.mid_gain', 'eq.mid_freq', 'eq.high_gain', 'eq.highcut', 'eq.on'], lit('eq.on'), (x) => {
-        if (x === 0) {
-          eqBands[0].setLowShelf(100, this.num('eq.low_gain'), FS);
-          eqBands[1].setPeak(this.num('eq.mid_freq'), this.num('eq.mid_gain'), 0.9, FS);
-          eqBands[2].setHighShelf(5000, this.num('eq.high_gain'), FS);
-          eqBands[3].setLowpass(Math.min(this.num('eq.highcut'), FS * 0.45), Math.SQRT1_2, FS);
-        }
-        const f = 20 * Math.pow(1000, x);
-        const dB = 20 * Math.log10(eqBands.reduce((m, b) => m * biquadMag(b, f), 1));
-        return 0.25 + dB / 24;
-      }, true),
-      dials: [lg('eq.low_gain', 'Low'), lg('eq.mid_gain', 'Mid'), lg('eq.mid_freq', 'Freq'), lg('eq.high_gain', 'High'), lg('eq.highcut', 'Hi cut')],
-    });
+    const eq = this.eqBox();
 
     return h('div', 'v2-main osc-page fx-page2', dist, crush, tape, chorus, mfx, delay, reverb, eq);
+  }
+
+  /**
+   * The EQ (owner's layout, like Ableton's EQ Eight): four balls on the graph, a low shelf, two bells
+   * and a high shelf, flat by default. Click a ball to select it, drag it (sideways = frequency,
+   * up / down = gain), scroll for its Q, double-click to switch it (shelf ↔ high- / low-pass on the
+   * outer two, bell ↔ notch on the middle two). Freq, Gain and Q show the selected ball; Scale
+   * multiplies every gain (-200 … 200 %). The high cut stays in the engine (under "All controls").
+   */
+  private eqBox(): HTMLElement {
+    const W = PRINT_W, H = PRINT_H, MAXDB = 18;
+    const bands = [1, 2, 3, 4].map((n) => `eq.b${n}`);
+    const ids = ['eq.on', 'eq.scale', 'eq.highcut', ...bands.flatMap((b) => [`${b}_type`, `${b}_freq`, `${b}_gain`, `${b}_q`])];
+    let sel = 1;
+    const [cv, g] = canvas(W, H, 'disp eq-graph');
+    const bq = [new Biquad(), new Biquad(), new Biquad(), new Biquad(), new Biquad()];
+    const xOf = (f: number) => (Math.log(f / 20) / Math.log(1000)) * W;
+    const fOf = (x: number) => 20 * Math.pow(1000, Math.max(0, Math.min(1, x / W)));
+    const yOf = (db: number) => H / 2 - (Math.max(-MAXDB, Math.min(MAXDB, db)) / MAXDB) * (H / 2 - 7);
+    const dbOf = (y: number) => Math.max(-MAXDB, Math.min(MAXDB, ((H / 2 - y) / (H / 2 - 7)) * MAXDB));
+    const isPass = (i: number) => Number(getParam(`${bands[i]}_type`)!.options!.indexOf(String(this.get(`${bands[i]}_type`)))) === 1;
+    const ball = (i: number): [number, number] => [xOf(this.num(`${bands[i]}_freq`)), isPass(i) ? H / 2 : yOf(this.num(`${bands[i]}_gain`) * this.num('eq.scale'))];
+    const redraw = () => {
+      paper(g, W, H);
+      const on = !!this.get('eq.on'), col = on ? accentOf(cv) : '#4a4a50', sc = this.num('eq.scale');
+      for (let i = 0; i < 4; i++) {
+        const b = bands[i], hz = Math.min(this.num(`${b}_freq`), FS * 0.45), db = this.num(`${b}_gain`) * sc, q = this.num(`${b}_q`), pass = isPass(i);
+        if (i === 0) pass ? bq[i].setHighpass(hz, q, FS) : bq[i].setLowShelf(hz, db, FS, q);
+        else if (i === 3) pass ? bq[i].setLowpass(hz, q, FS) : bq[i].setHighShelf(hz, db, FS, q);
+        else pass ? bq[i].setNotch(hz, q, FS) : bq[i].setPeak(hz, db, q, FS);
+      }
+      bq[4].setLowpass(Math.min(this.num('eq.highcut'), FS * 0.45), Math.SQRT1_2, FS);
+      g.save();
+      g.strokeStyle = 'rgba(255,255,255,0.07)';
+      g.beginPath();
+      g.moveTo(0, H / 2);
+      g.lineTo(W, H / 2);
+      g.stroke();
+      g.restore();
+      const pts: [number, number][] = [];
+      for (let x = 0; x <= W; x += 1.5) {
+        const f = fOf(x);
+        const m = bq.reduce((a, b, j) => (j === 4 && this.num('eq.highcut') >= 19500 ? a : a * biquadMag(b, f)), 1);
+        pts.push([x, yOf(20 * Math.log10(Math.max(m, 1e-5)))]);
+      }
+      if (on) fillUnder(g, pts, H, col, 0.12);
+      silver(g, pts, on);
+      for (let i = 0; i < 4; i++) {
+        const [x, y] = ball(i), hot = i === sel;
+        g.save();
+        g.shadowColor = col;
+        g.shadowBlur = hot ? 12 : 6;
+        g.fillStyle = hot ? '#fff' : on ? col : '#5a5a60';
+        g.beginPath();
+        g.arc(x, y, hot ? 4.5 : 3.6, 0, 2 * Math.PI);
+        g.fill();
+        g.shadowBlur = 0;
+        g.fillStyle = hot ? '#111' : 'rgba(0,0,0,0.75)';
+        g.font = '600 6.5px "Space Grotesk", sans-serif';
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.fillText(String(i + 1), x, y + 0.3);
+        g.restore();
+      }
+    };
+    this.watch(ids, redraw);
+    const near = (e: PointerEvent | MouseEvent): number => {
+      let best = -1, bd = 14;
+      for (let i = 0; i < 4; i++) {
+        const [x, y] = ball(i), d = Math.hypot(e.offsetX - x, e.offsetY - y);
+        if (d < bd) { bd = d; best = i; }
+      }
+      return best;
+    };
+    let drag = -1;
+    cv.addEventListener('pointerdown', (e) => {
+      const i = near(e);
+      if (i < 0) return;
+      select(i);
+      drag = i;
+      cv.setPointerCapture(e.pointerId);
+    });
+    cv.addEventListener('pointermove', (e) => {
+      if (drag < 0 || !cv.hasPointerCapture(e.pointerId)) return;
+      const b = bands[drag];
+      this.set(`${b}_freq`, Math.round(fOf(e.offsetX)));
+      const sc = this.num('eq.scale');
+      if (!isPass(drag) && Math.abs(sc) > 0.01) this.set(`${b}_gain`, Math.round((dbOf(e.offsetY) / sc) * 10) / 10);
+    });
+    cv.addEventListener('pointerup', (e) => { drag = -1; cv.releasePointerCapture(e.pointerId); });
+    cv.addEventListener('dblclick', (e) => {
+      const i = near(e);
+      if (i < 0) return;
+      const id = `${bands[i]}_type`, opts = getParam(id)!.options!;
+      this.set(id, opts[isPass(i) ? 0 : 1]);
+    });
+    cv.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const id = `${bands[sel]}_q`, p = getParam(id)!;
+      const q = this.num(id) * Math.pow(1.12, -Math.sign(e.deltaY) * (e.shiftKey ? 0.25 : 1));
+      this.set(id, Math.round(Math.max(p.min!, Math.min(p.max!, q)) * 100) / 100);
+    }, { passive: false });
+    cv.title = 'Click a ball to select it, drag it (sideways = frequency, up / down = gain), scroll for its Q, double-click to switch its type.';
+    // Freq / Gain / Q of the selected ball (one set per band, the selected one shows), then Scale
+    const lg = (id: string, label: string, opts: Parameters<SynthView['knob']>[3] = {}) => this.knob(id, label, 'lg', opts);
+    const sets = bands.map((b, i) => {
+      const gain = lg(`${b}_gain`, 'Gain', { disabled: () => isPass(i), deps: [`${b}_type`] });
+      const el = h('span', 'eq-set', lg(`${b}_freq`, 'Freq'), gain, lg(`${b}_q`, 'Q'));
+      return el;
+    });
+    const select = (i: number) => {
+      sel = i;
+      sets.forEach((el, j) => { el.style.display = j === i ? '' : 'none'; });
+      redraw();
+    };
+    select(sel);
+    const scale = lg('eq.scale', 'Scale', { fmt: (v) => `${Math.round(v * 100)}%` });
+    return this.obox('EQ', 'fx-box box-eq', { power: (el) => this.boolPower('eq.on', el), print: cv, dials: [...sets, scale] });
   }
 
   // ------------------------------------------------------------------ the GRIND page
@@ -3364,10 +3475,23 @@ export class SynthView {
     const roll = h('button', 'gr-roll');
     roll.innerHTML = `${DICE_SVG}<span>ROLL</span>`;
     roll.title = 'Roll the whole chain: new filters, movement and drives (locked stages stay as they are)';
-    roll.onclick = () => this.grindRoll([1, 2, 3, 4].filter((n) => !this.grindLocks[n - 1]));
+    roll.onclick = () => this.grindRoll([1, 2, 3, 4].filter((n) => !this.grindLocks[n - 1]), false, true);
+    // how many stages a ROLL uses: AUTO (random) or 1-4
+    const count = h('span', 'fx-kinds sw-small gr-count');
+    const countBtns = ['AUTO', '1', '2', '3', '4'].map((t, i) => {
+      const b = h('button', 'fx-kind', t);
+      b.onclick = () => {
+        this.grindCount = i;
+        countBtns.forEach((x, j) => x.classList.toggle('on', j === i));
+      };
+      b.classList.toggle('on', i === this.grindCount);
+      count.append(b);
+      return b;
+    });
+    count.title = 'How many stages ROLL uses: AUTO picks a random number each time.';
     const vary = h('button', 'gr-roll gr-quiet', 'VARY MOVEMENT');
     vary.title = 'Keep the filters and drives, roll only how they move (what moves them, how far, how fast)';
-    vary.onclick = () => this.grindRoll([1, 2, 3, 4].filter((n) => !this.grindLocks[n - 1]), true);
+    vary.onclick = () => this.grindRoll([1, 2, 3, 4].filter((n) => !this.grindLocks[n - 1] && !!this.get(`grind${n}.on`)), true);
     const fill = h('div', 'glide-fill');
     const weird = h('div', 'glide-track gr-weird', fill);
     const showWeird = () => { fill.style.width = `${this.grindWeird * 100}%`; };
@@ -3408,8 +3532,10 @@ export class SynthView {
     // the Wobbler's rocker, lying on its side
     const rocker = this.bigToggle('grind.on', '');
     rocker.classList.add('gr-rocker');
-    const head = h('div', 'ob-head', h('span', 'c-title', 'GRIND'), roll,
-      h('span', 'gr-sub', 'WEIRDNESS'), weird, vary, h('span', 'gr-sub', 'RECENT'), recent, rocker);
+    const lowcut = this.knob('grind.lowcut', 'Lo cut', 'mid', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
+    const mix = this.knob('grind.mix', 'Mix', 'mid', { fmt: (v) => `${Math.round(v * 100)}%` });
+    const head = h('div', 'ob-head', h('span', 'c-title', 'GRIND'), roll, count,
+      h('span', 'gr-sub', 'WEIRDNESS'), weird, vary, h('span', 'gr-sub', 'RECENT'), recent, h('span', 'gr-knobs', lowcut, mix), rocker);
     strip.append(head);
     page.append(strip, ...cards);
     return page;
@@ -3426,9 +3552,18 @@ export class SynthView {
    * to the classic neuro moves; high goes anywhere. The chain switches on, and the roll joins the
    * recent rolls.
    */
-  private grindRoll(stages: number[], movementOnly = false): void {
+  private grindRoll(stages: number[], movementOnly = false, counted = false): void {
     const w = this.grindWeird, rnd = Math.random;
     const pick = <T,>(xs: readonly T[]) => xs[Math.floor(rnd() * xs.length)];
+    if (counted) {
+      // ROLL: how many stages play (the count, or random), locked stages that are on counting too
+      const target = this.grindCount || pick([1, 2, 2, 3, 3, 4]);
+      const lockedOn = [1, 2, 3, 4].filter((n) => this.grindLocks[n - 1] && !!this.get(`grind${n}.on`)).length;
+      const pool = [...stages].sort(() => rnd() - 0.5);
+      const use = pool.slice(0, Math.max(0, target - lockedOn));
+      for (const n of pool) if (!use.includes(n)) this.set(`grind${n}.on`, false);
+      stages = use.sort();
+    }
     const between = (a: number, b: number) => a + (b - a) * rnd();
     const logBetween = (a: number, b: number) => a * Math.pow(b / a, rnd());
     const round = (v: number, d = 100) => Math.round(v * d) / d;

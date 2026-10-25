@@ -62,3 +62,41 @@ describe('grind migration', () => {
     expect(patch['grind2.filter']).toBe('peak');
   });
 });
+
+describe('grind mix, low cut and the noise bed', () => {
+  const on = { ...saw, 'grind.on': true, 'grind1.drive': 0.8 };
+  const render = (p: Record<string, unknown>) => mono(renderPatch(p as never, heldNote(36, 4), { seconds: 1 }));
+  it('mix 0 is the dry sound', () => {
+    expect(diff(render({ ...on, 'grind.mix': 0 }), render(saw), 0.2 * FS, 0.9 * FS)).toBeLessThan(1e-6);
+  });
+  it('a high low cut leaves most of the sound clean', () => {
+    const full = diff(render(on), render(saw), 0.2 * FS, 0.9 * FS);
+    const cut = diff(render({ ...on, 'grind.lowcut': 2000 }), render(saw), 0.2 * FS, 0.9 * FS);
+    expect(cut).toBeLessThan(full);
+  });
+  it('the noise bed goes through GRIND, except on Direct out', () => {
+    const tex = { ...saw, 'osc1.level': 0, 'texture.type': 'tape hiss', 'texture.level': 0.8 };
+    const dry = render(tex), wet = render({ ...tex, 'grind.on': true, 'grind1.drive': 0.9, 'grind1.filter': 'comb' });
+    expect(diff(dry, wet, 0.2 * FS, 0.9 * FS)).toBeGreaterThan(0.01);
+    const direct = { ...tex, 'texture.direct': true };
+    expect(diff(render(direct), render({ ...direct, 'grind.on': true, 'grind1.drive': 0.9, 'grind1.filter': 'comb' }), 0.2 * FS, 0.9 * FS)).toBeLessThan(1e-6);
+  });
+});
+
+describe('four-band EQ', () => {
+  const render = (p: Record<string, unknown>) => mono(renderPatch({ ...saw, 'eq.on': true, ...p } as never, heldNote(36, 4), { seconds: 1 }));
+  it('is flat by default', () => {
+    expect(diff(render({}), render({ 'eq.on': false }), 0.2 * FS, 0.9 * FS)).toBeLessThan(1e-6);
+  });
+  it('a bell boost changes the sound, scale 0 flattens it, a notch at 0 dB still cuts', () => {
+    const flat = render({});
+    expect(diff(flat, render({ 'eq.b2_gain': 9 }), 0.2 * FS, 0.9 * FS)).toBeGreaterThan(0.01);
+    expect(diff(flat, render({ 'eq.b2_gain': 9, 'eq.scale': 0 }), 0.2 * FS, 0.9 * FS)).toBeLessThan(1e-6);
+    expect(diff(flat, render({ 'eq.b2_type': 'notch', 'eq.b2_freq': 130 }), 0.2 * FS, 0.9 * FS)).toBeGreaterThan(0.01);
+  });
+  it('the old EQ loads as the same bands', async () => {
+    const { validatePatch } = await import('../src/schema');
+    const { patch } = validatePatch({ meta: { name: 't' }, 'eq.low_gain': -2, 'eq.mid_gain': -3, 'eq.mid_freq': 320, 'eq.high_gain': -1 });
+    expect([patch['eq.b1_gain'], patch['eq.b2_gain'], patch['eq.b2_freq'], patch['eq.b4_gain'], patch['eq.b1_freq'], patch['eq.b4_freq']]).toEqual([-2, -3, 320, -1, 100, 5000]);
+  });
+});

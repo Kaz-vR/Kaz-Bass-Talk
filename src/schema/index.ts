@@ -182,6 +182,23 @@ function migrateAttackCurve(src: Record<string, unknown>): Record<string, unknow
  * (it loads as air); breath is now air's hit ("air hit"). Its Character dial became Density (same
  * place, 0.5 still each type's classic sound).
  */
+/** The old three-knob EQ (low / mid at a frequency / high gains) as the four-band EQ: the same shelves and bell. */
+function migrateEq(src: Record<string, unknown>): Record<string, unknown> {
+  const old = ['eq.low_gain', 'eq.mid_gain', 'eq.mid_freq', 'eq.high_gain'];
+  if (!old.some((k) => k in src)) return src;
+  const out: Record<string, unknown> = { ...src };
+  if (!('eq.b1_gain' in src)) {
+    if (typeof src['eq.low_gain'] === 'number') out['eq.b1_gain'] = src['eq.low_gain'];
+    if (typeof src['eq.mid_gain'] === 'number') out['eq.b2_gain'] = src['eq.mid_gain'];
+    if (typeof src['eq.mid_freq'] === 'number') out['eq.b2_freq'] = src['eq.mid_freq'];
+    if (typeof src['eq.high_gain'] === 'number') out['eq.b4_gain'] = src['eq.high_gain'];
+    out['eq.b1_freq'] = 100;
+    out['eq.b4_freq'] = 5000;
+  }
+  for (const k of old) delete out[k];
+  return out;
+}
+
 /** GRIND before it lost its beat movement and formant filter: beat became note with Sync on, formant a peak. */
 function migrateGrind(src: Record<string, unknown>): Record<string, unknown> {
   if (![1, 2, 3, 4].some((n) => src[`grind${n}.move`] === 'beat' || src[`grind${n}.filter`] === 'formant')) return src;
@@ -222,7 +239,7 @@ function migrateReverb(src: Record<string, unknown>): Record<string, unknown> {
  */
 export function validatePatch(input: unknown): ValidationResult {
   const issues: ValidationIssue[] = [];
-  const src = migrateGrind(migrateTexture(migrateAttackCurve(migrateReverb(migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>))))));
+  const src = migrateEq(migrateGrind(migrateTexture(migrateAttackCurve(migrateReverb(migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>)))))));
   const rawMeta = src.meta && typeof src.meta === 'object' ? (src.meta as PatchMeta) : undefined;
   const meta: PatchMeta = { ...(rawMeta ?? {}), name: typeof rawMeta?.name === 'string' ? rawMeta.name : 'Untitled' };
   if (!rawMeta) issues.push({ param: 'meta', message: 'missing meta' });

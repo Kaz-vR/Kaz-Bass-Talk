@@ -1487,3 +1487,11 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-rocker { position: relative; width: 66px; height: 42px; margin-left: auto; flex: none; }
 .v2 .gr-rocker svg { position: absolute; left: 50%; top: 50%; margin: -48px 0 0 -30px; transform: rotate(-90deg) scale(0.66); }
 .v2 .gr-rocker .bt-label { display: none; }
+.v2 .gr-count .fx-kind { padding: 0 3px; font-size: 9.5px !important; letter-spacing: 0.12em !important; }
+.v2 .gr-count .fx-kind:not(.on) { color: #5c5c62 !important; }
+.v2 .gr-knobs { display: flex; gap: 6px; margin-left: auto; align-items: center; }
+.v2 .gr-knobs .k .k-label { margin-top: 1px; }
+.v2 .gr-strip .gr-rocker { margin-left: 4px; }
+/* the EQ: the selected ball's Freq / Gain / Q, then Scale */
+.v2 .eq-set { display: contents; }
+.v2 .eq-graph { cursor: pointer; touch-action: none; }

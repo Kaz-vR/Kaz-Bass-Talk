@@ -4,7 +4,7 @@
 // Each stage's filter moves on its own, restarted by every note or wandering at random, at a rate
 // in Hz (free, for life) or synced to the bar; the chain only ever sees what goes into the main filter (A / B), so the sub stays clean.
 
-import { Rng, Svf } from './dsp';
+import { Biquad, Rng, Svf } from './dsp';
 import * as K from './params';
 
 const P = K.P;
@@ -144,6 +144,11 @@ export class Grind {
   l = 0;
   r = 0;
   private combPos = 0;
+  /** Below grind.lowcut the sound passes clean (a 24 dB/oct Linkwitz-Riley split); grind.mix blends the chain in. */
+  private lcOn = false;
+  private lastLc = -1;
+  private mix = 1;
+  private readonly split = Array.from({ length: 8 }, () => new Biquad()); // per channel: LP, LP, HP, HP
   private dcX = new Float64Array(2);
   private dcY = new Float64Array(2);
   private dcR = 0.999;
@@ -173,6 +178,7 @@ export class Grind {
     }
     this.dcX.fill(0);
     this.dcY.fill(0);
+    for (const f of this.split) f.reset();
   }
 
   /**
@@ -182,6 +188,16 @@ export class Grind {
   control(cur: Float64Array, beatPos: number, fs: number, fsOs: number, n: number, rng: Rng): void {
     const dt = n / fsOs;
     this.dcR = 1 - (TWO_PI * 10) / fsOs;
+    this.mix = cur[P.grindMix];
+    const lc = cur[P.grindLowcut];
+    if (lc !== this.lastLc) {
+      this.lastLc = lc;
+      this.lcOn = lc > 21;
+      if (this.lcOn) for (let c = 0; c < 2; c++) for (let j = 0; j < 2; j++) {
+        this.split[4 * c + j].setLowpass(Math.min(lc, fs * 0.45), Math.SQRT1_2, fsOs);
+        this.split[4 * c + 2 + j].setHighpass(Math.min(lc, fs * 0.45), Math.SQRT1_2, fsOs);
+      }
+    }
     for (let i = 0; i < GRIND_STAGES; i++) {
       const s = this.stages[i], gp = P.grind[i];
       s.on = cur[gp.on] > 0.5;
@@ -256,8 +272,17 @@ export class Grind {
     }
   }
 
-  /** One oversampled stereo sample through the chain, into l / r. */
-  process(l: number, r: number): void {
+  /** One stereo sample through the chain (at the rate control() was given), into l / r. */
+  process(inL: number, inR: number): void {
+    let lowL = 0, lowR = 0, l = inL, r = inR;
+    if (this.lcOn) {
+      const sp = this.split;
+      lowL = sp[1].process(sp[0].process(inL));
+      l = sp[3].process(sp[2].process(inL));
+      lowR = sp[5].process(sp[4].process(inR));
+      r = sp[7].process(sp[6].process(inR));
+    }
+    const hiL = l, hiR = r;
     const pos = this.combPos;
     for (let i = 0; i < GRIND_STAGES; i++) {
       const s = this.stages[i];
@@ -272,13 +297,14 @@ export class Grind {
       }
     }
     this.combPos = (pos + 1) & (COMB_LEN - 1);
-    // the drives' lopsided curves leave DC behind: a gentle blocker at the end of the chain
+    // the drives' lopsided curves leave DC behind: a gentle blocker on what the chain adds
     const dx = this.dcX, dy = this.dcY, R = this.dcR;
     dy[0] = l - dx[0] + R * dy[0];
     dx[0] = l;
     dy[1] = r - dx[1] + R * dy[1];
     dx[1] = r;
-    this.l = dy[0];
-    this.r = dy[1];
+    const m = this.mix;
+    this.l = lowL + hiL + (dy[0] - hiL) * m;
+    this.r = lowR + hiR + (dy[1] - hiR) * m;
   }
 }

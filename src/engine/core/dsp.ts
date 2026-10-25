@@ -245,11 +245,11 @@ export class Biquad {
     this.set(al, 0, -al, 1 + al, -2 * c, 1 - al);
   }
 
-  setLowShelf(fc: number, db: number, fs: number): void {
+  setLowShelf(fc: number, db: number, fs: number, q = Math.SQRT1_2): void {
     const A = Math.pow(10, db / 40);
     const w = (TWO_PI * fc) / fs;
     const c = Math.cos(w), s = Math.sin(w);
-    const al = (s / 2) * Math.SQRT2; // slope 1
+    const al = s / (2 * q); // q = 1/√2: slope 1
     const sa = 2 * Math.sqrt(A) * al;
     this.set(
       A * (A + 1 - (A - 1) * c + sa),
@@ -261,11 +261,11 @@ export class Biquad {
     );
   }
 
-  setHighShelf(fc: number, db: number, fs: number): void {
+  setHighShelf(fc: number, db: number, fs: number, q = Math.SQRT1_2): void {
     const A = Math.pow(10, db / 40);
     const w = (TWO_PI * fc) / fs;
     const c = Math.cos(w), s = Math.sin(w);
-    const al = (s / 2) * Math.SQRT2;
+    const al = s / (2 * q);
     const sa = 2 * Math.sqrt(A) * al;
     this.set(
       A * (A + 1 + (A - 1) * c + sa),
@@ -275,6 +275,12 @@ export class Biquad {
       2 * (A - 1 - (A + 1) * c),
       A + 1 - (A - 1) * c - sa,
     );
+  }
+
+  setNotch(fc: number, q: number, fs: number): void {
+    const w = (TWO_PI * fc) / fs;
+    const c = Math.cos(w), al = Math.sin(w) / (2 * q);
+    this.set(1, -2 * c, 1, 1 + al, -2 * c, 1 - al);
   }
 
   setPeak(fc: number, db: number, q: number, fs: number): void {

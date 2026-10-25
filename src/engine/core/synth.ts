@@ -29,6 +29,7 @@ import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobShapeAt,
 import { PARAM_COUNT, params } from '../../schema';
 import { AUX_SLOT, Biquad, clamp, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
 import { Chorus, Delay, Flanger, Limiter, OctaveDown, Phaser, Reverb } from './fx';
+import { Grind } from './grind';
 import { OVERSAMPLE_LATENCY } from './oversample';
 import * as K from './params';
 import { Voice } from './voice';
@@ -140,6 +141,9 @@ export class Synth {
   private readonly lfoPrev = new Float64Array(LFO_COUNT); // previous random value (wander start point)
   private readonly gsrc = new Float64Array(SRC_COUNT);
   private readonly rng = new Rng(0x1234567);
+  /** The texture bed's own GRIND chain (the bed is shared, so it follows the newest note), when not on Direct out. */
+  private readonly texGrind = new Grind(new Rng(0x6a1d));
+  private texGrindOn = false;
   // Slow random 'drift' modulation source.
   private driftVal = 0;
   private driftTarget = 0;
@@ -205,7 +209,9 @@ export class Synth {
   private readonly hcL = new Biquad();
   private readonly hcR = new Biquad();
   private highcutOn = false;
-  private readonly eqOn = new Uint8Array(3);
+  private readonly eqOn = new Uint8Array(4);
+  /** Each EQ band's settings as last set (type, freq, gain × scale, q), to skip unchanged ones. */
+  private readonly eqLast = new Float64Array(16).fill(NaN);
   // Each modulation / space effect's own low cut (chorus, flanger, phaser, delay, reverb).
   private readonly hpL = [new Biquad(), new Biquad(), new Biquad(), new Biquad(), new Biquad()];
   private readonly hpR = [new Biquad(), new Biquad(), new Biquad(), new Biquad(), new Biquad()];
@@ -215,8 +221,8 @@ export class Synth {
   private readonly reverb: Reverb;
   /** The reverb's -1 octave: its input shifted down before its Lo cut. */
   private readonly verbOct: OctaveDown;
-  private readonly eqL = [new Biquad(), new Biquad(), new Biquad()];
-  private readonly eqR = [new Biquad(), new Biquad(), new Biquad()];
+  private readonly eqL = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
+  private readonly eqR = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
   private readonly dcL = [new Biquad(), new Biquad()];
   private readonly dcR = [new Biquad(), new Biquad()];
   private readonly xo = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
@@ -268,6 +274,7 @@ export class Synth {
       this.dcR[i].setHighpass(K.SUBSONIC_HZ, SUBSONIC_Q[i], sampleRate);
     }
     this.lastFx.fill(NaN);
+    this.eqLast.fill(NaN);
     // Random LFO shapes (sample & hold, wander) start from random points, not flat at 0.
     for (let l = 0; l < LFO_COUNT; l++) {
       this.lfoPrev[l] = this.rng.next();
@@ -375,7 +382,7 @@ export class Synth {
     if (off(P.vibOn)) { zero(P.vibDepth); block(K.D_VIBRATO); }
     if (off(P.wobOn)) zero(P.wobDepth);
     for (const s of P.slots) if (off(P.modOn) || off(s.on)) t[s.amt] = 0;
-    if (off(P.eqOn)) { zero(P.eqLow, P.eqMid, P.eqHigh); t[P.eqHighcut] = 20000; }
+    if (off(P.eqOn)) { zero(P.eqScale, ...P.eq.map((b) => b.type)); t[P.eqHighcut] = 20000; }
     if (off(P.chorusOn)) { zero(P.chorusMix); block(K.D_CHORUS_DEPTH); }
     if (off(P.flangerOn)) zero(P.flangerMix);
     if (off(P.phaserOn)) { zero(P.phaserMix); block(K.D_PHASER_MIX); }
@@ -482,6 +489,7 @@ export class Synth {
   /** A note (re)started its envelopes: retrigger LFOs that ask for it (fade-ins are per voice, see Voice). */
   private onTrigger(velocity = 1): void {
     this.texture.trigger(velocity);
+    this.texGrind.noteOn();
     for (let l = 0; l < LFO_COUNT; l++) {
       if (this.cur[P.lfo[l].retrig] > 0.5) {
         this.lfoPhase[l] = 0;
@@ -500,7 +508,7 @@ export class Synth {
   panic(): void {
     this.allNotesOff();
     for (const v of this.voices) v.reset();
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       this.eqL[i].reset();
       this.eqR[i].reset();
     }
@@ -868,6 +876,11 @@ export class Synth {
       this.texPanR = Math.sin(a) * Math.SQRT2;
     }
     this.texDirect = cur[P.texDirect] > 0.5;
+    // the bed goes through GRIND too, unless it is on its own clean path
+    const tg = cur[P.grindOn] > 0.5 && !this.texDirect;
+    if (tg && !this.texGrindOn) this.texGrind.reset();
+    this.texGrindOn = tg;
+    if (tg) this.texGrind.control(cur, this.beatPos, fs, fs, BLOCK, this.rng);
 
     // The bar clock (the wobble locks to it).
     this.beatPos += (this.tempo / 60) * (BLOCK / fs);
@@ -895,24 +908,21 @@ export class Synth {
         this.lastLowcut[k] = lowcut;
       }
     }
-    this.eqOn[0] = Math.abs(cur[P.eqLow]) > 0.01 ? 1 : 0;
-    this.eqOn[1] = Math.abs(cur[P.eqMid]) > 0.01 ? 1 : 0;
-    this.eqOn[2] = Math.abs(cur[P.eqHigh]) > 0.01 ? 1 : 0;
-    if (cur[P.eqLow] !== lf[1]) {
-      this.eqL[0].setLowShelf(100, cur[P.eqLow], fs);
-      this.eqR[0].setLowShelf(100, cur[P.eqLow], fs);
-      lf[1] = cur[P.eqLow];
-    }
-    if (cur[P.eqMid] !== lf[2] || cur[P.eqMidFreq] !== lf[3]) {
-      this.eqL[1].setPeak(cur[P.eqMidFreq], cur[P.eqMid], 0.9, fs);
-      this.eqR[1].setPeak(cur[P.eqMidFreq], cur[P.eqMid], 0.9, fs);
-      lf[2] = cur[P.eqMid];
-      lf[3] = cur[P.eqMidFreq];
-    }
-    if (cur[P.eqHigh] !== lf[4]) {
-      this.eqL[2].setHighShelf(5000, cur[P.eqHigh], fs);
-      this.eqR[2].setHighShelf(5000, cur[P.eqHigh], fs);
-      lf[4] = cur[P.eqHigh];
+    // EQ: four bands (type 0 = shelf / bell, 1 = pass / notch), every gain scaled by eq.scale
+    for (let b = 0; b < 4; b++) {
+      const e = P.eq[b], el = this.eqLast, o = 4 * b;
+      const type = cur[e.type], hz = Math.min(cur[e.freq], fs * 0.45), db = cur[e.gain] * cur[P.eqScale], q = cur[e.q];
+      this.eqOn[b] = type > 0.5 || Math.abs(db) > 0.01 ? 1 : 0;
+      if (!this.eqOn[b] || (el[o] === type && el[o + 1] === hz && el[o + 2] === db && el[o + 3] === q)) continue;
+      el[o] = type;
+      el[o + 1] = hz;
+      el[o + 2] = db;
+      el[o + 3] = q;
+      for (const f of [this.eqL[b], this.eqR[b]]) {
+        if (b === 0) type > 0.5 ? f.setHighpass(hz, q, fs) : f.setLowShelf(hz, db, fs, q);
+        else if (b === 3) type > 0.5 ? f.setLowpass(hz, q, fs) : f.setHighShelf(hz, db, fs, q);
+        else type > 0.5 ? f.setNotch(hz, q, fs) : f.setPeak(hz, db, q, fs);
+      }
     }
     if (cur[P.crossover] !== lf[5]) {
       // 8th-order Butterworth high-pass on the side channel (48 dB/oct).
@@ -1044,6 +1054,11 @@ export class Synth {
       // Direct out: the bed joins the clean sub after every effect.
       const texDirect = this.texDirect;
       if (!texDirect) {
+        if (this.texGrindOn) {
+          this.texGrind.process(texL, texR);
+          texL = this.texGrind.l;
+          texR = this.texGrind.r;
+        }
         l += texL;
         r += texR;
       }
@@ -1091,7 +1106,7 @@ export class Synth {
       }
 
       // EQ (bands at 0 dB are skipped) and high cut.
-      for (let b = 0; b < 3; b++) {
+      for (let b = 0; b < 4; b++) {
         if (this.eqOn[b]) {
           l = this.eqL[b].process(l);
           r = this.eqR[b].process(r);
