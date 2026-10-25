@@ -34,6 +34,20 @@ describe('sub pitch', () => {
     expect(low).toBeGreaterThan(19);
     expect(low).toBeLessThan(42);
   });
+  it.each(['sine', 'warm sine', 'triangle', 'square', 'pulse', 'saw'])('the %s sub plays the note, mono and centred', (wave) => {
+    const p = { ...base, 'osc1.level': 0, 'osc2.level': 0, 'sub.level': 0.8, 'sub.wave': wave, 'sub.octave': -1, 'mod1.amount': 0 };
+    const r = renderPatch(p, heldNote(60, 4), { seconds: 0.8 });
+    expect(freq(r.left, 0.2, 0.7) / 130.81).toBeCloseTo(1, 1);
+    let side = 0, dc = 0, e = 0;
+    for (let i = 0.2 * FS; i < 0.7 * FS; i++) {
+      side += Math.abs(r.left[i] - r.right[i]);
+      dc += r.left[i];
+      e += r.left[i] * r.left[i];
+    }
+    const n = 0.5 * FS;
+    expect(side / n).toBeLessThan(1e-6);
+    expect(Math.abs(dc / n)).toBeLessThan(0.05 * Math.sqrt(e / n));
+  });
   it('leaves the oscillators alone', () => {
     const p = { ...base, 'osc1.wave': 'sine', 'osc1.level': 0.8, 'osc1.unison_voices': 1, 'osc2.level': 0, 'sub.level': 0 };
     const still = freq(renderPatch({ ...p, 'mod1.amount': 0 }, heldNote(48, 4), { seconds: 0.8 }).left, 0.2, 0.7);

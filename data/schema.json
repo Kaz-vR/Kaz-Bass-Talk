@@ -559,12 +559,15 @@
       "type": "enum",
       "options": [
         "sine",
+        "warm sine",
         "triangle",
-        "square"
+        "square",
+        "pulse",
+        "saw"
       ],
       "default": "sine",
       "group": "sub",
-      "describes": "Sine is pure weight; triangle adds a little audible edge on small speakers; square is hollow, buzzy weight you hear on phones too (tame it with the sub filter)."
+      "describes": "Sine is pure weight; warm sine adds a touch of its octave, so it stays round but you hear it on small speakers (the modern 808 sub); triangle adds a little edge; square is hollow, buzzy weight; pulse (25%) is thinner and nasal (the Juno / SH-101 sub); saw is the richest, weight and edge under reeses and leads. All band-limited."
     },
     {
       "id": "sub.octave",

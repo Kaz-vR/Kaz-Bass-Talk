@@ -275,6 +275,7 @@ function waveShape(wave: string, x: number, pw: number, wt: number): number {
   const saw = 1 - 2 * x;
   switch (wave) {
     case 'sine': return Math.sin(2 * Math.PI * x);
+    case 'warm sine': return 0.86 * (Math.sin(2 * Math.PI * x) + 0.3 * Math.sin(4 * Math.PI * x));
     case 'triangle': return tri;
     case 'saw': return saw;
     case 'square': return x < 0.5 ? 0.8 : -0.8;
@@ -1414,7 +1415,7 @@ export class SynthView {
       const cycles = (W / 90) * Math.min(8, Math.pow(2, this.num('sub.octave') + 1)), lvl = this.num('sub.level');
       const k = 1 + this.num('sub.clip') / 3, clip = (v: number) => (k > 1.01 ? Math.tanh(v * k) / Math.tanh(k) : v);
       const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - clip(waveShape(String(this.get('sub.wave')), ((i / W) * cycles) % 1, 0.5, 0)) * (H / 2 - 9) * (0.3 + 0.6 * lvl)]);
+      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - clip(waveShape(String(this.get('sub.wave')), ((i / W) * cycles) % 1, 0.25, 0)) * (H / 2 - 9) * (0.3 + 0.6 * lvl)]);
       silver(g, pts, lvl > 0);
       vignette(g, W, H);
     };

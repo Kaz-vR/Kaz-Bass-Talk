@@ -1082,14 +1082,19 @@ export class Voice {
         let sp = this.subPhase + this.subInc;
         if (sp >= 1) sp -= 1;
         this.subPhase = sp;
-        if (this.subWave === 0) sub = Math.sin(TWO_PI * sp);
-        else if (this.subWave === 1) sub = sp < 0.25 ? 4 * sp : sp < 0.75 ? 2 - 4 * sp : 4 * sp - 4;
+        // sine, warm sine, triangle, square, pulse (25%), saw; the edges band-limited with polyBLEP
+        const sw = this.subWave;
+        if (sw === 0) sub = Math.sin(TWO_PI * sp);
+        else if (sw === 1) sub = 0.86 * (Math.sin(TWO_PI * sp) + 0.3 * Math.sin(2 * TWO_PI * sp));
+        else if (sw === 2) sub = sp < 0.25 ? 4 * sp : sp < 0.75 ? 2 - 4 * sp : 4 * sp - 4;
+        else if (sw === 5) sub = 0.8 * (1 - 2 * sp + polyBlep(sp, this.subInc));
         else {
-          // Square, band-limited with polyBLEP at both edges.
-          const dt = this.subInc;
-          let sp2 = sp + 0.5;
+          const dt = this.subInc, w = sw === 4 ? 0.25 : 0.5;
+          let sp2 = sp + 1 - w;
           if (sp2 >= 1) sp2 -= 1;
-          sub = (sp < 0.5 ? 1 : -1) + polyBlep(sp, dt) - polyBlep(sp2, dt);
+          // (the pulse without its DC: centred on zero)
+          sub = (sp < w ? 1 : -1) + polyBlep(sp, dt) - polyBlep(sp2, dt);
+          if (sw === 4) sub = 0.8 * (sub + 0.5);
         }
         if (this.subF.active) sub = this.subF.process(sub);
         if (this.routeS) {
