@@ -618,7 +618,7 @@ interface KnobMod {
   on?: () => boolean;
   deps?: string[];
 }
-/** The filter envelope → cutoff: ±1 is ±6 octaves on a 20 Hz – 20 kHz log dial. */
+/** The filter envelope → cutoff: ±1 is ±6 octaves on a 20 Hz – 20 kHz log dial (the amount reaches ±1.661: the whole dial). */
 const FENV_MOD: KnobMod = {
   id: 'filter.env_amount',
   color: '#bfe6ff',
