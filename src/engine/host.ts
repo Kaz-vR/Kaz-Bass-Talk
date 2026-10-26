@@ -25,7 +25,7 @@ export class EngineHost {
     this.analyser.smoothingTimeConstant = 0.6;
     node.connect(ctx.destination);
     node.connect(this.analyser);
-    const split = ctx.createChannelSplitter(20);
+    const split = ctx.createChannelSplitter(25);
     node.connect(split, 1);
     this.ctlCut = ctx.createAnalyser();
     this.ctlRes = ctx.createAnalyser();
@@ -34,7 +34,7 @@ export class EngineHost {
     split.connect(this.ctlCut, 0);
     split.connect(this.ctlRes, 1);
     split.connect(this.ctlWob, 2);
-    for (let c = 3; c < 20; c++) {
+    for (let c = 3; c < 25; c++) {
       const a = ctx.createAnalyser();
       a.fftSize = 32;
       split.connect(a, c);
@@ -58,6 +58,16 @@ export class EngineHost {
       return this.ctlBuf[31];
     };
     return { fc: this.ctlLfo.slice(9, 13).map(read), res: this.ctlLfo.slice(13, 17).map(read) };
+  }
+
+  /** GRIND2: each stage's filter frequency (Hz, -1 off) and where the shared movement is in its cycle (0..1, null when off or silent). */
+  liveG2(): { fc: number[]; phase: number | null } {
+    const read = (a: AnalyserNode) => {
+      a.getFloatTimeDomainData(this.ctlBuf);
+      return this.ctlBuf[31];
+    };
+    const mv = read(this.ctlLfo[21]);
+    return { fc: this.ctlLfo.slice(17, 21).map(read), phase: mv >= 0 ? mv : null };
   }
 
   /** The Wobbler filter's cutoff right now (Hz), or null when it is not working. */
@@ -89,7 +99,7 @@ export class EngineHost {
     const node = new AudioWorkletNode(ctx, PROCESSOR_NAME, {
       numberOfInputs: 0,
       numberOfOutputs: 2,
-      outputChannelCount: [2, 20],
+      outputChannelCount: [2, 25],
     });
     return new EngineHost(ctx, node);
   }

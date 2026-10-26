@@ -51,6 +51,11 @@ class LowTalkProcessor extends AudioWorkletProcessor {
       // channels 16-19: their resonance right now
       if (ctl.length >= 16) for (let i = 0; i < 4; i++) ctl[12 + i].fill(this.synth.liveGrind[i]);
       if (ctl.length >= 20) for (let i = 0; i < 4; i++) ctl[16 + i].fill(this.synth.liveGrindRes[i]);
+      // channels 20-23: each GRIND2 stage's filter frequency; 24: where GRIND2's shared movement is in its cycle (0..1, -1 off)
+      if (ctl.length >= 25) {
+        for (let i = 0; i < 4; i++) ctl[20 + i].fill(this.synth.liveG2[i]);
+        ctl[24].fill(this.synth.liveG2Move);
+      }
       if (ctl.length >= 11) {
         for (let l = 0; l < 4; l++) {
           ctl[3 + l].fill(this.synth.lfoPhase[l]);

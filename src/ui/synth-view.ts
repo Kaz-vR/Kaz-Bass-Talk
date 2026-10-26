@@ -8,6 +8,7 @@ import { fromNormalized, getParam, params, toNormalized, type ParamValue, type P
 import { formatValue } from './params-panel';
 import { keyGrime, lightGrain, panelTexture } from './texture';
 import { GRIND_BEAT_NAMES, grindBeat, grindGain, grindHz } from '../engine/core/grind';
+import { G2_RATE_NAMES, G2_SHAPES, G2_TABLES, g2VowelPos } from '../engine/core/grind2';
 import * as K from '../engine/core/params';
 import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobPointsAt, wobSmoothRadius, wobSmoothTable, wobTableAt, type WobPoint } from '../engine/core/wobshape';
 
@@ -754,6 +755,13 @@ export class SynthView {
   private readonly grindLive = [-1, -1, -1, -1];
   private readonly grindLiveRes = [0, 0, 0, 0];
   private readonly grindLiveDraws: (() => void)[] = [];
+  private g2Page: HTMLElement | null = null;
+  /** GRIND2: locked stages, which kind of sound ROLL builds, and what the engine is doing right now. */
+  private readonly g2Locks = [false, false, false, false];
+  private g2Kind = 0;
+  private readonly g2Live = [-1, -1, -1, -1];
+  private g2Phase = -1;
+  private readonly g2LiveDraws: (() => void)[] = [];
   private lfoPage: HTMLElement | null = null;
   /** The synth page's height: every tab keeps it, so nothing jumps. */
   private pageHeight = 0;
@@ -925,6 +933,26 @@ export class SynthView {
           }
         }
         if (moved) for (const f of this.grindLiveDraws) f();
+      }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  /** Follow GRIND2's real filters and its shared movement (while the GRIND2 page shows). */
+  setLiveG2(read: () => { fc: number[]; phase: number | null }): void {
+    const step = () => {
+      if (this.g2Page && this.g2Page.offsetParent !== null) {
+        const { fc, phase } = read();
+        const ph = phase ?? -1;
+        let moved = Math.abs(ph - this.g2Phase) > 0.002;
+        this.g2Phase = ph;
+        for (let i = 0; i < 4; i++) {
+          const x = fc[i] > 0 ? fc[i] : -1;
+          if (x !== this.g2Live[i]) moved = true;
+          this.g2Live[i] = x;
+        }
+        if (moved) for (const f of this.g2LiveDraws) f();
       }
       requestAnimationFrame(step);
     };
@@ -2403,6 +2431,13 @@ export class SynthView {
       kept ||= !!from[`grind${n}.on`];
     }
     if (kept && from['grind.on']) to['grind.on'] = true;
+    let kept2 = false;
+    for (let n = 1; n <= 4; n++) {
+      if (!this.g2Locks[n - 1]) continue;
+      for (const k of G2_KEYS) to[`g2s${n}.${k}`] = from[`g2s${n}.${k}`] ?? getParam(`g2s${n}.${k}`)!.default;
+      kept2 ||= !!from[`g2s${n}.on`];
+    }
+    if (kept2 && from['g2.on']) to['g2.on'] = true;
   }
 
   private setLfo5Lock(on: boolean): void {
@@ -3575,13 +3610,231 @@ export class SynthView {
     this.set('grind.on', true);
   }
 
+  // ------------------------------------------------------------------ the GRIND2 page
+
+  /**
+   * GRIND2: the neuro chain with ONE movement. The strip: ROLL (builds one of the proven neuro
+   * setups: TALK, HOLLOW, METAL, REESE, GROWL, or ANY), the movement (its shape print with the
+   * engine's live position, shape, length, timing), Life, Sat, Mid OTT, KEY, Lo cut, Mix and the rocker.
+   * Each stage card: filter, its print (where it sits, dotted where the movement takes it), Freq / Res /
+   * Depth / Offset, then the drive with Drive / Follow / Mix.
+   */
+  private buildG2Page(): HTMLElement {
+    const page = h('div', 'v2-main osc-page grind-page g2-page');
+    const cards: HTMLElement[] = [];
+    const md = (id: string, label: string, opts: Parameters<SynthView['knob']>[3] = {}) => this.knob(id, label, 'mid', opts);
+    const pct = (v: number) => `${Math.round(v * 100)}%`;
+    const stageOn = (n: number) => !!this.get('g2.on') && !!this.get(`g2s${n}.on`);
+    const shapeAt = (p: number) => {
+      const t = G2_TABLES[G2_SHAPES.indexOf(String(this.get('g2.shape')))] ?? G2_TABLES[0];
+      p -= Math.floor(p);
+      return t[Math.round(p * (t.length - 1))];
+    };
+    for (let n = 1; n <= 4; n++) {
+      const pre = `g2s${n}`;
+      const card = h('div', `c ob gr-stage gr-s${n}`);
+      const W = PRINT_W, FH = 96, DH = 56;
+      const [fcv, fg] = canvas(W, FH, 'disp');
+      const drawFilter = () => {
+        paper(fg, W, FH);
+        const on = stageOn(n), col = on ? accentOf(fcv) : '#4a4a50';
+        const filter = String(this.get(`${pre}.filter`)), res = this.num(`${pre}.res`), depth = this.num(`${pre}.depth`);
+        const base = this.num(`${pre}.freq`);
+        const curve = (fc: number): [number, number][] => {
+          const pts: [number, number][] = [];
+          for (let i = 0; i <= W; i += 2) pts.push([i, grindY(g2Mag(filter, fc, res, 20 * Math.pow(1000, i / W)), FH)]);
+          return pts;
+        };
+        if (on && Math.abs(depth) > 0.01) {
+          // where the movement takes it (its top), dotted, and the span as a strip
+          const top = base * Math.pow(2, depth);
+          fg.save();
+          fg.setLineDash([2, 3]);
+          fg.strokeStyle = hexA(col, 0.4);
+          fg.lineWidth = 1;
+          fg.beginPath();
+          curve(top).forEach(([x, y], i) => (i ? fg.lineTo(x, y) : fg.moveTo(x, y)));
+          fg.stroke();
+          fg.restore();
+          const x0 = freqX(Math.min(base, top), W), x1 = freqX(Math.max(base, top), W);
+          fg.fillStyle = hexA(col, 0.05);
+          fg.fillRect(x0, 0, x1 - x0, FH - 4);
+          fg.fillStyle = col;
+          fg.globalAlpha = 0.8;
+          fg.fillRect(x0, FH - 3, Math.max(1.5, x1 - x0), 1.5);
+          fg.globalAlpha = 1;
+        }
+        const live = on ? this.g2Live[n - 1] : -1;
+        const pts = curve(live > 0 ? live : base);
+        if (on) fillUnder(fg, pts, FH, col, 0.16);
+        silver(fg, pts, on);
+        if (live > 0) {
+          fg.save();
+          fg.fillStyle = '#fff';
+          fg.shadowColor = col;
+          fg.shadowBlur = 10;
+          fg.beginPath();
+          fg.arc(freqX(live, W), FH - 2.5, 2.6, 0, 2 * Math.PI);
+          fg.fill();
+          fg.restore();
+        }
+      };
+      this.watch(['g2.on', ...G2_KEYS.map((k) => `${pre}.${k}`)], drawFilter);
+      this.g2LiveDraws.push(drawFilter);
+      // the drive print: two cycles of a sine through it
+      const [dcv, dg] = canvas(W, DH, 'disp');
+      const drawDrive = () => {
+        paper(dg, W, DH);
+        const drive = this.num(`${pre}.drive`), on = stageOn(n) && (drive > 0 || this.num(`${pre}.dmod`) > 0);
+        const type = String(this.get(`${pre}.drive_type`)), mix = this.num(`${pre}.mix`);
+        const pts: [number, number][] = [];
+        for (let i = 0; i <= W; i++) {
+          const x = Math.sin((i / W) * 4 * Math.PI) * 0.9;
+          const y = mix * grindShape(type, x, drive) + (1 - mix) * x;
+          pts.push([i, DH / 2 - Math.max(-1.05, Math.min(1.05, y)) * (DH / 2 - 5)]);
+        }
+        silver(dg, pts, on);
+      };
+      this.watch(['g2.on', `${pre}.on`, `${pre}.drive_type`, `${pre}.drive`, `${pre}.dmod`, `${pre}.mix`], drawDrive);
+      const dice = h('button', 'gr-ic gr-dice');
+      dice.innerHTML = DICE_SVG;
+      dice.title = `Roll stage ${n} in the current kind of sound`;
+      dice.onclick = () => this.g2Roll([n]);
+      const lock = h('button', 'gr-ic gr-lock');
+      const drawLock = () => {
+        const on = this.g2Locks[n - 1];
+        lock.classList.toggle('on', on);
+        lock.innerHTML = lockSvg(on);
+        lock.title = on ? `Stage ${n} is locked: ROLL leaves it alone. Click to unlock.` : `Lock stage ${n}: ROLL leaves it alone.`;
+      };
+      lock.onclick = () => {
+        this.g2Locks[n - 1] = !this.g2Locks[n - 1];
+        drawLock();
+      };
+      drawLock();
+      const power = this.boolPower(`${pre}.on`, card);
+      power.onclick = () => {
+        const on = !this.get(`${pre}.on`);
+        if (on && !this.get('g2.on')) this.set('g2.on', true);
+        this.set(`${pre}.on`, on);
+      };
+      const head = h('div', 'ob-head', power, h('span', 'c-title', String(n)), this.selector(`${pre}.filter`), h('span', 'gr-icons', dice, lock));
+      const freqFmt = (v: number) => {
+        const f = String(this.get(`${pre}.filter`));
+        if (f === 'vowel') return 'UOAEI'[Math.round(g2VowelPos(v))];
+        if (f === 'comb') return `×${(v / 130.81).toFixed(2)}`;
+        return v >= 1000 ? `${(v / 1000).toFixed(1)} kHz` : `${Math.round(v)} Hz`;
+      };
+      const fdials = h('div', 'ob-dials gr-fdials', md(`${pre}.freq`, 'Freq', { fmt: freqFmt, deps: [`${pre}.filter`] }), md(`${pre}.res`, 'Res'),
+        md(`${pre}.depth`, 'Depth', { fmt: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} oct` }), md(`${pre}.offset`, 'Offset', { fmt: pct }));
+      const drow = h('div', 'gr-drive-row', h('span', 'gr-sub', 'DRIVE'), this.selector(`${pre}.drive_type`));
+      const ddials = h('div', 'ob-dials', md(`${pre}.drive`, 'Drive', { fmt: pct }),
+        md(`${pre}.dmod`, 'Follow', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%` }), md(`${pre}.mix`, 'Mix', { fmt: pct }));
+      card.append(head, h('div', 'gr-moves'), h('div', 'ob-print gr-fprint', fcv), fdials, drow, h('div', 'ob-print gr-dprint', dcv), ddials);
+      this.watch(['g2.on'], () => card.classList.toggle('chain-off', !this.get('g2.on')));
+      cards.push(card);
+    }
+
+    // the strip: ROLL + kind, the movement, the chain's knobs and rocker
+    const strip = h('div', 'c ob gr-strip');
+    const roll = h('button', 'gr-roll');
+    roll.innerHTML = `${DICE_SVG}<span>ROLL</span>`;
+    roll.title = 'Build a new neuro setup of the chosen kind (locked stages stay as they are)';
+    roll.onclick = () => this.g2Roll([1, 2, 3, 4].filter((n) => !this.g2Locks[n - 1]), true);
+    const kinds = h('span', 'fx-kinds sw-small gr-count');
+    const kindBtns = G2_KINDS.map((t, i) => {
+      const b = h('button', 'fx-kind', t);
+      b.onclick = () => {
+        this.g2Kind = i;
+        kindBtns.forEach((x, j) => x.classList.toggle('on', j === i));
+      };
+      b.classList.toggle('on', i === this.g2Kind);
+      kinds.append(b);
+      return b;
+    });
+    kinds.title = 'What ROLL builds: TALK (vowel + notch moving apart), HOLLOW (rippling notches), METAL (a tuned comb), REESE (slow phasers), GROWL (band + vowel, the drive following), or ANY.';
+    // the movement: its shape, the engine's live position on it
+    const MW = 120, MH = 34;
+    const [mcv, mg] = canvas(MW, MH, 'disp');
+    const drawMove = () => {
+      paper(mg, MW, MH);
+      const on = !!this.get('g2.on'), col = '#ff3b2f';
+      const pts: [number, number][] = [];
+      for (let i = 0; i <= MW; i++) pts.push([i, MH - 4 - shapeAt(i / MW) * (MH - 8)]);
+      if (on) fillUnder(mg, pts, MH, col, 0.14);
+      silver(mg, pts, on);
+      if (on && this.g2Phase >= 0) {
+        mg.save();
+        mg.fillStyle = '#fff';
+        mg.shadowColor = col;
+        mg.shadowBlur = 10;
+        mg.beginPath();
+        mg.arc(this.g2Phase * MW, MH - 4 - shapeAt(this.g2Phase) * (MH - 8), 2.6, 0, 2 * Math.PI);
+        mg.fill();
+        mg.restore();
+      }
+    };
+    this.watch(['g2.on', 'g2.shape'], drawMove);
+    this.g2LiveDraws.push(drawMove);
+    const move = h('span', 'g2-move', h('span', 'ob-print g2-mprint', mcv),
+      h('span', 'g2-movesel', this.selector('g2.shape'), this.selector('g2.rate', { label: (o) => G2_RATE_NAMES[getParam('g2.rate')!.options!.indexOf(o)] ?? o }), this.selector('g2.timing')));
+    move.title = 'The ONE movement every stage follows (each by its Depth and Offset): its shape, its length on the tempo, and whether it restarts with the note, plays once, or locks to the bar.';
+    const rocker = this.bigToggle('g2.on', '');
+    rocker.classList.add('gr-rocker');
+    const knobs = h('span', 'gr-knobs gr-front', md('g2.life', 'Life', { fmt: pct }), md('g2.sat', 'Sat', { fmt: pct }), md('g2.ott', 'Mid OTT', { fmt: pct }));
+    const lamps = h('span', 'gr-lamps', this.toggle('g2.key', 'KEY', 'small'));
+    const tail = h('span', 'gr-knobs', md('g2.lowcut', 'Lo cut', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) }), md('g2.mix', 'Mix', { fmt: pct }));
+    strip.append(h('div', 'ob-head', h('span', 'c-title', 'GRIND2'), roll, kinds, move, knobs, lamps, tail, rocker));
+    page.append(strip, ...cards);
+    return page;
+  }
+
+  /**
+   * Roll GRIND2 stages as one of the proven neuro setups (the kind picked next to ROLL): the stages
+   * are built to work together on the one movement (opposite depths, small offsets, the comb tuned).
+   */
+  private g2Roll(stages: number[], whole = false): void {
+    const rnd = Math.random, pick = <T,>(xs: readonly T[]) => xs[Math.floor(rnd() * xs.length)];
+    const between = (a: number, b: number) => a + (b - a) * rnd();
+    const r2 = (v: number) => Math.round(v * 100) / 100;
+    const kind = this.g2Kind ? G2_KINDS[this.g2Kind] : pick(G2_KINDS.slice(1));
+    const recipe = G2_RECIPES[kind];
+    if (whole) {
+      this.set('g2.shape', pick(recipe.shapes));
+      this.set('g2.rate', pick(recipe.rates));
+      this.set('g2.timing', recipe.timing);
+      this.set('g2.life', r2(between(0.12, 0.3)));
+      this.set('g2.sat', r2(between(recipe.sat[0], recipe.sat[1])));
+      this.set('g2.ott', r2(between(recipe.ott[0], recipe.ott[1])));
+      this.set('g2.key', true);
+    }
+    for (const n of stages) {
+      const st = recipe.stages[n - 1], pre = `g2s${n}`;
+      if (!st) {
+        if (whole) this.set(`${pre}.on`, false);
+        continue;
+      }
+      this.set(`${pre}.on`, true);
+      this.set(`${pre}.filter`, pick(st.filter));
+      this.set(`${pre}.freq`, Math.round(st.freq[0] * Math.pow(st.freq[1] / st.freq[0], rnd()) * 100) / 100);
+      this.set(`${pre}.res`, r2(between(st.res[0], st.res[1])));
+      this.set(`${pre}.depth`, Math.round(between(st.depth[0], st.depth[1]) * 10) / 10);
+      this.set(`${pre}.offset`, r2(between(st.offset[0], st.offset[1])));
+      this.set(`${pre}.drive_type`, pick(st.dtype));
+      this.set(`${pre}.drive`, r2(between(st.drive[0], st.drive[1])));
+      this.set(`${pre}.dmod`, r2(between(st.dmod[0], st.dmod[1])));
+      this.set(`${pre}.mix`, 1);
+    }
+    this.set('g2.on', true);
+  }
+
   // ------------------------------------------------------------------ the PRESETS page
 
   /** Switch between the synth page (OSC) and the preset browser (PRESETS). */
   private showTab(t: string): void {
     for (const [name, b] of this.tabBtns) b.classList.toggle('on', name === t);
     if (this.oscPage!.style.display !== 'none') this.pageHeight = this.oscPage!.offsetHeight || this.pageHeight;
-    const pages: [string, HTMLElement][] = [['OSC', this.oscPage!], ['MOD', this.modPage!], ['WOBBLER', this.lfoPage!], ['GRIND', this.grindPage!], ['FX', this.fxPage!], ['PRESETS', this.presetPage]];
+    const pages: [string, HTMLElement][] = [['OSC', this.oscPage!], ['MOD', this.modPage!], ['WOBBLER', this.lfoPage!], ['GRIND', this.grindPage!], ['GRIND2', this.g2Page!], ['FX', this.fxPage!], ['PRESETS', this.presetPage]];
     if (t === 'PRESETS') {
       this.pageShelf = this.presets?.current().shelf || this.pageShelf || (this.presets?.shelves()[0]?.id ?? '');
       this.renderPresetPage();
@@ -3986,7 +4239,7 @@ export class SynthView {
     this.page.style.setProperty('--light-grain', `url(${lightGrain()})`);
     this.page.style.setProperty('--key-grime', `url(${keyGrime()})`);
     const tabs = h('div', 'v2-tabs');
-    for (const [t, ready] of [['OSC', true], ['MOD', true], ['WOBBLER', true], ['GRIND', true], ['FX', true], ['PRESETS', true]] as const) {
+    for (const [t, ready] of [['OSC', true], ['MOD', true], ['WOBBLER', true], ['GRIND', true], ['GRIND2', true], ['FX', true], ['PRESETS', true]] as const) {
       const b = h('button', 'tab' + (t === 'OSC' ? ' on' : ''), t);
       if (!ready) {
         b.disabled = true;
@@ -4023,6 +4276,8 @@ export class SynthView {
     this.fxPage = this.buildFxPage();
     this.grindPage = this.buildGrindPage();
     this.grindPage.style.display = 'none';
+    this.g2Page = this.buildG2Page();
+    this.g2Page.style.display = 'none';
     this.presetPage.style.display = 'none';
     this.modPage.style.display = 'none';
     this.fxPage.style.display = 'none';
@@ -4033,6 +4288,7 @@ export class SynthView {
       this.modPage,
       this.lfoPage,
       this.grindPage,
+      this.g2Page,
       this.fxPage,
       this.presetPage,
       this.bottomBar(),
@@ -4047,6 +4303,75 @@ export class SynthView {
 /** A GRIND stage's parameters (grind<n>.*), in the order a roll snapshot keeps them. */
 const GRIND_KEYS = ['on', 'filter', 'freq', 'range', 'move', 'rate', 'clock', 'vrange', 'res', 'drive_type', 'drive', 'mix'];
 type GrindView = { filter: string; freq: number; range: number; res: number };
+/** A GRIND2 stage's parameters (g2s<n>.*). */
+const G2_KEYS = ['on', 'filter', 'freq', 'res', 'depth', 'offset', 'drive_type', 'drive', 'dmod', 'mix'];
+const G2_VOWELS = [[300, 870], [450, 800], [730, 1090], [530, 1840], [300, 2300]];
+/** |H| of a GRIND2 stage's filter at f (vowel: its two formants; the rest as GRIND's). */
+function g2Mag(filter: string, fc: number, res: number, f: number): number {
+  if (filter !== 'vowel') return grindMag({ filter, freq: fc, range: 0, res }, fc, f);
+  const vp = g2VowelPos(fc), vi = Math.min(3, Math.floor(vp)), vf = vp - vi, a = G2_VOWELS[vi], b = G2_VOWELS[vi + 1];
+  const F1 = a[0] + (b[0] - a[0]) * vf, F2 = a[1] + (b[1] - a[1]) * vf, k = 0.9 * (1 - res) + 0.12;
+  const p1 = svfBp(f / F1, k), p2 = svfBp(f / F2, k);
+  return cabs([(p1[0] + 0.7 * p2[0]) * k * 1.5 + 0.12, (p1[1] + 0.7 * p2[1]) * k * 1.5]);
+}
+/** What GRIND2's ROLL builds: the proven neuro setups, every stage made to work with the others on the one movement. */
+const G2_KINDS = ['ANY', 'TALK', 'HOLLOW', 'METAL', 'REESE', 'GROWL'];
+type G2Range = [number, number];
+type G2StageRecipe = { filter: string[]; freq: G2Range; res: G2Range; depth: G2Range; offset: G2Range; dtype: string[]; drive: G2Range; dmod: G2Range };
+type G2Recipe = { shapes: string[]; rates: string[]; timing: string; sat: G2Range; ott: G2Range; stages: (G2StageRecipe | null)[] };
+const G2_RECIPES: Record<string, G2Recipe> = {
+  // a vowel opening (u → a/e) while a notch falls through it: the two move apart, the bass says "yoi"
+  TALK: {
+    shapes: ['sine', 'yoyo', 'saw down', 'saw up'], rates: ['1/4', '1/8', '1/2', '1/4T'], timing: 'note', sat: [0.3, 0.55], ott: [0.2, 0.5],
+    stages: [
+      { filter: ['vowel'], freq: [160, 260], res: [0.55, 0.75], depth: [2, 3.2], offset: [0, 0], dtype: ['tube', 'soft'], drive: [0.3, 0.5], dmod: [0.3, 0.6] },
+      { filter: ['notch'], freq: [1000, 1800], res: [0.6, 0.8], depth: [-2, -1], offset: [0, 0.05], dtype: ['soft', 'fold'], drive: [0.35, 0.55], dmod: [0, 0.2] },
+      { filter: ['peak'], freq: [1800, 3200], res: [0.4, 0.6], depth: [0.5, 1.2], offset: [0.05, 0.15], dtype: ['hard', 'soft'], drive: [0.15, 0.35], dmod: [0, 0] },
+      null,
+    ],
+  },
+  // two notches a little apart in time: the hollow sweep ripples (drive first, then the notch, then drive)
+  HOLLOW: {
+    shapes: ['saw down', 'sine', 'ratchet', 'brake'], rates: ['1/4', '1/8', '1/2'], timing: 'note', sat: [0.4, 0.7], ott: [0.1, 0.35],
+    stages: [
+      { filter: ['notch'], freq: [220, 400], res: [0.65, 0.85], depth: [2.5, 3.5], offset: [0, 0], dtype: ['fold', 'soft'], drive: [0.35, 0.6], dmod: [0, 0.3] },
+      { filter: ['notch', 'phaser'], freq: [500, 900], res: [0.6, 0.8], depth: [2, 3], offset: [0.05, 0.12], dtype: ['soft', 'tube'], drive: [0.3, 0.5], dmod: [0, 0] },
+      null,
+      null,
+    ],
+  },
+  // a comb on the note's harmonics (always in tune) sweeping up an octave, a notch carving under it
+  METAL: {
+    shapes: ['staircase', 'ratchet', 'random', 'square'], rates: ['1/8', '1/16', '1/4', '1/8T'], timing: 'note', sat: [0.3, 0.5], ott: [0.3, 0.6],
+    stages: [
+      { filter: ['comb'], freq: [130.81, 261.62], res: [0.55, 0.8], depth: [0.5, 1.5], offset: [0, 0], dtype: ['fold', 'hard'], drive: [0.3, 0.55], dmod: [0.2, 0.5] },
+      { filter: ['notch'], freq: [800, 1600], res: [0.6, 0.8], depth: [-1.5, -0.5], offset: [0, 0.1], dtype: ['soft'], drive: [0.2, 0.4], dmod: [0, 0] },
+      { filter: ['peak', 'band'], freq: [2000, 4000], res: [0.4, 0.6], depth: [-1, 1], offset: [0.1, 0.25], dtype: ['hard', 'fuzz'], drive: [0.15, 0.35], dmod: [0, 0] },
+      null,
+    ],
+  },
+  // slow phasers moving against each other on a long cycle: the classic moving Reese
+  REESE: {
+    shapes: ['sine', 'yoyo', 'random'], rates: ['1 bar', '1/2', '2 bars'], timing: 'bar', sat: [0.3, 0.5], ott: [0.1, 0.3],
+    stages: [
+      { filter: ['phaser'], freq: [250, 500], res: [0.5, 0.7], depth: [1.5, 2.5], offset: [0, 0], dtype: ['soft', 'tube'], drive: [0.25, 0.45], dmod: [0, 0.2] },
+      { filter: ['phaser', 'notch'], freq: [900, 1600], res: [0.5, 0.7], depth: [-2, -1], offset: [0.4, 0.6], dtype: ['soft'], drive: [0.2, 0.35], dmod: [0, 0] },
+      null,
+      null,
+    ],
+  },
+  // a band and a vowel moving together, the drive pushing harder where the movement peaks: a growl
+  GROWL: {
+    shapes: ['yoyo', 'saw up', 'sine', 'pulse decay'], rates: ['1/8', '1/4', '1/16'], timing: 'note', sat: [0.5, 0.8], ott: [0.3, 0.6],
+    stages: [
+      { filter: ['band'], freq: [200, 350], res: [0.45, 0.65], depth: [1.5, 2.5], offset: [0, 0], dtype: ['fuzz', 'tube'], drive: [0.45, 0.7], dmod: [0.4, 0.7] },
+      { filter: ['vowel'], freq: [180, 300], res: [0.5, 0.7], depth: [2, 3], offset: [0.02, 0.08], dtype: ['tube', 'soft'], drive: [0.3, 0.5], dmod: [0.2, 0.4] },
+      { filter: ['notch'], freq: [1500, 2500], res: [0.6, 0.8], depth: [-1.5, -0.5], offset: [0, 0.1], dtype: ['soft'], drive: [0.2, 0.35], dmod: [0, 0] },
+      null,
+    ],
+  },
+};
+
 type Cx = [number, number];
 const cmul = (a: Cx, b: Cx): Cx => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]];
 const cdiv = (a: Cx, b: Cx): Cx => { const d = b[0] * b[0] + b[1] * b[1]; return [(a[0] * b[0] + a[1] * b[1]) / d, (a[1] * b[0] - a[0] * b[1]) / d]; };
