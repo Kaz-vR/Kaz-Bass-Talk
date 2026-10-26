@@ -199,15 +199,17 @@ function migrateEq(src: Record<string, unknown>): Record<string, unknown> {
   return out;
 }
 
-/** GRIND before it lost its beat movement and formant filter: beat became note with Sync on, formant a peak. */
+/** GRIND before it lost its beat movement and formant filter (beat became note on the tempo, formant a peak) and before HZ / SYNC became a three-way clock. */
 function migrateGrind(src: Record<string, unknown>): Record<string, unknown> {
-  if (![1, 2, 3, 4].some((n) => src[`grind${n}.move`] === 'beat' || src[`grind${n}.filter`] === 'formant')) return src;
+  if (![1, 2, 3, 4].some((n) => src[`grind${n}.move`] === 'beat' || src[`grind${n}.filter`] === 'formant' || `grind${n}.sync` in src)) return src;
   const out: Record<string, unknown> = { ...src };
   for (let n = 1; n <= 4; n++) {
     if (out[`grind${n}.move`] === 'beat') {
       out[`grind${n}.move`] = 'note';
-      out[`grind${n}.sync`] = true;
+      out[`grind${n}.clock`] = 'sync';
     }
+    if (out[`grind${n}.sync`] === true) out[`grind${n}.clock`] = 'sync';
+    delete out[`grind${n}.sync`];
     if (out[`grind${n}.filter`] === 'formant') out[`grind${n}.filter`] = 'peak';
   }
   return out;

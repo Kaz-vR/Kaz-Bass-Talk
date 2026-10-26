@@ -104,6 +104,10 @@ export class Voice {
   grindFc(i: number): number {
     return this.grindOn ? this.grind.stages[i].fcNow : -1;
   }
+  /** GRIND stage i's resonance right now (with V RANGE's movement). */
+  grindRes(i: number): number {
+    return this.grind.stages[i].resNow;
+  }
   private grindOn = false;
   /** The bar position in beats (0..4), set by the synth before control(): GRIND's beat movement. */
   beatPos = 0;
@@ -321,7 +325,7 @@ export class Voice {
     this.order = order;
     this.tail = 40;
     // GRIND's note movement starts again on every new note, legato notes too
-    this.grind.noteOn();
+    this.grind.noteOn(this.rng);
     if (!retrigger) return;
     this.velocity = clamp(velocity, 0, 1);
     const cur = this.cur;

@@ -15,6 +15,10 @@ const DIST_SOFT = K.DIST_SOFT, DIST_HARD = K.DIST_HARD, DIST_FOLD = K.DIST_FOLD,
 export const GRIND_STAGES = 4;
 /** grind<n>.filter option order. */
 export const GF_NOTCH = 0, GF_PEAK = 1, GF_BAND = 2, GF_COMB = 3, GF_PHASER = 4;
+/** grind<n>.clock option order. */
+export const GC_HZ = 0, GC_SYNC = 1, GC_RANDOM = 2;
+/** A random speed for the RANDOM clock: ×0.35 … ×2.8 of Rate. */
+const randomSpeed = (rng: Rng): number => Math.pow(2, 1.5 * rng.next());
 /** grind<n>.move option order. */
 export const GM_NOTE = 0, GM_WANDER = 1;
 /** Beats per cycle when a stage's rate is synced (grind<n>.sync), by rate (0..1 in six steps). */
@@ -26,7 +30,8 @@ export const grindBeat = (rate: number): number => Math.round(Math.min(1, Math.m
 /** The drive's gain for grind<n>.drive (0..1). */
 export const grindGain = (drive: number): number => 1 + 29 * drive * drive;
 const COMB_LEN = 4096;
-const SAT_OFFSET = Math.tanh(0.15);
+const SAT_BIAS = 0.35; // lopsided: even harmonics
+const SAT_OFFSET = Math.tanh(SAT_BIAS);
 // OTT: Ableton's OTT preset (low, mid, high band)
 const OTT_ABOVE = [-33.8, -30.2, -35.5]; // dB, downward 1:66 over it
 const OTT_BELOW = [-40.8, -41.8, -40.8]; // dB, upward 4.17:1 under it
@@ -54,12 +59,16 @@ class Stage {
   wPos = 0;
   wCycle = -1;
   /** Wander's second path: the resonance drifts too, at its own slower speed, so the two never line up. */
+  /** RANDOM clock: this cycle's speed for the sweep and for the depth (× Rate). */
+  spd = 1;
+  rSpd = 1;
   rFrom = 0;
   rTo = 0;
   rPos = 0;
   resWander = 0;
   /** Where the filter is right now (Hz), for the page; -1 while the stage is off. */
   fcNow = -1;
+  resNow = 0;
   // filter coefficients, stepped per sample over a control block
   g = 0.05;
   gStep = 0;
@@ -181,7 +190,8 @@ export class Grind {
   private readonly satF = new Float64Array(2);
   private satIn = 0;
   private satOut = 0;
-  private readonly preOtt = new Ott(0, 0, true);
+  private readonly preOtt = new Ott(0, 12, false);
+  private lvlK = 0.001;
   private envK = 0.001;
 
   constructor(rng: Rng) {
@@ -189,12 +199,18 @@ export class Grind {
       s.wFrom = rng.next();
       s.wTo = rng.next();
       s.wPos = 0.5 * (rng.next() + 1);
+      s.rFrom = rng.next();
+      s.rTo = rng.next();
+      s.rPos = 0.5 * (rng.next() + 1);
     }
   }
 
   /** A new note: movement that follows the note starts again. */
-  noteOn(): void {
-    for (const s of this.stages) s.phase = 0;
+  noteOn(rng?: Rng): void {
+    for (const s of this.stages) {
+      s.phase = 0;
+      if (rng) s.spd = randomSpeed(rng);
+    }
   }
 
   /** Clear the filters, delays and drives (a fresh note from silence). */
@@ -225,6 +241,7 @@ export class Grind {
     const dt = n / fsOs;
     this.dcR = 1 - (TWO_PI * 10) / fsOs;
     this.envK = 1 - Math.exp(-1 / (0.05 * fsOs));
+    this.lvlK = 1 - Math.exp(-1 / (0.3 * fsOs));
     this.mix = cur[P.grindMix];
     this.satAmt = cur[P.grindSat];
     this.satGain = 1 + 24 * this.satAmt * this.satAmt;
@@ -247,48 +264,57 @@ export class Grind {
         s.fcNow = -1;
         continue;
       }
-      const rate = cur[gp.rate], wander = cur[gp.move] === GM_WANDER;
-      let m: number;
+      const rate = cur[gp.rate], wander = cur[gp.move] === GM_WANDER, clock = cur[gp.clock];
+      // HZ: free running at Rate; SYNC: on the bar clock; RANDOM: Rate is the average, every cycle (note)
+      // or segment (wander) gets its own speed, so nothing ever repeats
+      const hz = clock === GC_SYNC ? bps / GRIND_BEATS[grindBeat(rate)] : grindHz(rate), rnd = clock === GC_RANDOM;
+      let m: number, rm: number;
       if (oneShot && !wander) {
         // an envelope, not an LFO: from the top of the range it falls fast, then settles at the bottom
         // and stays there until the next note; Rate sets how long the fall takes (its time = half a cycle)
-        const hz = cur[gp.sync] > 0.5 ? bps / GRIND_BEATS[grindBeat(rate)] : grindHz(rate);
         s.phase += dt;
-        m = -1 + 2 * Math.exp((-s.phase * 2 * hz) * 3);
-      } else if (cur[gp.sync] > 0.5) {
-        // synced: the cycle follows the synth's bar clock
-        const p = beatPos / GRIND_BEATS[grindBeat(rate)], cycle = Math.floor(p), f = p - cycle;
-        if (wander) {
+        m = rm = -1 + 2 * Math.exp((-s.phase * 2 * hz * s.spd) * 3);
+      } else if (clock === GC_SYNC && !wander) {
+        const p = beatPos / GRIND_BEATS[grindBeat(rate)];
+        m = rm = Math.cos(TWO_PI * (p - Math.floor(p)));
+      } else if (!wander) {
+        s.phase += hz * s.spd * dt;
+        if (s.phase >= 1) {
+          s.phase -= Math.floor(s.phase);
+          if (rnd) s.spd = randomSpeed(rng);
+        }
+        m = rm = Math.cos(TWO_PI * s.phase); // from the top at every note; depth rides with the sweep
+      } else {
+        if (clock === GC_SYNC) {
+          const p = beatPos / GRIND_BEATS[grindBeat(rate)], cycle = Math.floor(p);
           if (cycle !== s.wCycle) {
             s.wCycle = cycle;
             s.wFrom = s.wTo;
             s.wTo = rng.next();
           }
-          m = s.wFrom + (s.wTo - s.wFrom) * (0.5 - 0.5 * Math.cos(Math.PI * f));
-        } else m = Math.cos(TWO_PI * f);
-      } else if (wander) {
-        s.wPos += grindHz(rate) * dt;
-        if (s.wPos >= 1) {
-          s.wPos -= Math.floor(s.wPos);
-          s.wFrom = s.wTo;
-          s.wTo = rng.next();
+          s.wPos = p - cycle;
+        } else {
+          s.wPos += hz * s.spd * dt;
+          if (s.wPos >= 1) {
+            s.wPos -= Math.floor(s.wPos);
+            s.wFrom = s.wTo;
+            s.wTo = rng.next();
+            if (rnd) s.spd = randomSpeed(rng);
+          }
         }
         m = s.wFrom + (s.wTo - s.wFrom) * (0.5 - 0.5 * Math.cos(Math.PI * s.wPos));
-      } else {
-        s.phase += grindHz(rate) * dt;
-        if (s.phase >= 1) s.phase -= Math.floor(s.phase);
-        m = Math.cos(TWO_PI * s.phase); // from the top at every note
-      }
-      s.resWander = 0;
-      if (wander) {
-        s.rPos += grindHz(rate) * 0.61 * dt;
+        // the depth wanders on its own path, at its own (slower, also random) speed
+        s.rPos += hz * 0.61 * s.rSpd * dt;
         if (s.rPos >= 1) {
           s.rPos -= Math.floor(s.rPos);
           s.rFrom = s.rTo;
           s.rTo = rng.next();
+          if (rnd) s.rSpd = randomSpeed(rng);
         }
-        s.resWander = 0.25 * (s.rFrom + (s.rTo - s.rFrom) * (0.5 - 0.5 * Math.cos(Math.PI * s.rPos)));
+        rm = s.rFrom + (s.rTo - s.rFrom) * (0.5 - 0.5 * Math.cos(Math.PI * s.rPos));
       }
+      // V RANGE: how far the resonance (the notch's depth, the peak's height) moves, up and down
+      s.resWander = 0.5 * cur[gp.vrange] * rm;
       const fc = Math.min(Math.max(cur[gp.freq] * key * Math.pow(2, 0.5 * cur[gp.range] * m), 20), fs * 0.45);
       s.fcNow = fc;
       const ftype = cur[gp.filter];
@@ -298,6 +324,7 @@ export class Grind {
           s.ap.fill(0);
       }
       const res = Math.min(1, Math.max(0, cur[gp.res] + s.resWander));
+      s.resNow = res;
       const gT = Math.tan((Math.PI * fc) / fsOs);
       s.gStep = (gT - s.g) / n;
       switch (ftype) {
@@ -342,26 +369,31 @@ export class Grind {
     const hiL = l, hiR = r;
     if (this.satAmt > 0) {
       // ADAA tanh, slightly lopsided (warm even harmonics), level-matched by followers
-      const g = this.satGain, u = this.satU, f = this.satF, k = this.envK;
+      const g = this.satGain, u = this.satU, f = this.satF;
       let sl = 0, sr = 0;
       for (let ch = 0; ch < 2; ch++) {
-        const x = (ch ? r : l) * g + 0.15, up = u[ch], fx = tanhIntegral(x), du = x - up;
+        const x = (ch ? r : l) * g + SAT_BIAS, up = u[ch], fx = tanhIntegral(x), du = x - up;
         const y = (Math.abs(du) > 1e-5 ? (fx - f[ch]) / du : tanh(0.5 * (x + up))) - SAT_OFFSET;
         u[ch] = x;
         f[ch] = fx;
         if (ch) sr = y;
         else sl = y;
       }
-      this.satIn += (Math.abs(l) + Math.abs(r) - this.satIn) * k;
-      this.satOut += (Math.abs(sl) + Math.abs(sr) - this.satOut) * k;
-      const m = this.satOut > 1e-9 ? Math.min(2, this.satIn / this.satOut) : 1;
-      l = sl * m;
-      r = sr * m;
+      // blended in with the amount, hot: it hits the stages harder (the chain takes the gain back at the end)
+      const a = Math.min(1, this.satAmt * 3);
+      l += (sl - l) * a;
+      r += (sr - r) * a;
     }
     if (this.preOtt.on) {
       this.preOtt.process(l, r);
       l = this.preOtt.l;
       r = this.preOtt.r;
+    }
+    // how much louder SAT and PRE OTT made it: taken back off at the end of the chain
+    const pre = this.satAmt > 0 || this.preOtt.on, k = this.lvlK;
+    if (pre) {
+      this.satIn += (hiL * hiL + hiR * hiR - this.satIn) * k;
+      this.satOut += (l * l + r * r - this.satOut) * k;
     }
     const pos = this.combPos;
     for (let i = 0; i < GRIND_STAGES; i++) {
@@ -387,7 +419,8 @@ export class Grind {
     dx[0] = l;
     dy[1] = r - dx[1] + R * dy[1];
     dx[1] = r;
-    const wl = dy[0], wr = dy[1];
+    const back = pre && this.satOut > 1e-12 ? Math.min(4, Math.max(0.25, Math.sqrt(this.satIn / this.satOut))) : 1;
+    const wl = dy[0] * back, wr = dy[1] * back;
     const m = this.mix;
     this.l = lowL + hiL + (wl - hiL) * m;
     this.r = lowR + hiR + (wr - hiR) * m;

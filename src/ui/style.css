@@ -1503,3 +1503,5 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-strip .gr-knobs { margin-left: 6px; }
 .v2 .gr-strip .gr-front { margin-left: auto; }
 .v2 .gr-strip .gr-front + .gr-lamps { margin-left: 10px; }
+.v2 .gr-stage .gr-fdials { gap: 3px; }
+.v2 .gr-stage .gr-fdials .k-label { letter-spacing: 0.1em !important; white-space: nowrap; }

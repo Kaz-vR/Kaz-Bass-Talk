@@ -752,6 +752,7 @@ export class SynthView {
   private grindCount = 0;
   /** Each GRIND stage's filter frequency right now (from the engine, -1 when silent) and the prints that follow it. */
   private readonly grindLive = [-1, -1, -1, -1];
+  private readonly grindLiveRes = [0, 0, 0, 0];
   private readonly grindLiveDraws: (() => void)[] = [];
   private lfoPage: HTMLElement | null = null;
   /** The synth page's height: every tab keeps it, so nothing jumps. */
@@ -910,15 +911,16 @@ export class SynthView {
   }
 
   /** Follow each GRIND stage's real filter on its print (while the GRIND page shows). */
-  setLiveGrind(read: () => number[]): void {
+  setLiveGrind(read: () => { fc: number[]; res: number[] }): void {
     const step = () => {
       if (this.grindPage && this.grindPage.offsetParent !== null) {
-        const v = read();
+        const { fc: v, res } = read();
         let moved = false;
         for (let i = 0; i < 4; i++) {
           const x = v[i] > 0 ? v[i] : -1, was = this.grindLive[i];
-          if ((x > 0) !== (was > 0) || (x > 0 && Math.abs(x / was - 1) > 0.002)) {
+          if ((x > 0) !== (was > 0) || (x > 0 && (Math.abs(x / was - 1) > 0.002 || Math.abs(res[i] - this.grindLiveRes[i]) > 0.003))) {
             this.grindLive[i] = x;
+            this.grindLiveRes[i] = res[i];
             moved = true;
           }
         }
@@ -3369,10 +3371,10 @@ export class SynthView {
       const drawFilter = () => {
         paper(fg, W, FH);
         const on = stageOn(n)(), col = on ? accentOf(fcv) : '#4a4a50';
-        const st = this.grindStage(n), r = st.range / 2;
-        const curve = (fc: number): [number, number][] => {
-          const pts: [number, number][] = [];
-          for (let i = 0; i <= W; i += 2) pts.push([i, grindY(grindMag(st, fc, 20 * Math.pow(1000, i / W)), FH)]);
+        const st = this.grindStage(n), r = st.range / 2, vr = 0.5 * this.num(`${pre}.vrange`);
+        const curve = (fc: number, res = st.res): [number, number][] => {
+          const pts: [number, number][] = [], s2 = { ...st, res: Math.max(0, Math.min(1, res)) };
+          for (let i = 0; i <= W; i += 2) pts.push([i, grindY(grindMag(s2, fc, 20 * Math.pow(1000, i / W)), FH)]);
           return pts;
         };
         if (on && r > 0.01) {
@@ -3381,9 +3383,10 @@ export class SynthView {
           fg.setLineDash([2, 3]);
           fg.strokeStyle = hexA(col, 0.35);
           fg.lineWidth = 1;
-          for (const f of [lo, hi]) {
+          // where it swings to: sideways (H RANGE) and up / down (V RANGE)
+          for (const [f, rs] of [[lo, st.res - vr], [hi, st.res + vr]]) {
             fg.beginPath();
-            curve(f).forEach(([x, y], i) => (i ? fg.lineTo(x, y) : fg.moveTo(x, y)));
+            curve(f, rs).forEach(([x, y], i) => (i ? fg.lineTo(x, y) : fg.moveTo(x, y)));
             fg.stroke();
           }
           fg.restore();
@@ -3397,7 +3400,7 @@ export class SynthView {
         }
         // while a note sounds the curve follows the engine's real filter, with a dot on the range strip
         const live = on ? this.grindLive[n - 1] : -1;
-        const pts = curve(live > 0 ? live : st.freq);
+        const pts = live > 0 ? curve(live, this.grindLiveRes[n - 1]) : curve(st.freq);
         if (on) fillUnder(fg, pts, FH, col, 0.16);
         silver(fg, pts, on);
         if (live > 0) {
@@ -3446,9 +3449,12 @@ export class SynthView {
       };
       drawLock();
       // ONE SHOT on a stage that moves with the note: Rate is how long the sweep takes
-      const rateFmt = (v: number) => (this.get(`${pre}.sync`) ? GRIND_BEAT_NAMES[grindBeat(v)]
-        : this.get('grind.oneshot') && this.get(`${pre}.move`) === 'note' ? `${Math.round(500 / grindHz(v))} ms`
-          : `${grindHz(v).toFixed(grindHz(v) < 1 ? 2 : 1)} Hz`);
+      const rateFmt = (v: number) => {
+        const clock = this.get(`${pre}.clock`), avg = clock === 'random' ? '~' : '';
+        if (clock === 'sync') return GRIND_BEAT_NAMES[grindBeat(v)];
+        if (this.get('grind.oneshot') && this.get(`${pre}.move`) === 'note') return `${avg}${Math.round(500 / grindHz(v))} ms`;
+        return `${avg}${grindHz(v).toFixed(grindHz(v) < 1 ? 2 : 1)} Hz`;
+      };
       // switching a stage on while the chain is off switches the chain on too
       const power = this.boolPower(`${pre}.on`, card);
       power.onclick = () => {
@@ -3456,13 +3462,23 @@ export class SynthView {
         if (on && !this.get('grind.on')) this.set('grind.on', true);
         this.set(`${pre}.on`, on);
       };
-      const sync = this.textSwitch(['HZ', 'SYNC'], () => !this.get(`${pre}.sync`), (hz) => this.set(`${pre}.sync`, !hz), [`${pre}.sync`]);
-      sync.classList.add('gr-sync');
+      // what times the movement: HZ / SYNC / RAND (Rate is then the average; every step its own speed)
+      const sync = h('span', 'fx-kinds sw-small gr-sync');
+      const clocks = (['hz', 'sync', 'random'] as const).map((c) => {
+        const b = h('button', 'fx-kind', c === 'random' ? 'RAND' : c.toUpperCase());
+        b.onclick = () => this.set(`${pre}.clock`, c);
+        sync.append(b);
+        return b;
+      });
+      this.watch([`${pre}.clock`], () => clocks.forEach((b, j) => b.classList.toggle('on', ['hz', 'sync', 'random'][j] === this.get(`${pre}.clock`))));
+      sync.title = getParam(`${pre}.clock`)!.describes;
       const head = h('div', 'ob-head', power, h('span', 'c-title', String(n)), this.selector(`${pre}.filter`), h('span', 'gr-icons', dice, lock));
       const moves = h('div', 'gr-moves', h('span', 'gr-moves-label', 'MOVES'), this.selector(`${pre}.move`));
       const fprint = h('div', 'ob-print gr-fprint', fcv);
-      const fdials = h('div', 'ob-dials', lg(`${pre}.freq`, 'Freq'), lg(`${pre}.range`, 'Range', { fmt: (v) => `${v.toFixed(1)} oct` }),
-        lg(`${pre}.res`, 'Res'), lg(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.sync`, `${pre}.move`, 'grind.oneshot'] }), sync);
+      const md = (id: string, label: string, opts: Parameters<SynthView['knob']>[3] = {}) => this.knob(id, label, 'mid', opts);
+      const fdials = h('div', 'ob-dials gr-fdials', md(`${pre}.freq`, 'Freq'), md(`${pre}.res`, 'Res'),
+        md(`${pre}.range`, 'H Range', { fmt: (v) => `${v.toFixed(1)} oct` }), md(`${pre}.vrange`, 'V Range', { fmt: (v) => `${Math.round(v * 100)}%` }),
+        md(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.clock`, `${pre}.move`, 'grind.oneshot'] }), sync);
       const drow = h('div', 'gr-drive-row', h('span', 'gr-sub', 'DRIVE'), this.selector(`${pre}.drive_type`));
       const ddials = h('div', 'ob-dials', lg(`${pre}.drive`, 'Drive'), lg(`${pre}.mix`, 'Mix'));
       card.append(head, moves, fprint, fdials, drow, h('div', 'ob-print gr-dprint', dcv), ddials);
@@ -3544,7 +3560,8 @@ export class SynthView {
       const pre = `grind${n}`;
       // always free running (Hz): life, not the grid; Sync stays the user's choice
       this.set(`${pre}.move`, rnd() < 0.75 ? 'wander' : 'note'); // mostly wander: it never repeats
-      this.set(`${pre}.sync`, false);
+      this.set(`${pre}.clock`, rnd() < 0.6 ? 'random' : 'hz'); // free running, mostly with a random speed
+      this.set(`${pre}.vrange`, round(between(0.15, 0.5 + 0.4 * w)));
       this.set(`${pre}.range`, round(between(0.6, 1.8 + 2 * w), 10));
       this.set(`${pre}.rate`, round(between(0.3 - 0.3 * w, 0.65 + 0.3 * w))); // about 0.5 … 6 Hz when tame
       this.set(`${pre}.on`, true);
@@ -4028,7 +4045,7 @@ export class SynthView {
 // ------------------------------------------------------------------ GRIND prints
 
 /** A GRIND stage's parameters (grind<n>.*), in the order a roll snapshot keeps them. */
-const GRIND_KEYS = ['on', 'filter', 'freq', 'range', 'move', 'rate', 'sync', 'res', 'drive_type', 'drive', 'mix'];
+const GRIND_KEYS = ['on', 'filter', 'freq', 'range', 'move', 'rate', 'clock', 'vrange', 'res', 'drive_type', 'drive', 'mix'];
 type GrindView = { filter: string; freq: number; range: number; res: number };
 type Cx = [number, number];
 const cmul = (a: Cx, b: Cx): Cx => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]];

@@ -48,7 +48,9 @@ class LowTalkProcessor extends AudioWorkletProcessor {
       // channel 11: the Wobbler filter's cutoff (Hz, -1 when it is not working)
       if (ctl.length >= 12) ctl[11].fill(this.synth.liveWobFc);
       // channels 12-15: each GRIND stage's filter frequency (Hz, -1 when off)
+      // channels 16-19: their resonance right now
       if (ctl.length >= 16) for (let i = 0; i < 4; i++) ctl[12 + i].fill(this.synth.liveGrind[i]);
+      if (ctl.length >= 20) for (let i = 0; i < 4; i++) ctl[16 + i].fill(this.synth.liveGrindRes[i]);
       if (ctl.length >= 11) {
         for (let l = 0; l < 4; l++) {
           ctl[3 + l].fill(this.synth.lfoPhase[l]);

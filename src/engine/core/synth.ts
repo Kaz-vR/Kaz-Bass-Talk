@@ -190,6 +190,7 @@ export class Synth {
   liveCutoff = 0;
   /** Each GRIND stage's filter frequency right now (Hz, the newest voice's), -1 when off or silent. */
   readonly liveGrind = new Float64Array(4).fill(-1);
+  readonly liveGrindRes = new Float64Array(4);
   liveRes = 0;
 
   /** Position in the bar, in beats [0, 4): the wobble's clock. */
@@ -493,7 +494,7 @@ export class Synth {
   /** A note (re)started its envelopes: retrigger LFOs that ask for it (fade-ins are per voice, see Voice). */
   private onTrigger(velocity = 1): void {
     this.texture.trigger(velocity);
-    this.texGrind.noteOn();
+    this.texGrind.noteOn(this.rng);
     for (let l = 0; l < LFO_COUNT; l++) {
       if (this.cur[P.lfo[l].retrig] > 0.5) {
         this.lfoPhase[l] = 0;
@@ -805,7 +806,10 @@ export class Synth {
     }
     this.anyGate = anyGate;
     this.liveCutoff = lead.active ? lead.fcNow : 0;
-    for (let i = 0; i < 4; i++) this.liveGrind[i] = lead.active ? lead.grindFc(i) : -1;
+    for (let i = 0; i < 4; i++) {
+      this.liveGrind[i] = lead.active ? lead.grindFc(i) : -1;
+      this.liveGrindRes[i] = lead.grindRes(i);
+    }
     this.liveRes = lead.resNow;
     if (this.poly > 1) {
       for (let i = 0; i < MAX_VOICES; i++) {

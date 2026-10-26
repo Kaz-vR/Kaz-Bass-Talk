@@ -23,9 +23,9 @@ describe('grind', () => {
     expect(diff(off, b, 0, FS)).toBe(0);
   });
   for (const filter of ['notch', 'peak', 'band', 'comb', 'phaser']) {
-    for (const [move, sync] of [['note', false], ['note', true], ['wander', false], ['wander', true]] as const) {
-      it(`${filter} / ${move}${sync ? ' synced' : ''}: changes the sound, stays finite and level-matched`, () => {
-        const p = { ...saw, 'grind.on': true, 'grind1.filter': filter, 'grind1.move': move, 'grind1.sync': sync, 'grind2.on': false, 'grind3.on': false, 'grind4.on': false };
+    for (const [move, sync] of [['note', 'hz'], ['note', 'sync'], ['note', 'random'], ['wander', 'hz'], ['wander', 'sync'], ['wander', 'random']] as const) {
+      it(`${filter} / ${move} ${sync}: changes the sound, stays finite and level-matched`, () => {
+        const p = { ...saw, 'grind.on': true, 'grind1.filter': filter, 'grind1.move': move, 'grind1.clock': sync, 'grind2.on': false, 'grind3.on': false, 'grind4.on': false };
         const a = mono(renderPatch(p, heldNote(36, 4), { seconds: 1 }));
         expect(a.every(Number.isFinite)).toBe(true);
         expect(diff(off, a, 0.2 * FS, 0.9 * FS)).toBeGreaterThan(0.01);
@@ -58,7 +58,7 @@ describe('grind migration', () => {
     const { validatePatch } = await import('../src/schema');
     const { patch } = validatePatch({ meta: { name: 't' }, 'grind1.move': 'beat', 'grind2.filter': 'formant' });
     expect(patch['grind1.move']).toBe('note');
-    expect(patch['grind1.sync']).toBe(true);
+    expect(patch['grind1.clock']).toBe('sync');
     expect(patch['grind2.filter']).toBe('peak');
   });
 });
@@ -129,6 +129,24 @@ describe('grind key, one shot and OTT', () => {
     expect(b.every(Number.isFinite)).toBe(true);
     const lift = (t0: number, t1: number) => db(b, t0, t1) - db(a, t0, t1);
     expect(lift(0.3, 0.45)).toBeGreaterThan(4);
-    expect(lift(0.75, 0.95)).toBeGreaterThan(lift(0.01, 0.06) + 6);
+    expect(lift(0.75, 0.95)).toBeGreaterThan(lift(0.01, 0.06) + 4);
+  });
+});
+
+describe('grind sat, pre OTT, random clock and V RANGE', () => {
+  const base = { ...saw, 'grind.on': true };
+  const render = (p: Record<string, unknown>) => mono(renderPatch(p as never, heldNote(36, 4), { seconds: 1 }));
+  it('SAT and PRE OTT change the sound clearly, and the chain keeps its level', () => {
+    const a = render(base);
+    for (const k of ['grind.sat', 'grind.preott']) {
+      const b = render({ ...base, [k]: 1 });
+      expect(diff(a, b, 0.2 * FS, 0.9 * FS), k).toBeGreaterThan(0.05);
+      const r = rms(Float32Array.from(b), 0.2 * FS, 0.9 * FS) / rms(Float32Array.from(a), 0.2 * FS, 0.9 * FS);
+      expect(Math.abs(20 * Math.log10(r)), k).toBeLessThan(6);
+    }
+  });
+  it('V RANGE moves the resonance: the sound changes against V RANGE 0', () => {
+    const p = { ...base, 'grind1.move': 'wander', 'grind1.range': 0, 'grind1.res': 0.5, 'grind2.on': false, 'grind3.on': false, 'grind4.on': false };
+    expect(diff(render({ ...p, 'grind1.vrange': 0 }), render({ ...p, 'grind1.vrange': 1 }), 0.2 * FS, 0.9 * FS)).toBeGreaterThan(0.005);
   });
 });

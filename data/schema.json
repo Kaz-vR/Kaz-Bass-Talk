@@ -4895,12 +4895,25 @@
       "describes": "How fast the filter moves: 0.1-25 Hz, or 1 bar to 1/32 when synced."
     },
     {
-      "id": "grind1.sync",
-      "label": "Grind 1 sync",
-      "type": "bool",
-      "default": false,
+      "id": "grind1.clock",
+      "label": "Grind 1 clock",
+      "type": "enum",
+      "options": ["hz", "sync", "random"],
+      "default": "hz",
       "group": "grind1",
-      "describes": "Rate in Hz (off: free running, the most alive) or synced to the tempo (on: 1 bar to 1/32)."
+      "describes": "What times the movement: hz = free running at Rate; sync = on the tempo (1 bar to 1/32); random = Rate is only the average, every sweep or wander step gets its own speed, so it never repeats."
+    },
+    {
+      "id": "grind1.vrange",
+      "label": "Grind 1 vertical range",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.3,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind1",
+      "describes": "How far the filter moves up and down: the resonance (a notch's depth, a peak's height, a comb's ring) rides along with the sweep, or wanders on its own path. 0 = only sideways."
     },
     {
       "id": "grind1.res",
@@ -5010,12 +5023,25 @@
       "describes": "How fast the filter moves: 0.1-25 Hz, or 1 bar to 1/32 when synced."
     },
     {
-      "id": "grind2.sync",
-      "label": "Grind 2 sync",
-      "type": "bool",
-      "default": false,
+      "id": "grind2.clock",
+      "label": "Grind 2 clock",
+      "type": "enum",
+      "options": ["hz", "sync", "random"],
+      "default": "hz",
       "group": "grind2",
-      "describes": "Rate in Hz (off: free running, the most alive) or synced to the tempo (on: 1 bar to 1/32)."
+      "describes": "What times the movement: hz = free running at Rate; sync = on the tempo (1 bar to 1/32); random = Rate is only the average, every sweep or wander step gets its own speed, so it never repeats."
+    },
+    {
+      "id": "grind2.vrange",
+      "label": "Grind 2 vertical range",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.3,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind2",
+      "describes": "How far the filter moves up and down: the resonance (a notch's depth, a peak's height, a comb's ring) rides along with the sweep, or wanders on its own path. 0 = only sideways."
     },
     {
       "id": "grind2.res",
@@ -5125,12 +5151,25 @@
       "describes": "How fast the filter moves: 0.1-25 Hz, or 1 bar to 1/32 when synced."
     },
     {
-      "id": "grind3.sync",
-      "label": "Grind 3 sync",
-      "type": "bool",
-      "default": false,
+      "id": "grind3.clock",
+      "label": "Grind 3 clock",
+      "type": "enum",
+      "options": ["hz", "sync", "random"],
+      "default": "hz",
       "group": "grind3",
-      "describes": "Rate in Hz (off: free running, the most alive) or synced to the tempo (on: 1 bar to 1/32)."
+      "describes": "What times the movement: hz = free running at Rate; sync = on the tempo (1 bar to 1/32); random = Rate is only the average, every sweep or wander step gets its own speed, so it never repeats."
+    },
+    {
+      "id": "grind3.vrange",
+      "label": "Grind 3 vertical range",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.3,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind3",
+      "describes": "How far the filter moves up and down: the resonance (a notch's depth, a peak's height, a comb's ring) rides along with the sweep, or wanders on its own path. 0 = only sideways."
     },
     {
       "id": "grind3.res",
@@ -5240,12 +5279,25 @@
       "describes": "How fast the filter moves: 0.1-25 Hz, or 1 bar to 1/32 when synced."
     },
     {
-      "id": "grind4.sync",
-      "label": "Grind 4 sync",
-      "type": "bool",
-      "default": false,
+      "id": "grind4.clock",
+      "label": "Grind 4 clock",
+      "type": "enum",
+      "options": ["hz", "sync", "random"],
+      "default": "hz",
       "group": "grind4",
-      "describes": "Rate in Hz (off: free running, the most alive) or synced to the tempo (on: 1 bar to 1/32)."
+      "describes": "What times the movement: hz = free running at Rate; sync = on the tempo (1 bar to 1/32); random = Rate is only the average, every sweep or wander step gets its own speed, so it never repeats."
+    },
+    {
+      "id": "grind4.vrange",
+      "label": "Grind 4 vertical range",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.3,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind4",
+      "describes": "How far the filter moves up and down: the resonance (a notch's depth, a peak's height, a comb's ring) rides along with the sweep, or wanders on its own path. 0 = only sideways."
     },
     {
       "id": "grind4.res",

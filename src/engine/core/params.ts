@@ -211,7 +211,7 @@ export const P = {
   grindOn: ix('grind.on'), grindMix: ix('grind.mix'), grindLowcut: ix('grind.lowcut'), grindKey: ix('grind.key'), grindOneShot: ix('grind.oneshot'), grindOtt: ix('grind.ott'), grindSat: ix('grind.sat'), grindPreOtt: ix('grind.preott'),
   grind: [1, 2, 3, 4].map((n) => ({
     on: ix(`grind${n}.on`), filter: ix(`grind${n}.filter`), freq: ix(`grind${n}.freq`), range: ix(`grind${n}.range`), move: ix(`grind${n}.move`),
-    rate: ix(`grind${n}.rate`), sync: ix(`grind${n}.sync`), res: ix(`grind${n}.res`), dtype: ix(`grind${n}.drive_type`), drive: ix(`grind${n}.drive`), mix: ix(`grind${n}.mix`),
+    rate: ix(`grind${n}.rate`), clock: ix(`grind${n}.clock`), vrange: ix(`grind${n}.vrange`), res: ix(`grind${n}.res`), dtype: ix(`grind${n}.drive_type`), drive: ix(`grind${n}.drive`), mix: ix(`grind${n}.mix`),
   })),
 };
 
