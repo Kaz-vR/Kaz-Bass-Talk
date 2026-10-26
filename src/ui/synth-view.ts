@@ -750,8 +750,6 @@ export class SynthView {
   private grindWeird = 0.3;
   /** How many stages ROLL uses: 0 = random (AUTO), 1-4. */
   private grindCount = 0;
-  private readonly grindRecent: Record<string, ParamValue>[] = [];
-  private grindRecentView: () => void = () => {};
   /** Each GRIND stage's filter frequency right now (from the engine, -1 when silent) and the prints that follow it. */
   private readonly grindLive = [-1, -1, -1, -1];
   private readonly grindLiveDraws: (() => void)[] = [];
@@ -3354,11 +3352,10 @@ export class SynthView {
 
   /**
    * GRIND: four stage cards (a moving filter over its drive, each with a die and a lock) and a
-   * strip along the bottom: the chain's power, ROLL, weirdness, VARY MOVEMENT and the recent rolls.
+   * strip on top: ROLL, the stage count, weirdness, SAT and PRE OTT in front of the stages, KEY, ONE SHOT, OTT, Lo cut, Mix and the rocker.
    */
   private buildGrindPage(): HTMLElement {
     const ids = (n: number) => GRIND_KEYS.map((k) => `grind${n}.${k}`);
-    const allIds = ['grind.on', ...[1, 2, 3, 4].flatMap(ids)];
     const page = h('div', 'v2-main osc-page grind-page');
     const cards: HTMLElement[] = [];
     const lg = (id: string, label: string, opts: Parameters<SynthView['knob']>[3] = {}) => this.knob(id, label, 'lg', opts);
@@ -3478,7 +3475,7 @@ export class SynthView {
     const roll = h('button', 'gr-roll');
     roll.innerHTML = `${DICE_SVG}<span>ROLL</span>`;
     roll.title = 'Roll the whole chain: new filters, movement and drives (locked stages stay as they are)';
-    roll.onclick = () => this.grindRoll([1, 2, 3, 4].filter((n) => !this.grindLocks[n - 1]), false, true);
+    roll.onclick = () => this.grindRoll([1, 2, 3, 4].filter((n) => !this.grindLocks[n - 1]), true);
     // how many stages a ROLL uses: AUTO (random) or 1-4
     const count = h('span', 'fx-kinds sw-small gr-count');
     const countBtns = ['AUTO', '1', '2', '3', '4'].map((t, i) => {
@@ -3492,9 +3489,6 @@ export class SynthView {
       return b;
     });
     count.title = 'How many stages ROLL uses: AUTO picks a random number each time.';
-    const vary = h('button', 'gr-roll gr-quiet', 'VARY');
-    vary.title = 'Keep the filters and drives, roll only how they move (what moves them, how far, how fast)';
-    vary.onclick = () => this.grindRoll([1, 2, 3, 4].filter((n) => !this.grindLocks[n - 1] && !!this.get(`grind${n}.on`)), true);
     const fill = h('div', 'glide-fill');
     const weird = h('div', 'glide-track gr-weird', fill);
     const showWeird = () => { fill.style.width = `${this.grindWeird * 100}%`; };
@@ -3507,40 +3501,18 @@ export class SynthView {
     weird.addEventListener('pointermove', (e) => { if (weird.hasPointerCapture(e.pointerId)) fromX(e.clientX); });
     weird.title = 'Weirdness: low rolls the classic neuro moves (notches, phasers, combs, gentle drive); high goes anywhere, harder and stranger.';
     showWeird();
-    const recent = h('div', 'gr-recent');
-    this.grindRecentView = () => {
-      recent.replaceChildren();
-      const now = JSON.stringify(allIds.map((id) => this.get(id)));
-      for (const snap of this.grindRecent) {
-        const [cv, g] = canvas(70, 26, 'disp');
-        const cur = JSON.stringify(allIds.map((id) => snap[id]));
-        const t = h('button', 'gr-thumb' + (cur === now ? ' on' : ''), cv);
-        t.title = 'Go back to this roll';
-        t.onclick = () => {
-          for (const id of allIds) this.set(id, snap[id]);
-          this.grindRecentView();
-        };
-        recent.append(t);
-        const pts: [number, number][] = [];
-        for (let i = 0; i <= 70; i++) {
-          const f = 20 * Math.pow(1000, i / 70);
-          let m = 1;
-          for (let n = 1; n <= 4; n++) if (snap[`grind${n}.on`]) m *= grindMag(this.grindStage(n, snap), Number(snap[`grind${n}.freq`]), f);
-          pts.push([i, grindY(m, 26)]);
-        }
-        silver(g, pts, cur === now, cur === now ? '#ffffff' : '#77777d');
-      }
-    };
-    this.watch(allIds, () => this.grindRecentView());
     // the Wobbler's rocker, lying on its side
     const rocker = this.bigToggle('grind.on', '');
     rocker.classList.add('gr-rocker');
     const lowcut = this.knob('grind.lowcut', 'Lo cut', 'mid', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
     const mix = this.knob('grind.mix', 'Mix', 'mid', { fmt: (v) => `${Math.round(v * 100)}%` });
     const ott = this.knob('grind.ott', 'OTT', 'mid', { fmt: (v) => `${Math.round(v * 100)}%` });
+    // in front of the stages: saturation, then OTT
+    const sat = this.knob('grind.sat', 'Sat', 'mid', { fmt: (v) => `${Math.round(v * 100)}%` });
+    const preOtt = this.knob('grind.preott', 'Pre OTT', 'mid', { fmt: (v) => `${Math.round(v * 100)}%` });
     const lamps = h('span', 'gr-lamps', this.toggle('grind.key', 'KEY', 'small'), this.toggle('grind.oneshot', 'ONE SHOT', 'small'));
     const head = h('div', 'ob-head', h('span', 'c-title', 'GRIND'), roll, count,
-      h('span', 'gr-sub', 'WEIRD'), weird, vary, h('span', 'gr-sub', 'RECENT'), recent, lamps, h('span', 'gr-knobs', ott, lowcut, mix), rocker);
+      h('span', 'gr-sub', 'WEIRD'), weird, h('span', 'gr-knobs gr-front', sat, preOtt), lamps, h('span', 'gr-knobs', ott, lowcut, mix), rocker);
     strip.append(head);
     page.append(strip, ...cards);
     return page;
@@ -3552,12 +3524,8 @@ export class SynthView {
     return { filter: String(v('filter')), freq: Number(v('freq')), range: Number(v('range')), res: Number(v('res')) };
   }
 
-  /**
-   * Roll GRIND stages (`only movement`: VARY, keeping the filters and drives). Low weirdness keeps
-   * to the classic neuro moves; high goes anywhere. The chain switches on, and the roll joins the
-   * recent rolls.
-   */
-  private grindRoll(stages: number[], movementOnly = false, counted = false): void {
+  /** Roll GRIND stages: low weirdness keeps to the classic neuro moves, high goes anywhere. The chain switches on. */
+  private grindRoll(stages: number[], counted = false): void {
     const w = this.grindWeird, rnd = Math.random;
     const pick = <T,>(xs: readonly T[]) => xs[Math.floor(rnd() * xs.length)];
     if (counted) {
@@ -3575,11 +3543,10 @@ export class SynthView {
     for (const n of stages) {
       const pre = `grind${n}`;
       // always free running (Hz): life, not the grid; Sync stays the user's choice
-      this.set(`${pre}.move`, pick(['note', 'wander']));
+      this.set(`${pre}.move`, rnd() < 0.75 ? 'wander' : 'note'); // mostly wander: it never repeats
       this.set(`${pre}.sync`, false);
       this.set(`${pre}.range`, round(between(0.6, 1.8 + 2 * w), 10));
       this.set(`${pre}.rate`, round(between(0.3 - 0.3 * w, 0.65 + 0.3 * w))); // about 0.5 … 6 Hz when tame
-      if (movementOnly) continue;
       this.set(`${pre}.on`, true);
       this.set(`${pre}.filter`, rnd() < 0.75 - 0.5 * w ? pick(['notch', 'phaser', 'comb', 'peak']) : pick(['notch', 'peak', 'band', 'comb', 'phaser']));
       this.set(`${pre}.freq`, Math.round(logBetween(180 - 100 * w, 2400 + 5000 * w)));
@@ -3589,11 +3556,6 @@ export class SynthView {
       this.set(`${pre}.mix`, round(between(0.75, 1)));
     }
     this.set('grind.on', true);
-    const snap: Record<string, ParamValue> = { 'grind.on': true };
-    for (let n = 1; n <= 4; n++) for (const k of GRIND_KEYS) snap[`grind${n}.${k}`] = this.get(`grind${n}.${k}`);
-    this.grindRecent.unshift(snap);
-    this.grindRecent.length = Math.min(this.grindRecent.length, 2);
-    this.grindRecentView();
   }
 
   // ------------------------------------------------------------------ the PRESETS page

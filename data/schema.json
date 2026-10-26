@@ -4809,6 +4809,30 @@
       "describes": "Upward and downward compression in three bands at the end of the chain (as Ableton's OTT): quiet grit comes up, peaks come down. Level-matched: denser, not louder. 0 = off."
     },
     {
+      "id": "grind.sat",
+      "label": "Grind saturation",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind",
+      "describes": "Saturation in front of the GRIND stages: warm, slightly lopsided, level-matched, so the filters and drives get a richer, denser sound to work on. 0 = off."
+    },
+    {
+      "id": "grind.preott",
+      "label": "Grind pre OTT",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind",
+      "describes": "OTT in front of the GRIND stages (after SAT): the quiet harmonics come up, the strong ones down, so the notches and peaks have more to bite into. Level-matched. 0 = off."
+    },
+    {
       "id": "grind1.on",
       "label": "Grind 1 on",
       "type": "bool",
