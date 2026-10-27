@@ -1,7 +1,7 @@
 // K-weighted loudness (ITU-R BS.1770, as LUFS without gating) of the noise bed, used by the dev
 // tool that levels the noise types and by its test. Not used on the audio thread.
 import type { Texture } from './voicefx';
-import { TEX_AIR_HIT, TEX_CRACKLE_HIT } from './voicefx';
+import { texIsHit } from './voicefx';
 
 /** BS.1770 K-weighting at 48 kHz: a high shelf (+4 dB above ~1.7 kHz), then a 38 Hz high-pass. */
 function kWeight(x: Float64Array): Float64Array {
@@ -25,7 +25,7 @@ function kWeight(x: Float64Array): Float64Array {
  * burst, so a hit sounds as loud as its bed while it plays.
  */
 export function textureLoudness(t: Texture, type: number, tone: number, density: number, fs: number): number {
-  const hit = type === TEX_AIR_HIT || type >= TEX_CRACKLE_HIT;
+  const hit = texIsHit(type);
   const n = 4 * fs, o = new Float64Array(2);
   const l = new Float64Array(n), r = new Float64Array(n);
   t.puffLen = 0.4;

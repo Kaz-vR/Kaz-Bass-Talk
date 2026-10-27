@@ -198,8 +198,12 @@ export const TEX_CRACKLE = 0, TEX_DUST = 1, TEX_RUMBLE = 2, TEX_AIR = 3, TEX_AIR
  * the breath. Grain hits start on their first grain; noise hits swell in over ~10 ms.
  */
 export const TEX_CRACKLE_HIT = 7, TEX_DUST_HIT = 8, TEX_STATIC_HIT = 9, TEX_TAPE_HIT = 10, TEX_RUMBLE_HIT = 11;
+/** Plain white noise (full range; Tone darkens it), and its hit. */
+export const TEX_WHITE = 12, TEX_WHITE_HIT = 13;
+/** Whether a texture.type index is a HIT (one burst per note). */
+export const texIsHit = (type: number): boolean => type === TEX_AIR_HIT || (type >= TEX_CRACKLE_HIT && type <= TEX_RUMBLE_HIT) || type === TEX_WHITE_HIT;
 /** The bed each type plays (a hit plays its bed), by texture.type index. */
-const TEX_BED = [TEX_CRACKLE, TEX_DUST, TEX_RUMBLE, TEX_AIR, TEX_AIR, TEX_TAPE, TEX_STATIC, TEX_CRACKLE, TEX_DUST, TEX_STATIC, TEX_TAPE, TEX_RUMBLE];
+const TEX_BED = [TEX_CRACKLE, TEX_DUST, TEX_RUMBLE, TEX_AIR, TEX_AIR, TEX_TAPE, TEX_STATIC, TEX_CRACKLE, TEX_DUST, TEX_STATIC, TEX_TAPE, TEX_RUMBLE, TEX_WHITE, TEX_WHITE];
 
 /**
  * Texture bed. Grains: crackle (vinyl pops, nothing else), dust (fine grit),
@@ -220,6 +224,8 @@ export class Texture {
   private readonly svfL = new Svf();
   private readonly svfR = new Svf();
   private readonly svf2 = new Svf();
+  private whiteL = 0;
+  private whiteR = 0;
   private wander = 0;
   private wanderTarget = 0;
   private wanderCount = 0;
@@ -273,7 +279,7 @@ export class Texture {
     const w = 1 + 0.45 * this.wander;
     // HIT: the same generator as the bed it is named after, inside one burst per note
     const typeIn = type;
-    const hit = type === TEX_AIR_HIT || type >= TEX_CRACKLE_HIT;
+    const hit = texIsHit(type);
     type = TEX_BED[type] ?? TEX_AIR;
     const grain = type === TEX_CRACKLE || type === TEX_DUST || type === TEX_STATIC;
     if (hit) {
@@ -330,6 +336,17 @@ export class Texture {
         const a = 0.48 * Math.pow(wide, -0.3) * (0.9 + 0.1 * w);
         l = this.svfL.hp * a;
         r = this.svfR.hp * a;
+        break;
+      }
+      case TEX_WHITE: {
+        // Plain white noise, straight up: the full range at Tone's top; lower Tone darkens it with a
+        // gentle one-pole low-pass (20 kHz down to ~600 Hz). density: narrow (nearly mono) .. wide.
+        const a = tone >= 0.999 ? 1 : 1 - Math.exp((-2 * Math.PI * Math.min(600 * Math.pow(34, tone), fs * 0.45)) / fs);
+        const nl = this.rngL.next(), nr = this.rngR.next(), sp = Math.min(1, density * 1.4);
+        this.whiteL += ((nl + (1 - sp) * nr) / (2 - sp) - this.whiteL) * a;
+        this.whiteR += ((nr + (1 - sp) * nl) / (2 - sp) - this.whiteR) * a;
+        l = 0.5 * this.whiteL * w;
+        r = 0.5 * this.whiteR * w;
         break;
       }
       case TEX_STATIC: {
@@ -399,6 +416,8 @@ const TEX_TRIM_DB: number[][] = [
   [6.2, 4.8, 3.5, 2.4, 1.5],
   [4.4, 4.6, 4.8, 5.2, 5.8],
   [18, 14.7, 12.9, 11.7, 10.8],
+  [18.5, 13.5, 8.8, 4.8, 1.6],
+  [25.4, 20.4, 15.7, 11.7, 8.5],
 ];
 const TEX_TRIM = TEX_TRIM_DB.map((row) => row.map((db) => Math.pow(10, db / 20)));
 function texTrim(type: number, tone: number): number {

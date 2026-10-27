@@ -53,7 +53,6 @@ function humps(lens: number[], heights: number[] = []): WobPoint[] {
   return out;
 }
 
-const sixteenths = (steps: number[]) => steps.map((k) => k / 16);
 
 /** The palette's shapes as points (Random has none: it draws new steps every cycle). */
 export const WOB_TEMPLATES: Record<string, WobPoint[]> = {
@@ -74,8 +73,8 @@ export const WOB_TEMPLATES: Record<string, WobPoint[]> = {
   // the missing direction: swells open, slow then rushing, and snaps shut (the reverse sound;
   // curved, so it isn't a smooth copy of the staircase)
   'saw up': [pt(0, 0), pt(0.75, 0.08, true), pt(0.96, 1), pt(1, 0)],
-  // a busy 16th pattern, x.xx..x.x.xx..x. (square is one gate a cycle, sync gate a syncopated three)
-  'trance gate': gate(sixteenths([0, 2, 3, 6, 8, 10, 11, 14]), Array(8).fill(0.044)),
+  // straight lines up and down: the plain triangle (sine is the rounded bell)
+  triangle: [pt(0, 0), pt(0.5, 1), pt(1, 0)],
   // long-short pairs: the gate with a shuffle (2/3 + 1/3 of each beat)
   'swing gate': gate([0, 1 / 6, 0.25, 0.25 + 1 / 6, 0.5, 0.5 + 1 / 6, 0.75, 0.75 + 1 / 6], [0.12, 0.055, 0.12, 0.055, 0.12, 0.055, 0.12, 0.055]),
   // hits that speed up through the cycle (1, then 2, then 4): a roll into the next bar

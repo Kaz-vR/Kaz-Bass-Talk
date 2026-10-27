@@ -89,7 +89,7 @@ class Synth {
     }
   }
   void setTempo(double bpm) { tempo = clampd(bpm, 20, 400); }
-  void syncBeat(double beat) { beatPos = beat - 4 * std::floor(beat / 4); }
+  void syncBeat(double beat) { beatPos = beat - 4 * std::floor(beat / 4); songBeat = beat; }
   void pitchBend(double v) { bend = clampd(v, -1, 1); }
   void setModWheel(double v) { modWheel = clampd(v, 0, 1); }
 
@@ -455,6 +455,7 @@ class Synth {
   Compressor comp;
   bool compOn = false, ottOn = false;
   double beatPos = 0;
+  double songBeat = 0; // never wrapped: the wobble's clock, so cycles longer than a bar run their full length
 
   Chorus chorus;
   Phaser phaser;
@@ -650,8 +651,8 @@ class Synth {
     if (depth > 1e-4) {
       const int ri = (int)jsRound(cur[P.wobRate]);
       const double cycle = ri >= 0 && ri < 8 ? WOBBLE_BEATS[ri] : 0.5;
-      const long long n = (long long)std::floor(beatPos / cycle);
-      const double p = (beatPos - n * cycle) / cycle;
+      const long long n = (long long)std::floor(songBeat / cycle);
+      const double p = (songBeat - n * cycle) / cycle;
       if (n != wobCycle) {
         wobCycle = n;
         const double life = cur[P.wobLife];
@@ -793,6 +794,7 @@ class Synth {
 
     beatPos += (tempo / 60) * (CONTROL_BLOCK / fs);
     if (beatPos >= 4) beatPos -= 4;
+    songBeat += (tempo / 60) * (CONTROL_BLOCK / fs);
     const double pump = cur[P.compPump];
     double pumpGain = 1;
     if (pump > 0) {

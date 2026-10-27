@@ -256,9 +256,9 @@ export function validatePatch(input: unknown): ValidationResult {
       patch[p.id] = p.id === 'wobble.volume' ? vol : !vol;
       continue;
     }
-    // The wobbler's old triangle is now a sine you click into corners.
-    if (p.id === 'wobble.shape' && src[old] === 'triangle') {
-      patch[p.id] = 'sine';
+    // The trance gate's slot became the triangle (owner's call).
+    if (p.id === 'wobble.shape' && src[old] === 'trance gate') {
+      patch[p.id] = 'triangle';
       continue;
     }
     patch[p.id] = old in src ? clampValue(p, src[old], issues) : (p.default as ParamValue);

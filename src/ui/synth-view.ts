@@ -50,6 +50,8 @@ export interface PresetSource {
   clearRolls: () => void;
   pickRoll: (id: number) => void;
   starRoll: (id: number) => void;
+  /** Download every ★ User sound as one file (data/user-sounds.json builds them into the synth). */
+  exportUser: () => void;
   removeRoll: (id: number, from: 'rolls' | 'user') => void;
   pick: (shelf: string, index: number) => void;
   step: (dir: number) => void;
@@ -1879,9 +1881,9 @@ export class SynthView {
       // the hits sit to the right, each in the same row as the bed it bursts (air hit is the breath)
       head: [this.selector('texture.type', { label: (o) => (o === 'air hit' ? 'air hit (breath)' : o), groups: [
         ['GRAIN', ['crackle', 'dust', 'static']],
-        ['NOISE', ['tape hiss', 'air', 'rumble']],
+        ['NOISE', ['tape hiss', 'air', 'rumble', 'white noise']],
         ['HIT', ['crackle hit', 'dust hit', 'static hit']],
-        ['HIT', ['tape hiss hit', 'air hit', 'rumble hit']],
+        ['HIT', ['tape hiss hit', 'air hit', 'rumble hit', 'white noise hit']],
       ] }), h('div', 'ob-chips',
         this.chip('OCT', () => this.num('texture.octave'), (v) => this.set('texture.octave', v), -6, 2, ['texture.octave'], 'Noise octave: plays the bed slower (darker, bigger) or faster, like tape; with KEY on, where middle C sits')), direct],
       print: this.noisePrint(PRINT_W, PRINT_H),
@@ -3780,6 +3782,12 @@ export class SynthView {
       clear.title = 'Remove every roll (starred ones stay in User)';
       clear.onclick = () => src.clearRolls();
       col.append(h('div', 'pp-rollbar', dice, wrap, basedWrap, clear));
+    } else {
+      const exp = h('button', 'pp-clear', 'Export all');
+      exp.disabled = !items.length;
+      exp.title = 'Download every User sound as one file (user-sounds.json), to build them into the synth';
+      exp.onclick = () => src.exportUser();
+      col.append(h('div', 'pp-rollbar', exp));
     }
     const list = h('div', 'pp-list');
     if (!items.length) {

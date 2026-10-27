@@ -103,7 +103,7 @@ export function wobRateBeats(v: string): number {
 /** Beats per wobble cycle, by wobble.rate option. */
 export const WOBBLE_BEATS = getParam('wobble.rate')!.options!.map(wobRateBeats);
 /** The wobbler's shapes, by wobble.shape option. */
-export const WOB_SHAPES = ['saw down', 'sine', 'duck', 'square', 'sync gate', 'staircase', 'random', 'custom', 'saw up', 'trance gate', 'swing gate', 'ratchet', 'brake', 'pulse decay', 'yoyo', 'triplet gate'];
+export const WOB_SHAPES = ['saw down', 'sine', 'duck', 'square', 'sync gate', 'staircase', 'random', 'custom', 'saw up', 'triangle', 'swing gate', 'ratchet', 'brake', 'pulse decay', 'yoyo', 'triplet gate'];
 export const WOB_RANDOM = 6, WOB_CUSTOM = 7;
 
 /**

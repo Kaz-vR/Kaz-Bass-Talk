@@ -14,6 +14,7 @@ import { Scope } from './scope';
 import { SynthView, type PresetSource } from './synth-view';
 import { installDropdowns } from './dropdown';
 import { UndoHistory } from '../history/undo';
+import builtInUser from '../../data/user-sounds.json';
 
 // Every dropdown opens the page's own menu, not the operating system's.
 installDropdowns();
@@ -150,6 +151,20 @@ synth.presets = {
     const e = [...rolls, ...userSounds].find((x) => x.id === id);
     if (e) loadRoll(e);
   },
+  exportUser: () => {
+    const text = JSON.stringify(userSounds.map((e) => e.roll), null, 2);
+    // a download where the page may save files; otherwise the clipboard
+    try {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+      a.download = 'user-sounds.json';
+      document.body.append(a);
+      a.click();
+      a.remove();
+    } catch {
+      void navigator.clipboard?.writeText(text);
+    }
+  },
   starRoll: (id) => {
     const e = [...rolls, ...userSounds].find((x) => x.id === id);
     if (e) toggleStar(e);
@@ -263,6 +278,15 @@ try {
   userSounds = stored.map((r) => ({ roll: { ...r, patch: validatePatch(r.patch).patch }, id: nextId++ }));
 } catch {
   // No storage (private window): starred sounds just don't survive a reload.
+}
+// The User sounds built into the synth (data/user-sounds.json, owner's call: they ship with it), after
+// the ones kept in this browser, each once (by name).
+{
+  const have = new Set(userSounds.map((e) => e.roll.name));
+  for (const r of builtInUser as unknown as Roll[]) {
+    if (have.has(r.name)) continue;
+    userSounds.push({ roll: { ...r, patch: validatePatch(r.patch).patch }, id: nextId++ });
+  }
 }
 function saveUser(): void {
   try {

@@ -195,6 +195,8 @@ export class Synth {
 
   /** Position in the bar, in beats [0, 4): the wobble's clock. */
   private beatPos = 0;
+  /** The song position in beats, never wrapped: the Wobbler's clock, so cycles longer than a bar (2 bars … 32 bars) run their full length. */
+  private songBeat = 0;
 
   // FX + output.
   private readonly flanger: Flanger;
@@ -336,6 +338,7 @@ export class Synth {
   /** Align the internal beat clock (used by the wobble) to a song position in beats. */
   syncBeat(beat: number): void {
     this.beatPos = beat - 4 * Math.floor(beat / 4);
+    this.songBeat = beat;
   }
 
   pitchBend(v: number): void {
@@ -642,8 +645,8 @@ export class Synth {
     if (depth > 1e-4) {
       // Locked to the bar.
       const cycle = K.WOBBLE_BEATS[Math.round(cur[P.wobRate])] ?? 0.5;
-      const n = Math.floor(this.beatPos / cycle);
-      const p = (this.beatPos - n * cycle) / cycle;
+      const n = Math.floor(this.songBeat / cycle);
+      const p = (this.songBeat - n * cycle) / cycle;
       this.liveWob = p;
       if (n !== this.wobCycle) {
         // Life: every cycle swings a little deeper or shallower and sits a little brighter or darker.
@@ -894,6 +897,7 @@ export class Synth {
 
     // The bar clock (the wobble locks to it).
     this.beatPos += (this.tempo / 60) * (BLOCK / fs);
+    this.songBeat += (this.tempo / 60) * (BLOCK / fs);
     if (this.beatPos >= 4) this.beatPos -= 4;
 
     // Delay. Modulating the delay time glides the read head (tape-style pitch smear on the repeats).
