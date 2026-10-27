@@ -1,6 +1,6 @@
-// One synth voice (port of src/engine/core/voice.ts): oscillators (+FM),
-// noise and breath → [2× oversampled: drive → filter → distortion] →
-// bitcrusher → tape → DC filter → amp, + clean mono sub.
+// One synth voice (port of src/engine/core/voice.ts): oscillators (+FM) and noise →
+// [2× oversampled: GRIND → drive → filter → distortion] → bitcrusher → tape → DC filter → amp,
+// + clean mono sub.
 // Plugin addition: per-note MPE (bend, pressure, slide), zero unless an MPE
 // controller sends it, so the sound is the prototype's otherwise.
 #pragma once
@@ -9,6 +9,7 @@
 #include <vector>
 #include "Dsp.h"
 #include "Fx.h"
+#include "Grind.h"
 #include "Oversample.h"
 #include "Params.h"
 #include "VoiceFx.h"
@@ -47,13 +48,15 @@ class Voice {
  public:
   int note = 48;
   double pitch = 48;
-  /** The main filter's current cutoff (Hz) and resonance, for the texture bed's copy of it. */
-  double fcNow = 1000, resNow = 0;
   double velocity = 1;
   bool gate = false;
   long long order = 0;
+  /** The main filter's current cutoff (Hz) and resonance, for the texture bed's copy of it. */
+  double fcNow = 1000, resNow = 0;
   int tail = 0;
   double subOn = 1;
+  /** The bar position in beats (0..4) and the tempo in beats per second, set by the synth: GRIND's clock. */
+  double beatPos = 0, bps = 2;
   Envelope ampEnv;
   std::array<double, DEST_COUNT> dst{};
   double tapeLpCoef = 1;
@@ -64,7 +67,7 @@ class Voice {
   double mpeSlide = 0.5;   // 0..1, 0.5 = neutral
 
   Voice(double fs_, const double* cur_, const float* table_, uint32_t seed, const double* dstMask_)
-      : fs(fs_), cur(cur_), table(table_), rng(seed), dstMask(dstMask_),
+      : fs(fs_), cur(cur_), table(table_), rng(seed), grind(rng), dstMask(dstMask_),
         combL((int)std::ceil((fs_ * OS) / 20)), combR((int)std::ceil((fs_ * OS) / 20)),
         strings{KarplusString((int)std::ceil(fs_ / 15)), KarplusString((int)std::ceil(fs_ / 15))}, tape(fs_), subClip(fs_), midClip(fs_) {
     subRamp = 1 / (0.01 * fs);
@@ -75,6 +78,11 @@ class Voice {
   }
 
   bool active() const { return ampEnv.stage != 0; }
+  /** Where GRIND stage i's filter is right now (Hz), or -1 when the stage (or the chain) is off. */
+  double grindFc(int i) const { return grindOn ? grind.stages[i].fcNow : -1; }
+  double grindRes(int i) const { return grind.stages[i].resNow; }
+
+  // ---------------------------------------------------------------- notes
 
   void start(int n, double vel, bool glide, bool retrigger, long long ord) {
     const auto& P = PI_();
@@ -85,13 +93,15 @@ class Voice {
     gate = true;
     order = ord;
     tail = 40;
+    // GRIND's note movement starts again on every new note, legato notes too
+    grind.noteOn(&rng);
     if (!retrigger) return;
     velocity = clampd(vel, 0, 1);
     if (!sounding) {
-      const bool free = cur[P.analog] > 0.01;
+      const bool freeRun = cur[P.analog] > 0.01;
       for (auto& o : osc)
         for (int j = 0; j < MAX_UNISON; j++)
-          o.phase[j] = j == 0 ? 0 : free ? 0.5 * (rng.next() + 1) : std::fmod(j * 0.381966, 1.0);
+          o.phase[j] = j == 0 ? 0 : freeRun ? 0.5 * (rng.next() + 1) : std::fmod(j * 0.381966, 1.0);
       subPhase = 0;
       syncPhase = 0;
       osc[1].held.fill(0);
@@ -107,12 +117,13 @@ class Voice {
       diodeR.reset();
       fm2Phase = 0;
       fmPrevOut = 0;
+      grind.reset();
     }
     noteCutoffJitter = rng.next();
     fmEnv = 1;
     const double noteHz = 440 * std::pow(2.0, (n + 12 * cur[P.octave] - 69) / 12);
     for (int k = 0; k < 2; k++) {
-      if (cur[P.osc[k].wave] == WAVE_STRING) {
+      if ((int)cur[P.osc[k].wave] == WAVE_STRING) {
         const double hz = noteHz * std::pow(2.0, cur[P.osc[k].semi] / 12);
         strings[k].pluck(fs / hz);
       }
@@ -120,13 +131,12 @@ class Voice {
     ampEnv.trigger();
     modEnv.trigger();
     env2.trigger();
-    pitchEnvLevel = 1;
+    env3.trigger();
     noteRandom = rng.next();
     for (int l = 0; l < 4; l++) lfoFade[l] = cur[P.lfo[l].fade] > 0 ? 0 : 1;
     noteTime = 0;
     vibPhase = 0.5 * (rng.next() + 1);
     vibRate = cur[P.vibRate] * (1 + 0.05 * rng.next());
-    chiffEnv = 1;
   }
 
   void release() {
@@ -134,13 +144,17 @@ class Voice {
     ampEnv.release();
     modEnv.release();
     env2.release();
+    env3.release();
   }
 
   void reset() {
+    crushLp.fill(0);
+    tapeLp.fill(0);
     gate = false;
     ampEnv.reset();
     modEnv.reset();
     env2.reset();
+    env3.reset();
     ladL.reset();
     ladR.reset();
     for (int i = 0; i < 2; i++) {
@@ -163,13 +177,14 @@ class Voice {
     diodeR.reset();
     for (auto& f : notchL) f.reset();
     for (auto& f : notchR) f.reset();
+    for (auto& f : hpL) f.reset();
+    for (auto& f : hpR) f.reset();
     lpgL.reset();
     lpgR.reset();
     combL.reset();
     combR.reset();
-    for (auto& s : strings) s.reset();
-    for (auto& s : shepards) s.reset();
-    breathSvf.reset();
+    for (auto& st : strings) st.reset();
+    for (auto& sh : shepards) sh.reset();
     crusher.reset();
     tape.reset();
     subClip.reset();
@@ -196,12 +211,16 @@ class Voice {
     subWave = (int)cur[P.subWave];
   }
 
+  // ---------------------------------------------------------- control rate
+
   void control(const double* gsrc, double bend, const double* xdst) {
     const auto& P = PI_();
-    ampEnv.set(cur[P.amp[0]], cur[P.amp[1]], cur[P.amp[2]], cur[P.amp[3]], fs, cur[P.ampCurve]);
-    modEnv.set(cur[P.mod[0]], cur[P.mod[1]], cur[P.mod[2]], cur[P.mod[3]], fs);
+    ampEnv.set(cur[P.amp[0]], cur[P.amp[1]], cur[P.amp[2]], cur[P.amp[3]], fs, cur[P.ampBend[0]], cur[P.ampBend[1]], cur[P.ampBend[2]]);
+    modEnv.set(cur[P.mod[0]], cur[P.mod[1]], cur[P.mod[2]], cur[P.mod[3]], fs, cur[P.modBend[0]], cur[P.modBend[1]], cur[P.modBend[2]]);
     env2.set(cur[P.env2[0]], cur[P.env2[1]], cur[P.env2[2]], cur[P.env2[3]], fs / CONTROL_BLOCK);
     if (env2.stage != 0) env2.tick();
+    env3.set(cur[P.env3[0]], cur[P.env3[1]], cur[P.env3[2]], cur[P.env3[3]], fs / CONTROL_BLOCK);
+    if (env3.stage != 0) env3.tick();
 
     const double glideMs = cur[P.glide];
     if (glideMs > 0.5) {
@@ -210,7 +229,6 @@ class Voice {
     } else {
       pitch = note;
     }
-    pitchEnvLevel *= std::exp((-CONTROL_BLOCK * 4.6) / ((cur[P.peDecay] / 1000) * fs));
 
     for (int i = 0; i < SRC_COUNT; i++) src[i] = gsrc[i];
     for (int l = 0; l < 4; l++) {
@@ -224,31 +242,32 @@ class Voice {
     src[SRC_LFO3] *= lfoFade[2];
     src[SRC_LFO4] *= lfoFade[3];
     src[SRC_PRODUCT] = src[SRC_LFO1] * src[SRC_LFO2];
-    src[SRC_MOD_ENV] = modEnv.level;
+    src[SRC_MOD_ENV] = modEnv.level * cur[P.modEnvOn];
     src[SRC_AMP_ENV] = ampEnv.level;
     src[SRC_VEL] = velocity;
     src[SRC_KEY] = clampd((pitch - KEYTRACK_CENTER) / 24, -1, 1);
     src[SRC_RANDOM] = noteRandom;
-    src[SRC_ENV2] = env2.level;
+    src[SRC_ENV2] = env2.level * cur[P.env2On];
+    src[SRC_ENV3] = env3.level * cur[P.env3On];
     for (int d = 0; d < DEST_COUNT; d++) dst[d] = xdst[d];
     for (int s = 0; s < SLOT_COUNT; s++) {
       const auto& slot = P.slots[s];
       const int d = (int)cur[slot.dst];
       if (d > 0) dst[d] += cur[slot.amt] * src[(int)cur[slot.src]];
     }
+    if (dstMask)
+      for (int d = 1; d < DEST_COUNT; d++) dst[d] *= dstMask[d];
     // MPE: pressure plays the note harder (brighter, dirtier, louder); slide moves the brightness.
     if (mpePressure != 0 || mpeSlide != 0.5) {
       dst[D_CUTOFF] += 0.22 * mpePressure + 0.6 * (mpeSlide - 0.5);
       dst[D_DRIVE] += 0.25 * mpePressure;
       dst[D_AMP] += 0.15 * mpePressure;
     }
-    if (dstMask)
-      for (int d = 1; d < DEST_COUNT; d++) dst[d] *= dstMask[d];
 
     analog = cur[P.analog];
     syncOn = cur[P.osc2Sync] > 0.5;
 
-    noteTime += CONTROL_BLOCK / fs;
+    noteTime += (double)CONTROL_BLOCK / fs;
     double vib = 0;
     const double vibDepth = clampd(cur[P.vibDepth] + 100 * dst[D_VIBRATO], 0, 100);
     if (vibDepth > 0) {
@@ -260,7 +279,9 @@ class Voice {
       }
     }
 
-    const double basePitch = pitch + 12 * cur[P.octave] + 2 * bend + mpeBend + cur[P.peAmount] * pitchEnvLevel + 24 * dst[D_PITCH] + vib;
+    // Pitch moves the whole note (the sub too); Osc A+B pitch and vibrato only the two oscillators.
+    const double notePitch = pitch + 12 * cur[P.octave] + 2 * bend + mpeBend + 24 * dst[D_PITCH];
+    const double basePitch = notePitch + 24 * dst[D_OSC_PITCH] + vib;
 
     for (int n = 0; n < 2; n++) {
       OscState& o = osc[n];
@@ -322,30 +343,26 @@ class Voice {
       o.frac = fpos - fa;
       o.baseSaw = (SAW_FRAME * MIP_LEVELS + mip) * TABLE_SIZE;
     }
-    const double keyOct = std::pow(2.0, (pitch + 12 * cur[P.octave] - KEYTRACK_CENTER) / 12);
     for (int n = 0; n < 2; n++) {
       const SlotKind sk = oscSlot(cur[P.osc[n].fType]);
       double hz = cur[P.osc[n].hp];
-      if (cur[P.osc[n].fKey] > 0.5) hz *= keyOct;
+      if (cur[P.osc[n].fKey] > 0.5) hz *= std::pow(2.0, (pitch + 12 * cur[P.octave] - KEYTRACK_CENTER) / 12);
       oscF[n].set(sk.kind, sk.p24, hz, fs);
     }
     routeA = cur[P.routeA] > 0.5;
     routeB = cur[P.routeB] > 0.5;
-    routeS = cur[P.routeS] > 0.5;
-    // Breath is the Noise strip's breath type; N decides whether it goes through the filter.
-    breathType = (int)cur[P.texType] == TEX_BREATH;
-    routeBr = cur[P.routeN] > 0.5;
+    routeS = cur[P.routeS] > 0.5 && cur[P.subDirect] < 0.5;
     {
       double hz = INFINITY;
       for (int n = 0; n < 2; n++) {
         const double t = cur[P.osc[n].fType];
-        if (t <= 1 && cur[P.osc[n].hp] > 21) hz = std::fmin(hz, cur[P.osc[n].hp]);  // high 24 / high 12
+        if (t <= 1 && cur[P.osc[n].hp] > 21) hz = std::fmin(hz, cur[P.osc[n].hp]);
       }
       const bool on = cur[P.postCut] > 0.5 && !routeS && hz < INFINITY;
-      postCut.set(on ? SLOT_HP : SLOT_OFF, true, on ? hz : 20, fs);
+      postCut.set(on ? 1 : 0, true, on ? hz : 20, fs);
     }
     subDirect = cur[P.subDirect] > 0.5;
-    const bool bypass = !routeA || !routeB || (breathType && !routeBr);
+    const bool bypass = !routeA || !routeB;
     if (bypass && !bypassOn) {
       upBL.reset();
       upBR.reset();
@@ -354,7 +371,7 @@ class Voice {
     {
       const SlotKind sk = auxSlot(cur[P.subFType]);
       double hz = cur[P.subFCut];
-      if (cur[P.subFKey] > 0.5) hz *= keyOct;
+      if (cur[P.subFKey] > 0.5) hz *= std::pow(2.0, (pitch + 12 * cur[P.octave] - KEYTRACK_CENTER) / 12);
       subF.set(sk.kind, sk.p24, hz, fs);
     }
     strTone = cur[P.strTone];
@@ -373,20 +390,12 @@ class Voice {
     fmInc = std::fmin(0.45, carrier * cur[P.fmRatio]);
     fm2Inc = std::fmin(0.45, carrier * cur[P.fm2Ratio]);
 
-    // The sub follows the played note (glide, bend, pitch envelope) but never the pitch modulation.
-    const double subPitch = pitch + 12 * cur[P.octave] + 2 * bend + mpeBend + cur[P.peAmount] * pitchEnvLevel;
-    double sInc = toInc(subPitch + 12 * cur[P.subOct]);
+    double sInc = toInc(notePitch + 12 * cur[P.subOct] + 24 * dst[D_SUB_PITCH]);
     while (sInc < 20 / fs) sInc *= 2;
+    while (sInc > 0.45) sInc *= 0.5;
     subInc = sInc;
     subLevel = clampd(cur[P.subLevel] + dst[D_SUB], 0, 1) * SUB_GAIN;
     noiseLevel = clampd(cur[P.noise] + dst[D_NOISE], 0, 1) * 0.5;
-    chiffAmt = breathType ? cur[P.chiff] : 0;
-    breathLvl = breathType ? clampd(cur[P.breath] + dst[D_BREATH], 0, 1) : 0;
-    breathOn = chiffAmt > 0 || breathLvl > 0;
-    if (breathOn) {
-      breathG = std::tan((PI * std::fmin(500 * std::pow(16.0, cur[P.breathTone]), fs * 0.45)) / fs);
-      chiffCoef = std::exp(-4.6 / ((cur[P.chiffDecay] / 1000) * fs));
-    }
 
     const double drive = clampd(cur[P.drive] + dst[D_DRIVE], 0, 1);
     driveMix = std::fmin(1, drive * 4);
@@ -396,8 +405,10 @@ class Voice {
     accentAmt = cur[P.accent] * clampd((velocity - 0.6) / 0.4, 0, 1);
     const double res = clampd(cur[P.res] + dst[D_RES] + 0.15 * accentAmt, 0, 1);
     const double fsOs = fs * OS;
+    grindOn = cur[P.grindOn] > 0.5;
+    if (grindOn) grind.control(cur, beatPos, bps, (pitch + 12 * cur[P.octave] - KEYTRACK_CENTER) / 12, fs, fsOs, CONTROL_BLOCK * OS, rng);
     double octs = (cur[P.keytrack] * (pitch + 12 * cur[P.octave] - KEYTRACK_CENTER)) / 12 +
-                  6 * cur[P.envAmt] * (1 + 1.5 * accentAmt) * modEnv.level + 6 * dst[D_CUTOFF] + 0.12 * analog * noteCutoffJitter;
+                  6 * cur[P.envAmt] * cur[P.modEnvOn] * (1 + 1.5 * accentAmt) * modEnv.level + 6 * dst[D_CUTOFF] + 0.12 * analog * noteCutoffJitter;
     if (filterType == FILTER_LPG) octs += 1.5 * std::log2(std::fmax(ampEnv.level, 0.002));
     const double fc = clampd(cur[P.cutoff] * std::pow(2.0, octs), 20, std::fmin(20000, fs * 0.45));
     const double gTarget = std::tan((PI * fc) / fsOs);
@@ -420,6 +431,8 @@ class Voice {
       combFb = 0.96 * res;
     } else if (filterType == FILTER_LPG) {
       k = 1.4 - 1.1 * res;
+    } else if (filterType == FILTER_HP) {
+      k = 0.765 * (1 - res) + 0.05;
     } else {
       const double v = clampd(cur[P.vowel] + dst[D_VOWEL], 0, 1) * 4;
       const int vi = std::min(3, (int)std::floor(v));
@@ -436,6 +449,15 @@ class Voice {
     const double dMix = clampd(cur[P.dMix] + dst[D_DIST_MIX], 0, 1);
     distAmt = std::fmin(1, dDrive * 5) * dMix;
     distGain = 1 + 49 * dDrive * dDrive;
+    if (distType == DIST_FUZZ) {
+      const double b = FUZZ_BIAS_REL * distGain;
+      if (b != fuzzBias) {
+        fuzzBias = b;
+        fuzzOffset = fuzz(b);
+        adaaF[0] = curveIntegral(adaaU[0]);
+        adaaF[1] = curveIntegral(adaaU[1]);
+      }
+    }
     const double dTone = clampd(cur[P.dTone] + dst[D_DIST_TONE], 0, 1);
     if (dTone != lastTone) {
       const double toneHz = 300 * std::pow(20000.0 / 300, dTone);
@@ -453,6 +475,8 @@ class Voice {
     crushMix = clampd(cur[P.crushMix] + dst[D_CRUSH], 0, 1);
     crushQ = std::pow(2.0, cur[P.crushBits] - 1);
     crushRate = cur[P.crushRate];
+    crushLc = cur[P.crushLowcut] > 21 ? std::exp((-TWO_PI * cur[P.crushLowcut]) / fs) : 0;
+    tapeLc = cur[P.tapeLowcut] > 21 ? std::exp((-TWO_PI * cur[P.tapeLowcut]) / fs) : 0;
 
     tapeWow = clampd(cur[P.tapeWow] + dst[D_TAPE_WOW], 0, 1);
     tapeOn = cur[P.tapeDrive] > 0 || tapeWow > 0 || cur[P.tapeAge] > 0;
@@ -470,10 +494,14 @@ class Voice {
     velGain = (1 - cur[P.velocity] * (1 - velocity)) * (1 + 0.4 * accentAmt);
   }
 
+  // ------------------------------------------------------------ audio rate
+
+  /** One stereo sample of this voice (out[0], out[1]) and its clean sub (out[2]). */
   void render(double duck, double* out) {
     const auto& P = PI_();
     double l = 0, r = 0;
     ampMod += ampModStep;
+    double* os = osOut;
     OscState& o1 = osc[0];
     OscState& o2 = osc[1];
 
@@ -523,7 +551,6 @@ class Voice {
         l = oscF[0].process(l, 0);
         r = oscF[0].process(r, 1);
       }
-      // Oscillator 2 sums on its own when it has a filter or a different routing.
       const bool sepB = oscF[1].active || routeA != routeB;
       const double preL = l, preR = r;
       if (sepB) l = r = 0;
@@ -570,7 +597,6 @@ class Voice {
           r += s * o2.panR[j];
         }
       }
-      // Routing: what goes through the drive and main filter, and what skips them.
       double byL = 0, byR = 0;
       if (sepB) {
         double bl = l, br = r;
@@ -597,21 +623,6 @@ class Voice {
         l += nz;
         r += nz;
       }
-      if (breathOn) {
-        chiffEnv *= chiffCoef;
-        const double ba = chiffAmt * chiffEnv + 0.5 * breathLvl;
-        breathSvf.process(rng.next(), breathG, 1.1);
-        const double b = breathSvf.bp * ba * 1.6;
-        if (routeBr) {
-          l += b;
-          r += b;
-        } else {
-          byL += b;
-          byR += b;
-        }
-      }
-      // Sub: clean, mono, phase-stable (in poly mode only the lowest note carries it). Its own
-      // filter and clip shape it; with "sub into filter" (S) it joins the oscillators instead.
       const double amp = env * velGain * duck;
       double sub = 0;
       subMix += subMix < subOn ? subRamp : subMix > subOn ? -subRamp : 0;
@@ -621,14 +632,17 @@ class Voice {
         double sp = subPhase + subInc;
         if (sp >= 1) sp -= 1;
         subPhase = sp;
-        if (subWave == 0) sub = std::sin(TWO_PI * sp);
-        else if (subWave == 1) sub = sp < 0.25 ? 4 * sp : sp < 0.75 ? 2 - 4 * sp : 4 * sp - 4;
+        const int sw = subWave;
+        if (sw == 0) sub = std::sin(TWO_PI * sp);
+        else if (sw == 1) sub = 0.86 * (std::sin(TWO_PI * sp) + 0.3 * std::sin(2 * TWO_PI * sp));
+        else if (sw == 2) sub = sp < 0.25 ? 4 * sp : sp < 0.75 ? 2 - 4 * sp : 4 * sp - 4;
+        else if (sw == 5) sub = 0.8 * (1 - 2 * sp + polyBlep(sp, subInc));
         else {
-          // Square, band-limited with polyBLEP at both edges.
-          const double dt = subInc;
-          double sp2 = sp + 0.5;
+          const double dt = subInc, w = sw == 4 ? 0.25 : 0.5;
+          double sp2 = sp + 1 - w;
           if (sp2 >= 1) sp2 -= 1;
-          sub = (sp < 0.5 ? 1 : -1) + polyBlep(sp, dt) - polyBlep(sp2, dt);
+          sub = (sp < w ? 1 : -1) + polyBlep(sp, dt) - polyBlep(sp2, dt);
+          if (sw == 4) sub = 0.8 * (sub + 0.5);
         }
         if (subF.active) sub = subF.process(sub);
         if (routeS) {
@@ -639,9 +653,8 @@ class Voice {
         } else {
           sub *= subLevel * amp * subMix;
           if (subClip.knee > 0) {
-            double co[2];
-            subClip.process(sub, 0, subLevel * velGain, co);
-            sub = co[0];
+            subClip.process(sub, 0, subLevel * velGain, clipOut);
+            sub = clipOut[0];
           }
         }
       } else {
@@ -663,23 +676,48 @@ class Voice {
         nonlinear(upL.out0, upR.out0, 0, 0, 0);
         nonlinear(upL.out1, upR.out1, 2, 0, 0);
       }
-      l = dnL.process(osOut[0], osOut[2]);
-      r = dnR.process(osOut[1], osOut[3]);
+      l = dnL.process(os[0], os[2]);
+      r = dnR.process(os[1], os[3]);
 
       if (crushMix > 0) {
-        crusher.process(l, r, crushMix, crushQ, crushRate, tmp);
-        l = tmp[0];
-        r = tmp[1];
+        double lowL = 0, lowR = 0;
+        if (crushLc > 0) {
+          const double c = crushLc;
+          auto& s = crushLp;
+          s[0] = l + c * (s[0] - l);
+          s[1] = s[0] + c * (s[1] - s[0]);
+          s[2] = r + c * (s[2] - r);
+          s[3] = s[2] + c * (s[3] - s[2]);
+          lowL = s[1];
+          lowR = s[3];
+        }
+        crusher.process(l - lowL, r - lowR, crushMix, crushQ, crushRate, tmp);
+        l = lowL + tmp[0];
+        r = lowR + tmp[1];
       }
+
       if (tapeOn) {
-        tape.process(l, r, cur[P.tapeDrive], tapeWow, cur[P.tapeAge], tapeLpCoef, env, tmp);
-        l = tmp[0];
-        r = tmp[1];
+        double lowL = 0, lowR = 0;
+        if (tapeLc > 0) {
+          const double c = tapeLc;
+          auto& s = tapeLp;
+          s[0] = l + c * (s[0] - l);
+          s[1] = s[0] + c * (s[1] - s[0]);
+          s[2] = r + c * (s[2] - r);
+          s[3] = s[2] + c * (s[3] - s[2]);
+          lowL = s[1];
+          lowR = s[3];
+        }
+        tape.process(l - lowL, r - lowR, cur[P.tapeDrive], tapeWow, cur[P.tapeAge], tapeLpCoef, env, tmp);
+        l = lowL + tmp[0];
+        r = lowR + tmp[1];
       }
+
       if (postCut.active) {
         l = postCut.process(l, 0);
         r = postCut.process(r, 1);
       }
+
       l = voiceDcL.process(l);
       r = voiceDcR.process(r);
 
@@ -688,10 +726,9 @@ class Voice {
       r *= va;
 
       if (midClip.knee > 0) {
-        double co[2];
-        midClip.process(l, r, MID_CLIP_REF * ampMod * VOICE_GAIN * velGain, co);
-        l = co[0];
-        r = co[1];
+        midClip.process(l, r, MID_CLIP_REF * ampMod * VOICE_GAIN * velGain, clipOut);
+        l = clipOut[0];
+        r = clipOut[1];
       }
 
       subDelay[subDelayPos] = sub;
@@ -701,98 +738,20 @@ class Voice {
     }
     int rp = subDelayPos - OVERSAMPLE_LATENCY;
     if (rp < 0) rp += 32;
-    const double subOut = subDelay[rp];
+    const double sub = subDelay[rp];
     subDelayPos = (subDelayPos + 1) & 31;
-    // With direct out off the sub joins the voice and goes through the dynamics, effects and EQ.
     if (subDirect) {
       out[0] = l;
       out[1] = r;
-      out[2] = subOut;
+      out[2] = sub;
     } else {
-      out[0] = l + subOut;
-      out[1] = r + subOut;
+      out[0] = l + sub;
+      out[1] = r + sub;
       out[2] = 0;
     }
   }
 
  private:
-  double fs;
-  const double* cur;
-  const float* table;
-  Rng rng;
-  const double* dstMask;
-  bool hasPlayed = false;
-  double noteRandom = 0, subMix = 1, subRamp = 0;
-  Envelope modEnv, env2;
-  double pitchEnvLevel = 0;
-  std::array<double, SRC_COUNT> src{};
-  std::array<double, 4> lfoFade{};
-  std::array<OscState, 2> osc{};
-  double fmPhase = 0, fmInc = 0, fmIndex = 0, pmPrev = 0, fm2Phase = 0, fm2Inc = 0, fm2Index = 0, fmFbAmt = 0, fmPrevOut = 0;
-  double fmEnv = 0, fmEnvCoef = 0.99, fmPunchIdx = 0;
-  int fmAlgo = 0;
-  bool fmActive = false;
-  Comb combL, combR;
-  KarplusString strings[2];
-  std::array<double, 2> strPeriod{}, strGain{};
-  double strTone = 0.5;
-  Shepard shepards[2];
-  double shepRate = 0;
-  double noteTime = 0, vibPhase = 0, vibRate = 5;
-  Svf breathSvf;
-  double breathG = 0.1, chiffEnv = 0, chiffCoef = 0.99, chiffAmt = 0, breathLvl = 0;
-  bool breathOn = false;
-  double accentAmt = 0, subPhase = 0, syncPhase = 0, syncInc = 0;
-  bool syncOn = false;
-  std::array<double, 32> subDelay{};
-  int subDelayPos = 0;
-  double subInc = 0, subLevel = 0;
-  int subWave = 0;
-  // Each oscillator's own filter slot, the sub's, and the oscillators' low cut after the dirt.
-  SlotFilter<2> oscF[2];
-  SlotFilter<1> subF;
-  SlotFilter<2> postCut;
-  bool routeA = true, routeB = true, routeS = false, routeBr = true, breathType = false, subDirect = true;
-  // Some source skips the drive and main filter: it gets its own oversampled path.
-  bool bypassOn = false;
-  Upsampler2x upBL, upBR;
-  // Filter mix (dry/filtered).
-  double fMix = 1;
-  double noiseLevel = 0;
-
-  double driveMix = 0, driveGain = 1, driveComp = 1;
-  int filterType = FILTER_LP;
-  double g = 0.1, gStep = 0, gPrevTarget = -1, k = 0;
-  Ladder ladL, ladR;
-  DiodeLadder diodeL, diodeR;
-  Svf notchL[2], notchR[2], lpgL, lpgR;
-  double combDelay = 100, combFb = 0;
-  Svf bpL[2], bpR[2], fmtL[3], fmtR[3];
-  std::array<double, 3> fmtG{};
-  double fmtK = 0.2;
-
-  Upsampler2x upL, upR;
-  Downsampler2x dnL, dnR;
-  double osOut[4] = {0, 0, 0, 0};
-  Biquad voiceDcL, voiceDcR;
-  double analog = 0, noteCutoffJitter = 0;
-
-  int distType = DIST_SOFT;
-  double distGain = 1, distAmt = 0, toneCoef = 1, toneL = 0, toneR = 0, lastTone = -1;
-  double splitG = 0, lastSplit = std::nan("");
-  std::array<double, 2> adaaU{}, driveU{}, driveF{}, adaaF{};
-  Svf split[6];
-
-  Crusher crusher;
-  double crushQ = 128, crushRate = 1, crushMix = 0;
-  Tape tape;
-  Clipper subClip, midClip;
-  double tapeWow = 0, lastTapeAge = -1;
-  bool tapeOn = false;
-
-  double ampMod = 1, ampModStep = 0, velGain = 1;
-  double tmp[2] = {0, 0};
-
   double toInc(double semis) const { return std::fmin(0.45, (440 * std::pow(2.0, (semis - 69) / 12)) / fs); }
 
   double readTable(int base, double ph) const {
@@ -803,7 +762,7 @@ class Voice {
     return a + (table[base + ((i + 1) & TABLE_MASK)] - a) * f;
   }
 
-  double specialOsc(int n, OscState& o) {
+  double specialOsc(int n, const OscState& o) {
     if (o.wave == WAVE_STRING) return strings[n].process(strPeriod[n], strTone, strGain[n]) * 1.4;
     return shepards[n].process(o.inc[0], shepRate);
   }
@@ -852,6 +811,7 @@ class Voice {
       case DIST_SOFT: return fastTanh(u);
       case DIST_HARD: return u > 1 ? 1 : u < -1 ? -1 : u;
       case DIST_FOLD: return std::sin(HALF_PI * u);
+      case DIST_FUZZ: return fuzz(u + fuzzBias) - fuzzOffset;
       default: return fastTanh(u + TUBE_BIAS) - TUBE_OFFSET;
     }
   }
@@ -861,6 +821,7 @@ class Voice {
       case DIST_SOFT: return tanhIntegral(u);
       case DIST_HARD: return u > 1 ? u - 0.5 : u < -1 ? -u - 0.5 : 0.5 * u * u;
       case DIST_FOLD: return -std::cos(HALF_PI * u) / HALF_PI;
+      case DIST_FUZZ: return fuzzIntegral(u + fuzzBias) - fuzzOffset * u;
       default: return tanhIntegral(u + TUBE_BIAS) - TUBE_OFFSET * u;
     }
   }
@@ -877,6 +838,11 @@ class Voice {
   }
 
   void nonlinear(double l, double r, int slot, double bl, double br) {
+    if (grindOn) {
+      grind.process(l, r);
+      l = grind.l;
+      r = grind.r;
+    }
     if (driveMix > 0) {
       const double dc = driveComp, dm = driveMix;
       l += (driveShape(l, 0) * dc - l) * dm;
@@ -909,6 +875,13 @@ class Voice {
     } else if (filterType == FILTER_COMB) {
       l = combL.process(l, combDelay, combFb);
       r = combR.process(r, combDelay, combFb);
+    } else if (filterType == FILTER_HP) {
+      hpL[0].process(l, gg, 1.848);
+      hpL[1].process(hpL[0].hp, gg, k);
+      l = hpL[1].hp;
+      hpR[0].process(r, gg, 1.848);
+      hpR[1].process(hpR[0].hp, gg, k);
+      r = hpR[1].hp;
     } else if (filterType == FILTER_LPG) {
       lpgL.process(l, gg, k);
       lpgR.process(r, gg, k);
@@ -926,32 +899,30 @@ class Voice {
       l = fl * 2.2;
       r = fr * 2.2;
     }
-    // Mix (dry/filtered).
     if (fMix < 1) {
       l = dryL + (l - dryL) * fMix;
       r = dryR + (r - dryR) * fMix;
     }
     l *= POST_FILTER_GAIN;
     r *= POST_FILTER_GAIN;
-    // Sources that skip the drive and filter rejoin here.
     if (bypassOn) {
       l += bl * POST_FILTER_GAIN;
       r += br * POST_FILTER_GAIN;
     }
-
     if (distAmt > 0) {
       double lowL = 0, lowR = 0, hl = l, hr = r;
       if (splitG > 0) {
-        split[0].processFixed(l);
-        split[1].processFixed(split[0].lp);
-        split[2].processFixed(split[0].hp);
-        lowL = split[1].lp;
-        hl = split[2].hp;
-        split[3].processFixed(r);
-        split[4].processFixed(split[3].lp);
-        split[5].processFixed(split[3].hp);
-        lowR = split[4].lp;
-        hr = split[5].hp;
+        auto& sp = split;
+        sp[0].processFixed(l);
+        sp[1].processFixed(sp[0].lp);
+        sp[2].processFixed(sp[0].hp);
+        lowL = sp[1].lp;
+        hl = sp[2].hp;
+        sp[3].processFixed(r);
+        sp[4].processFixed(sp[3].lp);
+        sp[5].processFixed(sp[3].hp);
+        lowR = sp[4].lp;
+        hr = sp[5].hp;
       }
       toneL += (shape(hl, 0) - toneL) * toneCoef;
       toneR += (shape(hr, 1) - toneR) * toneCoef;
@@ -961,6 +932,80 @@ class Voice {
     osOut[slot] = l;
     osOut[slot + 1] = r;
   }
+
+  const double fs;
+  const double* cur;
+  const float* table;
+  Rng rng;
+  Grind grind;
+  bool grindOn = false;
+  const double* dstMask;
+
+  bool hasPlayed = false;
+  double noteRandom = 0;
+  double subMix = 1, subRamp = 0;
+
+  Envelope modEnv, env2, env3;
+  std::array<double, SRC_COUNT> src{};
+  std::array<double, 4> lfoFade{};
+
+  OscState osc[2];
+  double fmPhase = 0, fmInc = 0, fmIndex = 0, pmPrev = 0, fm2Phase = 0, fm2Inc = 0, fm2Index = 0, fmFbAmt = 0, fmPrevOut = 0;
+  double fmEnv = 0, fmEnvCoef = 0.99, fmPunchIdx = 0;
+  int fmAlgo = 0;
+  bool fmActive = false;
+  DiodeLadder diodeL, diodeR;
+  Comb combL, combR;
+  KarplusString strings[2];
+  double strPeriod[2] = {}, strGain[2] = {}, strTone = 0.5;
+  Shepard shepards[2];
+  double shepRate = 0;
+  double noteTime = 0, vibPhase = 0, vibRate = 5, accentAmt = 0, subPhase = 0;
+  double syncPhase = 0, syncInc = 0;
+  bool syncOn = false;
+  std::array<double, 32> subDelay{};
+  int subDelayPos = 0;
+  double subInc = 0, subLevel = 0;
+  int subWave = 0;
+  Tape tape;
+  Clipper subClip, midClip;
+  double clipOut[2] = {};
+  SlotFilter<2> oscF[2];
+  SlotFilter<1> subF;
+  SlotFilter<2> postCut;
+  bool routeA = true, routeB = true, routeS = false, subDirect = true, bypassOn = false;
+  Upsampler2x upBL, upBR;
+  double fMix = 1, noiseLevel = 0;
+
+  double driveMix = 0, driveGain = 1, driveComp = 1;
+  int filterType = FILTER_LP;
+  double g = 0.1, gStep = 0, gPrevTarget = -1, k = 0;
+  Ladder ladL, ladR;
+  Svf hpL[2], hpR[2], notchL[2], notchR[2], lpgL, lpgR;
+  double combDelay = 100, combFb = 0;
+  Svf bpL[2], bpR[2], fmtL[3], fmtR[3];
+  double fmtG[3] = {}, fmtK = 0.2;
+
+  Upsampler2x upL, upR;
+  Downsampler2x dnL, dnR;
+  double osOut[4] = {};
+  Biquad voiceDcL, voiceDcR;
+  double analog = 0, noteCutoffJitter = 0;
+
+  int distType = DIST_SOFT;
+  double distGain = 1, fuzzBias = FUZZ_BIAS_REL, fuzzOffset = fuzz(FUZZ_BIAS_REL), distAmt = 0, toneCoef = 1, toneL = 0, toneR = 0, lastTone = -1;
+  double splitG = 0, lastSplit = NAN;
+  std::array<double, 2> adaaU{}, driveU{}, driveF{}, adaaF{};
+  Svf split[6];
+
+  Crusher crusher;
+  double crushQ = 128, crushRate = 1, crushMix = 0, crushLc = 0, tapeLc = 0;
+  std::array<double, 4> crushLp{}, tapeLp{};
+  double tapeWow = 0, lastTapeAge = -1;
+  bool tapeOn = false;
+
+  double ampMod = 1, ampModStep = 0, velGain = 1;
+  double tmp[2] = {};
 };
 
 }  // namespace lt

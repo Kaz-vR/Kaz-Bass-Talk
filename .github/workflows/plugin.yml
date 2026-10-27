@@ -4,7 +4,7 @@ name: Plugin (Windows VST3)
 
 on:
   push:
-    paths: ['plugin/**', 'src/**', 'index.html', 'package*.json', 'vite.config.ts', '.github/workflows/plugin.yml']
+    paths: ['plugin/**', 'src/**', 'data/**', 'tools/gen-plugin-data.ts', 'index.html', 'package*.json', 'vite.config.ts', '.github/workflows/plugin.yml']
   workflow_dispatch:
 
 jobs:
@@ -22,6 +22,10 @@ jobs:
         run: |
           npm ci
           npx vite build
+
+      # The plugin's parameter list, Wobbler tables and presets, always from the shared data.
+      - name: Generate the plugin data
+        run: npx tsx tools/gen-plugin-data.ts
 
       # WebView2 (the window's browser), linked statically: the NuGet package's static loader.
       - name: Get the WebView2 SDK

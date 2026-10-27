@@ -1,5 +1,5 @@
 // Effects (port of src/engine/core/fx.ts): chorus, phaser, limiter, flanger,
-// delay, reverb, tape, bitcrusher, compressor and the multiband "OTT".
+// delay, octave-down, reverb, tape and bitcrusher.
 // Delay lines are float, like the prototype's Float32Arrays.
 #pragma once
 #include <algorithm>
@@ -363,61 +363,158 @@ class Delay {
   double time = -1, lpL = 0, lpR = 0, hpL = 0, hpR = 0, hpCoef = 0;
 };
 
-class Reverb {
+/**
+ * Octave-down pitch shifter for the reverb's input: two read taps sliding through a short delay
+ * line at half speed, crossfaded (sin²) so each tap is silent while it jumps back.
+ */
+class OctaveDown {
  public:
-  explicit Reverb(double fs) {
-    const double s = fs / 44100;
-    const int combLens[8] = {1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617};
-    const int apLens[4] = {556, 441, 341, 225};
-    for (int ch = 0; ch < 2; ch++) {
-      for (int c : combLens) combs.emplace_back((size_t)jsRound((c + ch * 23) * s), 0.f);
-      for (int a : apLens) aps.emplace_back((size_t)jsRound((a + ch * 23) * s), 0.f);
-    }
-    pre.assign((size_t)jsRound(0.018 * fs), 0.f);
-  }
+  explicit OctaveDown(double fs) : win((int)jsRound(0.06 * fs)) { buf.assign(win * 2 + 8, 0.f); }
   void reset() {
-    for (auto& c : combs) std::fill(c.begin(), c.end(), 0.f);
-    for (auto& a : aps) std::fill(a.begin(), a.end(), 0.f);
-    combLp.fill(0);
-    std::fill(pre.begin(), pre.end(), 0.f);
+    std::fill(buf.begin(), buf.end(), 0.f);
+    ph = 0;
   }
-  void process(double input, double size, double tone, double* out) {
-    const double fb = 0.72 + 0.26 * size;
-    const double damp = 0.05 + 0.65 * tone;
-    const double x = pre[preIdx] * 0.03;
-    pre[preIdx] = (float)input;
-    preIdx = preIdx + 1 == (int)pre.size() ? 0 : preIdx + 1;
-    for (int ch = 0; ch < 2; ch++) {
-      double acc = 0;
-      for (int c = 0; c < 8; c++) {
-        const int k = ch * 8 + c;
-        auto& buf = combs[k];
-        const int i = combIdx[k];
-        const double y = buf[i];
-        combLp[k] = y * (1 - damp) + combLp[k] * damp;
-        buf[i] = (float)(x + combLp[k] * fb);
-        combIdx[k] = i + 1 == (int)buf.size() ? 0 : i + 1;
-        acc += y;
-      }
-      for (int a = 0; a < 4; a++) {
-        const int k = ch * 4 + a;
-        auto& buf = aps[k];
-        const int i = apIdx[k];
-        const double b = buf[i];
-        buf[i] = (float)(acc + b * 0.5);
-        apIdx[k] = i + 1 == (int)buf.size() ? 0 : i + 1;
-        acc = b - acc;
-      }
-      out[ch] = acc;
+  double process(double x) {
+    const int n = (int)buf.size();
+    buf[w] = (float)x;
+    ph += 0.5 / win;
+    if (ph >= 1) ph -= 1;
+    double y = 0;
+    for (int t = 0; t < 2; t++) {
+      double p = ph + 0.5 * t;
+      if (p >= 1) p -= 1;
+      const double d = 2 + p * win;
+      double r = w - d;
+      if (r < 0) r += n;
+      const int i = (int)std::floor(r);
+      const double f = r - i;
+      const double v = buf[i] * (1 - f) + buf[i + 1 == n ? 0 : i + 1] * f;
+      const double s = std::sin(PI * p);
+      y += v * s * s;
     }
+    w = w + 1 == n ? 0 : w + 1;
+    return y;
   }
  private:
-  std::vector<std::vector<float>> combs, aps;
-  std::array<int, 16> combIdx{};
-  std::array<double, 16> combLp{};
-  std::array<int, 8> apIdx{};
-  std::vector<float> pre;
-  int preIdx = 0;
+  std::vector<float> buf;
+  int w = 0;
+  double ph = 0;
+  int win;
+};
+
+constexpr int VERB_ROOM = 0, VERB_PLATE = 1, VERB_HALL = 2, VERB_CATHEDRAL = 3;
+struct VerbType { double size, diff, damp, mod, build, level; };
+constexpr VerbType VERB_TYPES[4] = {
+  {0.36, 0.62, 5200, 0.35, 0.55, 0.27}, {0.52, 0.78, 6800, 0.5, 0.25, 0.255}, {1.0, 0.7, 4400, 0.8, 0.7, 0.4}, {1.75, 0.72, 3300, 1.1, 1, 0.58}};
+constexpr double VERB_LINES_MS[8] = {29.7, 37.1, 41.1, 43.7, 53.3, 59.9, 67.7, 73.1};
+constexpr double VERB_DIFF_MS[4] = {4.77, 3.59, 12.73, 9.3};
+constexpr double VERB_MOD_HZ[8] = {0.31, 0.47, 0.61, 0.83, 0.37, 0.53, 0.71, 1.07};
+constexpr double VERB_SIGN_L[8] = {1, -1, 1, 1, -1, 1, -1, -1};
+constexpr double VERB_SIGN_R[8] = {1, 1, -1, 1, 1, -1, -1, 1};
+constexpr double VERB_MAX_PRE = 0.26;
+
+/** Vintage digital reverb (1970s colour): band-limited, diffused input, eight chorused lines (see fx.ts Reverb). */
+class Reverb {
+ public:
+  explicit Reverb(double fs_) : fs(fs_) {
+    pre.assign((size_t)std::ceil(VERB_MAX_PRE * fs) + 4, 0.f);
+    const double maxScale = VERB_TYPES[VERB_CATHEDRAL].size;
+    for (int i = 0; i < 4; i++) diff[i].assign((size_t)std::ceil((VERB_DIFF_MS[i] * maxScale * fs) / 1000) + 4, 0.f);
+    for (int i = 0; i < 8; i++) lines[i].assign((size_t)std::ceil(((VERB_LINES_MS[i] * maxScale + 3) * fs) / 1000) + 4, 0.f);
+    bwCoef = 1 - std::exp((-2 * PI * 7500) / fs);
+    for (int i = 0; i < 8; i++) modPh[i] = i / 8.0;
+  }
+  void reset() {
+    std::fill(pre.begin(), pre.end(), 0.f);
+    for (auto& d : diff) std::fill(d.begin(), d.end(), 0.f);
+    for (auto& l : lines) std::fill(l.begin(), l.end(), 0.f);
+    for (auto& d : damp) d = 0;
+    inLp = inLp2 = outL = outR = 0;
+  }
+  void process(double input, double type, double decay, double predelayMs, double* out) {
+    if (type != lastType || std::fabs(decay - lastDecay) > 1e-4 * decay) setup(type, decay);
+    const int pn = (int)pre.size();
+    pre[preW] = (float)input;
+    const double pd = std::fmin(VERB_MAX_PRE * fs, std::fmax(0, (predelayMs * fs) / 1000));
+    double rp = preW - pd;
+    if (rp < 0) rp += pn;
+    const int ri = (int)std::floor(rp);
+    const double rf = rp - ri;
+    double x = pre[ri] * (1 - rf) + pre[ri + 1 == pn ? 0 : ri + 1] * rf;
+    preW = preW + 1 == pn ? 0 : preW + 1;
+    inLp += bwCoef * (x - inLp);
+    inLp2 += bwCoef * (inLp - inLp2);
+    x = inLp2;
+    const double g = diffG;
+    for (int i = 0; i < 4; i++) {
+      auto& buf = diff[i];
+      const int n = (int)buf.size();
+      int r = diffW[i] - diffLen[i];
+      if (r < 0) r += n;
+      const double d = buf[r];
+      const double v = x + g * d;
+      buf[diffW[i]] = (float)v;
+      x = d - g * v;
+      diffW[i] = diffW[i] + 1 == n ? 0 : diffW[i] + 1;
+    }
+    double sum = 0;
+    const double dc = dampCoef;
+    for (int i = 0; i < 8; i++) {
+      auto& buf = lines[i];
+      const int n = (int)buf.size();
+      double ph = modPh[i] + VERB_MOD_HZ[i] / fs;
+      if (ph >= 1) ph -= 1;
+      modPh[i] = ph;
+      const double m = 1 + modDepth * (0.5 + 0.5 * std::sin(2 * PI * ph));
+      double r = lineW[i] - len[i] - m;
+      while (r < 0) r += n;
+      const int j = (int)std::floor(r);
+      const double f = r - j;
+      const double y = buf[j] * (1 - f) + buf[j + 1 == n ? 0 : j + 1] * f;
+      damp[i] = y * (1 - dc) + damp[i] * dc;
+      const double v = damp[i] * gain[i];
+      lineOut[i] = v;
+      sum += v;
+    }
+    const double hh = (2.0 / 8) * sum;
+    const double b = build;
+    double l = 0, rr = 0;
+    for (int i = 0; i < 8; i++) {
+      const double v = lineOut[i];
+      const double inject = i < 4 ? x : x * (1 - 0.5 * b);
+      auto& buf = lines[i];
+      buf[lineW[i]] = (float)(v - hh + inject);
+      lineW[i] = lineW[i] + 1 == (int)buf.size() ? 0 : lineW[i] + 1;
+      l += VERB_SIGN_L[i] * v;
+      rr += VERB_SIGN_R[i] * v;
+    }
+    outL += bwCoef * (l - outL);
+    outR += bwCoef * (rr - outR);
+    out[0] = outL * level;
+    out[1] = outR * level;
+  }
+ private:
+  void setup(double type, double decay) {
+    const VerbType& t = VERB_TYPES[std::max(0, std::min(3, (int)type))];
+    for (int i = 0; i < 8; i++) {
+      len[i] = (VERB_LINES_MS[i] * t.size * fs) / 1000;
+      gain[i] = std::pow(10.0, (-3 * len[i]) / (std::fmax(0.1, decay) * (1 + 0.055 * decay) * fs));
+    }
+    for (int i = 0; i < 4; i++) diffLen[i] = std::max(1, (int)jsRound((VERB_DIFF_MS[i] * std::sqrt(t.size) * fs) / 1000));
+    dampCoef = std::exp((-2 * PI * t.damp) / fs);
+    modDepth = (t.mod * fs) / 1000;
+    diffG = t.diff;
+    build = t.build;
+    level = t.level * std::fmin(2, std::pow(std::fmax(0.1, decay) / 2, -0.37));
+    lastType = type;
+    lastDecay = decay;
+  }
+  double fs;
+  std::vector<float> pre, diff[4], lines[8];
+  int preW = 0, diffW[4] = {}, lineW[8] = {}, diffLen[4] = {};
+  double damp[8] = {}, modPh[8] = {}, lineOut[8] = {}, len[8] = {}, gain[8] = {};
+  double inLp = 0, inLp2 = 0, outL = 0, outR = 0, lastType = -1, lastDecay = -1;
+  double dampCoef = 0, modDepth = 0, diffG = 0.7, build = 0.7, level = 0.4, bwCoef = 0;
 };
 
 class Tape {
@@ -512,107 +609,6 @@ class Crusher {
   }
  private:
   double holdL = 0, holdR = 0, acc = 1;
-};
-
-class Compressor {
- public:
-  void reset() {
-    env = 0;
-    gain = 1;
-    gainStep = 0;
-  }
-  void update(double amount, double speed, double pumpGain, double fs, int block) {
-    active = amount > 0.001;
-    const double atkMs = 30 * std::pow(1.0 / 30, speed);
-    const double relMs = 300 * std::pow(40.0 / 300, speed);
-    atk = 1 - std::exp(-1 / ((atkMs * fs) / 1000));
-    rel = 1 - std::exp(-1 / ((relMs * fs) / 1000));
-    const double threshDb = -30 * amount;
-    const double ratio = 1.5 + 6 * amount;
-    thresh = std::pow(10.0, threshDb / 20);
-    slope = 1 - 1 / ratio;
-    makeup = std::pow(10.0, (-threshDb * slope * 0.5) / 20);
-    double g = 1;
-    if (active && env > thresh) g = std::pow(env / thresh, -slope);
-    const double target = (active ? g * makeup : 1) * pumpGain;
-    gainStep = (target - gain) / block;
-  }
-  void process(double l, double r, double* out) {
-    const double a = std::fmax(std::fabs(l), std::fabs(r));
-    env += (a - env) * (a > env ? atk : rel);
-    gain += gainStep;
-    out[0] = l * gain;
-    out[1] = r * gain;
-  }
- private:
-  double env = 0, gain = 1, gainStep = 0, atk = 0, rel = 0, thresh = 1, slope = 0, makeup = 1;
-  bool active = false;
-};
-
-class Ott {
- public:
-  explicit Ott(double fs) {
-    gLow = std::tan((PI * 120) / fs);
-    gMid = std::tan((PI * 2500) / fs);
-    lowL.setCoefs(gLow, SQRT2);
-    lowR.setCoefs(gLow, SQRT2);
-    midL.setCoefs(gMid, SQRT2);
-    midR.setCoefs(gMid, SQRT2);
-    atk = 1 - std::exp(-1 / (0.004 * fs));
-    rel = 1 - std::exp(-1 / (0.12 * fs));
-  }
-  void reset() {
-    lowL.reset();
-    lowR.reset();
-    midL.reset();
-    midR.reset();
-    env.fill(0);
-    gain.fill(1);
-    step.fill(0);
-  }
-  void update(double amount, int block) {
-    static const double UP_MAX_DB[3] = {3, 12, 14};
-    static const double THRESH_DB[3] = {-14, -20, -24};
-    for (int b = 0; b < 3; b++) {
-      double target = 1;
-      if (amount > 0.001) {
-        const double e = std::fmax(env[b], 1e-6);
-        const double db = 20 * std::log10(e);
-        const double t = THRESH_DB[b];
-        double gDb;
-        if (db > t) gDb = -(db - t) * 0.75;
-        else gDb = std::fmin(UP_MAX_DB[b], (t - db) * 0.6);
-        if (db < -70) gDb = std::fmin(gDb, 0);
-        target = 1 + amount * (std::pow(10.0, gDb / 20) - 1);
-      }
-      step[b] = (target - gain[b]) / block;
-    }
-  }
-  void process(double l, double r, double* out) {
-    lowL.processFixed(l);
-    lowR.processFixed(r);
-    const double loL = lowL.lp, loR = lowR.lp;
-    const double restL = l - loL, restR = r - loR;
-    midL.processFixed(restL);
-    midR.processFixed(restR);
-    const double miL = midL.lp, miR = midR.lp;
-    const double hiL = restL - miL, hiR = restR - miR;
-    const double b0 = std::fmax(std::fabs(loL), std::fabs(loR));
-    const double b1 = std::fmax(std::fabs(miL), std::fabs(miR));
-    const double b2 = std::fmax(std::fabs(hiL), std::fabs(hiR));
-    env[0] += (b0 - env[0]) * (b0 > env[0] ? atk : rel);
-    env[1] += (b1 - env[1]) * (b1 > env[1] ? atk : rel);
-    env[2] += (b2 - env[2]) * (b2 > env[2] ? atk : rel);
-    gain[0] += step[0];
-    gain[1] += step[1];
-    gain[2] += step[2];
-    out[0] = loL * gain[0] + miL * gain[1] + hiL * gain[2];
-    out[1] = loR * gain[0] + miR * gain[1] + hiR * gain[2];
-  }
- private:
-  Svf lowL, lowR, midL, midR;
-  double gLow = 0, gMid = 0, atk = 0, rel = 0;
-  std::array<double, 3> env{}, gain{1, 1, 1}, step{};
 };
 
 }  // namespace lt

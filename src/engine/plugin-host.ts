@@ -104,13 +104,16 @@ const mask = (names: string[]) => names.reduce((m, n) => (LAYERS.includes(n) ? m
 export class PluginHost {
   readonly analyser = new PluginAnalyser() as unknown as AnalyserNode;
   private wheelAt = -Infinity;
+  /** The engine's live values (see LowTalkProcessor::live): cutoff, res, wobble phase, wobble filter, LFO phases ×4, values ×4, GRIND fc ×4, res ×4. */
+  private live: number[] = [];
 
   constructor(feed: PluginFeed) {
     const b = juce()!;
     b.addEventListener('lt-state', (p) => feed.state(p as PluginState));
     b.addEventListener('lt-params', (p) => feed.params(p as [number, number][]));
     b.addEventListener('lt-live', (p) => {
-      const { scope, rate, held, wheel } = p as { scope: string; rate: number; held: number[]; wheel: number };
+      const { scope, rate, held, wheel, live } = p as { scope: string; rate: number; held: number[]; wheel: number; live?: number[] };
+      if (live) this.live = live;
       if (scope) {
         const bin = atob(scope);
         const bytes = new Uint8Array(bin.length);
@@ -178,4 +181,32 @@ export class PluginHost {
   }
 
   async resume(): Promise<void> {}
+
+  /** The newest voice's cutoff (Hz) and resonance, or null when nothing sounds. */
+  liveFilter(): { cutoff: number; res: number } | null {
+    const c = this.live[0];
+    return c > 0 ? { cutoff: c, res: this.live[1] } : null;
+  }
+
+  /** Where the Wobbler is in its cycle (0..1), or null when it is off. */
+  liveWobble(): number | null {
+    const w = this.live[2];
+    return w !== undefined && w >= 0 ? w : null;
+  }
+
+  /** The Wobbler filter's cutoff (Hz), or null when it is not working. */
+  liveWobFilter(): number | null {
+    const f = this.live[3];
+    return f > 0 ? f : null;
+  }
+
+  /** Each LFO's phase (0..1) and value (-1..1). */
+  liveLfos(): { phase: number[]; value: number[] } {
+    return { phase: [0, 1, 2, 3].map((i) => this.live[4 + i] ?? 0), value: [0, 1, 2, 3].map((i) => this.live[8 + i] ?? 0) };
+  }
+
+  /** Each GRIND stage's filter frequency (Hz, -1 off) and resonance. */
+  liveGrind(): { fc: number[]; res: number[] } {
+    return { fc: [0, 1, 2, 3].map((i) => this.live[12 + i] ?? -1), res: [0, 1, 2, 3].map((i) => this.live[16 + i] ?? 0) };
+  }
 }

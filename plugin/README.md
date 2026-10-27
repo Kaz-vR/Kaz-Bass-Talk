@@ -3,7 +3,7 @@
 The synth as a VST3 instrument: the same engine as the browser prototype
 (ported to C++ and checked against it sample by sample), all ~200 parameters
 as automatable host parameters, the whole preset bank built in (also in the
-host's preset list), the pump and wobble locked to the host's tempo and bar,
+host's preset list), the Wobbler and GRIND locked to the host's tempo and bar,
 and MPE. Its window is the prototype's own page (the synth page, PRESETS with
 the Randomizer and your starred sounds, "All controls"), shown in a WebView2
 and served from inside the plugin: no network, nothing to install besides the
@@ -28,12 +28,12 @@ WebView2 runtime that ships with Windows 10/11.
 - **MPE** (on by default): each note gets its own pitch bend (±48 semitones),
   pressure (plays it harder: brighter, dirtier, louder) and slide (CC 74,
   brightness). A normal keyboard works the same with MPE on or off.
-- **Tempo:** the pump and the wobble follow the host's tempo and lock to its
+- **Tempo:** the Wobbler and GRIND follow the host's tempo and lock to its
   bar while the transport runs.
 
 ## Building
 
-    npx tsx tools/gen-plugin-data.ts          # after changing data/schema.json or the presets
+    npx tsx tools/gen-plugin-data.ts          # after changing data/schema.json, the Wobbler shapes or the presets (CI runs it too)
     npm ci && npx vite build                  # the window (embedded from dist/)
     cmake -S plugin -B build && cmake --build build --config Release --target LowTalk_VST3
 

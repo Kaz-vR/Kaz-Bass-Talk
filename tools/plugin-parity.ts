@@ -17,7 +17,7 @@ const wheel = Number(process.argv.find((a) => a.startsWith('--wheel='))?.split('
 const clip = process.argv.includes('--clip');
 // --set: override parameters on every preset (to exercise features the bank leaves at their defaults).
 const sets = (process.argv.find((a) => a.startsWith('--set='))?.slice(6) ?? '')
-  .split(',').filter(Boolean).map((kv) => { const i = kv.lastIndexOf(':'); const v = kv.slice(i + 1); return [kv.slice(0, i), v === 'true' ? true : v === 'false' ? false : Number(v)] as const; });
+  .split(',').filter(Boolean).map((kv) => { const i = kv.lastIndexOf(':'); const v = kv.slice(i + 1); return [kv.slice(0, i), v === "true" ? true : v === "false" ? false : Number.isNaN(Number(v)) ? v : Number(v)] as const; });
 const loops = loadLoops();
 const dir = mkdtempSync(join(tmpdir(), 'parity-'));
 const fs = 48000, seconds = 3, tail = 1;

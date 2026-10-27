@@ -1,5 +1,5 @@
 // Dev test for the plugin-only engine additions (not covered by the parity
-// check): MPE per-note bend / pressure, and the host-locked pump clock.
+// check): MPE per-note bend / pressure, and the host-locked Wobbler clock.
 //   g++ -std=c++17 -O2 -I engine tools/engine_test.cpp -o engine_test && ./engine_test
 #include <cstdio>
 #include <vector>
@@ -82,12 +82,17 @@ int main() {
     check(bright(1.0) > 1.5 * bright(0.0), "MPE pressure plays the note brighter");
   }
   {
-    // The pump follows syncBeat: duck at the start of each beat, wherever the host jumps to.
+    // The Wobbler follows syncBeat: a square on the volume, open on the beat, shut halfway, wherever the host jumps to.
     Synth s(fs);
     auto v = plainPatch(1);
-    v[paramIndex("comp.pump")] = 1;
-    v[paramIndex("comp.amount")] = 0;
-    v[paramIndex("comp.pump_rate")] = 2;  // 1/4
+    v[paramIndex("wobble.on")] = 1;
+    v[paramIndex("wobble.depth")] = 1;
+    v[paramIndex("wobble.volume")] = 1;
+    v[paramIndex("wobble.cutoff")] = 0;
+    v[paramIndex("wobble.lowcut")] = 20;
+    v[paramIndex("wobble.life")] = 0;
+    v[paramIndex("wobble.shape")] = 3;  // square
+    v[paramIndex("wobble.rate")] = 10;  // 1/4
     s.setParams(v.data(), true);
     s.setTempo(120);
     s.noteOn(57, 0.8);
@@ -95,15 +100,16 @@ int main() {
     s.render(l.data(), r.data(), 0, 24000);
     auto rmsAt = [&](double beat) {
       s.syncBeat(beat);
-      std::vector<float> a(960), b(960);  // 20 ms
+      std::vector<float> a(960), b(960);  // 20 ms, after 10 ms for the gate to settle
+      s.render(a.data(), b.data(), 0, 480);
       s.render(a.data(), b.data(), 0, 960);
       double e = 0;
       for (float x : a) e += x * x;
       return std::sqrt(e / a.size());
     };
-    const double onBeat = rmsAt(2.05);  // just after the beat: the duck is deepest there
-    const double offBeat = rmsAt(2.6);
-    check(onBeat < 0.6 * offBeat, "the pump ducks on the host's beat, not between beats");
+    const double open = rmsAt(2.1);
+    const double shut = rmsAt(2.6);
+    check(shut < 0.3 * open, "the Wobbler gates on the host's beat");
   }
   std::printf("%s\n", fails ? "FAILED" : "all ok");
   return fails ? 1 : 0;

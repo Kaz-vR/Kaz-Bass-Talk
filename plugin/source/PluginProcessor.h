@@ -69,6 +69,10 @@ class LowTalkProcessor : public juce::AudioProcessor {
   /** Notes held from the host's MIDI (bits), for the on-screen keyboard. */
   std::array<std::atomic<uint32_t>, 4> heldNotes{};
   double getRate() const { return rate; }
+  /** What the engine is doing right now, for the window's moving prints: cutoff, resonance, the
+   *  Wobbler's phase and filter, each LFO's phase and value, each GRIND stage's frequency and resonance. */
+  static constexpr int LIVE_COUNT = 20;
+  std::array<std::atomic<float>, LIVE_COUNT> live{};
 
   static constexpr const char* WHEEL_ID = "modwheel";
   static constexpr const char* MPE_ID = "mpe";

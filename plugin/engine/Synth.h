@@ -4,7 +4,8 @@
 //
 // Plugin additions: notes carry their MIDI channel so MPE per-note bend,
 // pressure and slide reach the right voice; the host's tempo and bar
-// position drive the pump and wobble clock (setTempo / syncBeat).
+// position drive the Wobbler's and GRIND's clock (setTempo / syncBeat); solo /
+// mute come as bit masks; live values for the window (filter, LFOs, Wobbler, GRIND).
 #pragma once
 #include <array>
 #include <cmath>
@@ -13,11 +14,13 @@
 #include <vector>
 #include "Dsp.h"
 #include "Fx.h"
+#include "Grind.h"
 #include "Oversample.h"
 #include "Params.h"
 #include "Voice.h"
 #include "VoiceFx.h"
 #include "Wavetable.h"
+#include "Wobshape.h"
 
 namespace lt {
 
@@ -28,10 +31,14 @@ class Synth {
   const double sampleRate;
   double peak = 0;
   bool wheelFrozen = false;
+  // Live values for the window (the newest voice's).
+  double liveCutoff = 0, liveRes = 0, liveWob = -1, liveWobFc = -1;
+  std::array<double, LFO_COUNT> lfoPhase{}, lfoValue{};
+  std::array<double, 4> liveGrind{}, liveGrindRes{};
 
   explicit Synth(double fs)
-      : sampleRate(fs), chorus(fs), phaser(fs), reverb(fs), flanger(fs), delay(fs), ott(fs), limiter(fs, LIMITER_CEILING_DB) {
-    const auto& P = PI_();
+      : sampleRate(fs), rng(0x1234567), wobRng(0x60bb1e), texGrindRng(0x6a1d), texGrind(texGrindRng), ott(),
+        chorus(fs), phaser(fs), reverb(fs), verbOct(fs), flanger(fs), delay(fs), limiter(fs, LIMITER_CEILING_DB) {
     smoothCoef = 1 - std::exp(-CONTROL_BLOCK / ((SMOOTH_MS / 1000) * fs));
     duckStep = 1 / ((DUCK_MS / 1000) * fs);
     postDcR = 1 - (2 * PI * 5) / fs;
@@ -41,6 +48,7 @@ class Synth {
       raw[i] = target[i] = cur[i] = PARAMS[i].def;
     }
     dstMask.fill(1);
+    liveGrind.fill(-1);
     const float* table = getWavetable().data();
     for (int i = 0; i < MAX_VOICES; i++)
       voices.push_back(std::make_unique<Voice>(fs, cur.data(), table, 0x2468aceu + 0x9e3779bu * (uint32_t)i, dstMask.data()));
@@ -48,17 +56,19 @@ class Synth {
       dcL[i].setHighpass(SUBSONIC_HZ, SUBSONIC_Q[i], fs);
       dcR[i].setHighpass(SUBSONIC_HZ, SUBSONIC_Q[i], fs);
     }
-    lastFx.fill(std::nan(""));
+    lastFx.fill(NAN);
+    eqLast.fill(NAN);
+    wobSig = NAN;
     for (int l = 0; l < LFO_COUNT; l++) {
       lfoPrev[l] = rng.next();
       lfoHold[l] = rng.next();
     }
-    (void)P;
     applyDiscrete();
     control();
   }
 
   int latency() const { return limiter.lookahead - 1 + OVERSAMPLE_LATENCY; }
+  double limiterCeiling() const { return limiter.ceiling; }
   double takeLimiterMinGain() {
     const double g = limiter.minGain;
     limiter.minGain = 1;
@@ -89,7 +99,11 @@ class Synth {
     }
   }
   void setTempo(double bpm) { tempo = clampd(bpm, 20, 400); }
-  void syncBeat(double beat) { beatPos = beat - 4 * std::floor(beat / 4); songBeat = beat; }
+  /** Align the internal clocks to a song position in beats (the bar for GRIND, the song for the Wobbler). */
+  void syncBeat(double beat) {
+    beatPos = beat - 4 * std::floor(beat / 4);
+    songBeat = beat;
+  }
   void pitchBend(double v) { bend = clampd(v, -1, 1); }
   void setModWheel(double v) { modWheel = clampd(v, 0, 1); }
 
@@ -120,6 +134,7 @@ class Synth {
     }
   }
 
+  // ---------------------------------------------------------------- notes
   void noteOn(int note, double velocity = 0.8, int channel = -1) {
     if (velocity <= 0) {
       noteOff(note, channel);
@@ -165,8 +180,12 @@ class Synth {
     const bool fresh = !pick->active();
     assignChannel(*pick, channel);
     pick->start(note, velocity, false, true, ++order);
-    onTrigger();
-    if (fresh) pick->control(gsrc.data(), bend, xdst.data());
+    onTrigger(velocity);
+    if (fresh) {
+      pick->beatPos = beatPos;
+      pick->bps = tempo / 60;
+      pick->control(gsrc.data(), bend, xdst.data());
+    }
   }
 
   void noteOff(int note, int channel = -1) {
@@ -190,17 +209,20 @@ class Synth {
   void panic() {
     allNotesOff();
     for (auto& v : voices) v->reset();
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 4; i++) {
       eqL[i].reset();
       eqR[i].reset();
     }
-    hpL.reset();
-    hpR.reset();
+    for (int k = 0; k < 5; k++) {
+      hpL[k].reset();
+      hpR[k].reset();
+    }
     for (auto& x : xo) x.reset();
     for (auto& x : xoPost) x.reset();
     chorus.reset();
     phaser.reset();
     reverb.reset();
+    verbOct.reset();
     limiter.reset();
     postDcXL = postDcYL = postDcXR = postDcYR = 0;
     for (int i = 0; i < 2; i++) {
@@ -209,27 +231,33 @@ class Synth {
     }
     texture.reset();
     texEnv = texLpL = texLpR = 0;
-    texF.reset();
-    texNL.reset();
-    texNR.reset();
     wobCycle = -1;
+    wobGate = wobGateTarget = 1;
+    for (auto& side : wobBand) for (auto& b : side) b.reset();
     wobScale = wobScaleTarget = 1;
     wobBright = wobBrightTarget = 0;
     hcL.reset();
     hcR.reset();
-    comp.reset();
-    ott.reset();
     flanger.reset();
     delay.reset();
   }
 
   bool idle() const { return !anyActive(); }
+  int heldNotes() const {
+    if (poly <= 1) return stackLen;
+    int n = 0;
+    for (auto& v : voices) if (v->gate) n++;
+    return n;
+  }
+
+  // ------------------------------------------------------------ audio rate
 
   /** Render `frames` samples into outL/outR starting at `offset`. Allocation-free. */
   void render(float* outL, float* outR, int offset, int frames) {
     const auto& P = PI_();
     const int end = offset + frames;
     double pk = peak;
+    double out[2], vout[3];
     for (int n = offset; n < end; n++) {
       if (ctrlCount == 0) {
         control();
@@ -268,14 +296,23 @@ class Synth {
       }
 
       if (texMon != texMonTarget) {
-        const double kk = 1 / (0.005 * sampleRate);
-        texMon += std::fmax(-kk, std::fmin(kk, texMonTarget - texMon));
+        const double k = 1 / (0.005 * sampleRate);
+        texMon += std::fmax(-k, std::fmin(k, texMonTarget - texMon));
       }
       double texL = 0, texR = 0;
       if (texGain > 0 && (anyGate || texEnv > 1e-5)) {
         texEnv = anyGate ? texEnv + (1 - texEnv) * texAtk : texEnv * texRel;
-        texture.process(texType, texTone, sampleRate, tmp);
-        double tl = tmp[0], tr = tmp[1];
+        texPos += texRate;
+        while (texPos >= 1) {
+          texPos -= 1;
+          texture.process(texType, texTone, texDensity, sampleRate, out);
+          texPrev[0] = texCur[0];
+          texPrev[1] = texCur[1];
+          texCur[0] = out[0];
+          texCur[1] = out[1];
+        }
+        const double tf = texPos;
+        double tl = texPrev[0] + (texCur[0] - texPrev[0]) * tf, tr = texPrev[1] + (texCur[1] - texPrev[1]) * tf;
         if (cur[P.tapeAge] > 0) {
           texLpL += (tl - texLpL) * texLpCoef;
           texLpR += (tr - texLpR) * texLpCoef;
@@ -287,8 +324,9 @@ class Synth {
           tr = texF.process(tr, 1);
         }
         if (texRouteN) {
-          texNL.process(tl, texNG, texNK);
-          texNR.process(tr, texNG, texNK);
+          const double g = texNG, k = texNK;
+          texNL.process(tl, g, k);
+          texNR.process(tr, g, k);
           const int m = texNMode;
           tl = m == 1 ? texNL.bp : m == 2 ? texNL.lp + texNL.hp : texNL.lp;
           tr = m == 1 ? texNR.bp : m == 2 ? texNR.lp + texNR.hp : texNR.lp;
@@ -303,76 +341,98 @@ class Synth {
       } else if (!anyGate) {
         texEnv = 0;
       }
-      const bool texPost = cur[P.texPosition] > 0.5;
-      // Direct out: the bed joins the clean sub after every effect.
-      if (!texDirect && !texPost) {
+      const bool direct = texDirect;
+      if (!direct) {
+        if (texGrindOn) {
+          texGrind.process(texL, texR);
+          texL = texGrind.l;
+          texR = texGrind.r;
+        }
         l += texL;
         r += texR;
       }
-
-      if (compOn) {
-        comp.process(l, r, tmp);
-        l = tmp[0];
-        r = tmp[1];
-      }
-      if (ottOn) {
-        ott.process(l, r, tmp);
-        l = tmp[0];
-        r = tmp[1];
-      }
-      if (texPost && !texDirect) {
-        l += texL;
-        r += texR;
+      if (ott.on()) {
+        ott.process(l, r);
+        l = ott.l;
+        r = ott.r;
       }
 
-      const double hl = hpL.process(l);
-      const double hr = hpR.process(r);
-      double xl = hl, xr = hr;
       const double cMix = cur[P.chorusMix];
       if (cMix > 1e-4) {
-        chorus.process(xl, xr, cMix, chorusDepth, tmp, cur[P.chorusMode] > 0.5);
-        xl = tmp[0];
-        xr = tmp[1];
+        const double hl = hpL[0].process(l), hr = hpR[0].process(r);
+        chorus.process(hl, hr, cMix, chorusDepth, out, cur[P.chorusMode] > 0.5);
+        l += out[0] - hl;
+        r += out[1] - hr;
       }
       const double fMix = cur[P.flangerMix];
       if (fMix > 1e-4) {
-        flanger.process(xl, xr, fMix, cur[P.flangerRate], cur[P.flangerFb], tmp);
-        xl = tmp[0];
-        xr = tmp[1];
+        const double hl = hpL[1].process(l), hr = hpR[1].process(r);
+        flanger.process(hl, hr, fMix, cur[P.flangerRate], cur[P.flangerFb], out);
+        l += out[0] - hl;
+        r += out[1] - hr;
       }
-      if (phaserMix > 1e-4) {
-        phaser.process(xl, xr, phaserMix, cur[P.phaserRate], tmp);
-        xl = tmp[0];
-        xr = tmp[1];
+      const double pMix = phaserMix;
+      if (pMix > 1e-4) {
+        const double hl = hpL[2].process(l), hr = hpR[2].process(r);
+        phaser.process(hl, hr, pMix, cur[P.phaserRate], out);
+        l += out[0] - hl;
+        r += out[1] - hr;
       }
-      if (delayMix > 1e-4) {
-        delay.process(xl, xr, delaySeconds, cur[P.delayFb], delayToneCoef, tmp);
-        xl += tmp[0] * delayMix;
-        xr += tmp[1] * delayMix;
+      const double dMix = delayMix;
+      if (dMix > 1e-4) {
+        delay.process(hpL[3].process(l), hpR[3].process(r), delaySeconds, cur[P.delayFb], delayToneCoef, out);
+        l += out[0] * dMix;
+        r += out[1] * dMix;
       }
-      if (reverbMix > 1e-4) {
-        reverb.process(0.5 * (xl + xr), cur[P.reverbSize], cur[P.reverbTone], tmp);
-        xl += tmp[0] * reverbMix;
-        xr += tmp[1] * reverbMix;
+      const double rMix = reverbMix;
+      if (rMix > 1e-4) {
+        double vin;
+        if (cur[P.reverbOct] < -0.5) {
+          const double sh = verbOct.process(0.5 * (l + r));
+          vin = 0.5 * (hpL[4].process(sh) + hpR[4].process(sh));
+        } else vin = 0.5 * (hpL[4].process(l) + hpR[4].process(r));
+        reverb.process(vin, cur[P.reverbType], cur[P.reverbDecay], cur[P.reverbPre], out);
+        l += out[0] * rMix;
+        r += out[1] * rMix;
       }
-      l = l - hl + xl;
-      r = r - hr + xr;
 
-      for (int b = 0; b < 3; b++)
+      for (int b = 0; b < 4; b++) {
         if (eqOn[b]) {
           l = eqL[b].process(l);
           r = eqR[b].process(r);
         }
+      }
       if (highcutOn) {
         l = hcL.process(l);
         r = hcR.process(r);
       }
+
       l += sub;
       r += sub;
-      if (texDirect) {
+      if (direct) {
         l += texL;
         r += texR;
       }
+
+      if (wobFiltOn || wobGate != 1 || wobGateTarget != 1) {
+        wobGate += (wobGateTarget - wobGate) * 0.02;
+        wobG += wobGStep;
+        if (std::fabs(wobGate - 1) < 1e-6 && wobGateTarget == 1) wobGate = 1;
+        const double lc = cur[P.wobLowcut];
+        const bool loOn = lc > 21;
+        if (lc != wobBandLc) {
+          wobBandLc = lc;
+          if (loOn)
+            for (auto& f : wobBand)
+              for (int k = 0; k < 2; k++) {
+                f[k].setLowpass(lc, SQRT1_2, sampleRate);
+                f[2 + k].setHighpass(lc, SQRT1_2, sampleRate);
+              }
+        }
+        l = wobSide(l, 0, loOn, wobGate, wobFiltOn);
+        r = wobSide(r, 1, loOn, wobGate, wobFiltOn);
+      }
+
       l = dcL[1].process(dcL[0].process(l));
       r = dcR[1].process(dcR[0].process(r));
 
@@ -387,19 +447,19 @@ class Synth {
         l = r = 0;
       }
 
-      limiter.process(l, r, tmp);
+      limiter.process(l, r, out);
       {
-        const double pm = 0.5 * (tmp[0] + tmp[1]);
-        const double ps = xoPost[1].process(xoPost[0].process(0.5 * (tmp[0] - tmp[1])));
-        tmp[0] = pm + ps;
-        tmp[1] = pm - ps;
+        const double pm = 0.5 * (out[0] + out[1]);
+        const double ps = xoPost[1].process(xoPost[0].process(0.5 * (out[0] - out[1])));
+        out[0] = pm + ps;
+        out[1] = pm - ps;
       }
       const double c = limiter.ceiling;
-      double yl = tmp[0] - postDcXL + postDcR * postDcYL;
-      postDcXL = tmp[0];
+      double yl = out[0] - postDcXL + postDcR * postDcYL;
+      postDcXL = out[0];
       postDcYL = yl;
-      double yr = tmp[1] - postDcXR + postDcR * postDcYR;
-      postDcXR = tmp[1];
+      double yr = out[1] - postDcXR + postDcR * postDcYR;
+      postDcXR = out[1];
       postDcYR = yr;
       yl = yl > c ? c : yl < -c ? -c : yl;
       yr = yr > c ? c : yr < -c ? -c : yr;
@@ -412,71 +472,6 @@ class Synth {
   }
 
  private:
-  std::array<double, PARAM_COUNT> target{}, cur{}, raw{};
-  std::array<double, DEST_COUNT> dstMask{};
-  std::array<bool, PARAM_COUNT> isLog{}, isDiscrete{};
-  double smoothCoef = 0, duckGain = 1, duckStep = 0;
-  int duckDir = 0, duckHold = 0;
-
-  std::vector<std::unique_ptr<Voice>> voices;
-  int poly = 1;
-  long long order = 0;
-  std::array<int, 16> stack{};
-  int stackLen = 0;
-  double bend = 0, modWheel = 0, wheel = 0;
-  double texMon = 1, texMonTarget = 1;
-  int monSolo = 0, monMute = 0;
-  std::array<double, DEST_COUNT> xdst{};
-  Rng wobRng{0x60bb1e};
-  long long wobCycle = -1;
-  double wobScale = 1, wobScaleTarget = 1, wobBright = 0, wobBrightTarget = 0, wobTexTone = 0;
-  double tempo = 120;
-  std::array<double, 16> chBend{}, chPressure{}, chSlide{0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
-
-  std::array<double, LFO_COUNT> lfoPhase{}, lfoValue{}, lfoHold{}, lfoPrev{};
-  std::array<double, SRC_COUNT> gsrc{};
-  Rng rng{0x1234567};
-  double driftVal = 0, driftTarget = 0;
-  int driftCount = 0;
-  double slowA = 0, slowB = 0, slowPos = 1, slowStep = 0;
-
-  Texture texture;
-  double texEnv = 0, texGain = 0;
-  int texType = 0;
-  double texTone = 0.4, texAtk = 0.001, texRel = 0.999, texLpL = 0, texLpR = 0, texLpCoef = 1;
-  bool anyGate = false;
-  // The bed's own filter, its copy of the main filter (N), pan and direct out.
-  SlotFilter<2> texF;
-  Svf texNL, texNR;
-  bool texRouteN = false, texPanOn = false, texDirect = false;
-  double texNG = 0.1, texNK = 1.4, texPanL = 1, texPanR = 1;
-  int texNMode = 0;  // 0 low, 1 band, 2 notch
-
-  Compressor comp;
-  bool compOn = false, ottOn = false;
-  double beatPos = 0;
-  double songBeat = 0; // never wrapped: the wobble's clock, so cycles longer than a bar run their full length
-
-  Chorus chorus;
-  Phaser phaser;
-  Reverb reverb;
-  Flanger flanger;
-  Delay delay;
-  Ott ott;
-  Limiter limiter;
-  double delaySeconds = 0.375, delayToneCoef = 0.5;
-  double chorusDepth = 0, phaserMix = 0, delayMix = 0, reverbMix = 0, width = 1, widthStep = 0, widthTarget = 1;
-  Biquad hcL, hcR;
-  bool highcutOn = false;
-  std::array<bool, 3> eqOn{};
-  Biquad hpL, hpR;
-  Biquad eqL[3], eqR[3], dcL[2], dcR[2], xo[4], xoPost[2];
-  double outGain = 1, outGainStep = 0, postDcXL = 0, postDcYL = 0, postDcXR = 0, postDcYR = 0, postDcR = 0;
-  double outTarget = 1, lastOutDb = std::nan("");
-  std::array<double, 8> lastFx{};
-  double tmp[2] = {0, 0}, vout[3] = {0, 0, 0};
-  int ctrlCount = 0;
-
   bool anyActive() const {
     for (auto& v : voices)
       if (v->active()) return true;
@@ -496,6 +491,7 @@ class Synth {
     }
   }
 
+  /** Target values = the patch, with switched-off blocks zeroed (and their mod destinations blocked) and silenced layers turned down. */
   void resolve() {
     const auto& P = PI_();
     auto& t = target;
@@ -517,9 +513,13 @@ class Synth {
     if (off(P.tapeOn)) { zero({P.tapeDrive, P.tapeWow, P.tapeAge}); block({D_TAPE_WOW}); }
     if (off(P.vibOn)) { zero({P.vibDepth}); block({D_VIBRATO}); }
     if (off(P.wobOn)) zero({P.wobDepth});
-    if (off(P.modOn)) for (const auto& s : P.slots) t[s.amt] = 0;
-    if (off(P.dynOn)) zero({P.compAmount, P.compPump, P.ott});
-    if (off(P.eqOn)) { zero({P.eqLow, P.eqMid, P.eqHigh}); t[P.eqHighcut] = 20000; }
+    for (const auto& s : P.slots)
+      if (off(P.modOn) || off(s.on)) t[s.amt] = 0;
+    if (off(P.eqOn)) {
+      t[P.eqScale] = 0;
+      for (const auto& b : P.eq) t[b.type] = 0;
+      t[P.eqHighcut] = 20000;
+    }
     if (off(P.chorusOn)) { zero({P.chorusMix}); block({D_CHORUS_DEPTH}); }
     if (off(P.flangerOn)) zero({P.flangerMix});
     if (off(P.phaserOn)) { zero({P.phaserMix}); block({D_PHASER_MIX}); }
@@ -531,8 +531,6 @@ class Synth {
     if (!hear(MON_OSC2)) { zero({P.osc[1].level}); block({D_OSC2_LEVEL}); }
     if (!hear(MON_SUB)) { zero({P.subLevel}); block({D_SUB}); }
     if (!hear(MON_NOISE)) { zero({P.noise}); block({D_NOISE}); }
-    if (!hear(MON_BREATH)) { zero({P.breath, P.chiff}); block({D_BREATH}); }
-    // Tape age hisses on its own: with the whole oscillator path silent, the tape goes quiet too.
     if (!hear(MON_OSC1) && !hear(MON_OSC2) && !hear(MON_NOISE) && !hear(MON_BREATH)) {
       zero({P.tapeDrive, P.tapeWow, P.tapeAge});
       block({D_TAPE_WOW});
@@ -549,12 +547,18 @@ class Synth {
     const bool fresh = !v.active();
     assignChannel(v, channel);
     v.start(note, velocity, glide && !(legato && !overlapping), retrigger, ++order);
-    if (retrigger) onTrigger();
-    if (fresh) v.control(gsrc.data(), bend, xdst.data());
+    if (retrigger) onTrigger(velocity);
+    if (fresh) {
+      v.beatPos = beatPos;
+      v.bps = tempo / 60;
+      v.control(gsrc.data(), bend, xdst.data());
+    }
   }
 
-  void onTrigger() {
+  void onTrigger(double velocity) {
     const auto& P = PI_();
+    texture.trigger(velocity);
+    texGrind.noteOn(&rng);
     for (int l = 0; l < LFO_COUNT; l++) {
       if (cur[P.lfo[l].retrig] > 0.5) {
         lfoPhase[l] = 0;
@@ -570,6 +574,8 @@ class Synth {
       if (stack[r] != note) stack[w++] = stack[r];
     stackLen = w;
   }
+
+  // ---------------------------------------------------------- control rate
 
   void applyDiscrete() {
     const auto& P = PI_();
@@ -612,9 +618,7 @@ class Synth {
   }
 
   double wanderStep(double prev) {
-    // JS evaluates the sign before the step size: keep that order.
-    const double sign = rng.next() < 0 ? -1 : 1;
-    double v = prev + sign * (0.6 + 0.3 * (rng.next() + 1));
+    double v = prev + (rng.next() < 0 ? -1 : 1) * (0.6 + 0.3 * (rng.next() + 1));
     if (v > 1) v = 2 - v;
     else if (v < -1) v = -2 - v;
     return v;
@@ -633,57 +637,115 @@ class Synth {
     }
   }
 
+  /** The wobble shape set up for this block, unsmoothed, at q (0..1). */
+  double wobRaw(double q) const {
+    const int shape = wobShapeNow;
+    if (shape == WOB_RANDOM) return wobRand[std::min(WOB_RANDOM_STEPS - 1, (int)std::floor(q * WOB_RANDOM_STEPS))];
+    if (shape == WOB_CUSTOM) return wobShapeAt(wobXs.data(), wobYs.data(), wobSs.data(), wobPtsNow, q);
+    const WobTemplate& t = WOB_TEMPLATE_ARRAYS[shape >= 0 && shape < WOB_SHAPE_COUNT ? shape : 0];
+    return wobShapeAt(t.xs, t.ys, t.ss, t.n, q);
+  }
+
+  double wobSide(double x, int c, bool loOn, double g, bool filt) {
+    auto& f = wobBand[c];
+    double low = 0, mid = x;
+    if (loOn) {
+      low = f[1].process(f[0].process(x));
+      mid = f[3].process(f[2].process(x));
+    }
+    if (filt) {
+      auto& sv = wobSvf[c];
+      sv[0].process(mid, wobG, wobK);
+      sv[1].process(sv[0].lp, wobG, SQRT2);
+      mid = sv[1].lp;
+    }
+    return low + mid * g;
+  }
+
+  /** The mod wheel's move and the wobble, as offsets every voice adds to its mod matrix. */
   void extraModulation() {
     const auto& P = PI_();
     auto& x = xdst;
     x.fill(0);
-    wobTexTone = 0;
     const double w = wheel;
     if (w > 1e-4) {
       const int sel = (int)jsRound(cur[P.wheelMove]);
-      const WheelMove& move = WHEEL_MOVES[sel > 0 ? sel - 1 : (int)jsRound(cur[P.wheelPreset])];
+      const int idx = sel > 0 ? sel - 1 : (int)jsRound(cur[P.wheelPreset]);
+      const WheelMove& move = WHEEL_MOVES[idx >= 0 && idx < 8 ? idx : 0];
       for (int i = 0; i < move.count; i++) {
         const auto& st = move.steps[i];
         if (!wheelFrozen || !wheelMovingDest(st.dest)) x[st.dest] += st.amount * w;
       }
     }
     const double depth = cur[P.wobDepth];
+    liveWob = -1;
+    wobGateTarget = 1;
+    wobFiltWas = wobFiltOn;
+    wobFiltOn = false;
+    liveWobFc = -1;
     if (depth > 1e-4) {
       const int ri = (int)jsRound(cur[P.wobRate]);
-      const double cycle = ri >= 0 && ri < 8 ? WOBBLE_BEATS[ri] : 0.5;
-      const long long n = (long long)std::floor(songBeat / cycle);
-      const double p = (songBeat - n * cycle) / cycle;
-      if (n != wobCycle) {
-        wobCycle = n;
+      const double cycle = ri >= 0 && ri < WOBBLE_RATE_COUNT ? WOBBLE_BEATS[ri] : 0.5;
+      const double nC = std::floor(songBeat / cycle);
+      const double p = (songBeat - nC * cycle) / cycle;
+      liveWob = p;
+      if (nC != wobCycle) {
+        wobCycle = nC;
         const double life = cur[P.wobLife];
         wobScaleTarget = 1 + 0.45 * life * wobRng.next();
         wobBrightTarget = 0.05 * life * wobRng.next();
       }
       wobScale += (wobScaleTarget - wobScale) * 0.1;
       wobBright += (wobBrightTarget - wobBright) * 0.05;
-      double v;
-      switch ((int)jsRound(cur[P.wobShape])) {
-        case WOB_TRI: v = p < 0.5 ? 2 * p : 2 - 2 * p; break;
-        case WOB_SAW_DOWN: v = p < 0.95 ? 1 - p / 0.95 : (p - 0.95) / 0.05; break;
-        case WOB_SQUARE: v = 0.5 + 0.5 * std::tanh(6 * std::sin(TWO_PI * p)); break;
-        default: v = 0.5 - 0.5 * std::cos(TWO_PI * p);
+      double q = p - cur[P.wobPhase];
+      q -= std::floor(q);
+      const int shape = (int)jsRound(cur[P.wobShape]);
+      if (shape == WOB_RANDOM && wobRandCycle != nC) {
+        wobRandCycle = nC;
+        for (int k = 0; k < WOB_RANDOM_STEPS; k++) wobRand[k] = 0.5 + 0.5 * wobRng.next();
       }
-      const double a = depth * v * wobScale;
-      const double swing = depth * (2 * v - 1) * wobScale;
-      const int tgt = (int)jsRound(cur[P.wobTarget]);
-      if (tgt == WOB_FILTER_DRIVE_TEXTURE) {
-        wobTexTone = 0.35 * swing;
-        x[D_TEXTURE] += 0.3 * swing;
+      int m = 0;
+      if (shape == WOB_CUSTOM) {
+        m = std::max(2, std::min(WOB_MAX_POINTS, (int)jsRound(cur[P.wobPts])));
+        for (int k = 0; k < m; k++) {
+          wobXs[k] = cur[P.wobX[k]];
+          wobYs[k] = cur[P.wobY[k]];
+          wobSs[k] = cur[P.wobS[k]] > 0.5 ? 1 : 0;
+        }
       }
-      if (tgt == WOB_FILTER_DRIVE || tgt == WOB_FILTER_DRIVE_TEXTURE) {
-        x[D_CUTOFF] += 0.38 * swing + wobBright;
-        x[D_RES] += 0.12 * depth;
-        x[D_DRIVE] += 0.4 * a;
-        x[D_DIST_DRIVE] += 0.1 * a;
-      } else {
-        x[D_CUTOFF] += 0.42 * swing + wobBright;
-        x[D_RES] += 0.15 * depth;
+      wobShapeNow = shape;
+      wobPtsNow = m;
+      const int rr = wobSmoothRadius(cur[P.wobSmooth]);
+      double tgt;
+      if (rr == 0) tgt = wobRaw(q);
+      else {
+        double sig = shape * 7919 + rr * 104729 + m * 13;
+        if (shape == WOB_RANDOM) sig += nC * 1.618;
+        for (int k = 0; k < m; k++) sig += wobXs[k] * (k + 1.31) * 3.7 + wobYs[k] * (k + 2.17) * 5.3 + wobSs[k] * (k + 3.1);
+        if (sig != wobSig) {
+          wobSig = sig;
+          wobSmoothTable([this](double qq) { return wobRaw(qq); }, rr, wobTable.data(), wobTmp.data());
+        }
+        tgt = wobTableAt(wobTable.data(), q);
       }
+      wobV += (tgt - wobV) * 0.35;
+      const double v = wobV;
+      if (cur[P.wobCutoff] > 0.5) {
+        const double lc = cur[P.wobLowcut];
+        const double lo = lc > 21 ? lc : 60, hi = std::fmin(18000, sampleRate * 0.45);
+        const double d = std::fmin(1, depth * wobScale);
+        const double fc = std::fmax(20, std::fmin(hi, hi * std::pow(lo / hi, d * (1 - v)) * std::pow(2.0, 6 * wobBright)));
+        const double gT = std::tan((PI * fc) / sampleRate);
+        if (!wobFiltWas) {
+          wobG = gT;
+          for (auto& sv : wobSvf) for (auto& f : sv) f.reset();
+        }
+        wobFiltOn = true;
+        wobGStep = (gT - wobG) / CONTROL_BLOCK;
+        wobK = 1.3 - 0.75 * d;
+        liveWobFc = fc;
+      }
+      if (cur[P.wobVolume] > 0.5) wobGateTarget = 1 - std::fmin(1, depth * wobScale) * (1 - v);
     }
   }
 
@@ -730,11 +792,24 @@ class Synth {
         gateAny = true;
         if (!lowest || v.note < lowest->note) lowest = &v;
       }
-      if (v.active() || v.gate) v.control(src.data(), bend, xdst.data());
+      if (v.active() || v.gate) {
+        v.beatPos = beatPos;
+        v.bps = tempo / 60;
+        v.control(src.data(), bend, xdst.data());
+      }
     }
     anyGate = gateAny;
+    liveCutoff = lead->active() ? lead->fcNow : 0;
+    for (int i = 0; i < 4; i++) {
+      liveGrind[i] = lead->active() ? lead->grindFc(i) : -1;
+      liveGrindRes[i] = lead->grindRes(i);
+    }
+    liveRes = lead->resNow;
     if (poly > 1) {
-      for (auto& v : voices) v->subOn = lowest ? (v.get() == lowest ? 1 : 0) : 1;
+      for (int i = 0; i < MAX_VOICES; i++) {
+        Voice& v = *voices[i];
+        v.subOn = lowest ? (&v == lowest ? 1 : 0) : 1;
+      }
     } else {
       voices[0]->subOn = 1;
     }
@@ -750,19 +825,22 @@ class Synth {
       if (ph >= 1) {
         ph -= std::floor(ph);
         lfoPrev[l] = lfoHold[l];
-        lfoHold[l] = cur[lp.shape] == LFO_WANDER ? wanderStep(lfoHold[l]) : rng.next();
+        lfoHold[l] = (int)cur[lp.shape] == LFO_WANDER ? wanderStep(lfoHold[l]) : rng.next();
       }
       lfoPhase[l] = ph;
       lfoValue[l] = lfoShape((int)cur[lp.shape], ph, lfoHold[l], lfoPrev[l]);
     }
 
-    const double tex = clampd(cur[P.texLevel] + dst[D_TEXTURE], 0, 1);
-    // With breath picked the Noise strip plays per-note breath (in the voices): the bed is silent.
-    texGain = (int)cur[P.texType] == TEX_BREATH ? 0 : tex * tex * TEXTURE_GAIN;
+    const double tex = clampd(cur[P.texLevel] + dst[D_TEXTURE] + ((int)cur[P.texType] == TEX_BREATH ? dst[D_BREATH] : 0), 0, 1);
+    texGain = tex * tex * TEXTURE_GAIN;
     texType = (int)cur[P.texType];
-    texTone = clampd(cur[P.texTone] + wobTexTone, 0, 1);
+    texTone = clampd(cur[P.texTone], 0, 1);
+    texDensity = clampd(cur[P.texDensity], 0, 1);
+    const double texOct = jsRound(cur[P.texOct]) + (cur[P.texKey] > 0.5 ? (lead->pitch + 12 * cur[P.octave] + 2 * bend - 60) / 12 : 0) + 6 * dst[D_NOISE_PITCH];
+    texRate = std::pow(2.0, clampd(texOct, -6, 2));
     texAtk = 1 - std::exp(-1 / (std::fmax(0.03, cur[P.amp[0]] / 3000) * fs));
     texRel = std::exp(-4.6 / ((cur[P.texTail] / 1000) * fs));
+    texture.puffLen = cur[P.texTail] / 1000;
     texLpCoef = lead->tapeLpCoef;
     {
       const SlotKind sk = auxSlot(cur[P.texFType]);
@@ -770,17 +848,16 @@ class Synth {
       if (cur[P.texFKey] > 0.5) hz *= std::pow(2.0, (lead->pitch + 12 * cur[P.octave] - KEYTRACK_CENTER) / 12);
       texF.set(sk.kind, sk.p24, hz, fs);
     }
-    const bool routeN = cur[P.routeN] > 0.5;
+    const bool routeN = cur[P.routeN] > 0.5 && cur[P.texDirect] < 0.5;
     if (routeN && !texRouteN) {
       texNL.reset();
       texNR.reset();
     }
     texRouteN = routeN;
     if (routeN) {
-      // A copy of the main filter that follows the newest note (the bed is shared by all voices).
       texNG = std::tan((PI * std::fmin(lead->fcNow, fs * 0.45)) / fs);
       texNK = 2 - 1.85 * lead->resNow;
-      const int t = (int)std::lround(cur[P.fType]);
+      const int t = (int)jsRound(cur[P.fType]);
       texNMode = t == FILTER_BP || t == 2 ? 1 : t == FILTER_NOTCH ? 2 : 0;
     }
     const double pan = cur[P.texPan];
@@ -791,23 +868,15 @@ class Synth {
       texPanR = std::sin(a) * SQRT2;
     }
     texDirect = cur[P.texDirect] > 0.5;
+    const bool tg = cur[P.grindOn] > 0.5 && !texDirect;
+    if (tg && !texGrindOn) texGrind.reset();
+    texGrindOn = tg;
+    ott.set(cur[P.grindOn] > 0.5 ? cur[P.grindOtt] : 0, cur[P.grindLowcut], fs);
+    if (tg) texGrind.control(cur.data(), beatPos, tempo / 60, (lead->pitch + 12 * cur[P.octave] - KEYTRACK_CENTER) / 12, fs, fs, CONTROL_BLOCK, rng);
 
-    beatPos += (tempo / 60) * (CONTROL_BLOCK / fs);
+    beatPos += (tempo / 60) * ((double)CONTROL_BLOCK / fs);
+    songBeat += (tempo / 60) * ((double)CONTROL_BLOCK / fs);
     if (beatPos >= 4) beatPos -= 4;
-    songBeat += (tempo / 60) * (CONTROL_BLOCK / fs);
-    const double pump = cur[P.compPump];
-    double pumpGain = 1;
-    if (pump > 0) {
-      const int pr = (int)jsRound(cur[P.compPumpRate]);
-      const double cycle = pr >= 0 && pr < 4 ? PUMP_BEATS[pr] : 1;
-      const double b = std::fmod(beatPos, cycle) / cycle;
-      const double duck = b < 0.03 ? b / 0.03 : std::exp(-(b - 0.03) * 6);
-      pumpGain = 1 - pump * 0.85 * duck;
-    }
-    compOn = cur[P.compAmount] > 0.001 || pump > 0.001;
-    if (compOn) comp.update(cur[P.compAmount], cur[P.compSpeed], pumpGain, fs, CONTROL_BLOCK);
-    ottOn = cur[P.ott] > 0.0005;
-    if (ottOn) ott.update(cur[P.ott], CONTROL_BLOCK);
 
     delaySeconds = std::fmin(3, ((DELAY_BEATS[(int)cur[P.delayTime]] * 60) / tempo) * std::pow(2.0, clampd(dst[D_DELAY_TIME], -1, 1)));
     delayToneCoef = 1 - std::exp((-TWO_PI * std::fmin(800 * std::pow(20.0, cur[P.delayTone]), fs * 0.45)) / fs);
@@ -819,45 +888,43 @@ class Synth {
     widthTarget = clampd(1 + dst[D_WIDTH], 0, 2);
     widthStep = (widthTarget - width) / CONTROL_BLOCK;
 
-    auto& lf = lastFx;
-    const double lowcut = cur[P.fxLowcut];
-    if (lowcut != lf[0]) {
-      hpL.setHighpass(lowcut, SQRT1_2, fs);
-      hpR.setHighpass(lowcut, SQRT1_2, fs);
-      lf[0] = lowcut;
+    for (int k = 0; k < 5; k++) {
+      const double lowcut = cur[P.fxLowcut[k]];
+      if (lowcut != lastLowcut[k]) {
+        hpL[k].setHighpass(lowcut, SQRT1_2, fs);
+        hpR[k].setHighpass(lowcut, SQRT1_2, fs);
+        lastLowcut[k] = lowcut;
+      }
     }
-    eqOn[0] = std::fabs(cur[P.eqLow]) > 0.01;
-    eqOn[1] = std::fabs(cur[P.eqMid]) > 0.01;
-    eqOn[2] = std::fabs(cur[P.eqHigh]) > 0.01;
-    if (cur[P.eqLow] != lf[1]) {
-      eqL[0].setLowShelf(100, cur[P.eqLow], fs);
-      eqR[0].setLowShelf(100, cur[P.eqLow], fs);
-      lf[1] = cur[P.eqLow];
+    for (int b = 0; b < 4; b++) {
+      const auto& e = P.eq[b];
+      const int o = 4 * b;
+      const double type = cur[e.type], hz = std::fmin(cur[e.freq], fs * 0.45), db = cur[e.gain] * cur[P.eqScale], q = cur[e.q];
+      eqOn[b] = type > 0.5 || std::fabs(db) > 0.01;
+      if (!eqOn[b] || (eqLast[o] == type && eqLast[o + 1] == hz && eqLast[o + 2] == db && eqLast[o + 3] == q)) continue;
+      eqLast[o] = type;
+      eqLast[o + 1] = hz;
+      eqLast[o + 2] = db;
+      eqLast[o + 3] = q;
+      for (Biquad* f : {&eqL[b], &eqR[b]}) {
+        if (b == 0) type > 0.5 ? f->setHighpass(hz, q, fs) : f->setLowShelf(hz, db, fs, q);
+        else if (b == 3) type > 0.5 ? f->setLowpass(hz, q, fs) : f->setHighShelf(hz, db, fs, q);
+        else type > 0.5 ? f->setNotch(hz, q, fs) : f->setPeak(hz, db, q, fs);
+      }
     }
-    if (cur[P.eqMid] != lf[2] || cur[P.eqMidFreq] != lf[3]) {
-      eqL[1].setPeak(cur[P.eqMidFreq], cur[P.eqMid], 0.9, fs);
-      eqR[1].setPeak(cur[P.eqMidFreq], cur[P.eqMid], 0.9, fs);
-      lf[2] = cur[P.eqMid];
-      lf[3] = cur[P.eqMidFreq];
-    }
-    if (cur[P.eqHigh] != lf[4]) {
-      eqL[2].setHighShelf(5000, cur[P.eqHigh], fs);
-      eqR[2].setHighShelf(5000, cur[P.eqHigh], fs);
-      lf[4] = cur[P.eqHigh];
-    }
-    if (cur[P.crossover] != lf[5]) {
+    if (cur[P.crossover] != lastFx[5]) {
       for (int i = 0; i < 4; i++) xo[i].setHighpass(cur[P.crossover], XO_Q[i], fs);
       for (int i = 0; i < 2; i++) xoPost[i].setHighpass(cur[P.crossover], SUBSONIC_Q[i], fs);
-      lf[5] = cur[P.crossover];
+      lastFx[5] = cur[P.crossover];
     }
-    if (cur[P.eqHighcut] != lf[6]) {
+    if (cur[P.eqHighcut] != lastFx[6]) {
       const double hc = cur[P.eqHighcut];
       highcutOn = hc < 19500;
       if (highcutOn) {
         hcL.setLowpass(std::fmin(hc, fs * 0.45), SQRT1_2, fs);
         hcR.setLowpass(std::fmin(hc, fs * 0.45), SQRT1_2, fs);
       }
-      lf[6] = hc;
+      lastFx[6] = hc;
     }
     if (cur[P.outGain] != lastOutDb) {
       outTarget = std::pow(10.0, cur[P.outGain] / 20);
@@ -865,6 +932,94 @@ class Synth {
     }
     outGainStep = (outTarget - outGain) / CONTROL_BLOCK;
   }
+
+  // Parameters.
+  std::array<double, PARAM_COUNT> target{}, cur{}, raw{};
+  std::array<double, DEST_COUNT> dstMask{};
+  std::array<bool, PARAM_COUNT> isLog{}, isDiscrete{};
+  int monSolo = 0, monMute = 0;
+  double smoothCoef = 0, duckGain = 1, duckStep = 0;
+  int duckDir = 0, duckHold = 0;
+
+  // Voices and notes.
+  std::vector<std::unique_ptr<Voice>> voices;
+  int poly = 1;
+  long long order = 0;
+  std::array<int, 16> stack{};
+  int stackLen = 0;
+  double bend = 0, modWheel = 0, wheel = 0, texMon = 1, texMonTarget = 1;
+  std::array<double, DEST_COUNT> xdst{};
+  double chBend[16] = {}, chPressure[16] = {}, chSlide[16] = {0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
+
+  // Shared modulation.
+  Rng rng;
+  Rng wobRng;
+  std::array<double, LFO_COUNT> lfoHold{}, lfoPrev{};
+  std::array<double, SRC_COUNT> gsrc{};
+  double driftVal = 0, driftTarget = 0;
+  int driftCount = 0;
+  double slowA = 0, slowB = 0, slowPos = 1, slowStep = 0;
+  double tempo = 120, beatPos = 0, songBeat = 0;
+
+  // The Wobbler.
+  double wobCycle = -1, wobScale = 1, wobScaleTarget = 1, wobBright = 0, wobBrightTarget = 0;
+  std::array<double, WOB_MAX_POINTS> wobXs{}, wobYs{}, wobSs{};
+  double wobV = 0;
+  int wobShapeNow = 0, wobPtsNow = 0;
+  double wobSig = 0;
+  std::array<double, WOB_TABLE> wobTable{}, wobTmp{};
+  std::array<double, WOB_RANDOM_STEPS> wobRand{};
+  double wobRandCycle = -1;
+  Biquad wobBand[2][4];
+  double wobBandLc = -1;
+  Svf wobSvf[2][2];
+  bool wobFiltOn = false, wobFiltWas = false;
+  double wobG = 0, wobGStep = 0, wobK = 1.3, wobGate = 1, wobGateTarget = 1;
+
+  // GRIND on the noise bed, and its OTT on the whole synth.
+  Rng texGrindRng;
+  Grind texGrind;
+  bool texGrindOn = false;
+  Ott ott;
+
+  // Texture bed.
+  Texture texture;
+  SlotFilter<2> texF;
+  Svf texNL, texNR;
+  bool texRouteN = false;
+  double texNG = 0.1, texNK = 1.4;
+  int texNMode = 0;
+  bool texPanOn = false;
+  double texPanL = 1, texPanR = 1;
+  bool texDirect = false;
+  double texEnv = 0, texGain = 0;
+  int texType = 0;
+  double texTone = 0.4, texDensity = 0.5, texRate = 1, texPos = 1;
+  double texPrev[2] = {}, texCur[2] = {};
+  double texAtk = 0.001, texRel = 0.999, texLpL = 0, texLpR = 0, texLpCoef = 1;
+  bool anyGate = false;
+
+  // FX + output.
+  Chorus chorus;
+  Phaser phaser;
+  Reverb reverb;
+  OctaveDown verbOct;
+  Flanger flanger;
+  Delay delay;
+  double delaySeconds = 0.375, delayToneCoef = 0.5;
+  double chorusDepth = 0, phaserMix = 0, delayMix = 0, reverbMix = 0, width = 1, widthStep = 0, widthTarget = 1;
+  Biquad hcL, hcR;
+  bool highcutOn = false;
+  std::array<bool, 4> eqOn{};
+  std::array<double, 16> eqLast{};
+  Biquad hpL[5], hpR[5];
+  std::array<double, 5> lastLowcut{};
+  Biquad eqL[4], eqR[4], dcL[2], dcR[2], xo[4], xoPost[2];
+  Limiter limiter;
+  double outGain = 1, outGainStep = 0, outTarget = 1, lastOutDb = NAN;
+  double postDcXL = 0, postDcYL = 0, postDcXR = 0, postDcYR = 0, postDcR = 0;
+  std::array<double, 8> lastFx{};
+  int ctrlCount = 0;
 };
 
 }  // namespace lt

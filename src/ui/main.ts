@@ -508,5 +508,10 @@ function startPlugin(): void {
   host = ph;
   new Scope(host.analyser, $<HTMLCanvasElement>('scope'), $<HTMLCanvasElement>('spectrum'));
   synth.setAnalyser(host.analyser);
+  // the moving prints read the engine's live values, sent with the scope
+  synth.setLiveFilter(() => ph.liveFilter());
+  synth.setLiveWobble(() => ph.liveWobble());
+  synth.setLiveLfos(() => ph.liveLfos());
+  synth.setLiveGrind(() => ph.liveGrind());
 }
 if (inPlugin()) startPlugin();

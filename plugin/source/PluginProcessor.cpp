@@ -216,6 +216,17 @@ void LowTalkProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     player->render(left, right, pos, frames - pos);
   }
   effectiveWheel.store(wheel);
+  {
+    int k = 0;
+    live[(size_t)k++].store((float)synth->liveCutoff);
+    live[(size_t)k++].store((float)synth->liveRes);
+    live[(size_t)k++].store((float)synth->liveWob);
+    live[(size_t)k++].store((float)synth->liveWobFc);
+    for (int l = 0; l < 4; l++) live[(size_t)k++].store((float)synth->lfoPhase[(size_t)l]);
+    for (int l = 0; l < 4; l++) live[(size_t)k++].store((float)synth->lfoValue[(size_t)l]);
+    for (int g = 0; g < 4; g++) live[(size_t)k++].store((float)synth->liveGrind[(size_t)g]);
+    for (int g = 0; g < 4; g++) live[(size_t)k++].store((float)synth->liveGrindRes[(size_t)g]);
+  }
 
   // Feed the window's scope and meter.
   int sp = scopePos.load(std::memory_order_relaxed);

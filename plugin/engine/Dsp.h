@@ -165,17 +165,21 @@ class Biquad {
     const double w = (TWO_PI * fc) / fs, c = std::cos(w), al = std::sin(w) / (2 * q);
     set(al, 0, -al, 1 + al, -2 * c, 1 - al);
   }
-  void setLowShelf(double fc, double db, double fs) {
+  void setLowShelf(double fc, double db, double fs, double q = SQRT1_2) {
     const double A = std::pow(10.0, db / 40), w = (TWO_PI * fc) / fs, c = std::cos(w), s = std::sin(w);
-    const double al = (s / 2) * SQRT2, sa = 2 * std::sqrt(A) * al;
+    const double al = s / (2 * q), sa = 2 * std::sqrt(A) * al;
     set(A * (A + 1 - (A - 1) * c + sa), 2 * A * (A - 1 - (A + 1) * c), A * (A + 1 - (A - 1) * c - sa),
         A + 1 + (A - 1) * c + sa, -2 * (A - 1 + (A + 1) * c), A + 1 + (A - 1) * c - sa);
   }
-  void setHighShelf(double fc, double db, double fs) {
+  void setHighShelf(double fc, double db, double fs, double q = SQRT1_2) {
     const double A = std::pow(10.0, db / 40), w = (TWO_PI * fc) / fs, c = std::cos(w), s = std::sin(w);
-    const double al = (s / 2) * SQRT2, sa = 2 * std::sqrt(A) * al;
+    const double al = s / (2 * q), sa = 2 * std::sqrt(A) * al;
     set(A * (A + 1 + (A - 1) * c + sa), -2 * A * (A - 1 + (A + 1) * c), A * (A + 1 + (A - 1) * c - sa),
         A + 1 - (A - 1) * c + sa, 2 * (A - 1 - (A + 1) * c), A + 1 - (A - 1) * c - sa);
+  }
+  void setNotch(double fc, double q, double fs) {
+    const double w = (TWO_PI * fc) / fs, c = std::cos(w), al = std::sin(w) / (2 * q);
+    set(1, -2 * c, 1, 1 + al, -2 * c, 1 - al);
   }
   void setPeak(double fc, double db, double q, double fs) {
     const double A = std::pow(10.0, db / 40), w = (TWO_PI * fc) / fs, c = std::cos(w), al = std::sin(w) / (2 * q);
@@ -253,30 +257,60 @@ constexpr SlotKind AUX_SLOT[6] = {{SLOT_OFF, false}, {SLOT_LP, false}, {SLOT_LP,
 inline SlotKind oscSlot(double t) { const int i = (int)t; return i >= 0 && i < 5 ? OSC_SLOT[i] : OSC_SLOT[0]; }
 inline SlotKind auxSlot(double t) { const int i = (int)t; return i >= 0 && i < 6 ? AUX_SLOT[i] : AUX_SLOT[0]; }
 
-/** ADSR with analog-style exponential segments. Times are in ms. */
+/**
+ * How each segment bends (as on Serum's envelopes): the bend b (-1..1) is a curvature k = 12·b;
+ * 0 is a straight line, positive moves fast first and settles (analog), negative is a swell.
+ */
+constexpr double ENV_BEND_K = 12;
+constexpr double ENV_ATTACK_BEND = 0.15;
+constexpr double ENV_FALL_BEND = 0.38;
+
+/** ADSR whose attack, decay and release each have their own bend. Times are in ms. */
 class Envelope {
  public:
   double level = 0;
   int stage = 0;  // 0 idle, 1 attack, 2 decay/sustain, 3 release
 
-  void set(double attackMs, double decayMs, double sustainLevel, double releaseMs, double fs, double attackCurve = 0) {
+  void set(double attackMs, double decayMs, double sustainLevel, double releaseMs, double fs,
+           double attackBend = ENV_ATTACK_BEND, double decayBend = ENV_FALL_BEND, double releaseBend = ENV_FALL_BEND) {
     sustain = sustainLevel;
-    curve = attackCurve;
-    attackInc = 1 / std::fmax(1, (attackMs * fs) / 1000);
-    if (attackMs == lastA && decayMs == lastD && releaseMs == lastR) return;
+    if (attackMs == lastA && decayMs == lastD && releaseMs == lastR && attackBend == lastAB && decayBend == lastDB && releaseBend == lastRB) return;
     lastA = attackMs;
     lastD = decayMs;
     lastR = releaseMs;
-    ca = 1 - std::exp(-std::log(6.0) / std::fmax(1, (attackMs * fs) / 1000));
-    cd = 1 - std::exp(-4.6 / std::fmax(1, (decayMs * fs) / 1000));
-    cr = 1 - std::exp(-4.6 / std::fmax(1, (releaseMs * fs) / 1000));
+    lastAB = attackBend;
+    lastDB = decayBend;
+    lastRB = releaseBend;
+    const double sa = std::fmax(1, (attackMs * fs) / 1000), sd = std::fmax(1, (decayMs * fs) / 1000), sr = std::fmax(1, (releaseMs * fs) / 1000);
+    incA = 1 / sa;
+    incD = 1 / sd;
+    incR = 1 / sr;
+    kA = ENV_BEND_K * attackBend;
+    kD = ENV_BEND_K * decayBend;
+    kR = ENV_BEND_K * releaseBend;
+    rA = std::exp(-kA * incA);
+    rD = std::exp(-kD * incD);
+    rR = std::exp(-kR * incR);
+    nA = std::fabs(kA) < 1e-3 ? 0 : 1 / (1 - std::exp(-kA));
+    nD = std::fabs(kD) < 1e-3 ? 0 : 1 / (1 - std::exp(-kD));
+    nR = std::fabs(kR) < 1e-3 ? 0 : 1 / (1 - std::exp(-kR));
   }
   void trigger() {
     stage = 1;
-    if (curve > 0) pos = std::pow(level, 1 / (1 + 5 * curve));
+    const double L = std::fmax(0, std::fmin(1, level));
+    if (nA == 0) pos = L;
+    else {
+      const double inner = 1 - L / nA;
+      pos = inner > 0 ? std::fmin(1, -std::log(inner) / kA) : 1;
+    }
+    ex = std::exp(-kA * pos);
   }
   void release() {
-    if (stage != 0) stage = 3;
+    if (stage == 0) return;
+    stage = 3;
+    from = level;
+    pos = 0;
+    ex = 1;
   }
   void reset() {
     stage = 0;
@@ -285,33 +319,39 @@ class Envelope {
   double tick() {
     switch (stage) {
       case 1:
-        if (curve > 0) {
-          pos += attackInc;
-          level = pos >= 1 ? 1 : std::pow(pos, 1 + 5 * curve);
-        } else {
-          level += (1.2 - level) * ca;
-        }
-        if (level >= 1) {
+        pos += incA;
+        ex *= rA;
+        if (pos >= 1) {
           level = 1;
           stage = 2;
-        }
+          pos = 0;
+          ex = 1;
+        } else level = nA == 0 ? pos : (1 - ex) * nA;
         break;
       case 2:
-        level += (sustain - level) * cd;
+        if (pos < 1) {
+          pos += incD;
+          ex *= rD;
+          const double g = pos >= 1 ? 1 : nD == 0 ? pos : (1 - ex) * nD;
+          level = 1 - (1 - sustain) * g;
+        } else level = sustain;
         break;
       case 3:
-        level -= level * cr;
-        if (level < 1e-5) {
+        pos += incR;
+        ex *= rR;
+        if (pos >= 1) {
           level = 0;
           stage = 0;
-        }
+        } else level = from * (1 - (nR == 0 ? pos : (1 - ex) * nR));
         break;
     }
     return level;
   }
+
  private:
-  double ca = 0, cd = 0, cr = 0, sustain = 1, curve = 0, attackInc = 0, pos = 0;
-  double lastA = -1, lastD = -1, lastR = -1;
+  double sustain = 1, pos = 0, ex = 1, from = 0;
+  double incA = 0, incD = 0, incR = 0, kA = 0, kD = 0, kR = 0, rA = 1, rD = 1, rR = 1, nA = 0, nD = 0, nR = 0;
+  double lastA = -1, lastD = -1, lastR = -1, lastAB = NAN, lastDB = NAN, lastRB = NAN;
 };
 
 }  // namespace lt

@@ -175,5 +175,8 @@ void LowTalkEditor::timerCallback() {
   o->setProperty("rate", proc.getRate());
   o->setProperty("held", held);
   o->setProperty("wheel", (double)proc.effectiveWheel.load());
+  juce::Array<juce::var> live;
+  for (auto& x : proc.live) live.add((double)x.load());
+  o->setProperty("live", live);
   browser.emitEventIfBrowserIsVisible("lt-live", juce::var(o));
 }

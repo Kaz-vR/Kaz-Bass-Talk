@@ -68,6 +68,6 @@ endif()
 add_executable(lowtalk_render tools/render_cli.cpp)
 target_include_directories(lowtalk_render PRIVATE engine)
 
-# Dev test: the plugin-only engine additions (MPE, host-locked pump clock).
+# Dev test: the plugin-only engine additions (MPE, host-locked Wobbler clock).
 add_executable(lowtalk_engine_test tools/engine_test.cpp)
 target_include_directories(lowtalk_engine_test PRIVATE engine)
