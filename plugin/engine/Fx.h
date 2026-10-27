@@ -40,9 +40,13 @@ class Chorus {
     std::fill(bufL.begin(), bufL.end(), 0.f);
     std::fill(bufR.begin(), bufR.end(), 0.f);
   }
-  void process(double l, double r, double mix, double depth, double* out, bool ensemble) {
-    if (ensemble) {
+  void process(double l, double r, double mix, double depth, double* out, int mode) {
+    if (mode == 1) {
       processEnsemble(l, r, mix, depth, out);
+      return;
+    }
+    if (mode == 2) {
+      processHyper(l, r, mix, depth, out);
       return;
     }
     const int mask = size - 1;
@@ -113,8 +117,44 @@ class Chorus {
     out[0] = l * dry + mix * 0.3 * (0.7 * wl + 0.3 * wr);
     out[1] = r * dry + mix * 0.3 * (0.7 * wr + 0.3 * wl);
   }
+  /** Hyper: six copies, each a little sharp or flat on its own slow cycle, spread left to right (fx.ts). */
+  void processHyper(double l, double r, double mix, double depth, double* out) {
+    static constexpr double RATE[6] = {0.29, 0.41, 0.53, 0.67, 0.79, 0.97};
+    static const auto pans = [] {
+      std::array<double, 12> p{};
+      for (int i = 0; i < 6; i++) {
+        const double a = ((((2.0 * i) / 5 - 1) * 0.9 + 1) * PI) / 4;
+        p[i] = SQRT2 * std::cos(a);
+        p[6 + i] = SQRT2 * std::sin(a);
+      }
+      return p;
+    }();
+    const int mask = size - 1;
+    bufL[w & mask] = (float)l;
+    bufR[w & mask] = (float)r;
+    if (count-- <= 0) {
+      count = 15;
+      hypDrift = driftStep();
+    }
+    const double sp = (0.6 + 0.9 * depth) * hypDrift;
+    const double amp = (0.0004 + 0.0028 * depth) * fs;
+    double wl = 0, wr = 0;
+    for (int t = 0; t < 6; t++) {
+      double ph = hypPhase[t] + (RATE[t] * sp) / fs;
+      if (ph >= 1) ph -= 1;
+      hypPhase[t] = ph;
+      const double d = (0.006 + 0.0011 * t) * fs + amp * (0.5 + 0.5 * std::sin(TWO_PI * ph));
+      wl += read(bufL, d) * pans[t];
+      wr += read(bufR, d) * pans[6 + t];
+    }
+    w = (w + 1) & mask;
+    const double dry = 1 - 0.6 * mix;
+    out[0] = l * dry + mix * 0.42 * wl;
+    out[1] = r * dry + mix * 0.42 * wr;
+  }
   std::vector<float> bufL, bufR;
   int size = 1, w = 0;
+  double hypPhase[6] = {0, 1.0 / 6, 2.0 / 6, 3.0 / 6, 4.0 / 6, 5.0 / 6}, hypDrift = 1;
   double phase = 0, fs;
   int count = 0;
   double dl = 0, dr = 0, stepL = 0, stepR = 0;

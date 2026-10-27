@@ -933,8 +933,8 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .box-tape { --knob-accent: #e8b46a; }
 .v2 .box-chorus { --knob-accent: #3fe3b6; }
 .v2 .box-mfx { --knob-accent: #9a7cff; }
-.v2 .box-delay { --knob-accent: #5f9bff; }
-.v2 .box-reverb { --knob-accent: #a9dcff; }
+.v2 .box-phaser { --knob-accent: #5f9bff; }
+.v2 .box-ott { --knob-accent: #5fd8c4; }
 .v2 .box-eq { --knob-accent: #d4d4da; }
 .v2 .fx-kinds { display: inline-flex; align-items: center; gap: 6px; }
 .v2 .fx-kind { background: none; border: 0; padding: 0; cursor: pointer; color: #5c5c62; font: inherit; font-size: 11px; letter-spacing: 0.25em; }

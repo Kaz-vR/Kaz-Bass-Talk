@@ -155,7 +155,7 @@ struct ParamIndex {
   Lfo lfo[4];
   int env2[4];
   Slot slots[SLOT_COUNT];
-  int chorusMix, chorusDepth, phaserMix, phaserRate, reverbMix, fxLowcut[5];
+  int chorusMix, chorusDepth, phaserMix, phaserRate, reverbMix, fxLowcut[5], ottOn, ottDepth, ottLowcut;
   Eq eq[4];
   int eqScale, outGain, crossover, poly;
   int grindOn, grindMix, grindLowcut, grindKey, grindOneShot, grindOtt, grindSat, grindPreOtt;
@@ -231,6 +231,7 @@ struct ParamIndex {
     }
     chorusMix = ix("chorus.mix"); chorusDepth = ix("chorus.depth"); phaserMix = ix("phaser.mix"); phaserRate = ix("phaser.rate");
     reverbMix = ix("reverb.mix");
+    ottOn = ix("ott.on"); ottDepth = ix("ott.depth"); ottLowcut = ix("ott.lowcut");
     const char* fx[5] = {"chorus", "flanger", "phaser", "delay", "reverb"};
     for (int k = 0; k < 5; k++) fxLowcut[k] = ix(std::string(fx[k]) + ".lowcut");
     for (int b = 0; b < 4; b++) {

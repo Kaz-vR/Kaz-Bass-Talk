@@ -4240,11 +4240,12 @@
       "type": "enum",
       "options": [
         "classic",
-        "ensemble"
+        "ensemble",
+        "hyper"
       ],
       "default": "classic",
       "group": "fx",
-      "describes": "Classic is a two-voice stereo chorus; ensemble is a lush three-voice string-machine/Juno-style chorus (the hoover sound)."
+      "describes": "classic = a two-voice chorus (gentle, wobbly); ensemble = a three-voice string-machine ensemble (lush); hyper = six steadily detuned copies spread across the stereo field (Serum's Hyper: a supersaw thickness on the whole sound, the noise, FM and GRIND included). Below its Lo cut the sound stays clean and mono."
     },
     {
       "id": "phaser.on",
@@ -4489,6 +4490,38 @@
       "unit": "Hz",
       "group": "fx",
       "describes": "Phaser only works on what is above this frequency, so the low end stays clean, centred and dry."
+    },
+    {
+      "id": "ott.on",
+      "label": "OTT on",
+      "type": "bool",
+      "default": false,
+      "group": "fx",
+      "describes": "Switches the OTT on or off without losing its settings."
+    },
+    {
+      "id": "ott.depth",
+      "label": "OTT depth",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "fx",
+      "describes": "OTT, as Ableton's OTT preset / Xfer's OTT: three bands squashed hard from above and pulled up from below, so quiet grit and tails come up and peaks come down; full Depth is louder and dense. After the phaser, before the EQ. 0 = off."
+    },
+    {
+      "id": "ott.lowcut",
+      "label": "OTT low cut",
+      "type": "float",
+      "min": 20,
+      "max": 1000,
+      "default": 20,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "fx",
+      "describes": "The OTT only works above this frequency: below it the sound passes as it is. Fully left = the whole sound (the clean sub never goes through it)."
     },
     {
       "id": "delay.lowcut",

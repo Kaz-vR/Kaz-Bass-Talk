@@ -14,7 +14,7 @@
 //   up to 8 voices (see voice.ts: oscillators → drive → filter → distortion
 //   → bitcrusher → tape → amp), summed
 //   + texture bed
-//   → chorus → flanger → phaser → delay → reverb (each only above its own low cut)
+//   → chorus → flanger → phaser (each only above its own low cut) → OTT
 //   → EQ → high cut
 //   + the clean mono sub (its own path: only the Sub box touches it)
 //   → subsonic/DC filter → mono below crossover
@@ -28,7 +28,7 @@
 import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobShapeAt, wobSmoothRadius, wobSmoothTable, wobTableAt } from './wobshape';
 import { PARAM_COUNT, params } from '../../schema';
 import { AUX_SLOT, Biquad, clamp, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
-import { Chorus, Delay, Flanger, Limiter, OctaveDown, Phaser, Reverb } from './fx';
+import { Chorus, Flanger, Limiter, Phaser } from './fx';
 import { Grind, Ott } from './grind';
 import { OVERSAMPLE_LATENCY } from './oversample';
 import * as K from './params';
@@ -51,7 +51,7 @@ const WOB_TEMPLATE_ARRAYS = K.WOB_SHAPES.map((name) => {
 });
 const N_PARAMS = PARAM_COUNT;
 const LFO_COUNT = K.LFO_COUNT, SRC_COUNT = K.SRC_COUNT;
-const SYNC_BEATS = K.SYNC_BEATS, DELAY_BEATS = K.DELAY_BEATS, LFO_RATE_DEST = K.LFO_RATE_DEST;
+const SYNC_BEATS = K.SYNC_BEATS, LFO_RATE_DEST = K.LFO_RATE_DEST;
 const XO_Q = K.XO_Q, SUBSONIC_Q = K.SUBSONIC_Q, TEXTURE_GAIN = K.TEXTURE_GAIN;
 
 export class Synth {
@@ -146,6 +146,8 @@ export class Synth {
   private texGrindOn = false;
   /** GRIND's OTT, after the amp envelopes (on the voices and the noise bed, before the effects). */
   private readonly ott = new Ott();
+  /** The FX page's OTT: after the phaser, before the EQ (the clean sub stays out). */
+  private readonly fxOtt = new Ott();
   // Slow random 'drift' modulation source.
   private driftVal = 0;
   private driftTarget = 0;
@@ -200,14 +202,9 @@ export class Synth {
 
   // FX + output.
   private readonly flanger: Flanger;
-  private readonly delay: Delay;
-  private delaySeconds = 0.375;
-  private delayToneCoef = 0.5;
   // Modulated FX amounts (base value + the newest voice's mod matrix), set at control rate.
   private chorusDepth = 0;
   private phaserMix = 0;
-  private delayMix = 0;
-  private reverbMix = 0;
   private width = 1;
   private widthStep = 0;
   private widthTarget = 1;
@@ -223,9 +220,6 @@ export class Synth {
   private readonly lastLowcut = new Float64Array(5);
   private readonly chorus: Chorus;
   private readonly phaser: Phaser;
-  private readonly reverb: Reverb;
-  /** The reverb's -1 octave: its input shifted down before its Lo cut. */
-  private readonly verbOct: OctaveDown;
   private readonly eqL = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
   private readonly eqR = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
   private readonly dcL = [new Biquad(), new Biquad()];
@@ -268,10 +262,7 @@ export class Synth {
     for (let i = 0; i < MAX_VOICES; i++) this.voices.push(new Voice(sampleRate, this.cur, table, 0x2468ace + 0x9e3779b * i, this.dstMask));
     this.chorus = new Chorus(sampleRate);
     this.phaser = new Phaser(sampleRate);
-    this.reverb = new Reverb(sampleRate);
-    this.verbOct = new OctaveDown(sampleRate);
     this.flanger = new Flanger(sampleRate);
-    this.delay = new Delay(sampleRate);
     this.limiter = new Limiter(sampleRate, K.LIMITER_CEILING_DB);
     // Subsonic + DC filter: 15 Hz 4th-order high-pass (−0.4 dB at 20 Hz, flat by 30 Hz).
     for (let i = 0; i < 2; i++) {
@@ -394,6 +385,9 @@ export class Synth {
     if (off(P.phaserOn)) { zero(P.phaserMix); block(K.D_PHASER_MIX); }
     if (off(P.delayOn)) { zero(P.delayMix); block(K.D_DELAY_MIX, K.D_DELAY_TIME); }
     if (off(P.reverbOn)) { zero(P.reverbMix); block(K.D_REVERB_MIX); }
+    if (off(P.ottOn)) zero(P.ottDepth);
+    // reverb and delay were taken out of the synth (owner's call: every producer has their own)
+    block(K.D_REVERB_MIX, K.D_DELAY_MIX, K.D_DELAY_TIME);
 
     const solo = this.monitorSolo, mute = this.monitorMute;
     const hear = (layer: string) => !mute.includes(layer) && (solo.length === 0 || solo.includes(layer));
@@ -528,8 +522,6 @@ export class Synth {
     for (let i = 0; i < 2; i++) this.xoPost[i].reset();
     this.chorus.reset();
     this.phaser.reset();
-    this.reverb.reset();
-    this.verbOct.reset();
     this.limiter.reset();
     this.postDcXL = this.postDcYL = this.postDcXR = this.postDcYR = 0;
     for (let i = 0; i < 2; i++) {
@@ -546,7 +538,7 @@ export class Synth {
     this.hcL.reset();
     this.hcR.reset();
     this.flanger.reset();
-    this.delay.reset();
+    this.fxOtt.reset();
   }
 
   private removeFromStack(note: number): void {
@@ -900,15 +892,11 @@ export class Synth {
     this.songBeat += (this.tempo / 60) * (BLOCK / fs);
     if (this.beatPos >= 4) this.beatPos -= 4;
 
-    // Delay. Modulating the delay time glides the read head (tape-style pitch smear on the repeats).
-    this.delaySeconds = Math.min(3, ((DELAY_BEATS[cur[P.delayTime]] * 60) / this.tempo) * Math.pow(2, clamp(dst[K.D_DELAY_TIME], -1, 1)));
-    this.delayToneCoef = 1 - Math.exp((-TWO_PI * Math.min(800 * Math.pow(20, cur[P.delayTone]), fs * 0.45)) / fs);
+    this.fxOtt.set(cur[P.ottDepth], cur[P.ottLowcut], fs);
 
     // Modulated FX amounts.
     this.chorusDepth = clamp(cur[P.chorusDepth] + dst[K.D_CHORUS_DEPTH], 0, 1);
     this.phaserMix = clamp(cur[P.phaserMix] + dst[K.D_PHASER_MIX], 0, 1);
-    this.delayMix = clamp(cur[P.delayMix] + dst[K.D_DELAY_MIX], 0, 1);
-    this.reverbMix = clamp(cur[P.reverbMix] + dst[K.D_REVERB_MIX], 0, 1);
     this.widthTarget = clamp(1 + dst[K.D_WIDTH], 0, 2);
     this.widthStep = (this.widthTarget - this.width) / BLOCK;
 
@@ -1087,7 +1075,7 @@ export class Synth {
       const cMix = cur[P.chorusMix];
       if (cMix > 1e-4) {
         const hl = hpL[0].process(l), hr = hpR[0].process(r);
-        this.chorus.process(hl, hr, cMix, this.chorusDepth, out, cur[P.chorusMode] > 0.5);
+        this.chorus.process(hl, hr, cMix, this.chorusDepth, out, cur[P.chorusMode]);
         l += out[0] - hl;
         r += out[1] - hr;
       }
@@ -1105,23 +1093,11 @@ export class Synth {
         l += out[0] - hl;
         r += out[1] - hr;
       }
-      const dMix = this.delayMix;
-      if (dMix > 1e-4) {
-        this.delay.process(hpL[3].process(l), hpR[3].process(r), this.delaySeconds, cur[P.delayFb], this.delayToneCoef, out);
-        l += out[0] * dMix;
-        r += out[1] * dMix;
-      }
-      const rMix = this.reverbMix;
-      if (rMix > 1e-4) {
-        let vin: number;
-        if (cur[P.reverbOct] < -0.5) {
-          // an octave down first, then the Lo cut, so the deeper cloud still stays off the low end
-          const sh = this.verbOct.process(0.5 * (l + r));
-          vin = 0.5 * (hpL[4].process(sh) + hpR[4].process(sh));
-        } else vin = 0.5 * (hpL[4].process(l) + hpR[4].process(r));
-        this.reverb.process(vin, cur[P.reverbType], cur[P.reverbDecay], cur[P.reverbPre], out);
-        l += out[0] * rMix;
-        r += out[1] * rMix;
+      // The FX page's OTT (below its Lo cut the sound passes as it is).
+      if (this.fxOtt.on) {
+        this.fxOtt.process(l, r);
+        l = this.fxOtt.l;
+        r = this.fxOtt.r;
       }
 
       // EQ (bands at 0 dB are skipped) and high cut.

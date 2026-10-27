@@ -579,7 +579,7 @@ const MX_DEST_GROUPS: [string, string[]][] = [
   ['PITCH', ['none', 'pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'sub_pitch', 'noise_pitch', 'vibrato_depth']],
   ['SOURCES', ['osc1_wt_pos', 'osc2_wt_pos', 'osc1_pw', 'osc2_pw', 'osc1_level', 'osc2_level', 'unison_detune', 'fm_amount', 'fm2_amount', 'sub_level', 'noise_level', 'breath_level', 'texture_level']],
   ['FILTER · DIRT', ['drive', 'filter_cutoff', 'filter_resonance', 'filter_vowel', 'dist_drive', 'dist_mix', 'dist_tone', 'crush_mix', 'tape_wow']],
-  ['LEVEL · FX', ['amp', 'chorus_depth', 'phaser_mix', 'delay_time', 'delay_mix', 'reverb_mix', 'width']],
+  ['LEVEL · FX', ['amp', 'chorus_depth', 'phaser_mix', 'width']],
   ['LFO RATE', ['lfo1_rate', 'lfo2_rate', 'lfo3_rate', 'lfo4_rate']],
 ];
 const SRC_LABEL: Record<string, string> = {
@@ -3017,36 +3017,6 @@ export class SynthView {
     return cv;
   }
 
-  /** Glowing spikes (delay repeats, the reverb tail): [x 0..1, height 0..1] from the bottom. */
-  private fxSpikes(ids: string[], on: () => boolean, spikes: () => [number, number][], lowcut?: string): HTMLElement {
-    const W = PRINT_W, H = PRINT_H;
-    const [cv, g] = canvas(W, H, 'disp');
-    const redraw = () => {
-      paper(g, W, H);
-      const lit = on(), col = lit ? accentOf(cv) : '#4a4a50';
-      g.save();
-      g.lineCap = 'round';
-      for (const [x, a] of spikes()) {
-        const px = 4 + x * (W - 8), top = H - 6 - Math.max(1, a * (H - 14));
-        g.strokeStyle = col;
-        g.globalAlpha = lit ? 0.35 + 0.65 * Math.min(1, a) : 0.6;
-        g.lineWidth = 2;
-        if (lit) {
-          g.shadowColor = col;
-          g.shadowBlur = 8;
-        }
-        g.beginPath();
-        g.moveTo(px, H - 6);
-        g.lineTo(px, top);
-        g.stroke();
-      }
-      g.restore();
-      if (lowcut) loCutStrip(g, W, H, this.num(lowcut), lit, col);
-    };
-    this.watch([...ids, ...(lowcut ? [lowcut] : [])], redraw);
-    return cv;
-  }
-
   /**
    * The FX page: eight 4:3 boxes like the OSC page, in signal order. The dirt (in each voice):
    * distortion, crush, tape; then the shared effects, each above its own low cut: chorus,
@@ -3060,9 +3030,6 @@ export class SynthView {
       k.title = `Low cut: the ${fx} only works above this frequency, so the low end stays clean and centred.`;
       return k;
     };
-    let seed = 5;
-    const noise = Array.from({ length: 400 }, () => ((seed = (seed * 16807) % 2147483647) / 2147483647));
-
     // Distortion: two cycles of a sine through the curve.
     const shape = (type: string, x: number, d: number): number => {
       const k = 1 + 14 * d;
@@ -3125,7 +3092,7 @@ export class SynthView {
       power: (el) => this.boolPower('chorus.on', el),
       head: [this.selector('chorus.mode')],
       print: this.fxLine(['chorus.depth', 'chorus.mix', 'chorus.mode', 'chorus.on'], lit('chorus.on', 'chorus.mix'), (x) => {
-        const d = this.num('chorus.depth'), voices = this.get('chorus.mode') === 'ensemble' ? 3 : 2;
+        const d = this.num('chorus.depth'), mode = this.get('chorus.mode'), voices = mode === 'hyper' ? 6 : mode === 'ensemble' ? 3 : 2;
         let v = 0;
         for (let i = 0; i < voices; i++) v += Math.sin(x * 2 * Math.PI * 2.5 + i * (0.4 + 1.6 * d) + d * Math.sin(x * 6 + i));
         const m = this.num('chorus.mix');
@@ -3134,104 +3101,45 @@ export class SynthView {
       dials: [lg('chorus.mix', 'Mix'), lg('chorus.depth', 'Depth'), lowCut('chorus')],
     });
 
-    // Flanger or phaser: one box, one at a time (the switch in the title row).
-    // Which one the box shows: the one that is actually heard (on with some mix); otherwise as before.
-    const heard = (k: string) => !!this.get(`${k}.on`) && this.num(`${k}.mix`) > 0;
-    let kind: 'flanger' | 'phaser' = heard('phaser') && !heard('flanger') ? 'phaser' : 'flanger';
-    const kindBtn = (k: 'flanger' | 'phaser') => {
-      const b = h('button', 'c-title fx-kind', k.toUpperCase());
-      b.onclick = () => {
-        if (kind === k) return;
-        const wasOn = !!this.get(`${kind}.on`);
-        this.set(`${kind}.on`, false);
-        kind = k;
-        // The box stays on or off as it was; only the effect inside changes.
-        this.set(`${k}.on`, wasOn);
-        showKind();
-      };
-      return b;
-    };
-    const fBtn = kindBtn('flanger'), pBtn = kindBtn('phaser');
-    const titles = h('span', 'fx-kinds', fBtn, h('span', 'fx-kind-sep', '/'), pBtn);
-    const flDials = [lg('flanger.mix', 'Mix'), lg('flanger.rate', 'Rate'), lg('flanger.feedback', 'Feedbk'), lowCut('flanger')];
-    const phDials = [lg('phaser.mix', 'Mix'), lg('phaser.rate', 'Rate'), lowCut('phaser')];
-    const mfxPower = h('button', 'power', lamp());
-    mfxPower.title = 'On / off';
-    mfxPower.onclick = () => this.set(`${kind}.on`, !this.get(`${kind}.on`));
-    const mfxLit = () => !!this.get(`${kind}.on`) && this.num(`${kind}.mix`) > 0;
-    const mfxPrint = this.fxLine(['flanger.on', 'phaser.on', 'flanger.mix', 'phaser.mix', 'flanger.feedback', 'flanger.rate', 'phaser.rate', 'flanger.lowcut', 'phaser.lowcut'], mfxLit, (x) => {
-      if (kind === 'flanger') {
+    // Flanger and phaser, each its own box.
+    const flanger = this.obox('FLANGER', 'fx-box box-mfx', {
+      power: (el) => this.boolPower('flanger.on', el),
+      print: this.fxLine(['flanger.on', 'flanger.mix', 'flanger.feedback', 'flanger.rate', 'flanger.lowcut'], lit('flanger.on', 'flanger.mix'), (x) => {
         // Feedback sharpens the teeth, rate sweeps their spacing across the print, mix their depth.
         const fb = this.num('flanger.feedback'), r = this.num('flanger.rate'), m = Math.min(1, 0.25 + this.num('flanger.mix'));
         const c = Math.abs(Math.cos(Math.PI * (x * 7 + 0.35 * r * Math.sin(2 * Math.PI * x))));
         return 0.8 - 1.6 * m * Math.pow(1 - c, 1 + 6 * fb);
-      }
-      // The notches drift further apart as the rate goes up; mix sets how deep they go.
-      const m = this.num('phaser.mix'), sp = 0.06 * Math.log2(1 + this.num('phaser.rate'));
-      const notch = (c: number) => Math.exp(-(((x - c) / 0.05) ** 2));
-      return 0.75 - 1.6 * m * (notch(0.42 - sp) + notch(0.55 + sp * 0.3) + 0.6 * notch(0.7 + sp));
-    }, false, { lowcut: () => `${kind}.lowcut` });
-    const mfx = this.obox(titles, 'fx-box box-mfx', { power: mfxPower, print: mfxPrint, dials: [...flDials, ...phDials] });
-    const showKind = () => {
-      if (heard('phaser') && !heard('flanger')) kind = 'phaser';
-      else if (heard('flanger') && !heard('phaser')) kind = 'flanger';
-      fBtn.classList.toggle('on', kind === 'flanger');
-      pBtn.classList.toggle('on', kind === 'phaser');
-      for (const k of flDials) k.style.display = kind === 'flanger' ? '' : 'none';
-      for (const k of phDials) k.style.display = kind === 'phaser' ? '' : 'none';
-      const on = !!this.get(`${kind}.on`);
-      mfxPower.classList.toggle('on', on);
-      mfx.classList.toggle('is-off', !on);
-    };
-    this.watch(['flanger.on', 'phaser.on', 'flanger.mix', 'phaser.mix'], showKind);
-
-    const delayTime = this.selector('delay.time', { label: (o) => o });
-    const delay = this.obox('DELAY', 'fx-box box-delay', {
-      power: (el) => this.boolPower('delay.on', el),
-      head: [delayTime],
-      print: this.fxSpikes(['delay.time', 'delay.feedback', 'delay.mix', 'delay.on', 'delay.tone'], lit('delay.on', 'delay.mix'), () => {
-        const step = syncBeats(String(this.get('delay.time'))) / 4, fb = this.num('delay.feedback');
-        const out: [number, number][] = [[0, 1]];
-        const keep = Math.max(0.05, fb) * (0.55 + 0.45 * this.num('delay.tone'));
-        for (let i = 1, a = 0.9 * Math.max(0.05, this.num('delay.mix') * 1.4); i < 32 && i * step < 1; i++, a *= keep) out.push([i * step, Math.min(1, a)]);
-        return out;
-      }, 'delay.lowcut'),
-      dials: [lg('delay.mix', 'Mix'), lg('delay.feedback', 'Feedbk'), lg('delay.tone', 'Tone'), lowCut('delay')],
+      }, false, { lowcut: 'flanger.lowcut' }),
+      dials: [lg('flanger.mix', 'Mix'), lg('flanger.rate', 'Rate'), lg('flanger.feedback', 'Feedbk'), lowCut('flanger')],
+    });
+    const phaser = this.obox('PHASER', 'fx-box box-phaser', {
+      power: (el) => this.boolPower('phaser.on', el),
+      print: this.fxLine(['phaser.on', 'phaser.mix', 'phaser.rate', 'phaser.lowcut'], lit('phaser.on', 'phaser.mix'), (x) => {
+        // The notches drift further apart as the rate goes up; mix sets how deep they go.
+        const m = this.num('phaser.mix'), sp = 0.06 * Math.log2(1 + this.num('phaser.rate'));
+        const notch = (c: number) => Math.exp(-(((x - c) / 0.05) ** 2));
+        return 0.75 - 1.6 * m * (notch(0.42 - sp) + notch(0.55 + sp * 0.3) + 0.6 * notch(0.7 + sp));
+      }, false, { lowcut: 'phaser.lowcut' }),
+      dials: [lg('phaser.mix', 'Mix'), lg('phaser.rate', 'Rate'), lowCut('phaser')],
     });
 
-    // The tail as it is: pre-delay as a gap, each type's build-up (a room's early reflections, a
-    // cathedral's slow bloom), Decay as its length (log, 0.2-20 s across the print).
-    const reverb = this.obox('REVERB', 'fx-box box-reverb', {
-      power: (el) => this.boolPower('reverb.on', el),
-      head: [this.selector('reverb.type'), h('div', 'ob-chips',
-        this.chip('OCT', () => this.num('reverb.octave'), (v) => this.set('reverb.octave', v), -1, 0, ['reverb.octave'], 'Reverb octave: -1 lets each note sink into a dark cloud an octave below itself'))],
-      print: this.fxSpikes(['reverb.type', 'reverb.decay', 'reverb.predelay', 'reverb.mix', 'reverb.on', 'reverb.octave'], lit('reverb.on', 'reverb.mix'), () => {
-        const type = String(this.get('reverb.type'));
-        const len = 0.08 + 0.92 * (Math.log(this.num('reverb.decay') / 0.2) / Math.log(100));
-        const mix = 0.35 + 0.65 * Math.min(1, this.num('reverb.mix') * 2.5);
-        const gap = 0.3 * (this.num('reverb.predelay') / 250);
-        const rise = ({ room: 0.01, plate: 0.004, hall: 0.05, cathedral: 0.12 } as Record<string, number>)[type] ?? 0.05;
-        const grain = ({ room: 0.75, plate: 0.15, hall: 0.4, cathedral: 0.45 } as Record<string, number>)[type] ?? 0.4;
-        const out: [number, number][] = [];
-        // an octave down: half as many, broader grains (the tail moves at half speed)
-        const step = this.num('reverb.octave') < 0 ? 2 : 1;
-        for (let i = 0; i < 80; i += step) {
-          const x = i / 80;
-          if (x < gap) continue;
-          const t = x - gap;
-          const env = (1 - Math.exp(-t / rise)) * Math.exp((-3.5 * t) / len);
-          // a room's first reflections stand out as a few tall spikes
-          const early = type === 'room' && t < 0.08 && i % 3 === 0 ? 1.25 : 1;
-          out.push([x, Math.min(1, mix * env * early * (1 - grain * 0.7 + grain * 0.7 * noise[i]))]);
-        }
-        return out;
-      }, 'reverb.lowcut'),
-      dials: [lg('reverb.mix', 'Mix'), lg('reverb.decay', 'Decay'), lg('reverb.predelay', 'Pre-delay'), lowCut('reverb')],
+    // OTT (its own; GRIND has another): a loud, quiet-lifting, peak-squashing wave, Depth deep.
+    const ottLow = lg('ott.lowcut', 'Lo cut', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
+    ottLow.title = 'The OTT only works above this frequency; below it the sound passes as it is. Fully left = the whole sound.';
+    const ott = this.obox('OTT', 'fx-box box-ott', {
+      power: (el) => this.boolPower('ott.on', el),
+      print: this.fxLine(['ott.on', 'ott.depth', 'ott.lowcut'], lit('ott.on', 'ott.depth'), (x) => {
+        // a note that dies away: the deeper the OTT, the more its tail is pulled up and its peak held down
+        const d = this.num('ott.depth'), env = Math.exp(-3.2 * x), s = Math.sin(x * 2 * Math.PI * 6);
+        const e = env * (1 - d) + d * (0.55 + 0.35 * Math.pow(env, 0.25));
+        return 0.9 * e * s;
+      }, false, { lowcut: 'ott.lowcut' }),
+      dials: [lg('ott.depth', 'Depth', { fmt: (v) => `${Math.round(v * 100)}%` }), ottLow],
     });
 
     const eq = this.eqBox();
 
-    return h('div', 'v2-main osc-page fx-page2', dist, crush, tape, chorus, mfx, delay, reverb, eq);
+    return h('div', 'v2-main osc-page fx-page2', dist, crush, tape, chorus, flanger, phaser, ott, eq);
   }
 
   /**

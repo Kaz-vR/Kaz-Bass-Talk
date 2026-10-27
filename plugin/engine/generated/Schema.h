@@ -6,7 +6,7 @@ struct ParamSpec {
   const char* id; const char* label; PType type; double min, max, def; int curve; double exponent;
   const char* unit; const char* group; const char* options; const char* describes;
 };
-constexpr int PARAM_COUNT = 413;
+constexpr int PARAM_COUNT = 416;
 inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "voice.polyphony", "Polyphony", PType::Int, 1, 8, 1, 0, 3, "voices", "voice", "", "1 = monophonic (legato and glide work, the bass default). 2-8 = that many notes at once, for pads, keys and chords; the oldest note is taken over when more are played." },
   { "voice.legato", "Legato", PType::Bool, 0, 1, 0, 0, 3, "", "voice", "", "On: overlapping notes slide without retriggering the envelopes (303-style). Off: every note retriggers." },
@@ -320,7 +320,7 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "chorus.on", "Chorus on", PType::Bool, 0, 1, 1, 0, 3, "", "fx", "", "Switches Chorus on or off without losing its settings. Off also saves CPU." },
   { "chorus.mix", "Chorus mix", PType::Float, 0, 1, 0, 0, 3, "", "fx", "", "Stereo chorus on everything above the low cut. Wider, lusher, more 80s." },
   { "chorus.depth", "Chorus depth", PType::Float, 0, 1, 0.5, 0, 3, "", "fx", "", "How much the chorus wobbles. High is seasick; low is a subtle widening." },
-  { "chorus.mode", "Chorus mode", PType::Enum, 0, 1, 0, 0, 3, "", "fx", "classic|ensemble", "Classic is a two-voice stereo chorus; ensemble is a lush three-voice string-machine/Juno-style chorus (the hoover sound)." },
+  { "chorus.mode", "Chorus mode", PType::Enum, 0, 2, 0, 0, 3, "", "fx", "classic|ensemble|hyper", "classic = a two-voice chorus (gentle, wobbly); ensemble = a three-voice string-machine ensemble (lush); hyper = six steadily detuned copies spread across the stereo field (Serum's Hyper: a supersaw thickness on the whole sound, the noise, FM and GRIND included). Below its Lo cut the sound stays clean and mono." },
   { "phaser.on", "Phaser on", PType::Bool, 0, 1, 1, 0, 3, "", "fx", "", "Switches Phaser on or off without losing its settings. Off also saves CPU." },
   { "phaser.mix", "Phaser mix", PType::Float, 0, 1, 0, 0, 3, "", "fx", "", "Sweeping notches for a swirling, jet-like movement." },
   { "phaser.rate", "Phaser rate", PType::Float, 0.05, 10, 0.5, 1, 3, "Hz", "fx", "", "Speed of the phaser sweep." },
@@ -342,6 +342,9 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "chorus.lowcut", "Chorus low cut", PType::Float, 20, 1000, 250, 1, 3, "Hz", "fx", "", "Chorus only works on what is above this frequency, so the low end stays clean, centred and dry." },
   { "flanger.lowcut", "Flanger low cut", PType::Float, 20, 1000, 250, 1, 3, "Hz", "fx", "", "Flanger only works on what is above this frequency, so the low end stays clean, centred and dry." },
   { "phaser.lowcut", "Phaser low cut", PType::Float, 20, 1000, 250, 1, 3, "Hz", "fx", "", "Phaser only works on what is above this frequency, so the low end stays clean, centred and dry." },
+  { "ott.on", "OTT on", PType::Bool, 0, 1, 0, 0, 3, "", "fx", "", "Switches the OTT on or off without losing its settings." },
+  { "ott.depth", "OTT depth", PType::Float, 0, 1, 0, 0, 3, "", "fx", "", "OTT, as Ableton's OTT preset / Xfer's OTT: three bands squashed hard from above and pulled up from below, so quiet grit and tails come up and peaks come down; full Depth is louder and dense. After the phaser, before the EQ. 0 = off." },
+  { "ott.lowcut", "OTT low cut", PType::Float, 20, 1000, 20, 1, 3, "Hz", "fx", "", "The OTT only works above this frequency: below it the sound passes as it is. Fully left = the whole sound (the clean sub never goes through it)." },
   { "delay.lowcut", "Delay low cut", PType::Float, 20, 1000, 250, 1, 3, "Hz", "fx", "", "Delay only works on what is above this frequency, so the low end stays clean, centred and dry." },
   { "reverb.lowcut", "Reverb low cut", PType::Float, 20, 1000, 250, 1, 3, "Hz", "fx", "", "Reverb only works on what is above this frequency, so the low end stays clean, centred and dry." },
   { "eq.on", "EQ on", PType::Bool, 0, 1, 1, 0, 3, "", "eq", "", "Switches EQ on or off without losing its settings. Off also saves CPU." },

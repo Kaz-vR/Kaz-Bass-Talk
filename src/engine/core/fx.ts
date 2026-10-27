@@ -12,6 +12,10 @@ const Rng = Rng_;
 const TWO_PI = TWO_PI_;
 
 const MAX_FS = 192000;
+/** Hyper's six copies: unrelated slow cycles (Hz, before Depth), spread left to right at equal power. */
+const HYPER_RATE = [0.29, 0.41, 0.53, 0.67, 0.79, 0.97];
+const HYPER_PAN_L = HYPER_RATE.map((_, i) => Math.SQRT2 * Math.cos(((((2 * i) / 5 - 1) * 0.9 + 1) * Math.PI) / 4));
+const HYPER_PAN_R = HYPER_RATE.map((_, i) => Math.SQRT2 * Math.sin(((((2 * i) / 5 - 1) * 0.9 + 1) * Math.PI) / 4));
 
 export class Chorus {
   private bufL: Float32Array;
@@ -71,9 +75,13 @@ export class Chorus {
    * a three-voice string-machine/Juno-style ensemble (taps 120° apart plus a
    * fast shimmer); false is a classic two-voice chorus.
    */
-  process(l: number, r: number, mix: number, depth: number, out: Float64Array, ensemble = false): void {
-    if (ensemble) {
+  process(l: number, r: number, mix: number, depth: number, out: Float64Array, mode = 0): void {
+    if (mode === 1) {
       this.processEnsemble(l, r, mix, depth, out);
+      return;
+    }
+    if (mode === 2) {
+      this.processHyper(l, r, mix, depth, out);
       return;
     }
     const mask = this.size - 1;
@@ -103,6 +111,40 @@ export class Chorus {
   private ensPhase = 0;
   private ensRate = 0.75;
   private shimmer = 0;
+  private readonly hypPhase = Float64Array.from(HYPER_RATE, (_, i) => i / HYPER_RATE.length);
+  private hypDrift = 1;
+
+  /**
+   * Hyper (as Serum's): six copies, each held a little sharp or flat and drifting on its own
+   * unrelated slow cycle, spread across the stereo field: a supersaw thickness on the whole sound.
+   * Depth = how far apart they are (a few cents up to ~25).
+   */
+  private processHyper(l: number, r: number, mix: number, depth: number, out: Float64Array): void {
+    const mask = this.size - 1;
+    this.bufL[this.w & mask] = l;
+    this.bufR[this.w & mask] = r;
+    if (this.count-- <= 0) {
+      this.count = 15;
+      this.hypDrift = this.driftStep();
+    }
+    const fs = this.fs, sp = (0.6 + 0.9 * depth) * this.hypDrift;
+    // the delay swing that gives each copy its detune: d·2π·f ≈ the pitch offset
+    const amp = (0.0004 + 0.0028 * depth) * fs;
+    let wl = 0, wr = 0;
+    for (let t = 0; t < HYPER_RATE.length; t++) {
+      let ph = this.hypPhase[t] + (HYPER_RATE[t] * sp) / fs;
+      if (ph >= 1) ph -= 1;
+      this.hypPhase[t] = ph;
+      const d = (0.006 + 0.0011 * t) * fs + amp * (0.5 + 0.5 * Math.sin(TWO_PI * ph));
+      const gl = HYPER_PAN_L[t], gr = HYPER_PAN_R[t];
+      wl += this.read(this.bufL, d) * gl;
+      wr += this.read(this.bufR, d) * gr;
+    }
+    this.w = (this.w + 1) & mask;
+    const dry = 1 - 0.6 * mix;
+    out[0] = l * dry + mix * 0.42 * wl;
+    out[1] = r * dry + mix * 0.42 * wr;
+  }
 
   private processEnsemble(l: number, r: number, mix: number, depth: number, out: Float64Array): void {
     const mask = this.size - 1;

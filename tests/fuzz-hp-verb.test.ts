@@ -52,17 +52,4 @@ describe('reverb -1 octave', () => {
     const s = powerSpectrum(y, FS, Math.round(0.2 * FS), n, 8192);
     expect(bandPower(s, 420, 460)).toBeGreaterThan(bandPower(s, 860, 900) * 3);
   });
-  it('sinks the tail an octave: its fundamental moves down, still above the Lo cut', () => {
-    const v = { ...dry, 'osc1.level': 0.6, 'reverb.on': true, 'reverb.mix': 1, 'reverb.decay': 3, 'reverb.lowcut': 100 };
-    // a sine at C5 (523 Hz): an octave down its tail sits at 262 Hz (measured in the gap after the second note, 1.5-2 s)
-    const tail = (oct: number) => {
-      const x = mono(renderPatch({ ...v, 'reverb.octave': oct }, heldNote(72, 1), { seconds: 2.2, tail: 0 }));
-      return powerSpectrum(x, FS, Math.round(1.56 * FS), Math.round(1.98 * FS), 8192);
-    };
-    const up = tail(0), down = tail(-1);
-    expect(bandPower(up, 240, 285) / bandPower(up, 490, 560)).toBeLessThan(0.05);
-    expect(bandPower(down, 240, 285)).toBeGreaterThan(bandPower(down, 490, 560));
-    // nothing goes below the Lo cut (an octave below 262 Hz would be 131)
-    expect(bandPower(down, 20, 70)).toBeLessThan(bandPower(down, 240, 285) * 0.01);
-  });
 });

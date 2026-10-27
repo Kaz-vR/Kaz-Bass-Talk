@@ -91,14 +91,25 @@ it('tape age only adds quiet hiss on top of the sub', () => {
   expect(rms(diff)).toBeLessThan(0.002); // ≈ -54 dBFS
 });
 
-describe('delay', () => {
-  it('echoes after the synced time', () => {
-    const p = { ...base, 'osc1.wave': 'saw', 'osc1.level': 1, 'filter.cutoff': 3000, 'fx.lowcut': 100, 'amp_env.release': 5,
-      'delay.mix': 1, 'delay.time': '1/4', 'delay.feedback': 0 };
-    const l = { id: 'd', name: 'd', description: '', bpm: 120, length_beats: 8, notes: [{ start: 0, dur: 0.2, note: 57, vel: 1 }] };
-    const r = renderPatch(p, l, { seconds: 1 });
-    // Note: 0–0.1 s. 1/4 at 120 BPM = 0.5 s → echo at 0.5–0.6 s, silence between.
-    expect(rms(r.left, 0.3 * FS, 0.45 * FS)).toBeLessThan(0.01);
-    expect(rms(r.left, 0.52 * FS, 0.58 * FS)).toBeGreaterThan(0.03);
+describe('chorus hyper and the FX OTT', () => {
+  const p = { ...base, 'osc1.wave': 'saw', 'osc1.level': 1, 'filter.cutoff': 3000, 'chorus.on': true, 'chorus.mix': 0.8, 'chorus.depth': 0.7, 'chorus.lowcut': 150 };
+  it('hyper spreads the sound wide, at about the same level', () => {
+    const side = (mode: string) => {
+      const r = renderPatch({ ...p, 'chorus.mode': mode }, heldNote(57, 1), { seconds: 1 });
+      const s2 = new Float32Array(r.left.length), m2 = new Float32Array(r.left.length);
+      for (let i = 0; i < s2.length; i++) { s2[i] = 0.5 * (r.left[i] - r.right[i]); m2[i] = 0.5 * (r.left[i] + r.right[i]); }
+      return { side: rms(s2, 0.3 * FS, 0.9 * FS), mid: rms(m2, 0.3 * FS, 0.9 * FS) };
+    };
+    const c = side('classic'), h = side('hyper');
+    expect(h.side).toBeGreaterThan(c.side);
+    expect(Math.abs(20 * Math.log10(h.mid / c.mid))).toBeLessThan(6);
+  });
+  it('OTT depth pulls a dying tail up against its attack', () => {
+    const q = { ...base, 'osc1.wave': 'saw', 'osc1.level': 1, 'amp_env.attack': 1, 'amp_env.decay': 600, 'amp_env.sustain': 0 };
+    const ratio = (depth: number) => {
+      const r = renderPatch({ ...q, 'ott.depth': depth }, heldNote(57, 1), { seconds: 1 });
+      return rms(r.left, 0.5 * FS, 0.6 * FS) / rms(r.left, 0.02 * FS, 0.08 * FS);
+    };
+    expect(ratio(1)).toBeGreaterThan(ratio(0) * 1.5);
   });
 });
