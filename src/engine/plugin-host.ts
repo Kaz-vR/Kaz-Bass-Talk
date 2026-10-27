@@ -142,6 +142,11 @@ export class PluginHost {
     if (p) this.send({ type: 'param', index: paramIndex(id), value: toEngineValue(p, value) });
   }
 
+  /** A key the DAW should have (space: play / stop): the plugin passes it on to the host's window. */
+  hostKey(key: string, down: boolean): void {
+    this.send({ type: 'key', key, down });
+  }
+
   noteOn(note: number, velocity = 0.8): void {
     this.send({ type: 'noteOn', note, velocity });
   }

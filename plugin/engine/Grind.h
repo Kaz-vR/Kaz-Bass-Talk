@@ -20,7 +20,7 @@ inline int grindBeat(double rate) { return (int)jsRound(std::fmin(1, std::fmax(0
 inline double grindGain(double drive) { return 1 + 29 * drive * drive; }
 constexpr int GRIND_COMB_LEN = 4096;
 constexpr double SAT_BIAS = 0.35;
-inline const double SAT_OFFSET = std::tanh(SAT_BIAS);
+inline const double SAT_OFFSET = fastTanh(SAT_BIAS);
 constexpr double OTT_ABOVE[3] = {-33.8, -30.2, -35.5};
 constexpr double OTT_BELOW[3] = {-40.8, -41.8, -40.8};
 constexpr double OTT_BAND_DB[3] = {10.3, 5.7, 10.3};
@@ -102,7 +102,7 @@ class Ott {
         const double lvl = 20 * std::log10(env[b] + 1e-9) + inDb;
         double g = 0;
         if (lvl > OTT_ABOVE[b]) g = (OTT_ABOVE[b] - lvl) * (1 - 1.0 / 66);
-        else if (lvl < OTT_BELOW[b] && lvl > -90) g = std::fmin(OTT_MAX_UP, (OTT_BELOW[b] - lvl) * (1 - 1 / 4.17));
+        else if (lvl < OTT_BELOW[b]) g = std::fmin(OTT_MAX_UP, (OTT_BELOW[b] - lvl) * (1 - 1 / 4.17)) * std::fmin(1, std::fmax(0, (lvl - inDb + 80) / 10));
         gain[b] = std::pow(10.0, (g + OTT_BAND_DB[b] + makeupDb) / 20);
       }
       ol += bd[b] * gain[b];

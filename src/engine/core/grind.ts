@@ -31,7 +31,7 @@ export const grindBeat = (rate: number): number => Math.round(Math.min(1, Math.m
 export const grindGain = (drive: number): number => 1 + 29 * drive * drive;
 const COMB_LEN = 4096;
 const SAT_BIAS = 0.35; // lopsided: even harmonics
-const SAT_OFFSET = Math.tanh(SAT_BIAS);
+const SAT_OFFSET = K.tanh(SAT_BIAS); // the curve's own value at rest, so silence stays silent (no DC for the OTTs to pull up)
 // OTT: Ableton's OTT preset (low, mid, high band)
 const OTT_ABOVE = [-33.8, -30.2, -35.5]; // dB, downward 1:66 over it
 const OTT_BELOW = [-40.8, -41.8, -40.8]; // dB, upward 4.17:1 under it
@@ -531,7 +531,8 @@ export class Ott {
         const lvl = 20 * Math.log10(env[b] + 1e-9) + this.inDb;
         let g = 0;
         if (lvl > OTT_ABOVE[b]) g = (OTT_ABOVE[b] - lvl) * (1 - 1 / 66);
-        else if (lvl < OTT_BELOW[b] && lvl > -90) g = Math.min(OTT_MAX_UP, (OTT_BELOW[b] - lvl) * (1 - 1 / 4.17));
+        // pulled up from below, but never what is near silence (tails, filter residue): no lift under -80 dBFS, full lift from -70
+        else if (lvl < OTT_BELOW[b]) g = Math.min(OTT_MAX_UP, (OTT_BELOW[b] - lvl) * (1 - 1 / 4.17)) * Math.min(1, Math.max(0, (lvl - this.inDb + 80) / 10));
         gain[b] = Math.pow(10, (g + OTT_BAND_DB[b] + this.makeupDb) / 20);
       }
       ol += bd[b] * gain[b];

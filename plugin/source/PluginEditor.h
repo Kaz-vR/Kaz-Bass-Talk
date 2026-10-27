@@ -21,6 +21,7 @@ class LowTalkEditor : public juce::AudioProcessorEditor, private juce::Timer {
  private:
   void timerCallback() override;
   void onMessage(const juce::var& m);
+  void passKeyToHost(const juce::String& key, bool down);
   void sendState();
   std::optional<juce::WebBrowserComponent::Resource> getResource(const juce::String& url);
 

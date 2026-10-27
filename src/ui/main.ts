@@ -506,6 +506,17 @@ function startPlugin(): void {
     },
   });
   host = ph;
+  // Space belongs to the DAW (play / stop), never to the page: it would click whatever button has
+  // focus. Caught before anything else sees it and handed to the host.
+  const typing = (t: EventTarget | null) => t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement;
+  for (const type of ['keydown', 'keyup'] as const) {
+    window.addEventListener(type, (e) => {
+      if (e.code !== 'Space' || typing(e.target)) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (!e.repeat) ph.hostKey('space', type === 'keydown');
+    }, true);
+  }
   new Scope(host.analyser, $<HTMLCanvasElement>('scope'), $<HTMLCanvasElement>('spectrum'));
   synth.setAnalyser(host.analyser);
   // the moving prints read the engine's live values, sent with the scope

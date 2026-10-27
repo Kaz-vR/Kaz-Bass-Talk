@@ -1,5 +1,11 @@
 #include "PluginEditor.h"
 #include <UiData.h>
+#if JUCE_WINDOWS
+ #ifndef NOMINMAX
+  #define NOMINMAX
+ #endif
+ #include <windows.h>
+#endif
 
 namespace {
 juce::String mimeFor(const juce::String& file) {
@@ -108,6 +114,8 @@ void LowTalkEditor::onMessage(const juce::var& m) {
       }
     }
     proc.setPresetName(m["name"].toString());
+  } else if (type == "key") {
+    passKeyToHost(m["key"].toString(), (bool)m["down"]);
   } else if (type == "noteOn") {
     proc.sendCommand({LowTalkProcessor::CMD_NOTE_ON, (int)m["note"], 0, (double)m["velocity"]});
   } else if (type == "noteOff") {
@@ -135,6 +143,28 @@ void LowTalkEditor::onMessage(const juce::var& m) {
     loopQueued = true;
     if (proc.sendLoop(queuedLoop, queuedLength, queuedBpm)) loopQueued = false;
   }
+}
+
+/**
+ * Hand a key the page doesn't use (space: the DAW's play / stop) to the host: the window the plugin
+ * sits in gets it as if it had been pressed there.
+ */
+void LowTalkEditor::passKeyToHost(const juce::String& key, bool down) {
+#if JUCE_WINDOWS
+  if (key != "space") return;
+  auto* peer = getPeer();
+  if (peer == nullptr) return;
+  HWND own = (HWND)peer->getNativeHandle();
+  // the host's main window (the DAW's own transport keys live there; a floating plugin window is owned by it)
+  HWND root = GetAncestor(own, GA_ROOTOWNER);
+  if (root == nullptr) root = GetAncestor(own, GA_ROOT);
+  if (root == nullptr) return;
+  const UINT scan = MapVirtualKeyW(VK_SPACE, MAPVK_VK_TO_VSC);
+  const LPARAM lp = 1 | ((LPARAM)scan << 16) | (down ? 0 : ((LPARAM)1 << 30) | ((LPARAM)1 << 31));
+  PostMessageW(root, down ? WM_KEYDOWN : WM_KEYUP, VK_SPACE, lp);
+#else
+  juce::ignoreUnused(key, down);
+#endif
 }
 
 void LowTalkEditor::timerCallback() {
