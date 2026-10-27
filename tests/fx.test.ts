@@ -107,7 +107,7 @@ describe('chorus hyper and the FX OTT', () => {
   it('OTT depth pulls a dying tail up against its attack', () => {
     const q = { ...base, 'osc1.wave': 'saw', 'osc1.level': 1, 'amp_env.attack': 1, 'amp_env.decay': 600, 'amp_env.sustain': 0 };
     const ratio = (depth: number) => {
-      const r = renderPatch({ ...q, 'ott.depth': depth }, heldNote(57, 1), { seconds: 1 });
+      const r = renderPatch({ ...q, 'ott.on': true, 'ott.depth': depth }, heldNote(57, 1), { seconds: 1 });
       return rms(r.left, 0.5 * FS, 0.6 * FS) / rms(r.left, 0.02 * FS, 0.08 * FS);
     };
     expect(ratio(1)).toBeGreaterThan(ratio(0) * 1.5);
