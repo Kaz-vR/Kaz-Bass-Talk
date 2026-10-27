@@ -4,7 +4,7 @@ name: Plugin (Windows VST3)
 
 on:
   push:
-    paths: ['plugin/**', 'src/**', 'data/**', 'tools/gen-plugin-data.ts', 'index.html', 'package*.json', 'vite.config.ts', '.github/workflows/plugin.yml']
+    paths: ['plugin/**', 'src/**', 'data/**', 'tools/gen-plugin-data.ts', 'tools/lib/**', 'index.html', 'package*.json', 'vite.config.ts', '.github/workflows/plugin.yml']
   workflow_dispatch:
 
 jobs:
