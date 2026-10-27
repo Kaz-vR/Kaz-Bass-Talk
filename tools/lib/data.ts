@@ -1,9 +1,10 @@
+import { fileURLToPath } from 'node:url';
 // DEV ONLY. Load library patches and loops from disk.
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Loop } from '../../src/engine/core/sequencer';
 
-export const ROOT = new URL('../..', import.meta.url).pathname;
+export const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 export const LIBRARY_DIR = join(ROOT, 'data/library');
 export const LOOPS_DIR = join(ROOT, 'data/loops');
 export const DEFAULT_LOOP = 'groove';
