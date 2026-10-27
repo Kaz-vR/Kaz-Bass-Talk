@@ -13,7 +13,6 @@
 import { AUX_SLOT, Biquad, clamp, Clipper, Envelope, Ladder, OSC_SLOT, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
 import { Crusher, Tape } from './fx';
 import { Grind } from './grind';
-import { Grind2 } from './grind2';
 import { Downsampler2x, OVERSAMPLE_LATENCY, Upsampler2x } from './oversample';
 import * as K from './params';
 import { Comb, DiodeLadder, KarplusString, Shepard } from './voicefx';
@@ -110,19 +109,6 @@ export class Voice {
     return this.grind.stages[i].resNow;
   }
   private grindOn = false;
-  private grind2!: Grind2;
-  private g2On = false;
-  /** Where GRIND2 stage i's filter is right now (Hz), or -1 when off. */
-  g2Fc(i: number): number {
-    return this.g2On ? this.grind2.stages[i].fcNow : -1;
-  }
-  /** GRIND2's shared movement: position in its cycle and level (0..1), or -1 when off. */
-  g2Move(): number {
-    return this.g2On ? this.grind2.level : -1;
-  }
-  g2Phase(): number {
-    return this.grind2.phase;
-  }
   /** The bar position in beats (0..4), set by the synth before control(): GRIND's beat movement. */
   beatPos = 0;
   /** The tempo in beats per second (set with beatPos). */
@@ -308,7 +294,6 @@ export class Voice {
     this.table = table;
     this.rng = new Rng(seed);
     this.grind = new Grind(this.rng);
-    this.grind2 = new Grind2(new Rng(seed ^ 0x2b2b));
     this.subRamp = 1 / (0.01 * fs);
     this.combL = new Comb(Math.ceil((fs * OS) / 20));
     this.combR = new Comb(Math.ceil((fs * OS) / 20));
@@ -341,7 +326,6 @@ export class Voice {
     this.tail = 40;
     // GRIND's note movement starts again on every new note, legato notes too
     this.grind.noteOn(this.rng);
-    this.grind2.noteOn();
     if (!retrigger) return;
     this.velocity = clamp(velocity, 0, 1);
     const cur = this.cur;
@@ -371,7 +355,6 @@ export class Voice {
       this.fm2Phase = 0;
       this.fmPrevOut = 0;
       this.grind.reset();
-      this.grind2.reset();
     }
     this.noteCutoffJitter = this.rng.next();
     // Per-note excitations: FM punch, string pluck.
@@ -696,8 +679,6 @@ export class Voice {
     const fsOs = fs * OS;
     this.grindOn = cur[P.grindOn] > 0.5;
     if (this.grindOn) this.grind.control(cur, this.beatPos, this.bps, (this.pitch + 12 * cur[P.octave] - K.KEYTRACK_CENTER) / 12, fs, fsOs, CONTROL_BLOCK * OS, this.rng);
-    this.g2On = cur[P.g2On] > 0.5;
-    if (this.g2On) this.grind2.control(cur, this.beatPos, this.bps, (this.pitch + 12 * cur[P.octave] - K.KEYTRACK_CENTER) / 12, fs, fsOs, CONTROL_BLOCK * OS);
     let octs = (cur[P.keytrack] * (this.pitch + 12 * cur[P.octave] - KEYTRACK_CENTER)) / 12 +
       6 * cur[P.envAmt] * cur[P.modEnvOn] * (1 + 1.5 * this.accentAmt) * this.modEnv.level + 6 * dst[D.CUTOFF] + 0.12 * this.analog * this.noteCutoffJitter;
     // Low-pass gate: the cutoff closes together with the amp envelope.
@@ -902,11 +883,6 @@ export class Voice {
       this.grind.process(l, r);
       l = this.grind.l;
       r = this.grind.r;
-    }
-    if (this.g2On) {
-      this.grind2.process(l, r);
-      l = this.grind2.l;
-      r = this.grind2.r;
     }
     // Pre-filter drive.
     if (this.driveMix > 0) {

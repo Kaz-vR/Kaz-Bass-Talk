@@ -1505,17 +1505,3 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-strip .gr-front + .gr-lamps { margin-left: 10px; }
 .v2 .gr-stage .gr-fdials { gap: 3px; }
 .v2 .gr-stage .gr-fdials .k-label { letter-spacing: 0.1em !important; white-space: nowrap; }
-/* GRIND2: the movement in the strip (its print, then shape / length / timing stacked) */
-.v2 .g2-move { display: flex; align-items: center; gap: 10px; flex: none; }
-.v2 .g2-mprint { display: block; width: 120px; height: 34px; }
-.v2 .g2-mprint canvas { width: 120px; height: 34px; display: block; }
-.v2 .g2-movesel { display: flex; flex-direction: column; gap: 0; }
-.v2 .g2-movesel .sel-btn { display: none; }
-.v2 .g2-movesel .sel-name { font-size: 9.5px !important; line-height: 13px; }
-.v2 .g2-page .gr-count .fx-kind { padding: 0 2px; }
-/* seven tabs (GRIND2 added): a little tighter so they clear undo / redo / save */
-.v2 .v2-tabs { gap: 0 !important; }
-.v2 .v2-tabs .tab { letter-spacing: 0.1em !important; padding: 9px 5px 9px 6px !important; }
-.v2 .v2-tabs .tab::before { left: 6px; right: 5px; }
-.v2 .v2-top-right { width: auto !important; }
-.v2 .pre-name { width: 240px !important; } .v2 .pre-sel { left: 530px !important; }

@@ -418,7 +418,6 @@ $('start').querySelector('button')!.addEventListener('click', async () => {
   synth.setLiveWobble(() => engine.liveWobble());
   synth.setLiveLfos(() => engine.liveLfos());
   synth.setLiveGrind(() => engine.liveGrind());
-  synth.setLiveG2(() => engine.liveG2());
   initMidi({
     noteOn: (n, v) => { host?.noteOn(n, v); keyboard.mark(n, true); synth.noteOn(); },
     noteOff: (n) => { host?.noteOff(n); keyboard.mark(n, false); synth.noteOff(); },

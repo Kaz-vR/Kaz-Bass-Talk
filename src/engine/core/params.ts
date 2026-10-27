@@ -213,10 +213,5 @@ export const P = {
     on: ix(`grind${n}.on`), filter: ix(`grind${n}.filter`), freq: ix(`grind${n}.freq`), range: ix(`grind${n}.range`), move: ix(`grind${n}.move`),
     rate: ix(`grind${n}.rate`), clock: ix(`grind${n}.clock`), vrange: ix(`grind${n}.vrange`), res: ix(`grind${n}.res`), dtype: ix(`grind${n}.drive_type`), drive: ix(`grind${n}.drive`), mix: ix(`grind${n}.mix`),
   })),
-  g2On: ix('g2.on'), g2Shape: ix('g2.shape'), g2Rate: ix('g2.rate'), g2Timing: ix('g2.timing'), g2Life: ix('g2.life'), g2Sat: ix('g2.sat'), g2Ott: ix('g2.ott'), g2Key: ix('g2.key'), g2Lowcut: ix('g2.lowcut'), g2Mix: ix('g2.mix'),
-  g2: [1, 2, 3, 4].map((n) => ({
-    on: ix(`g2s${n}.on`), filter: ix(`g2s${n}.filter`), freq: ix(`g2s${n}.freq`), res: ix(`g2s${n}.res`), depth: ix(`g2s${n}.depth`), offset: ix(`g2s${n}.offset`),
-    dtype: ix(`g2s${n}.drive_type`), drive: ix(`g2s${n}.drive`), dmod: ix(`g2s${n}.dmod`), mix: ix(`g2s${n}.mix`),
-  })),
 };
 

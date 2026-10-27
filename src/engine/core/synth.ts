@@ -30,7 +30,6 @@ import { PARAM_COUNT, params } from '../../schema';
 import { AUX_SLOT, Biquad, clamp, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
 import { Chorus, Delay, Flanger, Limiter, OctaveDown, Phaser, Reverb } from './fx';
 import { Grind, Ott } from './grind';
-import { Grind2 } from './grind2';
 import { OVERSAMPLE_LATENCY } from './oversample';
 import * as K from './params';
 import { Voice } from './voice';
@@ -145,8 +144,6 @@ export class Synth {
   /** The texture bed's own GRIND chain (the bed is shared, so it follows the newest note), when not on Direct out. */
   private readonly texGrind = new Grind(new Rng(0x6a1d));
   private texGrindOn = false;
-  private readonly texG2 = new Grind2(new Rng(0x2b1d));
-  private texG2On = false;
   /** GRIND's OTT, after the amp envelopes (on the voices and the noise bed, before the effects). */
   private readonly ott = new Ott();
   // Slow random 'drift' modulation source.
@@ -194,9 +191,6 @@ export class Synth {
   /** Each GRIND stage's filter frequency right now (Hz, the newest voice's), -1 when off or silent. */
   readonly liveGrind = new Float64Array(4).fill(-1);
   readonly liveGrindRes = new Float64Array(4);
-  /** GRIND2: each stage's filter frequency (Hz, -1 when off), and where the shared movement is in its cycle (0..1, -1 when off). */
-  readonly liveG2 = new Float64Array(4).fill(-1);
-  liveG2Move = -1;
   liveRes = 0;
 
   /** Position in the bar, in beats [0, 4): the wobble's clock. */
@@ -501,7 +495,6 @@ export class Synth {
   private onTrigger(velocity = 1): void {
     this.texture.trigger(velocity);
     this.texGrind.noteOn(this.rng);
-    this.texG2.noteOn();
     for (let l = 0; l < LFO_COUNT; l++) {
       if (this.cur[P.lfo[l].retrig] > 0.5) {
         this.lfoPhase[l] = 0;
@@ -816,9 +809,7 @@ export class Synth {
     for (let i = 0; i < 4; i++) {
       this.liveGrind[i] = lead.active ? lead.grindFc(i) : -1;
       this.liveGrindRes[i] = lead.grindRes(i);
-      this.liveG2[i] = lead.active ? lead.g2Fc(i) : -1;
     }
-    this.liveG2Move = lead.active && lead.g2Move() >= 0 ? lead.g2Phase() : -1;
     this.liveRes = lead.resNow;
     if (this.poly > 1) {
       for (let i = 0; i < MAX_VOICES; i++) {
@@ -899,10 +890,6 @@ export class Synth {
     if (tg && !this.texGrindOn) this.texGrind.reset();
     this.texGrindOn = tg;
     this.ott.set(cur[P.grindOn] > 0.5 ? cur[P.grindOtt] : 0, cur[P.grindLowcut], fs);
-    const tg2 = cur[P.g2On] > 0.5 && !this.texDirect;
-    if (tg2 && !this.texG2On) this.texG2.reset();
-    this.texG2On = tg2;
-    if (tg2) this.texG2.control(cur, this.beatPos, this.tempo / 60, (lead.pitch + 12 * cur[P.octave] - K.KEYTRACK_CENTER) / 12, fs, fs, BLOCK);
     if (tg) this.texGrind.control(cur, this.beatPos, this.tempo / 60, (lead.pitch + 12 * cur[P.octave] - K.KEYTRACK_CENTER) / 12, fs, fs, BLOCK, this.rng);
 
     // The bar clock (the wobble locks to it).
@@ -1081,11 +1068,6 @@ export class Synth {
           this.texGrind.process(texL, texR);
           texL = this.texGrind.l;
           texR = this.texGrind.r;
-        }
-        if (this.texG2On) {
-          this.texG2.process(texL, texR);
-          texL = this.texG2.l;
-          texR = this.texG2.r;
         }
         l += texL;
         r += texR;

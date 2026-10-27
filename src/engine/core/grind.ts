@@ -29,7 +29,7 @@ export const grindHz = (rate: number): number => 0.1 * Math.pow(2, rate * 8);
 export const grindBeat = (rate: number): number => Math.round(Math.min(1, Math.max(0, rate)) * 5);
 /** The drive's gain for grind<n>.drive (0..1). */
 export const grindGain = (drive: number): number => 1 + 29 * drive * drive;
-export const COMB_LEN = 4096;
+const COMB_LEN = 4096;
 const SAT_BIAS = 0.35; // lopsided: even harmonics
 const SAT_OFFSET = Math.tanh(SAT_BIAS);
 // OTT: Ableton's OTT preset (low, mid, high band)
@@ -48,7 +48,7 @@ const OTT_IN_DB = 18;
 const OTT_MAKEUP_DB = 15;
 const TWO_PI = 2 * Math.PI;
 
-export class Stage {
+class Stage {
   on = false;
   ftype = GF_NOTCH;
   dtype = DIST_SOFT;

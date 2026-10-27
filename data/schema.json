@@ -4411,12 +4411,7 @@
       "id": "reverb.type",
       "label": "Reverb type",
       "type": "enum",
-      "options": [
-        "room",
-        "plate",
-        "hall",
-        "cathedral"
-      ],
+      "options": ["room", "plate", "hall", "cathedral"],
       "default": "hall",
       "group": "fx",
       "describes": "The space, in the dark, band-limited colour of the late-1970s digital reverbs. Room: small and quick. Plate: dense from the first moment, the brightest. Hall: big, smooth and chorused. Cathedral: huge, slow to bloom and dark."
@@ -4529,10 +4524,7 @@
       "id": "eq.b1_type",
       "label": "EQ 1 type",
       "type": "enum",
-      "options": [
-        "low shelf",
-        "high pass"
-      ],
+      "options": ["low shelf", "high pass"],
       "default": "low shelf",
       "group": "eq",
       "describes": "Band 1: a low shelf (double-click its ball for a high-pass)."
@@ -4577,10 +4569,7 @@
       "id": "eq.b2_type",
       "label": "EQ 2 type",
       "type": "enum",
-      "options": [
-        "bell",
-        "notch"
-      ],
+      "options": ["bell", "notch"],
       "default": "bell",
       "group": "eq",
       "describes": "Band 2: a bell (double-click its ball for a notch)."
@@ -4625,10 +4614,7 @@
       "id": "eq.b3_type",
       "label": "EQ 3 type",
       "type": "enum",
-      "options": [
-        "bell",
-        "notch"
-      ],
+      "options": ["bell", "notch"],
       "default": "bell",
       "group": "eq",
       "describes": "Band 3: a bell (double-click its ball for a notch)."
@@ -4673,10 +4659,7 @@
       "id": "eq.b4_type",
       "label": "EQ 4 type",
       "type": "enum",
-      "options": [
-        "high shelf",
-        "low pass"
-      ],
+      "options": ["high shelf", "low pass"],
       "default": "high shelf",
       "group": "eq",
       "describes": "Band 4: a high shelf (double-click its ball for a low-pass)."
@@ -4861,13 +4844,7 @@
       "id": "grind1.filter",
       "label": "Grind 1 filter",
       "type": "enum",
-      "options": [
-        "notch",
-        "peak",
-        "band",
-        "comb",
-        "phaser"
-      ],
+      "options": ["notch", "peak", "band", "comb", "phaser"],
       "default": "notch",
       "group": "grind1",
       "describes": "The stage's moving filter. Notch cuts a hollow dip (the classic neuro sweep); peak pushes a band into the drive; band keeps only a narrow band; comb rings metallic at the frequency and its harmonics; phaser carves two moving notches."
@@ -4900,10 +4877,7 @@
       "id": "grind1.move",
       "label": "Grind 1 moves",
       "type": "enum",
-      "options": [
-        "note",
-        "wander"
-      ],
+      "options": ["note", "wander"],
       "default": "note",
       "group": "grind1",
       "describes": "How the filter moves: note = a sweep that restarts with every note (from the top of its range); wander = smooth random, never repeating."
@@ -4924,11 +4898,7 @@
       "id": "grind1.clock",
       "label": "Grind 1 clock",
       "type": "enum",
-      "options": [
-        "hz",
-        "sync",
-        "random"
-      ],
+      "options": ["hz", "sync", "random"],
       "default": "hz",
       "group": "grind1",
       "describes": "What times the movement: hz = free running at Rate; sync = on the tempo (1 bar to 1/32); random = Rate is only the average, every sweep or wander step gets its own speed, so it never repeats."
@@ -4961,13 +4931,7 @@
       "id": "grind1.drive_type",
       "label": "Grind 1 drive type",
       "type": "enum",
-      "options": [
-        "soft",
-        "hard",
-        "fold",
-        "tube",
-        "fuzz"
-      ],
+      "options": ["soft", "hard", "fold", "tube", "fuzz"],
       "default": "soft",
       "group": "grind1",
       "describes": "The stage's drive after its filter: soft is warm, hard buzzy, fold metallic and growly, tube thick with even harmonics, fuzz lopsided and gnarly."
@@ -5008,13 +4972,7 @@
       "id": "grind2.filter",
       "label": "Grind 2 filter",
       "type": "enum",
-      "options": [
-        "notch",
-        "peak",
-        "band",
-        "comb",
-        "phaser"
-      ],
+      "options": ["notch", "peak", "band", "comb", "phaser"],
       "default": "phaser",
       "group": "grind2",
       "describes": "The stage's moving filter. Notch cuts a hollow dip (the classic neuro sweep); peak pushes a band into the drive; band keeps only a narrow band; comb rings metallic at the frequency and its harmonics; phaser carves two moving notches."
@@ -5047,10 +5005,7 @@
       "id": "grind2.move",
       "label": "Grind 2 moves",
       "type": "enum",
-      "options": [
-        "note",
-        "wander"
-      ],
+      "options": ["note", "wander"],
       "default": "note",
       "group": "grind2",
       "describes": "How the filter moves: note = a sweep that restarts with every note (from the top of its range); wander = smooth random, never repeating."
@@ -5071,11 +5026,7 @@
       "id": "grind2.clock",
       "label": "Grind 2 clock",
       "type": "enum",
-      "options": [
-        "hz",
-        "sync",
-        "random"
-      ],
+      "options": ["hz", "sync", "random"],
       "default": "hz",
       "group": "grind2",
       "describes": "What times the movement: hz = free running at Rate; sync = on the tempo (1 bar to 1/32); random = Rate is only the average, every sweep or wander step gets its own speed, so it never repeats."
@@ -5108,13 +5059,7 @@
       "id": "grind2.drive_type",
       "label": "Grind 2 drive type",
       "type": "enum",
-      "options": [
-        "soft",
-        "hard",
-        "fold",
-        "tube",
-        "fuzz"
-      ],
+      "options": ["soft", "hard", "fold", "tube", "fuzz"],
       "default": "fold",
       "group": "grind2",
       "describes": "The stage's drive after its filter: soft is warm, hard buzzy, fold metallic and growly, tube thick with even harmonics, fuzz lopsided and gnarly."
@@ -5155,13 +5100,7 @@
       "id": "grind3.filter",
       "label": "Grind 3 filter",
       "type": "enum",
-      "options": [
-        "notch",
-        "peak",
-        "band",
-        "comb",
-        "phaser"
-      ],
+      "options": ["notch", "peak", "band", "comb", "phaser"],
       "default": "comb",
       "group": "grind3",
       "describes": "The stage's moving filter. Notch cuts a hollow dip (the classic neuro sweep); peak pushes a band into the drive; band keeps only a narrow band; comb rings metallic at the frequency and its harmonics; phaser carves two moving notches."
@@ -5194,10 +5133,7 @@
       "id": "grind3.move",
       "label": "Grind 3 moves",
       "type": "enum",
-      "options": [
-        "note",
-        "wander"
-      ],
+      "options": ["note", "wander"],
       "default": "wander",
       "group": "grind3",
       "describes": "How the filter moves: note = a sweep that restarts with every note (from the top of its range); wander = smooth random, never repeating."
@@ -5218,11 +5154,7 @@
       "id": "grind3.clock",
       "label": "Grind 3 clock",
       "type": "enum",
-      "options": [
-        "hz",
-        "sync",
-        "random"
-      ],
+      "options": ["hz", "sync", "random"],
       "default": "hz",
       "group": "grind3",
       "describes": "What times the movement: hz = free running at Rate; sync = on the tempo (1 bar to 1/32); random = Rate is only the average, every sweep or wander step gets its own speed, so it never repeats."
@@ -5255,13 +5187,7 @@
       "id": "grind3.drive_type",
       "label": "Grind 3 drive type",
       "type": "enum",
-      "options": [
-        "soft",
-        "hard",
-        "fold",
-        "tube",
-        "fuzz"
-      ],
+      "options": ["soft", "hard", "fold", "tube", "fuzz"],
       "default": "fuzz",
       "group": "grind3",
       "describes": "The stage's drive after its filter: soft is warm, hard buzzy, fold metallic and growly, tube thick with even harmonics, fuzz lopsided and gnarly."
@@ -5302,13 +5228,7 @@
       "id": "grind4.filter",
       "label": "Grind 4 filter",
       "type": "enum",
-      "options": [
-        "notch",
-        "peak",
-        "band",
-        "comb",
-        "phaser"
-      ],
+      "options": ["notch", "peak", "band", "comb", "phaser"],
       "default": "peak",
       "group": "grind4",
       "describes": "The stage's moving filter. Notch cuts a hollow dip (the classic neuro sweep); peak pushes a band into the drive; band keeps only a narrow band; comb rings metallic at the frequency and its harmonics; phaser carves two moving notches."
@@ -5341,10 +5261,7 @@
       "id": "grind4.move",
       "label": "Grind 4 moves",
       "type": "enum",
-      "options": [
-        "note",
-        "wander"
-      ],
+      "options": ["note", "wander"],
       "default": "wander",
       "group": "grind4",
       "describes": "How the filter moves: note = a sweep that restarts with every note (from the top of its range); wander = smooth random, never repeating."
@@ -5365,11 +5282,7 @@
       "id": "grind4.clock",
       "label": "Grind 4 clock",
       "type": "enum",
-      "options": [
-        "hz",
-        "sync",
-        "random"
-      ],
+      "options": ["hz", "sync", "random"],
       "default": "hz",
       "group": "grind4",
       "describes": "What times the movement: hz = free running at Rate; sync = on the tempo (1 bar to 1/32); random = Rate is only the average, every sweep or wander step gets its own speed, so it never repeats."
@@ -5402,13 +5315,7 @@
       "id": "grind4.drive_type",
       "label": "Grind 4 drive type",
       "type": "enum",
-      "options": [
-        "soft",
-        "hard",
-        "fold",
-        "tube",
-        "fuzz"
-      ],
+      "options": ["soft", "hard", "fold", "tube", "fuzz"],
       "default": "hard",
       "group": "grind4",
       "describes": "The stage's drive after its filter: soft is warm, hard buzzy, fold metallic and growly, tube thick with even harmonics, fuzz lopsided and gnarly."
@@ -5436,630 +5343,6 @@
       "unit": "",
       "group": "grind4",
       "describes": "Blend between the filtered and the driven sound."
-    },
-    {
-      "id": "g2.on",
-      "label": "Grind 2 on",
-      "type": "bool",
-      "default": false,
-      "group": "g2",
-      "describes": "Switches GRIND2 on or off: four filter + drive stages all moved by ONE shared movement, so they move together and the bass talks."
-    },
-    {
-      "id": "g2.shape",
-      "label": "Grind 2 movement shape",
-      "type": "enum",
-      "options": [
-        "sine",
-        "saw down",
-        "saw up",
-        "yoyo",
-        "square",
-        "staircase",
-        "ratchet",
-        "brake",
-        "pulse decay",
-        "sync gate",
-        "duck",
-        "random"
-      ],
-      "default": "sine",
-      "group": "g2",
-      "describes": "The one movement every stage follows (each by its own depth and offset): sine = a yoi, saw down = a fall, yoyo = wub-WUB, random = new steps every cycle."
-    },
-    {
-      "id": "g2.rate",
-      "label": "Grind 2 movement length",
-      "type": "enum",
-      "options": [
-        "2 bars",
-        "1 bar",
-        "1/2",
-        "1/4",
-        "1/8",
-        "1/16",
-        "1/32",
-        "1/2T",
-        "1/4T",
-        "1/8T",
-        "1/16T"
-      ],
-      "default": "1/4",
-      "group": "g2",
-      "describes": "How long one cycle of the movement is, on the tempo."
-    },
-    {
-      "id": "g2.timing",
-      "label": "Grind 2 timing",
-      "type": "enum",
-      "options": [
-        "note",
-        "once",
-        "bar"
-      ],
-      "default": "note",
-      "group": "g2",
-      "describes": "note = the movement starts again with every note and loops; once = it plays once per note and holds its end; bar = locked to the bar, whatever the notes do."
-    },
-    {
-      "id": "g2.life",
-      "label": "Grind 2 life",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0.2,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2",
-      "describes": "Small independent drift on each stage and a little variation every cycle, on top of the shared movement, so it never sounds like a loop. 0 = exact."
-    },
-    {
-      "id": "g2.sat",
-      "label": "Grind 2 saturation",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0.35,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2",
-      "describes": "Drive in front of the stages, so the filters cut into a rich signal (drive, then notch, then drive again)."
-    },
-    {
-      "id": "g2.ott",
-      "label": "Grind 2 mid OTT",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2",
-      "describes": "OTT between stage 2 and stage 3: the glue a resample would add, squashing and pulling up the details before the last two stages."
-    },
-    {
-      "id": "g2.key",
-      "label": "Grind 2 key",
-      "type": "bool",
-      "default": true,
-      "group": "g2",
-      "describes": "Every stage follows the note (Freq is where it sits at C3). The comb always follows the note, so it stays in tune."
-    },
-    {
-      "id": "g2.lowcut",
-      "label": "Grind 2 lo cut",
-      "type": "float",
-      "min": 20,
-      "max": 1000,
-      "default": 120,
-      "curve": "log",
-      "unit": "Hz",
-      "group": "g2",
-      "describes": "Below this the sound passes clean (a 24 dB/oct split)."
-    },
-    {
-      "id": "g2.mix",
-      "label": "Grind 2 mix",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 1,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2",
-      "describes": "Dry / wet of the whole GRIND2 chain."
-    },
-    {
-      "id": "g2s1.on",
-      "label": "Grind 2 stage 1 on",
-      "type": "bool",
-      "default": true,
-      "group": "g2s1",
-      "describes": "Switches the stage on or off."
-    },
-    {
-      "id": "g2s1.filter",
-      "label": "Grind 2 stage 1 filter",
-      "type": "enum",
-      "options": [
-        "vowel",
-        "notch",
-        "peak",
-        "band",
-        "comb",
-        "phaser"
-      ],
-      "default": "vowel",
-      "group": "g2s1",
-      "describes": "vowel = two formant peaks gliding u-o-a-e-i (the talk); notch = a hollow dip; peak pushes a band into the drive; band keeps a narrow band; comb rings on the note's harmonics (always in tune); phaser = two moving notches."
-    },
-    {
-      "id": "g2s1.freq",
-      "label": "Grind 2 stage 1 freq",
-      "type": "float",
-      "min": 40,
-      "max": 12000,
-      "default": 500,
-      "curve": "log",
-      "unit": "Hz",
-      "group": "g2s1",
-      "describes": "Where the filter sits at the bottom of the movement (for vowel: which vowel; for comb: its pitch against the note, C3 = in unison)."
-    },
-    {
-      "id": "g2s1.res",
-      "label": "Grind 2 stage 1 resonance",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0.6,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s1",
-      "describes": "How sharp the filter is."
-    },
-    {
-      "id": "g2s1.depth",
-      "label": "Grind 2 stage 1 depth",
-      "type": "float",
-      "min": -4,
-      "max": 4,
-      "default": 2.0,
-      "curve": "linear",
-      "unit": "oct",
-      "group": "g2s1",
-      "describes": "How far the shared movement moves this stage, in octaves; negative = the other way (one stage up while another goes down)."
-    },
-    {
-      "id": "g2s1.offset",
-      "label": "Grind 2 stage 1 offset",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0.0,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s1",
-      "describes": "How far behind the movement this stage follows (a fraction of the cycle): staggered stages make it ripple."
-    },
-    {
-      "id": "g2s1.drive_type",
-      "label": "Grind 2 stage 1 drive type",
-      "type": "enum",
-      "options": [
-        "soft",
-        "hard",
-        "fold",
-        "tube",
-        "fuzz"
-      ],
-      "default": "tube",
-      "group": "g2s1",
-      "describes": "The drive after the stage's filter."
-    },
-    {
-      "id": "g2s1.drive",
-      "label": "Grind 2 stage 1 drive",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0.45,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s1",
-      "describes": "How hard the filtered sound is driven (level-matched)."
-    },
-    {
-      "id": "g2s1.dmod",
-      "label": "Grind 2 stage 1 drive follow",
-      "type": "float",
-      "min": -1,
-      "max": 1,
-      "default": 0.5,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s1",
-      "describes": "The drive follows the movement: louder grit where the movement is up (negative: where it is down)."
-    },
-    {
-      "id": "g2s1.mix",
-      "label": "Grind 2 stage 1 mix",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 1,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s1",
-      "describes": "Dry / wet of this stage."
-    },
-    {
-      "id": "g2s2.on",
-      "label": "Grind 2 stage 2 on",
-      "type": "bool",
-      "default": true,
-      "group": "g2s2",
-      "describes": "Switches the stage on or off."
-    },
-    {
-      "id": "g2s2.filter",
-      "label": "Grind 2 stage 2 filter",
-      "type": "enum",
-      "options": [
-        "vowel",
-        "notch",
-        "peak",
-        "band",
-        "comb",
-        "phaser"
-      ],
-      "default": "notch",
-      "group": "g2s2",
-      "describes": "vowel = two formant peaks gliding u-o-a-e-i (the talk); notch = a hollow dip; peak pushes a band into the drive; band keeps a narrow band; comb rings on the note's harmonics (always in tune); phaser = two moving notches."
-    },
-    {
-      "id": "g2s2.freq",
-      "label": "Grind 2 stage 2 freq",
-      "type": "float",
-      "min": 40,
-      "max": 12000,
-      "default": 1400,
-      "curve": "log",
-      "unit": "Hz",
-      "group": "g2s2",
-      "describes": "Where the filter sits at the bottom of the movement (for vowel: which vowel; for comb: its pitch against the note, C3 = in unison)."
-    },
-    {
-      "id": "g2s2.res",
-      "label": "Grind 2 stage 2 resonance",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0.7,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s2",
-      "describes": "How sharp the filter is."
-    },
-    {
-      "id": "g2s2.depth",
-      "label": "Grind 2 stage 2 depth",
-      "type": "float",
-      "min": -4,
-      "max": 4,
-      "default": -1.5,
-      "curve": "linear",
-      "unit": "oct",
-      "group": "g2s2",
-      "describes": "How far the shared movement moves this stage, in octaves; negative = the other way (one stage up while another goes down)."
-    },
-    {
-      "id": "g2s2.offset",
-      "label": "Grind 2 stage 2 offset",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0.0,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s2",
-      "describes": "How far behind the movement this stage follows (a fraction of the cycle): staggered stages make it ripple."
-    },
-    {
-      "id": "g2s2.drive_type",
-      "label": "Grind 2 stage 2 drive type",
-      "type": "enum",
-      "options": [
-        "soft",
-        "hard",
-        "fold",
-        "tube",
-        "fuzz"
-      ],
-      "default": "soft",
-      "group": "g2s2",
-      "describes": "The drive after the stage's filter."
-    },
-    {
-      "id": "g2s2.drive",
-      "label": "Grind 2 stage 2 drive",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0.5,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s2",
-      "describes": "How hard the filtered sound is driven (level-matched)."
-    },
-    {
-      "id": "g2s2.dmod",
-      "label": "Grind 2 stage 2 drive follow",
-      "type": "float",
-      "min": -1,
-      "max": 1,
-      "default": 0.0,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s2",
-      "describes": "The drive follows the movement: louder grit where the movement is up (negative: where it is down)."
-    },
-    {
-      "id": "g2s2.mix",
-      "label": "Grind 2 stage 2 mix",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 1,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s2",
-      "describes": "Dry / wet of this stage."
-    },
-    {
-      "id": "g2s3.on",
-      "label": "Grind 2 stage 3 on",
-      "type": "bool",
-      "default": false,
-      "group": "g2s3",
-      "describes": "Switches the stage on or off."
-    },
-    {
-      "id": "g2s3.filter",
-      "label": "Grind 2 stage 3 filter",
-      "type": "enum",
-      "options": [
-        "vowel",
-        "notch",
-        "peak",
-        "band",
-        "comb",
-        "phaser"
-      ],
-      "default": "comb",
-      "group": "g2s3",
-      "describes": "vowel = two formant peaks gliding u-o-a-e-i (the talk); notch = a hollow dip; peak pushes a band into the drive; band keeps a narrow band; comb rings on the note's harmonics (always in tune); phaser = two moving notches."
-    },
-    {
-      "id": "g2s3.freq",
-      "label": "Grind 2 stage 3 freq",
-      "type": "float",
-      "min": 40,
-      "max": 12000,
-      "default": 130.8,
-      "curve": "log",
-      "unit": "Hz",
-      "group": "g2s3",
-      "describes": "Where the filter sits at the bottom of the movement (for vowel: which vowel; for comb: its pitch against the note, C3 = in unison)."
-    },
-    {
-      "id": "g2s3.res",
-      "label": "Grind 2 stage 3 resonance",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0.5,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s3",
-      "describes": "How sharp the filter is."
-    },
-    {
-      "id": "g2s3.depth",
-      "label": "Grind 2 stage 3 depth",
-      "type": "float",
-      "min": -4,
-      "max": 4,
-      "default": 1.0,
-      "curve": "linear",
-      "unit": "oct",
-      "group": "g2s3",
-      "describes": "How far the shared movement moves this stage, in octaves; negative = the other way (one stage up while another goes down)."
-    },
-    {
-      "id": "g2s3.offset",
-      "label": "Grind 2 stage 3 offset",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0.25,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s3",
-      "describes": "How far behind the movement this stage follows (a fraction of the cycle): staggered stages make it ripple."
-    },
-    {
-      "id": "g2s3.drive_type",
-      "label": "Grind 2 stage 3 drive type",
-      "type": "enum",
-      "options": [
-        "soft",
-        "hard",
-        "fold",
-        "tube",
-        "fuzz"
-      ],
-      "default": "fold",
-      "group": "g2s3",
-      "describes": "The drive after the stage's filter."
-    },
-    {
-      "id": "g2s3.drive",
-      "label": "Grind 2 stage 3 drive",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0.3,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s3",
-      "describes": "How hard the filtered sound is driven (level-matched)."
-    },
-    {
-      "id": "g2s3.dmod",
-      "label": "Grind 2 stage 3 drive follow",
-      "type": "float",
-      "min": -1,
-      "max": 1,
-      "default": 0.3,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s3",
-      "describes": "The drive follows the movement: louder grit where the movement is up (negative: where it is down)."
-    },
-    {
-      "id": "g2s3.mix",
-      "label": "Grind 2 stage 3 mix",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 1,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s3",
-      "describes": "Dry / wet of this stage."
-    },
-    {
-      "id": "g2s4.on",
-      "label": "Grind 2 stage 4 on",
-      "type": "bool",
-      "default": false,
-      "group": "g2s4",
-      "describes": "Switches the stage on or off."
-    },
-    {
-      "id": "g2s4.filter",
-      "label": "Grind 2 stage 4 filter",
-      "type": "enum",
-      "options": [
-        "vowel",
-        "notch",
-        "peak",
-        "band",
-        "comb",
-        "phaser"
-      ],
-      "default": "peak",
-      "group": "g2s4",
-      "describes": "vowel = two formant peaks gliding u-o-a-e-i (the talk); notch = a hollow dip; peak pushes a band into the drive; band keeps a narrow band; comb rings on the note's harmonics (always in tune); phaser = two moving notches."
-    },
-    {
-      "id": "g2s4.freq",
-      "label": "Grind 2 stage 4 freq",
-      "type": "float",
-      "min": 40,
-      "max": 12000,
-      "default": 2500,
-      "curve": "log",
-      "unit": "Hz",
-      "group": "g2s4",
-      "describes": "Where the filter sits at the bottom of the movement (for vowel: which vowel; for comb: its pitch against the note, C3 = in unison)."
-    },
-    {
-      "id": "g2s4.res",
-      "label": "Grind 2 stage 4 resonance",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0.5,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s4",
-      "describes": "How sharp the filter is."
-    },
-    {
-      "id": "g2s4.depth",
-      "label": "Grind 2 stage 4 depth",
-      "type": "float",
-      "min": -4,
-      "max": 4,
-      "default": 1.0,
-      "curve": "linear",
-      "unit": "oct",
-      "group": "g2s4",
-      "describes": "How far the shared movement moves this stage, in octaves; negative = the other way (one stage up while another goes down)."
-    },
-    {
-      "id": "g2s4.offset",
-      "label": "Grind 2 stage 4 offset",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0.5,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s4",
-      "describes": "How far behind the movement this stage follows (a fraction of the cycle): staggered stages make it ripple."
-    },
-    {
-      "id": "g2s4.drive_type",
-      "label": "Grind 2 stage 4 drive type",
-      "type": "enum",
-      "options": [
-        "soft",
-        "hard",
-        "fold",
-        "tube",
-        "fuzz"
-      ],
-      "default": "hard",
-      "group": "g2s4",
-      "describes": "The drive after the stage's filter."
-    },
-    {
-      "id": "g2s4.drive",
-      "label": "Grind 2 stage 4 drive",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0.3,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s4",
-      "describes": "How hard the filtered sound is driven (level-matched)."
-    },
-    {
-      "id": "g2s4.dmod",
-      "label": "Grind 2 stage 4 drive follow",
-      "type": "float",
-      "min": -1,
-      "max": 1,
-      "default": 0.0,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s4",
-      "describes": "The drive follows the movement: louder grit where the movement is up (negative: where it is down)."
-    },
-    {
-      "id": "g2s4.mix",
-      "label": "Grind 2 stage 4 mix",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 1,
-      "curve": "linear",
-      "unit": "",
-      "group": "g2s4",
-      "describes": "Dry / wet of this stage."
     }
   ]
 }
