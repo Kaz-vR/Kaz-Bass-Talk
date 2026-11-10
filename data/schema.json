@@ -3320,7 +3320,19 @@
       "type": "bool",
       "default": true,
       "group": "grind",
-      "describes": "Stages that move with the note sweep once, from the top of their range to the bottom at Rate, and stay there until the next note."
+      "describes": "Stages on HZ or SYNC sweep once at Rate and stay at the end until the next note (DIR sets which way)."
+    },
+    {
+      "id": "grind.oneshot_dir",
+      "label": "Grind one shot direction",
+      "type": "enum",
+      "options": [
+        "down",
+        "up"
+      ],
+      "default": "down",
+      "group": "grind",
+      "describes": "Which way ONE SHOT sweeps: down = from the top of the range to the bottom (right to left), up = from the bottom to the top (left to right)."
     },
     {
       "id": "grind.noise_thru",

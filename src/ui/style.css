@@ -1677,3 +1677,9 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .grind-page .gr-add { border: 0 !important; background: none; box-shadow: none !important; font-size: 10px; letter-spacing: 0.3em; padding: 4px 0; opacity: 0.75; }
 .v2 .grind-page .gr-add:hover { opacity: 1; text-shadow: 0 0 8px currentColor; }
 .v2 .grind-page .gr-add[disabled] { opacity: 0.2; text-shadow: none; }
+
+/* ONE SHOT's direction arrow, right of its lamp */
+.v2 .gr-shot { display: inline-flex; align-items: center; gap: 4px; }
+.v2 .gr-shot-dir { background: none; border: 1px solid rgba(255,255,255,0.12); border-radius: 2px; color: #6e6e74; line-height: 0; padding: 3px 5px; cursor: pointer; display: inline-flex; align-items: center; }
+.v2 .gr-shot-dir:hover { border-color: rgba(255,255,255,0.3); color: #c8c8cc; }
+.v2 .gr-shot-dir.on { color: #e8e8ea; }

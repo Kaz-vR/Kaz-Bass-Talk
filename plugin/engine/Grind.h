@@ -536,6 +536,7 @@ class Grind {
     }
     const double key = cur[P.grindKey] > 0.5 ? std::pow(2.0, keyOct) : 1;
     const bool oneShot = cur[P.grindOneShot] > 0.5;
+    const double shotDir = cur[P.grindOneShotUp] > 0.5 ? -1.0 : 1.0; // down = top to bottom, up = bottom to top
     for (int k = 0; k < GRIND_SLOTS; k++) slots[k] = (int)cur[P.grindSlot[k]];
     for (int i = 0; i < GRIND_STAGES; i++) {
       GrindStage& s = stages[i];
@@ -561,7 +562,7 @@ class Grind {
         m = s.wFrom + (s.wTo - s.wFrom) * (0.5 - 0.5 * std::cos(PI * s.wPos));
       } else if (oneShot) {
         s.phase += dt;
-        m = -1 + 2 * std::exp((-s.phase * 2 * hz) * 3);
+        m = shotDir * (-1 + 2 * std::exp((-s.phase * 2 * hz) * 3));
       } else if (clock == GC_SYNC) {
         const double p = beatPos / GRIND_BEATS[grindBeat(rate)];
         m = std::cos(TWO_PI * (p - std::floor(p)));

@@ -3792,7 +3792,17 @@ export class SynthView {
     const mix = md('grind.mix', 'Mix', { fmt: pct });
     const ott = md('grind.ott', 'OTT', { fmt: pct });
     const out = md('grind.output', 'Output', { fmt: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB` });
-    const lamps = h('span', 'gr-lamps gr-lamps-row', this.toggle('grind.key', 'KEY', 'small'), this.toggle('grind.oneshot', 'ONE SHOT', 'small'), this.toggle('grind.noise_thru', 'NOISE THRU', 'small'));
+    // ONE SHOT's way (owner's call): ← sweeps from the top down (right to left), → from the bottom up
+    const shotDir = h('button', 'gr-shot-dir');
+    shotDir.onclick = () => this.set('grind.oneshot_dir', this.get('grind.oneshot_dir') === 'up' ? 'down' : 'up');
+    this.watch(['grind.oneshot_dir', 'grind.oneshot'], () => {
+      const up = this.get('grind.oneshot_dir') === 'up';
+      // a drawn arrow (the font has no arrow glyph): the way the sweep travels
+      shotDir.innerHTML = `<svg width="14" height="8" viewBox="0 0 14 8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"${up ? '' : ' style="transform:scaleX(-1)"'}><path d="M1 4h12M9 1l3 3-3 3"/></svg>`;
+      shotDir.title = up ? 'ONE SHOT sweeps left to right (bottom to top). Click for right to left.' : 'ONE SHOT sweeps right to left (top to bottom). Click for left to right.';
+      shotDir.classList.toggle('on', !!this.get('grind.oneshot'));
+    });
+    const lamps = h('span', 'gr-lamps gr-lamps-row', this.toggle('grind.key', 'KEY', 'small'), h('span', 'gr-shot', this.toggle('grind.oneshot', 'ONE SHOT', 'small'), shotDir), this.toggle('grind.noise_thru', 'NOISE THRU', 'small'));
     // CHAINS (owner's call: preset chains live in the strip): one of the recipes, exactly as it is (ROLL nudges them)
     const chains = h('select', 'gr-chains') as HTMLSelectElement;
     chains.append(new Option('CHAINS', ''), ...RUIN_RECIPES.map((rc) => new Option(rc.name, rc.name)));

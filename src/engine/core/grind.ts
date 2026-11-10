@@ -599,6 +599,8 @@ export class Grind {
     }
     // KEY: every stage follows the note (Freq is where it sits at C3); ONE SHOT: the HZ / SYNC swing sweeps once and holds
     const key = cur[P.grindKey] > 0.5 ? Math.pow(2, keyOct) : 1, oneShot = cur[P.grindOneShot] > 0.5;
+    // ONE SHOT's way: down = from the top to the bottom (right to left), up = from the bottom to the top
+    const shotDir = cur[P.grindOneShotUp] > 0.5 ? -1 : 1;
     for (let k = 0; k < GRIND_SLOTS; k++) this.slots[k] = cur[P.grindSlot[k]];
     for (let i = 0; i < GRIND_STAGES; i++) {
       const s = this.stages[i], gp = P.grind[i];
@@ -626,7 +628,7 @@ export class Grind {
         // an envelope, not an LFO: from the top of the range it falls fast, then settles at the bottom
         // and stays there until the next note; Rate sets how long the fall takes (its time = half a cycle)
         s.phase += dt;
-        m = -1 + 2 * Math.exp((-s.phase * 2 * hz) * 3);
+        m = shotDir * (-1 + 2 * Math.exp((-s.phase * 2 * hz) * 3));
       } else if (clock === GC_SYNC) {
         const p = beatPos / GRIND_BEATS[grindBeat(rate)];
         m = Math.cos(TWO_PI * (p - Math.floor(p)));
