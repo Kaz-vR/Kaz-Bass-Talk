@@ -1684,10 +1684,14 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-shot-dir:hover { border-color: rgba(255,255,255,0.3); color: #c8c8cc; }
 .v2 .gr-shot-dir.on { color: #e8e8ea; }
 
-/* ---- Lifted dark (owner's reference): charcoal boxes a step up from black, edges and gaps that read,
-   and the small labels a step brighter; the accents and the dark space stay as they are. ---- */
+/* ---- Owner's reference: near-black boxes with a worn lighter bevel, sitting on scuffed, scratched metal
+   that is lighter than the boxes' middles (the frame behind, round and between them); the header darker;
+   the small labels a step brighter. ---- */
+.v2-wrap, .v2 { background: var(--frame, none) 0 0 / 512px 512px, #0e0d0c !important; }
+.v2 .v2-top { background: linear-gradient(rgba(0,0,0,0.72), rgba(0,0,0,0.72)), var(--frame, none) 0 0 / 512px 512px, #000 !important; }
 .v2 .osc-page > .c, .v2 .mod-page2 > .c, .v2 .preset-page .pp-col, .v2 .v2-bottom, .v2 .kb-side, .v2 .grind-page .c.ob, .v2 .grind-page .gr-node {
-  background-color: #151517 !important; border: 1px solid rgba(255,255,255,0.075) !important; box-shadow: 0 1px 0 rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.03) !important; }
+  background-color: #0c0c0d !important; border: 1px solid rgba(255,255,255,0.1) !important;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.6) !important; }
 .v2 .k-label { color: #a2a2a8 !important; }
 .v2 .k.off .k-label { color: #606066 !important; }
 .v2 .gr-sub, .v2 .gr-shot-dir { color: #8e8e94; }

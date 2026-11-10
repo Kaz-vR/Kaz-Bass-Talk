@@ -9,7 +9,7 @@ import { Biquad, ENV_ATTACK_BEND, ENV_FALL_BEND, envSegment } from '../engine/co
 import { fromNormalized, getParam, params, PATCH_ROWS, toNormalized, type ParamValue, type Patch } from '../schema';
 import { formatValue } from './params-panel';
 import { DRIVE_FAMILIES, RUIN_RECIPES, recipeParams, stageParams, type RuinStage } from './ruin-recipes';
-import { keyGrime, lightGrain, panelTexture } from './texture';
+import { frameTexture, keyGrime, lightGrain, panelTexture } from './texture';
 import { GRIND_BEAT_NAMES, grindBeat, grindHz } from '../engine/core/grind';
 import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobPointsAt, wobSmoothRadius, wobSmoothTable, wobTableAt, type WobPoint } from '../engine/core/wobshape';
 
@@ -5039,6 +5039,8 @@ export class SynthView {
     this.page.style.setProperty('--dust-node', `url(${panelTexture(294, 300, 6)})`);
     this.page.style.setProperty('--dust-wide', `url(${panelTexture(1194, 592, 7)})`);
     this.page.style.setProperty('--light-grain', `url(${lightGrain()})`);
+    // the frame behind the boxes, also round the page (the wrapper is outside this element, so it goes on the root)
+    document.documentElement.style.setProperty('--frame', `url(${frameTexture()})`);
     this.page.style.setProperty('--key-grime', `url(${keyGrime()})`);
     const tabs = h('div', 'v2-tabs');
     for (const [t, ready] of [['OSC', true], ['LFO', true], ['WOBBLER', true], ['RUIN', true], ['FX', true], ['PRESETS', true]] as const) {

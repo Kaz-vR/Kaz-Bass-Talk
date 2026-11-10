@@ -43,38 +43,71 @@ function pixels(w: number, h: number, f: (x: number, y: number) => [number, numb
  * uneven, slightly lit rim.
  */
 export function panelTexture(w = 600, h = 460, seed = 5): string {
-  // lifted charcoal (owner's reference): a bit less dark than black so the boxes read, with heavier wear:
-  // broad stains, mottling, grain, horizontal wear, specks and scratches, darker towards the edges
+  // owner's reference: near-black in the middle, a worn lighter bevel round the edge, quiet mottling and wear
   const r = rng(seed);
-  const m1 = valueNoise(70, r), m2 = valueNoise(18, r), row = valueNoise(3, r), rim = valueNoise(9, r), stain = valueNoise(150, r), pit = valueNoise(5, r);
+  const m1 = valueNoise(70, r), m2 = valueNoise(18, r), row = valueNoise(3, r), rim = valueNoise(9, r), wear = valueNoise(4, r);
   const cv = pixels(w, h, (x, y) => {
     const e = Math.min(x, y, w - 1 - x, h - 1 - y);
-    let l = 20 + (m1(x, y) - 0.5) * 12 + (m2(x, y) - 0.5) * 6 + (r() - 0.5) * 10 + (row(0, y) - 0.5) * 2.5;
-    // broad worn patches: lighter scuffed areas and darker grime
-    const st = stain(x, y);
-    l += st > 0.62 ? (st - 0.62) * 26 : st < 0.3 ? (st - 0.3) * 18 : 0;
-    // fine pitting in the surface
-    if (pit(x, y) > 0.82) l -= 4;
-    l -= 10 * Math.exp(-e / 30);
-    if (e < 2.5 && rim(x, y) > 0.3) l += 24 * (1 - e / 2.5);
+    let l = 15.5 + (m1(x, y) - 0.5) * 10 + (m2(x, y) - 0.5) * 5 + (r() - 0.5) * 7 + (row(0, y) - 0.5) * 1.5;
+    // the bevel: a lighter, chipped band a few pixels in from the edge, then a soft dark falloff inside it
+    if (e < 7) l += (7 - e) * 3.6 * (0.4 + 0.6 * rim(x, y)) * (wear(x, y) > 0.25 ? 1 : 0.3);
+    else l -= 3 * Math.exp(-(e - 7) / 30);
+    if (e < 1.5) l += 10 * rim(x + 50, y);
     return [Math.max(0, l), 255];
   });
   const g = cv.getContext('2d')!;
   const area = (w * h) / (600 * 460);
-  for (let i = 0; i < 700 * area; i++) {
-    const x = r() * w, y = r() * h, light = r() < 0.65;
-    g.fillStyle = light ? `rgba(225,225,228,${0.08 + r() * r() * 0.5})` : `rgba(0,0,0,${0.4 + r() * 0.45})`;
+  for (let i = 0; i < 320 * area; i++) {
+    const x = r() * w, y = r() * h, light = r() < 0.7;
+    g.fillStyle = light ? `rgba(225,225,228,${0.06 + r() * r() * 0.4})` : `rgba(0,0,0,${0.4 + r() * 0.4})`;
     g.fillRect(x, y, 1 + (r() < 0.15 ? 1 : 0), 1 + (r() < 0.15 ? 1 : 0));
   }
-  for (let i = 0; i < 46 * area; i++) {
-    const x = r() * w, y = r() * h, ang = (r() - 0.5) * 0.5 + (r() < 0.3 ? Math.PI / 2 : 0), len = 8 + r() * r() * 110;
-    g.strokeStyle = r() < 0.75 ? `rgba(220,220,225,${0.03 + r() * 0.08})` : `rgba(0,0,0,${0.2 + r() * 0.25})`;
-    g.lineWidth = 0.6 + r() * 0.7;
+  for (let i = 0; i < 20 * area; i++) {
+    const x = r() * w, y = r() * h, ang = (r() - 0.5) * 0.5 + (r() < 0.3 ? Math.PI / 2 : 0), len = 8 + r() * r() * 70;
+    g.strokeStyle = `rgba(220,220,225,${0.025 + r() * 0.05})`;
+    g.lineWidth = 0.6 + r() * 0.6;
     g.beginPath();
     g.moveTo(x, y);
     g.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
     g.stroke();
   }
+  return cv.toDataURL();
+}
+
+/**
+ * The frame behind the boxes (owner's reference): scuffed, scratched dark metal, lighter than the boxes'
+ * middles, with worn patches, grime, pitting, specks and many fine scratches, faintly warm. Tiled.
+ */
+export function frameTexture(s = 512, seed = 21): string {
+  const r = rng(seed);
+  const big = valueNoise(120, r), mid = valueNoise(30, r), fine = valueNoise(6, r), pit = valueNoise(3, r);
+  const cv = pixels(s, s, (x, y) => {
+    let l = 17 + (big(x, y) - 0.5) * 14 + (mid(x, y) - 0.5) * 10 + (fine(x, y) - 0.5) * 6 + (r() - 0.5) * 10;
+    const b = big(x + 300, y + 100);
+    if (b > 0.62) l += (b - 0.62) * 90 * mid(x + 40, y);
+    if (b < 0.25) l -= (0.25 - b) * 30;
+    if (pit(x, y) > 0.8) l -= 5;
+    return [Math.max(0, l), 255];
+  });
+  const g = cv.getContext('2d')!;
+  for (let i = 0; i < 1400; i++) {
+    const light = r() < 0.6;
+    g.fillStyle = light ? `rgba(230,226,220,${0.05 + r() * r() * 0.45})` : `rgba(0,0,0,${0.35 + r() * 0.45})`;
+    g.fillRect(r() * s, r() * s, 1 + (r() < 0.2 ? 1 : 0), 1 + (r() < 0.2 ? 1 : 0));
+  }
+  for (let i = 0; i < 240; i++) {
+    const x = r() * s, y = r() * s, ang = r() * Math.PI, len = 6 + r() * r() * 140;
+    g.strokeStyle = r() < 0.7 ? `rgba(225,222,216,${0.03 + r() * 0.11})` : `rgba(0,0,0,${0.25 + r() * 0.3})`;
+    g.lineWidth = 0.5 + r() * 0.8;
+    g.beginPath();
+    g.moveTo(x, y);
+    g.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
+    g.stroke();
+  }
+  // a faint warm cast, like aged metal
+  g.globalCompositeOperation = 'multiply';
+  g.fillStyle = 'rgb(255,246,236)';
+  g.fillRect(0, 0, s, s);
   return cv.toDataURL();
 }
 
