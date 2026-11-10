@@ -1,0 +1,1452 @@
+==============================================================================
+RUIN-1  ·  SOUND DESIGN REFERENCE  (for designing patches without access to the code)
+==============================================================================
+
+WHAT THIS FILE IS
+This file describes everything the RUIN-1 synthesizer can do for making sound,
+in enough detail that someone who has never seen it (a person or an AI) can
+design patches for it: which modules exist, how the signal flows, every
+parameter with its exact range, default and meaning, how the modulation is
+scaled, what the synth deliberately cannot do, and the patch format. It covers
+the OSC page, the LFO page and the FX page. (A fourth sound page, RUIN, a
+4-stage "neuro" distortion chain, exists and is summarised briefly in section 9.)
+
+The parameter tables are generated from the synth's own schema, so the ids,
+ranges and defaults are exact.
+
+HOW TO USE IT WHEN DESIGNING A PATCH
+- A patch is a flat list of "parameter id = value". Anything you don't set keeps
+  its default (listed below). So a patch only needs the settings that differ
+  from the defaults; but to be safe, state every module you rely on.
+- Values are in the units given in "range" (Hz, ms, semitones, cents, dB,
+  0..1 amounts). Enums take one of the listed option names exactly.
+- On screen most dials hide their value until you hover or drag, so when you
+  give settings to a human, say the value AND what it should sound like.
+- Describe patches box by box in the page order below (OSC A, OSC B, Amp env,
+  Filter, Sub, Noise, Filter env, then LFO page, then FX page). That is how the
+  user will dial them in.
+
+THE STYLE THE SYNTH IS BUILT FOR (context, not a rule of the engine)
+RUIN-1 is a dark, cinematic synth in the style of the producer LORN: saturated,
+tape-worn, a controlled (darkish) top, a clean mono low end, and always alive
+(several slow, independent, non-repeating motions). Its own preset bank follows
+a recipe: layers (a body + a character layer + texture, never a lone
+oscillator), dirt that shapes tone (saturation mostly BEFORE the filter so the
+filter's movement stays audible), slow random life on several time scales,
+tape wear and noise beds, and no rhythm inside the synth (gating and chopping
+are done after the synth, e.g. in ShaperBox). You don't have to follow it, but
+patches in that spirit fit the synth best.
+
+==============================================================================
+1. ARCHITECTURE AND SIGNAL FLOW
+==============================================================================
+
+VOICES
+- Up to 8 voices (voice.polyphony 1..8). 1 = monophonic with legato and glide
+  (the bass default); 2..8 = polyphonic with voice stealing.
+- Pitch bend: +/- 2 semitones. Mod wheel: plays a "move" (section 8).
+
+PER VOICE, IN ORDER
+  OSC A (osc1) ─┐                                   ┌─ (A / B routed to the main filter; if a
+  OSC B (osc2) ─┤ each through its own slot filter ─┤   route lamp is off, that oscillator
+                │ (high/low/band, "Lo cut" on page) │   skips the drive and main filter)
+                └──────────────► [RUIN chain, if on: 4 moving-filter + drive stages]
+                                        │
+                                        ▼
+                         PRE-FILTER DRIVE (filter box "Drive")
+                                        │
+                                        ▼
+                    MAIN FILTER (lowpass, bandpass, diode/303, notch, comb, LPG, highpass)
+                                        │
+                                        ▼
+            DISTORTION (soft / hard / fold / tube / fuzz; 2x oversampled; "clean below")
+                                        │
+                                        ▼
+                     BITCRUSHER  →  TAPE (drive, wow & flutter, age)  →  AMP ENVELOPE
+                                        │
+                                        ▼
+                                MID CLIP (only under "All controls")
+
+  SUB (one sine/warm sine/tri/square/pulse/saw a set number of octaves from the
+  note): by default on its own CLEAN path ("Direct out"), never through drive,
+  filter, distortion, tape or effects. With Direct out off and the filter's S
+  lamp on, it goes through the main filter and the rest like the oscillators.
+  In poly mode only the LOWEST held note plays the sub (no sub mud in chords).
+
+SHARED BY ALL VOICES (one for the whole synth)
+- The NOISE strip ("texture bed"): one noise generator for the whole synth. It
+  swells in with each note, lingers for its Tail after the note, and is silent
+  between notes. It follows the newest note (with KEY on, its speed follows that
+  note). It can go: through its own slot filter, then (N lamp on the main
+  filter) through a copy of the main filter that follows the newest voice, or
+  "Direct out" past everything to the output.
+- 6 LFOs (the wave is shared; their fade-in and the per-note shapes run per voice).
+- The 12-slot modulation matrix (evaluated per voice).
+
+AFTER THE VOICES (the FX page, fixed order)
+  CHORUS → FLANGER → PHASER → OTT → EQ (4 bands + high cut)
+  (each effect except the EQ only works on what is above its own Lo cut;
+   below it the signal passes dry)
+  → + the clean SUB joins here (it skips every effect and the EQ)
+  → subsonic / DC filter → MONO below the crossover → LIMITER (ceiling -1 dB,
+    true peak) → MONO below the crossover again.
+
+ALWAYS ON (cannot be switched off)
+- The output limiter (ceiling -1 dBFS). Keep patches leveled so it only catches
+  stray peaks; use output.gain to set the level.
+- Everything below output.crossover (60..250 Hz, default 120) is mono.
+- A DC / subsonic filter on the output.
+
+==============================================================================
+2. OSC PAGE
+==============================================================================
+Layout: two rows of four boxes:
+  row 1: OSC A · OSC B · AMP ENVELOPE · FILTER
+  row 2: SUB   · NOISE · OSCILLOSCOPE (display only) · FILTER ENVELOPE
+Under them: the play bar (mono/poly, legato, glide, touch, master) and keyboard.
+
+------------------------------------------------------------------------------
+2.1 VOICE / PLAY BAR
+------------------------------------------------------------------------------
+
+  voice.polyphony
+      what:    Polyphony
+      range:   1 .. 8 voices
+      default: 1 voices
+      meaning: 1 = monophonic (legato and glide work, the bass default). 2-8 = that many notes at once, for pads, keys and chords; the oldest note is taken over when more are played.
+
+  voice.legato
+      what:    Legato
+      range:   on / off
+      default: off
+      meaning: On: overlapping notes slide without retriggering the envelopes (303-style). Off: every note retriggers.
+
+  voice.glide
+      what:    Glide time
+      range:   0 .. 2000 ms  (pow taper on the dial)
+      default: 0 ms
+      meaning: Time to slide between notes. 0 is instant; 30-120 ms is a quick slide; above 300 ms is a slow swoop.
+
+  voice.velocity
+      what:    Velocity sensitivity
+      range:   0 .. 1
+      default: 0.3
+      meaning: How much playing harder makes the sound louder. 0 ignores velocity.
+      note:    Shown as "Touch" next to the keyboard. For playable sounds, also route Velocity in the matrix to Fil Cutoff so harder is brighter, not only louder.
+
+  voice.analog
+      what:    Analog drift
+      range:   0 .. 1
+      default: 0.25
+      meaning: Analog character: each unison voice drifts slightly in pitch, unison phases start free, and the filter varies a touch per note. 0 is perfectly digital and static; 0.2-0.4 is a warm vintage synth; higher is loose and wobbly.
+      note:    This is the main source of "analog" life on the oscillators: independent tiny pitch drift per oscillator and per unison voice. It keeps a detuned pair's beating from ever settling.
+
+
+------------------------------------------------------------------------------
+2.2 OSC A and OSC B (osc1, osc2)  — identical boxes, B adds Sync
+------------------------------------------------------------------------------
+Title row: power + wave name, OCT / SEM / FIN, UNI (unison count).
+Dials: UNI, Detune, Spread, Shape, Level, Lo cut.
+
+WAVES
+- sine, triangle, saw, pulse: band-limited classic shapes.
+- wavetable: a single built-in morph table sweeping
+  sine → triangle → saw → square → "vocal" as Shape (osc*.wt_pos) goes 0 → 1
+  (keyframes at 0, 0.25, 0.5, 0.75, 1; the in-between frames are real hybrid
+  spectra, not crossfades). There is NO wavetable import and no other table.
+- pwm_saw: the rave "hoover" saw-plus-pulse; Shape (pulse width) swirls it.
+- string: a plucked physical-model string (Karplus-Strong). Its tone and decay
+  live under "All controls" (string.tone, string.decay). Unison does not apply.
+
+THE "SHAPE" KNOB is ONE knob on the page but two parameters underneath:
+- pulse width (osc*.pulse_width) on pulse and pwm_saw,
+- wavetable position (osc*.wt_pos) on wavetable.
+On sine, triangle, saw and string it does nothing.
+
+PITCH: OCT is shown on the page but stored inside osc*.semi (12 semitones per
+octave, range -24..+24 semitones). FIN = osc*.fine in cents.
+
+UNISON: up to 7 voices per oscillator. Detune = spread of the copies in cents
+(0..100), Spread = stereo width of the copies (the low end stays mono anyway).
+Level is compensated for the number of voices.
+
+LO CUT: the oscillator's own slot filter before everything else. Default type
+"high 24" at 20 Hz = off. Set to 120..150 Hz on basses so the oscillators'
+harmonics get dirty without muddying the sub's space.
+
+SYNC (OSC B only): hard-syncs B to A (B restarts every A cycle). Sweep B's pitch
+up for the classic sync scream. Needs a non-string wave on B.
+
+  osc1.wave
+      what:    Osc 1 wave
+      range:   one of: sine | triangle | saw | pulse | wavetable | pwm_saw | string
+      default: saw
+      meaning: Sine is pure and round; triangle is soft with a little edge; saw is bright and buzzy; pulse is hollow and reedy; wavetable morphs with the position control; pwm_saw is the rave "hoover" saw-plus-pulse (move pulse width for the swirl); string is a plucked physical-model string (see String).
+
+  osc1.semi
+      what:    Osc 1 semitones
+      range:   -24 .. 24 st
+      default: 0 st
+      meaning: Pitch offset in semitones. +12/-12 adds an octave layer; +7 adds a fifth for a harder, organ-like tone.
+      note:    On the page this shows as OCT (whole octaves) + SEM (the rest).
+
+  osc1.fine
+      what:    Osc 1 fine tune
+      range:   -100 .. 100 ct
+      default: 0 ct
+      meaning: Fine detune in cents. Small offsets between the two oscillators cause slow beating (Reese movement).
+
+  osc1.unison_voices
+      what:    Osc 1 unison voices
+      range:   1 .. 7 voices
+      default: 1 voices
+      meaning: Number of stacked, detuned copies. 1 is tight and focused; 3-7 is wide, thick and buzzy.
+
+  osc1.unison_detune
+      what:    Osc 1 unison detune
+      range:   0 .. 100 ct  (pow taper on the dial)
+      default: 15 ct
+      meaning: Spread of the unison copies in cents. Low is subtle thickening; high is a dissonant, washy smear.
+
+  osc1.unison_spread
+      what:    Osc 1 stereo spread
+      range:   0 .. 1
+      default: 0.5
+      meaning: How far the unison copies are panned. Only affects content above the mono crossover.
+
+  osc1.pulse_width
+      what:    Osc 1 pulse width
+      range:   0.05 .. 0.95
+      default: 0.5
+      meaning: Only for the pulse wave. 0.5 is a hollow square; values near the ends are thin and nasal.
+
+  osc1.wt_pos
+      what:    Osc 1 wavetable position
+      range:   0 .. 1
+      default: 0
+      meaning: Only for the wavetable wave. Sweeps sine (0) → triangle → saw → square → vocal/formant (1). Higher is brighter and more complex.
+
+  osc1.level
+      what:    Osc 1 level
+      range:   0 .. 1
+      default: 0.8
+      meaning: Oscillator volume into the filter.
+      note:    OSC B defaults to 0 (off); OSC A to 0.8. Set B's level to use it.
+
+  osc1.highpass
+      what:    Osc 1 filter cutoff
+      range:   20 .. 20000 Hz  (log taper on the dial)
+      default: 20 Hz
+      meaning: Cutoff of oscillator 1's own filter (its type is set next to it). As a high-pass (the default) it cuts the low end before the drive so the harmonics distort without muddying the sub's space; 20 Hz = off. As a low-pass, 20 kHz = open.
+
+  osc1.filter_type
+      what:    Osc 1 filter type
+      range:   one of: high 24 | high 12 | low 24 | low 12 | band
+      default: high 24
+      meaning: Oscillator 1's own filter before the main filter: high-pass (24 or 12 dB) thins the low end, low-pass (24 or 12 dB) darkens just this layer, band keeps a band around the cutoff.
+
+  osc2.sync
+      what:    Osc 2 hard sync
+      range:   on / off
+      default: off
+      meaning: Hard sync: oscillator 2 restarts its cycle every time oscillator 1 starts one. Tune or sweep oscillator 2's pitch above oscillator 1 for the classic tearing, vocal sync lead.
+
+  string.tone
+      what:    String tone
+      range:   0 .. 1
+      default: 0.5
+      meaning: For the string wave: how bright the pluck and the string are. Low is a dark, thumbed double bass; high is a bright, snappy pick.
+      note:    Not on the page; only under "All controls".
+
+  string.decay
+      what:    String sustain
+      range:   0 .. 1
+      default: 0.5
+      meaning: For the string wave: how long the string rings, from a short muted thump to a long sustaining tone.
+      note:    Not on the page; only under "All controls".
+
+
+  (Every osc1.* parameter exists identically as osc2.*.)
+
+
+------------------------------------------------------------------------------
+2.3 SUB
+------------------------------------------------------------------------------
+Title row: power, wave, OCT, "Direct out". Dials: Level, Clip.
+A clean, mono sub layer under the note. Its octave is relative to the played
+note (-4..+4: -1 is the usual bass sub, 0 and up make it a clean layer at or
+above the note). With Direct out on (default) it skips the filter, drive,
+distortion, tape and all effects. Clip = its own transparent soft clipper
+(denser, not louder). Its pitch only moves with the matrix's "Pitch" (whole
+note) or "Sub Pitch", never with A+B Pitch, vibrato or the analog drift.
+
+  sub.wave
+      what:    Sub wave
+      range:   one of: sine | warm sine | triangle | square | pulse | saw
+      default: sine
+      meaning: Sine is pure weight; warm sine adds a touch of its octave, so it stays round but you hear it on small speakers (the modern 808 sub); triangle adds a little edge; square is hollow, buzzy weight; pulse (25%) is thinner and nasal (the Juno / SH-101 sub); saw is the richest, weight and edge under reeses and leads. All band-limited.
+
+  sub.octave
+      what:    Sub octave
+      range:   -4 .. 4 oct
+      default: -1 oct
+      meaning: The sub's octave against the played note, -4 to +4. -1 is the usual sub; -2 a very deep rumble; 0 and up turn it into a clean, mono sine (or triangle, square) layer at or above the note. Notes that would fall below 20 Hz fold up an octave.
+
+  sub.level
+      what:    Sub level
+      range:   0 .. 1
+      default: 0.5
+      meaning: Clean mono sub that bypasses filter and distortion. More is heavier low end you feel more than hear.
+
+  sub.clip
+      what:    Sub clip
+      range:   0 .. 12 dB
+      default: 0 dB
+      meaning: Transparent soft clipper on the sub only: shaves its peaks (about 1.5 dB at 3, 2.5 dB at 6, 4 dB at 12) and adds density, while everything under the knee stays at the same level, so it sounds fuller, not louder. 0 = off.
+
+  sub.direct
+      what:    Sub direct out
+      range:   on / off
+      default: on
+      meaning: On (the default): the sub skips dynamics, effects and EQ and only meets the output's safety stages. Off: it goes through the dynamics, effects and EQ with the rest.
+
+
+------------------------------------------------------------------------------
+2.4 NOISE (the texture bed)
+------------------------------------------------------------------------------
+Title row: power, type, OCT, "Direct out"; a KEY lamp in the print's corner.
+Dials: Level, Tone, Density, Tail, Lo cut (its slot filter).
+
+14 TYPES in four groups (one type at a time, no combinations):
+  GRAIN:  crackle (vinyl pops only) · dust (fine grit) · static (a steady
+          grainy fizz with crackles)
+  NOISE:  tape hiss (steady) · air (breathy band) · rumble (low, dark) ·
+          white noise (plain, full range at Tone's top)
+  HIT versions of each (crackle hit, dust hit, static hit, tape hiss hit,
+          air hit, rumble hit, white noise hit): ONE burst per new note, fading
+          over Tail, nothing in between; harder notes burst bigger.
+  "air hit" is the BREATH: the puff at the start of brass, bowed strings,
+  flutes and keys.
+Every type plays at the same loudness wherever its Tone is (levelled).
+
+- Density: 0.5 = each type's classic sound. On grain types: how many pops /
+  ticks; on noise types: how much of the range the band fills.
+- Tail: how long it lingers after each note (ms).
+- OCT (-6..+2): plays the bed slower/faster like tape: down = darker and bigger
+  (crackle → dark thumps, hiss → rumble), up = smaller and quicker.
+- KEY: makes the noise PLAYABLE: its speed follows the note like a sample
+  across the keyboard (middle C = the OCT setting; an octave up = twice as
+  fast), with glide and pitch bend sliding it. Glide from a high to a low note
+  = a tape stop. With the HIT types, KEY turns the keyboard into a noise kit.
+  The bed is shared: with chords it follows the newest note.
+- Routing: through the main filter when the filter's N lamp is on; Direct out
+  sends it straight to the output, past everything (and past RUIN).
+- The noise bed lives inside the voice sum, so it is affected by the FX page.
+
+  texture.type
+      what:    Texture type
+      range:   one of: crackle | dust | rumble | air | air hit | tape hiss | static | crackle hit | dust hit | static hit | tape hiss hit | rumble hit | white noise | white noise hit
+      default: crackle
+      meaning: What the Noise strip plays. Grain: crackle (vinyl pops), dust (fine grit), static (grainy radio fizz). Noise: tape hiss, air (a broad breathy band), rumble (low and dark, kept above the sub). Grain and noise play under the whole note and linger for Tail. Hit: each of the six as one burst at each new note, fading over Tail, nothing between, harder notes bursting bigger; air hit is the breath (a puff on each note, for brass, flutes, bowed and blown sounds). No pitch and no rhythm in any of them. Every type plays at the same loudness. White noise is plain, straight-up white noise (Tone darkens it); white noise hit is one burst of it per note.
+
+  texture.level
+      what:    Texture level
+      range:   0 .. 1
+      default: 0
+      meaning: How loud the texture bed is. It swells in with each note and lingers for the tail; silent between notes.
+
+  texture.tone
+      what:    Texture tone
+      range:   0 .. 1
+      default: 0.4
+      meaning: Darker (0) to brighter (1); for crackle also sparser to busier.
+
+  texture.density
+      what:    Texture density
+      range:   0 .. 1
+      default: 0.5
+      meaning: How much there is. On the grains how many: crackle a rare pop to a broken record, dust a few specks to grit, static a soft fizz to a crunchy one. On the noise how thick (how much of the range it fills): tape hiss thin to full, air a wisp to a wall, rumble a narrow growl to a heavy one. The hits do the same inside their burst. The middle is each type's classic sound.
+
+  texture.tail
+      what:    Texture tail
+      range:   20 .. 6000 ms  (log taper on the dial)
+      default: 700 ms
+      meaning: How long the texture lingers after a note ends; on the hit types, how long each burst lasts.
+
+  texture.octave
+      what:    Noise octave
+      range:   -6 .. 2 oct
+      default: 0 oct
+      meaning: Plays the bed slower or faster, like tape (-6 to +2 octaves): down everything gets darker, slower and bigger (crackle becomes slow dark thumps, hiss sinks to rumble), up it gets smaller and quicker. With KEY on this is where middle C sits, and the notes move it from there.
+
+  texture.key
+      what:    Noise key
+      range:   on / off
+      default: off
+      meaning: Makes the noise playable: its speed follows the note like a sample played across the keyboard (middle C at the OCT setting, each octave up twice as fast, down half as fast), with glide and pitch bend sliding it (glide from a high note to a low one for a tape stop). The bed is shared, so with chords it follows the newest note.
+
+  texture.direct
+      what:    Texture direct out
+      range:   on / off
+      default: off
+      meaning: On: the bed skips dynamics, effects and EQ (dry, like a separate track). Off: it goes through them with the sound.
+
+  texture.filter_type
+      what:    Texture filter type
+      range:   one of: off | low 12 | low 24 | high 12 | high 24 | band
+      default: off
+      meaning: The bed's own filter: high-pass keeps it out of the low end, low-pass darkens it, band narrows it to a band.
+
+  texture.filter_cutoff
+      what:    Texture filter cutoff
+      range:   20 .. 20000 Hz  (log taper on the dial)
+      default: 1000 Hz
+      meaning: Cutoff of the bed's own filter.
+
+  texture.pan
+      what:    Texture pan
+      range:   -1 .. 1
+      default: 0
+      meaning: Moves the texture bed left or right.
+
+
+------------------------------------------------------------------------------
+2.5 FILTER (main filter + the pre-filter drive)
+------------------------------------------------------------------------------
+Title row: power, type, KEY lamp. Print: drag sideways = cutoff, up/down =
+resonance. Four input lamps (A red, B orange, S purple, N sand) choose what
+goes into the filter. Dials: Drive, Cutoff, Res; the glowing "ENV" number left
+of Cutoff = how far the filter envelope sweeps it; "ACCENT" appears in the
+print's corner only for the diode type.
+
+TYPES
+- lowpass: classic 4-pole (24 dB/oct) low-pass.
+- bandpass: nasal and thin.
+- diode: the squelchy 18 dB 303 filter; ACCENT adds the 303 accent (velocity-
+  driven extra resonance and envelope).
+- notch: carves a moving hole (grinding, phasey).
+- comb: rings at a pitch set by the cutoff (metallic, plucked, flanged).
+- lpg: low-pass gate (level and brightness close together, Buchla-style pluck).
+- highpass: 4-pole high-pass: sweep it up to thin a sound out.
+- ("formant" is retired: never offered, old patches load it as lowpass.)
+
+CUTOFF is the real cutoff at C3 (MIDI 48). Key tracking (KEY lamp; amount =
+filter.keytrack) moves it with the note.
+
+DRIVE is the pre-filter saturation: grit that the filter then shapes (the
+"dirt before the filter" move). It is level-matched.
+
+ENV (filter.env_amount) is stored in units of 6 octaves: 0.333 = +2 octaves,
+1.0 = +6 octaves, max ±1.661 = ±9.97 octaves (the whole dial). The page shows
+it in octaves. It needs the filter envelope switched on (mod_env.on).
+
+  filter.on
+      what:    Filter on
+      range:   on / off
+      default: on
+      meaning: Switches Filter on or off without losing its settings. Off also saves CPU.
+
+  filter.type
+      what:    Filter type
+      range:   one of: lowpass | bandpass | diode | notch | comb | lpg | highpass   (formant is retired: loads as lowpass)
+      default: lowpass
+      meaning: Low-pass is the classic 4-pole bass filter; band-pass is nasal and thin; formant makes vowels; diode is the squelchy 18 dB 303 filter; notch carves a moving hole (grinding, phasey); comb rings at the cutoff pitch (metallic, robotic, growly); lpg is a West-Coast low-pass gate that closes with the note for woody, acoustic thumps; high-pass is a 4-pole high-pass that takes the bottom away (sweep it up to thin a sound out for a build or a radio-like break).
+
+  filter.cutoff
+      what:    Filter cutoff
+      range:   20 .. 20000 Hz  (log taper on the dial)
+      default: 2000 Hz
+      meaning: Lower is darker and rounder; below ~300 Hz becomes muffled. In formant mode it shifts the vowel up or down.
+
+  filter.resonance
+      what:    Filter resonance
+      range:   0 .. 1
+      default: 0.1
+      meaning: Emphasis at the cutoff. Higher is squelchy and vocal (acid); near the top it whistles.
+
+  filter.keytrack
+      what:    Filter key tracking
+      range:   0 .. 1
+      default: 0.5
+      meaning: How much the cutoff follows the played note. 1 keeps the tone consistent across the keyboard; 0 makes high notes darker.
+
+  filter.env_amount
+      what:    Filter envelope amount
+      range:   -1.661 .. 1.661
+      default: 0
+      meaning: How far the mod envelope sweeps the cutoff, 6 octaves per unit, up to ±9.97 octaves: from fully left on the Cutoff dial (20 Hz) all the way to fully right (20 kHz). Positive gives a plucky "wow" at the start of each note.
+
+  filter.accent
+      what:    Accent
+      range:   0 .. 1
+      default: 0
+      meaning: 303-style accent: hard-played notes open the filter further, resonate more and hit louder.
+
+  drive.on
+      what:    Drive on
+      range:   on / off
+      default: on
+      meaning: Switches Drive on or off without losing its settings. Off also saves CPU.
+
+  drive.amount
+      what:    Pre-filter drive
+      range:   0 .. 1
+      default: 0
+      meaning: Warm saturation before the filter. Adds harmonics and thickness; the filter then rounds them off.
+
+  filter.route_a
+      what:    Filter: osc 1 in
+      range:   on / off
+      default: on
+      meaning: Oscillator 1 goes through the drive and the main filter. Off: it skips them (the distortion, tape and the rest still apply).
+
+  filter.route_b
+      what:    Filter: osc 2 in
+      range:   on / off
+      default: on
+      meaning: Oscillator 2 goes through the drive and the main filter. Off: it skips them.
+
+  filter.route_s
+      what:    Filter: sub in
+      range:   on / off
+      default: off
+      meaning: The sub goes through the drive and the main filter, and from there through the rest of the voice and the effects. Off (the default): the sub stays on its own clean path.
+      note:    Only works with the sub's Direct out off (Direct out wins).
+
+  filter.route_n
+      what:    Filter: noise in
+      range:   on / off
+      default: off
+      meaning: The Noise strip goes through the main filter: a texture bed through a copy of it that follows the newest note, breath through the drive and the voice's own filter. Off: it skips them.
+      note:    Only works with the noise's Direct out off.
+
+  filter.mix
+      what:    Filter mix
+      range:   0 .. 1
+      default: 1
+      meaning: Blend of the unfiltered (driven) and the filtered sound. 1 = fully filtered.
+      note:    Not on the page; only under "All controls".
+
+
+------------------------------------------------------------------------------
+2.6 AMP ENVELOPE and FILTER ENVELOPE
+------------------------------------------------------------------------------
+Both are ADSR with draggable points on their prints. Each segment has a bend
+(a small ring halfway along it on the print): up = fast first (the analog
+default), down = a swell. The filter envelope has an on/off bar
+(mod_env.on); it drives the main filter's cutoff by the ENV amount, and can
+also be used as a matrix source ("Filter env").
+
+  amp_env.attack
+      what:    Amp attack
+      range:   0.5 .. 20000 ms  (log taper on the dial)
+      default: 2 ms
+      meaning: Fade-in time. Under 5 ms is punchy; longer is a swell.
+
+  amp_env.decay
+      what:    Amp decay
+      range:   1 .. 20000 ms  (log taper on the dial)
+      default: 300 ms
+      meaning: Time to fall to the sustain level. Short with low sustain makes a pluck.
+
+  amp_env.sustain
+      what:    Amp sustain
+      range:   0 .. 1
+      default: 1
+      meaning: Level while the key is held. 1 is a held organ-like bass; 0 is a pluck or 808 decay.
+
+  amp_env.release
+      what:    Amp release
+      range:   1 .. 15000 ms  (log taper on the dial)
+      default: 60 ms
+      meaning: Fade-out after the key is released. Short is tight; long overlaps notes.
+
+  amp_env.attack_bend
+      what:    Amp attack curve
+      range:   -1 .. 1
+      default: 0.15
+      meaning: How the attack bends (the small dot on the envelope's line). Up: fast first, then settling (analog). Middle: a straight line. Down: slow first, then rushing (a swell).
+
+  amp_env.decay_bend
+      what:    Amp decay curve
+      range:   -1 .. 1
+      default: 0.38
+      meaning: How the decay bends (the small dot on the envelope's line). Up: fast first, then settling (analog). Middle: a straight line. Down: slow first, then rushing (a swell).
+
+  amp_env.release_bend
+      what:    Amp release curve
+      range:   -1 .. 1
+      default: 0.38
+      meaning: How the release bends (the small dot on the envelope's line). Up: fast first, then settling (analog). Middle: a straight line. Down: slow first, then rushing (a swell).
+
+  mod_env.on
+      what:    Filter envelope on
+      range:   on / off
+      default: on
+      meaning: Switches the filter envelope on or off without losing its settings. Off, it no longer sweeps the cutoff and its matrix rows do nothing.
+
+  mod_env.attack
+      what:    Mod attack
+      range:   0.5 .. 5000 ms  (log taper on the dial)
+      default: 1 ms
+      meaning: Rise time of the mod envelope.
+
+  mod_env.decay
+      what:    Mod decay
+      range:   1 .. 10000 ms  (log taper on the dial)
+      default: 400 ms
+      meaning: Time for the mod envelope to fall to sustain. Short is plucky; long is a slow sweep.
+
+  mod_env.sustain
+      what:    Mod sustain
+      range:   0 .. 1
+      default: 0
+      meaning: Mod envelope level while the key is held.
+
+  mod_env.release
+      what:    Mod release
+      range:   1 .. 10000 ms  (log taper on the dial)
+      default: 200 ms
+      meaning: Mod envelope fall time after release.
+
+
+  (mod_env.attack_bend / decay_bend / release_bend exist the same way.)
+
+
+==============================================================================
+3. LFO PAGE  (6 LFOs + the 12-slot matrix)
+==============================================================================
+Left half: LFO 1..6 (two columns of three). Right half: the MOD MATRIX.
+Each LFO box: on/off bar, shape (title), RETRIG lamp, HZ / SYNC switch, Rate
+(or the note value when synced), Fade, and a print with a live dot.
+
+An LFO does nothing until a matrix row uses it. Unused LFOs load switched off.
+
+SHAPES (12): sine, triangle, saw_up, saw_down, square, sample_hold, wander, bloom, drop, random, drift, slow drift
+Free-running shapes (one shared wave for the whole synth):
+- sine, triangle, saw_up, saw_down, square: classic periodic shapes, bipolar
+  (-1..+1).
+- sample_hold: random steps, a new value each cycle.
+- wander: smooth random motion that never repeats (the main "life" shape).
+- drift: glides towards a new random point every 0.4-1.6 cycles. At 1 Hz this
+  is exactly the classic "drift" source (picking it sets 1 Hz).
+- slow drift: smooth cosine curves between random points every 0.5-1.5 cycles.
+  At 0.25 Hz = every 2-6 s (picking it sets 0.25 Hz).
+Per-note shapes (each voice runs its own, from that note's start; restart on
+every new note, not on legato notes):
+- bloom: rises from 0 to 1 over ONE cycle (eased), then holds at 1. Rate 0.25 Hz
+  = a 4-second bloom. (Unipolar 0..1.)
+- drop: falls from 1 to 0 over one cycle (fast first), then holds at 0.
+  808 drops, tape stops, plucks. (Unipolar 1..0.)
+- random: a new random value (-1..+1) at the start of every note, held.
+
+RATE: 0.01..30 Hz, or SYNC to the tempo (note values 4/1 .. 1/32, dotted D and
+triplet T). For bloom/drop the rate sets the rise/fall time (time = 1 / rate).
+FADE (0..8000 ms): fades the LFO in from each note's start, per voice.
+RETRIG: restarts the shared wave on every new note (each note moves the same).
+LFO rates CANNOT be modulated (by design).
+
+  lfo1.on
+      what:    LFO 1 on
+      range:   on / off
+      default: on
+      meaning: Switches LFO 1 on or off without losing its settings. Off also saves CPU.
+
+  lfo1.shape
+      what:    LFO 1 shape
+      range:   one of: sine | triangle | saw_up | saw_down | square | sample_hold | wander | bloom | drop | random | drift | slow drift
+      default: sine
+      meaning: Sine and triangle are smooth wobbles; saws are rhythmic ramps; square jumps; sample & hold is random steps; wander is smooth random motion that never repeats. Bloom, drop and random run per note, each note on its own: bloom rises from 0 to full over one cycle and stays there (the slow bloom of a held note), drop falls from full to 0 over one cycle (808 drops, tape stops, plucks), random is a new random value at the start of every note, held for the note. Drift glides towards a new random point every 0.4-1.6 s at 1 Hz (the old Drift source); slow drift curves between random points every 2-6 s at 0.25 Hz (the old Slow drift); Rate scales both.
+
+  lfo1.rate
+      what:    LFO 1 rate
+      range:   0.01 .. 30 Hz  (log taper on the dial)
+      default: 2 Hz
+      meaning: Speed when not tempo-synced. Under 1 Hz is slow drift; 2-8 Hz is wobble; above 10 Hz is buzz/growl. For bloom and drop: one cycle is the rise or fall time (0.25 Hz = 4 s).
+
+  lfo1.sync
+      what:    LFO 1 tempo sync
+      range:   one of: free | 4/1 | 2/1 | 1/1 | 1/2 | 1/2D | 1/4 | 1/4D | 1/4T | 1/8 | 1/8D | 1/8T | 1/16 | 1/16D | 1/16T | 1/32
+      default: free
+      meaning: Locks the LFO to the tempo as a note length (1/8 is the classic dubstep wobble). "free" uses the rate in Hz.
+
+  lfo1.retrigger
+      what:    LFO 1 retrigger
+      range:   on / off
+      default: on
+      meaning: On: the LFO restarts on every note, so each note moves the same way.
+
+  lfo1.fade
+      what:    LFO 1 fade-in
+      range:   0 .. 8000 ms
+      default: 0 ms
+      meaning: Time for the LFO to fade in after each note starts. Lets a note hit clean, then come alive.
+
+
+  (lfo2 .. lfo6 are identical.)
+
+
+------------------------------------------------------------------------------
+3.1 THE MOD MATRIX (12 slots)
+------------------------------------------------------------------------------
+Each slot: on lamp · source → destination · amount (-1..+1). Slots are summed
+(order never matters; on load the rows are re-sorted into reading order:
+envelopes, LFO 1..6, velocity / wheel / keytrack). mod.on switches the whole matrix. mod<n>.on switches
+one slot without losing its settings.
+
+SOURCES (what each outputs)
+  Filter env (mod_env) ............ 0..1, the filter envelope's level
+  Amp env (amp_env) ............... 0..1, the amp envelope's level
+  LFO 1..6 ........................ -1..+1 (bloom/drop 0..1; see shapes)
+  Velocity ........................ 0..1, how hard the note was played
+  Mod wheel ....................... 0..1
+  Keytrack ........................ -1..+1: (note - C3) / 24 semitones, clipped
+                                    (C1 = -1, C3 = 0, C5 = +1)
+  (No other sources exist: no aftertouch, no random/drift sources: those are
+  LFO shapes now; no envelopes beyond the two above: bloom and drop LFO shapes
+  replace a third envelope.)
+
+DESTINATIONS (exactly these; the menu shows them in columns)
+  COMMON column (the ones a finished preset normally needs):
+    Pitch, A+B Pitch, Fil Cutoff, Fil Drive, Dis Drive, A+B Shape, A Shape,
+    B Shape, Level
+  PITCH:      Pitch, A+B Pitch, A Pitch, B Pitch, Sub Pitch, Noise Pitch, Vibrato
+  SHAPE:      A+B Shape, A Shape, B Shape, A+B Detune, A Detune, B Detune
+  VOLUME:     Level, A Level, B Level, Sub Level, Noise Level
+  FILTER:     Fil Cutoff, Fil Res, Fil Drive
+  DISTORTION: Dis Drive, Dis Mix, Dis Tone
+
+HOW MUCH AN AMOUNT OF 1.0 MOVES (source at full = 1):
+  Pitch (id: pitch) ............... ±24 semitones, the WHOLE note incl. the sub
+  A+B Pitch (osc_pitch) ........... ±24 semitones, both oscillators, sub stays
+  A Pitch / B Pitch ............... ±24 semitones, one oscillator
+  Sub Pitch (sub_pitch) ........... ±24 semitones (±2 octaves), the sub only
+  Noise Pitch (noise_pitch) ....... ±6 octaves of the noise's speed (newest note)
+  Vibrato (vibrato_depth) ......... adds to the hidden vibrato's depth (0..100
+                                    cents scale; vibrato rate/delay are hidden
+                                    parameters, see section 7)
+  A+B / A / B Shape ............... pulse width ±0.45, or wavetable position ±1
+                                    (whichever the wave uses)
+  A+B / A / B Detune .............. ±100 cents of unison detune (needs UNI > 1)
+  Level (amp) ..................... the voice's level ×(1 + amount): -1 = silent,
+                                    +1 = double
+  A / B / Sub / Noise Level ....... ± the full level range (0..1), clamped
+  Fil Cutoff (filter_cutoff) ...... ±6 octaves
+  Fil Res (filter_resonance) ...... ± the full resonance range
+  Fil Drive (drive) ............... ± the full pre-filter drive range
+  Dis Drive / Dis Mix / Dis Tone .. ± the full range of the distortion's knob
+All results are clamped to the parameter's range.
+Small amounts matter: for slow "life", 0.02..0.1 on A+B Pitch is already
+audible (0.004 = ~10 cents), 0.05..0.2 on Fil Cutoff is ~0.3..1.2 octaves.
+
+MATRIX PARAMETERS (mod1..mod12 identical)
+
+  mod.on
+      what:    Mod matrix on
+      range:   on / off
+      default: on
+      meaning: Switches Mod matrix on or off without losing its settings. Off also saves CPU.
+
+  mod1.source
+      what:    Mod 1 source
+      range:   one of: none | lfo1 | lfo2 | mod_env | amp_env | velocity | keytrack | modwheel | lfo3 | lfo4 | lfo5 | lfo6
+      default: none
+      meaning: Modulation source for this matrix slot.
+
+  mod1.dest
+      what:    Mod 1 destination
+      range:   one of (id = label on screen): none=—, pitch=Pitch, osc_pitch=A+B Pitch, osc1_pitch=A Pitch, osc2_pitch=B Pitch, sub_pitch=Sub Pitch, noise_pitch=Noise Pitch, vibrato_depth=Vibrato, osc12_shape=A+B Shape, osc1_pw=A Shape, osc2_pw=B Shape, unison_detune=A+B Detune, osc1_detune=A Detune, osc2_detune=B Detune, amp=Level, osc1_level=A Level, osc2_level=B Level, sub_level=Sub Level, texture_level=Noise Level, drive=Fil Drive, filter_cutoff=Fil Cutoff, filter_resonance=Fil Res, dist_drive=Dis Drive, dist_mix=Dis Mix, dist_tone=Dis Tone
+      default: none
+      meaning: The parameter this slot moves; scaling per destination is in the table above.
+      note:    Only these ids are kept. Any other id (the schema also lists internal ones such as cutoff for the mod wheel's moves, FX, tape wow, LFO rates, the retired filter_vowel) loads as an empty row.
+
+  mod1.amount
+      what:    Mod 1 amount
+      range:   -1 .. 1
+      default: 0
+      meaning: Depth and direction of this modulation.
+
+  mod1.on
+      what:    Mod 1 on
+      range:   on / off
+      default: on
+      meaning: Switches this modulation on or off without losing its settings.
+
+
+==============================================================================
+4. FX PAGE  (eight boxes, fixed order: dirt, then modulation, then dynamics, EQ)
+==============================================================================
+Box order on the page: DISTORTION · CRUSH · TAPE · CHORUS / FLANGER · PHASER
+· OTT · EQ. Every box has an on/off bar and (except the EQ) its own Lo cut:
+below it the sound passes clean.
+Note: DISTORTION, CRUSH and TAPE run PER VOICE, after the main filter (see
+section 1); CHORUS, FLANGER, PHASER, OTT and EQ run on the whole synth.
+
+4.1 DISTORTION — soft (warm), hard (aggressive clipping), fold (wavefolder,
+metallic growl), tube (asymmetric warmth), fuzz (a guitar fuzz pedal: lopsided
+clipping that sputters as a note dies). Level-matched (more drive = dirtier,
+not louder). 2x oversampled with anti-aliasing. "clean below" = everything under
+this frequency skips the distortion (100-200 Hz = clean sub, dirty mids).
+
+  dist.on
+      what:    Distortion on
+      range:   on / off
+      default: on
+      meaning: Switches Distortion on or off without losing its settings. Off also saves CPU.
+
+  dist.type
+      what:    Distortion type
+      range:   one of: soft | hard | fold | tube | fuzz
+      default: soft
+      meaning: Soft is warm and round; hard is aggressive and buzzy; fold is metallic, growly and vocal; tube is asymmetric and thick, adding even harmonics like a driven valve amp; fuzz is a guitar pedal: lopsided, gnarly clipping that sputters and breaks up as a note dies away.
+
+  dist.drive
+      what:    Distortion drive
+      range:   0 .. 1
+      default: 0
+      meaning: How hard the distortion is pushed. More is dirtier, louder-feeling and more compressed.
+
+  dist.mix
+      what:    Distortion mix
+      range:   0 .. 1
+      default: 1
+      meaning: Blend between clean and distorted signal.
+
+  dist.post_tone
+      what:    Distortion tone
+      range:   0 .. 1
+      default: 0.7
+      meaning: Low-pass after the distortion. Lower tames fizz and harshness; higher keeps the bite.
+
+  dist.clean_below
+      what:    Distortion clean below
+      range:   20 .. 500 Hz  (log taper on the dial)
+      default: 20 Hz
+      meaning: Everything below this frequency bypasses the distortion, so the low end stays clean and tight while the mids get dirty. 20 Hz distorts everything; 100-200 Hz is the classic modern "clean sub, dirty mids" bass.
+
+
+4.2 CRUSH — bitcrusher / sample-rate reducer (digital grit).
+
+  crush.on
+      what:    Bitcrusher on
+      range:   on / off
+      default: on
+      meaning: Switches Bitcrusher on or off without losing its settings. Off also saves CPU.
+
+  crush.mix
+      what:    Bitcrusher mix
+      range:   0 .. 1
+      default: 0
+      meaning: Blend of the bitcrushed / downsampled signal. Lo-fi, retro, digital grit. Use sparingly on general basses; great for synthwave, cyberpunk and lo-fi textures. Never touches the sub.
+
+  crush.bits
+      what:    Bit depth
+      range:   2 .. 16 bits
+      default: 8 bits
+      meaning: Lower is harsher and noisier. 12-16 is subtle grit; 6-8 is crunchy; under 5 is broken and fizzy.
+
+  crush.rate
+      what:    Downsample
+      range:   1 .. 40 x  (log taper on the dial)
+      default: 1 x
+      meaning: Sample-rate reduction factor. 1 is off; 2-4 adds a metallic, aliased edge; above 10 sounds like a broken toy.
+
+  crush.lowcut
+      what:    Bitcrusher low cut
+      range:   20 .. 1000 Hz  (log taper on the dial)
+      default: 20 Hz
+      meaning: The bitcrusher only works above this frequency; below it the sound passes clean. 20 Hz = the whole sound.
+
+
+4.3 TAPE — tape saturation, wow & flutter (slow wandering pitch), age (a dull, worn top). The LORN glue.
+
+  tape.on
+      what:    Tape on
+      range:   on / off
+      default: on
+      meaning: Switches Tape on or off without losing its settings. Off also saves CPU.
+
+  tape.drive
+      what:    Tape saturation
+      range:   0 .. 1
+      default: 0
+      meaning: Soft, slightly asymmetric tape compression and warmth. Thickens and glues; rounds off transients. Never touches the sub.
+
+  tape.wow
+      what:    Tape wow & flutter
+      range:   0 .. 1  (pow taper on the dial)
+      default: 0
+      meaning: Slow, wandering pitch wobble like an old tape machine. A little sounds vintage and alive; a lot sounds warped and seasick (cinematic, LORN-style).
+
+  tape.age
+      what:    Tape age
+      range:   0 .. 1
+      default: 0
+      meaning: Worn tape: dulls the top end and adds faint hiss. Dark, dusty, lo-fi.
+
+  tape.lowcut
+      what:    Tape low cut
+      range:   20 .. 1000 Hz  (log taper on the dial)
+      default: 20 Hz
+      meaning: The tape only works above this frequency; below it the sound passes clean. 20 Hz = the whole sound.
+
+
+4.4 CHORUS — classic, ensemble (thicker, 3 copies) or hyper (6 steadily detuned copies spread left to right: a supersaw-like thickness on the whole sound).
+
+  chorus.on
+      what:    Chorus on
+      range:   on / off
+      default: on
+      meaning: Switches Chorus on or off without losing its settings. Off also saves CPU.
+
+  chorus.mode
+      what:    Chorus mode
+      range:   one of: classic | ensemble | hyper
+      default: classic
+      meaning: classic = a two-voice chorus (gentle, wobbly); ensemble = a three-voice string-machine ensemble (lush); hyper = six steadily detuned copies spread across the stereo field (Serum's Hyper: a supersaw thickness on the whole sound, the noise, FM and GRIND included). Below its Lo cut the sound stays clean and mono.
+
+  chorus.mix
+      what:    Chorus mix
+      range:   0 .. 1
+      default: 0
+      meaning: Stereo chorus on everything above the low cut. Wider, lusher, more 80s.
+
+  chorus.depth
+      what:    Chorus depth
+      range:   0 .. 1
+      default: 0.5
+      meaning: How much the chorus wobbles. High is seasick; low is a subtle widening.
+
+  chorus.lowcut
+      what:    Chorus low cut
+      range:   20 .. 1000 Hz  (log taper on the dial)
+      default: 250 Hz
+      meaning: Chorus only works on what is above this frequency, so the low end stays clean, centred and dry.
+
+
+4.5 FLANGER
+
+  flanger.on
+      what:    Flanger on
+      range:   on / off
+      default: on
+      meaning: Switches Flanger on or off without losing its settings. Off also saves CPU.
+
+  flanger.mix
+      what:    Flanger mix
+      range:   0 .. 1
+      default: 0
+      meaning: Jet-like comb sweep on the upper range. Metallic movement and width.
+
+  flanger.rate
+      what:    Flanger rate
+      range:   0.05 .. 5 Hz  (log taper on the dial)
+      default: 0.3 Hz
+      meaning: Speed of the flanger sweep.
+
+  flanger.feedback
+      what:    Flanger feedback
+      range:   0 .. 0.9
+      default: 0.5
+      meaning: Higher makes the flanger more resonant and metallic.
+
+  flanger.lowcut
+      what:    Flanger low cut
+      range:   20 .. 1000 Hz  (log taper on the dial)
+      default: 250 Hz
+      meaning: Flanger only works on what is above this frequency, so the low end stays clean, centred and dry.
+
+
+4.6 PHASER
+
+  phaser.on
+      what:    Phaser on
+      range:   on / off
+      default: on
+      meaning: Switches Phaser on or off without losing its settings. Off also saves CPU.
+
+  phaser.mix
+      what:    Phaser mix
+      range:   0 .. 1
+      default: 0
+      meaning: Sweeping notches for a swirling, jet-like movement.
+
+  phaser.rate
+      what:    Phaser rate
+      range:   0.05 .. 10 Hz  (log taper on the dial)
+      default: 0.5 Hz
+      meaning: Speed of the phaser sweep.
+
+  phaser.lowcut
+      what:    Phaser low cut
+      range:   20 .. 1000 Hz  (log taper on the dial)
+      default: 250 Hz
+      meaning: Phaser only works on what is above this frequency, so the low end stays clean, centred and dry.
+
+
+4.7 OTT — a three-band upward + downward compressor modelled on the classic
+"OTT" (bands split at 88 Hz and 2.5 kHz). "Mix" (ott.depth) is dry/wet: full is
+loud, squashed, tails pulled up. It never lifts anything below -80 dBFS (no
+hiss in silence). Everything below its Lo cut stays out.
+
+  ott.on
+      what:    OTT on
+      range:   on / off
+      default: off
+      meaning: Switches the OTT on or off without losing its settings.
+
+  ott.depth
+      what:    OTT mix
+      range:   0 .. 1
+      default: 0
+      meaning: OTT, as Ableton's OTT preset / Xfer's OTT: three bands squashed hard from above and pulled up from below, so quiet grit and tails come up and peaks come down; full Depth is louder and dense. After the phaser, before the EQ. 0 = off.
+
+  ott.lowcut
+      what:    OTT low cut
+      range:   20 .. 1000 Hz  (log taper on the dial)
+      default: 20 Hz
+      meaning: The OTT only works above this frequency: below it the sound passes as it is. Fully left = the whole sound (the clean sub never goes through it).
+
+
+4.8 EQ — four bands like Ableton's EQ Eight: band 1 a low shelf that can become
+a high-pass, bands 2 and 3 bells that can become notches, band 4 a high shelf
+that can become a low-pass. Flat by default. SCALE (-200..200 %) multiplies
+every band's gain (negative inverts the curve). Plus a high cut.
+
+  eq.on
+      what:    EQ on
+      range:   on / off
+      default: on
+      meaning: Switches EQ on or off without losing its settings. Off also saves CPU.
+
+  eq.b1_type
+      what:    EQ 1 type
+      range:   one of: low shelf | high pass
+      default: low shelf
+      meaning: Band 1: a low shelf (double-click its ball for a high-pass).
+
+  eq.b1_freq
+      what:    EQ 1 frequency
+      range:   20 .. 20000 Hz  (log taper on the dial)
+      default: 100 Hz
+      meaning: Where the band sits. Drag its ball sideways on the EQ's graph.
+
+  eq.b1_gain
+      what:    EQ 1 gain
+      range:   -18 .. 18 dB
+      default: 0 dB
+      meaning: Boost or cut (shelf and bell only). Drag its ball up or down; 0 = flat.
+
+  eq.b1_q
+      what:    EQ 1 Q
+      range:   0.1 .. 18  (log taper on the dial)
+      default: 0.71
+      meaning: How narrow the band is (or how steep a shelf, how resonant a pass filter). Scroll over the graph with its ball selected.
+
+  eq.b2_type
+      what:    EQ 2 type
+      range:   one of: bell | notch
+      default: bell
+      meaning: Band 2: a bell (double-click its ball for a notch).
+
+  eq.b2_freq
+      what:    EQ 2 frequency
+      range:   20 .. 20000 Hz  (log taper on the dial)
+      default: 400 Hz
+      meaning: Where the band sits. Drag its ball sideways on the EQ's graph.
+
+  eq.b2_gain
+      what:    EQ 2 gain
+      range:   -18 .. 18 dB
+      default: 0 dB
+      meaning: Boost or cut (shelf and bell only). Drag its ball up or down; 0 = flat.
+
+  eq.b2_q
+      what:    EQ 2 Q
+      range:   0.1 .. 18  (log taper on the dial)
+      default: 0.9
+      meaning: How narrow the band is (or how steep a shelf, how resonant a pass filter). Scroll over the graph with its ball selected.
+
+  eq.b4_type
+      what:    EQ 4 type
+      range:   one of: high shelf | low pass
+      default: high shelf
+      meaning: Band 4: a high shelf (double-click its ball for a low-pass).
+
+  eq.scale
+      what:    EQ scale
+      range:   -2 .. 2
+      default: 1
+      meaning: Scales every band's gain: 100% as set, 0% flat, -100% the mirror image, up to ±200%.
+
+  eq.highcut
+      what:    High cut
+      range:   1000 .. 20000 Hz  (log taper on the dial)
+      default: 20000 Hz
+      meaning: Final low-pass. Lower removes fizz and air for a darker, vintage, more muffled tone; 20 kHz is off.
+      note:    Not on the page; only under "All controls". Useful for a controlled, dark top.
+
+
+  (eq.b3_* is identical to eq.b2_*.)
+
+
+4.9 OUTPUT
+
+  output.gain
+      what:    Output gain
+      range:   -24 .. 12 dB
+      default: 0 dB
+      meaning: Level into the always-on limiter.
+
+  output.crossover
+      what:    Mono crossover
+      range:   60 .. 250 Hz  (log taper on the dial)
+      default: 120 Hz
+      meaning: Everything below this frequency is summed to mono so the low end stays solid on any system.
+      note:    Not on the page; only under "All controls".
+
+
+==============================================================================
+5. MOD WHEEL "MOVES"
+==============================================================================
+The mod wheel doesn't move one knob: it plays a connected "move" (several
+parameters together, like playing harder). Wheel at 0 = the patch exactly as
+designed. Each patch names its default move (wheel.preset); wheel.move can
+override it.
+  pressure  louder, brighter, grittier, a little breath
+  snarl     distortion, pre-filter drive, resonance and bite
+  open      the filter and top open, a little wider
+  choke     darker, tighter, narrower
+  vibrato   a human vibrato with a breath of air
+  unstable  tape wow, detune, chorus wobble, sagging pitch (a dying machine)
+  decay     the sound falls apart: tape wow, crush, a darker top
+  bloom     wider and chorused, a little quieter (it drifts away)
+
+  wheel.preset
+      what:    Preset's own move
+      range:   one of: pressure | snarl | open | choke | vibrato | unstable | decay | bloom
+      default: pressure
+      meaning: The move this preset was designed with; used when the mod wheel move is set to preset default.
+
+  wheel.move
+      what:    Mod wheel move
+      range:   one of: preset default | pressure | snarl | open | choke | vibrato | unstable | decay | bloom
+      default: preset default
+      meaning: What the mod wheel does, each move turning several connected things together. Pressure: like playing harder (louder, brighter, grittier, a little breath). Snarl: aggression (distortion, resonance and bite). Open: light comes in (filter and top open). Choke: darker, tighter, drier, narrower. Vibrato: a human vibrato. Unstable: a dying machine (wobble, detune, sag). Decay: the sound falls apart (wear, crush, grain). Bloom: it drifts away (reverb, delay, width, chorus).
+
+
+==============================================================================
+6. DESIGN NOTES THAT MATTER (how the engine behaves in practice)
+==============================================================================
+- LOW END: keep the sub on Direct out and its wave a sine or warm sine for
+  basses; high-pass the oscillators (Lo cut 120-150 Hz) before the drive, and
+  use dist.clean_below 100-200 Hz, so the dirt never muddies the sub. Stereo
+  only exists above the mono crossover anyway.
+- A "Reese": two saws (or A with unison) slightly detuned (fine ±5..15 cents or
+  unison detune), Analog 0.2-0.4 keeps the beating alive, slow drift on Fil
+  Cutoff and A+B Pitch for life.
+- LIFE without rhythm: 2-3 slow, unrelated motions, e.g. slow drift → Fil
+  Cutoff (0.08), wander at 0.13 Hz → Fil Drive (0.1), drift → A+B Pitch
+  (0.003..0.01). Unrelated rates (0.07, 0.13, 0.37 Hz) never line up.
+- BLOOM: LFO shape bloom at 0.2-0.5 Hz → Fil Cutoff (0.1-0.3): each note opens
+  slowly by itself, per voice, chords included.
+- PLUCK: filter envelope with short decay and sustain 0 and ENV +2..+4 octaves,
+  or LFO shape drop → Fil Cutoff.
+- TOUCH: Velocity → Fil Cutoff (0.1-0.25) for "harder = brighter".
+- DIRT ORDER: Fil Drive (before the filter) is warm and shaped by the filter;
+  Dis Drive (after the filter) is rawer and brighter. Use the filter drive for
+  most grit, the distortion for the hard end.
+- WEAR: tape age 0.3-0.6 + a little wow (0.1-0.3) + a noise bed (dust, crackle
+  or tape hiss at low level, high-passed) = the worn, recorded feel.
+- LEVEL: patches are leveled with output.gain so the RMS of a held note sits
+  around -16 dBFS with peaks under the -1 dB limiter.
+- RESONANCE above ~0.6 whistles on low-pass; tame it with drive or keep it
+  lower on bright sounds.
+
+==============================================================================
+7. PARAMETERS THAT EXIST BUT ARE NOT ON THE THREE PAGES
+==============================================================================
+These are reachable only under "All controls" (the full parameter view). A
+patch may set them; the user can't see them on the OSC / LFO / FX pages.
+
+  fm.on
+      what:    FM on
+      range:   on / off
+      default: on
+      meaning: Switches FM on or off without losing its settings. Off also saves CPU.
+
+  fm.amount
+      what:    FM amount
+      range:   0 .. 1  (pow taper on the dial)
+      default: 0
+      meaning: Steady FM depth: a sine operator phase-modulates osc 1. Low adds bell-like bite; high is metallic and aggressive.
+
+  fm.ratio
+      what:    FM ratio
+      range:   0.5 .. 8 x  (log taper on the dial)
+      default: 1 x
+      meaning: Modulator pitch relative to the note. Whole numbers (1, 2, 3) sound harmonic; in-between values sound metallic and inharmonic.
+
+  fm.punch
+      what:    FM punch
+      range:   0 .. 1
+      default: 0
+      meaning: Extra FM depth at the start of each note that decays away: the sharp, metallic "plunk" of DX7 and LatelyBass basses.
+
+  fm.decay
+      what:    FM punch decay
+      range:   5 .. 8000 ms  (log taper on the dial)
+      default: 180 ms
+      meaning: How fast the FM punch fades. Short is a snappy slap; long is a slow metallic bloom.
+
+  fm.feedback
+      what:    FM feedback
+      range:   0 .. 1
+      default: 0
+      meaning: The modulator feeds back into itself: from smooth sine through saw-like buzz to gritty noise.
+
+  fm2.amount
+      what:    FM operator 2 amount
+      range:   0 .. 1  (pow taper on the dial)
+      default: 0
+      meaning: Depth of a second sine operator. Adds complexity: glassy, clangy or hollow depending on ratio.
+
+  fm2.ratio
+      what:    FM operator 2 ratio
+      range:   0.5 .. 16 x  (log taper on the dial)
+      default: 2 x
+      meaning: Pitch of the second operator relative to the note. Whole numbers are harmonic; others are metallic.
+
+  fm.algorithm
+      what:    FM routing
+      range:   one of: stack | parallel
+      default: stack
+      meaning: Stack: operator 2 modulates operator 1, which modulates the oscillator (richer, more complex). Parallel: both modulate the oscillator directly (cleaner).
+
+  noise.level
+      what:    Noise level
+      range:   0 .. 1  (pow taper on the dial)
+      default: 0
+      meaning: White noise into the filter for grit, breath and attack texture. Keep low.
+
+  clip.mid
+      what:    Mid clip
+      range:   0 .. 12 dB
+      default: 0 dB
+      meaning: Transparent soft clipper on oscillators 1 and 2 only (after the dirt chain and the amp, before the effects; the sub has its own): shaves spikes and adds density at the same level. 0 = off.
+
+  clip.low_cut
+      what:    Clean lows after the dirt
+      range:   on / off
+      default: off
+      meaning: On: after the distortion, crush and tape, the oscillators get their low cut once more (at the lower of the two oscillators' low cuts), removing the rumble the dirt itself created. The sub is never touched.
+
+  vibrato.on
+      what:    Vibrato on
+      range:   on / off
+      default: on
+      meaning: Switches Vibrato on or off without losing its settings. Off also saves CPU.
+
+  vibrato.depth
+      what:    Vibrato depth
+      range:   0 .. 100 ct
+      default: 0 ct
+      meaning: Pitch wobble of a played note in cents, like a string player or singer. 10-25 is natural; more is wobbly.
+
+  vibrato.rate
+      what:    Vibrato rate
+      range:   2 .. 9 Hz
+      default: 5.2 Hz
+      meaning: Vibrato speed; each note varies it slightly so a chord never wobbles in lockstep.
+
+  vibrato.delay
+      what:    Vibrato delay
+      range:   0 .. 3000 ms
+      default: 350 ms
+      meaning: Time after the note starts before the vibrato begins: notes start straight, then sing.
+
+  vibrato.fade
+      what:    Vibrato fade-in
+      range:   1 .. 3000 ms  (log taper on the dial)
+      default: 500 ms
+      meaning: How long the vibrato takes to reach full depth after its delay.
+
+
+==============================================================================
+8. LIMITATIONS (what RUIN-1 deliberately cannot do)
+==============================================================================
+SOUND SOURCES
+- Two oscillators + one sub + one noise strip per patch. No third oscillator.
+- One built-in morph wavetable (sine→tri→saw→square→vocal). No wavetable or
+  sample import, no user waveforms, no samples of any kind.
+- No FM, ring modulation or audio-rate cross-modulation on the pages (an FM
+  block exists only under "All controls"). Hard sync (B to A) is the only
+  oscillator interaction on the page.
+- The noise strip plays ONE type at a time (no layering of two noise types) and
+  is shared by all voices (with chords it follows the newest note).
+- The sub has no unison, no pulse-width control and (by default) no effects.
+- The string model's tone/decay aren't on the page.
+
+FILTERING
+- One main filter per voice (no dual / serial / parallel filters). The per-
+  source slot filters are simple (high/low/band, fixed slope choice) and can't
+  be modulated. The formant filter was removed.
+
+ENVELOPES AND MODULATION
+- Only two envelopes: amp and filter. No pitch envelope, no extra mod
+  envelopes: use the LFO shapes bloom (rise) and drop (fall) instead.
+- 6 LFOs, 12 matrix slots. Fixed source list (filter env, amp env, LFO 1-6,
+  velocity, mod wheel, keytrack). No aftertouch, no MPE on the page (MPE exists
+  in the plugin version only for per-note bend, pressure and slide).
+- Fixed destination list (section 3.1). Effects (chorus, flanger, phaser, OTT,
+  EQ, tape, crush) cannot be modulated from the matrix. LFO rates cannot be
+  modulated. No LFO-to-LFO modulation, no LFO 1×2 product.
+- LFOs are shared across voices except their fade-in and the per-note shapes.
+- No step sequencer, no arpeggiator, no drawn/custom LFO shapes.
+
+TIME AND RHYTHM
+- No rhythmic gate / volume shaper / wobbler (removed on purpose). Tempo-synced
+  LFOs exist, but rhythmic chopping is meant to be done after the synth.
+- No reverb and no delay (removed on purpose: producers use their own). Their
+  parameters still exist in old patches but are not heard.
+
+DYNAMICS AND OUTPUT
+- No compressor apart from OTT (FX page) and RUIN's own OTT. A limiter at -1 dB
+  is always on and cannot be bypassed. The low end below the crossover is
+  always mono. No stereo panning of the oscillators (only unison spread, chorus
+  and the noise pan add width).
+- Max 8 voices; in poly mode only the lowest note plays the sub.
+
+==============================================================================
+9. THE RUIN PAGE (short; not part of this reference's main scope)
+==============================================================================
+A 4-stage "neuro" chain between the oscillators and the main filter: each stage
+is a moving filter (notch, peak, band, comb or phaser) swept by the note or by
+smooth random "wander" at a rate (Hz / tempo sync / random speed), with a
+vertical (resonance) swing, into its own level-matched drive (soft, hard, fold,
+tube, fuzz) with mix. The chain has SAT and PRE OTT in front, KEY (stages
+follow the note), ONE SHOT (note sweeps become envelopes), NOISE THRU (the noise
+layer skips RUIN), its own OTT, Lo cut (below it stays clean) and Mix. Off by
+default; when switched on it starts from a ready-made "destroyed Reese" chain.
+Parameters: grind.* and grind1..4.* (see "All controls").
+
+==============================================================================
+10. PATCH FORMAT
+==============================================================================
+A patch is a flat JSON object of parameter id → value, plus a "meta" object
+(name, description, tags). Values outside a range are clamped; unknown keys are
+ignored; anything missing takes its default. Enums are given by option name,
+booleans as true/false.
+
+EXAMPLE (a dark, slowly breathing Reese bass):
+
+{
+  "meta": {
+    "name": "Rust Halo",
+    "description": "A slow, tape-worn Reese that breathes open on every note.",
+    "tags": [
+      "bass",
+      "reese",
+      "dark",
+      "lorn"
+    ]
+  },
+  "voice.polyphony": 1,
+  "voice.legato": true,
+  "voice.glide": 60,
+  "voice.analog": 0.3,
+  "osc1.wave": "saw",
+  "osc1.unison_voices": 3,
+  "osc1.unison_detune": 18,
+  "osc1.level": 0.8,
+  "osc1.highpass": 130,
+  "osc2.wave": "saw",
+  "osc2.fine": -9,
+  "osc2.level": 0.65,
+  "osc2.highpass": 130,
+  "sub.wave": "sine",
+  "sub.octave": -1,
+  "sub.level": 0.6,
+  "sub.direct": true,
+  "texture.type": "dust",
+  "texture.level": 0.25,
+  "texture.tone": 0.35,
+  "texture.tail": 400,
+  "texture.filter_type": "high 24",
+  "texture.filter_cutoff": 400,
+  "drive.on": true,
+  "drive.amount": 0.35,
+  "filter.type": "lowpass",
+  "filter.cutoff": 420,
+  "filter.resonance": 0.25,
+  "filter.keytrack": 0.5,
+  "mod_env.on": true,
+  "mod_env.attack": 5,
+  "mod_env.decay": 600,
+  "mod_env.sustain": 0.2,
+  "filter.env_amount": 0.25,
+  "amp_env.attack": 8,
+  "amp_env.decay": 400,
+  "amp_env.sustain": 0.9,
+  "amp_env.release": 250,
+  "lfo1.on": true,
+  "lfo1.shape": "slow drift",
+  "lfo1.rate": 0.25,
+  "lfo2.on": true,
+  "lfo2.shape": "drift",
+  "lfo2.rate": 1,
+  "lfo3.on": true,
+  "lfo3.shape": "bloom",
+  "lfo3.rate": 0.3,
+  "mod1.source": "lfo1",
+  "mod1.dest": "filter_cutoff",
+  "mod1.amount": 0.08,
+  "mod2.source": "lfo2",
+  "mod2.dest": "osc_pitch",
+  "mod2.amount": 0.004,
+  "mod3.source": "lfo3",
+  "mod3.dest": "filter_cutoff",
+  "mod3.amount": 0.15,
+  "mod4.source": "lfo1",
+  "mod4.dest": "drive",
+  "mod4.amount": 0.1,
+  "mod5.source": "velocity",
+  "mod5.dest": "filter_cutoff",
+  "mod5.amount": 0.15,
+  "dist.on": true,
+  "dist.type": "tube",
+  "dist.drive": 0.3,
+  "dist.mix": 0.6,
+  "dist.clean_below": 150,
+  "tape.on": true,
+  "tape.drive": 0.3,
+  "tape.wow": 0.15,
+  "tape.age": 0.45,
+  "chorus.on": true,
+  "chorus.mode": "ensemble",
+  "chorus.mix": 0.25,
+  "chorus.lowcut": 250,
+  "wheel.preset": "snarl",
+  "output.gain": 0
+}
+
+
+READING THE EXAMPLE AS A HUMAN WOULD DIAL IT
+  OSC A: saw, UNI 3, detune 18 ct, level 0.8, Lo cut 130 Hz.
+  OSC B: saw, FIN -9 ct, level 0.65, Lo cut 130 Hz.
+  SUB: sine, OCT -1, level 0.6, Direct out on.
+  NOISE: dust, level 0.25, tone 0.35, tail 400 ms, Lo cut 400 Hz (high 24).
+  FILTER: lowpass, cutoff 420 Hz, res 0.25, drive 0.35, KEY on (0.5), ENV +1.5 oct.
+  FILTER ENV: on, A 5 ms, D 600 ms, S 0.2.   AMP ENV: A 8 ms, D 400, S 0.9, R 250.
+  LFO 1 slow drift 0.25 Hz → Fil Cutoff +8 %, and → Fil Drive +10 %.
+  LFO 2 drift 1 Hz → A+B Pitch +0.4 %  (~10 cents).
+  LFO 3 bloom 0.3 Hz → Fil Cutoff +15 %  (each note opens over ~3 s).
+  Velocity → Fil Cutoff +15 %.
+  FX: distortion tube 0.3 / mix 0.6 / clean below 150 Hz; tape drive 0.3,
+  wow 0.15, age 0.45; chorus ensemble mix 0.25, Lo cut 250 Hz.
+  Mod wheel move: snarl.
+
+When you hand a patch to the user, give BOTH: the JSON (exact) and this kind of
+box-by-box reading (what to set on each page), plus one line on how it should
+sound and how to play it.
+

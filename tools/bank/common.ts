@@ -52,7 +52,7 @@ export const LORN_BASE: Settings = {
   'amp_env.attack': 10, 'amp_env.decay': 1000, 'amp_env.sustain': 0.9, 'amp_env.release': 800,
   'env2.attack': 2000, 'env2.decay': 5000, 'env2.sustain': 0.8, 'env2.release': 1500,
   'dist.type': 'tube', 'dist.drive': 0.22, 'dist.mix': 0.55, 'dist.post_tone': 0.4, 'dist.clean_below': 20,
-  'tape.drive': 0.4, 'tape.wow': 0.18, 'tape.age': 0.4,
+  'tape.wow': 0.18, 
   'comp.amount': 0.35, 'comp.speed': 0.4, 'comp.pump': 0, 'ott.amount': 0.15,
   'chorus.mix': 0.2, 'chorus.depth': 0.45,
   'delay.mix': 0.14, 'delay.time': '1/4D', 'delay.feedback': 0.4, 'delay.tone': 0.25,

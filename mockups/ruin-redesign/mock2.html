@@ -1,0 +1,116 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:SG;src:url(../../src/ui/fonts/space-grotesk.woff2)}
+*{box-sizing:border-box}body{margin:0;background:#050506;font-family:SG;color:#8a8a90;width:1200px}
+.hdr{height:44px;background:#000;display:flex;align-items:center;padding:0 18px;gap:22px;font-size:12px;letter-spacing:.14em}
+.hdr .t{color:#fff;font-weight:600;text-shadow:0 0 8px #fff8;letter-spacing:.2em}.hdr .n{color:#e8e8ea;margin-left:40px}
+.tabs{margin-left:auto;display:flex;gap:22px}.tabs span.on{color:#fff;border-bottom:1px solid #fff;padding-bottom:3px}
+.page{height:452px;padding:6px;position:relative}
+.box{background:#0d0d0f;border:1px solid #1c1c20;border-radius:3px;position:relative;overflow:hidden}
+.cap{padding:14px 20px 18px;font-size:13px;color:#b8b8bc;line-height:1.5;background:#0a0a0b;border-top:1px solid #1c1c20}.cap b{color:#fff}
+svg text{font-family:SG}
+</style></head><body>
+<div class="hdr"><span class="t">RUIN-1</span><span class="n">DESTROYED REESE &nbsp;‹ ›</span><div class="tabs"><span>OSC</span><span>LFO</span><span>WOBBLER</span><span class="on">RUIN</span><span>FX</span><span>PRESETS</span></div></div>
+<div class="page" id="page"></div><div class="cap" id="cap"></div>
+<script>
+const V=new URLSearchParams(location.search).get('v')||'1';
+const C=['#ff3b2f','#ff7a1a','#ffb020','#d0203a'];
+const NS='http://www.w3.org/2000/svg';
+const svg=(w,h,i)=>`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="${NS}"><defs><filter id="g" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="g2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter></defs>${i}</svg>`;
+const P=p=>'M'+p.map(q=>q[0].toFixed(1)+','+q[1].toFixed(1)).join('L');
+let sd=9;const R=()=>{sd=(sd*16807)%2147483647;return sd/2147483647};
+function knob(x,y,v,l,c,r=16){const a0=-225,a=a0+270*v,pl=(g,rr)=>[x+rr*Math.cos(g*Math.PI/180),y+rr*Math.sin(g*Math.PI/180)];const[sx,sy]=pl(a0,r),[ex,ey]=pl(a,r),[px,py]=pl(a,r-5);return `<circle cx="${x}" cy="${y}" r="${r}" fill="#111114" stroke="#26262c"/><path d="M${sx},${sy}A${r},${r} 0 ${a-a0>180?1:0} 1 ${ex},${ey}" fill="none" stroke="${c}" stroke-width="2" filter="url(#g)"/><line x1="${x}" y1="${y}" x2="${px}" y2="${py}" stroke="#ddd" stroke-width="1.5"/><text x="${x}" y="${y+r+13}" fill="#6a6a70" font-size="8.5" text-anchor="middle" letter-spacing="1.2">${l}</text>`}
+
+if(V==='1'){ // THE WIRE
+ const W=1188,H=300,zones=[['IN','',null],['SAT','tape',C[0]],['1','notch → tape',C[0]],['2','peak → tube',C[1]],['3','comb → fold',C[2]],['4','soft clip',C[3]],['OUT','',null]];
+ const zw=W/zones.length;
+ const base=t=>0.55*Math.sin(t)+0.25*Math.sin(2*t+0.4)+0.12*Math.sin(3*t+1)+0.06*Math.sin(5*t);
+ const fx=[x=>x*0.8,x=>Math.tanh(1.6*x)/Math.tanh(1.6)*0.8,x=>Math.tanh(2.2*x),x=>{const y=Math.tanh(3*x+0.35)-Math.tanh(0.35);return y*0.95},x=>Math.sin(2.6*x)*0.9,x=>{const u=Math.max(-1,Math.min(1,1.4*x));return (u-u*u*u/3)*1.4},x=>x];
+ let s='';
+ for(let z=0;z<zones.length;z++){const x0=z*zw;const c=zones[z][2]||'#bbb';const sel=z===3;
+  s+=`<rect x="${x0}" y="0" width="${zw}" height="${H}" fill="${sel?'#ff7a1a':'#fff'}" opacity="${sel?0.05:(z%2?0.012:0)}"/>`;
+  if(z) s+=`<line x1="${x0}" y1="30" x2="${x0}" y2="${H-20}" stroke="#222" stroke-dasharray="2 4"/>`;
+  s+=`<text x="${x0+12}" y="22" fill="${sel?'#fff':'#9a9aa0'}" font-size="12" letter-spacing="2">${zones[z][0]}</text><text x="${x0+12}" y="36" fill="#55555c" font-size="8.5" letter-spacing="1">${zones[z][1].toUpperCase()}</text>`;
+  if(z>0&&z<6){const heat=[0.2,0.35,0.7,0.9,0.4][z-1];s+=`<rect x="${x0+12}" y="${H-26}" width="${zw-24}" height="4" fill="#1a1a1e"/><rect x="${x0+12}" y="${H-26}" width="${(zw-24)*heat}" height="4" fill="${c}" filter="url(#g)"/><text x="${x0+12}" y="${H-8}" fill="#666" font-size="8" letter-spacing="1">DIRT ADDED ${Math.round(heat*100)}%</text>`;}
+ }
+ // wire: cumulative transforms, ghosts for movement
+ for(let gh=3;gh>=0;gh--){let pts=[];for(let i=0;i<=W;i+=2){const z=Math.min(zones.length-1,Math.floor(i/zw));const t=i/zw*2*Math.PI*1.0+gh*0.25;let y=base(t)*(1+gh*0.04);for(let k=0;k<=z;k++)y=fx[k](y*(1+(k==2?gh*0.08:0)));
+   // smooth blend at boundaries
+   pts.push([i,H/2+10-y*95])}
+  s+=`<path d="${P(pts)}" fill="none" stroke="${gh?'#ff7a1a':'#fff'}" stroke-width="${gh?1:2}" opacity="${gh?0.12+0.05*(3-gh):1}" ${gh?'':'filter="url(#g)"'}/>`;}
+ // coloured underglow per zone
+ for(let z=1;z<6;z++){s+=`<rect x="${z*zw}" y="${H/2+10-1}" width="${zw}" height="2" fill="${zones[z][2]}" opacity=".35"/>`}
+ s+=`<rect x="${3*zw}" y="44" width="${zw}" height="${H-80}" fill="none" stroke="#ff7a1a" stroke-width="1.2" rx="3" filter="url(#g)"/>`;
+ s+=`<text x="${3*zw+zw/2}" y="${H-38}" fill="#ff7a1a" font-size="8.5" text-anchor="middle" letter-spacing="1">faint lines = where it moves</text>`;
+ // editor
+ let k='';[['DRIVE',1],['TONE',.7],['DRY/WET',.94],['BIAS',.1]].forEach((q,i)=>k+=knob(40+i*70,32,q[1],q[0],C[1]));
+ let k2='';[['FREQ',.62],['RES',.79],['MOVE',.6],['SPEED',.37]].forEach((q,i)=>k2+=knob(40+i*70,32,q[1],q[0],C[1]));
+ const types=['tape','tube','amp','soft','hard','diode','fold','rect','dig'];let tp='';types.forEach((t,i)=>{const on=t=='tube';tp+=`<g transform="translate(${10+i*42},6)"><rect width="38" height="40" rx="3" fill="${on?'#ff7a1a18':'#111114'}" stroke="${on?'#ff7a1a':'#24242a'}"/><path d="${P(Array.from({length:21},(_,j)=>{const u=j/10-1;const f=[x=>Math.tanh(1.5*x),x=>Math.tanh(2*x+.3)-Math.tanh(.3),x=>Math.tanh(3*x),x=>x-x*x*x/3,x=>Math.max(-.7,Math.min(.7,x*1.5)),x=>x>0?Math.tanh(x):Math.max(-.5,x*1.5),x=>Math.sin(3*x)*.8,x=>Math.abs(x)*1.2-.5,x=>Math.round(x*3)/3][i](u);return[19+u*14,20-f*13]}))}" fill="none" stroke="${on?'#fff':'#777'}" stroke-width="1.2"/><text x="19" y="36" fill="${on?'#fff':'#555'}" font-size="7" text-anchor="middle">${t.toUpperCase()}</text></g>`});
+ page.innerHTML=`<div class="box" style="height:306px;padding:2px">${svg(1188,300,s)}</div>
+ <div style="display:grid;grid-template-columns:400px 300px 1fr;gap:6px;margin-top:6px;height:128px">
+ <div class="box"><div style="font-size:9px;letter-spacing:.16em;margin:8px 10px 0;color:#fff">STAGE 2 · DRIVE TYPE</div>${svg(400,52,tp)}<div style="font-size:8.5px;margin:4px 12px;color:#666">each shows a sine through it</div></div>
+ <div class="box"><div style="font-size:9px;letter-spacing:.16em;margin:8px 10px 0;color:#fff">PEAK FILTER IN FRONT</div>${svg(300,72,k2)}</div>
+ <div class="box"><div style="font-size:9px;letter-spacing:.16em;margin:8px 10px 0;color:#fff">TUBE</div>${svg(480,72,k)}</div></div>`;
+ cap.innerHTML='<b>1 · The Wire.</b> One live waveform runs left to right through the chain, and you see it change exactly where each stage changes it: rounded by tape, bent lopsided by the tube, folded by stage 3. Faint lines are where it\'s moving, the bar under each stage is how much dirt it adds. Click a section to edit that stage below. You learn what each type does just by watching the wire.';
+}
+
+if(V==='2'){ // THE MAP
+ const W=720,H=440;let s='';
+ const cols=[['WARM','tape · tube · amp'],['CLIP','soft · hard · diode'],['BREAK','fold · rectify'],['DIGITAL','downsample']];
+ const cw=[0.36,0.3,0.22,0.12];let x=0;
+ cols.forEach((c,i)=>{const w=cw[i]*W;const g=['#ff3b2f','#ff7a1a','#ffb020','#e0e0e0'][i];s+=`<rect x="${x}" y="0" width="${w}" height="${H}" fill="${g}" opacity="${0.025+i*0.012}"/>${i?`<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="#1e1e22"/>`:''}<text x="${x+10}" y="${H-24}" fill="#777" font-size="10" letter-spacing="2">${c[0]}</text><text x="${x+10}" y="${H-10}" fill="#444" font-size="8">${c[1]}</text>`;x+=w});
+ s+=`<text x="10" y="18" fill="#666" font-size="9" letter-spacing="2">BITING ↑</text><text x="10" y="${H/2+4}" fill="#333" font-size="9">dark ↓</text><line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="#18181c"/>`;
+ // corner hint
+ s+=`<text x="${W-10}" y="18" fill="#555" font-size="8.5" text-anchor="end">drag a puck: sideways = character, up = bite · scroll = how hard</text>`;
+ const pk=[[110,250,22,'1','TAPE'],[230,170,30,'2','TUBE'],[420,120,26,'3','FOLD'],[300,300,18,'4','SOFT CLIP']];
+ // chain line
+ s+=`<path d="M40,${H/2}L${pk.map(p=>p[0]+','+p[1]).join('L')}L${W-40},${H/2}" fill="none" stroke="#fff" stroke-opacity=".25" stroke-dasharray="3 5"/><circle cx="40" cy="${H/2}" r="4" fill="#666"/><text x="48" y="${H/2-8}" fill="#666" font-size="8">IN</text><circle cx="${W-40}" cy="${H/2}" r="4" fill="#ddd"/><text x="${W-62}" y="${H/2-8}" fill="#ddd" font-size="8">OUT</text>`;
+ pk.forEach((p,i)=>{const c=C[i];// trail
+  let tr=[];for(let k=0;k<40;k++){const a=k/40;tr.push([p[0]-Math.sin(a*7+i)*28*a-a*18,p[1]+Math.cos(a*5+i*2)*20*a])}
+  tr.forEach((q,k)=>{s+=`<circle cx="${q[0]}" cy="${q[1]}" r="${(1-k/40)*3}" fill="${c}" opacity="${0.5*(1-k/40)}"/>`});
+  s+=`<circle cx="${p[0]}" cy="${p[1]}" r="${p[2]+10}" fill="${c}" opacity=".35" filter="url(#g2)"/><circle cx="${p[0]}" cy="${p[1]}" r="${p[2]}" fill="#0d0d0f" stroke="${c}" stroke-width="${i==1?3:2}" filter="url(#g)"/>${i==1?`<circle cx="${p[0]}" cy="${p[1]}" r="${p[2]+6}" fill="none" stroke="#fff" stroke-opacity=".6" stroke-dasharray="2 3"/>`:''}<text x="${p[0]}" y="${p[1]+5}" fill="#fff" font-size="14" text-anchor="middle">${p[3]}</text><text x="${p[0]}" y="${p[1]+p[2]+14}" fill="${c}" font-size="8" text-anchor="middle" letter-spacing="1">${p[4]}</text>`});
+ // right panel
+ let k='';[['HOW HARD',1],['MIX',.94],['STARVE',.1]].forEach((q,i)=>k+=knob(40+i*80,34,q[1],q[0],C[1],18));
+ let m='';[['AMOUNT',.6],['SPEED',.4]].forEach((q,i)=>m+=knob(40+i*80,34,q[1],q[0],C[1],18));
+ let sh=`<path d="${P(Array.from({length:60},(_,j)=>{const t=j/59*6.28*2;const y=Math.tanh(2*Math.sin(t)+.4)-Math.tanh(.4);return[10+j*7.4,40-y*26]}))}" fill="none" stroke="#ff7a1a" stroke-width="1.8" filter="url(#g)"/><path d="${P(Array.from({length:60},(_,j)=>{const t=j/59*6.28*2;return[10+j*7.4,40-Math.sin(t)*26]}))}" fill="none" stroke="#555" stroke-dasharray="2 2"/>`;
+ page.innerHTML=`<div style="display:grid;grid-template-columns:730px 1fr;gap:6px;height:440px"><div class="box" style="padding:4px">${svg(W,430,s)}</div>
+ <div style="display:grid;grid-template-rows:auto auto auto 1fr;gap:6px">
+ <div class="box" style="padding:10px"><div style="display:flex;gap:8px;align-items:center"><span style="width:14px;height:2px;background:${C[1]};box-shadow:0 0 6px ${C[1]}"></span><span style="color:#fff;font-size:14px;letter-spacing:.14em">2 · TUBE</span><span style="margin-left:auto;font-size:9px;color:#666">WARM · biting</span></div>${svg(440,80,sh)}<div style="font-size:8.5px;color:#666">a sine through it now (dotted = clean)</div></div>
+ <div class="box" style="padding:6px 8px"><div style="font-size:9px;letter-spacing:.16em;color:#fff">DIRT</div>${svg(440,74,k)}</div>
+ <div class="box" style="padding:6px 8px"><div style="font-size:9px;letter-spacing:.16em;color:#fff">MOVEMENT &nbsp;<span style="color:#666">the tail on the map</span></div>${svg(440,74,m)}</div>
+ <div class="box" style="padding:10px"><div style="font-size:9px;letter-spacing:.16em;color:#fff">OUT</div><div style="height:8px;margin-top:10px;background:#0a0a0c;border:1px solid #222"><div style="width:78%;height:100%;background:linear-gradient(90deg,#ff3b2f,#ffb020);box-shadow:0 0 8px #ff7a1a"></div></div></div></div></div>`;
+ cap.innerHTML='<b>2 · The Map.</b> One field holds the whole chain. Sideways is character (warm → clip → break → digital: where a puck sits <i>is</i> its type), up is bite (dark → biting), the puck\'s size is how hard it\'s driven and its glow how hot the signal is. The comet tail is how it moves; the dotted line 1 → 4 is the order. Drag to change the sound, see the selected one\'s curve at the right. Rolling = the pucks jumping to new spots.';
+}
+
+if(V==='3'){ // THE RIVER
+ const lanes=[['IN','',null],['1','NOTCH → TAPE',C[0]],['2','PEAK → TUBE',C[1]],['3','COMB → FOLD',C[2]],['4','SOFT CLIP',C[3]],['OUT','',null]];
+ let html='<div style="display:grid;grid-template-rows:repeat(6,1fr);gap:4px;height:440px">';
+ lanes.forEach((l,i)=>{const c=l[2]||'#ccc';html+=`<div class="box" style="display:grid;grid-template-columns:150px 1fr 70px;${i==2?'border-color:'+c+';box-shadow:0 0 8px '+c+'44':''}"><div style="padding:8px 10px"><div style="display:flex;gap:6px;align-items:center">${l[2]?`<span style="width:12px;height:2px;background:${c};box-shadow:0 0 6px ${c}"></span>`:''}<span style="color:#fff;font-size:12px;letter-spacing:.14em">${l[0]}</span>${i&&i<5?'<span style="margin-left:auto;font-size:8px;border:1px solid #2a2a30;padding:1px 4px;color:#666">SOLO</span>':''}</div><div style="font-size:8px;letter-spacing:.1em;color:#555;margin-top:4px">${l[1]}</div></div><canvas id="c${i}" width="900" height="66" style="width:100%;height:66px;margin-top:2px"></canvas><div style="padding:8px;text-align:right;font-size:10px;color:${['#777','#777','#ff5040','#ff5040','#777','#ddd'][i]}">${['-12','-4','+2.1','+0.8','-3','-5'][i]} dB</div></div>`});
+ html+='</div>';page.innerHTML=html;
+ lanes.forEach((l,i)=>{const cv=document.getElementById('c'+i),x=cv.getContext('2d');const w=900,h=66;const img=x.createImageData(w,h);const hex=l[2]||'#dddddd';const rgb=[1,3,5].map(k=>parseInt(hex.slice(k,k+2),16));
+  for(let px=0;px<w;px++)for(let py=0;py<h;py++){const f=1-py/h;const t=px/w;let e=Math.max(0,1-f*1.6)*0.6;// harmonics
+   for(let hh=1;hh<12+i*6;hh++){const fh=Math.log(hh)/Math.log(40)*0.9+0.05;e+=Math.exp(-((f-fh)**2)/0.00025)*(0.7/(hh**(1-i*0.12)))}
+   if(i>=1&&i<=4){const mv=[0.45,0.62,0.3,0.7][i-1]+0.1*Math.sin(t*9+i)+0.05*Math.sin(t*23);const d=f-mv;e*=i==1?1-0.8*Math.exp(-d*d/0.002):1+(i==2?1.6:0.6)*Math.exp(-d*d/0.003)}
+   e+=0.06*Math.random()*(i/2);e=Math.min(1,e);const k=(py*w+px)*4;img.data[k]=rgb[0]*e;img.data[k+1]=rgb[1]*e;img.data[k+2]=rgb[2]*e;img.data[k+3]=255}
+  x.putImageData(img,0,0);x.fillStyle='#ffffff55';x.font='9px SG';x.fillText('now →',w-40,10)});
+ cap.innerHTML='<b>3 · The River.</b> Every stage is a lane of moving spectrum: time flows right, pitch up. You see the moving filter as a bright or dark band drifting through the lane, and new grit as new bright lines that weren\'t in the lane above. Hear something odd → find the lane where it first appears. Click a lane to open its knobs (not shown).';
+}
+
+if(V==='4'){ // PEDALBOARD
+ const ped=[['SAT','TAPE',C[0],.5],['1','TAPE',C[0],.45],['2','TUBE',C[1],1],['3','FOLD',C[2],.8],['4','SOFT CLIP',C[3],.35],['OTT','SQUASH','#20c0b0',.6]];
+ let s='';const pw=170,gap=24;
+ ped.forEach((p,i)=>{const x=10+i*(pw+gap),y=30,c=p[2],hot=p[3];
+  if(i<ped.length-1)s+=`<path d="M${x+pw},${y+40}L${x+pw+gap},${y+40}" stroke="#2a2a2e" stroke-width="5"/><circle cx="${x+pw+3}" cy="${y+40}" r="4" fill="#444"/><circle cx="${x+pw+gap-3}" cy="${y+40}" r="4" fill="#444"/>`;
+  s+=`<rect x="${x}" y="${y}" width="${pw}" height="360" rx="10" fill="#121214" stroke="#26262c"/><rect x="${x+6}" y="${y+6}" width="${pw-12}" height="348" rx="7" fill="none" stroke="${c}" stroke-opacity=".25"/>`;
+  s+=`<text x="${x+pw/2}" y="${y+30}" fill="#fff" font-size="15" text-anchor="middle" letter-spacing="3">${p[0]}</text><text x="${x+pw/2}" y="${y+46}" fill="${c}" font-size="9" text-anchor="middle" letter-spacing="2">${p[1]}</text>`;
+  // heat lamp
+  s+=`<circle cx="${x+pw/2}" cy="${y+90}" r="${18+hot*10}" fill="${c}" opacity="${hot*0.6}" filter="url(#g2)"/><circle cx="${x+pw/2}" cy="${y+90}" r="12" fill="${hot>.9?'#fff':c}" opacity="${0.3+hot*0.7}" filter="url(#g)"/><text x="${x+pw/2}" y="${y+124}" fill="${hot>.9?'#ff5040':'#555'}" font-size="8" text-anchor="middle" letter-spacing="1">${hot>.9?'WORKING HARD':'heat'}</text>`;
+  s+=knob(x+40,y+165,[.5,.6,1,.8,.35,.6][i],i==5?'DEPTH':'DRIVE',c,20)+knob(x+pw-40,y+165,.7,'TONE',c,20)+knob(x+pw/2,y+225,.9,'MIX',c,16);
+  // filter window
+  if(i>=1&&i<=4){let fp=[];for(let j=0;j<=60;j++){const u=j/60;const d=(u-[.45,.62,.3,.7][i-1])/0.06;fp.push([x+20+u*(pw-40),y+282-(i==3?0.35*Math.sin(u*40):[-.5,.6,0,.2][i-1]*14*Math.exp(-d*d/2)/1)*(i==3?14:1)])}s+=`<rect x="${x+16}" y="${y+266}" width="${pw-32}" height="30" rx="3" fill="#0a0a0c"/><path d="${P(fp)}" fill="none" stroke="${c}" stroke-width="1.3" filter="url(#g)"/><text x="${x+20}" y="${y+262}" fill="#555" font-size="7.5" letter-spacing="1">FILTER · MOVES</text>`}
+  // footswitch
+  s+=`<circle cx="${x+pw/2}" cy="${y+325}" r="17" fill="#1a1a1e" stroke="#3a3a40" stroke-width="2"/><circle cx="${x+pw/2}" cy="${y+325}" r="11" fill="#2a2a2e"/><circle cx="${x+pw-22}" cy="${y+325}" r="3" fill="${c}" filter="url(#g)"/>`});
+ s+=`<text x="10" y="18" fill="#666" font-size="9" letter-spacing="2">IN →</text><text x="1180" y="18" fill="#ddd" font-size="9" letter-spacing="2" text-anchor="end">→ OUT &nbsp;-5 dB</text>`;
+ page.innerHTML=`<div class="box" style="height:440px">${svg(1188,440,s)}</div>`;
+ cap.innerHTML='<b>4 · The Pedalboard.</b> Stompboxes cabled together, in order. Each has a heat lamp (how hard it\'s being hit: you see stage 2 is white-hot), three big knobs, a small window with its filter moving, and a footswitch (bypass). Instantly familiar to any guitarist or producer; the rest of a stage\'s settings open when you click its name. Less informative than the others, but nothing to learn.';
+}
+</script></body></html>

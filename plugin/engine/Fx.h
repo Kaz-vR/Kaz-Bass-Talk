@@ -49,6 +49,10 @@ class Chorus {
       processHyper(l, r, mix, depth, out);
       return;
     }
+    if (mode == 3) {
+      processBbd(l, r, mix, depth, out);
+      return;
+    }
     const int mask = size - 1;
     bufL[w & mask] = (float)l;
     bufR[w & mask] = (float)r;
@@ -90,6 +94,37 @@ class Chorus {
     const double b = buf[(i + 1) & mask];
     return a + (b - a) * f;
   }
+  /** BBD: the Juno / Jupiter chorus (processBbd in fx.ts). */
+  void processBbd(double l, double r, double mix, double depth, double* out) {
+    const int mask = size - 1;
+    bufL[w & mask] = (float)l;
+    bufR[w & mask] = (float)r;
+    if (bbdCoef < 0) bbdCoef = 1 - std::exp((-TWO_PI * 7000) / fs);
+    if (count-- <= 0) {
+      count = 15;
+      bbdRate = (0.4 + 0.5 * depth) * driftStep();
+    }
+    bbdPhase += bbdRate / fs;
+    if (bbdPhase >= 1) bbdPhase -= 1;
+    const double tri = bbdPhase < 0.5 ? 4 * bbdPhase - 1 : 3 - 4 * bbdPhase;
+    const double centre = 0.0035 * fs, swing = (0.0008 + 0.0016 * depth) * fs;
+    double wl = read(bufL, centre + swing * tri);
+    double wr = read(bufR, centre - swing * tri);
+    const double c = bbdCoef;
+    bbdLp[0] += (wl - bbdLp[0]) * c;
+    bbdLp[1] += (bbdLp[0] - bbdLp[1]) * c;
+    bbdLp[2] += (wr - bbdLp[2]) * c;
+    bbdLp[3] += (bbdLp[2] - bbdLp[3]) * c;
+    wl = fastTanh(1.2 * bbdLp[1]) / 1.2 + 0.0006 * bbdNoise.next();
+    wr = fastTanh(1.2 * bbdLp[3]) / 1.2 + 0.0006 * bbdNoise.next();
+    w = (w + 1) & mask;
+    const double dry = 1 - 0.5 * mix;
+    out[0] = l * dry + mix * 0.55 * wl;
+    out[1] = r * dry + mix * 0.55 * wr;
+  }
+  double bbdPhase = 0, bbdRate = 0.5, bbdCoef = -1;
+  std::array<double, 4> bbdLp{};
+  Rng bbdNoise{0xbbdu};
   void processEnsemble(double l, double r, double mix, double depth, double* out) {
     const int mask = size - 1;
     bufL[w & mask] = (float)l;
@@ -561,7 +596,7 @@ class Tape {
  public:
   explicit Tape(double fs_) : fs(fs_), hiss(0x7a9e) {
     d = 0.0025 * fs;
-    const int size = pow2Size(std::ceil(0.02 * fs));
+    const int size = pow2Size(std::ceil(0.12 * fs));
     bufL.assign(size, 0.f);
     bufR.assign(size, 0.f);
     mask = size - 1;
@@ -569,17 +604,8 @@ class Tape {
   void reset() {
     std::fill(bufL.begin(), bufL.end(), 0.f);
     std::fill(bufR.begin(), bufR.end(), 0.f);
-    lpL = lpR = hissLp = 0;
   }
-  void process(double l, double r, double drive, double wow, double age, double lpCoef, double env, double* out) {
-    if (drive > 0) {
-      const double g = 1 + 5 * drive;
-      const double bias = 0.15 * drive;
-      const double tb = fastTanh(bias);
-      const double comp = 1 / (1 + 1.2 * drive);
-      l += ((fastTanh(g * l + bias) - tb) * comp - l) * std::fmin(1, drive * 4);
-      r += ((fastTanh(g * r + bias) - tb) * comp - r) * std::fmin(1, drive * 4);
-    }
+  void process(double l, double r, double wow, double* out) {
     if (wow > 0) {
       if (count-- <= 0) {
         count = 15;
@@ -593,7 +619,10 @@ class Tape {
           driftCount = (int)jsRound(fs * 0.4);
         }
         drift += (driftTarget - drift) * 0.0016;
-        const double target = fs * (0.0025 + wow * (0.0022 * std::sin(TWO_PI * wowPh) * (1 + 0.4 * drift) + 0.00012 * std::sin(TWO_PI * flutPh)));
+        // wow ±13 → ±200 cents, flutter ±9.5 → ±50, curved; the resting delay sits just past the swing
+        const double w4 = wow * wow * wow * wow;
+        const double aw = (13.2 * wow + 186.8 * w4) * 1.672e-4, af = (9.5 * wow + 40.5 * w4) * 1.2596e-5;
+        const double target = fs * (0.0025 + 1.4 * aw + af + aw * std::sin(TWO_PI * wowPh) * (1 + 0.4 * drift) + af * std::sin(TWO_PI * flutPh));
         dStep = (target - d) / 16;
       }
       d += dStep;
@@ -602,18 +631,6 @@ class Tape {
       l = readFrac(bufL, mask, w, d);
       r = readFrac(bufR, mask, w, d);
       w = (w + 1) & mask;
-    }
-    if (age > 0) {
-      lpL += (l - lpL) * lpCoef;
-      lpR += (r - lpR) * lpCoef;
-      l = lpL;
-      r = lpR;
-      const double n = hiss.next();
-      const double hp = n - hissLp;
-      hissLp += (n - hissLp) * 0.3;
-      const double h = hp * age * 0.004 * std::fmin(1, env * 4);
-      l += h;
-      r += h;
     }
     out[0] = l;
     out[1] = r;
@@ -624,9 +641,7 @@ class Tape {
   int mask = 0, w = 0;
   double wowPh = 0, flutPh = 0, drift = 0, driftTarget = 0;
   int driftCount = 0;
-  double lpL = 0, lpR = 0;
   Rng hiss;
-  double hissLp = 0;
   int count = 0;
   double d = 0, dStep = 0;
 };

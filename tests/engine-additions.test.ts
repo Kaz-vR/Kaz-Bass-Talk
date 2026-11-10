@@ -24,19 +24,6 @@ function autocorrHz(x: Float32Array, from: number, to: number) {
 }
 
 
-describe('FM operators', () => {
-  it('FM punch is bright at the attack and settles', () => {
-    const r = renderPatch({ ...base, 'osc1.wave': 'sine', 'fm.punch': 0.8, 'fm.decay': 250, 'fm.ratio': 1 }, heldNote(45, 4), { seconds: 1.5 });
-    const x = mono(r);
-    expect(brightness(x, 0, 0.05)).toBeGreaterThan(brightness(x, 0.8, 1.2) * 2);
-  });
-  it('operator 2 and feedback add harmonics', () => {
-    const plain = mono(renderPatch({ ...base, 'osc1.wave': 'sine', 'fm.amount': 0.3 }, heldNote(45, 4), { seconds: 1 }));
-    const rich = mono(renderPatch({ ...base, 'osc1.wave': 'sine', 'fm.amount': 0.3, 'fm2.amount': 0.6, 'fm2.ratio': 3, 'fm.feedback': 0.6 }, heldNote(45, 4), { seconds: 1 }));
-    expect(brightness(rich, 0.3, 0.9)).toBeGreaterThan(brightness(plain, 0.3, 0.9) * 1.3);
-  });
-});
-
 describe('filter types', () => {
   const saw = { ...base, 'osc1.wave': 'saw' };
   const spec = (p: object) => powerSpectrum(mono(renderPatch(p, heldNote(33, 4), { seconds: 1.5 })), FS, 0.5 * FS, 1.4 * FS, 16384);
@@ -70,10 +57,6 @@ describe('new oscillators', () => {
     expect(hz).toBeGreaterThan(104);
     expect(hz).toBeLessThan(116);
     expect(rms(r.left, 1.5 * FS, 1.9 * FS)).toBeLessThan(rms(r.left, 0.05 * FS, 0.3 * FS) * 0.3);
-  });
-  it('the Shepard tone keeps sounding while its partials glide', () => {
-    const r = renderPatch({ ...base, 'osc1.wave': 'shepard', 'shepard.rate': -1 }, heldNote(45, 16), { seconds: 4 });
-    expect(rms(r.left, 3 * FS, 3.9 * FS)).toBeGreaterThan(rms(r.left, 0.2 * FS, 1 * FS) * 0.5);
   });
   it('pwm_saw differs from a plain saw', () => {
     const a = renderPatch({ ...base, 'osc1.wave': 'saw' }, heldNote(45, 4), { seconds: 0.5 });

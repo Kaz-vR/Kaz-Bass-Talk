@@ -35,9 +35,9 @@ constexpr double POST_FILTER_GAIN = 1.6;
 constexpr double VOICE_GAIN = 0.55;
 constexpr double SUB_GAIN = 0.55;
 
-constexpr int WAVE_SINE = 0, WAVE_TRI = 1, WAVE_SAW = 2, WAVE_PULSE = 3, WAVE_PWMSAW = 5, WAVE_STRING = 6, WAVE_SHEPARD = 7;
-constexpr int FILTER_LP = 0, FILTER_BP = 1, FILTER_DIODE = 3, FILTER_NOTCH = 4, FILTER_COMB = 5, FILTER_LPG = 6, FILTER_HP = 7;
-constexpr int DIST_SOFT = 0, DIST_HARD = 1, DIST_FOLD = 2, DIST_FUZZ = 4;
+constexpr int WAVE_SINE = 0, WAVE_TRI = 1, WAVE_SAW = 2, WAVE_PULSE = 3, WAVE_PWMSAW = 5, WAVE_STRING = 6;
+constexpr int FILTER_LP = 0, FILTER_BP = 1, FILTER_DIODE = 3, FILTER_NOTCH = 4, FILTER_COMB = 5, FILTER_LPG = 6, FILTER_HP = 7, FILTER_SEM = 8;
+constexpr int DIST_SOFT = 0, DIST_HARD = 1, DIST_FOLD = 2, DIST_FUZZ = 4, DIST_AMP = 5;
 constexpr double TUBE_BIAS = 0.4;
 inline const double TUBE_OFFSET = std::tanh(TUBE_BIAS);
 constexpr double HALF_PI = PI / 2;
@@ -69,29 +69,35 @@ inline double fuzzIntegral(double v) {
 constexpr double FUZZ_BIAS_REL = 0.12;
 
 constexpr int LFO_SINE = 0, LFO_TRI = 1, LFO_SAW_UP = 2, LFO_SAW_DOWN = 3, LFO_SQUARE = 4, LFO_SH = 5, LFO_WANDER = 6;
-constexpr int LFO_COUNT = 4;
-constexpr int SLOT_COUNT = 12;
+// Per-note shapes: each voice runs its own from the note's start (bloom 0 -> 1, drop 1 -> 0, a held random value).
+constexpr int LFO_BLOOM = 7, LFO_DROP = 8, LFO_NOTE = 9;
+// The old drift sources as shapes (shared, free running): drift glides to random points, slow drift curves between them.
+constexpr int LFO_DRIFT = 10, LFO_SLOW_DRIFT = 11;
+inline bool lfoPerNote(int shape) { return shape >= LFO_BLOOM && shape <= LFO_NOTE; }
+constexpr int LFO_COUNT = 6;
+/** wobble.shape option indices with their own handling (the rest are WOB_TEMPLATE_ARRAYS). */
+constexpr int WOB_RANDOM = 6, WOB_CUSTOM = 7;
+constexpr int SLOT_COUNT = 9;  // the mod matrix's rows
 constexpr double SYNC_BEATS[16] = {0, 16, 8, 4, 2, 3, 1, 1.5, 2.0 / 3, 0.5, 0.75, 1.0 / 3, 0.25, 0.375, 1.0 / 6, 0.125};
 constexpr double DELAY_BEATS[13] = {0.125, 1.0 / 6, 0.25, 0.375, 1.0 / 3, 0.5, 0.75, 2.0 / 3, 1, 1.5, 2, 3, 4};
 
 constexpr int SRC_LFO1 = 1, SRC_LFO2 = 2, SRC_MOD_ENV = 3, SRC_AMP_ENV = 4, SRC_VEL = 5, SRC_KEY = 6, SRC_MODWHEEL = 7,
-              SRC_RANDOM = 8, SRC_DRIFT = 9, SRC_PRODUCT = 10, SRC_LFO3 = 11, SRC_LFO4 = 12, SRC_DRIFT_SLOW = 13, SRC_ENV2 = 14,
-              SRC_ENV3 = 15;
-constexpr int SRC_COUNT = 16;
+              SRC_LFO3 = 8, SRC_LFO4 = 9, SRC_LFO5 = 10, SRC_LFO6 = 11;
+constexpr int SRC_COUNT = 12;
+constexpr int SRC_LFO[6] = {SRC_LFO1, SRC_LFO2, SRC_LFO3, SRC_LFO4, SRC_LFO5, SRC_LFO6};
 constexpr int D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_OSC2_WT = 5, D_OSC1_PW = 6, D_OSC2_PW = 7,
-              D_OSC1_LEVEL = 8, D_OSC2_LEVEL = 9, D_DETUNE = 10, D_FM = 11, D_SUB = 12, D_NOISE = 13, D_DRIVE = 14,
+              D_OSC1_LEVEL = 8, D_OSC2_LEVEL = 9, D_DETUNE = 10, D_FM = 11 /* FM was removed (owner's call): its two slots stay so the others keep their numbers */, D_SUB = 12, D_NOISE = 13, D_DRIVE = 14,
               D_CUTOFF = 15, D_RES = 16, D_VOWEL = 17, D_DIST_DRIVE = 18, D_DIST_MIX = 19, D_AMP = 20, D_LFO1_RATE = 21,
               D_LFO2_RATE = 22, D_FM2 = 23, D_CRUSH = 24, D_LFO3_RATE = 25, D_LFO4_RATE = 26, D_CHORUS_DEPTH = 27,
               D_PHASER_MIX = 28, D_DELAY_TIME = 29, D_DELAY_MIX = 30, D_REVERB_MIX = 31, D_WIDTH = 32, D_TAPE_WOW = 33,
               D_DIST_TONE = 34, D_TEXTURE = 35, D_VIBRATO = 36, D_BREATH = 37, D_OSC_PITCH = 38, D_NOISE_PITCH = 39,
-              D_SUB_PITCH = 40;
-constexpr int DEST_COUNT = 41;
+              D_SUB_PITCH = 40, D_LFO5_RATE = 41, D_LFO6_RATE = 42,
+              D_SHAPE = 43, D_OSC1_DETUNE = 44, D_OSC2_DETUNE = 45;
+constexpr int DEST_COUNT = 46;
 constexpr double TEXTURE_GAIN = 0.5;
 /** Sound layers for solo / mute (Synth::setMonitor bit positions). */
 constexpr int MON_OSC1 = 0, MON_OSC2 = 1, MON_SUB = 2, MON_NOISE = 3, MON_BREATH = 4, MON_TEXTURE = 5;
 
-/** wobble.shape option indices with their own handling (the rest are WOB_TEMPLATE_ARRAYS). */
-constexpr int WOB_RANDOM = 6, WOB_CUSTOM = 7;
 
 inline bool wheelMovingDest(int d) {
   switch (d) {
@@ -116,7 +122,7 @@ inline const WheelMove WHEEL_MOVES[8] = {
   {4, {{D_TAPE_WOW, 0.3}, {D_CRUSH, 0.35}, {D_DIST_TONE, -0.15}, {D_CUTOFF, -0.12}}},                               // decay
   {5, {{D_REVERB_MIX, 0.45}, {D_DELAY_MIX, 0.3}, {D_WIDTH, 0.45}, {D_CHORUS_DEPTH, 0.3}, {D_AMP, -0.2}}},        // bloom
 };
-constexpr int LFO_RATE_DEST[4] = {D_LFO1_RATE, D_LFO2_RATE, D_LFO3_RATE, D_LFO4_RATE};
+constexpr int LFO_RATE_DEST[6] = {D_LFO1_RATE, D_LFO2_RATE, D_LFO3_RATE, D_LFO4_RATE, D_LFO5_RATE, D_LFO6_RATE};
 
 constexpr double VOWELS[5][3] = {{730, 1090, 2440}, {530, 1840, 2480}, {270, 2290, 3010}, {570, 840, 2410}, {300, 870, 2240}};
 constexpr double FORMANT_GAIN[3] = {1, 0.5, 0.25};
@@ -133,33 +139,32 @@ struct ParamIndex {
   struct Lfo { int shape, rate, sync, retrig, fade; };
   struct Slot { int src, dst, amt, on; };
   struct Eq { int type, freq, gain, q; };
-  struct GrindStage { int on, filter, freq, range, move, rate, clock, vrange, res, dtype, drive, mix; };
+  struct GrindStage { int on, filter, freq, range, move, rate, clock, width, depth, dtype, drive, mix, filterOn, driveOn, dFreq, dWidth, dTone, dDyn, fLevel, dLevel, eqOn, eqLevel, eqScale; Eq eq[4]; };
   int legato, glide, octave, velocity, analog;
   Osc osc[2];
-  int fmAmount, fmRatio, fmPunch, fmDecay, fmFb, fm2Amount, fm2Ratio, fmAlgo;
-  int strTone, strDecay, shepRate, accent, ampBend[3], modBend[3], chorusMode;
+  int strTone, strDecay, accent, ampBend[3], modBend[3], chorusMode;
   int subWave, subOct, subLevel, subClip, midClip, subFType, subFCut, subFKey, subDirect;
   int texPan, texDirect, texFType, texFCut, texFKey;
-  int routeA, routeB, routeN, routeS, postCut, fMix, noise, drive;
+  int routeA, routeB, routeN, routeS, postCut, fMix, noise, drive, mixDrive, halfSpeed;
   int texType, texLevel, texTone, texDensity, texOct, texKey, texTail;
   int fType, cutoff, res, keytrack, envAmt, modEnvOn, vowel;
-  int dType, dDrive, dMix, dTone, dSplit, crushMix, crushBits, crushRate, crushLowcut, tapeLowcut, tapeDrive, tapeWow, tapeAge;
+  int dType, dDrive, dMix, dTone, dSplit, dBandHz, dBandOct, dDyn, crushMix, crushBits, crushRate, crushLowcut, tapeLowcut, tapeWow, dOut;
   int osc2Sync;
-  int fmOn, driveOn, filterOn, distOn, crushOn, tapeOn, vibOn, lfoOn[4], env2On, env3On, wobOn, modOn, eqOn, chorusOn, flangerOn,
+  int driveOn, filterOn, distOn, crushOn, tapeOn, vibOn, lfoOn[6], modOn, eqOn, chorusOn, flangerOn,
       phaserOn, delayOn, reverbOn;
   int wheelMove, wheelPreset;
-  int wobDepth, wobRate, wobCutoff, wobVolume, wobShape, wobLife, wobPts, wobPhase, wobSmooth, wobLowcut, wobX[32], wobY[32], wobS[32];
+  int wobOn, wobDepth, wobRate, wobCutoff, wobVolume, wobShape, wobLife, wobPts, wobPhase, wobSmooth, wobLowcut, wobX[32], wobY[32], wobS[32];
   int flangerMix, flangerRate, flangerFb, delayMix, delayTime, delayFb, delayTone;
   int reverbType, reverbDecay, reverbPre, reverbOct, eqHighcut;
-  int amp[4], mod[4], env3[4], vibDepth, vibRate, vibDelay, vibFade;
-  Lfo lfo[4];
-  int env2[4];
+  int amp[4], mod[4], vibDepth, vibRate, vibDelay, vibFade;
+  Lfo lfo[6];
   Slot slots[SLOT_COUNT];
   int chorusMix, chorusDepth, phaserMix, phaserRate, reverbMix, fxLowcut[5], ottOn, ottDepth, ottLowcut;
   Eq eq[4];
-  int eqScale, outGain, crossover, poly;
-  int grindOn, grindMix, grindLowcut, grindKey, grindOneShot, grindOtt, grindSat, grindPreOtt;
-  GrindStage grind[4];
+  int eqScale, outGain, poly;
+  int grindOn, grindMix, grindLowcut, grindKey, grindOneShot, grindNoiseThru, grindOtt, grindOut;
+  int grindSlot[8];
+  GrindStage grind[8];
 
   ParamIndex() {
     auto ix = [](const std::string& s) { return paramIndex(s.c_str()); };
@@ -170,9 +175,7 @@ struct ParamIndex {
                 ix(o + "unison_detune"), ix(o + "unison_spread"), ix(o + "level"), ix(o + "highpass"),
                 ix(o + "filter_type"), ix(o + "filter_key")};
     }
-    fmAmount = ix("fm.amount"); fmRatio = ix("fm.ratio"); fmPunch = ix("fm.punch"); fmDecay = ix("fm.decay"); fmFb = ix("fm.feedback");
-    fm2Amount = ix("fm2.amount"); fm2Ratio = ix("fm2.ratio"); fmAlgo = ix("fm.algorithm");
-    strTone = ix("string.tone"); strDecay = ix("string.decay"); shepRate = ix("shepard.rate");
+    strTone = ix("string.tone"); strDecay = ix("string.decay");
     accent = ix("filter.accent"); chorusMode = ix("chorus.mode");
     const char* bends[3] = {"attack_bend", "decay_bend", "release_bend"};
     for (int b = 0; b < 3; b++) {
@@ -184,22 +187,22 @@ struct ParamIndex {
     texPan = ix("texture.pan"); texDirect = ix("texture.direct"); texFType = ix("texture.filter_type"); texFCut = ix("texture.filter_cutoff"); texFKey = ix("texture.filter_key");
     routeA = ix("filter.route_a"); routeB = ix("filter.route_b"); routeN = ix("filter.route_n"); routeS = ix("filter.route_s");
     postCut = ix("clip.low_cut"); fMix = ix("filter.mix");
-    noise = ix("noise.level"); drive = ix("drive.amount");
+    noise = ix("noise.level"); drive = ix("drive.amount"); mixDrive = ix("drive.mixer"); halfSpeed = ix("voice.halfspeed");
     texType = ix("texture.type"); texLevel = ix("texture.level"); texTone = ix("texture.tone"); texDensity = ix("texture.density");
     texOct = ix("texture.octave"); texKey = ix("texture.key"); texTail = ix("texture.tail");
     fType = ix("filter.type"); cutoff = ix("filter.cutoff"); res = ix("filter.resonance"); keytrack = ix("filter.keytrack");
     envAmt = ix("filter.env_amount"); modEnvOn = ix("mod_env.on"); vowel = ix("filter.vowel");
-    dType = ix("dist.type"); dDrive = ix("dist.drive"); dMix = ix("dist.mix"); dTone = ix("dist.post_tone"); dSplit = ix("dist.clean_below");
+    dType = ix("dist.type"); dDrive = ix("dist.drive"); dMix = ix("dist.mix"); dTone = ix("dist.post_tone"); dSplit = ix("dist.clean_below"); dBandHz = ix("dist.band_freq"); dBandOct = ix("dist.band_width"); dDyn = ix("dist.dyn"); dOut = ix("dist.output");
     crushMix = ix("crush.mix"); crushBits = ix("crush.bits"); crushRate = ix("crush.rate"); crushLowcut = ix("crush.lowcut"); tapeLowcut = ix("tape.lowcut");
-    tapeDrive = ix("tape.drive"); tapeWow = ix("tape.wow"); tapeAge = ix("tape.age");
+    tapeWow = ix("tape.wow");
     osc2Sync = ix("osc2.sync");
-    fmOn = ix("fm.on"); driveOn = ix("drive.on"); filterOn = ix("filter.on"); distOn = ix("dist.on"); crushOn = ix("crush.on");
+    driveOn = ix("drive.on"); filterOn = ix("filter.on"); distOn = ix("dist.on"); crushOn = ix("crush.on");
     tapeOn = ix("tape.on"); vibOn = ix("vibrato.on");
-    for (int n = 0; n < 4; n++) lfoOn[n] = ix("lfo" + std::to_string(n + 1) + ".on");
-    env2On = ix("env2.on"); env3On = ix("env3.on"); wobOn = ix("wobble.on");
+    for (int n = 0; n < 6; n++) lfoOn[n] = ix("lfo" + std::to_string(n + 1) + ".on");
     modOn = ix("mod.on"); eqOn = ix("eq.on"); chorusOn = ix("chorus.on"); flangerOn = ix("flanger.on");
     phaserOn = ix("phaser.on"); delayOn = ix("delay.on"); reverbOn = ix("reverb.on");
     wheelMove = ix("wheel.move"); wheelPreset = ix("wheel.preset");
+    wobOn = ix("wobble.on");
     wobDepth = ix("wobble.depth"); wobRate = ix("wobble.rate"); wobCutoff = ix("wobble.cutoff"); wobVolume = ix("wobble.volume");
     wobShape = ix("wobble.shape"); wobLife = ix("wobble.life"); wobPts = ix("wobble.points"); wobPhase = ix("wobble.phase");
     wobSmooth = ix("wobble.smooth"); wobLowcut = ix("wobble.lowcut");
@@ -217,11 +220,9 @@ struct ParamIndex {
     for (int s = 0; s < 4; s++) {
       amp[s] = ix(std::string("amp_env.") + stages[s]);
       mod[s] = ix(std::string("mod_env.") + stages[s]);
-      env2[s] = ix(std::string("env2.") + stages[s]);
-      env3[s] = ix(std::string("env3.") + stages[s]);
     }
     vibDepth = ix("vibrato.depth"); vibRate = ix("vibrato.rate"); vibDelay = ix("vibrato.delay"); vibFade = ix("vibrato.fade");
-    for (int n = 0; n < 4; n++) {
+    for (int n = 0; n < 6; n++) {
       const std::string l = "lfo" + std::to_string(n + 1) + ".";
       lfo[n] = {ix(l + "shape"), ix(l + "rate"), ix(l + "sync"), ix(l + "retrigger"), ix(l + "fade")};
     }
@@ -239,13 +240,18 @@ struct ParamIndex {
       eq[b] = {ix(e + "type"), ix(e + "freq"), ix(e + "gain"), ix(e + "q")};
     }
     eqScale = ix("eq.scale");
-    outGain = ix("output.gain"); crossover = ix("output.crossover"); poly = ix("voice.polyphony");
+    outGain = ix("output.gain"); poly = ix("voice.polyphony");
     grindOn = ix("grind.on"); grindMix = ix("grind.mix"); grindLowcut = ix("grind.lowcut"); grindKey = ix("grind.key");
-    grindOneShot = ix("grind.oneshot"); grindOtt = ix("grind.ott"); grindSat = ix("grind.sat"); grindPreOtt = ix("grind.preott");
-    for (int n = 0; n < 4; n++) {
+    grindOneShot = ix("grind.oneshot"); grindNoiseThru = ix("grind.noise_thru"); grindOtt = ix("grind.ott"); grindOut = ix("grind.output");
+    for (int k = 0; k < 8; k++) grindSlot[k] = ix("grind.slot" + std::to_string(k + 1));
+    for (int n = 0; n < 8; n++) {
       const std::string g = "grind" + std::to_string(n + 1) + ".";
       grind[n] = {ix(g + "on"), ix(g + "filter"), ix(g + "freq"), ix(g + "range"), ix(g + "move"), ix(g + "rate"), ix(g + "clock"),
-                  ix(g + "vrange"), ix(g + "res"), ix(g + "drive_type"), ix(g + "drive"), ix(g + "mix")};
+                  ix(g + "width"), ix(g + "depth"), ix(g + "drive_type"), ix(g + "drive"), ix(g + "mix"), ix(g + "filter_on"), ix(g + "drive_on"), ix(g + "drive_freq"), ix(g + "drive_width"), ix(g + "drive_tone"), ix(g + "drive_dyn"), ix(g + "filter_level"), ix(g + "drive_level"), ix(g + "eq_on"), ix(g + "eq_level"), ix(g + "eq_scale")};
+      for (int b = 0; b < 4; b++) {
+        const std::string e = g + "eq_b" + std::to_string(b + 1) + "_";
+        grind[n].eq[b] = {ix(e + "type"), ix(e + "freq"), ix(e + "gain"), ix(e + "q")};
+      }
     }
   }
 };

@@ -57,7 +57,7 @@ describe('performance', () => {
   it('worst case (2×7 unison, formant, FM, all FX) stays under 20%', () => {
     const cpu = cpuPercent({
       meta: { name: 'worst' }, 'osc1.unison_voices': 7, 'osc2.unison_voices': 7, 'osc2.level': 0.8, 'osc1.wave': 'wavetable',
-      'osc1.wt_pos': 0.6, 'filter.type': 'formant', 'dist.drive': 0.8, 'fm.amount': 0.5, 'noise.level': 0.3, 'drive.amount': 0.5,
+      'osc1.wt_pos': 0.6, 'filter.type': 'formant', 'dist.drive': 0.8, 'noise.level': 0.3, 'drive.amount': 0.5,
       'chorus.mix': 1, 'phaser.mix': 1, 'reverb.mix': 1, 'mod1.source': 'lfo1', 'mod1.dest': 'filter_cutoff', 'mod1.amount': 0.5,
     });
     console.log(`worst case: ${cpu.toFixed(2)}%`);

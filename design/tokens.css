@@ -1,0 +1,44 @@
+/*
+ * RUIN-1 shared design tokens: the one place the brand's colours, type and glow live.
+ * Read by the website (website/style.css). The synth's own UI keeps its look in src/ui/style.css;
+ * when the synth's brand colours change, change them here too so the site follows.
+ */
+@font-face { font-family: Barlow; font-weight: 400; font-display: swap; src: url('fonts/barlow-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: Barlow; font-weight: 500; font-display: swap; src: url('fonts/barlow-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: Barlow; font-weight: 600; font-display: swap; src: url('fonts/barlow-latin-600-normal.woff2') format('woff2'); }
+
+:root {
+  /* type */
+  --font: Barlow, 'Barlow', system-ui, sans-serif;
+
+  /* surfaces (the photos' fallbacks: solid until the pictures are in) */
+  --bg-hero: #0d0b0a;
+  --bg-panel: #0e0c0b;
+  --bg-cta: #110d0b;
+  --bg-footer: #0c0b0b;
+
+  /* ink */
+  --ink-head: #f3eee8;
+  --ink-body: #dcd6cf;
+  --ink-soft: #b3ada6;
+  --ink-mute: #6e6964;
+
+  /* the ember accent and its glow */
+  --ember: #f08a2a;
+  --ember-kick: #e08a3a;
+  --ember-glow: rgba(255, 130, 40, .8);
+  --ember-glow-in: rgba(255, 130, 40, .4);
+  --mark: #f0a040;
+
+  /* lines */
+  --rule: rgba(200, 180, 160, .15);
+  --ghost: rgba(220, 215, 210, .6);
+
+  /* the synth's RUIN colour families (fire + ice + bone), for feature accents */
+  --ice-1: #8ae9ff; --ice-2: #3fb8ff; --ice-3: #5a78ff; --ice-4: #6f55ff;
+  --fire-1: #ffb020; --fire-2: #ff5a1f; --fire-3: #e0204a; --fire-4: #a8143a;
+  --bone-1: #f4ecdc; --bone-2: #c9c0ae;
+
+  /* the synth's box colours, for icons that stand for its parts */
+  --osc-a: #e8302a; --filter: #2ab890; --fx: #9a6ae0; --lfo: #4a80c8;
+}

@@ -1,6 +1,6 @@
 // Full parameter view, generated from the schema.
 import {
-  fromNormalized, getParam, params, toNormalized, type ParamDef, type ParamValue, type Patch,
+  fromNormalized, getParam, MATRIX_DESTS, params, toNormalized, type ParamDef, type ParamValue, type Patch,
 } from '../schema';
 
 type OnChange = (id: string, value: ParamValue) => void;
@@ -11,9 +11,9 @@ type OnMonitor = (solo: string[], mute: string[]) => void;
 const LAYERS: Record<string, string> = { osc1: 'osc1', osc2: 'osc2', sub: 'sub', noise: 'noise', texture: 'texture' };
 
 const GROUP_TITLES: Record<string, string> = {
-  voice: 'Voice', osc1: 'Oscillator 1', osc2: 'Oscillator 2', fm: 'FM', sub: 'Sub', noise: 'Noise', texture: 'Texture', drive: 'Drive',
-  string: 'String / Shepard', vibrato: 'Vibrato', breath: 'Breath', filter: 'Filter', dist: 'Distortion', crush: 'Bitcrusher', tape: 'Tape', clip: 'Mid clip', amp_env: 'Amp envelope', mod_env: 'Mod envelope', env3: 'Env 3',
-  env2: 'Env 2 (bloom)', wheel: 'Mod wheel', wobble: 'Wobble', lfo1: 'LFO 1', lfo2: 'LFO 2', lfo3: 'LFO 3', lfo4: 'LFO 4', mod: 'Mod matrix', fx: 'Effects', eq: 'EQ', output: 'Output',
+  voice: 'Voice', osc1: 'Oscillator 1', osc2: 'Oscillator 2', sub: 'Sub', noise: 'Noise', texture: 'Texture', drive: 'Drive',
+  string: 'String', vibrato: 'Vibrato', breath: 'Breath', filter: 'Filter', dist: 'Distortion', crush: 'Bitcrusher', tape: 'Tape', clip: 'Mid clip', amp_env: 'Amp envelope', mod_env: 'Mod envelope',
+  wheel: 'Mod wheel', wobble: 'Wobble', lfo1: 'LFO 1', lfo2: 'LFO 2', lfo3: 'LFO 3', lfo4: 'LFO 4', lfo5: 'LFO 5', lfo6: 'LFO 6', mod: 'Mod matrix', fx: 'Effects', eq: 'EQ', output: 'Output',
 };
 
 /** What each box does, shown when hovering its title. */
@@ -23,7 +23,7 @@ const GROUP_TIPS: Record<string, string> = {
   osc1: 'The main sound source: a waveform with its pitch, unison (stacked detuned copies for width) and level.',
   osc2: 'A second sound source, often an octave or a detuned layer on top of oscillator 1.',
   fm: 'Frequency modulation: one tone wobbling another very fast, for metallic, glassy, bell or growly edges.',
-  string: 'Settings for the plucked-string and endless-glide (Shepard) waveforms; only used when an oscillator is set to string or shepard.',
+  string: 'Settings for the plucked-string waveform; only used when an oscillator is set to string.',
   sub: 'A clean sine or triangle one or two octaves below, always mono: the weight in the low end. Its own transparent clipper adds density without making it louder.',
   noise: 'White noise mixed in before the filter: air, grit and breath in the tone.',
   texture: 'A bed of crackle, dust, rumble or air that plays with the notes and lingers after them: the worn, recorded feel.',
@@ -35,28 +35,28 @@ const GROUP_TIPS: Record<string, string> = {
   clip: 'A transparent soft clipper on oscillators 1 and 2 (after the dirt chain, before the effects): shaves spikes and adds density at the same level. The sub has its own in the Sub box.',
   amp_env: 'Volume over time for each note: attack, decay, sustain and release.',
   mod_env: 'A second envelope that sweeps the filter on each note (set its depth in the Filter box), and a source for the mod matrix.',
-  env2: 'A slow envelope for long changes while a note is held (blooming open, swelling grit). Does nothing until routed in the mod matrix.',
-  env3: 'A third mod envelope. Routed to Pitch it gives a pitch drop or rise at the start of each note: kicks, 808 drops, zaps, scoops.',
   vibrato: 'A human vibrato that starts after a short delay and fades in, so notes start straight and then sing.',
   breath: 'The player\'s air: a short noisy puff at the start of each note plus a soft breathy band under it. Only sounds when the texture type is breath (the Noise strip).',
   lfo1: 'A slow or fast repeating (or smoothly random) movement. Does nothing until routed in the mod matrix; the line under the title shows where it goes.',
   lfo2: 'A slow or fast repeating (or smoothly random) movement. Does nothing until routed in the mod matrix; the line under the title shows where it goes.',
   lfo3: 'A slow or fast repeating (or smoothly random) movement. Does nothing until routed in the mod matrix; the line under the title shows where it goes.',
   lfo4: 'A slow or fast repeating (or smoothly random) movement. Does nothing until routed in the mod matrix; the line under the title shows where it goes.',
-  wobble: 'A tempo-locked wobble: the filter (and optionally the drive and texture) swings shut and open on the beat. Depth 0 = off.',
-  mod: 'The mod matrix: connects movement sources (LFOs, envelopes, drift, velocity, mod wheel…) to what they move, with an amount for each.',
+  wobble: 'A tempo-locked wobble: its own filter and / or the volume swing shut and open on the beat. Depth 0 = off.',
+  lfo5: 'A slow or fast repeating (or smoothly random) movement. Does nothing until routed in the mod matrix; the line under the title shows where it goes.',
+  lfo6: 'A slow or fast repeating (or smoothly random) movement. Does nothing until routed in the mod matrix; the line under the title shows where it goes.',
+  mod: 'The mod matrix: connects movement sources (LFOs, envelopes, velocity, mod wheel…) to what they move, with an amount for each.',
   fx: 'Chorus, flanger, phaser, delay and reverb, only above the low end so the bass stays clean and mono.',
   eq: 'Final tone shaping: low, mid and high bands and the high cut (where the dark, controlled top comes from).',
-  output: 'Final level and the low-end crossover. The limiter and mono low end are always on.',
+  output: 'Final level.',
 };
 
 /** The page's sections, in the order the sound flows: play, sources, the dirt chain, envelopes, movement, space, out. */
 const SECTIONS: { id: string; title: string; hint: string; groups: string[] }[] = [
   { id: 'play', title: 'Play', hint: 'How it is played: voices, glide, touch, the mod wheel and a player\'s vibrato.', groups: ['voice', 'wheel', 'vibrato'] },
-  { id: 'sources', title: 'Sources', hint: 'What makes the sound: oscillators, FM, sub and noise (breath is a texture type).', groups: ['osc1', 'osc2', 'string', 'fm', 'sub', 'noise'] },
+  { id: 'sources', title: 'Sources', hint: 'What makes the sound: oscillators, sub and noise (breath is a texture type).', groups: ['osc1', 'osc2', 'string', 'sub', 'noise'] },
   { id: 'tone', title: 'Tone and dirt', hint: 'The fixed chain, left to right: drive → filter → distortion → bitcrusher → tape → mid clip.', groups: ['drive', 'filter', 'dist', 'crush', 'tape', 'clip'] },
-  { id: 'shape', title: 'Shape over time', hint: 'Per-note envelopes: volume, the filter sweep, the slow bloom and Env 3 (pitch bumps and drops).', groups: ['amp_env', 'mod_env', 'env2', 'env3'] },
-  { id: 'movement', title: 'Movement', hint: 'What keeps it alive: the wobble, four LFOs, the other sources and the matrix that routes them.', groups: ['wobble', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'other', 'mod'] },
+  { id: 'shape', title: 'Shape over time', hint: 'Per-note envelopes: volume and the filter sweep (blooms and drops are LFO shapes).', groups: ['amp_env', 'mod_env'] },
+  { id: 'movement', title: 'Movement', hint: 'What keeps it alive: six LFOs (wander, bloom, drop, per note and the classic shapes), the other sources and the matrix that routes them.', groups: ['wobble', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo5', 'lfo6', 'other', 'mod'] },
   { id: 'space', title: 'Space and finish', hint: 'After the voices, in order: the texture bed, effects (chorus → flanger → phaser → delay → reverb, each above its own low cut) and EQ.', groups: ['texture', 'fx', 'eq'] },
   { id: 'out', title: 'Output', hint: 'Final level. The limiter and the mono low end are always on.', groups: ['output'] },
 ];
@@ -79,11 +79,11 @@ export function formatValue(p: ParamDef, v: ParamValue): string {
 
 /** Mod sources with their own box show their routings there; the rest get the "Other sources" box. */
 const SOURCE_BOX: Record<string, string> = {
-  lfo1: 'lfo1', lfo2: 'lfo2', lfo3: 'lfo3', lfo4: 'lfo4', env2: 'env2', env3: 'env3', mod_env: 'mod_env', amp_env: 'amp_env',
+  lfo1: 'lfo1', lfo2: 'lfo2', lfo3: 'lfo3', lfo4: 'lfo4', lfo5: 'lfo5', lfo6: 'lfo6', mod_env: 'mod_env', amp_env: 'amp_env',
 };
 const OTHER_SOURCES: [string, string][] = [
-  ['drift', 'Drift'], ['drift_slow', 'Drift slow'], ['random', 'Random (per note)'], ['velocity', 'Velocity'],
-  ['modwheel', 'Mod wheel'], ['keytrack', 'Keytrack'], ['lfo_product', 'LFO 1 × 2'],
+  ['velocity', 'Velocity'],
+  ['modwheel', 'Mod wheel'], ['keytrack', 'Keytrack'],
 ];
 const MOD_SLOTS = params.filter((p) => /^mod\d+\.source$/.test(p.id)).length;
 
@@ -161,7 +161,7 @@ export class ParamsPanel {
     box.className = 'group';
     const h = document.createElement('h3');
     h.textContent = 'Other sources';
-    h.title = 'Movement sources without settings of their own (drift, random per note, velocity, mod wheel, keytrack) and where each is routed.';
+    h.title = 'Movement sources without settings of their own (velocity, mod wheel, keytrack) and where each is routed.';
     box.append(h);
     for (const [src, label] of OTHER_SOURCES) {
       const row = document.createElement('div');
@@ -243,7 +243,7 @@ export class ParamsPanel {
     wrap.className = 'ctl';
     wrap.title = p.describes;
     const label = document.createElement('label');
-    label.textContent = p.label.replace(/^(Osc \d|LFO \d|Amp|Mod|Sub|Filter|Distortion|Pitch envelope|EQ|FX|FM) /, '');
+    label.textContent = p.label.replace(/^(Osc \d|LFO \d|Amp|Mod|Sub|Filter|Distortion|Pitch envelope|EQ|FX) /, '');
     const val = document.createElement('span');
     val.className = 'val';
     wrap.append(label, val);
@@ -545,7 +545,7 @@ export class ParamsPanel {
         const p = ps.find((q) => q.id === `mod${n}.${suffix}`)!;
         if (p.type === 'enum') {
           const sel = document.createElement('select');
-          for (const o of p.options!) sel.append(new Option(o.replace(/_/g, ' '), o));
+          for (const o of suffix === 'dest' ? MATRIX_DESTS : p.options!) sel.append(new Option(o.replace(/_/g, ' '), o));
           sel.title = p.describes;
           sel.onchange = () => this.emit(p.id, sel.value);
           row.append(sel);

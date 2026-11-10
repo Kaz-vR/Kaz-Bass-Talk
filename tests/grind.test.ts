@@ -4,7 +4,16 @@ import { renderPatch } from '../src/engine/core/render';
 import { heldNote, rms } from './helpers/audio';
 
 const FS = 48000;
+// The chain's settings these tests were written against (the schema's GRIND defaults are the owner's own patch now).
+const GRIND_BASE = {
+  'grind.key': false, 'grind.oneshot': false, 'grind.ott': 0, 'grind.sat': 0, 'grind.preott': 0,
+  'grind1.filter': 'notch', 'grind1.freq': 700, 'grind1.range': 2, 'grind1.move': 'note', 'grind1.rate': 0.45, 'grind1.clock': 'hz', 'grind1.vrange': 0.3, 'grind1.res': 0.55, 'grind1.drive_type': 'soft', 'grind1.drive': 0.35, 'grind1.mix': 1,
+  'grind2.filter': 'phaser', 'grind2.freq': 1200, 'grind2.range': 1.5, 'grind2.move': 'note', 'grind2.rate': 0.6, 'grind2.clock': 'hz', 'grind2.vrange': 0.3, 'grind2.res': 0.6, 'grind2.drive_type': 'fold', 'grind2.drive': 0.25, 'grind2.mix': 1,
+  'grind3.filter': 'comb', 'grind3.freq': 300, 'grind3.range': 1, 'grind3.move': 'wander', 'grind3.rate': 0.3, 'grind3.clock': 'hz', 'grind3.vrange': 0.3, 'grind3.res': 0.5, 'grind3.drive_type': 'fuzz', 'grind3.drive': 0.2, 'grind3.mix': 1,
+  'grind4.filter': 'peak', 'grind4.freq': 600, 'grind4.range': 2, 'grind4.move': 'wander', 'grind4.rate': 0.4, 'grind4.clock': 'hz', 'grind4.vrange': 0.3, 'grind4.res': 0.5, 'grind4.drive_type': 'hard', 'grind4.drive': 0.2, 'grind4.mix': 1,
+};
 const saw = {
+  ...GRIND_BASE,
   meta: { name: 't' }, 'voice.analog': 0, 'amp_env.attack': 1, 'amp_env.sustain': 1, 'amp_env.release': 30, 'filter.cutoff': 20000, 'filter.resonance': 0,
   'filter.keytrack': 0, 'osc1.wave': 'saw', 'osc1.level': 0.8, 'osc1.unison_voices': 1, 'osc2.level': 0, 'sub.level': 0, 'texture.level': 0,
   'chorus.on': false, 'delay.on': false, 'reverb.on': false, 'tape.on': false, 'eq.on': false, 'dist.on': false,

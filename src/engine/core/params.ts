@@ -30,9 +30,9 @@ export const VOICE_GAIN = 0.55;
 export const SUB_GAIN = 0.55;
 
 // Enum option indices (must match data/schema.json order).
-export const WAVE_SINE = 0, WAVE_TRI = 1, WAVE_SAW = 2, WAVE_PULSE = 3, WAVE_PWMSAW = 5, WAVE_STRING = 6, WAVE_SHEPARD = 7; // 4 = wavetable
-export const FILTER_LP = 0, FILTER_BP = 1, FILTER_DIODE = 3, FILTER_NOTCH = 4, FILTER_COMB = 5, FILTER_LPG = 6, FILTER_HP = 7; // 2 = formant
-export const DIST_SOFT = 0, DIST_HARD = 1, DIST_FOLD = 2, DIST_FUZZ = 4; // 3 = tube
+export const WAVE_SINE = 0, WAVE_TRI = 1, WAVE_SAW = 2, WAVE_PULSE = 3, WAVE_PWMSAW = 5, WAVE_STRING = 6; // 4 = wavetable
+export const FILTER_LP = 0, FILTER_BP = 1, FILTER_DIODE = 3, FILTER_NOTCH = 4, FILTER_COMB = 5, FILTER_LPG = 6, FILTER_HP = 7, FILTER_SEM = 8; // 2 = formant
+export const DIST_SOFT = 0, DIST_HARD = 1, DIST_FOLD = 2, DIST_FUZZ = 4, DIST_AMP = 5; // 3 = tube
 export const TUBE_BIAS = 0.4;
 export const TUBE_OFFSET = Math.tanh(TUBE_BIAS);
 export const HALF_PI = Math.PI / 2;
@@ -73,23 +73,32 @@ export function fuzzIntegral(v: number): number {
 export const FUZZ_BIAS_REL = 0.12;
 
 export const LFO_SINE = 0, LFO_TRI = 1, LFO_SAW_UP = 2, LFO_SAW_DOWN = 3, LFO_SQUARE = 4, LFO_SH = 5, LFO_WANDER = 6;
-export const LFO_COUNT = 4;
-export const SLOT_COUNT = 12;
+/** Per-note shapes: each voice runs its own from the note's start (bloom 0 → 1, drop 1 → 0, a held random value). */
+export const LFO_BLOOM = 7, LFO_DROP = 8, LFO_NOTE = 9;
+/** The old drift sources as shapes (shared, free running): drift glides to random points, slow drift curves between them. */
+export const LFO_DRIFT = 10, LFO_SLOW_DRIFT = 11;
+export const lfoPerNote = (shape: number): boolean => shape >= LFO_BLOOM && shape <= LFO_NOTE;
+export const LFO_COUNT = 6;
+export const SLOT_COUNT = 9; // the mod matrix's rows
 export const SYNC_BEATS = [0, 16, 8, 4, 2, 3, 1, 1.5, 2 / 3, 0.5, 0.75, 1 / 3, 0.25, 0.375, 1 / 6, 0.125];
 export const DELAY_BEATS = [0.125, 1 / 6, 0.25, 0.375, 1 / 3, 0.5, 0.75, 2 / 3, 1, 1.5, 2, 3, 4];
 
 // Mod matrix sources / destinations (schema option order).
-export const SRC_LFO1 = 1, SRC_LFO2 = 2, SRC_MOD_ENV = 3, SRC_AMP_ENV = 4, SRC_VEL = 5, SRC_KEY = 6, SRC_MODWHEEL = 7, SRC_RANDOM = 8,
-  SRC_DRIFT = 9, SRC_PRODUCT = 10, SRC_LFO3 = 11, SRC_LFO4 = 12, SRC_DRIFT_SLOW = 13, SRC_ENV2 = 14, SRC_ENV3 = 15;
-export const SRC_COUNT = 16;
+export const SRC_LFO1 = 1, SRC_LFO2 = 2, SRC_MOD_ENV = 3, SRC_AMP_ENV = 4, SRC_VEL = 5, SRC_KEY = 6, SRC_MODWHEEL = 7,
+  SRC_LFO3 = 8, SRC_LFO4 = 9, SRC_LFO5 = 10, SRC_LFO6 = 11;
+export const SRC_COUNT = 12;
+/** Each LFO's matrix source. */
+export const SRC_LFO = [SRC_LFO1, SRC_LFO2, SRC_LFO3, SRC_LFO4, SRC_LFO5, SRC_LFO6];
 export const D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_OSC2_WT = 5, D_OSC1_PW = 6, D_OSC2_PW = 7,
-  D_OSC1_LEVEL = 8, D_OSC2_LEVEL = 9, D_DETUNE = 10, D_FM = 11, D_SUB = 12, D_NOISE = 13, D_DRIVE = 14,
+  D_OSC1_LEVEL = 8, D_OSC2_LEVEL = 9, D_DETUNE = 10, D_FM = 11 /* FM was removed (owner's call): its two slots stay so the others keep their numbers */, D_SUB = 12, D_NOISE = 13, D_DRIVE = 14,
   D_CUTOFF = 15, D_RES = 16, D_VOWEL = 17, D_DIST_DRIVE = 18, D_DIST_MIX = 19, D_AMP = 20, D_LFO1_RATE = 21, D_LFO2_RATE = 22,
   D_FM2 = 23, D_CRUSH = 24, D_LFO3_RATE = 25, D_LFO4_RATE = 26, D_CHORUS_DEPTH = 27, D_PHASER_MIX = 28,
   D_DELAY_TIME = 29, D_DELAY_MIX = 30, D_REVERB_MIX = 31, D_WIDTH = 32, D_TAPE_WOW = 33, D_DIST_TONE = 34, D_TEXTURE = 35,
-  D_VIBRATO = 36, D_BREATH = 37, D_OSC_PITCH = 38, D_NOISE_PITCH = 39, D_SUB_PITCH = 40;
-export const DEST_COUNT = 41;
+  D_VIBRATO = 36, D_BREATH = 37, D_OSC_PITCH = 38, D_NOISE_PITCH = 39, D_SUB_PITCH = 40,
+  D_LFO5_RATE = 41, D_LFO6_RATE = 42, D_SHAPE = 43, D_OSC1_DETUNE = 44, D_OSC2_DETUNE = 45;
+export const DEST_COUNT = 46;
 export const TEXTURE_GAIN = 0.5;
+
 
 /** Beats in a wobble.rate option: 1/8, 1/8T (triplet), 1/8d (dotted), 3/4, 1 Bar, 1.5 Bars … (a bar = 4 beats). */
 export function wobRateBeats(v: string): number {
@@ -140,7 +149,7 @@ export const WHEEL_MOVES: [dest: number, amount: number][][] = [
   // bloom: it drifts away
   [[D_REVERB_MIX, 0.45], [D_DELAY_MIX, 0.3], [D_WIDTH, 0.45], [D_CHORUS_DEPTH, 0.3], [D_AMP, -0.2]],
 ];
-export const LFO_RATE_DEST = [D_LFO1_RATE, D_LFO2_RATE, D_LFO3_RATE, D_LFO4_RATE];
+export const LFO_RATE_DEST = [D_LFO1_RATE, D_LFO2_RATE, D_LFO3_RATE, D_LFO4_RATE, D_LFO5_RATE, D_LFO6_RATE];
 
 // Formant table (Hz) for vowels A E I O U: F1, F2, F3.
 export const VOWELS = [
@@ -165,27 +174,26 @@ export const P = {
     spread: ix(`osc${n}.unison_spread`), level: ix(`osc${n}.level`), hp: ix(`osc${n}.highpass`),
     fType: ix(`osc${n}.filter_type`), fKey: ix(`osc${n}.filter_key`),
   })),
-  fmAmount: ix('fm.amount'), fmRatio: ix('fm.ratio'), fmPunch: ix('fm.punch'), fmDecay: ix('fm.decay'), fmFb: ix('fm.feedback'),
-  fm2Amount: ix('fm2.amount'), fm2Ratio: ix('fm2.ratio'), fmAlgo: ix('fm.algorithm'),
-  strTone: ix('string.tone'), strDecay: ix('string.decay'), shepRate: ix('shepard.rate'),
+  strTone: ix('string.tone'), strDecay: ix('string.decay'),
   accent: ix('filter.accent'), ampBend: [ix('amp_env.attack_bend'), ix('amp_env.decay_bend'), ix('amp_env.release_bend')], modBend: [ix('mod_env.attack_bend'), ix('mod_env.decay_bend'), ix('mod_env.release_bend')], chorusMode: ix('chorus.mode'),
   subWave: ix('sub.wave'), subOct: ix('sub.octave'), subLevel: ix('sub.level'), subClip: ix('sub.clip'), midClip: ix('clip.mid'),
   subFType: ix('sub.filter_type'), subFCut: ix('sub.filter_cutoff'), subFKey: ix('sub.filter_key'), subDirect: ix('sub.direct'),
   texPan: ix('texture.pan'), texDirect: ix('texture.direct'), texFType: ix('texture.filter_type'), texFCut: ix('texture.filter_cutoff'), texFKey: ix('texture.filter_key'),
   routeA: ix('filter.route_a'), routeB: ix('filter.route_b'), routeN: ix('filter.route_n'), routeS: ix('filter.route_s'), postCut: ix('clip.low_cut'), fMix: ix('filter.mix'),
-  noise: ix('noise.level'), drive: ix('drive.amount'),
+  noise: ix('noise.level'), drive: ix('drive.amount'), mixDrive: ix('drive.mixer'), halfSpeed: ix('voice.halfspeed'),
   texType: ix('texture.type'), texLevel: ix('texture.level'), texTone: ix('texture.tone'), texDensity: ix('texture.density'), texOct: ix('texture.octave'), texKey: ix('texture.key'), texTail: ix('texture.tail'),
   fType: ix('filter.type'), cutoff: ix('filter.cutoff'), res: ix('filter.resonance'), keytrack: ix('filter.keytrack'),
   envAmt: ix('filter.env_amount'), modEnvOn: ix('mod_env.on'), vowel: ix('filter.vowel'),
-  dType: ix('dist.type'), dDrive: ix('dist.drive'), dMix: ix('dist.mix'), dTone: ix('dist.post_tone'), dSplit: ix('dist.clean_below'),
+  dType: ix('dist.type'), dDrive: ix('dist.drive'), dMix: ix('dist.mix'), dTone: ix('dist.post_tone'), dSplit: ix('dist.clean_below'), dBandHz: ix('dist.band_freq'), dBandOct: ix('dist.band_width'), dDyn: ix('dist.dyn'), dOut: ix('dist.output'),
   crushMix: ix('crush.mix'), crushBits: ix('crush.bits'), crushRate: ix('crush.rate'), crushLowcut: ix('crush.lowcut'), tapeLowcut: ix('tape.lowcut'),
-  tapeDrive: ix('tape.drive'), tapeWow: ix('tape.wow'), tapeAge: ix('tape.age'),
+  tapeWow: ix('tape.wow'),
   osc2Sync: ix('osc2.sync'),
-  fmOn: ix('fm.on'), driveOn: ix('drive.on'), filterOn: ix('filter.on'), distOn: ix('dist.on'), crushOn: ix('crush.on'),
-  tapeOn: ix('tape.on'), vibOn: ix('vibrato.on'), lfoOn: [1, 2, 3, 4].map((n) => ix(`lfo${n}.on`)), env2On: ix('env2.on'), env3On: ix('env3.on'), wobOn: ix('wobble.on'),
+  driveOn: ix('drive.on'), filterOn: ix('filter.on'), distOn: ix('dist.on'), crushOn: ix('crush.on'),
+  tapeOn: ix('tape.on'), vibOn: ix('vibrato.on'), lfoOn: [1, 2, 3, 4, 5, 6].map((n) => ix(`lfo${n}.on`)),
   modOn: ix('mod.on'), eqOn: ix('eq.on'), chorusOn: ix('chorus.on'), flangerOn: ix('flanger.on'),
   phaserOn: ix('phaser.on'), delayOn: ix('delay.on'), reverbOn: ix('reverb.on'),
   wheelMove: ix('wheel.move'), wheelPreset: ix('wheel.preset'),
+  wobOn: ix('wobble.on'),
   wobDepth: ix('wobble.depth'), wobRate: ix('wobble.rate'), wobCutoff: ix('wobble.cutoff'), wobVolume: ix('wobble.volume'), wobShape: ix('wobble.shape'), wobLife: ix('wobble.life'), wobPts: ix('wobble.points'), wobPhase: ix('wobble.phase'), wobSmooth: ix('wobble.smooth'), wobLowcut: ix('wobble.lowcut'),
   wobX: Array.from({ length: 32 }, (_, i) => ix(`wobble.x${i + 1}`)), wobY: Array.from({ length: 32 }, (_, i) => ix(`wobble.y${i + 1}`)), wobS: Array.from({ length: 32 }, (_, i) => ix(`wobble.s${i + 1}`)),
   flangerMix: ix('flanger.mix'), flangerRate: ix('flanger.rate'), flangerFb: ix('flanger.feedback'),
@@ -193,14 +201,12 @@ export const P = {
   reverbType: ix('reverb.type'), reverbDecay: ix('reverb.decay'), reverbPre: ix('reverb.predelay'), reverbOct: ix('reverb.octave'), eqHighcut: ix('eq.highcut'),
   amp: [ix('amp_env.attack'), ix('amp_env.decay'), ix('amp_env.sustain'), ix('amp_env.release')],
   mod: [ix('mod_env.attack'), ix('mod_env.decay'), ix('mod_env.sustain'), ix('mod_env.release')],
-  env3: ['attack', 'decay', 'sustain', 'release'].map((s) => ix(`env3.${s}`)),
   vibDepth: ix('vibrato.depth'), vibRate: ix('vibrato.rate'), vibDelay: ix('vibrato.delay'), vibFade: ix('vibrato.fade'),
 
-  lfo: [1, 2, 3, 4].map((n) => ({
+  lfo: [1, 2, 3, 4, 5, 6].map((n) => ({
     shape: ix(`lfo${n}.shape`), rate: ix(`lfo${n}.rate`), sync: ix(`lfo${n}.sync`), retrig: ix(`lfo${n}.retrigger`), fade: ix(`lfo${n}.fade`),
   })),
-  env2: [ix('env2.attack'), ix('env2.decay'), ix('env2.sustain'), ix('env2.release')],
-  slots: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => ({ src: ix(`mod${n}.source`), dst: ix(`mod${n}.dest`), amt: ix(`mod${n}.amount`), on: ix(`mod${n}.on`) })),
+  slots: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => ({ src: ix(`mod${n}.source`), dst: ix(`mod${n}.dest`), amt: ix(`mod${n}.amount`), on: ix(`mod${n}.on`) })),
   chorusMix: ix('chorus.mix'), chorusDepth: ix('chorus.depth'), phaserMix: ix('phaser.mix'), phaserRate: ix('phaser.rate'),
   reverbMix: ix('reverb.mix'),
   /** The FX page's OTT (its own, after the phaser; GRIND has another). */
@@ -209,11 +215,16 @@ export const P = {
   fxLowcut: ['chorus', 'flanger', 'phaser', 'delay', 'reverb'].map((f) => ix(`${f}.lowcut`)),
   /** The EQ's four bands (low shelf / high-pass, two bells / notches, high shelf / low-pass) and its gain scale. */
   eq: [1, 2, 3, 4].map((n) => ({ type: ix(`eq.b${n}_type`), freq: ix(`eq.b${n}_freq`), gain: ix(`eq.b${n}_gain`), q: ix(`eq.b${n}_q`) })), eqScale: ix('eq.scale'),
-  outGain: ix('output.gain'), crossover: ix('output.crossover'), poly: ix('voice.polyphony'),
-  grindOn: ix('grind.on'), grindMix: ix('grind.mix'), grindLowcut: ix('grind.lowcut'), grindKey: ix('grind.key'), grindOneShot: ix('grind.oneshot'), grindOtt: ix('grind.ott'), grindSat: ix('grind.sat'), grindPreOtt: ix('grind.preott'),
-  grind: [1, 2, 3, 4].map((n) => ({
+  outGain: ix('output.gain'), poly: ix('voice.polyphony'),
+  grindOn: ix('grind.on'), grindMix: ix('grind.mix'), grindLowcut: ix('grind.lowcut'), grindKey: ix('grind.key'), grindOneShot: ix('grind.oneshot'), grindNoiseThru: ix('grind.noise_thru'), grindOtt: ix('grind.ott'), grindOut: ix('grind.output'),
+  grindSlot: [1, 2, 3, 4, 5, 6, 7, 8].map((k) => ix(`grind.slot${k}`)),
+  grind: [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
     on: ix(`grind${n}.on`), filter: ix(`grind${n}.filter`), freq: ix(`grind${n}.freq`), range: ix(`grind${n}.range`), move: ix(`grind${n}.move`),
-    rate: ix(`grind${n}.rate`), clock: ix(`grind${n}.clock`), vrange: ix(`grind${n}.vrange`), res: ix(`grind${n}.res`), dtype: ix(`grind${n}.drive_type`), drive: ix(`grind${n}.drive`), mix: ix(`grind${n}.mix`),
+    rate: ix(`grind${n}.rate`), clock: ix(`grind${n}.clock`), width: ix(`grind${n}.width`), depth: ix(`grind${n}.depth`), dtype: ix(`grind${n}.drive_type`), drive: ix(`grind${n}.drive`), mix: ix(`grind${n}.mix`),
+    filterOn: ix(`grind${n}.filter_on`), driveOn: ix(`grind${n}.drive_on`), fLevel: ix(`grind${n}.filter_level`), dLevel: ix(`grind${n}.drive_level`),
+    eqOn: ix(`grind${n}.eq_on`), eqLevel: ix(`grind${n}.eq_level`), eqScale: ix(`grind${n}.eq_scale`),
+    eq: [1, 2, 3, 4].map((b) => ({ type: ix(`grind${n}.eq_b${b}_type`), freq: ix(`grind${n}.eq_b${b}_freq`), gain: ix(`grind${n}.eq_b${b}_gain`), q: ix(`grind${n}.eq_b${b}_q`) })),
+    dFreq: ix(`grind${n}.drive_freq`), dWidth: ix(`grind${n}.drive_width`), dTone: ix(`grind${n}.drive_tone`), dDyn: ix(`grind${n}.drive_dyn`),
   })),
 };
 

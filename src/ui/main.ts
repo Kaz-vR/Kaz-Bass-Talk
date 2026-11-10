@@ -29,13 +29,13 @@ let host: EngineHost | PluginHost | null = null;
 let reference: Patch = library[Math.max(0, library.findIndex((p) => p.meta.name === 'Classic Reese'))];
 let current: Patch = structuredClone(reference);
 
-// Browser groups: the bank categories (13 shelves), then the Bass Atlas (one patch per bass type, no category).
+// Browser groups: the bank categories (every category shows, even an empty one waiting for the rebuild), then the Bass Atlas (one patch per bass type, no category).
 const ATLAS = 'atlas';
 interface Group { id: string; name: string; description: string; audition?: string; items: number[] }
 // Plucks and sequences share one shelf: the same short sounds, played as notes or patterns (each keeps its own audition).
 const SHELF: Record<string, string> = { arp: 'pluck' };
 // Browser titles (the category data keeps its own names).
-const TITLE: Record<string, string> = { bass: 'Dark Basses', lead: 'Leads', pad: 'Pads', pluck: 'Plucks', brass: 'Brass', choir: 'Choir', texture: 'Textures' };
+const TITLE: Record<string, string> = { bass: 'Dark Basses', lead: 'Leads', pad: 'Pads', pluck: 'Plucks', noise: 'Noise', porttest: 'Porttest' };
 const groups: Group[] = categories.filter((c) => !SHELF[c.id]).map((c) =>
   c.id === 'pluck'
     ? { id: c.id, name: TITLE.pluck, description: 'Short, defined sounds to play as notes, chords or patterns: soft and round to hard and driving.', audition: c.audition, items: [] }
@@ -58,6 +58,21 @@ if (START >= 0) {
   const g = groups.find((x) => x.items.includes(START))!;
   g.items.splice(g.items.indexOf(START), 1);
   g.items.unshift(START);
+  // Destroyed Reese (the owner's own patch of it through GRIND) right after it.
+  const D = library.findIndex((p) => p.meta.name === 'Destroyed Reese');
+  if (D >= 0 && g.items.includes(D)) { g.items.splice(g.items.indexOf(D), 1); g.items.splice(1, 0, D); }
+  // Then the owner's five Diva conversions (Howard Scarr's basses), then the industrial set, in its own order.
+  const DIVA = ['HS Bass Nine', 'HS Black Fuzz', 'HS Bonebreaker', 'HS Boomer', 'HS Cable Bass'];
+  DIVA.forEach((n, k) => { const i = library.findIndex((p) => p.meta.name === n); if (i >= 0 && g.items.includes(i)) { g.items.splice(g.items.indexOf(i), 1); g.items.splice(2 + k, 0, i); } });
+  // The owner's industrial set, in its own order.
+  const AFTER = ["Cyberpunk Industrial \"Reese\" Bass", "Screaming FM / Neuro Bass", "Overdriven Acid / Industrial Saw Bass", "Distorted Hybrid Electric-Synth Bass", "The Drone / Sub-Rumble Bass", "The Pulse / EBM Aggressive Bassline", "Granular & Sample-Mangled Organic Bass", "Modular Feedback / Complex Shaper Bass"];
+  AFTER.forEach((n, k) => { const i = library.findIndex((p) => p.meta.name === n); if (i >= 0 && g.items.includes(i)) { g.items.splice(g.items.indexOf(i), 1); g.items.splice(2 + DIVA.length + k, 0, i); } });
+}
+// Chainsaw Lead opens the Lead shelf (owner's call).
+for (const n of ['Chainsaw Lead']) {
+  const i = library.findIndex((p) => p.meta.name === n);
+  const g = groups.find((x) => x.items.includes(i));
+  if (i >= 0 && g) { g.items.splice(g.items.indexOf(i), 1); g.items.unshift(i); }
 }
 let currentIndex = START >= 0 ? START : (groups[0].items[0] ?? 0);
 let currentGroup = groups.find((g) => g.items.includes(currentIndex)) ?? groups[0];
@@ -109,7 +124,7 @@ const synth = new SynthView($('synth-v2'), (id, value) => {
 const TPL_LETTER: Record<string, string> = { 'heavy-reese': 'A', 'cinematic-screamer': 'B', 'ominous-fifth': 'C', 'deep-rumble': 'D', '808-thump': 'E', 'single-body': 'F', 'tritone-bass': 'G' };
 let shelfCache: ReturnType<PresetSource['shelves']> | null = null;
 synth.presets = {
-  shelves: () => (shelfCache ??= groups.filter((g) => g.items.length && g.id !== RANDOMIZER && g.id !== USER).map((g) => ({
+  shelves: () => (shelfCache ??= groups.filter((g) => (g.items.length || categories.some((c) => c.id === g.id)) && g.id !== RANDOMIZER && g.id !== USER).map((g) => ({
     id: g.id,
     name: g.name,
     secondary: g.id === ATLAS,
@@ -416,7 +431,7 @@ $<HTMLButtonElement>('copy').onclick = async () => {
 };
 
 const keyboard = new Keyboard(synth.keysEl, {
-  noteOn: (n, v) => { host?.noteOn(n, v); synth.noteOn(); },
+  noteOn: (n, v) => { host?.noteOn(n, v); synth.noteOn(n); },
   noteOff: (n) => { host?.noteOff(n); synth.noteOff(); },
   onOctave: (base) => synth.setOctave(base),
   onVelocity: (v) => synth.setVelocity(v),
@@ -442,8 +457,9 @@ $('start').querySelector('button')!.addEventListener('click', async () => {
   synth.setLiveWobble(() => engine.liveWobble());
   synth.setLiveLfos(() => engine.liveLfos());
   synth.setLiveGrind(() => engine.liveGrind());
+  synth.setRuinTaps(() => engine.ruinTaps());
   initMidi({
-    noteOn: (n, v) => { host?.noteOn(n, v); keyboard.mark(n, true); synth.noteOn(); },
+    noteOn: (n, v) => { host?.noteOn(n, v); keyboard.mark(n, true); synth.noteOn(n); },
     noteOff: (n) => { host?.noteOff(n); keyboard.mark(n, false); synth.noteOff(); },
     pitchBend: (v) => host?.pitchBend(v),
     modWheel: (v) => {
@@ -496,7 +512,7 @@ function startPlugin(): void {
     notes: (notes, wheel) => {
       const now = new Set(notes);
       for (const n of held) if (!now.has(n)) { keyboard.mark(n, false); synth.noteOff(); }
-      for (const n of now) if (!held.has(n)) { keyboard.mark(n, true); synth.noteOn(); }
+      for (const n of now) if (!held.has(n)) { keyboard.mark(n, true); synth.noteOn(n); }
       held = now;
       if (wheel >= 0 && wheel !== lastWheel) {
         lastWheel = wheel;

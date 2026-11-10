@@ -1,0 +1,84 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>RUIN + Alive, simple versions</title>
+<link rel="stylesheet" href="../../design/tokens.css">
+<link rel="stylesheet" href="../../website/style.css">
+<style>
+body { background: #0d0b0a; }
+.sec { position: relative; border-top: 2px solid rgba(170,160,150,.35); }
+.in { width: 1264px; margin: 0 auto; padding: 100px 24px; display: grid; grid-template-columns: 380px 1fr; gap: 70px; align-items: center; }
+.in.rev { grid-template-columns: 1fr 380px; }
+.k { margin: 0 0 14px; color: var(--ember-kick); font-weight: 600; font-size: 15px; letter-spacing: .3em; text-transform: uppercase; }
+h2 { margin: 0 0 22px; }
+.p { margin: 0; font-weight: 500; font-size: 17.5px; line-height: 1.7; letter-spacing: .03em; color: #c9c2ba; }
+canvas { display: block; }
+</style></head><body><div id="root"></div>
+<script>
+const V = +(new URLSearchParams(location.search).get('v') || 1), TAU = Math.PI * 2;
+let seed = 3; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+function humanize(n, s) { seed = s; const out = []; let a = 0, b = rnd() * 2 - 1, pos = 0, len = 60, tr = 0, trb = 0, trp = 0;
+  for (let i = 0; i < n; i++) { if (++pos > len) { pos = 0; a = b; const big = rnd() < .15; b = Math.max(-1, Math.min(1, (rnd() * 2 - 1) * (big ? 1 : .4) + a * (big ? 0 : .5))); len = 40 + rnd() * 140; }
+    if (++trp > 10) { trp = 0; tr = trb; trb = rnd() * 2 - 1; } const u = .5 - .5 * Math.cos(Math.PI * pos / len), v = .5 - .5 * Math.cos(Math.PI * trp / 10); out.push((a + (b - a) * u) * .8 + (tr + (trb - tr) * v) * .1); } return out; }
+const tape = (n, ph, s) => { const h = humanize(n, s); return Array.from({ length: n }, (_, i) => .55 * Math.sin(i / n * TAU * 1.2 + ph) + .3 * h[i] + .05 * Math.sin(i * .8 + ph)); };
+// the six boxes of the chain, as the RUIN page has them
+const BOX = [['Filter 1', 'notch', '#8ae9ff'], ['Drive 1', 'tape', '#ffb020'], ['Filter 2', 'peak', '#3fb8ff'], ['Drive 2', 'tube', '#ff8a1f'], ['Filter 3', 'comb', '#5a78ff'], ['Drive 3', 'soft clip', '#e0204a']];
+const isDrive = (t) => !['notch', 'peak', 'comb'].includes(t);
+// what a box does, as one curve: a filter's response, or a drive's curve
+function shape(t, u) { const d = u - .5, x = (u * 2 - 1) * 1.6;
+  switch (t) { case 'notch': return .72 - .62 * Math.exp(-(d * d) / .005); case 'peak': return .3 + .58 * Math.exp(-(d * d) / .009); case 'comb': return .5 + .3 * Math.cos(u * TAU * 3.5);
+    case 'tube': return .5 + .42 * (Math.tanh(2.4 * x + .3) - Math.tanh(.3)) / 1.2; case 'soft clip': return .5 + .42 * Math.max(-1, Math.min(1, x - x * x * x / 6.5)); default: return .5 + .42 * Math.tanh(1.7 * x) / Math.tanh(2.7); } }
+const C = [];
+function cv(w, h, draw, style = '') { C.push([w, h, draw]); return `<canvas data-i="${C.length - 1}" style="width:${w}px;height:${h}px;${style}"></canvas>`; }
+function glow(g, pts, col, w = 1.8) { g.lineJoin = g.lineCap = 'round';
+  for (const [lw, a, b] of [[w * 4, .07, 18], [w * 1.8, .3, 8], [w, 1, 3]]) { g.save(); g.strokeStyle = col; g.globalAlpha = a; g.lineWidth = lw; g.shadowColor = col; g.shadowBlur = b; g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.stroke(); g.restore(); } }
+function curve(g, t, x, y, w, h, col, lw) { const p = []; for (let i = 0; i <= 80; i++) p.push([x + i / 80 * w, y + h - shape(t, i / 80) * h]); glow(g, p, col, lw); }
+function line(g, d, x, y, w, amp, col, lw) { glow(g, d.map((v, i) => [x + i / (d.length - 1) * w, y - v * amp]), col, lw); }
+function text(g, t, x, y, col, size = 11, align = 'left', sp = 3, wt = 600) { g.font = `${wt} ${size}px Barlow, sans-serif`; g.fillStyle = col; g.textAlign = align; g.letterSpacing = sp + 'px'; g.fillText(t.toUpperCase(), x, y); g.letterSpacing = '0px'; g.textAlign = 'left'; }
+function rrect(g, x, y, w, h, r, fill, stroke) { g.beginPath(); g.roundRect(x, y, w, h, r); if (fill) { g.fillStyle = fill; g.fill(); } if (stroke) { g.strokeStyle = stroke; g.lineWidth = 1; g.stroke(); } }
+function dot(g, x, y, col, r = 3.5) { g.save(); g.fillStyle = col; g.shadowColor = col; g.shadowBlur = 10; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); g.restore(); }
+function knob(g, x, y, r, v, col) { g.strokeStyle = 'rgba(255,255,255,.1)'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, r, .75 * Math.PI, 2.25 * Math.PI); g.stroke(); g.save(); g.strokeStyle = col; g.shadowColor = col; g.shadowBlur = 6; g.beginPath(); g.arc(x, y, r, .75 * Math.PI, .75 * Math.PI + v * 1.5 * Math.PI); g.stroke(); g.restore(); }
+const arrow = (g, x, y, col = 'rgba(255,255,255,.28)') => { g.strokeStyle = col; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x - 6, y); g.lineTo(x + 6, y); g.moveTo(x + 2, y - 4); g.lineTo(x + 6, y); g.lineTo(x + 2, y + 4); g.stroke(); };
+const ruin = `<div><p class="k">The RUIN chain</p><h2>Distortion<br>in series</h2><p class="p">Filters and drives, one after another, in any order. Each box shapes what the next one hears. That's how neuro basses are made.</p></div>`;
+const alive = `<div><p class="k">Always alive</p><h2>Nothing<br>repeats</h2><p class="p">Humanize LFOs wander like a player's hand, slow and fast at once. Tape adds wow and drift. No two notes are ever the same.</p></div>`;
+const L1 = humanize(300, 3), L2 = humanize(300, 17), T1 = tape(300, .4, 9), T2 = tape(300, 1.9, 23);
+
+const LOOKS = {
+  // 1 · CLEAN BOXES: the RUIN page's boxes, stripped: name, one curve, type. LFO and Tape boxes without the knobs.
+  1: () => [cv(780, 150, (g) => BOX.forEach(([n, t, c], i) => { const x = i * 129; rrect(g, x + .5, .5, 120, 149, 8, '#121010', 'rgba(255,255,255,.08)'); dot(g, x + 16, 20, c, 3); text(g, n, x + 26, 24, '#d8d2cc', 10, 'left', 2);
+      curve(g, t, x + 14, 40, 92, 62, c, 1.8); text(g, t, x + 60, 134, c, 10, 'center', 2.5); })),
+    cv(780, 260, (g) => { [[0, 'LFO 1 · Humanize', '#ff4a3a', L1], [130, 'LFO 2 · Humanize', '#ff9a2a', L2]].forEach(([y, n, c, d]) => { rrect(g, .5, y + .5, 370, 118, 8, '#121010', 'rgba(255,255,255,.08)'); text(g, n, 18, y + 26, '#d8d2cc', 10, 'left', 2); dot(g, 352, y + 22, c, 3); line(g, d, 18, y + 72, 334, 22, c, 1.8); });
+      rrect(g, 390.5, .5, 389, 248, 8, '#121010', 'rgba(255,255,255,.08)'); text(g, 'Tape', 408, 26, '#d8d2cc', 10, 'left', 2); text(g, '±40 ct', 762, 26, '#ffb060', 10, 'right', 2); line(g, T2, 408, 130, 352, 40, 'rgba(255,190,110,.4)', 1); line(g, T1, 408, 130, 352, 46, '#ffb060', 1.8); text(g, 'wow · drift', 585, 226, '#6e6964', 10, 'center', 2.5); })],
+
+  // 2 · NO FRAMES: the same pieces with the boxes taken away, just the curves floating, arrows between
+  2: () => [cv(780, 150, (g) => BOX.forEach(([n, t, c], i) => { const x = i * 129; text(g, n, x + 50, 18, '#8f8983', 10, 'center', 2); curve(g, t, x + 6, 34, 88, 70, c, 2); text(g, t, x + 50, 136, c, 11, 'center', 2.5); if (i < 5) arrow(g, x + 116, 70); })),
+    cv(780, 240, (g) => { text(g, 'Humanize', 0, 18, '#8f8983', 10, 'left', 2); line(g, L1, 0, 70, 360, 26, '#ff4a3a', 2); line(g, L2, 0, 150, 360, 26, '#ff9a2a', 2);
+      text(g, 'Tape', 420, 18, '#8f8983', 10, 'left', 2); line(g, T2, 420, 112, 360, 46, 'rgba(255,190,110,.4)', 1.1); line(g, T1, 420, 112, 360, 52, '#ffb060', 2); text(g, 'two LFOs, each its own speed', 0, 230, '#6e6964', 10, 'left', 2); text(g, 'wow and drift', 420, 230, '#6e6964', 10, 'left', 2); })],
+
+  // 3 · ONE STRIP: the chain as a single panel cut into cells, like the RUIN page's row; life as one panel with three rows, like a rack
+  3: () => [cv(780, 170, (g) => { rrect(g, .5, .5, 779, 169, 10, '#121010', 'rgba(255,255,255,.08)'); BOX.forEach(([n, t, c], i) => { const x = i * 130; if (i) { g.fillStyle = 'rgba(255,255,255,.07)'; g.fillRect(x, 16, 1, 138); }
+      g.fillStyle = c; g.fillRect(x + 16, 18, 2, 12); text(g, n, x + 24, 28, '#d8d2cc', 10, 'left', 2); curve(g, t, x + 18, 48, 94, 66, c, 1.8); text(g, t, x + 65, 150, c, 10, 'center', 2.5); }); }),
+    cv(780, 270, (g) => { rrect(g, .5, .5, 779, 269, 10, '#121010', 'rgba(255,255,255,.08)'); [['LFO 1', 'Humanize', '#ff4a3a', [L1]], ['LFO 2', 'Humanize', '#ff9a2a', [L2]], ['Tape', 'Wow · Drift', '#ffb060', [T2, T1]]].forEach(([n, s, c, ds], i) => { const y = i * 90; if (i) { g.fillStyle = 'rgba(255,255,255,.07)'; g.fillRect(16, y, 748, 1); }
+      g.fillStyle = c; g.fillRect(20, y + 34, 2, 22); text(g, n, 32, y + 44, '#e6e1dc', 11, 'left', 2.5); text(g, s, 32, y + 60, c, 9.5, 'left', 2); ds.forEach((d, j) => line(g, d, 180, y + 45, 580, 26, j || ds.length === 1 ? c : 'rgba(255,190,110,.4)', j || ds.length === 1 ? 1.8 : 1)); }); })],
+
+  // 4 · KNOBS KEPT: closest to the synth, every box with its one or two main controls, drawn as plain rings
+  4: () => [cv(780, 190, (g) => BOX.forEach(([n, t, c], i) => { const x = i * 129; rrect(g, x + .5, .5, 120, 189, 8, '#121010', 'rgba(255,255,255,.08)'); dot(g, x + 16, 20, c, 3); text(g, n, x + 26, 24, '#d8d2cc', 10, 'left', 2);
+      curve(g, t, x + 14, 38, 92, 56, c, 1.8); text(g, t, x + 60, 116, c, 10, 'center', 2.5); knob(g, x + 60, 150, 15, [.35, .6, .5, .75, .4, .85][i], c); text(g, isDrive(t) ? 'drive' : 'depth', x + 60, 182, '#6e6964', 8.5, 'center', 2); })),
+    cv(780, 280, (g) => { [[0, 'LFO 1 · Humanize', '#ff4a3a', L1, [.55, .3]], [142, 'LFO 2 · Humanize', '#ff9a2a', L2, [.4, .55]]].forEach(([y, n, c, d, kv]) => { rrect(g, .5, y + .5, 370, 132, 8, '#121010', 'rgba(255,255,255,.08)'); text(g, n, 18, y + 26, '#d8d2cc', 10, 'left', 2); line(g, d, 18, y + 58, 334, 16, c, 1.8);
+        knob(g, 250, y + 100, 14, kv[0], c); knob(g, 310, y + 100, 14, kv[1], c); text(g, 'rate', 250, y + 128, '#6e6964', 8.5, 'center', 2); text(g, 'fade', 310, y + 128, '#6e6964', 8.5, 'center', 2); });
+      rrect(g, 390.5, .5, 389, 274, 8, '#121010', 'rgba(255,255,255,.08)'); text(g, 'Tape', 408, 26, '#d8d2cc', 10, 'left', 2); line(g, T2, 408, 110, 352, 38, 'rgba(255,190,110,.4)', 1); line(g, T1, 408, 110, 352, 44, '#ffb060', 1.8);
+      [['wow', .45], ['drift', .7], ['lo cut', .3]].forEach(([l, v], j) => { knob(g, 515 + j * 70, 210, 18, v, '#ffb060'); text(g, l, 515 + j * 70, 248, '#6e6964', 8.5, 'center', 2); }); })],
+
+  // 5 · TILES: soft round-cornered tiles, the type name big and the curve under it; arrows between. Life as tall tiles.
+  5: () => [cv(780, 180, (g) => BOX.forEach(([n, t, c], i) => { const x = i * 129; rrect(g, x + .5, .5, 116, 179, 18, c + '10', c + '40'); text(g, t, x + 58, 36, c, 12.5, 'center', 2); curve(g, t, x + 16, 58, 84, 70, c, 2); text(g, n, x + 58, 160, '#8f8983', 9, 'center', 2); if (i < 5) arrow(g, x + 124, 90); })),
+    cv(780, 280, (g) => { [['Humanize', '#ff4a3a', [L1]], ['Humanize', '#ff9a2a', [L2]], ['Tape', '#ffb060', [T2, T1]]].forEach(([n, c, ds], i) => { const x = i * 266; rrect(g, x + .5, .5, 246, 279, 22, c + '0e', c + '40'); text(g, n, x + 123, 40, c, 13, 'center', 2.5); ds.forEach((d, j) => line(g, d, x + 22, 150, 202, 50, j || ds.length === 1 ? c : 'rgba(255,190,110,.4)', j || ds.length === 1 ? 2 : 1)); text(g, ['LFO 1', 'LFO 2', 'wow · drift'][i], x + 123, 252, '#6e6964', 9.5, 'center', 2); }); })],
+
+  // 6 · STEPS: the chain wraps into two rows with numbers, read like a sentence; life as two boxes side by side
+  6: () => [cv(780, 330, (g) => BOX.forEach(([n, t, c], i) => { const col = i % 3, row = Math.floor(i / 3), x = col * 268, y = row * 170; rrect(g, x + .5, y + .5, 232, 148, 10, '#121010', 'rgba(255,255,255,.08)');
+      text(g, String(i + 1).padStart(2, '0'), x + 18, y + 30, '#55555b', 11, 'left', 2); text(g, n, x + 52, y + 30, '#d8d2cc', 10.5, 'left', 2); text(g, t, x + 214, y + 30, c, 10.5, 'right', 2); curve(g, t, x + 20, y + 50, 192, 80, c, 2);
+      if (col < 2) arrow(g, x + 250, y + 74); else if (row === 0) { g.strokeStyle = 'rgba(255,255,255,.2)'; g.beginPath(); g.moveTo(x + 116, y + 150); g.lineTo(x + 116, y + 158); g.lineTo(116, y + 158); g.lineTo(116, y + 168); g.stroke(); } })),
+    cv(780, 240, (g) => { rrect(g, .5, .5, 380, 239, 10, '#121010', 'rgba(255,255,255,.08)'); text(g, 'Humanize · 2 LFOs', 20, 30, '#d8d2cc', 10.5, 'left', 2); line(g, L1, 20, 100, 340, 28, '#ff4a3a', 2); line(g, L2, 20, 170, 340, 28, '#ff9a2a', 2);
+      rrect(g, 399.5, .5, 380, 239, 10, '#121010', 'rgba(255,255,255,.08)'); text(g, 'Tape · wow + drift', 420, 30, '#d8d2cc', 10.5, 'left', 2); line(g, T2, 420, 135, 340, 50, 'rgba(255,190,110,.4)', 1.1); line(g, T1, 420, 135, 340, 56, '#ffb060', 2); })],
+};
+const [a, b] = LOOKS[V]();
+document.getElementById('root').innerHTML = `<section class="sec"><div class="in">${ruin}<div>${a}</div></div></section><section class="sec"><div class="in rev"><div>${b}</div>${alive}</div></section>`;
+document.fonts.ready.then(() => { document.querySelectorAll('canvas').forEach((c) => { const [w, h, draw] = C[+c.dataset.i]; c.width = w * 2; c.height = h * 2; const g = c.getContext('2d'); g.scale(2, 2); draw(g); }); document.title = 'done'; });
+</script></body></html>

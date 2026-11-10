@@ -30,8 +30,8 @@ describe('coverage', () => {
       if (!c || !['bank', 'terror'].includes(e.patch.meta.collection as string)) continue;
       n.set(shelfOf(c), (n.get(shelfOf(c)) ?? 0) + 1);
     }
-    // (Dark Basses may hold 36 until the bank is rebuilt: Classic Reese joined a full shelf, owner's call)
-    expect([...n].filter(([s, k]) => k > (s === 'bass' ? 36 : 35))).toEqual([]);
+    // (Dark Basses may hold 50 until the bank is rebuilt: Classic Reese, Destroyed Reese, the owner's five Diva conversions and eight industrial basses joined a full shelf, owner's call; Lead may hold 36: Chainsaw Lead joined a full shelf; Pads may hold 60: Strings and Brass were merged into it until the bank rebuild; owner's calls)
+    expect([...n].filter(([s, k]) => k > (s === 'bass' ? 50 : s === 'lead' ? 36 : s === 'pad' ? 60 : 35))).toEqual([]);
   });
 
   it('presets the owner uses as they are stay in the bank', () => {

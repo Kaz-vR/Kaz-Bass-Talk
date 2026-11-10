@@ -4,8 +4,8 @@
 //
 // Plugin additions: notes carry their MIDI channel so MPE per-note bend,
 // pressure and slide reach the right voice; the host's tempo and bar
-// position drive the Wobbler's and GRIND's clock (setTempo / syncBeat); solo /
-// mute come as bit masks; live values for the window (filter, LFOs, Wobbler, GRIND).
+// position drive the tempo-synced LFOs' and RUIN's clock (setTempo / syncBeat); solo /
+// mute come as bit masks; live values for the window (filter, LFOs, RUIN).
 #pragma once
 #include <array>
 #include <cmath>
@@ -14,6 +14,7 @@
 #include <vector>
 #include "Dsp.h"
 #include "Fx.h"
+#include "Bus.h"
 #include "Grind.h"
 #include "Oversample.h"
 #include "Params.h"
@@ -34,11 +35,13 @@ class Synth {
   // Live values for the window (the newest voice's).
   double liveCutoff = 0, liveRes = 0, liveWob = -1, liveWobFc = -1;
   std::array<double, LFO_COUNT> lfoPhase{}, lfoValue{};
-  std::array<double, 4> liveGrind{}, liveGrindRes{};
+  // What the page shows of each LFO: its phase and value; the per-note shapes show the newest note's.
+  std::array<double, LFO_COUNT> liveLfoPhase{}, liveLfoValue{};
+  std::array<double, 8> liveGrind{}, liveGrindRes{};
 
   explicit Synth(double fs)
-      : sampleRate(fs), rng(0x1234567), wobRng(0x60bb1e), texGrindRng(0x6a1d), texGrind(texGrindRng), ott(),
-        chorus(fs), phaser(fs), flanger(fs), limiter(fs, LIMITER_CEILING_DB) {
+      : sampleRate(fs), rng(0x1234567), wobRng(0x60bb1e), texGrindRng(0x6a1d), bus(fs, texGrindRng), ott(),
+        chorus(fs), phaser(fs), reverb(fs), verbOct(fs), flanger(fs) {
     smoothCoef = 1 - std::exp(-CONTROL_BLOCK / ((SMOOTH_MS / 1000) * fs));
     duckStep = 1 / ((DUCK_MS / 1000) * fs);
     postDcR = 1 - (2 * PI * 5) / fs;
@@ -55,10 +58,22 @@ class Synth {
     for (int i = 0; i < 2; i++) {
       dcL[i].setHighpass(SUBSONIC_HZ, SUBSONIC_Q[i], fs);
       dcR[i].setHighpass(SUBSONIC_HZ, SUBSONIC_Q[i], fs);
+      hsDcL[i].setHighpass(SUBSONIC_HZ, SUBSONIC_Q[i], fs);
+      hsDcR[i].setHighpass(SUBSONIC_HZ, SUBSONIC_Q[i], fs);
+    }
+    {
+      // Octave down: 2x windowed-sinc interpolator (Blackman), normalised to unity gain.
+      double sum = 0;
+      for (int j = 0; j < HS_TAPS; j++) {
+        const double t = j + 0.5, x = t / HS_TAPS;
+        hsCoef[j] = (std::sin(PI * t) / (PI * t)) * (0.42 + 0.5 * std::cos(PI * x) + 0.08 * std::cos(2 * PI * x));
+        sum += 2 * hsCoef[j];
+      }
+      for (int j = 0; j < HS_TAPS; j++) hsCoef[j] /= sum;
     }
     lastFx.fill(NAN);
-    eqLast.fill(NAN);
     wobSig = NAN;
+    eqLast.fill(NAN);
     for (int l = 0; l < LFO_COUNT; l++) {
       lfoPrev[l] = rng.next();
       lfoHold[l] = rng.next();
@@ -67,11 +82,13 @@ class Synth {
     control();
   }
 
-  int latency() const { return limiter.lookahead - 1 + OVERSAMPLE_LATENCY; }
-  double limiterCeiling() const { return limiter.ceiling; }
+  // no limiter and no forced mono low end (owner's call): these only report, for the checks (see synth.ts)
+  int latency() const { return 2 * OVERSAMPLE_LATENCY; }
+  double limiterCeiling() const { return std::pow(10.0, LIMITER_CEILING_DB / 20); }
   double takeLimiterMinGain() {
-    const double g = limiter.minGain;
-    limiter.minGain = 1;
+    const double c = limiterCeiling();
+    const double g = overPeak > c ? c / overPeak : 1;
+    overPeak = 0;
     return g;
   }
 
@@ -99,8 +116,10 @@ class Synth {
     }
   }
   void setTempo(double bpm) { tempo = clampd(bpm, 20, 400); }
-  /** Align the internal clocks to a song position in beats (the bar for GRIND, the song for the Wobbler). */
+  /** Align the internal clocks to a song position in beats (the bar for RUIN and the synced LFOs). */
   void syncBeat(double beat) {
+    // At half speed the engine's clock runs at half the host's: it free-runs (as a pitched-down render would).
+    if (cur[PI_().halfSpeed] >= 0.5) return;
     beatPos = beat - 4 * std::floor(beat / 4);
     songBeat = beat;
   }
@@ -156,10 +175,13 @@ class Synth {
       }
     }
     if (!pick)
-      for (int i = 0; i < poly; i++) {
+      // a free voice, from the one after the last started (voices rotate, as in synth.ts)
+      for (int n = 0; n < poly; n++) {
+        const int i = (rotate + n) % poly;
         Voice& v = *voices[i];
         if (!v.active() && v.tail == 0) {
           pick = &v;
+          rotate = (i + 1) % poly;
           break;
         }
       }
@@ -217,18 +239,15 @@ class Synth {
       hpL[k].reset();
       hpR[k].reset();
     }
-    for (auto& x : xo) x.reset();
-    for (auto& x : xoPost) x.reset();
     chorus.reset();
     phaser.reset();
-    limiter.reset();
     postDcXL = postDcYL = postDcXR = postDcYR = 0;
     for (int i = 0; i < 2; i++) {
       dcL[i].reset();
       dcR[i].reset();
     }
     texture.reset();
-    texEnv = texLpL = texLpR = 0;
+    texEnv = 0;
     wobCycle = -1;
     wobGate = wobGateTarget = 1;
     for (auto& side : wobBand) for (auto& b : side) b.reset();
@@ -237,7 +256,10 @@ class Synth {
     hcL.reset();
     hcR.reset();
     flanger.reset();
-    fxOtt.reset();
+    reverb.reset();
+    verbOct.reset();
+    bus.reset();
+    subWait.fill(0);
   }
 
   bool idle() const { return !anyActive(); }
@@ -252,6 +274,61 @@ class Synth {
 
   /** Render `frames` samples into outL/outR starting at `offset`. Allocation-free. */
   void render(float* outL, float* outR, int offset, int frames) {
+    const int end = offset + frames;
+    int n = offset;
+    while (n < end) n = hsOn ? renderHalf(outL, outR, n, end) : renderCore(outL, outR, n, end - n);
+  }
+
+ private:
+  // Octave down, live: the engine renders one sample for every two played (half speed, as a frozen
+  // render pitched down in Repitch mode), read back at the real rate through a windowed-sinc 2x
+  // interpolator; the output's safety stages run again at the real rate. Switches at the duck's bottom.
+  int renderHalf(float* outL, float* outR, int n, int end) {
+    constexpr int M = HS_TAPS;
+    double pk = peak;
+    while (n < end) {
+      double l, r;
+      if (hsPhase == 0) {
+        renderCore(&hsOne, &hsOneR, 0, 1);
+        for (int k = 2 * M - 1; k > 0; k--) {
+          hsL[k] = hsL[k - 1];
+          hsR[k] = hsR[k - 1];
+        }
+        hsL[0] = hsOne;
+        hsR[0] = hsOneR;
+        if (hsDrain > 0 && --hsDrain == 0) {
+          hsDrain = -1;
+          hsOn = false;
+        }
+        l = hsL[M];
+        r = hsR[M];
+        hsPhase = 1;
+      } else {
+        l = 0;
+        r = 0;
+        for (int j = 0; j < M; j++) {
+          l += hsCoef[j] * (hsL[M - 1 - j] + hsL[M + j]);
+          r += hsCoef[j] * (hsR[M - 1 - j] + hsR[M + j]);
+        }
+        hsPhase = 0;
+      }
+      l = hsDcL[1].process(hsDcL[0].process(l));
+      r = hsDcR[1].process(hsDcR[0].process(r));
+      outL[n] = (float)l;
+      outR[n] = (float)r;
+      const double a = std::fabs(l) > std::fabs(r) ? std::fabs(l) : std::fabs(r);
+      if (a > pk) pk = a;
+      if (a > overPeak) overPeak = a;
+      n++;
+      if (!hsOn) break;
+    }
+    if (peak > pk) pk = peak;
+    peak = pk;
+    return n;
+  }
+
+  /** Renders up to `frames` samples; stops early (returning where) when octave down switches. */
+  int renderCore(float* outL, float* outR, int offset, int frames) {
     const auto& P = PI_();
     const int end = offset + frames;
     double pk = peak;
@@ -267,9 +344,11 @@ class Synth {
         duckGain -= duckStep;
         if (duckGain <= 0) {
           duckGain = 0;
+          const double hs = cur[P.halfSpeed];
           copyDiscrete();
           duckDir = 1;
-          duckHold = 2 * OVERSAMPLE_LATENCY + 8;
+          // Octave down switching: stay silent until what was in the limiter and the interpolator is out.
+          duckHold = cur[P.halfSpeed] != hs ? latency() + HS_TAPS + 8 : 3 * OVERSAMPLE_LATENCY + 8;
         }
       } else if (duckHold > 0) {
         duckHold--;
@@ -311,12 +390,6 @@ class Synth {
         }
         const double tf = texPos;
         double tl = texPrev[0] + (texCur[0] - texPrev[0]) * tf, tr = texPrev[1] + (texCur[1] - texPrev[1]) * tf;
-        if (cur[P.tapeAge] > 0) {
-          texLpL += (tl - texLpL) * texLpCoef;
-          texLpR += (tr - texLpR) * texLpCoef;
-          tl = texLpL;
-          tr = texLpR;
-        }
         if (texF.active) {
           tl = texF.process(tl, 0);
           tr = texF.process(tr, 1);
@@ -340,19 +413,30 @@ class Synth {
         texEnv = 0;
       }
       const bool direct = texDirect;
-      if (!direct) {
-        if (texGrindOn) {
-          texGrind.process(texL, texR);
-          texL = texGrind.l;
-          texR = texGrind.r;
-        }
+      if (!direct && !texThru) {
         l += texL;
         r += texR;
+      }
+      // RUIN → DRIVE → bitcrusher → tape on everything together (Bus.h); the sub waits as long
+      bus.process(l, r);
+      l = bus.l;
+      r = bus.r;
+      {
+        const int p = subWaitPos;
+        subWait[p] = sub;
+        int rp = p - OVERSAMPLE_LATENCY;
+        if (rp < 0) rp += 32;
+        sub = subWait[rp];
+        subWaitPos = (p + 1) & 31;
       }
       if (ott.on()) {
         ott.process(l, r);
         l = ott.l;
         r = ott.r;
+      }
+      if (!direct && texThru) {  // NOISE THRU: after RUIN's OTT, still into the effects
+        l += texL;
+        r += texR;
       }
 
       const double cMix = cur[P.chorusMix];
@@ -376,11 +460,16 @@ class Synth {
         l += out[0] - hl;
         r += out[1] - hr;
       }
-      // The FX page's OTT (below its Lo cut the sound passes as it is).
-      if (fxOtt.on()) {
-        fxOtt.process(l, r);
-        l = fxOtt.l;
-        r = fxOtt.r;
+      const double rMix = reverbMix;
+      if (rMix > 1e-4) {
+        double vin;
+        if (cur[P.reverbOct] < -0.5) {
+          const double sh = verbOct.process(0.5 * (l + r));
+          vin = 0.5 * (hpL[4].process(sh) + hpR[4].process(sh));
+        } else vin = 0.5 * (hpL[4].process(l) + hpR[4].process(r));
+        reverb.process(vin, cur[P.reverbType], cur[P.reverbDecay], cur[P.reverbPre], out);
+        l += out[0] * rMix;
+        r += out[1] * rMix;
       }
 
       for (int b = 0; b < 4; b++) {
@@ -425,7 +514,7 @@ class Synth {
 
       const double m = 0.5 * (l + r);
       width += widthStep;
-      const double s = width * xo[3].process(xo[2].process(xo[1].process(xo[0].process(0.5 * (l - r)))));
+      const double s = width * 0.5 * (l - r);
       l = (m + s) * outGain;
       r = (m - s) * outGain;
 
@@ -434,31 +523,36 @@ class Synth {
         l = r = 0;
       }
 
-      limiter.process(l, r, out);
-      {
-        const double pm = 0.5 * (out[0] + out[1]);
-        const double ps = xoPost[1].process(xoPost[0].process(0.5 * (out[0] - out[1])));
-        out[0] = pm + ps;
-        out[1] = pm - ps;
-      }
-      const double c = limiter.ceiling;
-      double yl = out[0] - postDcXL + postDcR * postDcYL;
-      postDcXL = out[0];
+      double yl = l - postDcXL + postDcR * postDcYL;
+      postDcXL = l;
       postDcYL = yl;
-      double yr = out[1] - postDcXR + postDcR * postDcYR;
-      postDcXR = out[1];
+      double yr = r - postDcXR + postDcR * postDcYR;
+      postDcXR = r;
       postDcYR = yr;
-      yl = yl > c ? c : yl < -c ? -c : yl;
-      yr = yr > c ? c : yr < -c ? -c : yr;
       outL[n] = (float)yl;
       outR[n] = (float)yr;
       const double a = std::fabs(yl) > std::fabs(yr) ? std::fabs(yl) : std::fabs(yr);
       if (a > pk) pk = a;
+      if (a > overPeak) overPeak = a;
+      const bool half = cur[P.halfSpeed] >= 0.5;
+      if (half != hsOn) {
+        // Octave down switched (silent here: the bottom of the duck, or no note sounding).
+        if (half) {
+          hsOn = true;
+          hsL.fill(0);
+          hsR.fill(0);
+          hsPhase = 0;
+          peak = pk;
+          return n + 1;
+        }
+        // Off: play out what the limiter and the interpolator still hold first.
+        if (hsDrain < 0) hsDrain = latency() + HS_TAPS + 1;
+      }
     }
     peak = pk;
+    return end;
   }
 
- private:
   bool anyActive() const {
     for (auto& v : voices)
       if (v->active()) return true;
@@ -487,8 +581,7 @@ class Synth {
     auto off = [&](int flag) { return raw[flag] < 0.5; };
     auto zero = [&](std::initializer_list<int> ix) { for (int i : ix) t[i] = 0; };
     auto block = [&](std::initializer_list<int> ds) { for (int d : ds) dstMask[d] = 0; };
-    if (off(P.fmOn)) { zero({P.fmAmount, P.fm2Amount}); block({D_FM, D_FM2}); }
-    if (off(P.driveOn)) { zero({P.drive}); block({D_DRIVE}); }
+    if (off(P.driveOn)) { zero({P.drive, P.mixDrive}); block({D_DRIVE}); }
     if (off(P.filterOn)) {
       t[P.cutoff] = 20000;
       t[P.fType] = FILTER_LP;
@@ -497,11 +590,12 @@ class Synth {
     }
     if (off(P.distOn)) { zero({P.dMix}); block({D_DIST_MIX, D_DIST_DRIVE, D_DIST_TONE}); }
     if (off(P.crushOn)) { zero({P.crushMix}); block({D_CRUSH}); }
-    if (off(P.tapeOn)) { zero({P.tapeDrive, P.tapeWow, P.tapeAge}); block({D_TAPE_WOW}); }
-    if (off(P.vibOn)) { zero({P.vibDepth}); block({D_VIBRATO}); }
+    if (off(P.tapeOn)) { zero({P.tapeWow}); block({D_TAPE_WOW}); }
     if (off(P.wobOn)) zero({P.wobDepth});
-    for (const auto& s : P.slots)
-      if (off(P.modOn) || off(s.on)) t[s.amt] = 0;
+    if (off(P.vibOn)) { zero({P.vibDepth}); block({D_VIBRATO}); }
+    // the matrix's master switch is PATCH LFO'S (rows 1-5); RUIN'S LFO (6-10) has only its rows' own lamps
+    for (int i = 0; i < SLOT_COUNT; i++)
+      if (off(P.modOn) || off(P.slots[i].on)) t[P.slots[i].amt] = 0;
     if (off(P.eqOn)) {
       t[P.eqScale] = 0;
       for (const auto& b : P.eq) t[b.type] = 0;
@@ -514,7 +608,7 @@ class Synth {
     if (off(P.reverbOn)) { zero({P.reverbMix}); block({D_REVERB_MIX}); }
     if (off(P.ottOn)) zero({P.ottDepth});
     // reverb and delay were taken out of the synth (owner's call: every producer has their own)
-    block({D_REVERB_MIX, D_DELAY_MIX, D_DELAY_TIME});
+    block({D_DELAY_MIX, D_DELAY_TIME});
     // Solo / mute (a listening aid from the window, not part of the patch).
     auto hear = [&](int layer) { return !(monMute >> layer & 1) && (monSolo == 0 || (monSolo >> layer & 1)); };
     if (!hear(MON_OSC1)) { zero({P.osc[0].level}); block({D_OSC1_LEVEL}); }
@@ -522,7 +616,7 @@ class Synth {
     if (!hear(MON_SUB)) { zero({P.subLevel}); block({D_SUB}); }
     if (!hear(MON_NOISE)) { zero({P.noise}); block({D_NOISE}); }
     if (!hear(MON_OSC1) && !hear(MON_OSC2) && !hear(MON_NOISE) && !hear(MON_BREATH)) {
-      zero({P.tapeDrive, P.tapeWow, P.tapeAge});
+      zero({P.tapeWow});
       block({D_TAPE_WOW});
     }
     texMonTarget = hear(MON_TEXTURE) ? 1 : 0;
@@ -548,7 +642,7 @@ class Synth {
   void onTrigger(double velocity) {
     const auto& P = PI_();
     texture.trigger(velocity);
-    texGrind.noteOn(&rng);
+    bus.noteOn(rng);
     for (int l = 0; l < LFO_COUNT; l++) {
       if (cur[P.lfo[l].retrig] > 0.5) {
         lfoPhase[l] = 0;
@@ -614,6 +708,15 @@ class Synth {
     return v;
   }
 
+  // Wander's next point, as a player moves: mostly small nudges, now and then a big move.
+  double wanderMove(double prev) {
+    const double a = 0.5 * (rng.next() + 1);
+    double v = prev + (rng.next() < 0 ? -1 : 1) * (0.08 + 1.2 * a * a);
+    if (v > 1) v = 2 - v;
+    else if (v < -1) v = -2 - v;
+    return v;
+  }
+
   static double lfoShape(int shape, double p, double hold, double prev) {
     switch (shape) {
       case LFO_SINE: return std::sin(TWO_PI * p);
@@ -627,32 +730,7 @@ class Synth {
     }
   }
 
-  /** The wobble shape set up for this block, unsmoothed, at q (0..1). */
-  double wobRaw(double q) const {
-    const int shape = wobShapeNow;
-    if (shape == WOB_RANDOM) return wobRand[std::min(WOB_RANDOM_STEPS - 1, (int)std::floor(q * WOB_RANDOM_STEPS))];
-    if (shape == WOB_CUSTOM) return wobShapeAt(wobXs.data(), wobYs.data(), wobSs.data(), wobPtsNow, q);
-    const WobTemplate& t = WOB_TEMPLATE_ARRAYS[shape >= 0 && shape < WOB_SHAPE_COUNT ? shape : 0];
-    return wobShapeAt(t.xs, t.ys, t.ss, t.n, q);
-  }
-
-  double wobSide(double x, int c, bool loOn, double g, bool filt) {
-    auto& f = wobBand[c];
-    double low = 0, mid = x;
-    if (loOn) {
-      low = f[1].process(f[0].process(x));
-      mid = f[3].process(f[2].process(x));
-    }
-    if (filt) {
-      auto& sv = wobSvf[c];
-      sv[0].process(mid, wobG, wobK);
-      sv[1].process(sv[0].lp, wobG, SQRT2);
-      mid = sv[1].lp;
-    }
-    return low + mid * g;
-  }
-
-  /** The mod wheel's move and the wobble, as offsets every voice adds to its mod matrix. */
+  /** The mod wheel's move, as offsets every voice adds to its mod matrix. */
   void extraModulation() {
     const auto& P = PI_();
     auto& x = xdst;
@@ -739,6 +817,31 @@ class Synth {
     }
   }
 
+  /** The wobble shape set up for this block, unsmoothed, at q (0..1). */
+  double wobRaw(double q) const {
+    const int shape = wobShapeNow;
+    if (shape == WOB_RANDOM) return wobRand[std::min(WOB_RANDOM_STEPS - 1, (int)std::floor(q * WOB_RANDOM_STEPS))];
+    if (shape == WOB_CUSTOM) return wobShapeAt(wobXs.data(), wobYs.data(), wobSs.data(), wobPtsNow, q);
+    const WobTemplate& t = WOB_TEMPLATE_ARRAYS[shape >= 0 && shape < WOB_SHAPE_COUNT ? shape : 0];
+    return wobShapeAt(t.xs, t.ys, t.ss, t.n, q);
+  }
+
+  double wobSide(double x, int c, bool loOn, double g, bool filt) {
+    auto& f = wobBand[c];
+    double low = 0, mid = x;
+    if (loOn) {
+      low = f[1].process(f[0].process(x));
+      mid = f[3].process(f[2].process(x));
+    }
+    if (filt) {
+      auto& sv = wobSvf[c];
+      sv[0].process(mid, wobG, wobK);
+      sv[1].process(sv[0].lp, wobG, SQRT2);
+      mid = sv[1].lp;
+    }
+    return low + mid * g;
+  }
+
   void control() {
     const auto& P = PI_();
     const double fs = sampleRate;
@@ -746,31 +849,11 @@ class Synth {
 
     auto& src = gsrc;
     src[0] = 0;
-    src[SRC_LFO1] = lfoValue[0] * cur[P.lfoOn[0]];
-    src[SRC_LFO2] = lfoValue[1] * cur[P.lfoOn[1]];
-    src[SRC_LFO3] = lfoValue[2] * cur[P.lfoOn[2]];
-    src[SRC_LFO4] = lfoValue[3] * cur[P.lfoOn[3]];
+    // (the per-note shapes are filled in by each voice)
+    for (int l = 0; l < LFO_COUNT; l++) src[SRC_LFO[l]] = lfoValue[l] * cur[P.lfoOn[l]];
     wheel += (modWheel - wheel) * (1 - std::exp(-CONTROL_BLOCK / (0.02 * fs)));
     src[SRC_MODWHEEL] = wheel;
     extraModulation();
-    if (--driftCount <= 0) {
-      driftTarget = rng.next();
-      driftCount = (int)jsRound(((0.4 + 1.2 * (0.5 + 0.5 * rng.next())) * fs) / CONTROL_BLOCK);
-    }
-    driftVal += (driftTarget - driftVal) * 0.004;
-    src[SRC_DRIFT] = driftVal;
-    src[SRC_PRODUCT] = src[SRC_LFO1] * src[SRC_LFO2];
-    if (slowPos >= 1) {
-      slowA = slowB;
-      slowB = wanderStep(slowA);
-      slowPos = 0;
-      slowStep = CONTROL_BLOCK / ((2 + 4 * (0.5 + 0.5 * rng.next())) * fs);
-    }
-    slowPos += slowStep;
-    {
-      const double t = slowPos > 1 ? 1 : slowPos;
-      src[SRC_DRIFT_SLOW] = slowA + (slowB - slowA) * (0.5 - 0.5 * std::cos(PI * t));
-    }
 
     Voice* lead = voices[0].get();
     Voice* lowest = nullptr;
@@ -790,9 +873,10 @@ class Synth {
     }
     anyGate = gateAny;
     liveCutoff = lead->active() ? lead->fcNow : 0;
-    for (int i = 0; i < 4; i++) {
-      liveGrind[i] = lead->active() ? lead->grindFc(i) : -1;
-      liveGrindRes[i] = lead->grindRes(i);
+    for (int i = 0; i < 8; i++) {
+      const auto& st = bus.grind.stages[i];
+      liveGrind[i] = lead->active() && bus.grindOn ? st.fcNow : -1;
+      liveGrindRes[i] = st.resNow;
     }
     liveRes = lead->resNow;
     if (poly > 1) {
@@ -811,14 +895,48 @@ class Synth {
       double rate = sync > 0 ? tempo / 60 / SYNC_BEATS[sync] : cur[lp.rate];
       const double rm = dst[LFO_RATE_DEST[l]];
       if (rm != 0) rate *= std::pow(2.0, 3 * rm);
-      double ph = lfoPhase[l] + (rate * CONTROL_BLOCK) / fs;
+      const int shape = (int)cur[lp.shape];
+      const bool drifting = shape == LFO_DRIFT || shape == LFO_SLOW_DRIFT || shape == LFO_WANDER;
+      double ph = lfoPhase[l] + (rate * CONTROL_BLOCK) / fs / (drifting ? lfoSeg[l] : 1);
       if (ph >= 1) {
         ph -= std::floor(ph);
         lfoPrev[l] = lfoHold[l];
-        lfoHold[l] = (int)cur[lp.shape] == LFO_WANDER ? wanderStep(lfoHold[l]) : rng.next();
+        lfoHold[l] = shape == LFO_WANDER ? wanderMove(lfoHold[l]) : shape == LFO_SLOW_DRIFT ? wanderStep(lfoHold[l]) : rng.next();
+        // as the old sources: drift a new point every 0.4-1.6 cycles (s at 1 Hz), slow drift every 0.5-1.5 (2-6 s at 0.25 Hz)
+        if (shape == LFO_DRIFT) lfoSeg[l] = 0.4 + 1.2 * (0.5 + 0.5 * rng.next());
+        else if (shape == LFO_SLOW_DRIFT) lfoSeg[l] = 0.5 + 1.0 * (0.5 + 0.5 * rng.next());
+        else if (shape == LFO_WANDER) lfoSeg[l] = std::pow(3.0, rng.next());
       }
       lfoPhase[l] = ph;
-      lfoValue[l] = lfoShape((int)cur[lp.shape], ph, lfoHold[l], lfoPrev[l]);
+      if (shape == LFO_DRIFT) {
+        // glides towards its point (the old source's 0.004 per block at 1 Hz)
+        lfoDrift[l] += (lfoHold[l] - lfoDrift[l]) * (1 - std::pow(0.996, rate));
+        lfoValue[l] = lfoDrift[l];
+      } else if (shape == LFO_SLOW_DRIFT) {
+        lfoValue[l] = lfoPrev[l] + (lfoHold[l] - lfoPrev[l]) * (0.5 - 0.5 * std::cos(PI * ph));
+      } else {
+        lfoValue[l] = lfoShape(shape, ph, lfoHold[l], lfoPrev[l]);
+      }
+      if (shape == LFO_WANDER) {
+        // HUMANIZE: the slow, uneven moves plus a tremble six times as fast, a quarter of the depth
+        double tp = trPh[l] + (6 * rate * CONTROL_BLOCK) / fs / trSeg[l];
+        if (tp >= 1) {
+          tp -= std::floor(tp);
+          trPrev[l] = trHold[l];
+          trHold[l] = rng.next();
+          trSeg[l] = std::pow(3.0, rng.next());
+        }
+        trPh[l] = tp;
+        const double s = tp * tp * (3 - 2 * tp);
+        lfoValue[l] = 0.8 * lfoValue[l] + 0.2 * (trPrev[l] + (trHold[l] - trPrev[l]) * s);
+      }
+      if (lfoPerNote(shape)) {
+        liveLfoPhase[l] = lead->active() ? lead->lfoProgress(l) : 0;
+        liveLfoValue[l] = lead->active() ? lead->lfoNow(l) : 0;
+      } else {
+        liveLfoPhase[l] = ph;
+        liveLfoValue[l] = lfoValue[l];
+      }
     }
 
     const double tex = clampd(cur[P.texLevel] + dst[D_TEXTURE] + ((int)cur[P.texType] == TEX_BREATH ? dst[D_BREATH] : 0), 0, 1);
@@ -831,7 +949,6 @@ class Synth {
     texAtk = 1 - std::exp(-1 / (std::fmax(0.03, cur[P.amp[0]] / 3000) * fs));
     texRel = std::exp(-4.6 / ((cur[P.texTail] / 1000) * fs));
     texture.puffLen = cur[P.texTail] / 1000;
-    texLpCoef = lead->tapeLpCoef;
     {
       const SlotKind sk = auxSlot(cur[P.texFType]);
       double hz = cur[P.texFCut];
@@ -858,17 +975,15 @@ class Synth {
       texPanR = std::sin(a) * SQRT2;
     }
     texDirect = cur[P.texDirect] > 0.5;
-    const bool tg = cur[P.grindOn] > 0.5 && !texDirect;
-    if (tg && !texGrindOn) texGrind.reset();
-    texGrindOn = tg;
-    ott.set(cur[P.grindOn] > 0.5 ? cur[P.grindOtt] : 0, cur[P.grindLowcut], fs);
-    if (tg) texGrind.control(cur.data(), beatPos, tempo / 60, (lead->pitch + 12 * cur[P.octave] - KEYTRACK_CENTER) / 12, fs, fs, CONTROL_BLOCK, rng);
+    texThru = cur[P.grindNoiseThru] > 0.5;  // RUIN's NOISE THRU: the bed skips the chain and its OTT
+    bus.control(cur.data(), lead->dst.data(), beatPos, tempo / 60, (lead->pitch + 12 * cur[P.octave] - KEYTRACK_CENTER) / 12, fs, CONTROL_BLOCK, rng);
+    ott.set(cur[P.grindOn] > 0.5 ? cur[P.grindOtt] * cur[P.grindMix] : 0, cur[P.grindLowcut], fs);
 
     beatPos += (tempo / 60) * ((double)CONTROL_BLOCK / fs);
     songBeat += (tempo / 60) * ((double)CONTROL_BLOCK / fs);
     if (beatPos >= 4) beatPos -= 4;
 
-    fxOtt.set(cur[P.ottDepth], cur[P.ottLowcut], fs);
+    reverbMix = clampd(cur[P.reverbMix] + dst[D_REVERB_MIX], 0, 1);
 
     chorusDepth = clampd(cur[P.chorusDepth] + dst[D_CHORUS_DEPTH], 0, 1);
     phaserMix = clampd(cur[P.phaserMix] + dst[D_PHASER_MIX], 0, 1);
@@ -899,11 +1014,6 @@ class Synth {
         else type > 0.5 ? f->setNotch(hz, q, fs) : f->setPeak(hz, db, q, fs);
       }
     }
-    if (cur[P.crossover] != lastFx[5]) {
-      for (int i = 0; i < 4; i++) xo[i].setHighpass(cur[P.crossover], XO_Q[i], fs);
-      for (int i = 0; i < 2; i++) xoPost[i].setHighpass(cur[P.crossover], SUBSONIC_Q[i], fs);
-      lastFx[5] = cur[P.crossover];
-    }
     if (cur[P.eqHighcut] != lastFx[6]) {
       const double hc = cur[P.eqHighcut];
       highcutOn = hc < 19500;
@@ -928,9 +1038,19 @@ class Synth {
   double smoothCoef = 0, duckGain = 1, duckStep = 0;
   int duckDir = 0, duckHold = 0;
 
+  // Octave down (half speed).
+  static constexpr int HS_TAPS = 12;
+  std::array<double, HS_TAPS> hsCoef{};
+  std::array<double, 2 * HS_TAPS> hsL{}, hsR{};
+  float hsOne = 0, hsOneR = 0;
+  Biquad hsDcL[2], hsDcR[2];
+  int hsPhase = 0, hsDrain = -1;
+  bool hsOn = false;
+
   // Voices and notes.
   std::vector<std::unique_ptr<Voice>> voices;
   int poly = 1;
+  int rotate = 0;  // where the next free-voice search starts
   long long order = 0;
   std::array<int, 16> stack{};
   int stackLen = 0;
@@ -942,10 +1062,10 @@ class Synth {
   Rng rng;
   Rng wobRng;
   std::array<double, LFO_COUNT> lfoHold{}, lfoPrev{};
+  // Drift and slow drift: each segment's length in cycles (random), and drift's own smoothed value.
+  std::array<double, LFO_COUNT> lfoSeg{1, 1, 1, 1, 1, 1}, lfoDrift{};
+  std::array<double, LFO_COUNT> trPh{}, trPrev{}, trHold{}, trSeg{1, 1, 1, 1, 1, 1};
   std::array<double, SRC_COUNT> gsrc{};
-  double driftVal = 0, driftTarget = 0;
-  int driftCount = 0;
-  double slowA = 0, slowB = 0, slowPos = 1, slowStep = 0;
   double tempo = 120, beatPos = 0, songBeat = 0;
 
   // The Wobbler.
@@ -963,13 +1083,14 @@ class Synth {
   bool wobFiltOn = false, wobFiltWas = false;
   double wobG = 0, wobGStep = 0, wobK = 1.3, wobGate = 1, wobGateTarget = 1;
 
+
   // GRIND on the noise bed, and its OTT on the whole synth.
   Rng texGrindRng;
-  Grind texGrind;
-  bool texGrindOn = false;
+  DirtBus bus;
+  std::array<double, 32> subWait{};
+  int subWaitPos = 0;
+  bool texThru = false;
   Ott ott;
-  /** The FX page's OTT: after the phaser, before the EQ. */
-  Ott fxOtt;
 
   // Texture bed.
   Texture texture;
@@ -985,13 +1106,16 @@ class Synth {
   int texType = 0;
   double texTone = 0.4, texDensity = 0.5, texRate = 1, texPos = 1;
   double texPrev[2] = {}, texCur[2] = {};
-  double texAtk = 0.001, texRel = 0.999, texLpL = 0, texLpR = 0, texLpCoef = 1;
+  double texAtk = 0.001, texRel = 0.999;
   bool anyGate = false;
 
   // FX + output.
   Chorus chorus;
   Phaser phaser;
   Flanger flanger;
+  Reverb reverb;
+  OctaveDown verbOct;
+  double reverbMix = 0;
   double chorusDepth = 0, phaserMix = 0, width = 1, widthStep = 0, widthTarget = 1;
   Biquad hcL, hcR;
   bool highcutOn = false;
@@ -999,8 +1123,8 @@ class Synth {
   std::array<double, 16> eqLast{};
   Biquad hpL[5], hpR[5];
   std::array<double, 5> lastLowcut{};
-  Biquad eqL[4], eqR[4], dcL[2], dcR[2], xo[4], xoPost[2];
-  Limiter limiter;
+  Biquad eqL[4], eqR[4], dcL[2], dcR[2];
+  double overPeak = 0;
   double outGain = 1, outGainStep = 0, outTarget = 1, lastOutDb = NAN;
   double postDcXL = 0, postDcYL = 0, postDcXR = 0, postDcYR = 0, postDcR = 0;
   std::array<double, 8> lastFx{};

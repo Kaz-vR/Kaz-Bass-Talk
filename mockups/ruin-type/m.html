@@ -1,0 +1,52 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:SG;src:url(../../src/ui/fonts/space-grotesk.woff2)}
+body{margin:0;background:#050506;font-family:SG;color:#8a8a90;width:1200px;padding:20px;box-sizing:border-box}
+.v{display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:center;margin-bottom:14px;background:#0a0a0b;border:1px solid #18181c;border-radius:4px;padding:12px 14px}
+.v h3{margin:0;color:#fff;font-weight:500;font-size:13px;letter-spacing:.14em}.v p{margin:6px 0 0;font-size:11px;line-height:1.45;color:#88888e}
+.row{display:flex;gap:6px}
+.n{width:128px;height:112px;background:#0d0d0f;border:1px solid #1e1e22;border-radius:3px;padding:6px 8px;box-sizing:border-box;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.hd{display:flex;align-items:center;gap:6px;height:14px;font-size:11px;letter-spacing:.14em;color:#e8e8ea}
+.bar{width:3px;height:10px;border-radius:1px}
+.ty{font-size:7.5px;letter-spacing:.12em;color:#6a6a70;margin-top:2px;height:12px}
+canvas{display:block;margin-top:3px}
+.ft{margin-top:auto;display:flex;justify-content:space-between;font-size:9px;color:#888}
+.lb{display:flex;gap:2px}.lb span{width:13px;height:11px;border:1px solid #2a2a30;border-radius:2px;font-size:7px;text-align:center;line-height:10px;color:#666}
+.dd{color:var(--c);font-size:9px;letter-spacing:.14em}
+.menu{position:absolute;z-index:3;background:#121214;border:1px solid #2c2c32;border-radius:3px;padding:5px 7px;font-size:8.5px;letter-spacing:.12em;line-height:1.75;color:#77777d;box-shadow:0 8px 20px #000c}
+.menu b{color:#fff;font-weight:500}
+</style></head><body><div id="o"></div>
+<script>
+const F=['#8ae9ff','#3fb8ff','#5a78ff','#6f55ff'],D=['#ffb020','#ff5a1f','#e0204a','#a8143a'];
+const ft=['NOTCH','PEAK','COMB','PEAK'],dt=['TAPE','TUBE','AMP','SOFT CLIP'];
+const icon=(t,c)=>{const p=[];for(let i=0;i<=20;i++){const x=i/20,u=(x*2-1)*3;let y;
+ switch(t){case'NOTCH':y=-0.8*Math.exp(-(((x-.5)/.07)**2));break;case'PEAK':y=.8*Math.exp(-(((x-.5)/.1)**2));break;case'COMB':y=-.4*(1+Math.cos(x*25));break;
+ case'TAPE':y=Math.tanh(Math.sin(x*6.28)*1.5)*.8;break;case'TUBE':y=(Math.tanh(Math.sin(x*6.28)*2+.3)-.29)*.8;break;case'AMP':y=Math.tanh(Math.sin(x*6.28)*3)*.8;break;default:y=Math.max(-.7,Math.min(.7,Math.sin(x*6.28)))}
+ p.push((i?'L':'M')+(x*18).toFixed(1)+','+(6-y*5).toFixed(1))}return `<svg width="18" height="12" style="vertical-align:middle"><path d="${p.join('')}" fill="none" stroke="${c}" stroke-width="1.2"/></svg>`};
+function thumb(cv,c,isF,i){const g=cv.getContext('2d');g.scale(2,2);const W=108,H=40;g.strokeStyle=c;g.shadowColor=c;g.shadowBlur=5;g.lineWidth=1.2;g.beginPath();
+ for(let x=0;x<=W;x+=2){const f=x/W;let y=H*.45+Math.sin(f*30+i)*2-f*6;if(isF){const d=(f-.45)/.06;y+=ft[i]=='NOTCH'?14*Math.exp(-d*d):ft[i]=='PEAK'?-10*Math.exp(-d*d):3*Math.cos(f*40)}x?g.lineTo(x,y):g.moveTo(x,y)}g.stroke();
+ g.globalAlpha=.12;g.lineTo(W,H);g.lineTo(0,H);g.fillStyle=c;g.fill();}
+function box(k,variant,open){const isF=k%2==0,i=k>>1,c=isF?F[i]:D[i],name=(isF?'FILTER ':'DRIVE ')+(i+1),type=isF?ft[i]:dt[i];
+ let hd='',ty='',over='',ftx=`<span>-4.2 dB</span>`;
+ const bar=`<span class="bar" style="background:${c};box-shadow:0 0 6px ${c}"></span>`;
+ switch(variant){
+  case 1: hd=`${bar}<span class="dd" style="--c:${c};font-size:11px;color:#fff">${type} ▾</span><span style="margin-left:auto;font-size:9px;color:#555">${isF?'F':'D'}${i+1}</span>`;ty=`<div class="ty">${name}</div>`;break;
+  case 2: hd=`${bar}<span>${name}</span>`;ty=`<div class="ty"><span class="dd" style="--c:${c}">${type} ▾</span></div>`;break;
+  case 3: hd=`${bar}<span>${name}</span>`;over=`<span style="position:absolute;right:6px;top:22px;border:1px solid ${c}88;border-radius:8px;padding:1px 6px;font-size:7.5px;letter-spacing:.12em;color:${c};background:#0d0d0fcc">${type} ▾</span>`;break;
+  case 4: hd=`${bar}<span>${name}</span>`;ty=`<div class="ty" style="display:flex;align-items:center;gap:4px;color:${c}">${icon(type,c)} ${type} ▾</div>`;break;
+  case 5: hd=`${bar}<span>${name}</span>`;over=`<div style="position:absolute;left:0;right:0;top:38px;text-align:center;font-size:15px;letter-spacing:.2em;color:${c};opacity:.55;text-shadow:0 0 8px ${c}">${type}</div><span style="position:absolute;left:4px;top:42px;color:#888;font-size:10px">‹</span><span style="position:absolute;right:16px;top:42px;color:#888;font-size:10px">›</span>`;break;
+  case 6: hd=`${bar}<span>${name}</span>`;ftx=`<span style="color:${c};letter-spacing:.12em">‹ ${type} ›</span>`;break;
+ }
+ const m=open?`<div class="menu" style="left:8px;top:${variant==6?78:variant==3?36:30}px">${(isF?['NOTCH','PEAK','BAND','COMB','PHASER']:['TAPE','TUBE','STARVED','AMP','SOFT CLIP','…']).map(x=>x==type?`<b style="color:${c}">● ${x}</b>`:'&nbsp;&nbsp;'+x).join('<br>')}</div>`:'';
+ return `<div class="n" style="${open?'border-color:'+c:''}"><div class="hd">${hd}</div>${ty}<canvas width="216" height="80" style="width:108px;height:40px" data-c="${c}" data-f="${isF?1:0}" data-i="${i}"></canvas>${over}<div class="ft">${ftx}<span class="lb"><span>S</span><span>B</span><span>Δ</span></span></div>${m}</div>`}
+const V=[
+ ['1 · TYPE IS THE TITLE','The type replaces "FILTER 1" as the big name (click it for the menu); the number moves to a small tag. Most readable: you read NOTCH · TAPE · PEAK · TUBE across the chain.'],
+ ['2 · DROPDOWN UNDER THE TITLE','As now, but the type line under the name becomes a coloured dropdown (NOTCH ▾). Smallest change.'],
+ ['3 · PILL ON THE GRAPH','A small rounded chip in the box\'s colour floats over the top-right of the thumbnail. Reads like a tag; the title stays clean.'],
+ ['4 · ICON + NAME','The type line gets a tiny picture of its shape (the notch dip, the tape curve), as the drive menu already has. Recognisable at a glance even without reading.'],
+ ['5 · BIG WATERMARK + ARROWS','The type written large and faint across the thumbnail, with ‹ › to step through types without opening a menu. Very visible, but sits on the graph.'],
+ ['6 · STEPPER IN THE FOOTER','‹ TAPE › in the box\'s colour at the bottom, where the dB was (the meter keeps the level). Quick to flip through types while listening.'],
+];
+let h='';V.forEach(([t,p],v)=>{h+=`<div class="v"><div><h3>${t}</h3><p>${p}</p></div><div class="row">${[0,1,2,3,4,5,6,7].map(k=>box(k,v+1,k==1)).join('')}</div></div>`});
+document.getElementById('o').innerHTML=h;
+document.querySelectorAll('canvas').forEach(cv=>thumb(cv,cv.dataset.c,cv.dataset.f=='1',+cv.dataset.i));
+</script></body></html>

@@ -25,10 +25,10 @@ const FULLBAND_DIRT_OK = new Set(['808', 'distorted', 'experimental']);
 
 const n = (p: Patch, id: string) => p[id] as number;
 /** Mod sources that move a held note over time. */
-const MOVING_SOURCES = new Set(['lfo1', 'lfo2', 'lfo3', 'lfo4', 'random', 'drift', 'drift_slow', 'lfo_product']);
+const MOVING_SOURCES = new Set(['lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo5', 'lfo6']);
 
 function hasMovement(p: Patch): boolean {
-  for (let s = 1; s <= 12; s++) {
+  for (let s = 1; s <= 9; s++) {
     const src = p[`mod${s}.source`] as string;
     if (MOVING_SOURCES.has(src) && Math.abs(n(p, `mod${s}.amount`)) > 0.02 && p[`mod${s}.dest`] !== 'none') return true;
   }
@@ -47,17 +47,17 @@ function deadRouting(p: Patch, dst: string): string | null {
   const osc = (k: 1 | 2) => n(p, `osc${k}.level`) > 0.001;
   const wave = (k: 1 | 2) => p[`osc${k}.wave`] as string;
   switch (dst) {
-    case 'osc1_wt_pos': return wave(1) === 'wavetable' ? null : 'oscillator 1 is not a wavetable';
-    case 'osc2_wt_pos': return wave(2) === 'wavetable' && osc(2) ? null : 'oscillator 2 is not a sounding wavetable';
-    case 'osc1_pw': return ['pulse', 'pwm_saw'].includes(wave(1)) ? null : 'oscillator 1 has no pulse width';
-    case 'osc2_pw': return ['pulse', 'pwm_saw'].includes(wave(2)) && osc(2) ? null : 'oscillator 2 has no sounding pulse width';
+    // Shape moves pulse width (pulse, PWM-saw) or the wavetable position (wavetable)
+    case 'osc1_pw': return ['pulse', 'pwm_saw', 'wavetable'].includes(wave(1)) ? null : 'oscillator 1 has no shape';
+    case 'osc2_pw': return ['pulse', 'pwm_saw', 'wavetable'].includes(wave(2)) && osc(2) ? null : 'oscillator 2 has no sounding shape';
+    case 'osc12_shape':
+      return ['pulse', 'pwm_saw', 'wavetable'].includes(wave(1)) || (osc(2) && ['pulse', 'pwm_saw', 'wavetable'].includes(wave(2))) ? null : 'no oscillator has a shape';
+    case 'osc1_detune': return n(p, 'osc1.unison_voices') > 1 ? null : 'oscillator 1 has no unison';
+    case 'osc2_detune': return osc(2) && n(p, 'osc2.unison_voices') > 1 ? null : 'oscillator 2 has no sounding unison';
     case 'osc2_pitch': return osc(2) ? null : 'oscillator 2 is silent';
     case 'unison_detune':
       return n(p, 'osc1.unison_voices') > 1 || (osc(2) && n(p, 'osc2.unison_voices') > 1) ? null : 'no oscillator uses unison';
-    case 'filter_vowel': return p['filter.type'] === 'formant' ? null : 'the filter is not the formant type';
     case 'dist_drive': case 'dist_tone': return n(p, 'dist.mix') > 0.01 ? null : 'distortion mix is 0';
-    case 'chorus_depth': return n(p, 'chorus.mix') > 0.01 ? null : 'chorus mix is 0';
-    case 'delay_time': return n(p, 'delay.mix') > 0.01 ? null : 'delay mix is 0';
     default: return null;
   }
 }
@@ -106,7 +106,7 @@ export function checkRules(p: Patch, family = (p.meta?.family as string | undefi
   }
 
   // Dead routings: modulating something the patch doesn't use does nothing.
-  for (let i = 1; i <= 12; i++) {
+  for (let i = 1; i <= 9; i++) {
     const dst = p[`mod${i}.dest`] as string;
     if (dst === 'none' || p[`mod${i}.source`] === 'none' || Math.abs(n(p, `mod${i}.amount`)) < 0.0005) continue;
     const dead = deadRouting(p, dst);

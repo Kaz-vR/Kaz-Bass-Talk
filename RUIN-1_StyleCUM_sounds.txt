@@ -1,0 +1,500 @@
+STYLE CUM · SOUND LIST (groundwork for Batch 3)
+================================================
+Style CUM = dark electronica / LORN, cinematic dystopian score, half-time
+noir, haunted instrumental hip-hop, deep dubstep, witch house, industrial,
+techno, dark ambient, synthwave, cyberpunk, apocalyptic, darksynth,
+electro-industrial, EBM, darkwave, aggrotech, dystopian ambient, glitch,
+noise.
+
+Each sound: what it is, what it sounds like, where it lives (genres).
+Descriptions only; recipes come with Batch 3.
+
+
+==============================================================================
+1. BASS LONG
+==============================================================================
+
+- Witch House Crushed Sub
+  A pitched-down, crushed sub that sits under everything like a weight on
+  the chest: a sine pushed into lo-fi saturation and bit-reduction, slow
+  release. (witch house, haunted hip-hop)
+
+- Detuned Witch Drone Bass
+  Two saws far out of tune, beating slowly and seasick, low-passed dark,
+  drenched in reverb above a dry sub. (witch house, darkwave)
+
+- Darksynth Growl Saw
+  A thick, mean, overdriven mono saw bass with a resonant low-pass that
+  snarls when it opens: the Perturbator / Carpenter Brut "evil" low end.
+  (darksynth, cyberpunk)
+
+- Synthwave Octave Rolling Bass (held version)
+  The classic 80s saw/pulse bass played as long notes: warm, chorused,
+  analog, a bit brighter than the dark side. (synthwave, darksynth)
+
+- Cyberpunk Neon Reese
+  A wide, detuned Reese with a metallic, digital edge and a phaser
+  moving through it: the city-at-night bass. (cyberpunk, darksynth, dark DnB)
+
+- Apocalyptic Engine Drone
+  A huge, slowly grinding low drone like a dying machine: saw plus
+  rumble noise, heavy drive, the filter breathing over minutes.
+  (apocalyptic, industrial, dark ambient)
+
+- Dystopian Sine Pressure
+  An almost pure sub drone that is felt more than heard, with a faint
+  harmonic swelling and fading on top. (dystopian ambient, cinematic score)
+
+- Industrial Distorted Mono
+  A single-note distorted bass that never resolves: fuzz and hard clipping
+  before a closed filter, clean sub beneath. (industrial, NIN-style, EBM)
+
+- Darkwave Chorus Bass
+  A post-punk/darkwave synth bass with heavy chorus: hollow pulse, mid
+  focus, melancholic, the "cold wave" sound. (darkwave, coldwave)
+
+- Techno Rumble Bass
+  The long, dark "rumble" under industrial techno kicks: a low, distorted,
+  reverb-smeared tone that fills the space between kicks. (industrial
+  techno, dark techno)
+
+- Hardwave Supersaw Bass
+  A wide supersaw bass with distortion and a dark filter: big, cinematic,
+  aggressive but smooth. (darksynth, hardwave, witch house crossover)
+
+- Dubstep Sine Wobble (slow)
+  A deep dubstep sine/square bass moving slowly, a lazy LFO on the filter,
+  lots of air around it. (deep dubstep, post-dubstep)
+
+- Glitch Crushed Drone
+  A low drone run through bit-crushing and sample-rate reduction so it
+  stutters and fizzes as it sustains. (glitch, noise)
+
+- Noise Wall Bass
+  A bass note buried in harsh distortion and static: more texture than
+  tone, the note just readable underneath. (noise, power electronics, aggrotech)
+
+- Cinematic Braam Bass
+  The low "braaam" of dystopian trailers: brassy saws with a heavy filter
+  swell and distortion. (cinematic score, apocalyptic)
+
+- Ominous Fifth Drone
+  A root and a dark fifth held together, tape-saturated, slowly
+  moving: menacing and stable at once. (dark ambient, cinematic, LORN)
+
+- Vocal-Formant Bass
+  A low bass with a talking, vowel-like quality, "oh" to "ah" as the
+  filter moves. (cyberpunk, neuro, dark electronica)
+
+- Tape-Worn Mid Bass
+  A warm, wobbly, half-broken mid bass, like it was recorded to an old
+  cassette: wow, flutter, dull top. (LORN, haunted hip-hop, witch house)
+
+
+==============================================================================
+2. BASS SHORT
+==============================================================================
+
+- EBM Sequenced Bass
+  The backbone of EBM: a tight, punchy saw/square bass playing relentless
+  1/8 or 1/16 sequences, fast filter envelope, mechanical. (EBM, electro-industrial)
+
+- Aggrotech Distorted Stab Bass
+  A short, heavily distorted, aggressive bass hit with a bright filter
+  snap, built to hammer with the kick. (aggrotech, hellektro)
+
+- Rolling Off-Beat Bass
+  Short bass notes rolling between kick hits (the "galloping" synthwave /
+  techno bass), plucky and tight. (synthwave, techno, darksynth)
+
+- Industrial Techno Thud
+  A short, clipped, distorted low hit that doubles the kick: a dark
+  transient with a gritty tail. (industrial techno)
+
+- Acid Dark Line
+  A 303 squelch kept dark and dirty: resonance, accent and distortion,
+  used in a dark techno or electro context. (techno, electro, EBM)
+
+- Electro Bass Hit
+  A Detroit/Drexciya electro bass note: square or sine with a quick
+  pitch drop, punchy, robotic. (electro, dark electronica)
+
+- Witch House 808
+  A slow, crushed, pitched-down 808 with a long distorted tail. (witch house, phonk)
+
+- Distorted 808 Drop
+  A short 808 with a big pitch fall and hard clipping. (haunted hip-hop, dark trap)
+
+- Metallic FM Bass Stab
+  A short bass with inharmonic, clangy partials, cold and machine-like.
+  (industrial, EBM, glitch)
+
+- Glitch Bass Blip
+  A tiny, crushed, sample-rate-reduced bass blip, chopped and stuttering.
+  (glitch, IDM)
+
+- Darkwave Picked Bass
+  A short, picked synth bass imitating a post-punk bass guitar: clicky
+  attack, hollow body, chorus. (darkwave, coldwave)
+
+- Cyberpunk Pluck Bass
+  A short, bright, resonant digital bass pluck with a hint of sync.
+  (cyberpunk, darksynth)
+
+- Noise Burst Bass
+  A sub hit layered with a burst of filtered noise: a door slam in the
+  low end. (industrial, noise, apocalyptic)
+
+- Dubstep Sub Stab
+  A short sub hit with space around it, the deep dubstep "dub" note.
+  (deep dubstep, post-dubstep)
+
+- Hardwave Punch Bass
+  A short, wide, distorted supersaw bass hit for drops. (hardwave, darksynth)
+
+- Anvil Hit Bass
+  A heavy, metallic, resonant hit, like iron on iron, with a sub. (LORN,
+  industrial)
+
+--- Techno short basses ---
+
+- Rumble Kick-Bass
+  The industrial-techno rumble: a short, distorted, reverb-smeared low tone
+  played on the off-steps right after each kick, so kick and bass become one
+  rolling mass. (industrial techno, dark techno)
+
+- Hypnotic Techno Pluck Bass
+  A short, dark, slightly resonant pluck bass playing a one-note or
+  two-note loop for minutes, its filter moving very slowly so it hypnotises.
+  (techno, minimal, dark techno)
+
+- Peak-Time Distorted Bass
+  A punchy, saturated saw bass on the off-beat, hard-clipped, made to
+  hammer on a big system. (peak-time techno, industrial techno)
+
+- Off-Beat Techno Bass
+  A short sub/saw note on every off-beat 1/8 between the kicks: the classic
+  "boom-dum" of driving techno. (techno, EBM-techno)
+
+- Dub Techno Bass
+  A deep, round, short sub note with a soft attack, swimming in delay above
+  the sub. (dub techno, deep techno)
+
+- Detroit Techno Square Bass
+  A warm, short square bass with a quick filter snap: soulful, machine-like.
+  (Detroit techno, electro)
+
+- Minimal Blip Bass
+  A tiny, clicky, very short sine/pulse bass blip, tightly gated, with a
+  little pitch flick. (minimal techno, glitch)
+
+- EBM-Techno Gallop Bass
+  A 1/16 sequenced bass where each note is accented differently: the
+  "body music" drive inside a techno tempo. (EBM techno, industrial techno)
+
+- Metallic Techno Stab Bass
+  A short bass with a clangy, ring-mod-like top, cold and percussive.
+  (industrial techno, hard techno)
+
+- Hard Techno Distorted Bass Hit
+  A very short, very distorted bass hit almost merged with a hard kick,
+  fast and brutal. (hard techno, schranz-adjacent)
+
+--- Synthwave short basses ---
+
+- Outrun Galloping Octave Bass
+  The defining synthwave bass: a short saw/pulse playing driving 1/16
+  octaves (low-high-low-high), bright filter snap, chorus. (synthwave, outrun)
+
+- Juno Pulse Bass
+  A short, round Juno-style pulse bass with chorus: warm, bouncy, 80s.
+  (synthwave, retrowave)
+
+- Moog-Style Short Bass
+  A fat, short saw bass with a low-pass "bwow" envelope: punchy and warm.
+  (synthwave, darksynth)
+
+- Italo / Hi-NRG Octave Bass
+  A tight, bright octave bass in 1/8 notes, sequenced, disco-driving.
+  (synthwave, italo disco, hi-NRG)
+
+- Carpenter Ostinato Bass
+  A short, repeating, menacing pulse bass in a horror-score pattern, dark
+  filter, slight drift. (darksynth, horror synth, synthwave)
+
+- DX7 FM Slap Bass
+  The 80s FM bass: a percussive, plucky, "slap" digital bass with a bright
+  attack and woody body. (synthwave, retrowave)
+
+- Sidechain-Feel Pluck Bass
+  A short bass whose envelope pumps like it ducks to the kick: swelling in
+  and cut short. (synthwave, retrowave)
+
+- Heartbeat Pulse Bass
+  A short, thudding Pro-One pulse in a heartbeat rhythm. (synthwave, darksynth)
+
+--- Cyberpunk / darksynth short basses ---
+
+- Darksynth Off-Beat Saw Bass
+  A distorted, resonant saw bass on the off-beats, the Perturbator /
+  Carpenter Brut drive under a lead. (darksynth, cyberpunk)
+
+- Neon FM Growl Stab
+  A short, metallic, FM-like growl hit, digital and mean. (cyberpunk, midtempo)
+
+- Midtempo Cyberpunk Bass
+  A slow-tempo, heavy, distorted saw/square bass stab with a metallic top,
+  the "midtempo" cyberpunk punch. (cyberpunk, midtempo bass)
+
+- Sync-Tear Bass Stab
+  A short hard-sync bass whose sync sweep tears on every hit. (cyberpunk, darksynth)
+
+- Bit-Crushed Cyber Stab
+  A short, glitchy, crushed digital bass hit, hard and lo-fi. (cyberpunk, glitch)
+
+- Formant Chop Bass
+  A short bass note with a talking, vowel-like chop. (cyberpunk, neuro-adjacent)
+
+- Distorted Reese Stab
+  A short burst of a dark, detuned Reese, clipped. (cyberpunk, dark DnB)
+
+- Cold Hardware Sequence Bass
+  A robotic, perfectly even sequenced bass, no velocity, cold square tone.
+  (cyberpunk, EBM, electro-industrial)
+
+- Glitch Digital Bass
+  A short digital bass that stutters and jumps in pitch. (cyberpunk, glitch)
+
+- Laser Drop Bass
+  A short bass with a fast, zappy downward pitch "pew", used on purpose for
+  the retro-sci-fi feel. (cyberpunk, synthwave, electro)
+
+
+==============================================================================
+3. LEAD
+==============================================================================
+
+- Darksynth Screaming Saw Lead
+  A distorted, aggressive mono saw lead with portamento: the Perturbator
+  / Carpenter Brut hero lead. (darksynth, cyberpunk)
+
+- Synthwave Hero Lead
+  A bright, chorused, slightly detuned saw/square lead with vibrato and
+  delay: the 80s soundtrack melody. (synthwave)
+
+- EBM Mono Lead
+  A cold, short-sustain mono lead, tight and robotic, often playing a
+  sequenced motif. (EBM, electro-industrial)
+
+- Aggrotech Hoover Lead
+  A harsh, detuned, hoover-like lead, distorted, the stomping hook of
+  aggrotech. (aggrotech, hellektro)
+
+- Industrial Feedback Squeal
+  A resonant, screaming lead that sounds like amp feedback. (industrial, noise)
+
+- Cyberpunk Sync Lead
+  A hard-synced lead that sweeps and tears, digital and neon. (cyberpunk, darksynth)
+
+- Darkwave Melancholy Lead
+  A cold, chorused, slightly out-of-tune lead with slow vibrato. (darkwave)
+
+- Witch House Ghost Lead
+  A detuned, pitched, ghostly lead drowned in reverb, vocal-like.
+  (witch house)
+
+- Dystopian Whistle Sine
+  A thin, lonely sine lead high above a dark bed. (dystopian ambient, cinematic)
+
+- Glitch Lead
+  A lead that stutters, bit-crushes and jumps in pitch at random.
+  (glitch, IDM)
+
+- Acid Lead
+  A resonant, squelching, distorted 303 lead. (techno, acid, EBM)
+
+- Crying Detuned Lead
+  Two oscillators beating slowly, bends into notes, late vibrato. (LORN)
+
+- Brassy Cinematic Lead
+  A brass-like saw lead with a filter swell, the CS-80 / Blade Runner
+  lead. (cinematic, cyberpunk, synthwave)
+
+- Noise Lead
+  A pitched band of noise that sings a melody. (noise, dark ambient)
+
+- Chiptune-Dark Lead
+  A square lead with a lo-fi, crushed edge, old-game nostalgia turned
+  sinister. (darksynth, glitch, cyberpunk)
+
+- Formant Robot Lead
+  A talking, vowel-shifting, robotic lead. (cyberpunk, electro)
+
+- Supersaw Anthem Lead
+  A huge detuned supersaw lead with distortion. (hardwave, darksynth)
+
+
+==============================================================================
+4. PADS (including string and brass pads)
+==============================================================================
+
+- Synthwave Warm Poly Pad
+  A lush, chorused Juno/Jupiter poly pad, nostalgic and warm. (synthwave)
+
+- Darksynth Evil Pad
+  A dark, detuned, slightly distorted pad, menacing and wide. (darksynth)
+
+- Cyberpunk Rain Pad
+  A cold, glassy, phased pad with digital shimmer, like neon reflected
+  in rain. (cyberpunk, dystopian ambient)
+
+- Blade Runner Brass Pad
+  A CS-80 brass swell, slow bloom, majestic and sad. (cinematic, cyberpunk)
+
+- Apocalyptic Braam Pad
+  A massive, distorted brass wall that rises slowly. (apocalyptic, cinematic)
+
+- Dark Ambient Drone Pad
+  An evolving drone with filtered noise, low harmonics, near-motionless.
+  (dark ambient)
+
+- Witch House Reverb Cloud
+  A detuned pad drowned in reverb and pitched down, eerie and slow.
+  (witch house)
+
+- Darkwave String Machine
+  A cold string-machine pad (Solina-like), chorused and thin.
+  (darkwave, coldwave)
+
+- Haunted String Pad
+  A mournful, slow string pad with drift and dust. (LORN, cinematic)
+
+- Industrial Metal Pad
+  A pad made of metallic, ringing, inharmonic tones and noise. (industrial)
+
+- Glitch Pad
+  A pad that crackles, stutters and breaks up as it sustains. (glitch)
+
+- Noise Bed
+  A pad of filtered hiss and static, pure texture. (noise, dark ambient)
+
+- Dystopian Choir Pad
+  A synthetic "aah" pad, cold and inhuman. (dystopian ambient, cinematic)
+
+- EBM Stab Pad
+  A short, punchy chord-pad for EBM/industrial stabs. (EBM, electro-industrial)
+
+- Dissonant Cluster Pad
+  Close, beating intervals, unresolved and tense. (dark ambient, horror, LORN)
+
+- Tape-Worn Memory Pad
+  A wobbly, worn pad like an old recording. (LORN, haunted hip-hop)
+
+- Supersaw Wall Pad
+  A huge detuned supersaw pad, dark and wide. (hardwave, darksynth)
+
+- Low Brass Threat Pad
+  Low, slow brass swells signalling danger. (cinematic, apocalyptic)
+
+- Reverse Swell Pad
+  A pad that swells in like a reversed tail. (dark ambient, cinematic)
+
+
+==============================================================================
+5. KEYS AND ORGANS (and other key-like sounds)
+==============================================================================
+
+- Darkwave Synth Keys
+  A cold, chorused poly synth for chord parts, thin and hollow. (darkwave)
+
+- Synthwave Electric Piano
+  A DX7-style FM electric piano, glassy and bright. (synthwave)
+
+- Cyberpunk Digital Keys
+  A cold, glassy digital keyboard with a metallic edge. (cyberpunk)
+
+- Gothic Organ
+  A dark, distorted church-like organ. (darkwave, industrial, witch house)
+
+- Industrial Distorted Organ
+  A driven, buzzing organ chord, harsh. (industrial, EBM)
+
+- Haunted Detuned Piano
+  An out-of-tune, worn, dark piano. (LORN, witch house, dark ambient)
+
+- Witch House Music Box
+  A small, eerie music-box tone, detuned and slowed. (witch house)
+
+- Tape-Worn Rhodes
+  A woozy, wobbly electric piano. (haunted hip-hop, LORN)
+
+- Old-Game Keys
+  Thin, degraded digital keys with a bit of crush. (darksynth, glitch, LORN)
+
+- Dystopian Glass Keys
+  A cold, bell-like key tone with a long tail. (dystopian ambient)
+
+- EBM Chord Stab Keys
+  A short, punchy chord stab, robotic. (EBM, electro-industrial)
+
+- Harmonium / Reed Drone Keys
+  A wheezing reed organ for dark ambient chords. (dark ambient)
+
+- Cinematic Poly Keys
+  A Prophet-style chord keyboard, warm-dark. (cinematic, synthwave)
+
+- Clav Funk-Dark
+  A short, plucky, dark clav. (electro, darksynth)
+
+
+==============================================================================
+6. PLUCKS
+==============================================================================
+
+- Synthwave Arp Pluck
+  The bright, chorused arpeggio pluck of 80s soundtracks. (synthwave)
+
+- Darksynth Sequence Pluck
+  A dark, resonant pluck playing a relentless sequence. (darksynth)
+
+- EBM Sequencer Pluck
+  A short, tight pluck for driving 1/16 sequences. (EBM, electro-industrial)
+
+- Cyberpunk Digital Pluck
+  A bright, metallic digital pluck with sync. (cyberpunk)
+
+- Industrial Metal Pluck
+  A clangy, metallic, inharmonic pluck. (industrial)
+
+- Glitch Blip
+  A tiny crushed pluck that stutters. (glitch, IDM)
+
+- Dystopian Bell Pluck
+  A cold, eerie bell pluck with a long tail. (dystopian ambient, cinematic)
+
+- Witch House Bell
+  A detuned, slowed-down bell, haunted. (witch house)
+
+- Darkwave Picked Pluck
+  A chorused, guitar-like synth pluck. (darkwave)
+
+- Techno Stab Pluck
+  A short, dark chord stab pluck. (techno, dub techno)
+
+- Acid Pluck
+  A resonant 303 pluck. (acid, techno)
+
+- Muted Synth String
+  A muted Karplus string with a pick. (LORN, dark electronica)
+
+- Noise Tick
+  A short burst of noise as a rhythmic pluck. (noise, glitch, industrial)
+
+- Mallet Ghost
+  A submerged, dark mallet. (LORN, dark ambient)
+
+- Heartbeat Pluck
+  The Stranger-Things-style low pulse pluck. (synthwave, darksynth)
+
+- Crushed Lo-fi Pluck
+  A bit-crushed, tape-worn pluck. (haunted hip-hop, witch house)

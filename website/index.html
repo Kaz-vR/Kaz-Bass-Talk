@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RUIN-1 · Synthesizer</title>
+  <meta name="description" content="RUIN-1: a dark, cinematic synthesizer. Saturated, tape-worn and alive.">
+  <link rel="icon" href="../design/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../design/tokens.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="nav" id="top">
+  <div class="wrap nav-row">
+    <a class="brand brand-quiet" href="#top" aria-label="RUIN-1 home">RUIN-1</a>
+    <button class="menu" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    <nav class="links">
+      <a href="#top" class="on">Overview</a>
+      <a href="#sound">Sound</a>
+      <a href="#features">Features</a>
+      <a href="#requirements">Requirements</a>
+      <a href="#buy">Buy</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- HERO: the photo goes in assets/photos/hero.jpg; until then the solid colour shows -->
+  <section class="hero photo" style="--photo: none" data-photo="assets/photos/hero.jpg">
+    <div class="wrap hero-row">
+      <div class="hero-copy">
+        <h1 class="lockup"><img class="mark" src="../design/logo.svg" alt="" width="120" height="120"><span class="word"><b>RUIN-1</b> <i>Synthesizer</i></span></h1>
+        <p class="hero-lede">A dark, cinematic synthesizer for producers. Saturated, tape-worn and alive, built for the sound that sits in a dark room.</p>
+        <div class="ctas hero-ctas"><a class="btn btn-o" href="#buy">Buy now <span aria-hidden="true">›</span></a><a class="btn btn-g" href="#sound">Hear the demo <span aria-hidden="true">▷</span></a></div>
+        <p class="hero-meta">VST3 · Standalone · Fully offline</p>
+      </div>
+      <!-- for now the owner's edited picture of the synth (the look the prototype is heading to); once the prototype
+           looks like it, switch back to assets/shots/osc.jpg, taken from the synth by tools/site-shots.mjs -->
+      <figure class="hero-shot"><img src="assets/shots/hero-mockup.jpg" alt="The RUIN-1 synthesizer: oscillators, envelopes, filter and keyboard" width="1330" height="711"></figure>
+    </div>
+  </section>
+
+  <!-- AUDIO DEMO -->
+  <section class="panel photo" id="sound" style="--photo: none" data-photo="assets/photos/panel.jpg">
+    <div class="wrap demo-row">
+      <div class="demo-copy">
+        <p class="kick">Audio demo</p>
+        <h2>Hear RUIN-1<br>in action</h2>
+        <p class="body">Reese basses ground through the RUIN chain, tape-worn pads, crackle and air, and the mod wheel pushed hard.</p>
+        <hr>
+        <a class="btn btn-o btn-md" href="#sound" data-play><span class="dot" aria-hidden="true">▶</span>Watch full demo <span aria-hidden="true">›</span></a>
+      </div>
+      <div class="video">
+        <!-- the demo video goes in assets/demo.mp4 -->
+        <video preload="none" poster="assets/shots/ruin.jpg" playsinline>
+          <source src="assets/demo.mp4" type="video/mp4">
+        </video>
+        <button class="play" aria-label="Play the demo"></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- REQUIREMENTS -->
+  <section class="panel photo" id="requirements" style="--photo: none" data-photo="assets/photos/panel.jpg">
+    <div class="wrap req-row">
+      <div class="req-copy">
+        <p class="kick">System requirements</p>
+        <h2>Get set up</h2>
+        <p class="body">Light on the machine: about 3% CPU per voice, no GPU, no account, and it never goes online.</p>
+      </div>
+      <div class="os">
+        <div class="badge"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 5 H15 V15 H3 Z M17 5 H29 V15 H17 Z M3 17 H15 V27 H3 Z M17 17 H29 V27 H17 Z"/></svg></div>
+        <div><h3>Windows</h3><ul><li>Windows 10 or later (64-bit)</li><li>Any 64-bit CPU</li><li>4 GB RAM</li><li>Under 25 MB disk space</li><li>VST3</li></ul></div>
+      </div>
+      <div class="os">
+        <div class="badge"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M22 17c0-3 2.4-4.4 2.5-4.5-1.4-2-3.5-2.3-4.3-2.3-1.8-.2-3.6 1.1-4.5 1.1-.9 0-2.4-1.1-3.9-1-2 0-3.9 1.2-4.9 3-2.1 3.7-.5 9.1 1.5 12.1 1 1.5 2.2 3.1 3.7 3 1.5-.1 2-.9 3.8-.9 1.8 0 2.3.9 3.8.9 1.6 0 2.6-1.5 3.6-3 1.1-1.7 1.6-3.4 1.6-3.5 0 0-3-1.2-3-4.9zM19.2 8.2c.8-1 1.4-2.4 1.2-3.8-1.2.1-2.6.8-3.4 1.8-.8.9-1.4 2.3-1.2 3.7 1.3.1 2.6-.7 3.4-1.7z"/></svg></div>
+        <div><h3>macOS</h3><ul><li>macOS 11 or later</li><li>Apple Silicon or Intel</li><li>4 GB RAM</li><li>Under 25 MB disk space</li><li>AU, VST3 — coming</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="panel photo features" id="features" style="--photo: none" data-photo="assets/photos/features.jpg">
+    <div class="wrap">
+      <p class="kick">Technical features</p>
+      <h2>Built for the dark</h2>
+      <p class="body intro">A deep engine that moves on its own, with every control on one page and nothing hidden.</p>
+      <ul class="grid">
+        <li style="--c: var(--osc-a)"><span class="ic"><svg viewBox="0 0 34 34"><path d="M2 18 L6 11 L10 23 L14 11 L18 23 L22 11 L26 23 L30 13 L32 18"/></svg></span><div><h4>Dual oscillators</h4><p>Saw, pulse, wavetable, PWM-saw and a plucked string. Unison up to seven.</p></div></li>
+        <li style="--c: var(--ember)"><span class="ic"><svg viewBox="0 0 34 34"><circle cx="17" cy="17" r="12.5"/><circle cx="17" cy="17" r="7.5"/></svg></span><div><h4>Sub oscillator</h4><p>Six shapes on a clean, mono path of its own.</p></div></li>
+        <li style="--c: var(--mark)"><span class="ic"><svg viewBox="0 0 34 34"><path d="M1 17 H5 L7.5 9 L10 25 L12.5 4 L15 30 L17.5 7 L20 27 L22.5 11 L25 22 L27 15 L29 17 H33"/></svg></span><div><h4>Fourteen textures</h4><p>Crackle, dust, tape hiss, air, rumble and their hits. Playable across the keys.</p></div></li>
+        <li style="--c: var(--fire-2)"><span class="ic"><svg viewBox="0 0 34 34"><rect x="2" y="12" width="8" height="10" rx="1.5"/><rect x="13" y="12" width="8" height="10" rx="1.5"/><rect x="24" y="12" width="8" height="10" rx="1.5"/><path d="M10 17 H13 M21 17 H24"/></svg></span><div><h4>The RUIN chain</h4><p>Eight boxes in any order: moving filters, ten drive types and EQs.</p></div></li>
+        <li style="--c: var(--filter)"><span class="ic"><svg viewBox="0 0 34 34"><path d="M3 12 H12 C18 12 17 24 23 24 H31"/></svg></span><div><h4>Filters</h4><p>A saturating ladder, SEM, 303 diode, formant, comb and more.</p></div></li>
+        <li style="--c: var(--ember)"><span class="ic"><svg viewBox="0 0 34 34"><circle cx="10" cy="17" r="6.5"/><circle cx="24" cy="17" r="6.5"/><path d="M10 23.5 H24"/></svg></span><div><h4>Tape</h4><p>Wow, flutter and drift, from a studio reel to a broken Walkman.</p></div></li>
+        <li style="--c: var(--fx)"><span class="ic"><svg viewBox="0 0 34 34"><path d="M2 17 C 5 17, 6 9, 9 9 S 12 25, 15 25 S 18 7, 21 7 S 24 23, 27 23 S 30 17, 32 17"/></svg></span><div><h4>Effects</h4><p>BBD chorus, flanger, phaser, a dark vintage reverb and a four-band EQ.</p></div></li>
+        <li style="--c: var(--lfo)"><span class="ic"><svg viewBox="0 0 34 34"><circle cx="8.5" cy="8.5" r="4"/><circle cx="25.5" cy="8.5" r="4"/><circle cx="8.5" cy="25.5" r="4"/><circle cx="25.5" cy="25.5" r="4"/><circle cx="17" cy="17" r="4"/></svg></span><div><h4>Mod matrix</h4><p>Nine rows, six LFOs with humanize, drift and bloom: nothing repeats.</p></div></li>
+        <li style="--c: var(--ember)"><span class="ic"><svg viewBox="0 0 34 34"><path d="M4 8 H13 L16 12 H30 V28 H4 Z"/><path d="M4 15 H30"/></svg></span><div><h4>Preset bank</h4><p>Hand-built sounds across basses, leads, pads, keys and noise.</p></div></li>
+        <li style="--c: var(--ember)"><span class="ic"><svg viewBox="0 0 34 34"><rect x="12" y="3" width="10" height="28" rx="3"/><path d="M12 19 H22"/></svg></span><div><h4>Mod wheel moves</h4><p>One connected move per sound: harder, darker, wider, as an instrument would.</p></div></li>
+        <li style="--c: var(--ember)"><span class="ic"><svg viewBox="0 0 34 34"><path d="M17 4 V28 M9 20 L17 28 L25 20"/></svg></span><div><h4>Oct down</h4><p>The whole synth at half speed, live: an octave lower, everything slower.</p></div></li>
+        <li style="--c: var(--ember)"><span class="ic"><svg viewBox="0 0 34 34"><rect x="3" y="9" width="28" height="16" rx="2"/><path d="M10 9 V18 M17 9 V18 M24 9 V18"/></svg></span><div><h4>MPE &amp; host sync</h4><p>Per-note bend, pressure and slide. LFOs and RUIN follow your DAW.</p></div></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- CALL TO ACTION -->
+  <section class="cta photo" id="buy" style="--photo: none" data-photo="assets/photos/cta.jpg">
+    <div class="wrap cta-col">
+      <p class="kick">Your sound. Its ruin.</p>
+      <h2 class="big">RUIN-1</h2>
+      <p class="lede">A dark, cinematic synthesizer.</p>
+      <div class="ctas"><a class="btn btn-o" href="#buy">Buy now <span aria-hidden="true">›</span></a><a class="btn btn-g" href="#sound">Listen <span aria-hidden="true">▷</span></a></div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-row">
+    <a class="brand brand-sm" href="#top"><img class="mark" src="../design/logo.svg" alt="" width="58" height="58"><span class="word"><b>RUIN-1</b><i>Synthesizer</i></span></a>
+    <nav class="foot-links"><a href="#top">Overview</a><span>/</span><a href="#sound">Sound</a><span>/</span><a href="#features">Features</a><span>/</span><a href="#requirements">Requirements</a></nav>
+    <a class="btn btn-o btn-sm" href="#buy">Buy now <span aria-hidden="true">›</span></a>
+  </div>
+  <div class="wrap foot-row foot-small">
+    <span>© 2026 RUIN-1. All rights reserved.</span>
+    <span class="social">
+      <a href="#" aria-label="YouTube"><svg viewBox="0 0 24 20"><rect x="1" y="2" width="22" height="16" rx="5"/><path d="M10 6.5 L16 10 L10 13.5 Z" class="cut"/></svg></a>
+      <a href="#" aria-label="X"><svg viewBox="0 0 20 20"><path d="M3 2 L17 18 M17 2 L3 18" class="line"/></svg></a>
+      <a href="#" aria-label="Instagram"><svg viewBox="0 0 20 20"><rect x="2" y="2" width="16" height="16" rx="5" class="line"/><circle cx="10" cy="10" r="3.6" class="line"/><circle cx="14.6" cy="5.4" r="1.1"/></svg></a>
+      <a href="#" aria-label="SoundCloud"><svg viewBox="0 0 28 16"><path d="M10 15 V6 M12.5 15 V4 M15 15 V3.5 M7.5 15 V7.5 M5 15 V9" class="line"/><path d="M17 15 V4 C 20 2, 24 4, 24 8 C 26 8, 27 10, 27 11.5 C 27 13.5, 25.5 15, 24 15 Z"/></svg></a>
+    </span>
+  </div>
+</footer>
+
+<script src="main.js"></script>
+</body>
+</html>

@@ -104,7 +104,7 @@ const mask = (names: string[]) => names.reduce((m, n) => (LAYERS.includes(n) ? m
 export class PluginHost {
   readonly analyser = new PluginAnalyser() as unknown as AnalyserNode;
   private wheelAt = -Infinity;
-  /** The engine's live values (see LowTalkProcessor::live): cutoff, res, wobble phase, wobble filter, LFO phases ×4, values ×4, GRIND fc ×4, res ×4. */
+  /** The engine's live values (see LowTalkProcessor::live): cutoff, res, wobble phase, wobble filter, LFO phases ×4, values ×4, RUIN fc ×4, res ×4, LFO 5-6 phases and values. */
   private live: number[] = [];
 
   constructor(feed: PluginFeed) {
@@ -207,11 +207,11 @@ export class PluginHost {
 
   /** Each LFO's phase (0..1) and value (-1..1). */
   liveLfos(): { phase: number[]; value: number[] } {
-    return { phase: [0, 1, 2, 3].map((i) => this.live[4 + i] ?? 0), value: [0, 1, 2, 3].map((i) => this.live[8 + i] ?? 0) };
+    return { phase: [4, 5, 6, 7, 20, 21].map((i) => this.live[i] ?? 0), value: [8, 9, 10, 11, 22, 23].map((i) => this.live[i] ?? 0) };
   }
 
   /** Each GRIND stage's filter frequency (Hz, -1 off) and resonance. */
   liveGrind(): { fc: number[]; res: number[] } {
-    return { fc: [0, 1, 2, 3].map((i) => this.live[12 + i] ?? -1), res: [0, 1, 2, 3].map((i) => this.live[16 + i] ?? 0) };
+    return { fc: [12, 13, 14, 15, 24, 25, 26, 27].map((i) => this.live[i] ?? -1), res: [16, 17, 18, 19, 28, 29, 30, 31].map((i) => this.live[i] ?? 0) };
   }
 }

@@ -1,16 +1,15 @@
 // Voice building blocks added for full bass-directory coverage: 303-style
-// diode filter, comb filter, physical-model string, Shepard-tone oscillator
+// diode filter, comb filter, physical-model string
 // and the texture bed. All state is preallocated; nothing here
 // allocates after construction.
 
-import { fastTanh as fastTanh_, Rng as Rng_, Svf as Svf_, TWO_PI as TWO_PI_ } from './dsp';
+import { fastTanh as fastTanh_, Rng as Rng_, Svf as Svf_ } from './dsp';
 
 // Module-local bindings: avoids live-binding getter overhead on hot paths in
 // some module transforms (tsx / vite-node).
 const fastTanh = fastTanh_;
 const Rng = Rng_;
 const Svf = Svf_;
-const TWO_PI = TWO_PI_;
 
 /**
  * 3-pole (18 dB/oct) diode-style ladder, the 303 filter's character: each
@@ -142,51 +141,6 @@ export class KarplusString {
     this.dcIn = y;
     this.dc = out;
     return out;
-  }
-}
-
-const SHEPARD_PARTIALS = 8;
-
-/**
- * Shepard tone: octave-spaced sines under a fixed bell-shaped loudness curve
- * on a log-frequency axis. Gliding all partials together while the curve
- * stays put gives an endlessly rising or falling pitch.
- */
-export class Shepard {
-  private phase = new Float64Array(SHEPARD_PARTIALS);
-  private pos = 0; // 0..1 octave offset
-
-  reset(): void {
-    this.phase.fill(0);
-    this.pos = 0;
-  }
-
-  /** inc = phase increment of the note (cycles/sample); rate = octaves per second (signed). */
-  process(inc: number, rateOctPerSample: number): number {
-    this.pos += rateOctPerSample;
-    if (this.pos >= 1) {
-      this.pos -= 1;
-      for (let j = 0; j < SHEPARD_PARTIALS - 1; j++) this.phase[j] = this.phase[j + 1];
-      this.phase[SHEPARD_PARTIALS - 1] = 0;
-    } else if (this.pos < 0) {
-      this.pos += 1;
-      for (let j = SHEPARD_PARTIALS - 1; j > 0; j--) this.phase[j] = this.phase[j - 1];
-      this.phase[0] = 0;
-    }
-    let out = 0, wsum = 0;
-    const center = SHEPARD_PARTIALS / 2 - 1; // partial 3 sits on the note
-    for (let j = 0; j < SHEPARD_PARTIALS; j++) {
-      const oct = j - center + this.pos; // octaves from the note
-      const w = Math.exp(-((oct - 0.5) * (oct - 0.5)) / 1.6);
-      wsum += w;
-      const pinc = inc * Math.pow(2, oct);
-      if (pinc >= 0.45) continue;
-      let ph = this.phase[j] + pinc;
-      if (ph >= 1) ph -= 1;
-      this.phase[j] = ph;
-      out += w * Math.sin(TWO_PI * ph);
-    }
-    return wsum > 0 ? (out / wsum) * 1.6 : 0;
   }
 }
 

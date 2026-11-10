@@ -25,7 +25,7 @@ class LowTalkProcessor : public juce::AudioProcessor {
   juce::AudioProcessorEditor* createEditor() override;
   bool hasEditor() const override { return true; }
 
-  const juce::String getName() const override { return "Low Talk"; }
+  const juce::String getName() const override { return "RUIN-1"; }
   bool acceptsMidi() const override { return true; }
   bool producesMidi() const override { return false; }
   bool isMidiEffect() const override { return false; }
@@ -70,8 +70,8 @@ class LowTalkProcessor : public juce::AudioProcessor {
   std::array<std::atomic<uint32_t>, 4> heldNotes{};
   double getRate() const { return rate; }
   /** What the engine is doing right now, for the window's moving prints: cutoff, resonance, the
-   *  Wobbler's phase and filter, each LFO's phase and value, each GRIND stage's frequency and resonance. */
-  static constexpr int LIVE_COUNT = 20;
+   *  two unused slots (were the Wobbler's), each LFO's phase and value, each RUIN stage's frequency and resonance. */
+  static constexpr int LIVE_COUNT = 32;
   std::array<std::atomic<float>, LIVE_COUNT> live{};
 
   static constexpr const char* WHEEL_ID = "modwheel";

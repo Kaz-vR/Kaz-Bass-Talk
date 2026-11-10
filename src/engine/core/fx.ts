@@ -84,6 +84,10 @@ export class Chorus {
       this.processHyper(l, r, mix, depth, out);
       return;
     }
+    if (mode === 3) {
+      this.processBbd(l, r, mix, depth, out);
+      return;
+    }
     const mask = this.size - 1;
     this.bufL[this.w & mask] = l;
     this.bufR[this.w & mask] = r;
@@ -144,6 +148,47 @@ export class Chorus {
     const dry = 1 - 0.6 * mix;
     out[0] = l * dry + mix * 0.42 * wl;
     out[1] = r * dry + mix * 0.42 * wr;
+  }
+
+  private bbdPhase = 0;
+  private bbdRate = 0.5;
+  private readonly bbdLp = new Float64Array(4);
+  private readonly bbdNoise = new Rng(0xbbd);
+  private bbdCoef = -1;
+
+  /**
+   * BBD (the Juno / Jupiter chorus): one bucket-brigade delay per side, swept by a triangle in
+   * opposite directions (left and right swing apart), its echo darkened by the chips' filters
+   * (~7 kHz), softly saturated and carrying a faint hiss. Depth = how far and how fast it sweeps
+   * (from the Juno's slow I towards its faster II).
+   */
+  private processBbd(l: number, r: number, mix: number, depth: number, out: Float64Array): void {
+    const mask = this.size - 1;
+    this.bufL[this.w & mask] = l;
+    this.bufR[this.w & mask] = r;
+    if (this.bbdCoef < 0) this.bbdCoef = 1 - Math.exp((-TWO_PI * 7000) / this.fs);
+    if (this.count-- <= 0) {
+      this.count = 15;
+      this.bbdRate = (0.4 + 0.5 * depth) * this.driftStep();
+    }
+    this.bbdPhase += this.bbdRate / this.fs;
+    if (this.bbdPhase >= 1) this.bbdPhase -= 1;
+    const tri = this.bbdPhase < 0.5 ? 4 * this.bbdPhase - 1 : 3 - 4 * this.bbdPhase; // -1..1
+    const centre = 0.0035 * this.fs, swing = (0.0008 + 0.0016 * depth) * this.fs;
+    let wl = this.read(this.bufL, centre + swing * tri);
+    let wr = this.read(this.bufR, centre - swing * tri);
+    // the chips' filters (two poles), a little saturation, a little hiss
+    const c = this.bbdCoef, s = this.bbdLp;
+    s[0] += (wl - s[0]) * c;
+    s[1] += (s[0] - s[1]) * c;
+    s[2] += (wr - s[2]) * c;
+    s[3] += (s[2] - s[3]) * c;
+    wl = fastTanh(1.2 * s[1]) / 1.2 + 0.0006 * this.bbdNoise.next();
+    wr = fastTanh(1.2 * s[3]) / 1.2 + 0.0006 * this.bbdNoise.next();
+    this.w = (this.w + 1) & mask;
+    const dry = 1 - 0.5 * mix;
+    out[0] = l * dry + mix * 0.55 * wl;
+    out[1] = r * dry + mix * 0.55 * wr;
   }
 
   private processEnsemble(l: number, r: number, mix: number, depth: number, out: Float64Array): void {
@@ -729,8 +774,7 @@ export class Reverb {
 }
 
 /**
- * Tape: saturation (soft, slightly asymmetric), wow & flutter (modulated
- * delay), and age (high-frequency loss plus hiss). Processes the voice only;
+ * Tape: wow & flutter (a modulated delay). Processes the voice only;
  * the sub is added afterwards so it stays clean and phase-stable.
  */
 export class Tape {
@@ -743,17 +787,14 @@ export class Tape {
   private drift = 0;
   private driftTarget = 0;
   private driftCount = 0;
-  private lpL = 0;
-  private lpR = 0;
   private hiss = new Rng(0x7a9e);
-  private hissLp = 0;
   private count = 0;
   private d: number;
   private dStep = 0;
 
   constructor(private fs: number) {
     this.d = 0.0025 * fs;
-    const size = pow2Size(Math.ceil(0.02 * fs));
+    const size = pow2Size(Math.ceil(0.12 * fs)); // room for the extreme wow (±2 semitones, its swing ~47 ms)
     this.bufL = new Float32Array(size);
     this.bufR = new Float32Array(size);
     this.mask = size - 1;
@@ -762,20 +803,10 @@ export class Tape {
   reset(): void {
     this.bufL.fill(0);
     this.bufR.fill(0);
-    this.lpL = this.lpR = this.hissLp = 0;
   }
 
-  /** env: the voice's amp envelope, used to gate the hiss. lpCoef: age low-pass. */
-  process(l: number, r: number, drive: number, wow: number, age: number, lpCoef: number, env: number, out: Float64Array): void {
-    // Saturation.
-    if (drive > 0) {
-      const g = 1 + 5 * drive;
-      const bias = 0.15 * drive;
-      const tb = fastTanh(bias);
-      const comp = 1 / (1 + 1.2 * drive);
-      l += ((fastTanh(g * l + bias) - tb) * comp - l) * Math.min(1, drive * 4);
-      r += ((fastTanh(g * r + bias) - tb) * comp - r) * Math.min(1, drive * 4);
-    }
+  /** Wow and flutter only (owner's call: tape's drive and age were removed; the DRIVE box's tape type, the EQ and the Noise box do them). */
+  process(l: number, r: number, wow: number, out: Float64Array): void {
     // Wow (slow, wandering) and flutter (fast, small).
     if (wow > 0) {
       if (this.count-- <= 0) {
@@ -792,7 +823,12 @@ export class Tape {
           this.driftCount = Math.round(this.fs * 0.4);
         }
         this.drift += (this.driftTarget - this.drift) * 0.0016;
-        const target = this.fs * (0.0025 + wow * (0.0022 * Math.sin(TWO_PI * this.wowPh) * (1 + 0.4 * this.drift) + 0.00012 * Math.sin(TWO_PI * this.flutPh)));
+        // Depths in cents, curved (owner's call: as extreme as the wildest tape plugins at the top, the
+        // first half as gentle as before): wow ±13 → ±200 cents, flutter ±9.5 → ±50; a delay swing of A
+        // seconds at f Hz bends the pitch by ~1731·2πf·A cents. The resting delay sits just past the swing.
+        const w4 = wow * wow * wow * wow;
+        const aw = (13.2 * wow + 186.8 * w4) * 1.672e-4, af = (9.5 * wow + 40.5 * w4) * 1.2596e-5;
+        const target = this.fs * (0.0025 + 1.4 * aw + af + aw * Math.sin(TWO_PI * this.wowPh) * (1 + 0.4 * this.drift) + af * Math.sin(TWO_PI * this.flutPh));
         this.dStep = (target - this.d) / 16;
       }
       this.d += this.dStep;
@@ -802,19 +838,6 @@ export class Tape {
       l = readFrac(this.bufL, this.mask, this.w, d);
       r = readFrac(this.bufR, this.mask, this.w, d);
       this.w = (this.w + 1) & this.mask;
-    }
-    // Age: high-frequency loss and hiss.
-    if (age > 0) {
-      this.lpL += (l - this.lpL) * lpCoef;
-      this.lpR += (r - this.lpR) * lpCoef;
-      l = this.lpL;
-      r = this.lpR;
-      const n = this.hiss.next();
-      const hp = n - this.hissLp; // crude high-passed hiss
-      this.hissLp += (n - this.hissLp) * 0.3;
-      const h = hp * age * 0.004 * Math.min(1, env * 4);
-      l += h;
-      r += h;
     }
     out[0] = l;
     out[1] = r;

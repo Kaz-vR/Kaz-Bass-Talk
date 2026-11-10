@@ -112,32 +112,14 @@ function clampValue(p: ParamDef, raw: unknown, issues: ValidationIssue[]): Param
 
 /**
  * Older patches had a pitch envelope of their own and a matrix Pitch that never reached the sub.
- * Now Env 3 → Pitch moves the whole note (sub included) and Osc A+B pitch only the oscillators, so:
- * their Pitch rows become Osc A+B pitch, and the pitch envelope becomes Env 3 (an instant jump that
- * decays) routed to Pitch, in a free slot or, when all 12 are used, in place of the smallest one.
+ * Now Pitch moves the whole note (sub included) and Osc A+B pitch only the oscillators, so their
+ * Pitch rows become Osc A+B pitch. (The pitch envelope itself is not carried over: Env 3, which it
+ * became, was replaced by the drop LFO shape; old presets are rebuilt with the bank.)
  */
 function migratePitchEnv(src: Record<string, unknown>): Record<string, unknown> {
   if (!('pitch_env.amount' in src)) return src;
   const out: Record<string, unknown> = { ...src };
   for (let n = 1; n <= MOD_SLOT_COUNT; n++) if (out[`mod${n}.dest`] === 'pitch') out[`mod${n}.dest`] = 'osc_pitch';
-  const amount = Number(src['pitch_env.amount']) || 0, decay = Number(src['pitch_env.decay']) || 60;
-  if (Math.abs(amount) < 1e-6) return out;
-  out['env3.attack'] = 0;
-  out['env3.decay'] = decay;
-  out['env3.sustain'] = 0;
-  out['env3.release'] = decay;
-  const amt = (n: number) => Math.abs(Number(out[`mod${n}.amount`]) || 0);
-  const free = (n: number) => (out[`mod${n}.source`] ?? 'none') === 'none' || (out[`mod${n}.dest`] ?? 'none') === 'none' || amt(n) === 0;
-  let slot = 0;
-  for (let n = 1; n <= MOD_SLOT_COUNT && !slot; n++) if (free(n)) slot = n;
-  if (!slot) {
-    slot = 1;
-    for (let n = 2; n <= MOD_SLOT_COUNT; n++) if (amt(n) < amt(slot)) slot = n;
-  }
-  out[`mod${slot}.source`] = 'env3';
-  out[`mod${slot}.dest`] = 'pitch';
-  out[`mod${slot}.amount`] = Math.max(-1, Math.min(1, amount / 24));
-  out[`mod${slot}.on`] = true;
   return out;
 }
 
@@ -200,10 +182,90 @@ function migrateEq(src: Record<string, unknown>): Record<string, unknown> {
 }
 
 /** GRIND before it lost its beat movement and formant filter (beat became note on the tempo, formant a peak) and before HZ / SYNC became a three-way clock. */
+/**
+ * The mod matrix: 9 rows, all the preset's own (owner's call). RUIN'S LFO, the built-in life rows 6-9
+ * (HUMAN PITCH / SWELL / TONE / GRIT), was removed: barely audible to a user, where RUIN, Wow and Drift
+ * are dials you turn up and hear; a preset's life comes from its own LFOs (HUMANIZE).
+ */
+export const PATCH_ROWS = 9;
+/** A patch from the RUIN'S LFO days: rows 6-9 were those fixed rows, not the preset's own. */
+const OLD_RUIN_DESTS = ['osc_pitch', 'amp', 'filter_cutoff', 'drive'];
+const hadRuinRows = (src: Record<string, unknown>) =>
+  OLD_RUIN_DESTS.every((d, i) => src[`mod${6 + i}.dest`] === d) && /^lfo\d$/.test(String(src['mod6.source']));
+/** The first version of RUIN'S LFO (five rows, one LFO each, rows 6-10). */
+const isOldRuinPatch = (src: Record<string, unknown>) => src['mod6.dest'] === 'osc_pitch' && src['mod10.dest'] === 'drive';
+
+/**
+ * The matrix's working rows move up into its 9 (rows aimed at sources or destinations the matrix no
+ * longer offers are dropped first). The old RUIN'S LFO rows are left behind; the LFOs only they used
+ * load switched off (switchOffUnused).
+ */
+function migrateMatrix(src: Record<string, unknown>): Record<string, unknown> {
+  const srcOpts = params.find((p) => p.id === 'mod1.source')!.options!;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(src)) if (!/^mod\d+\./.test(k)) out[k] = v;
+  let n = 0;
+  const last = hadRuinRows(src) || isOldRuinPatch(src) ? 5 : 12;
+  for (let i = 1; i <= last && n < PATCH_ROWS; i++) {
+    const s = src[`mod${i}.source`], a = Number(src[`mod${i}.amount`]);
+    let d = src[`mod${i}.dest`];
+    if (d === 'osc1_wt_pos') d = 'osc1_pw';
+    else if (d === 'osc2_wt_pos') d = 'osc2_pw';
+    else if (d === 'breath_level') d = 'texture_level';
+    if (typeof s !== 'string' || s === 'none' || !srcOpts.includes(s) || typeof d !== 'string' || d === 'none' || !MATRIX_DESTS.includes(d) || !a) continue;
+    n++;
+    out[`mod${n}.source`] = s;
+    out[`mod${n}.dest`] = d;
+    out[`mod${n}.amount`] = a;
+    out[`mod${n}.on`] = src[`mod${i}.on`] ?? true;
+  }
+  return out;
+}
+
+/** The FX distortion became DRIVE (RUIN's drive, owner's call): its old types as the new ones closest to them. */
+const OLD_DIST_TYPE: Record<string, string> = { soft: 'tape', hard: 'soft clip', fold: 'amp', fuzz: 'amp' };
+
+/** RUIN's old drive types, as the new ones closest to them. */
+const OLD_GRIND_DRIVE: Record<string, string> = { soft: 'soft clip', hard: 'soft clip', fold: 'amp', fuzz: 'amp' };
+
+/** RUIN's filters (owner's call): Res became Width (turned round: up = wider), V Range became Depth (how deep the
+ * notch / how tall the peak; old patches keep the whole filter, Depth 1); the resonance no longer moves. */
+function migrateGrindWidth(src: Record<string, unknown>): Record<string, unknown> {
+  if (![1, 2, 3, 4].some((n) => `grind${n}.res` in src || `grind${n}.vrange` in src)) return src;
+  const out = { ...src };
+  for (let n = 1; n <= 4; n++) {
+    const res = out[`grind${n}.res`];
+    if (typeof res === 'number' && !(`grind${n}.width` in out)) out[`grind${n}.width`] = Math.round((1 - res) * 1000) / 1000;
+    if (`grind${n}.vrange` in out && !(`grind${n}.depth` in out)) out[`grind${n}.depth`] = 1;
+    delete out[`grind${n}.res`];
+    delete out[`grind${n}.vrange`];
+  }
+  return out;
+}
+
+/** RUIN's boxes (owner's call: free order): a patch from before them gets the old fixed order, F1 D1 F2 D2 …, with
+ * only the parts that were on, packed to the left; a patch with RUIN switched off starts empty. */
+function migrateGrindSlots(src: Record<string, unknown>): Record<string, unknown> {
+  if ('grind.slot1' in src) return src;
+  const out = { ...src };
+  const slots: string[] = [];
+  if (out['grind.on'] === true) {
+    for (let n = 1; n <= 4; n++) {
+      if (out[`grind${n}.on`] === false) continue;
+      if (out[`grind${n}.filter_on`] !== false) slots.push(`filter ${n}`);
+      if (out[`grind${n}.drive_on`] !== false) slots.push(`drive ${n}`);
+    }
+  }
+  for (let k = 1; k <= 8; k++) out[`grind.slot${k}`] = slots[k - 1] ?? 'empty';
+  return out;
+}
+
 function migrateGrind(src: Record<string, unknown>): Record<string, unknown> {
-  if (![1, 2, 3, 4].some((n) => src[`grind${n}.move`] === 'beat' || src[`grind${n}.filter`] === 'formant' || `grind${n}.sync` in src)) return src;
+  if (![1, 2, 3, 4].some((n) => src[`grind${n}.move`] === 'beat' || src[`grind${n}.filter`] === 'formant' || `grind${n}.sync` in src || String(src[`grind${n}.drive_type`]) in OLD_GRIND_DRIVE)) return src;
   const out: Record<string, unknown> = { ...src };
   for (let n = 1; n <= 4; n++) {
+    const dt = String(out[`grind${n}.drive_type`]);
+    if (dt in OLD_GRIND_DRIVE) out[`grind${n}.drive_type`] = OLD_GRIND_DRIVE[dt];
     if (out[`grind${n}.move`] === 'beat') {
       out[`grind${n}.move`] = 'note';
       out[`grind${n}.clock`] = 'sync';
@@ -241,7 +303,7 @@ function migrateReverb(src: Record<string, unknown>): Record<string, unknown> {
  */
 export function validatePatch(input: unknown): ValidationResult {
   const issues: ValidationIssue[] = [];
-  const src = migrateEq(migrateGrind(migrateTexture(migrateAttackCurve(migrateReverb(migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>)))))));
+  const src = migrateMatrix(migrateEq(migrateGrindSlots(migrateGrindWidth(migrateGrind(migrateTexture(migrateAttackCurve(migrateReverb(migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>))))))))));
   const rawMeta = src.meta && typeof src.meta === 'object' ? (src.meta as PatchMeta) : undefined;
   const meta: PatchMeta = { ...(rawMeta ?? {}), name: typeof rawMeta?.name === 'string' ? rawMeta.name : 'Untitled' };
   if (!rawMeta) issues.push({ param: 'meta', message: 'missing meta' });
@@ -261,6 +323,22 @@ export function validatePatch(input: unknown): ValidationResult {
       patch[p.id] = 'triangle';
       continue;
     }
+    if (p.id === 'dist.type' && typeof src[old] === 'string' && (src[old] as string) in OLD_DIST_TYPE) {
+      patch[p.id] = OLD_DIST_TYPE[src[old] as string];
+      continue;
+    }
+    // The shepard wave was removed (owner's call): it loads as a sine.
+    if (/^osc[12]\.wave$/.test(p.id) && src[old] === 'shepard') {
+      patch[p.id] = 'sine';
+      continue;
+    }
+    // The matrix only reaches MATRIX_DESTS (owner's call); a row aimed elsewhere loads empty, except the
+    // wavetable position (now part of Shape) and breath level (now Noise level).
+    if (/^mod\d+\.dest$/.test(p.id) && typeof src[old] === 'string' && !MATRIX_DESTS.includes(src[old] as string)) {
+      const v = src[old] as string;
+      patch[p.id] = v === 'osc1_wt_pos' ? 'osc1_pw' : v === 'osc2_wt_pos' ? 'osc2_pw' : v === 'breath_level' ? 'texture_level' : 'none';
+      continue;
+    }
     patch[p.id] = old in src ? clampValue(p, src[old], issues) : (p.default as ParamValue);
   }
   for (const key of Object.keys(src)) {
@@ -271,10 +349,10 @@ export function validatePatch(input: unknown): ValidationResult {
 }
 
 /** The matrix sources with an on / off switch of their own. */
-const SWITCHED_SOURCES = ['env2', 'env3', 'lfo1', 'lfo2', 'lfo3', 'lfo4'];
+const SWITCHED_SOURCES = ['lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo5', 'lfo6'];
 
 /**
- * Switch off the LFOs and envelopes no matrix row uses (owner's call: a preset shows only what it
+ * Switch off the LFOs (and the filter envelope) no matrix row uses (owner's call: a preset shows only what it
  * uses). The sound is unchanged: an unused source does nothing. Run when a preset or roll loads.
  */
 export function switchOffUnused(patch: Patch): void {
@@ -293,18 +371,22 @@ export function switchOffUnused(patch: Patch): void {
   if (!fenv) patch['mod_env.on'] = false;
 }
 
-/** Matrix sources in reading order (rows and the source menu): the envelopes, the LFOs, what the player does, the machine's own life. */
-export const SRC_ORDER = ['env2', 'env3', 'mod_env', 'amp_env', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo_product', 'velocity', 'modwheel', 'keytrack', 'random', 'drift', 'drift_slow'];
-/** Destinations in signal order: pitch, the sources, drive and filter, dirt, level, effects, LFO rates. */
-export const DEST_ORDER = ['pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'sub_pitch', 'noise_pitch', 'vibrato_depth', 'osc1_wt_pos', 'osc2_wt_pos', 'osc1_pw', 'osc2_pw', 'osc1_level', 'osc2_level',
-  'unison_detune', 'fm_amount', 'fm2_amount', 'sub_level', 'noise_level', 'breath_level', 'texture_level', 'drive', 'filter_cutoff', 'filter_resonance',
-  'filter_vowel', 'dist_drive', 'dist_mix', 'dist_tone', 'crush_mix', 'tape_wow', 'amp', 'chorus_depth', 'phaser_mix', 'delay_time', 'delay_mix',
-  'reverb_mix', 'width', 'lfo1_rate', 'lfo2_rate', 'lfo3_rate', 'lfo4_rate'];
-const MOD_SLOT_COUNT = 12;
+/** Matrix sources in reading order (rows and the source menu): the envelopes, the LFOs, what the player does. */
+export const SRC_ORDER = ['mod_env', 'amp_env', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo5', 'lfo6', 'velocity', 'modwheel', 'keytrack'];
+/** Destinations in signal order: pitch, shape and detune, levels, filter, distortion. */
+export const DEST_ORDER = ['pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'sub_pitch', 'noise_pitch', 'vibrato_depth', 'osc12_shape', 'osc1_pw', 'osc2_pw',
+  'unison_detune', 'osc1_detune', 'osc2_detune', 'amp', 'osc1_level', 'osc2_level', 'sub_level', 'texture_level', 'drive', 'filter_cutoff', 'filter_resonance', 'filter_vowel',
+  'dist_drive', 'dist_mix', 'dist_tone'];
+/**
+ * The destinations the mod matrix offers (owner's call, the LORN essentials). The engine keeps the others
+ * internally (the mod wheel's moves use them), but no matrix row reaches them.
+ */
+export const MATRIX_DESTS = ['none', ...DEST_ORDER];
+const MOD_SLOT_COUNT = 9;
 
 /**
- * Put the 12 mod-matrix slots in reading order: the envelopes first, then LFO 1, 2, 3, 4,
- * velocity / wheel / keytrack, random and the drifts; the same source's rows together, in
+ * Put the 9 mod-matrix slots in reading order: the envelopes first, then LFO 1-6,
+ * velocity / wheel / keytrack; the same source's rows together, in
  * signal order of their destinations; empty slots last. The slots are summed, so the sound is
  * unchanged. Runs on every patch that is loaded (presets, rolls, saved sounds).
  */
@@ -313,7 +395,7 @@ export function sortModSlots(patch: Patch): void {
     const i = list.indexOf(v);
     return i < 0 ? list.length : i;
   };
-  const slots = Array.from({ length: MOD_SLOT_COUNT }, (_, i) => {
+  const slots = Array.from({ length: PATCH_ROWS }, (_, i) => {
     const n = i + 1;
     return { src: patch[`mod${n}.source`], dest: patch[`mod${n}.dest`], amt: patch[`mod${n}.amount`], on: patch[`mod${n}.on`] ?? true, i };
   });

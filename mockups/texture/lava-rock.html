@@ -1,0 +1,129 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Lava rock</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas>
+<script>
+// A procedural charred-rock texture with glowing lava at its edges, made to match the owner's reference image.
+// Everything is computed per pixel from seeded noise: no images. ?w=&h=&seed= to change size / variation.
+const Q = new URLSearchParams(location.search);
+const W = +(Q.get('w') || 1024), H = +(Q.get('h') || 1007), SEED = +(Q.get('seed') || 7);
+const P = {
+  angle: -0.42,          // the slabs' strata run up to the right
+  strata: [0.0011, 0.0034], strataWarp: 140, terraces: 3.2, terraceSharp: 9,
+  chip: 0.2, rough: 0.022, grain: 0.008,
+  light: [-0.55, -0.62, 0.56], bump: 190,
+  base: [3, 5, 6], lit: [40, 46, 50], sheenK: 4, rim: 95,
+  sparkle: 0.0022, sparkleMax: 140,
+  lavaEdge: 0.042, lavaCell: 13, lavaLine: 0.95, lavaGlow: 6, lavaDots: 0.006,
+  crack: -0.02,
+};
+// ---------------------------------------------------------------- seeded noise
+let s0 = SEED * 9301 + 49297;
+const rand = () => ((s0 = (s0 * 16807) % 2147483647) / 2147483647);
+const perm = new Uint8Array(512); { const p = [...Array(256).keys()]; for (let i = 255; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; } for (let i = 0; i < 512; i++) perm[i] = p[i & 255]; }
+const G = [[1,1],[-1,1],[1,-1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]];
+const fade = (t) => t * t * t * (t * (t * 6 - 15) + 10);
+function perlin(x, y) {
+  const X = Math.floor(x), Y = Math.floor(y), xf = x - X, yf = y - Y, xi = X & 255, yi = Y & 255;
+  const g = (i, j, dx, dy) => { const v = G[perm[i + perm[j]] & 7]; return v[0] * dx + v[1] * dy; };
+  const u = fade(xf), v = fade(yf);
+  const a = g(xi, yi, xf, yf), b = g(xi + 1, yi, xf - 1, yf), c = g(xi, yi + 1, xf, yf - 1), d = g(xi + 1, yi + 1, xf - 1, yf - 1);
+  return (a + u * (b - a)) + v * ((c + u * (d - c)) - (a + u * (b - a)));
+}
+function fbm(x, y, oct = 6, lac = 2.03, gain = 0.5) { let s = 0, a = 1, n = 0; for (let i = 0; i < oct; i++) { s += a * perlin(x, y); n += a; a *= gain; x *= lac; y *= lac; } return s / n; }
+function ridged(x, y, oct = 5) { let s = 0, a = 1, n = 0; for (let i = 0; i < oct; i++) { s += a * (1 - Math.abs(perlin(x, y))); n += a; a *= 0.5; x *= 2.1; y *= 2.1; } return s / n; }
+// worley F2-F1 (the borders between cells), for the lava crust
+const hash2 = (i, j) => { const h = Math.sin(i * 127.1 + j * 311.7 + SEED * 17.3) * 43758.5453; return h - Math.floor(h); };
+function cellEdge(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y); let f1 = 9, f2 = 9;
+  for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
+    const cx = xi + i + hash2(xi + i, yi + j), cy = yi + j + hash2(yi + j + 31, xi + i - 17);
+    const d = Math.hypot(x - cx, y - cy);
+    if (d < f1) { f2 = f1; f1 = d; } else if (d < f2) f2 = d;
+  }
+  return f2 - f1;
+}
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+
+// ---------------------------------------------------------------- height: diagonal slabs with chipped ledges
+const hgt = new Float32Array(W * H), ledge = new Float32Array(W * H);
+const ca = Math.cos(P.angle), sa = Math.sin(P.angle);
+for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+  const wx = x + P.strataWarp * fbm(x * 0.003 + 11, y * 0.003 + 3, 4), wy = y + P.strataWarp * fbm(x * 0.003 - 7, y * 0.003 + 19, 4);
+  const u = wx * ca - wy * sa, v = wx * sa + wy * ca;
+  let s = fbm(u * P.strata[0], v * P.strata[1], 5) * P.terraces;
+  s += P.chip * fbm(x * 0.045, y * 0.045, 4) + 0.06 * fbm(x * 0.13, y * 0.13, 2);
+  const f = s - Math.floor(s), step = Math.floor(s) + Math.pow(f, P.terraceSharp);
+  const i = y * W + x;
+  ledge[i] = Math.pow(f, P.terraceSharp * 0.6);
+  hgt[i] = step * 0.55 + P.rough * fbm(x * 0.02, y * 0.02, 5) + P.grain * ridged(x * 0.09, y * 0.09, 3);
+}
+// ---------------------------------------------------------------- lava: worm-like crust lines near the left and right edges
+const lava = new Float32Array(W * H);
+for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+  // the rock slab's ragged outline: beyond it, at the sides and the bottom corners, the lava crust shows
+  const side = x < W / 2 ? 0 : 1, ex = side ? W - 1 - x : x, eb = H - 1 - y;
+  const bound = W * P.lavaEdge * (0.45 + 1.1 * sstep(-0.5, 0.6, fbm(y * 0.0055 + side * 40, side * 9.1, 4)))
+    + 18 * fbm(y * 0.03 + side * 13, x * 0.01, 3) + 120 * sstep(H * 0.82, H, y) * sstep(-0.3, 0.4, fbm(x * 0.004 + 5, 1.7, 2));
+  const inside = ex - bound;
+  let m = sstep(10, -14, inside) * sstep(0, 0.12, ex / W + 0.12) + 0.5 * sstep(28, 0, eb) * sstep(0.3, 0.1, ex / W);
+  if (m <= 0.001) continue;
+  const wx = x + 16 * fbm(x * 0.045, y * 0.045, 3), wy = y + 16 * fbm(x * 0.045 + 9, y * 0.045 + 9, 3);
+  const d = cellEdge(wx / P.lavaCell, wy / P.lavaCell) * P.lavaCell;
+  let line = sstep(P.lavaLine, 0, d) * sstep(-0.15, 0.25, fbm(x * 0.025 + 5, y * 0.025, 3));
+  if (rand() < P.lavaDots * m) line = Math.max(line, 0.9);
+  lava[y * W + x] = clamp(line * m * 1.25);
+}
+// interior cracks: a few thin glowing lines along slab ledges, sparse
+for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+  const i = y * W + x, r = ridged(x * 0.004 + 40, y * 0.004 - 12, 4);
+  const c = fbm(x * 0.006, y * 0.006 + 77, 3);
+  if (ledge[i] > 0.955 && c > P.crack) lava[i] = Math.max(lava[i], clamp((ledge[i] - 0.955) * 22 * (c - P.crack) * 3.5) * (0.5 + 0.5 * (rand() < 0.6)));
+}
+// glow: a soft blur of the lava, added under it
+function blur(src, r) {
+  const t = new Float32Array(W * H), o = new Float32Array(W * H);
+  for (let y = 0; y < H; y++) { let s = 0; for (let x = -r; x < W + r; x++) { if (x + r < W) s += src[y * W + Math.min(W - 1, x + r)]; if (x - r - 1 >= 0) s -= src[y * W + x - r - 1]; if (x >= 0 && x < W) t[y * W + x] = s / (2 * r + 1); } }
+  for (let x = 0; x < W; x++) { let s = 0; for (let y = -r; y < H + r; y++) { if (y + r < H) s += t[Math.min(H - 1, y + r) * W + x]; if (y - r - 1 >= 0) s -= t[(y - r - 1) * W + x]; if (y >= 0 && y < H) o[y * W + x] = s / (2 * r + 1); } }
+  return o;
+}
+let glow = blur(blur(lava, P.lavaGlow), P.lavaGlow);
+// a wide, faint warmth the lava throws onto the rock around it
+const warmth = blur(blur(lava, 34), 34);
+
+// ---------------------------------------------------------------- shade
+const cv = document.getElementById('c'); cv.width = W; cv.height = H;
+const ctx = cv.getContext('2d'), img = ctx.createImageData(W, H), d = img.data;
+const L = P.light, ll = Math.hypot(...L), lx = L[0] / ll, ly = L[1] / ll, lz = L[2] / ll;
+for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+  const i = y * W + x;
+  const hx = hgt[y * W + Math.min(W - 1, x + 1)] - hgt[y * W + Math.max(0, x - 1)], hy = hgt[Math.min(H - 1, y + 1) * W + x] - hgt[Math.max(0, y - 1) * W + x];
+  let nx = -hx * P.bump, ny = -hy * P.bump, nz = 1; const nl = Math.hypot(nx, ny, nz); nx /= nl; ny /= nl; nz /= nl;
+  const diff = Math.max(0, nx * lx + ny * ly + nz * lz);
+  // sheen: only the faces turned towards the light catch it, the rest stays near black
+  let sh = Math.pow(diff, P.sheenK);
+  // big slow light / dark patches across the stone
+  const pu = x * ca - y * sa, pv = x * sa + y * ca;
+  const patch = 0.15 + 1.6 * sstep(-0.12, 0.35, fbm(pu * 0.0022 + 3, pv * 0.006 - 8, 4));
+  sh *= patch;
+  // fine sparkles on the crumbly surface
+  let sp = 0; if (rand() < P.sparkle * sh * 9) sp = P.sparkleMax * (0.4 + rand() * 0.6);
+  const g = glow[i], lv = lava[i];
+  // near the lava the lit rims turn warm
+  const warm = clamp(g * 4 + warmth[i] * 14);
+  let r = P.base[0] + sh * (P.lit[0] + warm * 120) + sp, gg = P.base[1] + sh * (P.lit[1] + warm * 10) + sp * 0.95, b = P.base[2] + sh * (P.lit[2] - warm * 40) + sp * 0.9;
+  // the chipped rim of each ledge catches the light
+  const rimM = sstep(0.8, 0.97, ledge[i]) * sstep(-0.05, 0.3, fbm(x * 0.05, y * 0.05 + 40, 3)) * (0.35 + patch * 0.5);
+  r += rimM * P.rim * 0.92; gg += rimM * P.rim; b += rimM * P.rim * 1.06;
+  // crevices darker
+  const dark = sstep(0.0, 0.25, ledge[i]) * 0.25; r *= 1 - dark; gg *= 1 - dark; b *= 1 - dark;
+  // lava and its glow
+  r += g * 110 + lv * 255; gg += g * 22 + lv * (38 + 80 * lv * lv * lv); b += g * 4 + lv * (6 + 26 * lv * lv * lv * lv);
+  // film grain
+  const n = (rand() - 0.5) * 4;
+  d[i * 4] = clamp(r + n, 0, 255); d[i * 4 + 1] = clamp(gg + n, 0, 255); d[i * 4 + 2] = clamp(b + n, 0, 255); d[i * 4 + 3] = 255;
+}
+ctx.putImageData(img, 0, 0);
+document.title = 'done';
+</script></body></html>

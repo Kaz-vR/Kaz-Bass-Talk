@@ -6,6 +6,14 @@ import { compileLoop, type Loop } from './core/sequencer';
 import { PROCESSOR_NAME, type EngineMessage } from './messages';
 import workletUrl from './worklet.ts?worker&url';
 
+/** The RUIN page's live view of its chain: 0 input, 1-2 the input again (SAT and PRE OTT were removed), 3-10 boxes 1-8, 11 RUIN's OTT, 12 the output. */
+export interface RuinTaps {
+  spec: Float32Array<ArrayBuffer>[];
+  rms: number[];
+  peak: number[];
+  binHz: number;
+}
+
 export class EngineHost {
   readonly ctx: AudioContext;
   readonly node: AudioWorkletNode;
@@ -16,6 +24,10 @@ export class EngineHost {
   private readonly ctlWob: AnalyserNode;
   private readonly ctlLfo: AnalyserNode[] = [];
   private readonly ctlBuf = new Float32Array(32);
+  /** The RUIN page's taps (output 3): an analyser on each point of the chain, read only while the page shows. */
+  private readonly tapAn: AnalyserNode[] = [];
+  private readonly tapTime = new Float32Array(2048);
+  readonly ruinView: RuinTaps = { spec: [], rms: new Array(13).fill(0), peak: new Array(13).fill(0), binHz: 0 };
 
   private constructor(ctx: AudioContext, node: AudioWorkletNode) {
     this.ctx = ctx;
@@ -25,7 +37,7 @@ export class EngineHost {
     this.analyser.smoothingTimeConstant = 0.6;
     node.connect(ctx.destination);
     node.connect(this.analyser);
-    const split = ctx.createChannelSplitter(20);
+    const split = ctx.createChannelSplitter(32);
     node.connect(split, 1);
     this.ctlCut = ctx.createAnalyser();
     this.ctlRes = ctx.createAnalyser();
@@ -34,7 +46,20 @@ export class EngineHost {
     split.connect(this.ctlCut, 0);
     split.connect(this.ctlRes, 1);
     split.connect(this.ctlWob, 2);
-    for (let c = 3; c < 20; c++) {
+    const tsplit = ctx.createChannelSplitter(13);
+    node.connect(tsplit, 2);
+    for (let c = 0; c < 13; c++) {
+      const a = ctx.createAnalyser();
+      a.fftSize = 2048;
+      a.smoothingTimeConstant = 0.8;
+      a.minDecibels = -110;
+      a.maxDecibels = 0;
+      tsplit.connect(a, c);
+      this.tapAn.push(a);
+      this.ruinView.spec.push(new Float32Array(a.frequencyBinCount));
+    }
+    this.ruinView.binHz = ctx.sampleRate / 2048;
+    for (let c = 3; c < 32; c++) {
       const a = ctx.createAnalyser();
       a.fftSize = 32;
       split.connect(a, c);
@@ -48,7 +73,8 @@ export class EngineHost {
       a.getFloatTimeDomainData(this.ctlBuf);
       return this.ctlBuf[31];
     };
-    return { phase: this.ctlLfo.slice(0, 4).map(read), value: this.ctlLfo.slice(4, 8).map(read) };
+    const a = this.ctlLfo;
+    return { phase: [...a.slice(0, 4), a[17], a[18]].map(read), value: [...a.slice(4, 8), a[19], a[20]].map(read) };
   }
 
   /** Each GRIND stage's filter frequency right now (Hz), -1 when it is off or nothing sounds. */
@@ -57,7 +83,33 @@ export class EngineHost {
       a.getFloatTimeDomainData(this.ctlBuf);
       return this.ctlBuf[31];
     };
-    return { fc: this.ctlLfo.slice(9, 13).map(read), res: this.ctlLfo.slice(13, 17).map(read) };
+    // stages 1-4 on channels 12-15 / 16-19, stages 5-8 on 24-27 / 28-31
+    const a = this.ctlLfo;
+    return { fc: [...a.slice(9, 13), ...a.slice(21, 25)].map(read), res: [...a.slice(13, 17), ...a.slice(25, 29)].map(read) };
+  }
+
+  /** The RUIN page's taps right now: each point's spectrum (dB per bin), level (RMS) and peak, linear. */
+  ruinTaps(): RuinTaps {
+    const v = this.ruinView, t = this.tapTime;
+    this.tapAn.forEach((a, k) => {
+      a.getFloatFrequencyData(v.spec[k]);
+      a.getFloatTimeDomainData(t);
+      let s = 0, pk = 0;
+      for (let i = 0; i < t.length; i++) {
+        const x = t[i];
+        s += x * x;
+        const ax = Math.abs(x);
+        if (ax > pk) pk = ax;
+      }
+      v.rms[k] = Math.sqrt(s / t.length);
+      v.peak[k] = pk;
+    });
+    return v;
+  }
+
+  /** Listening on the RUIN page: `at` as the taps (0 none), `mode` 1 solo, 2 bypass, 3 delta. */
+  listen(at: number, mode: number): void {
+    this.post({ type: 'listen', at, mode });
   }
 
   /** The Wobbler filter's cutoff right now (Hz), or null when it is not working. */
@@ -65,6 +117,13 @@ export class EngineHost {
     this.ctlLfo[8].getFloatTimeDomainData(this.ctlBuf);
     const fc = this.ctlBuf[31];
     return fc > 0 ? fc : null;
+  }
+
+  /** Where the Wobbler is in its cycle, 0..1, or null when it is off or silent. */
+  liveWobble(): number | null {
+    this.ctlWob.getFloatTimeDomainData(this.ctlBuf);
+    const p = this.ctlBuf[31];
+    return p >= 0 && this.liveFilter() ? p : null;
   }
 
   /** The newest sounding voice's cutoff (Hz) and resonance, or null when nothing sounds. */
@@ -76,20 +135,14 @@ export class EngineHost {
     return { cutoff, res: this.ctlBuf[31] };
   }
 
-  /** Where the wobble (LFO 5) is in its cycle, 0..1, or null when it is off or silent. */
-  liveWobble(): number | null {
-    this.ctlWob.getFloatTimeDomainData(this.ctlBuf);
-    const p = this.ctlBuf[31];
-    return p >= 0 && this.liveFilter() ? p : null;
-  }
 
   static async create(): Promise<EngineHost> {
     const ctx = new AudioContext({ latencyHint: 'interactive' });
     await ctx.audioWorklet.addModule(workletUrl);
     const node = new AudioWorkletNode(ctx, PROCESSOR_NAME, {
       numberOfInputs: 0,
-      numberOfOutputs: 2,
-      outputChannelCount: [2, 20],
+      numberOfOutputs: 3,
+      outputChannelCount: [2, 32, 13],
     });
     return new EngineHost(ctx, node);
   }

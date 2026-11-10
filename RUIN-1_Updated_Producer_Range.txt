@@ -1,0 +1,199 @@
+RUIN-1 · UPDATED PRODUCER RANGE
+================================
+What the presets have to spread across so every type is covered, for the
+current categories: Bass (long + short), Lead, Pad (incl. strings + brass),
+Keys, Pluck, Arp / Sequence, Noise.
+
+Part 1 = the axes every category spreads across.
+Part 2 = per category: the roles and the types (sound families) that must
+         each exist at least once.
+Out of scope on purpose (decided outside the synth): width, reverb/delay
+amount, EQ, rhythm/gates/pumping. LORN treatment (dark top, wear, slow life)
+goes on everything; it is not an axis.
+
+
+==============================================================================
+PART 1 · THE AXES (every category, spread across each)
+==============================================================================
+
+1. ROLE        what the sound does in a track:
+               bed · support · hook (melody) · rhythm (pattern) · accent
+               (hits, stabs) · texture · transition (rise, fall, impact)
+2. ATTACK      swell · soft (felt) · medium · pluck · snap
+3. GRIT        clean · warm · dirty · destroyed
+               (2 + 3 together = softness: about 1/3 soft, 1/3 middle, 1/3 hard)
+4. LENGTH      blip · short · medium · long · ringing / endless
+5. THICKNESS   thin · medium · thick · wall
+6. REGISTER    sub · low · low-mid · mid · high · very high
+7. PITCH       steady · drifting · wobbly / seasick · gliding · falling /
+               rising · unpitched
+8. MOVEMENT    still · slow life · evolving · restless
+9. TOUCH       fixed (mechanical) · some · very expressive (velocity + wheel)
+10. TONE COLOUR
+               pure (sine) · round (triangle) · rich (saw) · hollow (square,
+               pulse) · nasal / reedy · vocal · metallic (inharmonic) ·
+               glassy (bell, FM) · woody · breathy · noisy · crushed / digital
+11. MOOD       tender · nostalgic · melancholic · eerie · tense · menacing ·
+               brutal · euphoric
+12. ERA / LINEAGE
+               70s analog · 80s poly / digital · 90s rave / digital ·
+               modern hybrid · lo-fi / tape · industrial / machine
+13. VOICING    mono · poly chords · both
+
+
+==============================================================================
+PART 2 · PER CATEGORY
+==============================================================================
+
+------------------------------------------------------------------------------
+BASS  (long and short; both halves spread across the axes on their own)
+------------------------------------------------------------------------------
+Roles: foundation sub · moving mid-bass · bass line (melodic) · rhythmic
+pattern · stab / hit · drone · transition (drop, slide).
+
+Types, LONG:
+- pure sub · warm sub (harmonic for small speakers) · infra rumble (felt only)
+- Reese (two-saw beating) · wide unison Reese · neuro / RUIN Reese
+- analog mono (Moog-style fat saw) · round triangle bass · hollow square bass
+- PWM / Juno bass · supersaw bass · hoover bass
+- distorted / fuzz / industrial saw · wavefolded · metallic FM-style · comb
+- fifth / tritone / octave-screamer templates · deep two-octave rumble
+- vocal / wavetable-morph bass
+- drone bass (evolving, minutes long) · swelling / blooming bass · tape-worn
+- breathing bass (rises after each hit) · organ bass · bowed / contrabass
+- pedal bass (Taurus) · gliding / portamento line bass (big dives)
+
+Types, SHORT:
+- pluck bass · acid 303 · rubber / funk envelope · dub / sound-system
+- 808 (clean, distorted, sliding) · kick-bass / sub thump · sub stab
+- staccato square · octave gallop (synthwave) · off-beat (techno) · EBM 16ths
+- FM slap / metallic plunk (Aprox) · log drum · donk · chip bass
+- distorted stab · bit-crushed stab · sync-tear stab · Reese stab
+- low-pass-gate / West Coast bongo · plucked string / upright
+- tom-like / heartbeat bass · noise-burst bass · metal / anvil hit
+- glitch blip · rumble (techno, reverb-fed)
+
+------------------------------------------------------------------------------
+LEAD
+------------------------------------------------------------------------------
+Roles: main melody · counter-line · hook riff · solo · call / FX line.
+
+Types:
+- mono saw (Minimoog) · portamento saw · supersaw / anthem · octave-stacked saw
+- hollow square / pulse · PWM soft lead · plucky square (Popcorn) ·
+  staccato hook (Axel F)
+- hard-sync tear lead · chainsaw · screaming distorted saw · fuzz guitar-like
+- brass lead (CS-80, expressive) · distorted anthem brass (LORN Acid Rain)
+- crying / beating detuned lead · eerie gliding lead · tape-warped lead
+- sine whistle · theremin · Ondes · G-funk whine
+- flute / breathy · reed / nasal · sax-shadow
+- FM bell / glass lead · metallic / inharmonic lead
+- acid 303 lead · resonant squeal / feedback lead
+- vocal-ish / robot lead (Aprox) · noise lead (pitched noise)
+- chip / lo-fi lead · broken-radio / band-limited lead · glitch lead
+- space squiggle · laser / zap · phased whistle (Oxygène)
+- shadow / low lead (under a vocal)
+
+------------------------------------------------------------------------------
+PAD  (incl. strings and brass)
+------------------------------------------------------------------------------
+Roles: bed · harmony · swell / build · stab · tension · texture.
+
+Types, SYNTH PADS:
+- warm analog poly · PWM chorus pad · supersaw wall · Juno / 80s pop pad
+- dark bloom · drone pad (almost still) · evolving wavetable
+- glassy / FM pad · shimmer · phaser / flanger (jet) pad
+- tape-worn / seasick pad · dust / crackle pad · noise bed
+- dissonant cluster · tritone / semitone rub · sour detuned
+- breathy / air pad · choir-like "aah" (Aprox) · instant pad (no swell)
+- reverse swell · rising-from-muffled · glitch / broken pad
+- metallic / comb pad · distorted / burnt pad · rain / digital shimmer
+
+Types, STRINGS:
+- string machine (Solina) · ensemble · bowed slow · dark low cellos
+- solo violin · high thin violins · sul ponticello (scratchy)
+- tremolo / nervous strings · string stab (hammer section)
+- staccato / spiccato ostinato · pizzicato (lives in Pluck)
+- distant / far strings · aggressive / grinding strings
+
+Types, BRASS:
+- 80s poly brass stab · synth brass swell · soft / distant brass
+- CS-80 brass (Blade Runner) · braam / monolith · warhorn
+- low tubas / threat brass · French horn (soft, round)
+- muted / thin trumpet · narrow biting trumpets
+- sforzando horn (bite then sing) · falling / sagging brass
+- fanfare · single signal horn (scooping)
+
+------------------------------------------------------------------------------
+KEYS  (and key-like instruments)
+------------------------------------------------------------------------------
+Roles: chords · comping · motif / riff · stab · bed · solo.
+
+Types:
+- Rhodes / tine EP · phaser Rhodes · Wurlitzer · FM EP (DX7, Aprox)
+- piano-like: felt · upright · honky-tonk · lo-fi grand · haunted detuned ·
+  sustain-pedal wash · 80s piano + bell layer (all Aprox: synth versions)
+- organs: drawbar · pipe / church · combo (Vox) · gothic / distorted ·
+  soft sine organ · house organ stab · organ drone
+- reeds: harmonium / pump organ · accordion / bandoneon · melodica
+- bells / mallets: vibraphone · celesta · music box · toy piano · glass keys
+- clav · harpsichord
+- synth keys: chord stab · Prophet poly keys · cold darkwave keys ·
+  80s/90s digital keys (bell over pad) · old-game / chip keys
+- odd: reversed keys · ticking low-pass-gate keys · fluttering FM keys
+
+------------------------------------------------------------------------------
+PLUCK
+------------------------------------------------------------------------------
+Roles: motif · rhythm part · accent · texture tick.
+
+Types:
+- 80s analog filter pluck · trance supersaw pluck · thick detuned pluck
+- house / dub chord stab · techno chord stab
+- marimba · kalimba · steel drum · woodblock / bone knock
+- harp · koto · pizzicato · muted guitar · palm-muted string · ringing wire
+- bell pluck · glass pluck · uncanny inharmonic bell · metallic / industrial
+- acid pluck · bubble · chip / glitch blip · UI blip
+- lo-fi crushed pluck · tape bell · dark submerged mallet
+- noise tick · tom tick · heartbeat pluck
+- echo-made pluck (the pluck written for an echo after the synth)
+
+------------------------------------------------------------------------------
+ARP / SEQUENCE  (sounds made to be sequenced; the pattern comes from the DAW)
+------------------------------------------------------------------------------
+Roles: driving pulse · melodic arp · texture sequence · hypnotic loop.
+
+Types:
+- Moroder octave sequence (I Feel Love) · cold square sequence (Blue Monday)
+- synthwave arp · darksynth relentless sequence · EBM 16th sequence
+- acid / squelch sequence · random S&H bleeps
+- warm analog arp with a slowly opening filter · soft sine / cradle arp
+- music-box arp · piano-like FM arp (Children) · organ arp (Baba O'Riley)
+- glassy FM sequence · metallic comb "machinery" · low-pass-gate twitch arp
+- hot PWM sequence · supersaw / euphoric arp
+
+------------------------------------------------------------------------------
+NOISE  (the noise strip is the instrument: no oscillators, no sub)
+------------------------------------------------------------------------------
+Roles: bed · texture · hit / kit · playable line · transition.
+
+Types (spread across all 14 noise types: 7 beds + their hits):
+- beds: crackle · dust · static · tape hiss · air · rumble · white
+- slowed / dark: hiss slowed into a roar · rumble an octave down · thumping
+  crackle (OCT down)
+- playable (KEY): noise lead · air glide · tape-stop line · static line
+- kits (hits across the keys): crackle kit · static kit · dust kit · noise
+  snare · breath puffs
+- through effects: filtered noise sweep · crushed static · distorted rumble ·
+  chorused air · RUIN-mangled noise
+- transitions: riser (noise + rising filter) · downlifter / fall · tape stop ·
+  noise impact
+
+
+==============================================================================
+HOW TO USE IT
+==============================================================================
+1. Every category: each type in Part 2 at least once.
+2. Across a category: the axes in Part 1 spread out (no clustering on
+   "dark + dirty + saw + long").
+3. A batch is planned against the empty cells, not from a source list.

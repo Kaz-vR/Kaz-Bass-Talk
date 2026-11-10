@@ -1,0 +1,239 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>RUIN-1</title>
+<style>
+@font-face { font-family: Barlow; font-weight: 400; src: url('fonts/barlow-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: BarlowSC; font-weight: 400; src: url('fonts/barlow-semi-condensed-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: Barlow; font-weight: 500; src: url('fonts/barlow-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: BarlowSC; font-weight: 500; src: url('fonts/barlow-semi-condensed-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: Barlow; font-weight: 600; src: url('fonts/barlow-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: BarlowSC; font-weight: 600; src: url('fonts/barlow-semi-condensed-latin-600-normal.woff2') format('woff2'); }
+* { box-sizing: border-box; }
+body { margin: 0; width: 1440px; background: #0a0807; color: #fff; font-family: Barlow, sans-serif; overflow: hidden; }
+.sec { position: absolute; left: 0; width: 1440px; overflow: hidden; }
+.abs { position: absolute; }
+svg.full { position: absolute; left: 0; top: 0; }
+.kick { font-weight: 600; font-size: 15px; letter-spacing: .3em; color: #e08a3a; text-transform: uppercase; }
+.h { font-weight: 500; text-transform: uppercase; color: #f3eee8; text-shadow: 0 0 18px rgba(255,255,255,.18); }
+.p { font-weight: 500; font-size: 16.5px; line-height: 1.8; letter-spacing: .04em; color: #dcd6cf; }
+.btn { position: absolute; display: flex; align-items: center; justify-content: center; gap: 14px; font-weight: 600; font-size: 17.5px; letter-spacing: .16em; color: #f1e6da; border-radius: 6px; }
+.btn.o { border: 2.5px solid #f08a2a; box-shadow: 0 0 16px rgba(255,130,40,.8), inset 0 0 12px rgba(255,130,40,.4); background: rgba(10,6,4,.55); }
+.btn.g { border: 2px solid rgba(220,215,210,.6); background: rgba(10,8,8,.45); }
+.navi { position: absolute; top: 38px; font-weight: 600; font-size: 15px; letter-spacing: .09em; color: #e6e1dc; }
+.line { position: absolute; left: 0; width: 1440px; height: 2px; background: linear-gradient(90deg, rgba(120,110,100,.25), rgba(170,160,150,.5) 30%, rgba(170,160,150,.5) 70%, rgba(120,110,100,.25)); z-index: 50; }
+.ic { position: absolute; width: 66px; height: 66px; border-radius: 50%; border: 2px solid; display: grid; place-items: center; background: radial-gradient(circle, rgba(0,0,0,.6), rgba(0,0,0,.2)); }
+.ic svg { width: 40px; height: 40px; fill: none; stroke: currentColor; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
+.ft { position: absolute; }
+.ft b { display: block; font-weight: 600; font-size: 15px; letter-spacing: .26em; color: #ece6df; margin-bottom: 10px; }
+.ft span { display: block; font-weight: 500; font-size: 16.5px; line-height: 27px; letter-spacing: .04em; color: #b3ada6; }
+</style></head><body>
+<script>
+// ------------------------------------------------------------------ helpers
+let F = 0;
+const W = 1440;
+/** charred rock: a near-black base relief, plus warm light and wet glints only where the mask lets the light fall */
+function rock({ w, h, freq = .014, oct = 7, seed = 1, lx = 700, ly = 200, lz = 220, lcol = '#ff8a3a', base = '#2a2622', baseEl = 35, scale = 9, spec = .9, specExp = 18, dark = .45, lit = 1, mask = '' }) {
+  const id = 'r' + F++;
+  const noise = `<feTurbulence type="fractalNoise" baseFrequency="${freq}" numOctaves="${oct}" seed="${seed}" result="n"/>`;
+  return `<filter id="${id}a" x="0" y="0" width="${w}" height="${h}" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" color-interpolation-filters="sRGB">${noise}
+    <feDiffuseLighting in="n" lighting-color="${base}" surfaceScale="${scale}"><feDistantLight azimuth="235" elevation="${baseEl}"/></feDiffuseLighting>
+    <feComponentTransfer><feFuncR type="linear" slope="${dark}"/><feFuncG type="linear" slope="${dark}"/><feFuncB type="linear" slope="${dark}"/></feComponentTransfer></filter>
+    <filter id="${id}b" x="0" y="0" width="${w}" height="${h}" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" color-interpolation-filters="sRGB">${noise}
+    <feDiffuseLighting in="n" lighting-color="${lcol}" surfaceScale="${scale}" result="d"><fePointLight x="${lx}" y="${ly}" z="${lz}"/></feDiffuseLighting>
+    <feComponentTransfer in="d" result="d2"><feFuncR type="gamma" exponent="3.2" amplitude="${lit}"/><feFuncG type="gamma" exponent="3.2" amplitude="${lit}"/><feFuncB type="gamma" exponent="3.2" amplitude="${lit}"/></feComponentTransfer>
+    <feSpecularLighting in="n" lighting-color="${lcol}" surfaceScale="${scale}" specularConstant="${spec}" specularExponent="${specExp}" result="s"><fePointLight x="${lx}" y="${ly}" z="${lz * 1.3}"/></feSpecularLighting>
+    <feComposite in="d2" in2="s" operator="arithmetic" k2="1" k3="1"/></filter>
+    <rect width="${w}" height="${h}" filter="url(#${id}a)"/>
+    <rect width="${w}" height="${h}" filter="url(#${id}b)" ${mask ? `mask="url(#${mask})"` : ''} style="mix-blend-mode:screen"/>`;
+}
+/** glowing lava cracks + ember speckle, faded by a mask */
+function lava({ w, h, freq = .009, seed = 3, op = 1, maskId = '', speck = true, col = '#ff7a20' }) {
+  const id = 'l' + F++;
+  return `<filter id="${id}" x="0" y="0" width="${w}" height="${h}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+    <feTurbulence type="turbulence" baseFrequency="${freq}" numOctaves="5" seed="${seed}" result="t"/>
+    <feColorMatrix in="t" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -2.2 0 0 0 1.05" result="a"/>
+    <feComponentTransfer in="a" result="a2"><feFuncA type="gamma" amplitude="1" exponent="5" offset="0"/></feComponentTransfer>
+    <feFlood flood-color="${col}"/><feComposite in2="a2" operator="in" result="c"/>
+    <feGaussianBlur in="c" stdDeviation="2.5" result="gl"/>
+    ${speck ? `<feTurbulence type="fractalNoise" baseFrequency=".55" numOctaves="1" seed="${seed + 9}" result="sp"/>
+    <feColorMatrix in="sp" type="matrix" values="0 0 0 0 1  0 0 0 0 .55  0 0 0 0 .15  40 0 0 0 -27" result="spk"/>` : ''}
+    <feMerge><feMergeNode in="gl"/><feMergeNode in="c"/>${speck ? '<feMergeNode in="spk"/>' : ''}</feMerge>
+  </filter><rect width="${w}" height="${h}" filter="url(#${id})" opacity="${op}" ${maskId ? `mask="url(#${maskId})"` : ''}/>`;
+}
+/** film grain */
+function grain(w, h, op = .12) {
+  const id = 'g' + F++;
+  return `<svg class="full" width="${w}" height="${h}" style="z-index:40;opacity:${op};mix-blend-mode:screen;pointer-events:none"><filter id="${id}"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="1" seed="${F}"/><feColorMatrix type="saturate" values="0"/></filter><rect width="${w}" height="${h}" filter="url(#${id})"/></svg>`;
+}
+const BOLT = 'M27 14 L19 30 H25 L20 42 L32 25 H26 L31 14 Z';
+/** the warning-triangle mark with a bolt */
+function mark(s, col = '#f0a040', glow = 8, sw = 3.2) {
+  return `<svg width="${s}" height="${s}" viewBox="0 0 52 52" style="overflow:visible;filter:drop-shadow(0 0 ${glow}px ${col})"><path d="M26 4 L49 46 H3 Z" fill="none" stroke="${col}" stroke-width="${sw}" stroke-linejoin="round"/><path d="${BOLT}" fill="${col}"/></svg>`;
+}
+/** a ruined landscape: cloudy sky glowing low, layers of monolith towers, rocky ground, a river of light */
+function ruinsScene(w, h, { horizon = .62, glowX = .85, towers = [], seed = 5, markAt = null, river = true } = {}) {
+  const hy = h * horizon;
+  const cid = 'c' + F++, tid = 't' + F++, gid = 'gr' + F++;
+  let layers = '';
+  towers.forEach((layer, li) => {
+    const [haze, items] = layer;
+    let d = '';
+    for (const [x, tw, top, base] of items) {
+      // a monolith: slightly irregular rectangle with a broken top
+      const b = base ?? hy + 30;
+      d += `M${x} ${b} L${x + 2} ${top + 8} L${x + tw * .3} ${top} L${x + tw * .55} ${top + 12} L${x + tw * .8} ${top + 4} L${x + tw} ${top + 18} L${x + tw - 2} ${b} Z `;
+    }
+    const fid = 'tf' + F++;
+    layers += `<filter id="${fid}" x="0" y="0" width="${w}" height="${h}" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="${.03 + li * .01} ${.012 + li * .006}" numOctaves="6" seed="${seed + li * 3}" result="n"/>
+        <feDiffuseLighting in="n" lighting-color="#3a3430" surfaceScale="6" result="a"><feDistantLight azimuth="180" elevation="40"/></feDiffuseLighting>
+        <feDiffuseLighting in="n" lighting-color="#ff8a3a" surfaceScale="6" result="b"><fePointLight x="${w * glowX}" y="${hy}" z="${120 + li * 60}"/></feDiffuseLighting>
+        <feComposite in="a" in2="b" operator="arithmetic" k2=".55" k3="${.9 - li * .2}" result="l"/>
+        <feComposite in="l" in2="SourceGraphic" operator="in"/>
+      </filter>
+      <path d="${d}" fill="#000" filter="url(#${fid})"/><rect width="${w}" height="${h}" fill="${haze}"/>`;
+  });
+  return `<svg class="full" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <defs><filter id="${cid}" x="0" y="0" width="${w}" height="${h}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency=".004 .009" numOctaves="6" seed="${seed}" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 .55 -.18  0 0 0 .32 -.12  0 0 0 .22 -.08  0 0 0 0 1"/></filter>
+      <radialGradient id="${gid}" cx="${glowX}" cy="${horizon}" r=".55"><stop offset="0" stop-color="#ff7a26" stop-opacity=".85"/><stop offset=".35" stop-color="#a03a10" stop-opacity=".35"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient></defs>
+    <rect width="${w}" height="${h}" fill="#0a0908"/>
+    <rect width="${w}" height="${hy + 40}" filter="url(#${cid})"/>
+    <rect width="${w}" height="${h}" fill="url(#${gid})" style="mix-blend-mode:screen"/>
+    ${layers}
+  </svg>`;
+}
+const ICON = {
+  osc: '<path d="M2 18 L6 11 L10 23 L14 11 L18 23 L22 11 L26 23 L30 13 L32 18"/>', sub: '<circle cx="17" cy="17" r="12.5"/><circle cx="17" cy="17" r="7.5"/>',
+  noise: '<path d="M1 17 H5 L7.5 9 L10 25 L12.5 4 L15 30 L17.5 7 L20 27 L22.5 11 L25 22 L27 15 L29 17 H33"/>', matrix: '<circle cx="8.5" cy="8.5" r="4"/><circle cx="25.5" cy="8.5" r="4"/><circle cx="8.5" cy="25.5" r="4"/><circle cx="25.5" cy="25.5" r="4"/><circle cx="17" cy="17" r="4"/>',
+  filter: '<path d="M3 12 H12 C18 12 17 24 23 24 H31"/>', env: '<path d="M5 28 V7 H11 L17 19 H27 L30 28 Z"/>', fx: '<path d="M2 17 C 5 17, 6 9, 9 9 S 12 25, 15 25 S 18 7, 21 7 S 24 23, 27 23 S 30 17, 32 17"/>',
+  mod: '<rect x="4" y="9" width="26" height="17" rx="2"/><path d="M8 13 H26 V22 H8 Z"/>', bank: '<path d="M4 8 H13 L16 12 H30 V28 H4 Z"/><path d="M4 15 H30"/>', link: '<path d="M13 21 L21 13"/><path d="M12 16 L7 21 A5 5 0 0 0 13 27 L18 22"/><path d="M16 12 L21 7 A5 5 0 0 1 27 13 L22 18"/>',
+  macro: '<path d="M10 7 A12 12 0 1 0 24 7"/><circle cx="17" cy="18" r="6.5"/>', ui: '<rect x="5" y="7" width="24" height="17" rx="2"/><path d="M8 10 H26 V21 H8 Z"/><path d="M2 28 H32"/>',
+};
+// ------------------------------------------------------------------ section geometry (from the reference, x1.8)
+const S = { hero: [0, 802], demo: [802, 532], reqs: [1334, 378], feat: [1712, 1087], cta: [2799, 517], foot: [3316, 229] };
+let html = '';
+
+// ---------------- HERO
+{
+  const [y, h] = S.hero;
+  const lampX = 648, lampY = 150;
+  html += `<div class="sec" style="top:${y}px;height:${h}px;background:#0d0b0a">
+  <!-- nav -->
+  <div class="abs" style="left:90px;top:26px;z-index:20">${mark(60, '#f0a040', 6, 3.4)}</div>
+  <div class="abs h" style="left:178px;top:24px;z-index:20;font-size:34px;font-weight:600;letter-spacing:.47em">RUIN-1</div>
+  <div class="abs" style="left:180px;top:63px;z-index:20;font-weight:600;font-size:12px;letter-spacing:.89em;color:#d8d2cc">SYNTHESIZER</div>
+  <div class="navi" style="left:768px;z-index:20">OVERVIEW</div><div class="abs" style="left:768px;top:65px;width:78px;height:2.5px;background:#e08a3a;box-shadow:0 0 8px #ff8a30;z-index:20"></div>
+  <div class="navi" style="left:885px;z-index:20">SOUND</div><div class="navi" style="left:974px;z-index:20">FEATURES</div><div class="navi" style="left:1090px;z-index:20">REQUIREMENTS</div>
+  <div class="btn o" style="left:1255px;top:30px;width:122px;height:38px;font-size:14.5px;letter-spacing:.14em;z-index:20">BUY NOW</div>
+  <!-- copy -->
+  <div class="abs kick" style="left:88px;top:219px;z-index:20;color:#e9e3dc;font-size:19px;font-weight:600;line-height:1.65;letter-spacing:.275em">A MODULAR-INSPIRED<br>SYNTHESIZER</div>
+  <div class="abs h" style="left:85px;top:292px;z-index:20;font-size:86px;letter-spacing:.4em;font-weight:500">RUIN-1</div>
+  <div class="abs p" style="left:88px;top:406px;z-index:20;font-size:20.5px;line-height:31px;letter-spacing:.05em;color:#efe9e2">A modern synth with a raw, textured edge.<br>Synthesis, modulation, and character<br>in a focused instrument.</div>
+  <div class="btn o" style="left:90px;top:546px;width:187px;height:52px;z-index:20">BUY NOW &nbsp;›</div>
+  <div class="btn g" style="left:309px;top:546px;width:184px;height:52px;z-index:20">LISTEN &nbsp;▷</div>
+  </div>`;
+}
+// ---------------- the rock "page" behind the panels (demo, reqs, features): charred rock with lava at the edges
+function panelBg(h, seed) {
+  return `<svg class="full" width="${W}" height="${h}">
+    ${rock({ w: W, h, freq: .016, oct: 7, seed, lx: W / 2, ly: h / 2, lz: 900, lcol: '#000', base: '#3a3633', baseEl: 30, scale: 7, spec: 0, specExp: 25, dark: .35, lit: 0 })}
+    <defs><radialGradient id="pv${seed}" cx=".5" cy=".5" r=".72"><stop offset=".5" stop-color="#000" stop-opacity=".78"/><stop offset=".85" stop-color="#000" stop-opacity=".45"/><stop offset="1" stop-color="#000" stop-opacity=".1"/></radialGradient>
+      <radialGradient id="pe${seed}" cx=".5" cy=".5" r=".75"><stop offset=".55" stop-color="#000"/><stop offset="1" stop-color="#fff"/></radialGradient><mask id="pm${seed}"><rect width="${W}" height="${h}" fill="url(#pe${seed})"/></mask></defs>
+    <rect width="${W}" height="${h}" fill="url(#pv${seed})"/>
+    ${lava({ w: W, h, seed: seed + 3, maskId: 'pm' + seed, freq: .013, col: '#d86a20' })}
+  </svg>`;
+}
+// ---------------- DEMO
+{
+  const [y, h] = S.demo;
+  html += `<div class="sec" style="top:${y}px;height:${h}px;background:#0e0c0b">
+    <div class="abs kick" style="left:112px;top:74px;font-size:16px;letter-spacing:.24em;color:#e08a3a">AUDIO DEMO</div>
+    <div class="abs h" style="left:110px;top:106px;font-size:46px;letter-spacing:.28em;line-height:57px">HEAR RUIN-1<br>IN ACTION</div>
+    <div class="abs p" style="left:112px;top:236px;width:404px;font-size:18px;line-height:30px">Dive into a short demo showcasing the raw character, rich modulation, and evolving textures that make RUIN-1 unique.</div>
+    <div class="abs" style="left:112px;top:352px;width:398px;height:1px;background:rgba(200,190,180,.25)"></div>
+    <div class="btn o" style="left:113px;top:387px;width:285px;height:50px;font-size:15.5px;letter-spacing:.2em"><span style="width:22px;height:22px;border-radius:50%;border:1.5px solid #f08a2a;display:grid;place-items:center;font-size:9px">▶</span>WATCH FULL DEMO &nbsp;›</div>
+    <div class="abs" style="left:584px;top:73px;width:744px;height:379px;border-radius:12px;overflow:hidden;border:2px solid rgba(110,100,95,.6);box-shadow:0 20px 50px rgba(0,0,0,.8);background:#050404">
+      <div style="position:absolute;left:-40px;top:-30px;width:820px;height:440px;perspective:900px"><div style="position:absolute;left:60px;top:30px;width:760px;height:440px;transform:rotateY(-14deg) rotateX(6deg);transform-origin:left;border:18px solid #3a1e10;border-radius:6px;filter:brightness(.62) saturate(1.2)"><img src="osc.png" style="width:100%;height:100%;object-fit:cover;object-position:top"></div></div>
+      <div class="abs" style="inset:0;background:radial-gradient(ellipse at 55% 45%, transparent 40%, rgba(0,0,0,.6))"></div>
+      <div class="abs" style="left:322px;top:126px;width:100px;height:100px;border-radius:50%;border:3px solid #f0a050;background:rgba(10,6,4,.35);box-shadow:0 0 16px rgba(255,140,60,.6);display:grid;place-items:center"><div style="border-left:34px solid #f4ede6;border-top:21px solid transparent;border-bottom:21px solid transparent;margin-left:10px"></div></div>
+      <div class="abs" style="left:24px;right:24px;top:316px;height:1px;background:rgba(255,255,255,.12)"></div>
+      <div class="abs" style="left:38px;top:330px;font-size:17px;color:#eee">▶</div><div class="abs" style="left:84px;top:333px;font-size:13px;color:#ddd">0:00 / 4:22</div>
+      <div class="abs" style="left:170px;top:340px;width:400px;height:3px;background:rgba(255,255,255,.18)"><div style="width:12px;height:3px;background:#f0a040"></div></div>
+      <div class="abs" style="left:592px;top:329px;font-size:16px;color:#ddd">🔊</div><div class="abs" style="left:644px;top:331px;font-size:11px;border:1.5px solid #ddd;padding:0 3px;color:#ddd;border-radius:2px">CC</div><div class="abs" style="left:690px;top:328px;font-size:17px;color:#ddd">⛶</div>
+    </div>
+    </div>`;
+}
+// ---------------- REQUIREMENTS
+{
+  const [y, h] = S.reqs;
+  const os = (x, name, lines, icon) => `<div class="abs" style="left:${x}px;top:98px;width:68px;height:68px;border-radius:10px;border:2px solid #b8682a;background:rgba(0,0,0,.4);display:grid;place-items:center;box-shadow:0 0 8px rgba(255,130,40,.3)">${icon}</div>
+    <div class="abs" style="left:${x + 94}px;top:114px;font-weight:500;font-size:25px;letter-spacing:.05em;color:#efe9e2">${name}</div>
+    <div class="abs p" style="left:${x + 94}px;top:170px;font-size:16px;line-height:28.5px;color:#bdb6ae;letter-spacing:.03em">${lines.join('<br>')}</div>`;
+  html += `<div class="sec" style="top:${y}px;height:${h}px;background:#0e0c0b">
+    <div class="abs kick" style="left:112px;top:72px;font-size:16px;letter-spacing:.29em;color:#e08a3a">SYSTEM REQUIREMENTS</div>
+    <div class="abs h" style="left:110px;top:104px;font-size:46px;letter-spacing:.235em">GET SET UP</div>
+    <div class="abs p" style="left:112px;top:170px;width:390px;font-size:18px;line-height:30px">RUIN-1 runs on macOS and Windows, with modest system requirements.</div>
+    <div class="abs" style="left:562px;top:96px;width:1px;height:218px;background:rgba(200,180,160,.2)"></div><div class="abs" style="left:984px;top:96px;width:1px;height:218px;background:rgba(200,180,160,.2)"></div>
+    ${os(602, 'macOS', ['macOS 10.14 or later', 'Intel or Apple Silicon (M1/M2)', '4 GB RAM (8 GB recommended)', '1.5 GB disk space', 'VST3, AU, AAX'], '<svg width="36" height="36" viewBox="0 0 32 32" fill="#f5a040"><path d="M22 17c0-3 2.4-4.4 2.5-4.5-1.4-2-3.5-2.3-4.3-2.3-1.8-.2-3.6 1.1-4.5 1.1-.9 0-2.4-1.1-3.9-1-2 0-3.9 1.2-4.9 3-2.1 3.7-.5 9.1 1.5 12.1 1 1.5 2.2 3.1 3.7 3 1.5-.1 2-.9 3.8-.9 1.8 0 2.3.9 3.8.9 1.6 0 2.6-1.5 3.6-3 1.1-1.7 1.6-3.4 1.6-3.5 0 0-3-1.2-3-4.9zM19.2 8.2c.8-1 1.4-2.4 1.2-3.8-1.2.1-2.6.8-3.4 1.8-.8.9-1.4 2.3-1.2 3.7 1.3.1 2.6-.7 3.4-1.7z"/></svg>')}
+    ${os(1016, 'Windows', ['Windows 10 or later (64-bit)', 'Intel i5 or AMD Ryzen 5 (or better)', '4 GB RAM (8 GB recommended)', '1.5 GB disk space', 'VST3, AAX'], '<svg width="36" height="36" viewBox="0 0 32 32" fill="#f5a040"><path d="M3 5 H15 V15 H3 Z M17 5 H29 V15 H17 Z M3 17 H15 V27 H3 Z M17 17 H29 V27 H17 Z"/></svg>')}
+    </div>`;
+}
+// ---------------- FEATURES
+{
+  const [y, h] = S.feat;
+  const items = [
+    ['osc', 'DUAL OSCILLATORS', 'Saw, triangle, pulse, and more.<br>Layer, sync, or detune.', '#e8302a'], ['sub', 'SUB OSCILLATOR', 'Add weight and depth<br>with a dedicated sub.', '#e8902a'], ['noise', 'NOISE GENERATOR', 'From subtle air to chaos.<br>Shape your tone.', '#f0a030'],
+    ['matrix', 'MODULATION MATRIX', 'Assign LFOs, envelopes,<br>and macros to any parameter.', '#e8902a'], ['filter', 'FILTERS', 'Classic and modern filters<br>with versatile routing.', '#2ab890'], ['env', 'ENVELOPES', 'Amp, filter, and mod envelopes<br>with full ADSR control.', '#e8902a'],
+    ['fx', 'EFFECTS', 'Chorus, delay, reverb, distortion,<br>and a custom FX section.', '#9a6ae0'], ['mod', 'MODULATION', 'LFOs, step sequencers,<br>and more.', '#4a80c8'], ['bank', 'PRESET BROWSER', 'Organize, search and explore<br>hundreds of factory presets.', '#e8902a'],
+    ['link', 'MIDI LEARN', 'Fully assignable controls<br>for your setup.', '#e8902a'], ['macro', 'MACROS', 'Map multiple parameters<br>to a single control.', '#e8902a'], ['ui', 'RESPONSIVE UI', 'Built for flow, designed<br>for performance.', '#e8902a'],
+  ];
+  const cols = [112, 562, 981], rows = [349, 538, 729, 917];
+  let g = '';
+  items.forEach(([ic, t, d, c], i) => {
+    const x = cols[i % 3], yy = rows[Math.floor(i / 3)];
+    g += `<div class="ic" style="left:${x + 6}px;top:${yy}px;color:${c};border-color:${c};box-shadow:0 0 7px ${c}66, inset 0 0 6px ${c}33">${`<svg viewBox="0 0 34 34">${ICON[ic]}</svg>`}</div>
+      <div class="ft" style="left:${x + 104}px;top:${yy + 4}px"><b>${t}</b><span>${d}</span></div>`;
+  });
+  const sep = [501, 690, 875].map((yy) => `<div class="abs" style="left:112px;top:${yy}px;width:1215px;height:1px;background:rgba(200,180,160,.13)"></div>`).join('')
+    + [520, 937].map((xx) => `<div class="abs" style="left:${xx}px;top:350px;width:1px;height:675px;background:rgba(200,180,160,.15)"></div>`).join('');
+  html += `<div class="sec" style="top:${y}px;height:${h}px;background:#0e0c0b">
+    <div class="abs kick" style="left:112px;top:72px;font-size:16px;letter-spacing:.3em;color:#e08a3a">TECNICAL FEATURES</div>
+    <div class="abs h" style="left:110px;top:100px;font-size:46px;letter-spacing:.3em">BUILT FOR CREATIVITY</div>
+    <div class="abs p" style="left:112px;top:170px;font-size:19.8px;line-height:30px">A powerful, flexible synthesis engine with deep modulation,<br>expressive controls, and a hands-on workflow.</div>
+    ${sep}${g}</div>`;
+}
+// ---------------- CTA
+{
+  const [y, h] = S.cta;
+  html += `<div class="sec" style="top:${y}px;height:${h}px;background:#110d0b">
+    <div class="abs kick" style="left:0;width:${W}px;text-align:center;top:110px;font-size:18px;color:#e08a3a;letter-spacing:.3em">YOUR SOUND. YOUR RULES.</div>
+    <div class="abs h" style="left:0;width:${W}px;text-align:center;top:146px;font-size:68px;letter-spacing:.66em;text-indent:.66em">RUIN-1</div>
+    <div class="abs p" style="left:0;width:${W}px;text-align:center;top:238px;font-size:19.5px;color:#e6e0d9">A modern synth with a raw, textured edge.</div>
+    <div class="btn o" style="left:533px;top:318px;width:174px;height:50px;font-size:16.5px">BUY NOW &nbsp;›</div>
+    <div class="btn g" style="left:740px;top:318px;width:175px;height:50px;font-size:16.5px">LISTEN &nbsp;▷</div>
+    </div>`;
+}
+// ---------------- FOOTER
+{
+  const [y, h] = S.foot;
+  html += `<div class="sec" style="top:${y}px;height:${h}px;background:#0c0b0b">
+    <div class="abs" style="left:90px;top:31px">${mark(58, '#f0a040', 5, 3.4)}</div>
+    <div class="abs h" style="left:177px;top:33px;font-size:28px;font-weight:600;letter-spacing:.4em">RUIN-1</div>
+    <div class="abs" style="left:179px;top:65px;font-weight:600;font-size:10.5px;letter-spacing:.66em;color:#c8c2bc">SYNTHESIZER</div>
+    <div class="abs" style="left:502px;top:49px;font-weight:600;font-size:13px;letter-spacing:.09em;color:#a8a29c;word-spacing:4px">OVERVIEW &nbsp;/&nbsp; SOUND &nbsp;/&nbsp; FEATURES &nbsp;/&nbsp; REQUIREMENTS</div>
+    <div class="btn o" style="left:1204px;top:38px;width:146px;height:39px;font-size:15px;letter-spacing:.14em">BUY NOW &nbsp;›</div>
+    <div class="abs" style="left:90px;top:129px;font-size:13px;font-weight:500;color:#6e6964;letter-spacing:.04em">© 2025 RUIN-1. All rights reserved.</div>
+    <div class="abs" style="left:1210px;top:127px;display:flex;gap:16px;align-items:center">
+      <svg width="24" height="20" viewBox="0 0 24 20"><rect x="1" y="2" width="22" height="16" rx="5" fill="#8a8580"/><path d="M10 6.5 L16 10 L10 13.5 Z" fill="#0c0b0b"/></svg>
+      <svg width="20" height="20" viewBox="0 0 20 20"><path d="M3 2 L17 18 M17 2 L3 18" stroke="#8a8580" stroke-width="2.2"/><path d="M2 2 H7 L18 18 H13 Z" fill="none" stroke="#8a8580" stroke-width="1.6"/></svg>
+      <svg width="20" height="20" viewBox="0 0 20 20"><rect x="2" y="2" width="16" height="16" rx="5" fill="none" stroke="#8a8580" stroke-width="2"/><circle cx="10" cy="10" r="3.6" fill="none" stroke="#8a8580" stroke-width="2"/><circle cx="14.6" cy="5.4" r="1.1" fill="#8a8580"/></svg>
+      <svg width="28" height="16" viewBox="0 0 28 16"><path d="M10 15 V6 M12.5 15 V4 M15 15 V3.5 M7.5 15 V7.5 M5 15 V9" stroke="#8a8580" stroke-width="1.6"/><path d="M17 15 V4 C 20 2, 24 4, 24 8 C 26 8, 27 10, 27 11.5 C 27 13.5, 25.5 15, 24 15 Z" fill="#8a8580"/></svg>
+    </div>`;
+}
+// section rules
+html += [802, 1334, 1712, 2799, 3316].map((yy) => `<div class="line" style="top:${yy - 1}px"></div>`).join('');
+document.body.style.height = '3545px';
+document.body.innerHTML = html;
+</script>
+</body></html>

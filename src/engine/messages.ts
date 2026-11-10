@@ -11,6 +11,7 @@ export type EngineMessage =
   | { type: 'bend'; value: number }
   | { type: 'modwheel'; value: number }
   | { type: 'monitor'; solo: string[]; mute: string[] }
+  | { type: 'listen'; at: number; mode: number }
   | { type: 'loop'; loop: CompiledLoop | null }
   | { type: 'play' }
   | { type: 'stop' }

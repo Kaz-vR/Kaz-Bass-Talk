@@ -52,7 +52,7 @@ ${shapes.map((pts, i) => `  {${pts.length}, {${pts.map((q) => num(q.x)).join(', 
 `);
 
 // Presets: engine values in schema order, plus what the browser shows.
-const TITLE: Record<string, string> = { bass: 'Dark Basses', lead: 'Leads', pad: 'Pads', pluck: 'Plucks', arp: 'Plucks', brass: 'Brass', choir: 'Choir', texture: 'Textures' };
+const TITLE: Record<string, string> = { bass: 'Dark Basses', lead: 'Leads', pad: 'Pads', pluck: 'Plucks', arp: 'Plucks', noise: 'Noise' };
 const order = categories.map((c) => c.id);
 const lib = loadLibrary().filter((e) => e.json.meta.collection === 'bank' || e.json.meta.collection === 'terror' || !e.json.meta.category);
 const out = lib.map((e) => {

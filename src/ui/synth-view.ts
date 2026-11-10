@@ -3,12 +3,14 @@
 // wheel, and the play bar. Three knob sizes carry the weight (big for what matters most). It edits
 // the same patch as the full parameter view under it (opened with "All controls"), so both always
 // show the same values.
+import woodL from './assets/wood-l.png';
+import woodR from './assets/wood-r.png';
 import { Biquad, ENV_ATTACK_BEND, ENV_FALL_BEND, envSegment } from '../engine/core/dsp';
-import { fromNormalized, getParam, params, toNormalized, type ParamValue, type Patch } from '../schema';
+import { fromNormalized, getParam, params, PATCH_ROWS, toNormalized, type ParamValue, type Patch } from '../schema';
 import { formatValue } from './params-panel';
+import { DRIVE_FAMILIES, RUIN_RECIPES, recipeParams, stageParams, type RuinStage } from './ruin-recipes';
 import { keyGrime, lightGrain, panelTexture } from './texture';
-import { GRIND_BEAT_NAMES, grindBeat, grindGain, grindHz } from '../engine/core/grind';
-import * as K from '../engine/core/params';
+import { GRIND_BEAT_NAMES, grindBeat, grindHz } from '../engine/core/grind';
 import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobPointsAt, wobSmoothRadius, wobSmoothTable, wobTableAt, type WobPoint } from '../engine/core/wobshape';
 
 type OnChange = (id: string, value: ParamValue) => void;
@@ -64,6 +66,8 @@ type Size = 'big' | 'mid' | 'small' | 'lg' | 'tiny';
 type Zone = 'src' | 'flt' | 'dirt' | 'mat';
 
 const DESIGN_WIDTH = 1200;
+/** The wooden side panels either side of the page (the owner's own images: L2 left, R2 right). */
+const WOOD = 67 + 36; // the panel and the dark gap between it and the boxes, as in the owner's reference
 const ZOOMS = [1, 1.25, 1.5];
 const ZOOM_KEY = 'lowtalk.zoom';
 const FS = 48000;
@@ -191,6 +195,13 @@ function silver(g: CanvasRenderingContext2D, pts: [number, number][], on = true,
   g.restore();
 }
 
+/** The colour darkened towards black (k = 1 unchanged): a dimmer line in the same hue. */
+function shade(hex: string, k: number): string {
+  if (!hex.startsWith('#')) return hex;
+  const v = parseInt(hex.slice(1, 7), 16), f = (sh: number) => Math.round(((v >> sh) & 255) * k).toString(16).padStart(2, '0');
+  return `#${f(16)}${f(8)}${f(0)}`;
+}
+
 /** A soft wash of the line's colour under a curve (envelopes, filter response). */
 function fillUnder(g: CanvasRenderingContext2D, pts: [number, number][], bottom: number, color: string, top0 = 0.16, bot0 = 0): void {
   if (pts.length < 2) return;
@@ -292,7 +303,6 @@ function waveShape(wave: string, x: number, pw: number, wt: number): number {
       return frames[i] * (1 - f) + frames[i + 1] * f;
     }
     case 'string': return Math.exp(-3 * x) * Math.sin(2 * Math.PI * 3 * x) * (1 - 2 * ((x * 7) % 1) * 0.3);
-    case 'shepard': return 0.5 * Math.sin(2 * Math.PI * x) + 0.3 * Math.sin(4 * Math.PI * x) + 0.2 * Math.sin(8 * Math.PI * x);
     default: return saw;
   }
 }
@@ -535,6 +545,87 @@ function loCutStrip(g: CanvasRenderingContext2D, W: number, H: number, hz: numbe
 }
 
 /** The dot that travels along a print while a note sounds: where in its shape the sound is now. */
+/** The drive types in columns, gentle to destroyed. */
+const DRIVE_GROUPS: [string, string[]][] = [
+  ['WARM', ['tape', 'tube', 'starved', 'amp']], ['CLIP', ['soft clip', 'hard clip', 'diode']], ['BREAK', ['wavefold', 'rectify']], ['DIGITAL', ['downsample']],
+];
+
+/** The RUIN page's live view of the chain (EngineHost.ruinTaps). */
+export interface RuinTapsView {
+  spec: Float32Array[];
+  rms: number[];
+  peak: number[];
+  binHz: number;
+}
+
+/** A spectrum (dB per bin) as points across a print, 20 Hz … 20 kHz log, lo … hi dB bottom to top (the loudest bin per column). */
+function ruinSpecPts(spec: Float32Array, binHz: number, W: number, H: number, lo: number, hi: number): [number, number][] {
+  const pts: [number, number][] = [];
+  for (let x = 0; x <= W; x += 2) {
+    const f0 = 20 * Math.pow(1000, x / W), f1 = 20 * Math.pow(1000, (x + 2) / W);
+    let b0 = Math.floor(f0 / binHz), b1 = Math.max(b0 + 1, Math.ceil(f1 / binHz));
+    b0 = Math.max(1, b0);
+    b1 = Math.min(spec.length, b1);
+    let m = -200;
+    for (let b = b0; b < b1; b++) if (spec[b] > m) m = spec[b];
+    // a gentle tilt (+4.5 dB / octave around 1 kHz) so a bass doesn't fill the print and the top still shows
+    m += 4.5 * Math.log2(f0 / 1000);
+    pts.push([x, H - Math.max(0, Math.min(1, (m - lo) / (hi - lo))) * H]);
+  }
+  return pts;
+}
+
+/** One sine cycle through a drive type at a healthy drive, as an SVG path (22 x 12) for its menu entry and tile. */
+function driveIconPath(type: string): string {
+  const W = 22, H = 12, N = 44, g = 3;
+  const th = Math.tanh;
+  const f = (x: number): number => {
+    const u = g * x;
+    switch (type) {
+      case 'tape': return (u + 0.08) / Math.sqrt(1 + (u + 0.08) ** 2);
+      case 'tube': return th(u + 0.2) - th(0.2);
+      case 'amp': return th(1.6 * u + 0.3) - th(0.3);
+      case 'soft clip': { const v = Math.max(-1, Math.min(1, u / 1.5)); return 1.5 * v - 0.5 * v * v * v; }
+      case 'hard clip': return Math.max(-1, Math.min(1, u / 1.6));
+      case 'diode': return u >= 0 ? th(u) : 0.5 * th(2 * u);
+    case 'starved': return u > 0.08 ? th(u - 0.08) : u < -0.25 ? 0.7 * th(u + 0.25) : 0;
+      case 'wavefold': return Math.sin(1.7 * u);
+      case 'rectify': return 2 * Math.abs(th(u)) - 1;
+      default: return x;
+    }
+  };
+  const pts: string[] = [];
+  let peak = 0;
+  const ys: number[] = [];
+  for (let i = 0; i <= N; i++) {
+    let ph = i / N;
+    if (type === 'downsample') ph = Math.floor(ph * 7) / 7; // held steps
+    const y = f(Math.sin(2 * Math.PI * ph));
+    ys.push(y);
+    peak = Math.max(peak, Math.abs(y));
+  }
+  ys.forEach((y, i) => pts.push(`${i ? 'L' : 'M'}${((i / N) * W).toFixed(1)},${(H / 2 - (y / (peak || 1)) * (H / 2 - 1)).toFixed(1)}`));
+  return pts.join('');
+}
+
+/** A small picture of a RUIN filter type's curve (22 x 12), for its tile. */
+function filterIconPath(type: string): string {
+  const W = 22, H = 12, N = 60, ys: number[] = [];
+  for (let i = 0; i <= N; i++) {
+    const x = i / N, d = x - 0.5;
+    ys.push(type === 'notch' ? 1 - Math.exp(-(d * d) / 0.004) : type === 'peak' ? 1 + 1.2 * Math.exp(-(d * d) / 0.008)
+      : type === 'band' ? 0.25 + 0.75 * Math.exp(-(d * d) / 0.02) : type === 'comb' ? 0.55 + 0.45 * Math.cos(x * Math.PI * 8)
+      : 1 - 0.8 * Math.exp(-((x - 0.33) ** 2) / 0.003) - 0.8 * Math.exp(-((x - 0.66) ** 2) / 0.003));
+  }
+  const lo = Math.min(...ys, 0), hi = Math.max(...ys, 1.2);
+  return ys.map((y, i) => `${i ? 'L' : 'M'}${((i / N) * W).toFixed(1)},${(H - 1 - ((y - lo) / (hi - lo)) * (H - 2)).toFixed(1)}`).join('');
+}
+
+/** The LFO history: samples a second, and how many (40 s). */
+const LFO_HIST_HZ = 30, LFO_HIST = 40 * LFO_HIST_HZ;
+/** The shapes that never repeat: their print is their real recent path, scrolling, not a picture of a cycle. */
+const LFO_RANDOM = new Set(['wander', 'drift', 'slow drift', 'sample_hold', 'random']);
+
 function liveDot(g: CanvasRenderingContext2D, pts: [number, number][], frac: number, color: string): void {
   const i = Math.max(0, Math.min(pts.length - 1, Math.round(frac * (pts.length - 1))));
   const [x, y] = pts[i];
@@ -565,33 +656,33 @@ function ghosts(g: CanvasRenderingContext2D, sets: [number, number][][], color: 
   g.restore();
 }
 
-const MOD_SLOTS = 12;
+const MOD_SLOTS = 9; // the mod matrix's rows
 const MOD_IDS = Array.from({ length: MOD_SLOTS }, (_, i) => [`mod${i + 1}.source`, `mod${i + 1}.dest`, `mod${i + 1}.amount`, `mod${i + 1}.on`]).flat();
-const LFO_SHAPE: Record<string, string> = { sine: 'SINE', triangle: 'TRIANGLE', saw_up: 'SAW UP', saw_down: 'SAW DOWN', square: 'SQUARE', sample_hold: 'S & H', wander: 'WANDER' };
-/** The matrix menus in columns: envelopes, LFOs, the player, the drifts (as the rows are sorted); destinations in signal order. */
+const LFO_SHAPE: Record<string, string> = { sine: 'SINE', triangle: 'TRIANGLE', saw_up: 'SAW UP', saw_down: 'SAW DOWN', square: 'SQUARE', sample_hold: 'S & H', wander: 'HUMANIZE', bloom: 'BLOOM', drop: 'DROP', random: 'RANDOM', drift: 'DRIFT', 'slow drift': 'SLOW DRIFT' };
+/** The matrix menus in columns: envelopes, LFOs, the player (as the rows are sorted); destinations in signal order. */
 const MX_SRC_GROUPS: [string, string[]][] = [
-  ['ENVELOPE', ['none', 'env2', 'env3', 'mod_env', 'amp_env']],
-  ['LFO', ['lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo_product']],
+  ['ENVELOPE', ['none', 'mod_env', 'amp_env']],
+  ['LFO', ['lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo5', 'lfo6']],
   ['PLAYER', ['velocity', 'modwheel', 'keytrack']],
-  ['DRIFT', ['random', 'drift', 'drift_slow']],
 ];
+/** The destination menu (owner's list): the common ones first, then by kind; the whole menu (MATRIX_DESTS). */
 const MX_DEST_GROUPS: [string, string[]][] = [
-  ['PITCH', ['none', 'pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'sub_pitch', 'noise_pitch', 'vibrato_depth']],
-  ['SOURCES', ['osc1_wt_pos', 'osc2_wt_pos', 'osc1_pw', 'osc2_pw', 'osc1_level', 'osc2_level', 'unison_detune', 'fm_amount', 'fm2_amount', 'sub_level', 'noise_level', 'breath_level', 'texture_level']],
-  ['FILTER · DIRT', ['drive', 'filter_cutoff', 'filter_resonance', 'filter_vowel', 'dist_drive', 'dist_mix', 'dist_tone', 'crush_mix', 'tape_wow']],
-  ['LEVEL · FX', ['amp', 'chorus_depth', 'phaser_mix', 'width']],
-  ['LFO RATE', ['lfo1_rate', 'lfo2_rate', 'lfo3_rate', 'lfo4_rate']],
+  ['COMMON', ['none', 'pitch', 'osc_pitch', 'filter_cutoff', 'drive', 'dist_drive', 'osc12_shape', 'osc1_pw', 'osc2_pw', 'amp']],
+  ['PITCH', ['pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'sub_pitch', 'noise_pitch', 'vibrato_depth']],
+  ['SHAPE', ['osc12_shape', 'osc1_pw', 'osc2_pw', 'unison_detune', 'osc1_detune', 'osc2_detune']],
+  ['VOLUME', ['amp', 'osc1_level', 'osc2_level', 'sub_level', 'texture_level']],
+  ['FILTER', ['filter_cutoff', 'filter_resonance', 'filter_vowel', 'drive']],
+  ['DISTORTION', ['dist_drive', 'dist_mix', 'dist_tone']],
 ];
 const SRC_LABEL: Record<string, string> = {
-  none: '—', lfo1: 'LFO 1', lfo2: 'LFO 2', lfo3: 'LFO 3', lfo4: 'LFO 4', mod_env: 'Filter env', amp_env: 'Amp env', env2: 'Env 2', env3: 'Env 3', velocity: 'Velocity',
-  keytrack: 'Keytrack', modwheel: 'Mod wheel', random: 'Random', drift: 'Drift', drift_slow: 'Slow drift', lfo_product: 'LFO 1×2',
+  none: '—', lfo1: 'LFO 1', lfo2: 'LFO 2', lfo3: 'LFO 3', lfo4: 'LFO 4', lfo5: 'LFO 5', lfo6: 'LFO 6', mod_env: 'Filter env', amp_env: 'Amp env', velocity: 'Velocity',
+  keytrack: 'Keytrack', modwheel: 'Mod wheel',
 };
 const DEST_LABEL: Record<string, string> = {
-  none: '—', pitch: 'Pitch', osc1_pitch: 'A pitch', osc2_pitch: 'B pitch', osc1_wt_pos: 'A wt pos', osc2_wt_pos: 'B wt pos', osc1_pw: 'A shape', osc2_pw: 'B shape',
-  osc1_level: 'A level', osc2_level: 'B level', unison_detune: 'Detune', fm_amount: 'FM', fm2_amount: 'FM 2', sub_level: 'Sub', noise_level: 'Noise', drive: 'Drive',
-  filter_cutoff: 'Cutoff', filter_resonance: 'Res', filter_vowel: 'Vowel', dist_drive: 'Dist drive', dist_mix: 'Dist mix', dist_tone: 'Dist tone', amp: 'Amp',
-  lfo1_rate: 'LFO 1 rate', lfo2_rate: 'LFO 2 rate', lfo3_rate: 'LFO 3 rate', lfo4_rate: 'LFO 4 rate', crush_mix: 'Crush', chorus_depth: 'Chorus', phaser_mix: 'Phaser',
-  delay_time: 'Delay time', delay_mix: 'Delay', reverb_mix: 'Reverb', width: 'Width', tape_wow: 'Tape wow', texture_level: 'Texture', vibrato_depth: 'Vibrato', osc_pitch: 'A+B pitch', breath_level: 'Breath', noise_pitch: 'Noise pitch', sub_pitch: 'Sub pitch',
+  none: '—', pitch: 'Pitch', osc_pitch: 'A+B Pitch', osc1_pitch: 'A Pitch', osc2_pitch: 'B Pitch', sub_pitch: 'Sub Pitch', noise_pitch: 'Noise Pitch', vibrato_depth: 'Vibrato',
+  osc12_shape: 'A+B Shape', osc1_pw: 'A Shape', osc2_pw: 'B Shape', unison_detune: 'A+B Detune', osc1_detune: 'A Detune', osc2_detune: 'B Detune',
+  amp: 'Level', osc1_level: 'A Level', osc2_level: 'B Level', sub_level: 'Sub Level', texture_level: 'Noise Level',
+  filter_cutoff: 'Fil Cutoff', filter_resonance: 'Fil Res', filter_vowel: 'Fil Vowel', drive: 'Fil Drive', dist_drive: 'Dis Drive', dist_mix: 'Dis Mix', dist_tone: 'Dis Tone',
 };
 /** Beats in a note value like 1/4, 1/8D or 1/16T. */
 function syncBeats(v: string): number {
@@ -602,6 +693,9 @@ function syncBeats(v: string): number {
 }
 /** OSC page prints: one height for all; widths follow the box (beside a side column, the amp box, the wide box). */
 /** The shelves' colours on the PRESETS page, in shelf order. */
+/** Options kept only as placeholders (removed, owner's call): never offered in a menu. */
+const RETIRED = new Set<string>(); // options kept in the data but never offered (none right now: formant came back, owner's call)
+
 const SHELF_COLOURS = ['#ff3d2e', '#ff8a2a', '#e8b46a', '#3fe3b6', '#9a7cff', '#5f9bff', '#a9dcff', '#ff6fae', '#d4d4da'];
 const PRINT_W = 247;
 const PRINT_H = 84;
@@ -637,11 +731,6 @@ const parseDb = (t: string): number | null => {
   if (/inf|off/i.test(t)) return 0;
   const m = /^\s*(-?[\d.]+)\s*(db)?\s*$/i.exec(t);
   return m ? Math.min(1, Math.pow(10, Number(m[1]) / 20)) : null;
-};
-/** Typed percentages ("75", "75 %"). */
-const parsePct = (t: string): number | null => {
-  const m = /^\s*(-?[\d.]+)\s*%?\s*$/.exec(t);
-  return m ? Number(m[1]) / 100 : null;
 };
 const ms = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${v < 10 ? v.toFixed(1) : Math.round(v)} ms`);
 const db = (v: number) => {
@@ -687,6 +776,16 @@ export class SynthView {
   private oscPage: HTMLElement | null = null;
   // The envelope balls: when the newest note started and was released (ms), notes held, redraws.
   private noteT0 = -1;
+  /** The newest note played (for RUIN's KEY on the page). */
+  private lastNote = 48;
+  /** A note is sounding (held, or still in its amp release). */
+  private noteSounding(): boolean {
+    return this.noteT0 >= 0 && (this.relT0 < 0 || performance.now() - this.relT0 < this.num('amp_env.release') + 50);
+  }
+  /** RUIN's KEY factor for the newest note, as the engine has it (Freq is where a stage sits at C3). */
+  private ruinKey(): number {
+    return this.get('grind.key') ? Math.pow(2, (this.lastNote + 12 * this.num('voice.octave') - 48) / 12) : 1;
+  }
   private relT0 = -1;
   private held = 0;
   private dotRaf = 0;
@@ -704,9 +803,16 @@ export class SynthView {
   private liveLfo: { phase: number[]; value: number[] } | null = null;
   private readLfos: (() => { phase: number[]; value: number[] }) | null = null;
   /** Wraps of each LFO's phase seen so far, to place its dot across the cycles its print shows. */
-  private readonly lfoCycles = [0, 0, 0, 0];
+  private readonly lfoCycles = [0, 0, 0, 0, 0, 0];
+  /**
+   * What each LFO really did lately (owner's rule: an LFO always looks like what it is doing): the
+   * engine's value 30 times a second for the last 40 s, so the random shapes draw their real path.
+   */
+  private readonly lfoHist = Array.from({ length: 6 }, () => new Float32Array(LFO_HIST));
+  private lfoHistAt = 0;
+  private lfoHistLast = 0;
   /** Until when (ms) a retriggered LFO's restart is expected: its phase drop is the restart, not a cycle. */
-  private readonly lfoRetrigUntil = [0, 0, 0, 0];
+  private readonly lfoRetrigUntil = [0, 0, 0, 0, 0, 0];
 
   /** The engine's real LFO phases and values (the dots and bars follow them, as the Wobbler's dot does). */
   setLiveLfos(read: () => { phase: number[]; value: number[] }): void {
@@ -717,7 +823,7 @@ export class SynthView {
         const v = this.readLfos?.() ?? null;
         if (v && this.liveLfo) {
           const now = performance.now();
-          for (let l = 0; l < 4; l++) {
+          for (let l = 0; l < 6; l++) {
             const restart = now < this.lfoRetrigUntil[l];
             // a drop in phase is a new cycle, or (just after a note) the retrigger's restart
             if (v.phase[l] < this.liveLfo.phase[l] - (restart ? 0.02 : 0.5)) {
@@ -729,6 +835,29 @@ export class SynthView {
           }
         }
         this.liveLfo = v;
+        if (v) {
+          const now = performance.now();
+          // 30 samples a second, however fast the screen refreshes (a long gap is filled with the last value)
+          // the first reading fills the whole history, so the line starts where the LFO is, not at 0
+          if (this.lfoHistLast === 0) for (let l = 0; l < 6; l++) this.lfoHist[l].fill(v.value[l]);
+          // after a long gap (a hidden tab) pick up from now
+          if (now - this.lfoHistLast > 2000) this.lfoHistLast = now - 1000 / LFO_HIST_HZ;
+          let k = Math.floor((now - this.lfoHistLast) / (1000 / LFO_HIST_HZ));
+          if (k > 0) {
+            this.lfoHistLast += k * (1000 / LFO_HIST_HZ);
+            // what the LFO really does to the sound: its value times its fade-in from the last note
+            // (owner's call: the fade lives in the same line, flat at each note and growing back)
+            const tNote = this.anim.on ? (now - this.noteT0) / 1000 : Infinity;
+            const faded = [0, 1, 2, 3, 4, 5].map((l) => {
+              const f = this.num(`lfo${l + 1}.fade`) / 1000;
+              return f > 0 ? Math.min(1, tNote / f) : 1;
+            });
+            for (; k > 0; k--) {
+              this.lfoHistAt = (this.lfoHistAt + 1) % LFO_HIST;
+              for (let l = 0; l < 6; l++) this.lfoHist[l][this.lfoHistAt] = v.value[l] * faded[l];
+            }
+          }
+        }
         if (!this.anim.on) for (const a of this.animDraws) if (a.free?.() && a.el.offsetParent !== null) a.f();
       }
       requestAnimationFrame(step);
@@ -740,23 +869,34 @@ export class SynthView {
   private animFrame = 0;
   /** The engine's live filter (what the print shows while notes sound), and the prints that draw it. */
   private liveFilter: { cutoff: number; res: number } | null = null;
+  private readonly liveDraws: (() => void)[] = [];
+  private modPage: HTMLElement | null = null;
+  private lfoPage: HTMLElement | null = null;
   /** The wobble's live phase (0..1) and what draws it. */
   private liveWob: number | null = null;
   private readonly wobDraws: (() => void)[] = [];
-  private readonly liveDraws: (() => void)[] = [];
-  private modPage: HTMLElement | null = null;
   private fxPage: HTMLElement | null = null;
   private grindPage: HTMLElement | null = null;
   /** GRIND: which stages ROLL / VARY leave alone, how wild a roll is, the last rolls (newest first). */
-  private readonly grindLocks = [false, false, false, false];
+  private readonly grindLocks = [false, false, false, false, false, false, false, false];
   private grindWeird = 0.3;
+  /** The recipe the last ROLL started from (shown on the ROLL button). */
+  private grindRecipe = '';
   /** How many stages ROLL uses: 0 = random (AUTO), 1-4. */
   private grindCount = 0;
   /** Each GRIND stage's filter frequency right now (from the engine, -1 when silent) and the prints that follow it. */
-  private readonly grindLive = [-1, -1, -1, -1];
-  private readonly grindLiveRes = [0, 0, 0, 0];
+  private readonly grindLive = [-1, -1, -1, -1, -1, -1, -1, -1];
+  private readonly grindLiveRes = [0, 0, 0, 0, 0, 0, 0, 0];
+  /** Each RUIN EQ's selected band (0-3). */
+  private readonly ruinEqSel = [1, 1, 1, 1, 1, 1, 1, 1];
   private readonly grindLiveDraws: (() => void)[] = [];
-  private lfoPage: HTMLElement | null = null;
+  /** The RUIN page: the selected box (0 filter 1, 1 drive 1 … 7 drive 4) and the engine's taps right now. */
+  private ruinSel = 0;
+  private ruinTaps: RuinTapsView | null = null;
+  private ruinRead: (() => RuinTapsView | null) | null = null;
+  private ruinSelect: (k: number) => void = () => {};
+  private ruinFrame: () => void = () => {};
+  private ruinTick = 0;
   /** The synth page's height: every tab keeps it, so nothing jumps. */
   private pageHeight = 0;
   private readonly presetPage = h('div', 'v2-main preset-page');
@@ -768,6 +908,11 @@ export class SynthView {
     this.root = root;
     this.page = h('div', 'v2');
     root.append(this.page);
+    for (const [src, side] of [[woodL, 'l'], [woodR, 'r']]) {
+      const img = h('img', `wood wood-${side}`) as HTMLImageElement;
+      img.src = src; img.alt = ''; img.draggable = false;
+      this.page.append(img);
+    }
     try {
       const z = Number(localStorage.getItem(ZOOM_KEY));
       if (ZOOMS.includes(z)) this.zoom = z;
@@ -779,9 +924,9 @@ export class SynthView {
       // Fit the window like a plugin: never wider than it, never taller than it (the keyboard
       // under the page counts too), so the top can't slide out of view.
       const tall = window.innerHeight / Math.max(1, this.page.offsetHeight);
-      const s = Math.max(0.4, Math.min(this.zoom, root.clientWidth / DESIGN_WIDTH, tall));
+      const s = Math.max(0.4, Math.min(this.zoom, root.clientWidth / (DESIGN_WIDTH + 2 * WOOD), tall));
       this.page.style.transform = `scale(${s})`;
-      this.page.style.marginLeft = `${Math.max(0, (root.clientWidth - DESIGN_WIDTH * s) / 2)}px`;
+      this.page.style.marginLeft = `${Math.max(0, (root.clientWidth - (DESIGN_WIDTH + 2 * WOOD) * s) / 2) + WOOD * s}px`;
       root.style.height = `${this.page.offsetHeight * s}px`;
       this.zoomBtn.textContent = `${Math.round(s * 100)}%`;
     };
@@ -806,6 +951,7 @@ export class SynthView {
   /** Show a whole patch (a preset was loaded). */
   show(patch: Patch): void {
     this.values = { ...(patch as unknown as Record<string, ParamValue>) };
+    this.tapeLast = ''; // a new sound: its tape is a machine only if its dials match one
     for (const v of this.allViews) v();
     if (this.presetPage.isConnected && this.presetPage.style.display !== 'none') this.markCurrent();
   }
@@ -816,14 +962,15 @@ export class SynthView {
   }
 
   /** A note started (keyboard, MIDI or the host): the envelope balls start running. */
-  noteOn(): void {
+  noteOn(note?: number): void {
+    if (note !== undefined) this.lastNote = note;
     const legato = this.held > 0 && this.num('voice.polyphony') <= 1 && !!this.get('voice.legato');
     this.held++;
     if (!legato) {
       this.noteT0 = performance.now();
       this.relT0 = -1;
       // A retriggered LFO starts its shape again: its dot goes back to the start of the print.
-      for (let l = 0; l < 4; l++) {
+      for (let l = 0; l < 6; l++) {
         if (this.get(`lfo${l + 1}.retrigger`)) {
           this.lfoCycles[l] = 0;
           this.lfoRetrigUntil[l] = this.noteT0 + 200;
@@ -850,7 +997,7 @@ export class SynthView {
       for (const f of this.dotDraws) f();
       const now = performance.now();
       // The envelopes' balls and the MOD page's moving prints run until the longest release.
-      const longest = Math.max(this.num('amp_env.release'), this.num('mod_env.release'), this.num('env2.release'), this.num('env3.release'));
+      const longest = Math.max(this.num('amp_env.release'), this.num('mod_env.release'));
       const live = this.noteT0 >= 0 && (this.relT0 < 0 || now - this.relT0 < longest + 50);
       if (live) {
         this.anim.on = true;
@@ -879,8 +1026,8 @@ export class SynthView {
   }
 
   /**
-   * Roughly what a mod source is doing right now (LFOs -1..1 at their rate and shape's sign,
-   * Env 2 along its envelope, drift wandering, velocity / wheel as they are), for the matrix's
+   * Roughly what a mod source is doing right now (LFOs -1..1 at their rate and shape's sign, the
+   * per-note shapes from the note's start, velocity / wheel as they are), for the matrix's
    * amount bars to move with while a note sounds.
    */
   private sourceNow(src: string): number {
@@ -893,32 +1040,38 @@ export class SynthView {
       const fade = this.num(`${L}.fade`) / 1000, faded = this.anim.on && fade > 0 ? Math.min(1, t / fade) : 1;
       // the engine's real value when it is running, else an estimate
       const live = this.liveLfo?.value[Number(m[1]) - 1];
-      return (live ?? Math.sin((2 * Math.PI * tt) / period)) * faded;
+      if (live !== undefined) return live;
+      const shape = String(this.get(`${L}.shape`)), x = Math.min(1, (this.anim.on ? t : 0) / period);
+      if (shape === 'bloom') return (0.5 - 0.5 * Math.cos(Math.PI * x)) * faded;
+      if (shape === 'drop') return (1 - x) * (1 - x) * faded;
+      if (shape === 'random') return Math.sin(this.noteT0 * 12.9898) * faded;
+      return Math.sin((2 * Math.PI * tt) / period) * faded;
     }
     switch (src) {
-      case 'env2':
-      case 'env3': {
-        const a = this.num(`${src}.attack`) / 1000, d = this.num(`${src}.decay`) / 1000, sus = this.num(`${src}.sustain`), r = this.num(`${src}.release`) / 1000;
-        const held = (x: number) => (x < a ? x / Math.max(a, 1e-3) : sus + (1 - sus) * Math.exp((-5 * (x - a)) / Math.max(d, 1e-3)));
-        return this.anim.rel < 0 ? held(t) : held(t - this.anim.rel) * Math.exp((-5 * this.anim.rel) / Math.max(r, 1e-3));
-      }
       case 'mod_env': return this.anim.amp;
       case 'velocity': return this.lastVel;
       case 'modwheel': return this.wheel;
-      case 'drift': return Math.sin(now * 1.3) * 0.6 + Math.sin(now * 2.9 + 1) * 0.4;
-      case 'drift_slow': return Math.sin(now * 0.31) * 0.7 + Math.sin(now * 0.57 + 2) * 0.3;
-      case 'random': return Math.sin(this.noteT0 * 12.9898) * 0.5 + 0.5;
       default: return 1;
     }
+  }
+
+  /** The RUIN page's taps (meters, spectra). */
+  setRuinTaps(read: () => RuinTapsView | null): void {
+    this.ruinRead = read;
   }
 
   /** Follow each GRIND stage's real filter on its print (while the GRIND page shows). */
   setLiveGrind(read: () => { fc: number[]; res: number[] }): void {
     const step = () => {
       if (this.grindPage && this.grindPage.offsetParent !== null) {
+        // the chain's meters and spectra, 30 times a second
+        if (this.ruinRead && this.ruinTick++ % 2 === 0) {
+          this.ruinTaps = this.ruinRead();
+          this.ruinFrame();
+        }
         const { fc: v, res } = read();
         let moved = false;
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < 8; i++) {
           const x = v[i] > 0 ? v[i] : -1, was = this.grindLive[i];
           if ((x > 0) !== (was > 0) || (x > 0 && (Math.abs(x / was - 1) > 0.002 || Math.abs(res[i] - this.grindLiveRes[i]) > 0.003))) {
             this.grindLive[i] = x;
@@ -1280,7 +1433,7 @@ export class SynthView {
   }
 
   /** A dropdown for an enum parameter (‹ › step through it, the name opens the list). */
-  private selector(id: string, opts: { label?: (o: string) => string; deps?: string[]; groups?: [string, readonly string[]][] } = {}): HTMLElement {
+  private selector(id: string, opts: { label?: (o: string) => string; deps?: string[]; groups?: [string, readonly string[]][]; only?: boolean } = {}): HTMLElement {
     const p = getParam(id)!;
     const sel = h('select', 'sel-name');
     const name = (o: string) => (opts.label ?? ((x: string) => x.replace(/_/g, ' ')))(o).toUpperCase();
@@ -1290,19 +1443,20 @@ export class SynthView {
       list = [];
       const used = new Set(opts.groups.flatMap(([, os]) => os));
       const groups = opts.groups.map(([t, os]) => [t, os.filter((o) => p.options!.includes(o))] as const);
-      const rest = p.options!.filter((o) => !used.has(o));
+      // (only: the groups are the whole menu; an option can sit in more than one column)
+      const rest = opts.only ? [] : p.options!.filter((o) => !used.has(o) && !RETIRED.has(o));
       if (rest.length) groups[groups.length - 1][1].push(...rest);
       for (const [title, os] of groups) {
         const og = document.createElement('optgroup');
         og.label = title;
         for (const o of os) {
           og.append(new Option(name(o), o));
-          list.push(o);
+          if (!list.includes(o)) list.push(o);
         }
         sel.append(og);
       }
     } else {
-      list = p.options!;
+      list = p.options!.filter((o) => !RETIRED.has(o));
       for (const o of list) sel.append(new Option(name(o), o));
     }
     const pick = (to: string) => {
@@ -1320,7 +1474,8 @@ export class SynthView {
     const el = h('div', 'sel', sel, prev, next);
     el.title = `${p.label}: ${p.describes}`;
     this.watch([id, ...(opts.deps ?? [])], () => {
-      list.forEach((o, i) => { sel.options[i].text = name(o); });
+      // by each option's own value (an option can sit in more than one column)
+      for (const o of sel.options) o.text = name(o.value);
       sel.value = String(this.get(id));
     });
     return el;
@@ -1516,6 +1671,7 @@ export class SynthView {
         case 'lowpass': return [['lp', fc, 0.54 + res * 5], ['lp', fc, 1.31]];
         case 'diode': return [['lp', fc, 0.6 + res * 4], ['lp', fc * 1.6, 0.6]];
         case 'lpg': return [['lp', fc, 0.7 + res * 2]];
+        case 'sem': return [['lp', fc, 1 / (1.9 * (1 - res) + 0.12)]];
         case 'highpass': return [['hp', fc, 0.54], ['hp', fc, 1.31 + res * 5]];
         case 'bandpass': return [['bp', fc, 1 + res * 6], ['bp', fc, 1 + res * 6]];
         case 'notch': return [['notch', fc, 0.7 + res * 4]];
@@ -1797,10 +1953,11 @@ export class SynthView {
         this.chip('OCT', oct, (v) => setSemi(12 * v + sem()), -2, 2, [`${o}.semi`], 'Octave'),
         this.chip('SEM', sem, (v) => setSemi(12 * oct() + v), -11, 11, [`${o}.semi`], 'Semitones'),
         this.chip('FIN', () => this.num(`${o}.fine`), (v) => this.set(`${o}.fine`, v), -100, 100, [`${o}.fine`], 'Fine tune (cents)'),
-        this.chip('UNI', () => this.num(`${o}.unison_voices`), (v) => this.set(`${o}.unison_voices`, v), 1, 7, [`${o}.unison_voices`], 'Unison voices (stacked detuned copies)'),
       )],
       print: this.wavePrint(n, PRINT_W, PRINT_H),
       dials: [
+        // UNI sits with the dials it governs: how many copies, then how far apart (owner's layout).
+        h('div', 'k uni-dial', this.chip('UNI', () => this.num(`${o}.unison_voices`), (v) => this.set(`${o}.unison_voices`, v), 1, 7, [`${o}.unison_voices`], 'Unison voices (stacked detuned copies)')),
         this.knob(`${o}.unison_detune`, 'Detune', 'lg', { disabled: uniOff, deps: [`${o}.unison_voices`] }),
         this.knob(`${o}.unison_spread`, 'Spread', 'lg', { disabled: uniOff, deps: [`${o}.unison_voices`] }),
         pw, wt, this.knob(`${o}.level`, 'Level', 'lg'), this.lowCut(`${o}.highpass`, `${o}.filter_type`),
@@ -1961,17 +2118,36 @@ export class SynthView {
     const drive = this.knob('drive.amount', 'Drive', 'lg', { disabled: () => !this.get('drive.on'), deps: ['drive.on'] });
     // Turning the drive up switches the drive stage on.
     drive.addEventListener('pointerdown', () => { if (!this.get('drive.on')) this.set('drive.on', true); }, true);
+    // The mixer overdriving (the oscillators' sum saturates first, the Minimoog way): glowing text like
+    // ENV, stacked under it (four dials don't fit the box); part of the drive stage.
+    const mixer = this.glowNumber('drive.mixer', 'MIX', (v) => `${Math.round(v * 100)}`,
+      'Mixer drive: the oscillators overdriving the mixer before the filter, the Minimoog way (louder mixes and chords get denser and grittier). Drag up / down (Shift = fine), double-click for 0.');
+    mixer.classList.remove('envn-row');
+    mixer.addEventListener('pointerdown', () => { if (!this.get('drive.on')) this.set('drive.on', true); }, true);
     // As in Serum: while the filter envelope is on, its sweep is a lighter ring on Cutoff (in place
     // of the dial's own arc), set with the glowing ENV number beside it (owner's pick: no second dial).
     const fenvOn = () => !!this.get('mod_env.on');
     const cutoff = this.knob('filter.cutoff', 'Cutoff', 'lg', { mod: { ...FENV_MOD, on: fenvOn, deps: ['mod_env.on'], live: () => this.liveFilter?.cutoff ?? null } });
     cutoff.title += ' The lighter ring is how far the filter envelope sweeps it (the ENV number beside it).';
     const envAmt = this.envNumber(fenvOn);
+    // Each type's own control shows only while that type is picked: the 303 diode's ACCENT, formant's VOWEL.
+    const vowel = this.glowNumber('filter.vowel', 'VOWEL', (v) => {
+      const x = Math.max(0, Math.min(1, v)) * 4, i = Math.min(3, Math.floor(x)), f = x - i, L = 'AEIOU';
+      return f < 0.15 ? L[i] : f > 0.85 ? L[i + 1] : `${L[i]}·${L[i + 1]}`;
+    }, 'The vowel the formant filter sings, A → E → I → O → U; Cutoff moves it up or down like a smaller or bigger throat. Drag up / down (Shift = fine), double-click for A.');
+    const accent = this.glowNumber('filter.accent', 'ACCENT', (v) => `${Math.round(v * 100)}%`,
+      'Accent, as on the 303: harder notes kick the cutoff, the filter envelope and the resonance. Drag up / down (Shift = fine), double-click for 0.');
+    this.watch(['filter.type'], () => {
+      const t = String(this.get('filter.type'));
+      accent.style.display = t === 'diode' ? '' : 'none';
+      vowel.style.display = t === 'formant' ? '' : 'none';
+    });
     return this.obox('FILTER', 'c-flt main-filter box-flt', {
       power: (el) => this.boolPower('filter.on', el),
       head: [this.selector('filter.type'), this.keyTrack()],
       print: this.filterPrint(PRINT_W, PRINT_H),
-      dials: [routes, envAmt, cutoff, this.knob('filter.resonance', 'Res', 'lg'), drive],
+      dials: [routes, h('div', 'envn-stack', envAmt, mixer), cutoff, this.knob('filter.resonance', 'Res', 'lg'), drive],
+      corner: [accent, vowel],
     });
   }
 
@@ -2002,6 +2178,27 @@ export class SynthView {
     el.addEventListener('dblclick', () => set(0));
     el.addEventListener('wheel', (e) => { e.preventDefault(); set(this.num(id) - Math.sign(e.deltaY) * (e.shiftKey ? 0.002 : 0.01)); }, { passive: false });
     el.title = 'Filter envelope amount, in octaves: how far the filter envelope sweeps the cutoff (the lighter ring on Cutoff). Drag up / down (Shift = fine), double-click for 0. Dragging it switches the filter envelope on.';
+    return el;
+  }
+
+  /** A parameter as glowing text you drag (label then value, in a print's corner): lit while it is above 0. */
+  private glowNumber(id: string, label: string, fmt: (v: number) => string, title: string): HTMLElement {
+    const p = getParam(id)!;
+    const val = h('span', 'envn-val');
+    const el = h('div', 'envn envn-row', h('span', 'envn-label', label), val);
+    const set = (v: number) => this.set(id, Math.round(Math.max(p.min!, Math.min(p.max!, v)) * 1000) / 1000);
+    this.watch([id], () => {
+      const v = this.num(id);
+      val.textContent = fmt(v);
+      el.classList.toggle('on', v > 0.001);
+    });
+    let y0 = 0, v0 = 0;
+    el.addEventListener('pointerdown', (e) => { el.setPointerCapture(e.pointerId); y0 = e.clientY; v0 = this.num(id); });
+    el.addEventListener('pointermove', (e) => { if (el.hasPointerCapture(e.pointerId)) set(v0 + (y0 - e.clientY) / (e.shiftKey ? 1000 : 200)); });
+    el.addEventListener('pointerup', (e) => el.releasePointerCapture(e.pointerId));
+    el.addEventListener('dblclick', () => set(0));
+    el.addEventListener('wheel', (e) => { e.preventDefault(); set(this.num(id) - Math.sign(e.deltaY) * (e.shiftKey ? 0.002 : 0.01)); }, { passive: false });
+    el.title = title;
     return el;
   }
 
@@ -2095,6 +2292,7 @@ export class SynthView {
     return h('div', 'v2-bottom',
       h('div', 'seg-wrap', mono, poly),
       this.toggle('voice.legato', 'Legato'),
+      this.toggle('voice.halfspeed', 'Oct down'),
       glide,
       gear,
       h('div', 'master', this.readout('output.gain', 'Master'), meter),
@@ -2226,7 +2424,7 @@ export class SynthView {
     return h('span', 'fx-kinds sw-small', a, h('span', 'fx-kind-sep', '/'), b);
   }
 
-  /** An LFO's print: two cycles of its shape, with its fade-in. */
+  /** An LFO's print: two cycles of its shape, with its fade-in; the per-note shapes from a note's start. */
   private lfoPrint(n: number, W: number, H: number): HTMLElement {
     const [cv, g] = canvas(W, H, 'disp');
     const L = `lfo${n}`;
@@ -2237,8 +2435,10 @@ export class SynthView {
       // Seconds per cycle (synced rates at 120 BPM), to place the fade on the same time axis.
       const beats = sync === 'free' ? 0 : syncBeats(sync);
       const period = beats ? beats * 0.5 : 1 / Math.max(0.01, this.num(`${L}.rate`));
-      // A fixed 2-second window (at 120 BPM): a faster rate shows more cycles.
-      const span = 2, fade = this.num(`${L}.fade`) / 1000;
+      // A fixed 2-second window (at 120 BPM): a faster rate shows more cycles. Bloom and drop show
+      // their whole rise or fall, per note a held value for each of a few notes.
+      const perNote = shape === 'bloom' || shape === 'drop' || shape === 'random';
+      const span = perNote && shape !== 'random' ? Math.max(2, period * 1.25) : 2, fade = this.num(`${L}.fade`) / 1000;
       let seed = 11 + n;
       const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
       const steps = Array.from({ length: 10 }, rnd);
@@ -2251,14 +2451,33 @@ export class SynthView {
           case 'saw_down': return 1 - 2 * p;
           case 'square': return p < 0.5 ? 0.85 : -0.85;
           case 'sample_hold': return steps[Math.floor(ph * 4) % 10] * 0.85;
+          case 'bloom': { const x = Math.min(1, ph); return -0.85 + 1.7 * (0.5 - 0.5 * Math.cos(Math.PI * x)); }
+          case 'drop': { const x = Math.min(1, ph); return -0.85 + 1.7 * (1 - x) * (1 - x); }
+          case 'random': return steps[Math.floor((ph * period) / 0.5) % 10] * 0.85;
+          case 'drift': { const x = ph * 1.6, i = Math.floor(x), t = x - i, s = 1 - Math.pow(1 - t, 3); return (steps[i % 10] + (steps[(i + 1) % 10] - steps[i % 10]) * s) * 0.85; }
+          case 'slow drift': { const x = ph * 1.6, i = Math.floor(x), t = x - i, s = 0.5 - 0.5 * Math.cos(Math.PI * t); return (steps[i % 10] + (steps[(i + 1) % 10] - steps[i % 10]) * s) * 0.85; }
           default: { const x = ph * 2, i = Math.floor(x), t = x - i, s = t * t * (3 - 2 * t); return (steps[i % 10] + (steps[(i + 1) % 10] - steps[i % 10]) * s) * 0.85 + 0 * c; }
         }
       };
       const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) {
-        const t = (i / W) * span;
-        const a = fade > 0 ? Math.min(1, t / fade) : 1;
-        pts.push([i, H / 2 - f(t / period) * a * (H / 2 - 7)]);
+      // A random shape is drawn as what it really did: its path over the last few moves, scrolling
+      // left, now at the right edge (owner's rule: never a made-up curve that looks like a loop).
+      const real = LFO_RANDOM.has(shape) && this.liveLfo;
+      const histSpan = Math.max(2, Math.min(30, 2 * period));
+      if (real) {
+        const hist = this.lfoHist[n - 1], N = Math.round(histSpan * LFO_HIST_HZ);
+        for (let i = 0; i <= W; i++) {
+          const x = (i / W) * (N - 1), j = Math.floor(x), fr = x - j;
+          const at = (k: number) => hist[(this.lfoHistAt - (N - 1) + k + LFO_HIST * 2) % LFO_HIST];
+          const v = at(j) + (j + 1 < N ? (at(j + 1) - at(j)) * fr : 0);
+          pts.push([i, H / 2 - v * 0.85 * (H / 2 - 7)]);
+        }
+      } else {
+        for (let i = 0; i <= W; i++) {
+          const t = (i / W) * span;
+          const a = fade > 0 ? Math.min(1, t / fade) : 1;
+          pts.push([i, H / 2 - f(t / period) * a * (H / 2 - 7)]);
+        }
       }
       silver(g, pts, !!this.get(`${L}.on`));
       // Retrig: every note starts the shape from the top (a tick at the start).
@@ -2275,8 +2494,15 @@ export class SynthView {
       if (this.get(`${L}.on`)) {
         // the engine's real phase when it is running, else the page's own clock
         const live = this.liveLfo;
-        const t = live ? (this.lfoCycles[n - 1] + live.phase[n - 1]) * period : this.get(`${L}.retrigger`) && this.anim.on ? this.anim.t : performance.now() / 1000;
-        liveDot(g, pts, (t % span) / span, accentOf(cv));
+        if (real) liveDot(g, pts, 1, accentOf(cv));
+        else if (perNote) {
+          // from the newest note's start: bloom and drop stop at the end of their cycle
+          const t = shape === 'random' ? (this.anim.on ? this.anim.t : 0) : live ? live.phase[n - 1] * period : this.anim.on ? Math.min(this.anim.t, period) : 0;
+          liveDot(g, pts, (t % span) / span, accentOf(cv));
+        } else {
+          const t = live ? (this.lfoCycles[n - 1] + live.phase[n - 1]) * period : this.get(`${L}.retrigger`) && this.anim.on ? this.anim.t : performance.now() / 1000;
+          liveDot(g, pts, (t % span) / span, accentOf(cv));
+        }
       }
     };
     this.watch([`${L}.shape`, `${L}.fade`, `${L}.rate`, `${L}.sync`, `${L}.on`, `${L}.retrigger`], redraw);
@@ -2300,9 +2526,17 @@ export class SynthView {
       rate.style.display = free ? '' : 'none';
       note.style.display = free ? 'none' : '';
     });
+    // Picking Drift or Slow drift sets the old sources' own speed (1 Hz / 0.25 Hz, free running).
+    const shapeSel = this.selector(`${L}.shape`, { label: (o) => LFO_SHAPE[o] ?? o });
+    shapeSel.addEventListener('change', () => {
+      const sh = String(this.get(`${L}.shape`));
+      if (sh !== 'drift' && sh !== 'slow drift') return;
+      this.set(`${L}.sync`, 'free');
+      this.set(`${L}.rate`, sh === 'drift' ? 1 : 0.25);
+    });
     return this.obox(`LFO ${n}`, `mb box-lfo${n}`, {
       power: (el) => this.boolPower(`${L}.on`, el),
-      head: [this.selector(`${L}.shape`, { label: (o) => LFO_SHAPE[o] ?? o }), h('span', 'lfo-retrig', this.toggle(`${L}.retrigger`, 'Retrig', 'small'))],
+      head: [shapeSel, h('span', 'lfo-retrig', this.toggle(`${L}.retrigger`, 'Retrig', 'small'))],
       corner: [this.routeTag(L)],
       print: this.lfoPrint(n, MB_PRINT_W, MB_PRINT_H),
       // HZ / SYNC sits just left of the rate it switches
@@ -2310,21 +2544,6 @@ export class SynthView {
     });
   }
 
-  /** Env 2 (the slow bloom) and Env 3 (pitch bumps and drops, or anything else): ADSR, routed in the matrix. */
-  private modEnvBox(n: 2 | 3): HTMLElement {
-    const pct = (v: number) => `${Math.round(v * 100)}%`, E = `env${n}`;
-    return this.obox(`ENV ${n}`, `mb box-env${n}`, {
-      power: (el) => this.boolPower(`${E}.on`, el),
-      corner: [this.routeTag(E)],
-      print: this.envPrint(E, MB_PRINT_W, MB_PRINT_H),
-      dials: [
-        this.knob(`${E}.attack`, 'A', 'lg', { fmt: ms, parse: parseMs }),
-        this.knob(`${E}.decay`, 'D', 'lg', { fmt: ms, parse: parseMs }),
-        this.knob(`${E}.sustain`, 'S', 'lg', { fmt: pct, parse: parsePct }),
-        this.knob(`${E}.release`, 'R', 'lg', { fmt: ms, parse: parseMs }),
-      ],
-    });
-  }
 
   /** The custom shape's points from the patch. */
   private wobCustomPoints(): WobPoint[] {
@@ -2392,14 +2611,14 @@ export class SynthView {
   private wobOn = false;
   private readonly wobLevelViews: (() => void)[] = [];
 
-  /** Called when a preset (or roll) loads: carries the Wobbler over from the previous patch while locked. */
+  /** Called when a preset (or roll) loads: carries the Wobbler (while locked) and locked RUIN stages over from the previous patch. */
   keepLocked(next: Patch, prev: Patch | null): void {
     if (!prev) return;
     const from = prev as Record<string, unknown>, to = next as Record<string, unknown>;
     if (this.lfo5Locked) for (const p of params) if (p.id.startsWith('wobble.')) to[p.id] = from[p.id] ?? p.default;
     // a locked GRIND stage stays as it is, and keeps the chain on if it was on
     let kept = false;
-    for (let n = 1; n <= 4; n++) {
+    for (let n = 1; n <= 8; n++) {
       if (!this.grindLocks[n - 1]) continue;
       for (const k of GRIND_KEYS) to[`grind${n}.${k}`] = from[`grind${n}.${k}`] ?? getParam(`grind${n}.${k}`)!.default;
       kept ||= !!from[`grind${n}.on`];
@@ -2469,6 +2688,52 @@ export class SynthView {
     };
     this.watch([id, ...(opts.deps ?? [])], () => b.classList.toggle('on', isOn()));
     return b;
+  }
+
+  private matrixBox(): HTMLElement {
+    const row = (n: number): HTMLElement => {
+      const src = this.selector(`mod${n}.source`, { label: (o) => SRC_LABEL[o] ?? o, groups: MX_SRC_GROUPS });
+      const dst = this.selector(`mod${n}.dest`, { label: (o) => DEST_LABEL[o] ?? o, groups: MX_DEST_GROUPS, only: true });
+      src.classList.add('mx-src');
+      dst.classList.add('mx-dst');
+      const on = h('button', 'mx-on', lamp());
+      on.title = 'This modulation on / off (keeps its settings)';
+      // a row from a switched-off LFO or envelope shows as off too; switching it on switches the source on
+      const switched = () => {
+        const s = String(this.get(`mod${n}.source`));
+        return /^lfo\d$/.test(s) ? s : null;
+      };
+      const live = () => !!this.get(`mod${n}.on`) && (!switched() || !!this.get(`${switched()}.on`));
+      on.onclick = () => {
+        if (live()) this.set(`mod${n}.on`, false);
+        else {
+          this.set(`mod${n}.on`, true);
+          const s = switched();
+          if (s) this.set(`${s}.on`, true);
+        }
+      };
+      const el = h('div', 'mx-row', on, h('span', 'mx-n', String(n).padStart(2, '0')), src, h('span', 'mx-arrow', '→'), dst);
+      this.watch([`mod${n}.on`, `mod${n}.source`, 'lfo1.on', 'lfo2.on', 'lfo3.on', 'lfo4.on', 'lfo5.on', 'lfo6.on'], () => {
+        on.classList.toggle('on', live());
+        el.classList.toggle('off', !live());
+      });
+      // The source's name and amount in its own box colour (LFO 1 red, LFO 5 blue …); empty slots
+      // fade. Registered before the amount bar, so the bar draws in the right colour.
+      this.watch([`mod${n}.source`, `mod${n}.dest`, `mod${n}.amount`], () => {
+        const s = String(this.get(`mod${n}.source`));
+        el.dataset.src = s;
+        el.classList.toggle('empty', s === 'none' || String(this.get(`mod${n}.dest`)) === 'none' || this.num(`mod${n}.amount`) === 0);
+      });
+      el.append(this.amountBar(`mod${n}.amount`, [`mod${n}.source`]));
+      return el;
+    };
+    // One MOD MATRIX, all 9 rows the preset's own (owner's call: RUIN'S LFO was removed).
+    const rows = Array.from({ length: PATCH_ROWS }, (_, i) => row(i + 1));
+    const el = h('div', 'c ob box-matrix',
+      h('div', 'ob-head', h('span', 'c-title', 'MOD MATRIX'), h('span', 'mx-note', 'source → destination · amount')),
+      h('div', 'mx-rows mx-all', ...rows));
+    el.querySelector('.ob-head')!.prepend(this.boolPower('mod.on', el));
+    return el;
   }
 
   /**
@@ -2895,63 +3160,21 @@ export class SynthView {
     return h('div', 'v2-main osc-page lfo-page', big, settings, palette);
   }
 
-  private matrixBox(): HTMLElement {
-    const rows: HTMLElement[] = [];
-    for (let n = 1; n <= MOD_SLOTS; n++) {
-      const src = this.selector(`mod${n}.source`, { label: (o) => SRC_LABEL[o] ?? o, groups: MX_SRC_GROUPS });
-      const dst = this.selector(`mod${n}.dest`, { label: (o) => DEST_LABEL[o] ?? o, groups: MX_DEST_GROUPS });
-      src.classList.add('mx-src');
-      dst.classList.add('mx-dst');
-      const on = h('button', 'mx-on', lamp());
-      on.title = 'This modulation on / off (keeps its settings)';
-      // a row from a switched-off LFO or envelope shows as off too; switching it on switches the source on
-      const switched = () => {
-        const s = String(this.get(`mod${n}.source`));
-        return /^(lfo\d|env[23])$/.test(s) ? s : null;
-      };
-      const live = () => !!this.get(`mod${n}.on`) && (!switched() || !!this.get(`${switched()}.on`));
-      on.onclick = () => {
-        if (live()) this.set(`mod${n}.on`, false);
-        else {
-          this.set(`mod${n}.on`, true);
-          const s = switched();
-          if (s) this.set(`${s}.on`, true);
-        }
-      };
-      const row = h('div', 'mx-row', on, h('span', 'mx-n', String(n).padStart(2, '0')), src, h('span', 'mx-arrow', '→'), dst);
-      this.watch([`mod${n}.on`, `mod${n}.source`, 'lfo1.on', 'lfo2.on', 'lfo3.on', 'lfo4.on', 'env2.on', 'env3.on'], () => {
-        on.classList.toggle('on', live());
-        row.classList.toggle('off', !live());
-      });
-      // The source's name and amount in its own box colour (LFO 1 red, Env 2 blue …); empty slots
-      // fade. Registered before the amount bar, so the bar draws in the right colour.
-      this.watch([`mod${n}.source`, `mod${n}.dest`, `mod${n}.amount`], () => {
-        const s = String(this.get(`mod${n}.source`));
-        row.dataset.src = s;
-        row.classList.toggle('empty', s === 'none' || String(this.get(`mod${n}.dest`)) === 'none' || this.num(`mod${n}.amount`) === 0);
-      });
-      row.append(this.amountBar(`mod${n}.amount`, [`mod${n}.source`]));
-      rows.push(row);
-    }
-    const el = h('div', 'c ob box-matrix', h('div', 'ob-head', h('span', 'c-title', 'MOD MATRIX'), h('span', 'mx-note', 'source → destination · amount')), h('div', 'mx-rows', ...rows));
-    el.querySelector('.ob-head')!.prepend(this.boolPower('mod.on', el));
-    return el;
-  }
 
   /**
-   * The MOD page: the sources on the left (LFO 1–4, then Env 2 and the pitch envelope, in two
-   * columns of three) and the 12-slot matrix filling the right half.
+   * The MOD page: LFO 1–6 on the left (two columns of three) and the 12-slot matrix filling the
+   * right half.
    */
   private buildModPage(): HTMLElement {
     return h('div', 'v2-main mod-page2',
-      this.modEnvBox(2), this.modEnvBox(3),
       this.lfoBox(1), this.lfoBox(2),
       this.lfoBox(3), this.lfoBox(4),
+      this.lfoBox(5), this.lfoBox(6),
       this.matrixBox());
   }
 
   /** A bipolar amount you drag sideways (double-click = 0): a neon line from the centre, in the box colour. */
-  private amountBar(id: string, deps: string[] = []): HTMLElement {
+  private amountBar(id: string, deps: string[] = [], reset = 0): HTMLElement {
     const p = getParam(id)!;
     const W = 92, H = 14;
     const [cv, g] = canvas(W, H, 'amt');
@@ -2959,7 +3182,7 @@ export class SynthView {
     const freeSrc = () => {
       const src = deps[0] ? String(this.get(deps[0])) : '';
       if (/^lfo\d$/.test(src)) return !!this.get(`${src}.on`);
-      return /^(lfo_product|drift|drift_slow)$/.test(src);
+      return false;
     };
     const draw = () => {
       // The bar moves with its source (deps[0] is the slot's source): LFOs and drifts all the
@@ -2991,9 +3214,9 @@ export class SynthView {
     val.addEventListener('pointerdown', (e) => { val.setPointerCapture(e.pointerId); x0 = e.clientY; v0 = this.num(id); });
     val.addEventListener('pointermove', (e) => { if (val.hasPointerCapture(e.pointerId)) set(v0 + ((x0 - e.clientY) / (e.shiftKey ? 800 : 160))); });
     val.addEventListener('pointerup', (e) => val.releasePointerCapture(e.pointerId));
-    val.addEventListener('dblclick', () => set(0));
+    val.addEventListener('dblclick', () => this.set(id, reset));
     val.addEventListener('wheel', (e) => { e.preventDefault(); set(this.num(id) - Math.sign(e.deltaY) * (e.shiftKey ? 0.002 : 0.01)); }, { passive: false });
-    val.title = `${p.label}: drag up / down (Shift = fine), double-click for 0`;
+    val.title = `${p.label}: drag up / down (Shift = fine), double-click for ${reset ? 'its standard amount' : '0'}`;
     const el = h('div', 'amt-wrap', cv, val);
     return el;
   }
@@ -3018,6 +3241,245 @@ export class SynthView {
   }
 
   /**
+   * The Tape box's machines (owner's call, the classic preset menu): picking one only sets the box's
+   * dials (Wow and Drift) to that machine's; touching a dial afterwards shows "· CUSTOM" after its name.
+   * Wow is set so the pitch swings as the machine's measured wow & flutter does (a weighted 0.1 % ≈
+   * ±2.4 cents at its peaks): pro reels under 0.04 %, the best cassette decks ~0.08 %, a Sony WM-2
+   * 0.4 % on a fresh belt and 0.8 % on a worn one; the rest estimated from typical figures. Drift is
+   * how old the rest of the rig sounds alongside it.
+   */
+  /**
+   * A drive type menu (RUIN's stages and the FX page's DRIVE; owner's pick): the types in columns by what
+   * they do, gentle to destroyed (WARM saturates, CLIP cuts the peaks, BREAK rewrites the wave, DIGITAL
+   * takes the resolution away), each with a tiny picture of one sine cycle through it.
+   */
+  private driveTypeSelector(id: string): HTMLElement {
+    const el = this.selector(id, { groups: DRIVE_GROUPS, only: true });
+    for (const o of el.querySelectorAll('option')) o.dataset.icon = driveIconPath(o.value);
+    return el;
+  }
+
+  /** RUIN's filter types as the title's menu: CUT / BOOST, each with a picture of its curve. */
+  private filterTypeSelector(id: string): HTMLElement {
+    const el = this.selector(id, { groups: [['CUT', ['notch', 'comb', 'phaser']], ['BOOST', ['peak', 'band']]], only: true });
+    for (const o of el.querySelectorAll('option')) o.dataset.icon = filterIconPath(o.value);
+    return el;
+  }
+
+  private tapeLast = '';
+  private tapeTypes(): HTMLElement {
+    const TYPES: [string, number, number][] = [
+      ['STUDIO REEL', 0.04, 0.1], ['CASSETTE DECK', 0.09, 0.2], ['4-TRACK', 0.13, 0.3], ['WALKMAN', 0.33, 0.3],
+      ['DICTAPHONE', 0.36, 0.5], ['WORN WALKMAN', 0.45, 0.4], ['WARPED VINYL', 0.46, 0.2], ['BROKEN', 0.87, 0.7],
+    ];
+    const sel = h('select', 'sel-name') as HTMLSelectElement;
+    for (const [n] of TYPES) sel.append(new Option(n, n));
+    const custom = new Option('CUSTOM', '_custom');
+    custom.hidden = true;
+    sel.append(custom);
+    const near = (a: number, b: number) => Math.abs(a - b) < 0.006;
+    sel.onchange = () => {
+      const t = TYPES.find(([n]) => n === sel.value);
+      if (!t) return;
+      this.tapeLast = t[0];
+      if (!this.get('tape.on')) this.set('tape.on', true);
+      this.set('tape.wow', t[1]);
+      this.set('voice.analog', t[2]);
+    };
+    this.watch(['tape.wow', 'voice.analog'], () => {
+      const wow = this.num('tape.wow'), drift = this.num('voice.analog');
+      const hit = TYPES.find(([, w, d]) => near(w, wow) && near(d, drift));
+      if (hit) {
+        this.tapeLast = hit[0];
+        sel.value = hit[0];
+      } else {
+        custom.text = this.tapeLast ? `${this.tapeLast} · CUSTOM` : 'CUSTOM';
+        sel.value = '_custom';
+      }
+    });
+    const el = h('div', 'sel', sel);
+    el.title = 'Tape machines: picking one sets Wow and Drift to that machine; change a dial and it becomes custom';
+    return el;
+  }
+
+  /**
+   * The Tape print (owner's call: show exactly how the pitch moves): pitch in cents over 4 seconds,
+   * the centre in tune, top and bottom ±20 cents or as far as the line needs. Wow and flutter move the
+   * whole sound together, at the engine's own curved depths (the reel's ~0.55 Hz swing, up to ±200 cents,
+   * and its 7.3 Hz flutter, up to ±50): the bright line. Drift moves each oscillator on its own (up to
+   * ±40 cents on the core, ±60 on the unison copies): it rides on the bright line, the copies as fainter lines around it when
+   * unison is on. The drift's path is random in the engine, so its line shows its size and pace.
+   */
+  private tapePitchPrint(): HTMLElement {
+    const W = PRINT_W, H = PRINT_H, TAU = 2 * Math.PI, SPAN = 4;
+    const [cv, g] = canvas(W, H, 'disp');
+    const redraw = () => {
+      paper(g, W, H);
+      const wow = this.get('tape.on') ? this.num('tape.wow') : 0, an = this.num('voice.analog');
+      // the engine's curved depths (cents): wow, flutter, drift on the core and on the unison copies
+      const w4 = wow ** 4, a4 = an ** 4;
+      const wowC = 13.2 * wow + 186.8 * w4, flutC = 9.5 * wow + 40.5 * w4, coreC = 2.5 * an + 37.5 * a4, copyC = 7 * an + 53 * a4;
+      const uni = Math.max(this.num('osc1.unison_voices'), this.num('osc2.unison_voices'));
+      // the scale grows with the depth: ±20 cents, or whatever the line needs (in steps of 20)
+      const RANGE = Math.max(20, Math.ceil((wowC + flutC + (uni > 1 ? copyC : coreC)) / 20) * 20);
+      const lit = wow > 0 || an > 0, col = accentOf(cv);
+      g.save();
+      g.strokeStyle = 'rgba(255,255,255,0.09)';
+      g.setLineDash([2, 4]);
+      g.beginPath();
+      g.moveTo(0, H / 2);
+      g.lineTo(W, H / 2);
+      g.stroke();
+      g.setLineDash([]);
+      g.fillStyle = lit ? hexA(col, 0.6) : '#55555b';
+      g.font = '9px "Space Grotesk", sans-serif';
+      g.textAlign = 'right';
+      g.fillText(RANGE >= 100 ? `±${(RANGE / 100).toFixed(RANGE % 100 ? 1 : 0)} ST` : `±${RANGE} CT`, W - 6, 12);
+      g.restore();
+      let seed = 7;
+      const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
+      const wander = () => {
+        const p = Array.from({ length: 8 }, rnd);
+        return (t: number) => { const x = (t / SPAN) * 6, i = Math.floor(x), f = x - i, s = f * f * (3 - 2 * f); return p[i] + (p[i + 1] - p[i]) * s; };
+      };
+      const core = wander(), copies = [wander(), wander()];
+      const wowAt = (t: number) => wowC * Math.sin(TAU * 0.55 * t) + flutC * Math.sin(TAU * 7.3 * t);
+      const y = (c: number) => H / 2 - Math.max(-1.05, Math.min(1.05, c / RANGE)) * (H / 2 - 8);
+      const line = (cents: (t: number) => number): [number, number][] => Array.from({ length: W + 1 }, (_, i) => [i, y(cents((i / W) * SPAN))]);
+      if (an > 0 && uni > 1) for (const c of copies) silver(g, line((t) => wowAt(t) + copyC * c(t)), lit, shade(col, 0.45));
+      silver(g, line((t) => wowAt(t) + coreC * core(t)), lit);
+      loCutStrip(g, W, H, this.num('tape.lowcut'), wow > 0, col);
+    };
+    this.watch(['tape.on', 'tape.wow', 'tape.lowcut', 'voice.analog', 'osc1.unison_voices', 'osc2.unison_voices'], redraw);
+    return cv;
+  }
+
+  /**
+   * The chorus print: the wave and its copies, offset in time like a chorus plays them. Classic is two,
+   * ensemble three, hyper six; Depth spreads them further apart, Mix lights the copies.
+   */
+  private chorusPrint(): HTMLElement {
+    const W = PRINT_W, H = PRINT_H, TAU = 2 * Math.PI;
+    const [cv, g] = canvas(W, H, 'disp');
+    const redraw = () => {
+      paper(g, W, H);
+      const lit = !!this.get('chorus.on') && this.num('chorus.mix') > 0, col = lit ? accentOf(cv) : '#4a4a50';
+      const mode = this.get('chorus.mode'), v = mode === 'hyper' ? 6 : mode === 'ensemble' ? 3 : 2;
+      const d = this.num('chorus.depth'), m = this.num('chorus.mix');
+      const wave = (off: number): [number, number][] => Array.from({ length: W + 1 }, (_, x) => [x, H / 2 - 4 - 0.62 * (H / 2 - 10) * Math.sin(TAU * ((x / W) * 2.5 - off))]);
+      if (m > 0) for (let i = 0; i < v; i++) silver(g, wave(((i + 1) / v) * (0.03 + 0.2 * d) * (i % 2 ? -1 : 1)), lit, shade(col, 0.3 + 0.55 * m));
+      silver(g, wave(0), lit);
+      loCutStrip(g, W, H, this.num('chorus.lowcut'), lit, col);
+    };
+    this.watch(['chorus.on', 'chorus.mix', 'chorus.depth', 'chorus.mode', 'chorus.lowcut'], redraw);
+    return cv;
+  }
+
+  /** Glowing spikes (delay repeats, the reverb tail): [x 0..1, height 0..1] from the bottom. */
+  private fxSpikes(ids: string[], on: () => boolean, spikes: () => [number, number][], lowcut?: string): HTMLElement {
+    const W = PRINT_W, H = PRINT_H;
+    const [cv, g] = canvas(W, H, 'disp');
+    const redraw = () => {
+      paper(g, W, H);
+      const lit = on(), col = lit ? accentOf(cv) : '#4a4a50';
+      g.save();
+      g.lineCap = 'round';
+      for (const [x, a] of spikes()) {
+        const px = 4 + x * (W - 8), top = H - 6 - Math.max(1, a * (H - 14));
+        g.strokeStyle = col;
+        g.globalAlpha = lit ? 0.35 + 0.65 * Math.min(1, a) : 0.6;
+        g.lineWidth = 2;
+        if (lit) {
+          g.shadowColor = col;
+          g.shadowBlur = 8;
+        }
+        g.beginPath();
+        g.moveTo(px, H - 6);
+        g.lineTo(px, top);
+        g.stroke();
+      }
+      g.restore();
+      if (lowcut) loCutStrip(g, W, H, this.num(lowcut), lit, col);
+    };
+    this.watch([...ids, ...(lowcut ? [lowcut] : [])], redraw);
+    return cv;
+  }
+
+  /**
+   * A drive's band as Ableton's Overdrive shows it (RUIN's stages and the FX page's DRIVE): the band as a
+   * curve with a ball you drag (sideways = where, up / down = how wide; double-click = the whole sound),
+   * Tone as a dotted top, more drive a brighter fill, and the Lo cut as the strip along the bottom.
+   */
+  private drivePad(o: { on: () => boolean; freq: string; width: string; tone: string; drive: string; lowcut?: string; deps?: string[] }): HTMLElement {
+    const W = PRINT_W, H = PRINT_H;
+    const [cv, g] = canvas(W, H, 'disp gr-band');
+    const bandY = (w: number) => H - 10 - ((w - 0.5) / 8.5) * (H - 22);
+    const draw = () => {
+      // as a RUIN drive draws it (owner's call): the band as a shaded zone where the drive bites (brighter the
+      // harder it drives), the sound outside it a flat line (it passes untouched), Tone a dotted line, the ring
+      paper(g, W, H);
+      const on = o.on(), col = on ? accentOf(cv) : '#4a4a50';
+      const fc = this.num(o.freq), w = this.num(o.width), tone = this.num(o.tone), drive = this.num(o.drive);
+      const full = w >= 8.95;
+      const lo = full ? 20 : fc * Math.pow(2, -w / 2), hi = full ? 20000 : fc * Math.pow(2, w / 2);
+      const x0 = freqX(lo, W), x1 = freqX(hi, W), y0 = grindY(1, H), lift = (H * 0.28) * (0.25 + drive);
+      if (on) {
+        g.fillStyle = hexA(col, 0.04 + 0.14 * drive);
+        g.fillRect(x0, 0, x1 - x0, H);
+        g.fillStyle = hexA(col, 0.6);
+        g.fillRect(x0, 0, x1 - x0, 2);
+      }
+      // the line: flat outside the band, raised inside it (driven), with soft shoulders at its edges
+      const pts: [number, number][] = [];
+      for (let i = 0; i <= W; i += 2) {
+        const f = 20 * Math.pow(1000, i / W), oct = Math.log2(f / fc);
+        const inside = full ? 1 : 1 / (1 + Math.pow(Math.abs(oct) / Math.max(0.25, w / 2), 8));
+        pts.push([i, y0 - (on ? lift * inside : 0)]);
+      }
+      silver(g, pts, on);
+      if (on && tone < 0.999) {
+        const tx = freqX(200 * Math.pow(100, tone), W);
+        g.save();
+        g.setLineDash([2, 3]);
+        g.strokeStyle = hexA(col, 0.6);
+        g.beginPath();
+        g.moveTo(tx, 14);
+        g.lineTo(tx, H);
+        g.stroke();
+        g.restore();
+      }
+      g.save();
+      g.strokeStyle = col;
+      g.lineWidth = 2;
+      g.shadowColor = col;
+      g.shadowBlur = on ? 8 : 0;
+      g.fillStyle = '#0d0d0f';
+      g.beginPath();
+      g.arc(freqX(fc, W), bandY(w), 4.5, 0, 2 * Math.PI);
+      g.fill();
+      g.stroke();
+      g.restore();
+      g.fillStyle = on ? hexA(col, 0.85) : '#55555b';
+      g.font = '9px "Space Grotesk", sans-serif';
+      g.textAlign = 'right';
+      g.fillText(full ? 'WHOLE SOUND' : `${fc >= 1000 ? (fc / 1000).toFixed(2) + ' kHz' : Math.round(fc) + ' Hz'} · ${w.toFixed(1)} oct`, W - 6, 12);
+      g.textAlign = 'left';
+      if (o.lowcut) loCutStrip(g, W, H, this.num(o.lowcut), on, col);
+    };
+    const set = (e: PointerEvent) => {
+      const r = cv.getBoundingClientRect(), x = ((e.clientX - r.left) / r.width) * W, y = ((e.clientY - r.top) / r.height) * H;
+      this.set(o.freq, Math.round(Math.max(50, Math.min(18000, 20 * Math.pow(1000, x / W)))));
+      this.set(o.width, Math.round(Math.max(0.5, Math.min(9, 0.5 + ((H - 10 - y) / (H - 22)) * 8.5)) * 100) / 100);
+    };
+    cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); set(e); });
+    cv.addEventListener('pointermove', (e) => { if (cv.hasPointerCapture(e.pointerId)) set(e); });
+    cv.addEventListener('dblclick', () => this.set(o.width, 9));
+    cv.title = "The drive's band: only the shaded part is driven, the rest passes untouched. Drag the ring sideways for where, up / down for how wide; double-click for the whole sound";
+    this.watch([o.freq, o.width, o.tone, o.drive, ...(o.lowcut ? [o.lowcut] : []), ...(o.deps ?? [])], draw);
+    return cv;
+  }
+
+  /**
    * The FX page: eight 4:3 boxes like the OSC page, in signal order. The dirt (in each voice):
    * distortion, crush, tape; then the shared effects, each above its own low cut: chorus,
    * flanger or phaser (one at a time), delay, reverb; and the EQ last.
@@ -3030,35 +3492,20 @@ export class SynthView {
       k.title = `Low cut: the ${fx} only works above this frequency, so the low end stays clean and centred.`;
       return k;
     };
-    // Distortion: two cycles of a sine through the curve.
-    const shape = (type: string, x: number, d: number): number => {
-      const k = 1 + 14 * d;
-      switch (type) {
-        case 'hard': return Math.max(-1, Math.min(1, x * k));
-        case 'fold': return Math.sin((x * k * Math.PI) / 2);
-        case 'tube': {
-          const b = 0.25;
-          return (Math.tanh(x * k + b) - Math.tanh(b)) / (1 - Math.tanh(b) * 0.4);
-        }
-        case 'fuzz': {
-          // the pedal's curve as the engine plays it: a dead zone, then lopsided hard clipping
-          const b = 0.12 * k * 1.5, v = x * k * 1.5 + b, d = 0.1, sl = 2.4;
-          const f = (u: number) => (u > d ? Math.min(1, sl * (u - d)) : u < -d ? Math.max(-0.55, sl * (u + d)) : 0);
-          return f(v) - f(b);
-        }
-        default: return Math.tanh(x * k) / Math.tanh(Math.max(1, k * 0.6));
-      }
-    };
-    const distLow = lg('dist.clean_below', 'Lo cut', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
+    let seed = 5;
+    const noise = Array.from({ length: 400 }, () => ((seed = (seed * 16807) % 2147483647) / 2147483647));
+    const md6 = (id: string, label: string, opts: Parameters<SynthView['knob']>[3] = {}) => this.knob(id, label, 'mid', opts);
+    const distLow = md6('dist.clean_below', 'Lo cut', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
     distLow.title = 'Keeps everything below this frequency clean (the distortion only works on the part above it). Fully left = off.';
-    const dist = this.obox('DISTORTION', 'fx-box box-dist', {
+    // DRIVE: RUIN's drive on the FX page (Ableton's Overdrive layout): the band you drag, then the type,
+    // Drive, Tone, Dynamics, Dry/Wet and the Lo cut below which the sound stays clean
+    const pct = (v: number) => `${Math.round(v * 100)}%`;
+    const dist = this.obox('DRIVE', 'fx-box box-dist', {
       power: (el) => this.boolPower('dist.on', el),
-      head: [this.selector('dist.type')],
-      print: this.fxLine(['dist.on', 'dist.type', 'dist.drive', 'dist.mix', 'dist.post_tone'], lit('dist.on', 'dist.mix'), (x) => {
-        const s = Math.sin(x * 2 * 2 * Math.PI) * 0.9, m = this.num('dist.mix');
-        return m * shape(String(this.get('dist.type')), s, this.num('dist.drive')) * 0.9 + (1 - m) * s;
-      }, false, { lowcut: 'dist.clean_below', smooth: () => (1 - this.num('dist.post_tone')) * 7 }),
-      dials: [lg('dist.drive', 'Drive'), lg('dist.mix', 'Mix'), lg('dist.post_tone', 'Tone'), distLow],
+      head: [this.driveTypeSelector('dist.type')],
+      print: this.drivePad({ on: () => !!this.get('dist.on') && this.num('dist.mix') > 0, freq: 'dist.band_freq', width: 'dist.band_width', tone: 'dist.post_tone', drive: 'dist.drive', lowcut: 'dist.clean_below', deps: ['dist.on', 'dist.mix'] }),
+      // six dials: the RUIN boxes' smaller size, so they fit
+      dials: [md6('dist.drive', 'Drive', { fmt: pct }), md6('dist.post_tone', 'Tone', { fmt: pct }), md6('dist.mix', 'Dry/Wet', { fmt: pct }), md6('dist.output', 'Output', { fmt: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB` }), distLow],
     });
 
     const crush = this.obox('CRUSH', 'fx-box box-crush', {
@@ -3073,31 +3520,20 @@ export class SynthView {
       dials: [lg('crush.mix', 'Mix'), lg('crush.bits', 'Bits'), lg('crush.rate', 'Rate'), lowCut('crush')],
     });
 
-    // Tape: a sine that wobbles in pitch (wow, drift), loses its top (age) and saturates (drive).
+    // Tape: Wow, Drift and Lo cut (owner's call: its drive and age were removed); the print is the pitch itself.
     const drift = lg('voice.analog', 'Drift');
     drift.title = 'Analog drift: the oscillators drift slightly in pitch and the filter varies a touch per note, like an old analog synth. 0 is perfectly steady.';
     const tape = this.obox('TAPE', 'fx-box box-tape', {
       power: (el) => this.boolPower('tape.on', el),
-      print: this.fxLine(['tape.on', 'tape.age', 'tape.wow', 'tape.drive', 'voice.analog'], lit('tape.on'), (x) => {
-        const wow = this.num('tape.wow') + 0.5 * this.num('voice.analog'), age = this.num('tape.age'), d = this.num('tape.drive');
-        const ph = x * 2.5 + wow * 0.12 * Math.sin(x * 2 * Math.PI * 1.3);
-        const s = Math.sin(ph * 2 * Math.PI) + (1 - age) * 0.18 * Math.sin(ph * 6 * Math.PI);
-        const k = 1 + 4 * d;
-        return (Math.tanh(s * k) / Math.tanh(k)) * 0.85;
-      }, false, { lowcut: 'tape.lowcut' }),
-      dials: [lg('tape.age', 'Age'), lg('tape.wow', 'Wow'), lg('tape.drive', 'Drive'), drift, lowCut('tape')],
+      head: [this.tapeTypes()],
+      print: this.tapePitchPrint(),
+      dials: [lg('tape.wow', 'Wow'), drift, lowCut('tape')],
     });
 
     const chorus = this.obox('CHORUS', 'fx-box box-chorus', {
       power: (el) => this.boolPower('chorus.on', el),
       head: [this.selector('chorus.mode')],
-      print: this.fxLine(['chorus.depth', 'chorus.mix', 'chorus.mode', 'chorus.on'], lit('chorus.on', 'chorus.mix'), (x) => {
-        const d = this.num('chorus.depth'), mode = this.get('chorus.mode'), voices = mode === 'hyper' ? 6 : mode === 'ensemble' ? 3 : 2;
-        let v = 0;
-        for (let i = 0; i < voices; i++) v += Math.sin(x * 2 * Math.PI * 2.5 + i * (0.4 + 1.6 * d) + d * Math.sin(x * 6 + i));
-        const m = this.num('chorus.mix');
-        return 0.9 * ((1 - m) * Math.sin(x * 2 * Math.PI * 2.5) + (m * v) / voices);
-      }, false, { lowcut: 'chorus.lowcut' }),
+      print: this.chorusPrint(),
       dials: [lg('chorus.mix', 'Mix'), lg('chorus.depth', 'Depth'), lowCut('chorus')],
     });
 
@@ -3123,23 +3559,39 @@ export class SynthView {
       dials: [lg('phaser.mix', 'Mix'), lg('phaser.rate', 'Rate'), lowCut('phaser')],
     });
 
-    // OTT (its own; GRIND has another): a loud, quiet-lifting, peak-squashing wave, Depth deep.
-    const ottLow = lg('ott.lowcut', 'Lo cut', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
-    ottLow.title = 'The OTT only works above this frequency; below it the sound passes as it is. Fully left = the whole sound.';
-    const ott = this.obox('OTT', 'fx-box box-ott', {
-      power: (el) => this.boolPower('ott.on', el),
-      print: this.fxLine(['ott.on', 'ott.depth', 'ott.lowcut'], lit('ott.on', 'ott.depth'), (x) => {
-        // a note that dies away: the deeper the OTT, the more its tail is pulled up and its peak held down
-        const d = this.num('ott.depth'), env = Math.exp(-3.2 * x), s = Math.sin(x * 2 * Math.PI * 6);
-        const e = env * (1 - d) + d * (0.55 + 0.35 * Math.pow(env, 0.25));
-        return 0.9 * e * s;
-      }, false, { lowcut: 'ott.lowcut' }),
-      dials: [lg('ott.depth', 'Depth', { fmt: (v) => `${Math.round(v * 100)}%` }), ottLow],
+    // The tail as it is: pre-delay as a gap, each type's build-up (a room's early reflections, a
+    // cathedral's slow bloom), Decay as its length (log, 0.2-20 s across the print).
+    const reverb = this.obox('REVERB', 'fx-box box-reverb', {
+      power: (el) => this.boolPower('reverb.on', el),
+      head: [this.selector('reverb.type'), h('div', 'ob-chips',
+        this.chip('OCT', () => this.num('reverb.octave'), (v) => this.set('reverb.octave', v), -1, 0, ['reverb.octave'], 'Reverb octave: -1 lets each note sink into a dark cloud an octave below itself'))],
+      print: this.fxSpikes(['reverb.type', 'reverb.decay', 'reverb.predelay', 'reverb.mix', 'reverb.on', 'reverb.octave'], lit('reverb.on', 'reverb.mix'), () => {
+        const type = String(this.get('reverb.type'));
+        const len = 0.08 + 0.92 * (Math.log(this.num('reverb.decay') / 0.2) / Math.log(100));
+        const mix = 0.35 + 0.65 * Math.min(1, this.num('reverb.mix') * 2.5);
+        const gap = 0.3 * (this.num('reverb.predelay') / 250);
+        const rise = ({ room: 0.01, plate: 0.004, hall: 0.05, cathedral: 0.12 } as Record<string, number>)[type] ?? 0.05;
+        const grain = ({ room: 0.75, plate: 0.15, hall: 0.4, cathedral: 0.45 } as Record<string, number>)[type] ?? 0.4;
+        const out: [number, number][] = [];
+        // an octave down: half as many, broader grains (the tail moves at half speed)
+        const step = this.num('reverb.octave') < 0 ? 2 : 1;
+        for (let i = 0; i < 80; i += step) {
+          const x = i / 80;
+          if (x < gap) continue;
+          const t = x - gap;
+          const env = (1 - Math.exp(-t / rise)) * Math.exp((-3.5 * t) / len);
+          // a room's first reflections stand out as a few tall spikes
+          const early = type === 'room' && t < 0.08 && i % 3 === 0 ? 1.25 : 1;
+          out.push([x, Math.min(1, mix * env * early * (1 - grain * 0.7 + grain * 0.7 * noise[i]))]);
+        }
+        return out;
+      }, 'reverb.lowcut'),
+      dials: [lg('reverb.mix', 'Mix'), lg('reverb.decay', 'Decay'), lg('reverb.predelay', 'Pre-delay'), lowCut('reverb')],
     });
 
     const eq = this.eqBox();
 
-    return h('div', 'v2-main osc-page fx-page2', dist, crush, tape, chorus, flanger, phaser, ott, eq);
+    return h('div', 'v2-main osc-page fx-page2', dist, crush, tape, chorus, flanger, phaser, reverb, eq);
   }
 
   /**
@@ -3263,146 +3715,53 @@ export class SynthView {
   // ------------------------------------------------------------------ the GRIND page
 
   /**
-   * GRIND: four stage cards (a moving filter over its drive, each with a die and a lock) and a
-   * strip on top: ROLL, the stage count, weirdness, SAT and PRE OTT in front of the stages, KEY, ONE SHOT, OTT, Lo cut, Mix and the rocker.
+   * RUIN (the GRIND chain), option A of the redesign (owner's pick): a strip (ROLL, count, WEIRD, KEY / ONE SHOT /
+   * NOISE THRU, OTT, Lo cut, Mix, Output, the rocker), the chain as eight live boxes left to right
+   * (filter 1, drive 1 … filter 4, drive 4: each its own spectrum, a level meter with a red cap when it goes over
+   * 0 dB, and S / B / Δ to listen), and under it the selected box up close: what it does (before dotted, after lit,
+   * the new part filled) with its filter or its drive band on top, the drive's curve with how far the real signal
+   * reaches into it, and only its controls.
    */
   private buildGrindPage(): HTMLElement {
-    const ids = (n: number) => GRIND_KEYS.map((k) => `grind${n}.${k}`);
-    const page = h('div', 'v2-main osc-page grind-page');
-    const cards: HTMLElement[] = [];
-    const lg = (id: string, label: string, opts: Parameters<SynthView['knob']>[3] = {}) => this.knob(id, label, 'lg', opts);
-    const stageOn = (n: number) => () => !!this.get('grind.on') && !!this.get(`grind${n}.on`);
-    for (let n = 1; n <= 4; n++) {
-      const pre = `grind${n}`;
-      const card = h('div', `c ob gr-stage gr-s${n}`);
-      // filter print: its response where it sits, dotted where it swings to, and its range as a strip
-      const W = PRINT_W, FH = 96, DH = 56;
-      const [fcv, fg] = canvas(W, FH, 'disp');
-      const drawFilter = () => {
-        paper(fg, W, FH);
-        const on = stageOn(n)(), col = on ? accentOf(fcv) : '#4a4a50';
-        const st = this.grindStage(n), r = st.range / 2, vr = 0.5 * this.num(`${pre}.vrange`);
-        const curve = (fc: number, res = st.res): [number, number][] => {
-          const pts: [number, number][] = [], s2 = { ...st, res: Math.max(0, Math.min(1, res)) };
-          for (let i = 0; i <= W; i += 2) pts.push([i, grindY(grindMag(s2, fc, 20 * Math.pow(1000, i / W)), FH)]);
-          return pts;
-        };
-        if (on && r > 0.01) {
-          const lo = st.freq * Math.pow(2, -r), hi = st.freq * Math.pow(2, r);
-          fg.save();
-          fg.setLineDash([2, 3]);
-          fg.strokeStyle = hexA(col, 0.35);
-          fg.lineWidth = 1;
-          // where it swings to: sideways (H RANGE) and up / down (V RANGE)
-          for (const [f, rs] of [[lo, st.res - vr], [hi, st.res + vr]]) {
-            fg.beginPath();
-            curve(f, rs).forEach(([x, y], i) => (i ? fg.lineTo(x, y) : fg.moveTo(x, y)));
-            fg.stroke();
-          }
-          fg.restore();
-          const x0 = freqX(lo, W), x1 = freqX(hi, W);
-          fg.fillStyle = hexA(col, 0.05);
-          fg.fillRect(x0, 0, x1 - x0, FH - 4);
-          fg.fillStyle = col;
-          fg.globalAlpha = 0.8;
-          fg.fillRect(x0, FH - 3, Math.max(1.5, x1 - x0), 1.5);
-          fg.globalAlpha = 1;
-        }
-        // while a note sounds the curve follows the engine's real filter, with a dot on the range strip
-        const live = on ? this.grindLive[n - 1] : -1;
-        const pts = live > 0 ? curve(live, this.grindLiveRes[n - 1]) : curve(st.freq);
-        if (on) fillUnder(fg, pts, FH, col, 0.16);
-        silver(fg, pts, on);
-        if (live > 0) {
-          fg.save();
-          fg.fillStyle = '#fff';
-          fg.shadowColor = col;
-          fg.shadowBlur = 10;
-          fg.beginPath();
-          fg.arc(freqX(live, W), FH - 2.5, 2.6, 0, 2 * Math.PI);
-          fg.fill();
-          fg.restore();
-        }
-      };
-      this.watch(['grind.on', ...ids(n)], drawFilter);
-      this.grindLiveDraws.push(drawFilter);
-      // drive print: two cycles of a sine through the stage's drive
-      const [dcv, dg] = canvas(W, DH, 'disp');
-      const drawDrive = () => {
-        paper(dg, W, DH);
-        const on = stageOn(n)() && this.num(`${pre}.drive`) > 0;
-        const type = String(this.get(`${pre}.drive_type`)), drive = this.num(`${pre}.drive`), mix = this.num(`${pre}.mix`);
-        const pts: [number, number][] = [];
-        for (let i = 0; i <= W; i++) {
-          const s = Math.sin((i / W) * 4 * Math.PI) * 0.9;
-          const y = mix * grindShape(type, s, drive) + (1 - mix) * s;
-          pts.push([i, DH / 2 - Math.max(-1.05, Math.min(1.05, y)) * (DH / 2 - 5)]);
-        }
-        silver(dg, pts, on);
-      };
-      this.watch(['grind.on', `${pre}.on`, `${pre}.drive_type`, `${pre}.drive`, `${pre}.mix`], drawDrive);
-      // the die re-rolls this stage, the lock keeps it when the whole chain rolls
-      const dice = h('button', 'gr-ic gr-dice');
-      dice.innerHTML = DICE_SVG;
-      dice.title = `Roll stage ${n}: a new filter, movement and drive`;
-      dice.onclick = () => this.grindRoll([n]);
-      const lock = h('button', 'gr-ic gr-lock');
-      const drawLock = () => {
-        const on = this.grindLocks[n - 1];
-        lock.classList.toggle('on', on);
-        lock.innerHTML = lockSvg(on);
-        lock.title = on ? `Stage ${n} is locked: ROLL and VARY leave it as it is. Click to unlock.` : `Lock stage ${n}: ROLL and VARY leave it as it is.`;
-      };
-      lock.onclick = () => {
-        this.grindLocks[n - 1] = !this.grindLocks[n - 1];
-        drawLock();
-      };
-      drawLock();
-      // ONE SHOT on a stage that moves with the note: Rate is how long the sweep takes
-      const rateFmt = (v: number) => {
-        const clock = this.get(`${pre}.clock`), avg = clock === 'random' ? '~' : '';
-        if (clock === 'sync') return GRIND_BEAT_NAMES[grindBeat(v)];
-        if (this.get('grind.oneshot') && this.get(`${pre}.move`) === 'note') return `${avg}${Math.round(500 / grindHz(v))} ms`;
-        return `${avg}${grindHz(v).toFixed(grindHz(v) < 1 ? 2 : 1)} Hz`;
-      };
-      // switching a stage on while the chain is off switches the chain on too
-      const power = this.boolPower(`${pre}.on`, card);
-      power.onclick = () => {
-        const on = !this.get(`${pre}.on`);
-        if (on && !this.get('grind.on')) this.set('grind.on', true);
-        this.set(`${pre}.on`, on);
-      };
-      // what times the movement: HZ / SYNC / RAND (Rate is then the average; every step its own speed)
-      const sync = h('span', 'fx-kinds sw-small gr-sync');
-      const clocks = (['hz', 'sync', 'random'] as const).map((c) => {
-        const b = h('button', 'fx-kind', c === 'random' ? 'RAND' : c.toUpperCase());
-        b.onclick = () => this.set(`${pre}.clock`, c);
-        sync.append(b);
-        return b;
-      });
-      this.watch([`${pre}.clock`], () => clocks.forEach((b, j) => b.classList.toggle('on', ['hz', 'sync', 'random'][j] === this.get(`${pre}.clock`))));
-      sync.title = getParam(`${pre}.clock`)!.describes;
-      const head = h('div', 'ob-head', power, h('span', 'c-title', String(n)), this.selector(`${pre}.filter`), h('span', 'gr-icons', dice, lock));
-      const moves = h('div', 'gr-moves', h('span', 'gr-moves-label', 'MOVES'), this.selector(`${pre}.move`));
-      const fprint = h('div', 'ob-print gr-fprint', fcv);
-      const md = (id: string, label: string, opts: Parameters<SynthView['knob']>[3] = {}) => this.knob(id, label, 'mid', opts);
-      const fdials = h('div', 'ob-dials gr-fdials', md(`${pre}.freq`, 'Freq'), md(`${pre}.res`, 'Res'),
-        md(`${pre}.range`, 'H Range', { fmt: (v) => `${v.toFixed(1)} oct` }), md(`${pre}.vrange`, 'V Range', { fmt: (v) => `${Math.round(v * 100)}%` }),
-        md(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.clock`, `${pre}.move`, 'grind.oneshot'] }), sync);
-      const drow = h('div', 'gr-drive-row', h('span', 'gr-sub', 'DRIVE'), this.selector(`${pre}.drive_type`));
-      const ddials = h('div', 'ob-dials', lg(`${pre}.drive`, 'Drive'), lg(`${pre}.mix`, 'Mix'));
-      card.append(head, moves, fprint, fdials, drow, h('div', 'ob-print gr-dprint', dcv), ddials);
-      this.watch(['grind.on'], () => card.classList.toggle('chain-off', !this.get('grind.on')));
-      cards.push(card);
-    }
+    const page = h('div', 'v2-main grind-page ruin-a');
+    // the 24 parts (owner's call: up to eight of each): filter 1-8 (k 0-7), drive 1-8 (8-15), EQ 1-8 (16-23),
+    // placed in the boxes by grind.slot1..8; part n of each kind belongs to stage n (grind<n>.*)
+    const KINDS = ['filter', 'drive', 'eq'] as const;
+    const PARTS = KINDS.flatMap((kind) => [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ n, kind, drive: kind === 'drive' })));
+    // three colour families (owner's pick, "fire + ice", and bone for the EQs): the filters ice, light to deep; the
+    // drives fire, amber to crimson; the EQs bone, pale to grey (tone shaping, not an effect)
+    const FILTER_COLS = ['#8ae9ff', '#5fd2ff', '#3fb8ff', '#3f98ff', '#5a78ff', '#6466ff', '#6f55ff', '#8a5cff'];
+    const DRIVE_COLS = ['#ffb020', '#ff8a1f', '#ff5a1f', '#f03a2a', '#e0204a', '#c81a42', '#a8143a', '#8e1236'];
+    const EQ_COLS = ['#f4ecdc', '#e6dcc8', '#d8ceba', '#c9c0ae', '#bab3a4', '#aaa59a', '#9a9790', '#8b8a86'];
+    const COLS = PARTS.map((p) => (p.kind === 'drive' ? DRIVE_COLS : p.kind === 'eq' ? EQ_COLS : FILTER_COLS)[p.n - 1]);
+    const NAMES = PARTS.map((p) => `${p.kind.toUpperCase()} ${p.n}`);
+    const ALL_K = PARTS.map((_, k) => k);
+    const stageOf = (k: number) => PARTS[k].n;
+    const kindOf = (k: number) => PARTS[k].kind;
+    const isDrive = (k: number) => PARTS[k].drive;
+    const isEq = (k: number) => PARTS[k].kind === 'eq';
+    // which box holds part k (-1 = it is not in the chain); box s is the engine's tap 3 + s
+    const SLOT_IDS = [1, 2, 3, 4, 5, 6, 7, 8].map((s) => `grind.slot${s}`);
+    const PART_VALUE = PARTS.map((p) => `${p.kind} ${p.n}`);
+    const slotOf = (k: number) => SLOT_IDS.findIndex((id) => this.get(id) === PART_VALUE[k]);
+    const tapOf = (k: number) => 3 + Math.max(0, slotOf(k));
+    const pct = (v: number) => `${Math.round(v * 100)}%`;
+    const md = (id: string, label: string, opts: Parameters<SynthView['knob']>[3] = {}) => this.knob(id, label, 'mid', opts);
+    const dB = (x: number) => (x > 1e-6 ? 20 * Math.log10(x) : -120);
+    const stageOn = (n: number) => !!this.get('grind.on') && !!this.get(`grind${n}.on`);
 
-    // the strip above the cards: ROLL, weirdness, VARY MOVEMENT, the last two rolls and the chain's rocker
-    const strip = h('div', 'c ob gr-strip');
+    // ---- the RUIN box (option B of the house-style pitch): the chain-wide controls, right of the focus
+    const strip = h('div', 'c ob gr-master');
     const roll = h('button', 'gr-roll');
     roll.innerHTML = `${DICE_SVG}<span>ROLL</span>`;
-    roll.title = 'Roll the whole chain: new filters, movement and drives (locked stages stay as they are)';
-    roll.onclick = () => this.grindRoll([1, 2, 3, 4].filter((n) => !this.grindLocks[n - 1]), true);
-    // how many stages a ROLL uses: AUTO (random) or 1-4
+    roll.title = 'Roll the whole chain from one of the recipes, nudged as far as WEIRD says (at the top of WEIRD: anything). Locked stages stay as they are.';
+    const recipeName = h('span', 'gr-recipe', '');
+    roll.onclick = () => {
+      this.grindRoll([1, 2, 3, 4, 5, 6, 7, 8].filter((n) => !this.grindLocks[n - 1]), true);
+      recipeName.textContent = this.grindRecipe;
+      const r = RUIN_RECIPES.find((x) => x.name === this.grindRecipe);
+      recipeName.title = r ? `Rolled from ${r.name}: ${r.idea}` : 'Rolled with WEIRD at the top: anything goes';
+    };
     const count = h('span', 'fx-kinds sw-small gr-count');
     const countBtns = ['AUTO', '1', '2', '3', '4'].map((t, i) => {
       const b = h('button', 'fx-kind', t);
@@ -3425,63 +3784,703 @@ export class SynthView {
     };
     weird.addEventListener('pointerdown', (e) => { weird.setPointerCapture(e.pointerId); fromX(e.clientX); });
     weird.addEventListener('pointermove', (e) => { if (weird.hasPointerCapture(e.pointerId)) fromX(e.clientX); });
-    weird.title = 'Weirdness: low rolls the classic neuro moves (notches, phasers, combs, gentle drive); high goes anywhere, harder and stranger.';
+    weird.title = 'Weirdness: low stays near the recipes, high goes anywhere, harder and stranger.';
     showWeird();
-    // the Wobbler's rocker, lying on its side
     const rocker = this.bigToggle('grind.on', '');
     rocker.classList.add('gr-rocker');
-    const lowcut = this.knob('grind.lowcut', 'Lo cut', 'mid', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
-    const mix = this.knob('grind.mix', 'Mix', 'mid', { fmt: (v) => `${Math.round(v * 100)}%` });
-    const ott = this.knob('grind.ott', 'OTT', 'mid', { fmt: (v) => `${Math.round(v * 100)}%` });
-    // in front of the stages: saturation, then OTT
-    const sat = this.knob('grind.sat', 'Sat', 'mid', { fmt: (v) => `${Math.round(v * 100)}%` });
-    const preOtt = this.knob('grind.preott', 'Pre OTT', 'mid', { fmt: (v) => `${Math.round(v * 100)}%` });
-    const lamps = h('span', 'gr-lamps', this.toggle('grind.key', 'KEY', 'small'), this.toggle('grind.oneshot', 'ONE SHOT', 'small'));
-    const head = h('div', 'ob-head', h('span', 'c-title', 'GRIND'), roll, count,
-      h('span', 'gr-sub', 'WEIRD'), weird, h('span', 'gr-knobs gr-front', sat, preOtt), lamps, h('span', 'gr-knobs', ott, lowcut, mix), rocker);
-    strip.append(head);
-    page.append(strip, ...cards);
+    const lowcut = md('grind.lowcut', 'Lo cut', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
+    const mix = md('grind.mix', 'Mix', { fmt: pct });
+    const ott = md('grind.ott', 'OTT', { fmt: pct });
+    const out = md('grind.output', 'Output', { fmt: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB` });
+    const lamps = h('span', 'gr-lamps gr-lamps-row', this.toggle('grind.key', 'KEY', 'small'), this.toggle('grind.oneshot', 'ONE SHOT', 'small'), this.toggle('grind.noise_thru', 'NOISE THRU', 'small'));
+    // CHAINS (owner's call: preset chains live in the strip): one of the recipes, exactly as it is (ROLL nudges them)
+    const chains = h('select', 'gr-chains') as HTMLSelectElement;
+    chains.append(new Option('CHAINS', ''), ...RUIN_RECIPES.map((rc) => new Option(rc.name, rc.name)));
+    chains.title = 'Load a ready chain: a serial distortion recipe, laid out in the boxes';
+    chains.onchange = () => {
+      const rc = RUIN_RECIPES.find((x) => x.name === chains.value);
+      chains.value = '';
+      if (!rc) return;
+      for (const [id, v] of Object.entries(recipeParams(rc))) this.set(id, v);
+      this.layoutRuinSlots(true);
+      this.grindRecipe = rc.name;
+      recipeName.textContent = rc.name;
+      recipeName.title = `${rc.name}: ${rc.idea}`;
+    };
+    chains.classList.add('sel-name');
+    strip.append(h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'RUIN'), h('div', 'sel gr-chains-sel', chains), rocker),
+      h('div', 'gr-m-body', h('div', 'gr-m-row', roll, count), h('div', 'gr-m-row', h('span', 'gr-sub', 'WEIRD'), weird, recipeName), lamps),
+      h('div', 'ob-dials gr-knobs', ott, lowcut, mix, out));
+
+    // ---- the chain: eight boxes in free order (owner's call); each holds one of the four filters or drives, or nothing
+    const chain = h('div', 'gr-chain');
+    const NW = 128, NH = 88;
+    const nodeDraws: ((t: RuinTapsView | null) => void)[] = [];
+    let paintThumb: (g: CanvasRenderingContext2D, w: number, hh: number, k: number) => void = () => {};
+    const nodes: HTMLElement[] = [];
+    const partOn = (k: number) => {
+      const n = stageOf(k);
+      return slotOf(k) >= 0 && !!this.get(`grind${n}.on`) && !!this.get(`grind${n}.${kindOf(k)}_on`);
+    };
+    const typeLine = (k: number): string => {
+      const n = stageOf(k);
+      if (!partOn(k)) return 'OFF';
+      if (isEq(k)) return 'EQ';
+      return String(this.get(isDrive(k) ? `grind${n}.drive_type` : `grind${n}.filter`)).toUpperCase();
+    };
+    // a box's thin bar switches its part on / off without taking it out of the chain (the ✕ takes it out)
+    const partPower = (k: number) => {
+      const n = stageOf(k), pre = `grind${n}`, part = kindOf(k);
+      const b = h('button', 'power', lamp());
+      b.title = `${NAMES[k]} on / off`;
+      b.onclick = (e) => {
+        e.stopPropagation();
+        if (partOn(k)) this.set(`${pre}.${part}_on`, false);
+        else {
+          this.set(`${pre}.${part}_on`, true);
+          this.set(`${pre}.on`, true);
+          if (!this.get('grind.on')) this.set('grind.on', true);
+        }
+      };
+      this.watch([`${pre}.on`, `${pre}.${part}_on`, ...SLOT_IDS], () => b.classList.toggle('on', partOn(k)));
+      return b;
+    };
+    // take a part out of its box (the box goes empty; its settings stay for when it comes back)
+    const removePart = (k: number) => {
+      const s = slotOf(k);
+      if (s < 0) return;
+      this.set(SLOT_IDS[s], 'empty');
+      this.set(`grind${stageOf(k)}.${kindOf(k)}_on`, false);
+      if (this.ruinSel === k) {
+        const other = ALL_K.find((j) => slotOf(j) >= 0);
+        this.ruinSelect(other ?? k);
+      }
+    };
+    // put the first free filter, drive or EQ into an empty box, switched on
+    const addPart = (s: number, kind: (typeof KINDS)[number]) => {
+      const k = ALL_K.find((j) => kindOf(j) === kind && slotOf(j) < 0);
+      if (k === undefined) return;
+      const n = stageOf(k);
+      this.set(SLOT_IDS[s], PART_VALUE[k]);
+      this.set(`grind${n}.${kind}_on`, true);
+      this.set(`grind${n}.on`, true);
+      if (!this.get('grind.on')) this.set('grind.on', true);
+      this.ruinSelect(k);
+    };
+    for (let k = 0; k < PARTS.length; k++) {
+      const node = h('div', 'gr-node');
+      node.style.setProperty('--knob-accent', COLS[k]);
+      const n = stageOf(k);
+      const x = h('button', 'gr-x', '✕');
+      x.title = `Take ${NAMES[k]} out of the chain`;
+      x.onclick = (e) => { e.stopPropagation(); removePart(k); };
+      const head = h('div', 'gr-node-head', partPower(k), h('span', 'gr-node-name', NAMES[k]), x);
+      this.watch(['grind.on', `grind${n}.on`, `grind${n}.filter`, `grind${n}.filter_on`, `grind${n}.drive_type`, `grind${n}.drive_on`, `grind${n}.eq_on`, ...SLOT_IDS], () => {
+        node.classList.toggle('is-off', typeLine(k) === 'OFF' || !this.get('grind.on'));
+      });
+      const [cv, g] = canvas(NW, NH, 'gr-node-cv');
+      if (isEq(k)) {
+        // an EQ has no type: its footer just names it
+        const foot = h('div', 'gr-node-foot', h('span', 'gr-node-eq', '4-BAND EQ'));
+        node.append(head, h('div', 'gr-node-cv-wrap', cv), foot);
+      }
+      // the type as a stepper in the footer (owner's pick, option 6): ‹ TYPE ›, the name opens the menu
+      const tid = isDrive(k) ? `grind${n}.drive_type` : `grind${n}.filter`;
+      const step = (d: number) => (e: Event) => {
+        e.stopPropagation();
+        const opts = getParam(tid)!.options!, i = opts.indexOf(String(this.get(tid)));
+        this.set(tid, opts[(i + d + opts.length) % opts.length]);
+      };
+      const prev = h('button', 'gr-step', '‹'), next = h('button', 'gr-step', '›');
+      prev.onclick = step(-1);
+      next.onclick = step(1);
+      prev.title = next.title = 'Step through the types';
+      if (!isEq(k)) {
+        const sel = isDrive(k) ? this.driveTypeSelector(tid) : this.selector(tid);
+        sel.classList.add('gr-node-sel');
+        sel.addEventListener('click', (e) => e.stopPropagation());
+        const foot = h('div', 'gr-node-foot', prev, sel, next);
+        node.append(head, h('div', 'gr-node-cv-wrap', cv), foot);
+      }
+      node.onclick = () => this.ruinSelect(k);
+      nodes.push(node);
+      nodeDraws.push((t) => {
+        if (slotOf(k) < 0) return;
+        g.clearRect(0, 0, NW, NH);
+        const col = COLS[k];
+        const MW = 6, SW = NW - MW - 6;
+        // a small copy of its focus graph: what it does, with its filter or drive band on top
+        g.save();
+        g.beginPath();
+        g.rect(0, 0, SW, NH);
+        g.clip();
+        paintThumb(g, SW, NH, k);
+        g.restore();
+        if (t) {
+          // its meter: RMS as the bar, the peak as a tick, red over 0 dB
+          const rd = dB(t.rms[tapOf(k)]), pd = dB(t.peak[tapOf(k)]);
+          const yOf = (d: number) => NH - Math.max(0, Math.min(1, (d + 48) / 54)) * NH;
+          g.fillStyle = '#0a0a0c';
+          g.fillRect(NW - MW, 0, MW, NH);
+          g.fillStyle = col;
+          g.globalAlpha = 0.85;
+          g.fillRect(NW - MW + 1, yOf(rd), MW - 2, NH - yOf(rd));
+          g.globalAlpha = 1;
+          g.fillStyle = pd > 0 ? '#ff3020' : '#e8e8ea';
+          g.fillRect(NW - MW, yOf(pd) - 1, MW, 2);
+          if (pd > 0) g.fillRect(NW - MW, 0, MW, 3);
+        }
+      });
+    }
+    // an empty box: + FILTER / + DRIVE / + EQ (eight of each, so every box can hold the same kind)
+    const empties = SLOT_IDS.map((_, s) => {
+      const addF = h('button', 'gr-add gr-add-f', '+ FILTER'), addD = h('button', 'gr-add gr-add-d', '+ DRIVE'), addE = h('button', 'gr-add gr-add-e', '+ EQ');
+      addF.onclick = () => addPart(s, 'filter');
+      addD.onclick = () => addPart(s, 'drive');
+      addE.onclick = () => addPart(s, 'eq');
+      return h('div', 'gr-node gr-empty', h('span', 'gr-empty-n', String(s + 1)), addF, addD, addE);
+    });
+    // lay the boxes out from the slots whenever they change
+    this.watch(SLOT_IDS, () => {
+      chain.replaceChildren(...SLOT_IDS.map((id, s) => {
+        const k = PART_VALUE.indexOf(String(this.get(id)));
+        return k >= 0 ? nodes[k] : empties[s];
+      }));
+      for (const d of nodeDraws) d(this.ruinTaps);
+      this.ruinSelect(this.ruinSel);
+    });
+
+    // ---- the focus: what the selected node adds, its drive curve, its controls
+    const GW = 520, GH = 168, LMW = 30;
+    const [gcv, gg] = canvas(GW, GH, 'disp gr-graph-cv');
+    // the selected box's level, beside the graph (owner's call: the graph shows tone, not level): its output as a
+    // meter over -48 … +6 dB with the 0 dB line and red over it, and a handle that turns the box down (or up)
+    const [lcv, lg] = canvas(LMW, GH, 'disp gr-level-cv');
+    lcv.title = 'The level leaving this box. Drag the handle to turn it down (or up to +6 dB); double-click = 0 dB.';
+    // the focus box (house style): the selected part's title row, its graph and level as the print, its dials
+    const graphBox = h('div', 'c ob gr-focus', h('div', 'gr-print', gcv, lcv));
+    const ctl = graphBox;
+    const emptyHint = h('div', 'gr-about', 'The chain is empty: add a filter or a drive to a box above, or pick a chain from CHAINS.');
+    ctl.append(emptyHint);
+    const sets: HTMLElement[] = [];
+    const eqBandViews: (() => void)[] = [];
+
+    // per box: its own controls (a filter: type, MOVES, Freq / Res / H Range / V Range / Rate and its clock, the die
+    // and lock; a drive: type, Drive / Tone / Dry/Wet / Bias / OTT)
+    for (let n = 1; n <= 8; n++) {
+      const pre = `grind${n}`;
+      const dice = h('button', 'gr-ic gr-dice');
+      dice.innerHTML = DICE_SVG;
+      dice.title = `Roll stage ${n}: a new filter, movement and drive`;
+      dice.onclick = () => this.grindRoll([n]);
+      const lock = h('button', 'gr-ic gr-lock');
+      const drawLock = () => {
+        const on = this.grindLocks[n - 1];
+        lock.classList.toggle('on', on);
+        lock.innerHTML = lockSvg(on);
+        lock.title = on ? `Stage ${n} is locked: ROLL leaves it as it is. Click to unlock.` : `Lock stage ${n}: ROLL leaves it as it is.`;
+      };
+      lock.onclick = () => {
+        this.grindLocks[n - 1] = !this.grindLocks[n - 1];
+        drawLock();
+      };
+      drawLock();
+      const rateFmt = (v: number) => {
+        const clock = this.get(`${pre}.clock`), avg = clock === 'random' ? '~' : '';
+        if (clock === 'sync') return GRIND_BEAT_NAMES[grindBeat(v)];
+        if (this.get('grind.oneshot') && this.get(`${pre}.move`) === 'note') return `${avg}${Math.round(500 / grindHz(v))} ms`;
+        return `${avg}${grindHz(v).toFixed(grindHz(v) < 1 ? 2 : 1)} Hz`;
+      };
+      const sync = h('span', 'fx-kinds sw-small gr-sync');
+      const clocks = (['hz', 'sync', 'random'] as const).map((c) => {
+        const b = h('button', 'fx-kind', c === 'random' ? 'RAND' : c.toUpperCase());
+        b.onclick = () => this.set(`${pre}.clock`, c);
+        sync.append(b);
+        return b;
+      });
+      this.watch([`${pre}.clock`], () => clocks.forEach((b, j) => b.classList.toggle('on', ['hz', 'sync', 'random'][j] === this.get(`${pre}.clock`))));
+      sync.title = getParam(`${pre}.clock`)!.describes;
+      const fk = n - 1, dk = 8 + n - 1, ek = 16 + n - 1;
+      const fhead = h('div', 'ob-head gr-row-head', partPower(fk), h('span', 'c-title', `FILTER ${n}`), this.filterTypeSelector(`${pre}.filter`),
+        h('span', 'gr-moves', h('span', 'gr-moves-label', 'MOVES'), this.selector(`${pre}.move`)), h('span', 'gr-icons', dice, lock));
+      // Freq and H Range are the ball on the graph (owner's call): only Res, Depth and Rate are dials
+      const fdials = h('div', 'ob-dials gr-fdials', md(`${pre}.width`, 'Width', { fmt: pct }), md(`${pre}.depth`, 'Depth', { fmt: pct }),
+        md(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.clock`, `${pre}.move`, 'grind.oneshot'] }), sync);
+      const dhead = h('div', 'ob-head gr-row-head', partPower(dk), h('span', 'c-title', `DRIVE ${n}`), this.driveTypeSelector(`${pre}.drive_type`));
+      const ddials = h('div', 'ob-dials gr-ddials', md(`${pre}.drive`, 'Drive', { fmt: pct }), md(`${pre}.drive_tone`, 'Tone', { fmt: pct }), md(`${pre}.mix`, 'Dry/Wet', { fmt: pct }));
+      sets[fk] = h('div', `gr-set gr-s${n}`, fhead, fdials);
+      sets[dk] = h('div', `gr-set gr-s${n}`, dhead, ddials);
+      // the EQ: the FX page's EQ (owner's call): Freq / Gain / Q of the selected ball, then Scale
+      const ehead = h('div', 'ob-head gr-row-head', partPower(ek), h('span', 'c-title', `EQ ${n}`), h('span', 'gr-eq-hint', 'click a ball · drag · scroll = Q · double-click = type'));
+      const bandSets = [1, 2, 3, 4].map((b) => {
+        const bp = `${pre}.eq_b${b}`;
+        const passType = () => getParam(`${bp}_type`)!.options!.indexOf(String(this.get(`${bp}_type`))) === 1;
+        const el = h('span', 'eq-set', md(`${bp}_freq`, `${b} Freq`), md(`${bp}_gain`, 'Gain', { disabled: passType, deps: [`${bp}_type`] }), md(`${bp}_q`, 'Q'));
+        return el;
+      });
+      const showBand = () => bandSets.forEach((el, j) => { el.style.display = j === this.ruinEqSel[n - 1] ? '' : 'none'; });
+      eqBandViews[n - 1] = showBand;
+      showBand();
+      const edials = h('div', 'ob-dials gr-edials', ...bandSets, md(`${pre}.eq_scale`, 'Scale', { fmt: (v) => `${Math.round(v * 100)}%` }));
+      sets[ek] = h('div', `gr-set gr-s${n}`, ehead, edials);
+    }
+    sets.forEach((el, k) => {
+      el.style.setProperty('--knob-accent', COLS[k]);
+      ctl.append(el);
+    });
+    const edit = h('div', 'gr-edit', graphBox, strip);
+
+    // the EQ parts: band b's pass type (high-pass / notch / low-pass), its ball on a graph, the curve's biquads
+    const eqPass = (n: number, b: number) => getParam(`grind${n}.eq_b${b + 1}_type`)!.options!.indexOf(String(this.get(`grind${n}.eq_b${b + 1}_type`))) === 1;
+    const eqDbY = (GH: number, db: number) => GH * 0.42 - Math.max(-30, Math.min(18, db)) * (GH / 62);
+    const eqBall = (n: number, b: number, W: number, fY: (m: number) => number): [number, number] => {
+      const bp = `grind${n}.eq_b${b + 1}`;
+      return [freqX(this.num(`${bp}_freq`), W), eqPass(n, b) ? fY(1) : fY(Math.pow(10, (this.num(`${bp}_gain`) * this.num(`grind${n}.eq_scale`)) / 20))];
+    };
+    const eqBq = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
+    // ---- drawing the focus
+    // the focus graph, drawn big below the chain and small in each box (mini: no words, smaller balls)
+    const paint = (gg: CanvasRenderingContext2D, GW: number, GH: number, k: number, mini: boolean) => {
+      const bm = mini ? 0 : 14;
+      const bandY = (w: number) => GH - (mini ? 4 : 26) - ((w - 0.5) / 8.5) * (GH - (mini ? 8 : 60));
+      const fY = (mag: number) => {
+        const d = 20 * Math.log10(Math.max(mag, 1e-4));
+        return GH * 0.42 - Math.max(-30, Math.min(18, d)) * (GH / 62);
+      };
+      // the filter's ball on the graph, as the drive's: sideways = Freq, up / down = H Range (0 at the bottom, the whole
+      // spectrum at the top); with KEY on, shown where it sits for the note playing, as the engine has it
+      const rangeY = (oct: number) => GH - (mini ? 4 : 26) - (oct / 10) * (GH - (mini ? 8 : 60));
+      const filterBall = (n: number) => ({ x: freqX(this.num(`grind${n}.freq`) * this.ruinKey(), GW), y: rangeY(this.num(`grind${n}.range`)) });
+      const t = this.ruinTaps, col = COLS[k], n = stageOf(k), tk = tapOf(k);
+      paper(gg, GW, GH);
+      // frequency grid
+      gg.font = '9px "Space Grotesk", sans-serif';
+      for (const f of [50, 100, 200, 500, 1000, 2000, 5000, 10000]) {
+        const x = freqX(f, GW);
+        // no grid lines (house style: the prints carry no axes); only the big graph keeps its quiet labels
+        gg.fillStyle = '#3c3c42';
+        !mini && gg.fillText(f >= 1000 ? `${f / 1000}k` : String(f), x + 3, GH - 4);
+      }
+      // the drive's band (where it bites), brighter the harder it drives
+      const driveOn = isDrive(k) && stageOn(n) && !!this.get(`grind${n}.drive_on`);
+      const bfc = n ? this.num(`grind${n}.drive_freq`) : 0, bw = n ? this.num(`grind${n}.drive_width`) : 9;
+      if (driveOn) {
+        const drive = this.num(`grind${n}.drive`);
+        const lo = bw >= 8.95 ? 20 : bfc * Math.pow(2, -bw / 2), hi = bw >= 8.95 ? 20000 : bfc * Math.pow(2, bw / 2);
+        const x0 = freqX(lo, GW), x1 = freqX(hi, GW);
+        gg.fillStyle = hexA(col, 0.02 + 0.05 * drive);
+        gg.fillRect(x0, 0, x1 - x0, GH - bm);
+        gg.fillStyle = hexA(col, 0.6);
+        gg.fillRect(x0, 0, x1 - x0, 2);
+        gg.fillStyle = hexA(col, 0.75);
+        !mini && gg.fillText(`DRIVE ${String(this.get(`grind${n}.drive_type`)).toUpperCase()}${bw >= 8.95 ? ' · WHOLE SOUND' : ''}`, x0 + 5, 13);
+        // Tone: where it rounds the top off
+        const tone = this.num(`grind${n}.drive_tone`);
+        if (tone < 0.999) {
+          const tx = freqX(200 * Math.pow(100, tone), GW);
+          gg.save();
+          gg.setLineDash([2, 4]);
+          gg.strokeStyle = hexA(col, 0.6);
+          gg.beginPath();
+          gg.moveTo(tx, 18);
+          gg.lineTo(tx, GH - bm);
+          gg.stroke();
+          gg.restore();
+          gg.fillStyle = hexA(col, 0.6);
+          !mini && gg.fillText('TONE', Math.min(GW - 30, tx + 4), 28);
+        }
+      }
+      // what it adds: the spectrum before (dotted) and after (lit), the new part filled
+      if (slotOf(k) < 0) {
+        !mini && gg.fillText('Empty chain: add a filter or a drive above.', 16, GH / 2);
+      } else if (t) {
+        const after = ruinSpecPts(t.spec[tk], t.binHz, GW, GH - bm, -100, 0);
+        // the sound before, at its real level (owner's call: no loudness matching), so wherever the box doesn't
+        // work (outside a drive's band) the two lines lie on top of each other
+        const before: [number, number][] | null = ruinSpecPts(t.spec[tk - 1], t.binHz, GW, GH - bm, -100, 0);
+        fillUnder(gg, after, GH - bm, col, 0.1, 0.0);
+        if (before) {
+          gg.fillStyle = hexA(col, 0.32);
+          for (let i = 0; i < after.length; i++) {
+            const ya = after[i][1], yb = before[i][1];
+            if (yb - ya > 5) gg.fillRect(after[i][0], ya, 2, yb - ya);
+          }
+          gg.save();
+          gg.setLineDash([2, 3]);
+          gg.strokeStyle = 'rgba(200,200,206,0.55)';
+          gg.lineWidth = 1;
+          gg.beginPath();
+          before.forEach(([x, y], i) => (i ? gg.lineTo(x, y) : gg.moveTo(x, y)));
+          gg.stroke();
+          gg.restore();
+        }
+        silver(gg, after, true, col);
+      } else {
+        gg.fillStyle = '#55555b';
+        gg.font = '11px "Space Grotesk", sans-serif';
+        !mini && gg.fillText('Play a note: the sound before (dotted) and after this step shows here.', 16, GH / 2 + 40);
+      }
+      // the stage's filter on top, live
+      if (kindOf(k) === 'filter' && stageOn(n) && this.get(`grind${n}.filter_on`)) {
+        // while a note sounds the engine's real filter; at rest it sits at the ball (owner's call)
+        const st = this.grindStage(n), live = this.noteSounding() ? this.grindLive[n - 1] : 0;
+        const fc = live > 0 ? live : st.freq * this.ruinKey(), res = live > 0 ? this.grindLiveRes[n - 1] : st.res;
+        const s2 = { ...st, res: Math.max(0, Math.min(1, res)) };
+        const pts: [number, number][] = [];
+        for (let x = 0; x <= GW; x += 2) pts.push([x, fY(grindMag(s2, fc, 20 * Math.pow(1000, x / GW)))]);
+        gg.save();
+        gg.strokeStyle = 'rgba(255,255,255,0.12)';
+        gg.setLineDash([1, 4]);
+        gg.beginPath();
+        gg.moveTo(0, fY(1));
+        gg.lineTo(GW, fY(1));
+        gg.stroke();
+        gg.restore();
+        gg.strokeStyle = 'rgba(255,255,255,0.9)';
+        gg.lineWidth = 1.4;
+        gg.beginPath();
+        pts.forEach(([x, y], i) => (i ? gg.lineTo(x, y) : gg.moveTo(x, y)));
+        gg.stroke();
+        // where it moves, as the drive's band (owner's call): a shaded zone from Freq down and up by half the
+        // H Range, with the ball you drag (sideways = Freq, up / down = H Range) and the live dot running inside it
+        const fb = filterBall(n), hr = this.num(`grind${n}.range`) / 2;
+        const [zlo, zhi] = ruinZone(this.num(`grind${n}.freq`) * this.ruinKey(), this.num(`grind${n}.range`));
+        const x0 = freqX(zlo, GW), x1 = freqX(zhi, GW);
+        gg.fillStyle = hexA(col, 0.08);
+        gg.fillRect(x0, 0, Math.max(1, x1 - x0), GH - bm);
+        gg.fillStyle = hexA(col, 0.6);
+        gg.fillRect(x0, 0, Math.max(1, x1 - x0), 2);
+        gg.fillStyle = hexA(col, 0.75);
+        gg.font = '9px "Space Grotesk", sans-serif';
+        !mini && gg.fillText(hr > 0.01 ? (zhi / zlo > 999 ? 'MOVES OVER THE WHOLE SPECTRUM' : `MOVES ${(2 * hr).toFixed(1)} OCT`) : 'STANDS STILL', Math.min(x0 + 5, GW - 170), 13);
+        gg.save();
+        gg.strokeStyle = hexA(col, 0.4);
+        gg.setLineDash([2, 3]);
+        gg.beginPath();
+        gg.moveTo(x0, fb.y);
+        gg.lineTo(x1, fb.y);
+        gg.stroke();
+        gg.restore();
+        gg.save();
+        gg.strokeStyle = col;
+        gg.lineWidth = 2;
+        gg.shadowColor = col;
+        gg.shadowBlur = 8;
+        gg.fillStyle = '#0d0d0f';
+        gg.beginPath();
+        gg.arc(fb.x, fb.y, mini ? 3 : 6, 0, 2 * Math.PI);
+        gg.fill();
+        gg.stroke();
+        gg.restore();
+        if (live > 0) {
+          gg.save();
+          gg.fillStyle = '#fff';
+          gg.shadowColor = col;
+          gg.shadowBlur = 10;
+          gg.beginPath();
+          gg.arc(freqX(fc, GW), fb.y, 2.8, 0, 2 * Math.PI);
+          gg.fill();
+          gg.restore();
+        }
+      }
+      // an EQ: its curve on top in white and its four numbered balls, as the FX page's EQ
+      if (isEq(k) && stageOn(n) && this.get(`grind${n}.eq_on`)) {
+        const sc = this.num(`grind${n}.eq_scale`), selB = this.ruinEqSel[n - 1];
+        for (let b = 0; b < 4; b++) {
+          const bp = `grind${n}.eq_b${b + 1}`, hz = Math.min(this.num(`${bp}_freq`), FS * 0.45), db = this.num(`${bp}_gain`) * sc, q = this.num(`${bp}_q`), pass = eqPass(n, b);
+          const f = eqBq[b];
+          if (b === 0) pass ? f.setHighpass(hz, q, FS) : f.setLowShelf(hz, db, FS, q);
+          else if (b === 3) pass ? f.setLowpass(hz, q, FS) : f.setHighShelf(hz, db, FS, q);
+          else pass ? f.setNotch(hz, q, FS) : f.setPeak(hz, db, q, FS);
+        }
+        gg.save();
+        gg.strokeStyle = 'rgba(255,255,255,0.12)';
+        gg.setLineDash([1, 4]);
+        gg.beginPath();
+        gg.moveTo(0, fY(1));
+        gg.lineTo(GW, fY(1));
+        gg.stroke();
+        gg.restore();
+        const pts: [number, number][] = [];
+        for (let x = 0; x <= GW; x += 2) {
+          const f = 20 * Math.pow(1000, x / GW);
+          pts.push([x, fY(eqBq.reduce((a, bq) => a * biquadMag(bq, f), 1))]);
+        }
+        gg.strokeStyle = 'rgba(255,255,255,0.9)';
+        gg.lineWidth = 1.4;
+        gg.beginPath();
+        pts.forEach(([x, y], i) => (i ? gg.lineTo(x, y) : gg.moveTo(x, y)));
+        gg.stroke();
+        for (let b = 0; b < 4; b++) {
+          const [x, y] = eqBall(n, b, GW, fY), hot = b === selB && !mini;
+          gg.save();
+          gg.shadowColor = col;
+          gg.shadowBlur = hot ? 12 : 6;
+          gg.fillStyle = hot ? '#fff' : col;
+          gg.beginPath();
+          gg.arc(x, y, mini ? 2.5 : hot ? 6 : 5, 0, 2 * Math.PI);
+          gg.fill();
+          gg.shadowBlur = 0;
+          if (!mini) {
+            gg.fillStyle = '#111';
+            gg.font = '600 8px "Space Grotesk", sans-serif';
+            gg.textAlign = 'center';
+            gg.textBaseline = 'middle';
+            gg.fillText(String(b + 1), x, y + 0.5);
+          }
+          gg.restore();
+        }
+      }
+      // the drive band's ball (drag it: sideways = where, up / down = how wide)
+      if (driveOn) {
+        gg.save();
+        gg.strokeStyle = col;
+        gg.lineWidth = 2;
+        gg.shadowColor = col;
+        gg.shadowBlur = 8;
+        gg.fillStyle = '#0d0d0f';
+        gg.beginPath();
+        gg.arc(freqX(bfc, GW), bandY(bw), mini ? 3 : 6, 0, 2 * Math.PI);
+        gg.fill();
+        gg.stroke();
+        gg.restore();
+      }
+    
+    };
+    const LY0 = 16, LY1 = GH - 14;
+    const lvY = (d: number) => LY1 - Math.max(0, Math.min(1, (d + 48) / 54)) * (LY1 - LY0);
+    const lvId = () => `grind${stageOf(this.ruinSel)}.${kindOf(this.ruinSel)}_level`;
+    const drawLevel = () => {
+      const k = this.ruinSel, col = COLS[k], t = this.ruinTaps, x0 = 4, w = LMW - 8;
+      lg.clearRect(0, 0, LMW, GH);
+      lg.fillStyle = '#08080a';
+      lg.fillRect(x0, LY0, w, LY1 - LY0);
+      lg.fillStyle = 'rgba(255,48,32,0.14)';
+      lg.fillRect(x0, LY0, w, lvY(0) - LY0);
+      const pk = t ? dB(t.peak[tapOf(k)]) : -120, rm = t ? dB(t.rms[tapOf(k)]) : -120, over = pk > 0;
+      lg.fillStyle = hexA(col, 0.55);
+      lg.fillRect(x0 + 3, lvY(rm), w - 6, LY1 - lvY(rm));
+      lg.fillStyle = over ? '#ff3020' : col;
+      lg.fillRect(x0 + 3, lvY(pk) - 1, w - 6, 2);
+      if (over) lg.fillRect(x0 + 3, lvY(pk), w - 6, lvY(0) - lvY(pk));
+      lg.fillStyle = over ? '#ff3020' : 'rgba(255,255,255,0.4)';
+      lg.fillRect(x0, lvY(0), w, 1);
+      lg.font = '9px "Space Grotesk", sans-serif';
+      lg.textAlign = 'center';
+      lg.fillStyle = over ? '#ff3020' : '#8a8a90';
+      lg.fillText(pk > -100 ? `${over ? '+' : ''}${pk.toFixed(1)}` : '–', LMW / 2, 10);
+      // the handle: the box's level, 0 dB on the 0 dB line
+      const lv = this.num(lvId()), hy = lvY(lv);
+      lg.fillStyle = '#e8e8ea';
+      lg.shadowColor = col;
+      lg.shadowBlur = 6;
+      lg.fillRect(1, hy - 2, LMW - 2, 4);
+      lg.shadowBlur = 0;
+      lg.fillStyle = '#0d0d0f';
+      lg.fillRect(LMW / 2 - 5, hy - 0.5, 10, 1);
+      lg.fillStyle = lv !== 0 ? '#e8e8ea' : '#6a6a70';
+      lg.fillText(lv !== 0 ? `${lv > 0 ? '+' : ''}${lv.toFixed(1)}` : '0 dB', LMW / 2, GH - 3);
+      lg.textAlign = 'left';
+    };
+    const lvDrag = (e: PointerEvent) => {
+      const r = lcv.getBoundingClientRect(), y = ((e.clientY - r.top) / r.height) * GH;
+      const d = -48 + ((LY1 - y) / (LY1 - LY0)) * 54;
+      const v = Math.max(-24, Math.min(6, Math.round(d * 2) / 2));
+      this.set(lvId(), Math.abs(v) < 0.75 ? 0 : v);
+    };
+    lcv.addEventListener('pointerdown', (e) => { lcv.setPointerCapture(e.pointerId); lvDrag(e); });
+    lcv.addEventListener('pointermove', (e) => { if (lcv.hasPointerCapture(e.pointerId)) lvDrag(e); });
+    lcv.addEventListener('dblclick', () => this.set(lvId(), 0));
+    const drawGraph = () => {
+      paint(gg, GW, GH, this.ruinSel, false);
+      drawLevel();
+    };
+    paintThumb = (g, w, hh, k) => paint(g, w, hh, k, true);
+    // dragging on the graph: the drive's ring (where / how wide) or the filter's ball (Freq / H Range), anywhere on it
+    let dragging: 'band' | 'filter' | 'eq' | null = null;
+    const gfY = (mag: number) => eqDbY(GH, 20 * Math.log10(Math.max(mag, 1e-4)));
+    const nearBall = (n: number, x: number, y: number) => {
+      let best = -1, bd = 16;
+      for (let b = 0; b < 4; b++) {
+        const [bx, by] = eqBall(n, b, GW, gfY), d = Math.hypot(x - bx, y - by);
+        if (d < bd) { bd = d; best = b; }
+      }
+      return best;
+    };
+    const at = (e: MouseEvent) => {
+      const r = gcv.getBoundingClientRect();
+      return [((e.clientX - r.left) / r.width) * GW, ((e.clientY - r.top) / r.height) * GH];
+    };
+    const drag = (e: PointerEvent) => {
+      if (!dragging) return;
+      const n = stageOf(this.ruinSel), pre = `grind${n}`;
+      const [x, y] = at(e), f = 20 * Math.pow(1000, Math.max(0, Math.min(1, x / GW)));
+      if (dragging === 'eq') {
+        const bp = `${pre}.eq_b${this.ruinEqSel[n - 1] + 1}`, sc = this.num(`${pre}.eq_scale`);
+        this.set(`${bp}_freq`, Math.round(Math.max(20, Math.min(20000, f))));
+        const db = Math.max(-18, Math.min(18, (GH * 0.42 - y) / (GH / 62)));
+        if (!eqPass(n, this.ruinEqSel[n - 1]) && Math.abs(sc) > 0.01) this.set(`${bp}_gain`, Math.round((db / sc) * 10) / 10);
+      } else if (dragging === 'band') {
+        this.set(`${pre}.drive_freq`, Math.round(Math.max(50, Math.min(18000, f))));
+        this.set(`${pre}.drive_width`, Math.round(Math.max(0.5, Math.min(9, 0.5 + ((GH - 26 - y) / (GH - 60)) * 8.5)) * 100) / 100);
+      } else {
+        this.set(`${pre}.freq`, Math.round(Math.max(40, Math.min(12000, f / this.ruinKey()))));
+        this.set(`${pre}.range`, Math.round(Math.max(0, Math.min(10, ((GH - 26 - y) / (GH - 60)) * 10)) * 10) / 10);
+      }
+    };
+    gcv.addEventListener('pointerdown', (e) => {
+      const k = this.ruinSel, n = stageOf(k);
+      if (isEq(k)) {
+        const [x, y] = at(e), b = this.get(`grind${n}.eq_on`) ? nearBall(n, x, y) : -1;
+        dragging = b >= 0 ? 'eq' : null;
+        if (b >= 0) {
+          this.ruinEqSel[n - 1] = b;
+          eqBandViews[n - 1]?.();
+          drawGraph();
+        }
+      } else dragging = isDrive(k) ? (this.get(`grind${n}.drive_on`) ? 'band' : null) : this.get(`grind${n}.filter_on`) ? 'filter' : null;
+      if (!dragging) return;
+      gcv.setPointerCapture(e.pointerId);
+      drag(e);
+    });
+    gcv.addEventListener('pointermove', (e) => { if (gcv.hasPointerCapture(e.pointerId)) drag(e); });
+    gcv.addEventListener('pointerup', () => { dragging = null; });
+    gcv.addEventListener('wheel', (e) => {
+      if (!isEq(this.ruinSel)) return;
+      e.preventDefault();
+      const n = stageOf(this.ruinSel), id = `grind${n}.eq_b${this.ruinEqSel[n - 1] + 1}_q`, p = getParam(id)!;
+      const q = this.num(id) * Math.pow(1.12, -Math.sign(e.deltaY) * (e.shiftKey ? 0.25 : 1));
+      this.set(id, Math.round(Math.max(p.min!, Math.min(p.max!, q)) * 100) / 100);
+    }, { passive: false });
+    gcv.addEventListener('dblclick', (e) => {
+      const n = stageOf(this.ruinSel);
+      if (isEq(this.ruinSel)) {
+        const [x, y] = at(e), b = nearBall(n, x, y);
+        if (b < 0) return;
+        const id = `grind${n}.eq_b${b + 1}_type`, opts = getParam(id)!.options!;
+        this.set(id, opts[eqPass(n, b) ? 0 : 1]);
+      } else if (isDrive(this.ruinSel)) this.set(`grind${n}.drive_width`, 9);
+      else this.set(`grind${n}.range`, 0);
+    });
+    gcv.title = 'Drag the ball: sideways = where (a filter: Freq; a drive: its band), up / down = how wide (a filter: how far it moves, H Range; a drive: its band). Double-click: a filter stands still, a drive takes the whole sound.';
+
+    // select a node: its box lit, its controls shown
+    this.ruinSelect = (k: number) => {
+      // a part that isn't in the chain can't be open: the first one that is, or nothing (an empty chain)
+      if (slotOf(k) < 0) k = ALL_K.filter((j) => slotOf(j) >= 0).sort((a, b) => slotOf(a) - slotOf(b))[0] ?? k;
+      this.ruinSel = k;
+      const inChain = slotOf(k) >= 0;
+      nodes.forEach((el, j) => el.classList.toggle('gr-cur', j === k));
+      sets.forEach((el, j) => { el.style.display = j === k && inChain ? '' : 'none'; });
+      emptyHint.style.display = inChain ? 'none' : '';
+      page.style.setProperty('--knob-accent', COLS[k]);
+      drawGraph();
+    };
+    this.ruinFrame = () => {
+      const t = this.ruinTaps;
+      for (const d of nodeDraws) d(t);
+      drawGraph();
+    };
+    this.grindLiveDraws.push(drawGraph);
+    this.watch(['grind.on', ...[1, 2, 3, 4, 5, 6, 7, 8].flatMap((n) => GRIND_KEYS.map((key) => `grind${n}.${key}`))], () => {
+      drawGraph();
+      for (const d of nodeDraws) d(this.ruinTaps);
+    });
+    page.append(chain, edit);
+    this.ruinSelect(this.ruinSel);
     return page;
+  }
+
+  /**
+   * Put the parts that are on into RUIN's boxes: `fresh` lays them out in the classic order (filter 1, drive 1,
+   * filter 2 …; after a ROLL or a chain), otherwise the boxes keep their order, parts switched off leave and parts
+   * switched on join at the end.
+   */
+  private layoutRuinSlots(fresh: boolean): void {
+    const on: string[] = [];
+    for (let n = 1; n <= 8; n++) {
+      if (!this.get(`grind${n}.on`)) continue;
+      if (this.get(`grind${n}.filter_on`)) on.push(`filter ${n}`);
+      if (this.get(`grind${n}.eq_on`)) on.push(`eq ${n}`);
+      if (this.get(`grind${n}.drive_on`)) on.push(`drive ${n}`);
+    }
+    const now = [1, 2, 3, 4, 5, 6, 7, 8].map((s) => String(this.get(`grind.slot${s}`)));
+    const order = fresh ? on : [...now.filter((v) => on.includes(v)), ...on.filter((v) => !now.includes(v))];
+    for (let s = 1; s <= 8; s++) this.set(`grind.slot${s}`, order[s - 1] ?? 'empty');
   }
 
   /** A GRIND stage's settings (from the patch on screen, or from a stored roll). */
   private grindStage(n: number, from?: Record<string, ParamValue>): GrindView {
     const v = (k: string) => (from ? from[`grind${n}.${k}`] : this.get(`grind${n}.${k}`));
-    return { filter: String(v('filter')), freq: Number(v('freq')), range: Number(v('range')), res: Number(v('res')) };
+    return { filter: String(v('filter')), freq: Number(v('freq')), range: Number(v('range')), res: 1 - Number(v('width')), depth: Number(v('depth')) };
   }
 
   /** Roll GRIND stages: low weirdness keeps to the classic neuro moves, high goes anywhere. The chain switches on. */
   private grindRoll(stages: number[], counted = false): void {
     const w = this.grindWeird, rnd = Math.random;
     const pick = <T,>(xs: readonly T[]) => xs[Math.floor(rnd() * xs.length)];
-    if (counted) {
-      // ROLL: how many stages play (the count, or random), locked stages that are on counting too
-      const target = this.grindCount || pick([1, 2, 2, 3, 3, 4]);
-      const lockedOn = [1, 2, 3, 4].filter((n) => this.grindLocks[n - 1] && !!this.get(`grind${n}.on`)).length;
-      const pool = [...stages].sort(() => rnd() - 0.5);
-      const use = pool.slice(0, Math.max(0, target - lockedOn));
-      for (const n of pool) if (!use.includes(n)) this.set(`grind${n}.on`, false);
-      stages = use.sort();
-    }
-    const between = (a: number, b: number) => a + (b - a) * rnd();
-    const logBetween = (a: number, b: number) => a * Math.pow(b / a, rnd());
     const round = (v: number, d = 100) => Math.round(v * d) / d;
-    for (const n of stages) {
-      const pre = `grind${n}`;
-      // always free running (Hz): life, not the grid; Sync stays the user's choice
-      this.set(`${pre}.move`, rnd() < 0.75 ? 'wander' : 'note'); // mostly wander: it never repeats
-      this.set(`${pre}.clock`, rnd() < 0.6 ? 'random' : 'hz'); // free running, mostly with a random speed
-      this.set(`${pre}.vrange`, round(between(0.15, 0.5 + 0.4 * w)));
-      this.set(`${pre}.range`, round(between(0.6, 1.8 + 2 * w), 10));
-      this.set(`${pre}.rate`, round(between(0.3 - 0.3 * w, 0.65 + 0.3 * w))); // about 0.5 … 6 Hz when tame
-      this.set(`${pre}.on`, true);
-      this.set(`${pre}.filter`, rnd() < 0.75 - 0.5 * w ? pick(['notch', 'phaser', 'comb', 'peak']) : pick(['notch', 'peak', 'band', 'comb', 'phaser']));
-      this.set(`${pre}.freq`, Math.round(logBetween(180 - 100 * w, 2400 + 5000 * w)));
-      this.set(`${pre}.res`, round(between(0.35, 0.75 + 0.2 * w)));
-      this.set(`${pre}.drive_type`, w < 0.3 ? pick(['soft', 'tube', 'fold', 'soft']) : pick(['soft', 'hard', 'fold', 'tube', 'fuzz']));
-      this.set(`${pre}.drive`, round(between(0.12, 0.4 + 0.5 * w)));
-      this.set(`${pre}.mix`, round(between(0.75, 1)));
+    const clampv = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+    // nudge a value by up to ±spread, the spread growing with WEIRD (controlled random, owner's call)
+    const nudge = (v: number, spread: number, lo: number, hi: number) => clampv(v + (rnd() * 2 - 1) * spread * (0.25 + 1.5 * w), lo, hi);
+    const ALL_TYPES = DRIVE_FAMILIES.flat();
+    const FILTERS = ['notch', 'peak', 'band', 'comb', 'phaser'] as const;
+    // the top of WEIRD: anything goes
+    const wild = w > 0.85;
+    // a recipe's stage, nudged: near the recipe when tame, its types swapped more often as it gets weird
+    const vary = (src: RuinStage): RuinStage => {
+      const s = { ...src };
+      s.freq = Math.round(clampv(s.freq * Math.pow(2, (rnd() * 2 - 1) * (0.2 + 1.2 * w)), 60, 9000));
+      s.width = round(nudge(s.width, 0.08, 0.08, 0.95));
+      s.depth = round(nudge(s.depth ?? 1, 0.1, 0.4, 1));
+      s.range = round(nudge(s.range, 0.3, 0, 4), 10);
+      s.rate = round(nudge(s.rate, 0.06, 0.05, 0.9));
+      s.drive = round(nudge(s.drive, 0.06, 0.05, 0.9));
+      s.tone = round(nudge(s.tone, 0.08, 0.3, 1));
+      s.mix = round(nudge(s.mix, 0.06, 0.4, 1));
+      if (rnd() < 0.6 * w) s.type = w < 0.5 ? pick(DRIVE_FAMILIES.find((f) => f.includes(s.type)) ?? ALL_TYPES) : pick(ALL_TYPES);
+      if (rnd() < 0.4 * w) s.filter = rnd() < 0.15 ? null : pick(FILTERS);
+      if (rnd() < 0.25 * w) s.move = s.move === 'wander' ? 'note' : 'wander';
+      return s;
+    };
+    const anyStage = (): RuinStage => {
+      if (!wild) return vary(pick(RUIN_RECIPES.flatMap((r) => r.stages.filter((x): x is RuinStage => !!x))));
+      return {
+        filter: rnd() < 0.15 ? null : pick(FILTERS), freq: Math.round(80 * Math.pow(90, rnd())), width: round(0.05 + 0.85 * rnd()), depth: round(0.4 + 0.6 * rnd()), range: round(4 * rnd(), 10),
+        move: rnd() < 0.7 ? 'wander' : 'note', rate: round(0.1 + 0.8 * rnd()), clock: rnd() < 0.6 ? 'random' : 'hz',
+        type: pick(ALL_TYPES), drive: round(0.15 + 0.8 * rnd()), tone: round(0.3 + 0.7 * rnd()), mix: round(0.4 + 0.6 * rnd()),
+      };
+    };
+    const put = (n: number, st: RuinStage) => {
+      for (const [k, v] of Object.entries(stageParams(`grind${n}`, st))) this.set(k, v);
+    };
+    if (!counted) {
+      // a stage's own die: one stage from any recipe, nudged
+      for (const n of stages) put(n, anyStage());
+      this.layoutRuinSlots(false);
+      this.set('grind.on', true);
+      return;
     }
+    // ROLL: a recipe (or, at the top of WEIRD, anything), its stages laid into the unlocked slots in order
+    const recipe = pick(RUIN_RECIPES);
+    let chain = wild ? [anyStage(), anyStage(), anyStage(), anyStage()].slice(0, 1 + Math.floor(4 * rnd())) : recipe.stages.filter((x): x is RuinStage => !!x).map(vary);
+    // how many stages: the recipe's own (AUTO) or the count, locked stages that are on counting too
+    const lockedOn = [1, 2, 3, 4, 5, 6, 7, 8].filter((n) => this.grindLocks[n - 1] && !!this.get(`grind${n}.on`)).length;
+    const want = Math.max(0, Math.min(stages.length, (this.grindCount || chain.length + lockedOn) - lockedOn));
+    while (chain.length < want) chain.splice(Math.floor(rnd() * (chain.length + 1)), 0, anyStage());
+    while (chain.length > want) chain.splice(1 + Math.floor(rnd() * Math.max(1, chain.length - 1)), 1); // keep the first (the warm start)
+    chain = chain.slice(0, want);
+    stages.forEach((n, i) => {
+      if (i < chain.length) put(n, chain[i]);
+      else this.set(`grind${n}.on`, false);
+    });
+    const r = recipe;
+    this.set('grind.ott', round(wild ? rnd() * 0.8 : nudge(r.ott, 0.08, 0, 1)));
+    this.set('grind.lowcut', Math.round(wild ? 60 + 240 * rnd() : clampv(r.lowcut * Math.pow(2, (rnd() * 2 - 1) * 0.5 * w), 40, 400)));
+    this.set('grind.mix', round(wild ? 0.6 + 0.4 * rnd() : r.mix));
+    this.set('grind.output', wild ? -3 : r.output);
+    this.grindRecipe = wild ? 'WILD' : r.name;
+    this.layoutRuinSlots(true);
     this.set('grind.on', true);
   }
 
@@ -3491,13 +4490,13 @@ export class SynthView {
   private showTab(t: string): void {
     for (const [name, b] of this.tabBtns) b.classList.toggle('on', name === t);
     if (this.oscPage!.style.display !== 'none') this.pageHeight = this.oscPage!.offsetHeight || this.pageHeight;
-    const pages: [string, HTMLElement][] = [['OSC', this.oscPage!], ['MOD', this.modPage!], ['WOBBLER', this.lfoPage!], ['GRIND', this.grindPage!], ['FX', this.fxPage!], ['PRESETS', this.presetPage]];
+    const pages: [string, HTMLElement][] = [['OSC', this.oscPage!], ['LFO', this.modPage!], ['WOBBLER', this.lfoPage!], ['RUIN', this.grindPage!], ['FX', this.fxPage!], ['PRESETS', this.presetPage]];
     if (t === 'PRESETS') {
       this.pageShelf = this.presets?.current().shelf || this.pageShelf || (this.presets?.shelves()[0]?.id ?? '');
       this.renderPresetPage();
     }
     for (const [name, el] of pages) {
-      // The browser keeps the synth page's height; MOD and FX take what they need.
+      // The browser keeps the synth page's height; LFO and FX take what they need.
       if (name === 'PRESETS' && this.pageHeight) el.style.height = `${this.pageHeight}px`;
       el.style.display = name === t ? '' : 'none';
     }
@@ -3899,10 +4898,13 @@ export class SynthView {
   /** The header's scene (code-drawn for now; a painted image can replace it). */
   private build(): void {
     this.page.style.setProperty('--dust', `url(${panelTexture()})`);
+    // RUIN's boxes have other proportions: their own surface at their own size (2x), so the grain isn't stretched
+    this.page.style.setProperty('--dust-node', `url(${panelTexture(294, 300, 6)})`);
+    this.page.style.setProperty('--dust-wide', `url(${panelTexture(1194, 592, 7)})`);
     this.page.style.setProperty('--light-grain', `url(${lightGrain()})`);
     this.page.style.setProperty('--key-grime', `url(${keyGrime()})`);
     const tabs = h('div', 'v2-tabs');
-    for (const [t, ready] of [['OSC', true], ['MOD', true], ['WOBBLER', true], ['GRIND', true], ['FX', true], ['PRESETS', true]] as const) {
+    for (const [t, ready] of [['OSC', true], ['LFO', true], ['WOBBLER', true], ['RUIN', true], ['FX', true], ['PRESETS', true]] as const) {
       const b = h('button', 'tab' + (t === 'OSC' ? ' on' : ''), t);
       if (!ready) {
         b.disabled = true;
@@ -3944,7 +4946,7 @@ export class SynthView {
     this.fxPage.style.display = 'none';
     this.lfoPage.style.display = 'none';
     this.page.append(
-      h('div', 'v2-top', h('div', 'v2-brand', h('span', 'brand-name', 'The Grimm'), h('span', 'brand-sub', 'Synthesizer')), this.presetSelector(), h('div', 'v2-top-right', tabs, this.zoomBtn)),
+      h('div', 'v2-top', h('div', 'v2-brand', h('span', 'brand-name', 'RUIN-1'), h('span', 'brand-sub', 'Synthesizer')), this.presetSelector(), h('div', 'v2-top-right', tabs, this.zoomBtn)),
       this.oscPage,
       this.modPage,
       this.lfoPage,
@@ -3961,8 +4963,9 @@ export class SynthView {
 // ------------------------------------------------------------------ GRIND prints
 
 /** A GRIND stage's parameters (grind<n>.*), in the order a roll snapshot keeps them. */
-const GRIND_KEYS = ['on', 'filter', 'freq', 'range', 'move', 'rate', 'clock', 'vrange', 'res', 'drive_type', 'drive', 'mix'];
-type GrindView = { filter: string; freq: number; range: number; res: number };
+const GRIND_KEYS = ['on', 'filter', 'freq', 'range', 'move', 'rate', 'clock', 'width', 'depth', 'drive_type', 'drive', 'mix', 'filter_on', 'drive_on', 'filter_level', 'drive_level',
+  'drive_freq', 'drive_width', 'drive_tone', 'eq_on', 'eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`))];
+type GrindView = { filter: string; freq: number; range: number; res: number; depth?: number };
 type Cx = [number, number];
 const cmul = (a: Cx, b: Cx): Cx => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]];
 const cdiv = (a: Cx, b: Cx): Cx => { const d = b[0] * b[0] + b[1] * b[1]; return [(a[0] * b[0] + a[1] * b[1]) / d, (a[1] * b[0] - a[0] * b[1]) / d]; };
@@ -3972,32 +4975,41 @@ const svfBp = (w: number, k: number): Cx => cdiv([0, w], [1 - w * w, k * w]);
 
 /** |H| of a GRIND stage's filter (as the engine plays it) at f, with its centre at fc. */
 function grindMag(st: GrindView, fc: number, f: number): number {
-  const w = f / fc, res = st.res;
+  // the filter's response H, then Depth blends it in as the engine does: 1 + depth (H - 1)
+  const w = f / fc, res = st.res, d = st.depth ?? 1;
+  let H: [number, number];
   switch (st.filter) {
     case 'notch': {
       const k = 1.6 * (1 - res) + 0.08;
-      return cabs(cdiv([1 - w * w, 0], [1 - w * w, k * w]));
+      H = cdiv([1 - w * w, 0], [1 - w * w, k * w]);
+      break;
     }
     case 'peak': {
-      const k = 1.2 * (1 - res) + 0.15, pk = 1 + 5 * res, bp = svfBp(w, k);
-      return cabs([1 + pk * k * bp[0], pk * k * bp[1]]) / (1 + 0.35 * pk);
+      const k = 1.2 * (1 - res) + 0.15, pk = 6, bp = svfBp(w, k);
+      H = [1 + pk * k * bp[0], pk * k * bp[1]];
+      break;
     }
     case 'band': {
-      const k = 1.4 * (1 - res) + 0.1;
-      return 1.6 * k * cabs(svfBp(w, k));
+      const k = 1.4 * (1 - res) + 0.1, bp = svfBp(w, k);
+      H = [k * bp[0], k * bp[1]];
+      break;
     }
     case 'comb': {
       const fb = 0.92 * res, ph = 2 * Math.PI * w;
-      return (1 - 0.55 * fb) / cabs([1 - fb * Math.cos(ph), fb * Math.sin(ph)]);
+      const q = cdiv([1, 0], [1 - fb * Math.cos(ph), fb * Math.sin(ph)]);
+      H = [(1 - fb) * q[0], (1 - fb) * q[1]];
+      break;
     }
     case 'phaser': {
       const fb = 0.75 * res, ap1 = cdiv([1, -w], [1, w]);
       const ap4 = cmul(cmul(ap1, ap1), cmul(ap1, ap1));
-      const v = cdiv(ap4, [1 - fb * ap4[0], -fb * ap4[1]]);
-      return 0.5 * cabs([1 + v[0], v[1]]);
+      const v = cdiv(ap4, [1 - fb * ap4[0], -fb * ap4[1]]), c = (1 - fb) / (2 - fb);
+      H = [c * (1 + v[0]), c * v[1]];
+      break;
     }
     default: return 1;
   }
+  return cabs([1 + d * (H[0] - 1), d * H[1]]);
 }
 /** A magnitude on a print: -30 … +12 dB, 0 dB about two thirds up. */
 function grindY(mag: number, H: number): number {
@@ -4005,18 +5017,16 @@ function grindY(mag: number, H: number): number {
   return H - 6 - Math.max(0, Math.min(1, (db + 30) / 42)) * (H - 12);
 }
 /** A frequency's x on a print (20 Hz … 20 kHz, log). */
-const freqX = (f: number, W: number): number => Math.max(0, Math.min(W, (Math.log(f / 20) / Math.log(1000)) * W));
-/** A sample through a GRIND drive at full level (the engine's curves; its level matching left out so the shape reads). */
-function grindShape(type: string, x: number, drive: number): number {
-  const u = grindGain(drive) * x;
-  switch (type) {
-    case 'hard': return Math.max(-1, Math.min(1, u));
-    case 'fold': return Math.sin((Math.PI / 2) * u);
-    case 'tube': return Math.tanh(u + K.TUBE_BIAS) - K.TUBE_OFFSET;
-    case 'fuzz': { const b = K.FUZZ_BIAS_REL * grindGain(drive); return K.fuzz(u + b) - K.fuzz(b); }
-    default: return Math.tanh(u);
-  }
+/** Where a RUIN filter moves (Hz): centre ± half the H Range in octaves, slid inside 20 Hz-20 kHz, as the engine does. */
+function ruinZone(centre: number, range: number): [number, number] {
+  const L = Math.log2(20), Hh = Math.log2(20000), c = Math.log2(Math.max(centre, 1)), h = range / 2;
+  let lo = c - h, hi = c + h;
+  if (hi - lo >= Hh - L) { lo = L; hi = Hh; }
+  else if (lo < L) { hi += L - lo; lo = L; }
+  else if (hi > Hh) { lo -= hi - Hh; hi = Hh; }
+  return [Math.pow(2, lo), Math.pow(2, hi)];
 }
+const freqX = (f: number, W: number): number => Math.max(0, Math.min(W, (Math.log(f / 20) / Math.log(1000)) * W));
 const DICE_SVG = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="5.2" cy="5.2" r="1.2" fill="currentColor"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/><circle cx="10.8" cy="10.8" r="1.2" fill="currentColor"/></svg>';
 const lockSvg = (on: boolean): string =>
   `<svg viewBox="0 0 14 16" width="11" height="13" aria-hidden="true"><path d="${on ? 'M3.5 7V4.8a3.5 3.5 0 0 1 7 0V7' : 'M3.5 7V4.8a3.5 3.5 0 0 1 6.6-1.6'}" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><rect x="1.5" y="7" width="11" height="8" rx="1.2" fill="${on ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.4"/></svg>`;

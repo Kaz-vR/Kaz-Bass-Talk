@@ -1,5 +1,5 @@
 // Voice building blocks (port of src/engine/core/voicefx.ts): 303-style diode
-// filter, comb filter, physical-model string, Shepard oscillator, attack
+// filter, comb filter, physical-model string, attack
 // texture bed. Buffers are sized in the constructor.
 #pragma once
 #include <algorithm>
@@ -104,45 +104,6 @@ class KarplusString {
   Rng rng;
   int excite = 0;
   double exciteLp = 0;
-};
-
-constexpr int SHEPARD_PARTIALS = 8;
-
-class Shepard {
- public:
-  void reset() {
-    phase.fill(0);
-    pos = 0;
-  }
-  double process(double inc, double rateOctPerSample) {
-    pos += rateOctPerSample;
-    if (pos >= 1) {
-      pos -= 1;
-      for (int j = 0; j < SHEPARD_PARTIALS - 1; j++) phase[j] = phase[j + 1];
-      phase[SHEPARD_PARTIALS - 1] = 0;
-    } else if (pos < 0) {
-      pos += 1;
-      for (int j = SHEPARD_PARTIALS - 1; j > 0; j--) phase[j] = phase[j - 1];
-      phase[0] = 0;
-    }
-    double out = 0, wsum = 0;
-    const double center = SHEPARD_PARTIALS / 2 - 1;
-    for (int j = 0; j < SHEPARD_PARTIALS; j++) {
-      const double oct = j - center + pos;
-      const double wgt = std::exp(-((oct - 0.5) * (oct - 0.5)) / 1.6);
-      wsum += wgt;
-      const double pinc = inc * std::pow(2.0, oct);
-      if (pinc >= 0.45) continue;
-      double ph = phase[j] + pinc;
-      if (ph >= 1) ph -= 1;
-      phase[j] = ph;
-      out += wgt * std::sin(TWO_PI * ph);
-    }
-    return wsum > 0 ? (out / wsum) * 1.6 : 0;
-  }
- private:
-  std::array<double, SHEPARD_PARTIALS> phase{};
-  double pos = 0;
 };
 
 constexpr int TEX_CRACKLE = 0, TEX_DUST = 1, TEX_RUMBLE = 2, TEX_AIR = 3, TEX_AIR_HIT = 4, TEX_TAPE = 5, TEX_STATIC = 6;

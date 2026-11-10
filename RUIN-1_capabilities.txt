@@ -1,0 +1,155 @@
+RUIN-1 — WHAT THE SYNTH CAN AND CAN'T DO
+=========================================
+A short overview so you can judge whether a sound is possible on RUIN-1
+before suggesting it. RUIN-1 is a dark, gritty, tape-worn subtractive synth
+(made for LORN-style sounds), not an all-purpose workstation.
+
+
+WHAT IT CAN DO
+--------------
+
+Voices
+- Mono (with legato and glide/portamento) or poly up to 8 voices.
+- Velocity sensitivity, pitch bend (±2 semitones), mod wheel.
+- "Analog" drift: each oscillator and unison voice drifts slightly in pitch,
+  so sounds feel loose and alive instead of digital.
+
+Two main oscillators (A and B)
+- Waves: sine, triangle, saw, pulse, PWM-saw (the rave "hoover"), a plucked
+  string model, and one built-in wavetable that morphs sine → triangle → saw
+  → square → vocal.
+- Shape knob: pulse width on pulse/PWM-saw, morph position on the wavetable.
+- Octave, semitone and fine tuning (detuning A against B for beating, fifths,
+  octaves, any interval).
+- Unison up to 7 voices per oscillator, with detune and stereo spread
+  (supersaw-style thickness).
+- Hard sync of B to A (sync sweeps, "chainsaw" leads).
+- Each oscillator has its own low cut (or low-pass / band) before the rest.
+
+Sub oscillator
+- A clean extra layer under the note: sine, warm sine, triangle, square,
+  pulse or saw, -4 to +4 octaves from the note.
+- By default it bypasses all dirt and effects, so the low end stays clean.
+- Its own soft clipper for density.
+
+Noise layer (one type at a time)
+- Long/continuous textures: vinyl crackle, dust, static, tape hiss, air
+  (breath), rumble, white noise.
+- "Hit" versions of each: one burst per note (attack transients, breath puffs
+  on brass/flutes, noise snaps), with adjustable tail length.
+- Adjustable tone (dark ↔ bright), density, tail (how long it lingers after
+  the note) and its own low cut.
+- Octave/speed control: slow it down for dark thumps and roars, speed it up
+  for small ticks.
+- KEY mode: the noise becomes playable across the keyboard like a sample,
+  with glide (tape-stop effects, a noise "kit" across the keys).
+- Can go through the main filter, or straight to the output untouched.
+
+Filter and dirt
+- Main filter types: 24 dB low-pass, band-pass, 303-style diode with accent
+  (acid squelch), notch, comb (metallic/plucked ringing), low-pass gate
+  (Buchla-style pluck), 24 dB high-pass.
+- Cutoff, resonance, key tracking, and a dedicated filter envelope.
+- Drive before the filter (warm saturation the filter then shapes).
+- Distortion after the filter: soft, hard, fold (wavefolder), tube, fuzz;
+  with a "clean below" split so the low end stays clean.
+- Bitcrusher (bit depth and sample-rate reduction).
+- Tape: saturation, wow & flutter (warped pitch), age (dull, worn top).
+
+RUIN (signature distortion chain)
+- Up to 4 stages of moving filters (notch, peak, band, comb, phaser), each
+  into its own distortion: neuro/industrial basses, growls, metallic grind.
+- The stages can move with each note or wander randomly; plus saturation and
+  an OTT-style compressor in the chain.
+- Can be applied to the oscillators while leaving the noise untouched.
+
+Envelopes
+- Amp envelope (ADSR): the volume shape of every note. Each segment has an
+  adjustable curve (snappy analog or a slow swell): anything from plucks and
+  stabs to long swells and pads.
+- Filter envelope (its own ADSR, also with curves, switchable on/off): sweeps
+  the main filter's cutoff on every note. Its AMOUNT (the "ENV" setting next
+  to Cutoff) sets how far and which way it sweeps, in octaves:
+    - up to about ±10 octaves, i.e. from the lowest cutoff all the way to the
+      top: a tiny amount is a subtle bite, a large one a full "wow" sweep;
+    - positive opens the filter at the start of the note and closes back
+      down as it decays (plucks, stabs, acid squelch, brassy "bwah" attacks,
+      the classic bass "wow");
+    - negative does the opposite: the note starts darker and the filter dips
+      (reverse/swelling sweeps).
+  With a short decay and low sustain this is the plucky "pew"; with a slow
+  attack it's a slow opening swell; with high sustain the filter opens and
+  stays open while the note is held. The filter envelope can also be used as
+  a modulation source for other targets.
+
+Movement (6 LFOs + a 12-slot modulation matrix)
+- LFO shapes: sine, triangle, saw up/down, square, sample & hold, smooth
+  random (wander), drift and slow drift (organic, never-repeating motion).
+- Per-note shapes: bloom (a slow rise when you hold a note), drop (a fall:
+  pitch drops, plucks, tape stops), random (a new value per note).
+- Free rate or synced to tempo, fade-in, retrigger.
+- Modulation sources: the 6 LFOs, both envelopes, velocity, mod wheel, key.
+- Modulation targets: pitch (whole note, both oscillators, A or B alone, sub,
+  noise), shape (A, B or both), unison detune, levels (overall, A, B, sub,
+  noise), filter cutoff, resonance and drive, distortion drive/mix/tone,
+  vibrato.
+- Mod wheel "moves": one wheel gesture that changes several things together
+  (pressure, snarl, open, choke, vibrato, unstable, decay, bloom).
+
+Effects (after the voices)
+- Chorus (classic, ensemble, hyper/supersaw-wide), flanger, phaser,
+  OTT-style multiband compression, 4-band EQ.
+- Each effect can leave the low end untouched.
+- Always-on safety: mono low end and an output limiter.
+
+Typical sounds it does well
+- Dark, saturated basses: Reese, sub basses, distorted/industrial basses,
+  neuro growls, acid (303) lines, 808-style bass with a pitch drop.
+- Gritty or wide leads, sync leads, hoovers, PWM and supersaw-ish leads.
+- Dark pads that slowly bloom and drift, warm analog pads, string-ish and
+  brass-ish synth pads.
+- Plucks, keys-like and mallet-ish synth tones, arps.
+- Noise sounds: crackle and dust beds, breath, rumbles, noise hits, tape-stop
+  and playable noise effects.
+- Anything "worn": tape wobble, crushed, lo-fi, vintage-unstable.
+
+
+WHAT IT CAN'T DO
+----------------
+
+Sources
+- Only 2 oscillators + 1 sub + 1 noise layer. No third oscillator.
+- No samples or sample import, no wavetable import (only the one built-in
+  morph table), no user-drawn waveforms.
+- No FM, ring modulation or audio-rate cross-modulation on the main pages
+  (only hard sync).
+- No additive or granular synthesis, no physical models besides the simple
+  plucked string.
+- One noise type at a time; the noise layer is shared by all voices.
+- Realistic acoustic instruments (piano, guitar, real strings, real brass,
+  drums, vocals/choirs, bells) are out of reach; only synth versions of them.
+
+Filters
+- One main filter per voice (no dual, serial or parallel filters).
+- No formant/vowel filter (removed): no talking or vocal "yoi" basses.
+
+Modulation
+- Only 2 envelopes (amp and filter); extra rises and falls come from the
+  bloom/drop LFO shapes.
+- 6 LFOs and 12 modulation slots; no step sequencer, no drawable LFO shapes,
+  no LFO-on-LFO modulation.
+- Effects, tape and LFO speeds cannot be modulated.
+- No aftertouch (the plugin version has MPE).
+
+Time and rhythm
+- No arpeggiator, no sequencer, no rhythmic gate/volume shaper or
+  tempo-wobble module: rhythmic chopping, gating and dubstep-style wobbles
+  are meant to be done after the synth (e.g. ShaperBox). Slow, tempo-synced
+  LFO movement is possible.
+- No reverb and no delay: space is added after the synth.
+
+Dynamics and output
+- No compressor except the OTT-style ones; the output limiter and the mono
+  low end can't be switched off.
+- No per-oscillator panning; width comes from unison, chorus and effects.
+- Max 8 voices; in chords only the lowest note plays the sub.

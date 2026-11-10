@@ -216,14 +216,6 @@
       "identity": "Sub-heavy bass with a tempo-synced LFO on filter cutoff or wavetable position."
     },
     {
-      "id": "growl-yoi",
-      "name": "Growl / yoi bass",
-      "group": "Modulated, morphing & heavily distorted",
-      "family": "growl",
-      "status": "needs-addition",
-      "identity": "Wavetable through formant/vowel/comb filtering: an aggressive talking throat."
-    },
-    {
       "id": "neuro",
       "name": "Neuro bass",
       "group": "Modulated, morphing & heavily distorted",
@@ -453,14 +445,6 @@
       "identity": "Deliberately lo-fi, unfiltered triangle or pulse like a retro sound chip."
     },
     {
-      "id": "shepard",
-      "name": "Shepard tone bass",
-      "group": "Cinematic, avant-garde & unstable",
-      "family": "experimental",
-      "status": "needs-addition",
-      "identity": "Cross-fading octave-spaced sines: an endlessly falling or rising sub illusion."
-    },
-    {
       "id": "generative-drone",
       "name": "Generative modular drone",
       "group": "Cinematic, avant-garde & unstable",
@@ -475,14 +459,6 @@
       "family": "funk",
       "status": "native",
       "identity": "Rubbery tone through an auto-wah envelope filter: elastic funk squelch."
-    },
-    {
-      "id": "talkbox-zapp",
-      "name": "Talkbox / Zapp bass",
-      "group": "Cinematic, avant-garde & unstable",
-      "family": "funk",
-      "status": "native",
-      "identity": "Vowel-shifting bass mimicking a human mouth shape."
     },
     {
       "id": "laser-snap",

@@ -70,7 +70,7 @@ describe('polyphony', () => {
   it('an 8-voice wide pad stays within the CPU budget', () => {
     const pad = {
       ...base, 'voice.polyphony': 8, 'osc1.wave': 'saw', 'osc1.unison_voices': 3, 'osc2.wave': 'saw', 'osc2.unison_voices': 2, 'osc2.level': 0.4,
-      'filter.cutoff': 1500, 'drive.amount': 0.4, 'dist.drive': 0.3, 'dist.mix': 0.6, 'tape.wow': 0.3, 'tape.drive': 0.4,
+      'filter.cutoff': 1500, 'drive.amount': 0.4, 'dist.drive': 0.3, 'dist.mix': 0.6, 'tape.wow': 0.3,
       'chorus.mix': 0.3, 'reverb.mix': 0.3, 'delay.mix': 0.2, 'texture.level': 0.5, 'texture.type': 'air',
     };
     const loop = chord([45, 52, 57, 60, 64, 67, 71, 74], 4);

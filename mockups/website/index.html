@@ -1,0 +1,146 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>RUIN-1 site looks</title>
+<style>
+@font-face { font-family: SG; src: url('../../src/ui/fonts/space-grotesk.woff2') format('woff2'); }
+body { margin: 0; background: #050506; color: #ccc; font-family: SG, Inter, sans-serif; padding: 28px; width: 1200px; }
+h1 { font-size: 14px; letter-spacing: .24em; color: #fff; font-weight: 500; margin: 0 0 4px; }
+.lab { margin: 34px 0 10px; } .lab b { font-size: 13px; letter-spacing: .22em; color: #fff; font-weight: 500; } .lab span { display: block; font-size: 11.5px; color: #77777d; margin-top: 4px; max-width: 1100px; }
+.hero { width: 1200px; height: 600px; position: relative; overflow: hidden; border-radius: 4px; }
+.shot { position: absolute; display: block; }
+nav { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 30px; padding: 22px 36px; font-size: 11px; letter-spacing: .2em; z-index: 3; }
+nav .logo { margin-right: auto; font-size: 15px; letter-spacing: .5em; }
+.btn { display: inline-block; padding: 12px 22px; font-size: 11px; letter-spacing: .24em; }
+.grain::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 4; opacity: .5; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E"); }
+
+/* 1 DARKROOM */
+.h1 { background: radial-gradient(ellipse 60% 70% at 62% 58%, #3a0805 0%, #120202 45%, #050101 80%); }
+.h1 nav { color: #a77; } .h1 nav .logo { color: #ffd9d0; text-shadow: 0 0 14px #ff3a1a88; }
+.h1 .shot { width: 700px; right: -40px; top: 110px; transform: perspective(1400px) rotateY(-14deg) rotateX(4deg); box-shadow: 0 40px 120px #000, 0 0 140px #ff2a0a33; border-radius: 4px; }
+.h1 .copy { position: absolute; left: 56px; top: 190px; width: 420px; }
+.h1 .copy h2 { font-size: 64px; font-weight: 300; letter-spacing: .14em; color: #fff; margin: 0; text-shadow: 0 0 30px #ff3a1a66; }
+.h1 .copy p { font-size: 16px; line-height: 1.6; color: #c9a19a; margin: 18px 0 30px; }
+.h1 .btn { border: 1px solid #ff4a2a; color: #ffcfc4; box-shadow: 0 0 18px #ff3a1a55 inset; }
+.h1 .small { position: absolute; left: 56px; bottom: 30px; font-size: 10px; letter-spacing: .24em; color: #6a3a35; }
+
+/* 2 DECAYING SIGNAL */
+.h2 { background: #000; }
+.h2 nav { color: #888; } .h2 nav .logo { color: #fff; }
+.h2 .title { position: absolute; left: 0; right: 0; top: 70px; text-align: center; font-family: 'Inter Display', Inter; font-weight: 900; font-size: 210px; letter-spacing: -.02em; color: #fff; line-height: 1; }
+.h2 .title i { position: absolute; left: 0; right: 0; height: 6px; background: #000; font-style: normal; }
+.h2 .torn { position: absolute; left: 0; right: 0; top: 70px; height: 210px; background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(0,0,0,.55) 3px 4px); }
+.h2 .shift { position: absolute; left: 30px; right: -30px; height: 14px; overflow: hidden; }
+.h2 .shot { width: 820px; left: 190px; top: 300px; filter: grayscale(1) contrast(1.15); opacity: .92; -webkit-mask: linear-gradient(#000 55%, transparent 98%); }
+.h2 .scan { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(255,255,255,.035) 2px 3px); z-index: 2; }
+.h2 .cap { position: absolute; left: 40px; bottom: 34px; z-index: 3; font-size: 12px; letter-spacing: .3em; color: #aaa; }
+.h2 .btn { position: absolute; right: 40px; bottom: 26px; z-index: 3; background: #fff; color: #000; }
+
+/* 3 GALLERY */
+.h3 { background: #0f0f11; }
+.h3 nav { color: #6a6a70; } .h3 nav .logo { color: #e8e8ea; font-size: 13px; }
+.h3 .frame { position: absolute; left: 290px; top: 92px; width: 620px; padding: 22px; background: #141417; box-shadow: 0 30px 80px #000; }
+.h3 .shot { position: static; width: 620px; }
+.h3 .plaque { position: absolute; left: 290px; top: 540px; width: 664px; display: flex; justify-content: space-between; font-size: 11px; color: #8a8a90; letter-spacing: .08em; }
+.h3 .plaque em { font-family: 'DejaVu Serif', serif; color: #e8e8ea; font-size: 13px; letter-spacing: 0; }
+.h3 .side { position: absolute; left: 40px; top: 260px; width: 200px; font-size: 11px; line-height: 1.8; color: #6a6a70; }
+.h3 .side b { display: block; color: #e8e8ea; font-weight: 400; letter-spacing: .2em; margin-bottom: 8px; }
+.h3 .btn { position: absolute; right: 40px; top: 270px; border-bottom: 1px solid #e8e8ea; padding: 6px 0; color: #e8e8ea; }
+
+/* 4 SPEC SHEET */
+.h4 { background: #0b0c0d; font-family: 'Liberation Mono', monospace; background-image: linear-gradient(#ffffff08 1px, transparent 1px), linear-gradient(90deg, #ffffff08 1px, transparent 1px); background-size: 40px 40px; }
+.h4 nav { color: #7a8a7a; font-size: 10px; } .h4 nav .logo { color: #d8e6d8; }
+.h4 .shot { width: 700px; left: 60px; top: 110px; border: 1px solid #2a2f2a; }
+.h4 .call { position: absolute; font-size: 10px; color: #b8ffb0; letter-spacing: .1em; }
+.h4 .call::before { content: ''; position: absolute; right: 100%; top: 6px; height: 1px; background: #b8ffb066; }
+.h4 .spec { position: absolute; right: 50px; top: 120px; width: 330px; font-size: 11px; color: #9aa39a; line-height: 2; }
+.h4 .spec h3 { font-family: 'Inter Display'; font-weight: 300; color: #e8f0e8; font-size: 34px; letter-spacing: .06em; margin: 0 0 10px; line-height: 1.1; }
+.h4 .spec div { display: flex; justify-content: space-between; border-bottom: 1px dashed #2a2f2a; }
+.h4 .spec span { color: #d8e6d8; }
+.h4 .spec .btn { margin-top: 22px; background: #b8ffb0; color: #000; }
+
+/* 5 FIRE + ICE */
+.h5 { background: #050507; }
+.h5 .glow { position: absolute; inset: -100px; background: radial-gradient(circle at 25% 60%, #3fb8ff55, transparent 38%), radial-gradient(circle at 78% 55%, #ff5a1f55, transparent 38%), radial-gradient(circle at 50% 100%, #6f55ff33, transparent 45%); filter: blur(30px); }
+.h5 nav { color: #9aa; } .h5 nav .logo { color: #fff; }
+.h5 .shot { width: 760px; left: 220px; top: 210px; border-radius: 6px; box-shadow: 0 0 0 1px #ffffff14, 0 -10px 60px #3fb8ff33, 0 30px 90px #000; }
+.h5 h2 { position: absolute; left: 0; right: 0; top: 78px; text-align: center; margin: 0; font-weight: 500; font-size: 46px; letter-spacing: .04em; color: #fff; }
+.h5 h2 b { background: linear-gradient(90deg, #8ae9ff, #3fb8ff 30%, #ff8a1f 70%, #e0204a); -webkit-background-clip: text; color: transparent; font-weight: 500; }
+.h5 p { position: absolute; left: 0; right: 0; top: 146px; text-align: center; margin: 0; font-size: 15px; color: #9a9aa6; }
+.h5 .chips { position: absolute; left: 50px; top: 260px; display: flex; flex-direction: column; gap: 10px; }
+.h5 .chips span { font-size: 10px; letter-spacing: .2em; padding: 7px 12px; border: 1px solid; border-radius: 20px; }
+
+/* 6 CINEMATIC POSTER */
+.h6 { background: #000; }
+.h6 .shot { width: 1300px; left: -50px; top: -60px; filter: brightness(.38) saturate(.6) blur(.4px); }
+.h6.bars::before, .h6.bars::after { content: ''; position: absolute; left: 0; right: 0; height: 56px; background: #000; z-index: 2; }
+.h6.bars::before { top: 0; } .h6.bars::after { bottom: 0; }
+.h6 .vig { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, transparent 30%, #000 85%); }
+.h6 .t { position: absolute; left: 0; right: 0; top: 150px; text-align: center; z-index: 3; }
+.h6 .t .pre { font-size: 12px; letter-spacing: .6em; color: #b9a99a; }
+.h6 .t h2 { margin: 14px 0 0; font-family: 'Inter Display'; font-weight: 800; font-size: 150px; letter-spacing: .12em; color: #efe6da; transform: scaleY(1.35); line-height: 1; }
+.h6 .t .tag { margin-top: 56px; font-family: 'DejaVu Serif', serif; font-style: italic; font-size: 20px; color: #c9bba8; }
+.h6 .credits { position: absolute; left: 0; right: 0; bottom: 70px; text-align: center; z-index: 3; font-size: 9.5px; letter-spacing: .28em; color: #7d7368; line-height: 1.9; }
+.h6 .credits b { color: #c9bba8; font-weight: 400; }
+.h6 nav { color: #7d7368; } .h6 nav .logo { color: #efe6da; }
+.h6 nav { top: 56px; padding-top: 14px; }
+</style></head><body>
+<h1>RUIN-1 · SIX LOOKS FOR THE PRODUCT SITE · HERO SECTIONS</h1>
+
+<div class="lab"><b>1 · DARKROOM</b><span>The synth's own world: a deep red safelight room, the plugin floating in it like a print drying, film grain over everything. Warm, intimate, unmistakably the same object you open in the DAW.</span></div>
+<div class="hero h1 grain">
+  <nav><span class="logo">RUIN-1</span><span>SOUNDS</span><span>RUIN</span><span>MANUAL</span><span>BUY</span></nav>
+  <div class="copy"><h2>RUIN-1</h2><p>A dark, cinematic synthesizer. Saturated, tape-worn, alive — built for the sound that sits in a dark room.</p><span class="btn">LISTEN · DOWNLOAD DEMO</span></div>
+  <img class="shot" src="osc.png">
+  <div class="small">VST3 · AU · STANDALONE · FULLY OFFLINE</div>
+</div>
+
+<div class="lab"><b>2 · DECAYING SIGNAL</b><span>Black and white, the name torn by scanlines like a dying VHS tape, the plugin dissolving into black below it. Brutal and graphic; the neuro / RUIN side of the synth.</span></div>
+<div class="hero h2">
+  <nav><span class="logo">RUIN-1</span><span>SOUNDS</span><span>RUIN</span><span>BUY</span></nav>
+  <div class="title">RUIN-1<i style="top:52px"></i><i style="top:98px;height:3px"></i><i style="top:140px;height:9px"></i><i style="top:176px;height:2px"></i></div>
+  <div class="torn"></div>
+  <img class="shot" src="ruin.png">
+  <div class="scan"></div>
+  <div class="cap">EVERYTHING DECAYS. MAKE IT SOUND GOOD.</div>
+  <span class="btn">GET RUIN-1</span>
+</div>
+
+<div class="lab"><b>3 · GALLERY</b><span>A quiet museum wall: the plugin hung as an artwork with a plaque, generous dark space, a serif title, tiny type. Expensive and calm, lets the UI speak for itself.</span></div>
+<div class="hero h3">
+  <nav><span class="logo">RUIN-1</span><span>WORK</span><span>SOUNDS</span><span>NOTES</span><span>ACQUIRE</span></nav>
+  <div class="side"><b>RUIN-1</b>A synthesizer for dark, cinematic music. Two oscillators, a sub, fourteen textures, an eight-box distortion chain and a vintage reverb.</div>
+  <div class="frame"><img class="shot" src="osc.png"></div>
+  <div class="plaque"><em>RUIN-1</em><span>Synthesizer, 2026 · tape, dust, saturation</span><span>VST3 / AU</span></div>
+  <span class="btn">VIEW THE WORK →</span>
+</div>
+
+<div class="lab"><b>4 · SPEC SHEET</b><span>A technical manual: graph-paper grid, monospace, numbered callouts pointing into the UI, a spec table. For producers who want to know exactly what's inside.</span></div>
+<div class="hero h4">
+  <nav><span class="logo">RUIN-1</span><span>[01] ENGINE</span><span>[02] RUIN</span><span>[03] SOUNDS</span><span>[04] BUY</span></nav>
+  <img class="shot" src="ruin.png">
+  <div class="call" style="left:380px;top:96px">01 · RUIN CHAIN — 8 BOXES, FREE ORDER</div>
+  <div class="call" style="left:120px;top:470px">02 · WHAT IT DOES — BEFORE / AFTER</div>
+  <div class="call" style="left:470px;top:440px">03 · 10 DRIVE TYPES</div>
+  <div class="spec"><h3>RUIN-1<br>SYNTHESIZER</h3>
+    <div>VOICES <span>8</span></div><div>OSCILLATORS <span>2 + SUB</span></div><div>RUIN CHAIN <span>8 BOXES</span></div><div>DRIVE TYPES <span>10</span></div><div>TEXTURES <span>14</span></div><div>OVERSAMPLING <span>2×</span></div><div>NETWORK <span>NONE</span></div>
+    <span class="btn">DOWNLOAD — 24 MB</span></div>
+</div>
+
+<div class="lab"><b>5 · FIRE + ICE</b><span>The RUIN page's two colour families as the brand: ice blue and fire orange glowing behind the product, a gradient headline, feature chips. The most modern, "tech product" of the six.</span></div>
+<div class="hero h5">
+  <div class="glow"></div>
+  <nav><span class="logo">RUIN-1</span><span>FEATURES</span><span>SOUNDS</span><span>PRICING</span></nav>
+  <h2>Filters like <b>ice</b>. Drives like <b>fire</b>.</h2>
+  <p>Eight boxes, any order. Hear every stage, see every stage.</p>
+  <div class="chips"><span style="color:#8ae9ff;border-color:#8ae9ff55">MOVING FILTERS</span><span style="color:#ff8a1f;border-color:#ff8a1f55">10 DRIVES</span><span style="color:#e6dcc8;border-color:#e6dcc855">EQ</span><span style="color:#9aa;border-color:#ffffff22">TAPE · DUST · AIR</span></div>
+  <img class="shot" src="ruin.png">
+</div>
+
+<div class="lab"><b>6 · CINEMATIC POSTER</b><span>A film poster: letterbox bars, the plugin as a dark blurred backdrop, a huge stretched title, an italic tagline and a credits block. Moody, narrative, LORN's cinematic side.</span></div>
+<div class="hero h6 bars">
+  <img class="shot" src="osc.png"><div class="vig"></div>
+  <nav><span class="logo">RUIN-1</span><span>TRAILER</span><span>SOUNDS</span><span>BUY</span></nav>
+  <div class="t"><div class="pre">A SYNTHESIZER FOR THE DARK</div><h2>RUIN-1</h2><div class="tag">Every sound has a past.</div></div>
+  <div class="credits"><b>TAPE</b> WOW &amp; DRIFT · <b>RUIN</b> EIGHT-BOX CHAIN · <b>TEXTURE</b> CRACKLE DUST AIR · <b>REVERB</b> DARK HALLS<br>VST3 · AU · STANDALONE — COMING 2026</div>
+</div>
+</body></html>

@@ -1,5 +1,5 @@
 // One synth voice (port of src/engine/core/voice.ts): oscillators (+FM) and noise →
-// [2× oversampled: GRIND → drive → filter → distortion] → bitcrusher → tape → DC filter → amp,
+// [2× oversampled: drive → filter] → DC filter → amp (RUIN, DRIVE, crush and tape: Bus.h, on the summed voices),
 // + clean mono sub.
 // Plugin addition: per-note MPE (bend, pressure, slide), zero unless an MPE
 // controller sends it, so the sound is the prototype's otherwise.
@@ -59,7 +59,6 @@ class Voice {
   double beatPos = 0, bps = 2;
   Envelope ampEnv;
   std::array<double, DEST_COUNT> dst{};
-  double tapeLpCoef = 1;
   // MPE: the MIDI channel this note came from (-1 = none) and its expression.
   int channel = -1;
   double mpeBend = 0;      // semitones
@@ -67,20 +66,39 @@ class Voice {
   double mpeSlide = 0.5;   // 0..1, 0.5 = neutral
 
   Voice(double fs_, const double* cur_, const float* table_, uint32_t seed, const double* dstMask_)
-      : fs(fs_), cur(cur_), table(table_), rng(seed), grind(rng), dstMask(dstMask_),
+      : fs(fs_), cur(cur_), table(table_), rng(seed), dstMask(dstMask_),
         combL((int)std::ceil((fs_ * OS) / 20)), combR((int)std::ceil((fs_ * OS) / 20)),
-        strings{KarplusString((int)std::ceil(fs_ / 15)), KarplusString((int)std::ceil(fs_ / 15))}, tape(fs_), subClip(fs_), midClip(fs_) {
+        strings{KarplusString((int)std::ceil(fs_ / 15)), KarplusString((int)std::ceil(fs_ / 15))}, subClip(fs_), midClip(fs_) {
     subRamp = 1 / (0.01 * fs);
     voiceDcL.setHighpass(VOICE_DC_HZ, SQRT1_2, fs);
     voiceDcR.setHighpass(VOICE_DC_HZ, SQRT1_2, fs);
     lfoFade.fill(1);
     driveF.fill(tanhIntegral(0));
+    mixF.fill(tanhIntegral(0));
+    Rng card(seed ^ 0x6c8e9cf5u);
+    cardTune = card.next();
+    cardCut = card.next();
+    cardEnv = card.next();
+    cardLevel = card.next();
   }
 
   bool active() const { return ampEnv.stage != 0; }
+
+  // How far a per-note LFO shape is through its cycle (0..1).
+  double lfoProgress(int l) const { return lfoProg[l]; }
+
+  // A per-note LFO shape's value: bloom rises 0 -> 1 (eased), drop falls 1 -> 0 (fast first), per note holds its random value.
+  double lfoNow(int l) const {
+    const auto& P = PI_();
+    const double x = lfoProg[l];
+    switch ((int)cur[P.lfo[l].shape]) {
+      case LFO_BLOOM: return 0.5 - 0.5 * std::cos(PI * x);
+      case LFO_DROP: return (1 - x) * (1 - x);
+      default: return lfoRand[l];
+    }
+  }
+
   /** Where GRIND stage i's filter is right now (Hz), or -1 when the stage (or the chain) is off. */
-  double grindFc(int i) const { return grindOn ? grind.stages[i].fcNow : -1; }
-  double grindRes(int i) const { return grind.stages[i].resNow; }
 
   // ---------------------------------------------------------------- notes
 
@@ -93,8 +111,6 @@ class Voice {
     gate = true;
     order = ord;
     tail = 40;
-    // GRIND's note movement starts again on every new note, legato notes too
-    grind.noteOn(&rng);
     if (!retrigger) return;
     velocity = clampd(vel, 0, 1);
     if (!sounding) {
@@ -105,8 +121,6 @@ class Voice {
       subPhase = 0;
       syncPhase = 0;
       osc[1].held.fill(0);
-      fmPhase = 0;
-      pmPrev = 0;
       ladL.reset();
       ladR.reset();
       upL.reset();
@@ -115,12 +129,9 @@ class Voice {
       dnR.reset();
       diodeL.reset();
       diodeR.reset();
-      fm2Phase = 0;
-      fmPrevOut = 0;
-      grind.reset();
     }
     noteCutoffJitter = rng.next();
-    fmEnv = 1;
+    noteEnvJitter = cur[P.poly] > 1.5 ? 1 + 0.12 * cur[P.analog] * rng.next() : 1;
     const double noteHz = 440 * std::pow(2.0, (n + 12 * cur[P.octave] - 69) / 12);
     for (int k = 0; k < 2; k++) {
       if ((int)cur[P.osc[k].wave] == WAVE_STRING) {
@@ -130,10 +141,11 @@ class Voice {
     }
     ampEnv.trigger();
     modEnv.trigger();
-    env2.trigger();
-    env3.trigger();
-    noteRandom = rng.next();
-    for (int l = 0; l < 4; l++) lfoFade[l] = cur[P.lfo[l].fade] > 0 ? 0 : 1;
+    for (int l = 0; l < LFO_COUNT; l++) {
+      lfoFade[l] = cur[P.lfo[l].fade] > 0 ? 0 : 1;
+      lfoProg[l] = 0;
+      lfoRand[l] = rng.next();
+    }
     noteTime = 0;
     vibPhase = 0.5 * (rng.next() + 1);
     vibRate = cur[P.vibRate] * (1 + 0.05 * rng.next());
@@ -143,18 +155,12 @@ class Voice {
     gate = false;
     ampEnv.release();
     modEnv.release();
-    env2.release();
-    env3.release();
   }
 
   void reset() {
-    crushLp.fill(0);
-    tapeLp.fill(0);
     gate = false;
     ampEnv.reset();
     modEnv.reset();
-    env2.reset();
-    env3.reset();
     ladL.reset();
     ladR.reset();
     for (int i = 0; i < 2; i++) {
@@ -165,14 +171,12 @@ class Voice {
       fmtL[i].reset();
       fmtR[i].reset();
     }
-    toneL = toneR = 0;
     upL.reset();
     upR.reset();
     dnL.reset();
     dnR.reset();
     voiceDcL.reset();
     voiceDcR.reset();
-    for (auto& f : split) f.reset();
     diodeL.reset();
     diodeR.reset();
     for (auto& f : notchL) f.reset();
@@ -181,12 +185,11 @@ class Voice {
     for (auto& f : hpR) f.reset();
     lpgL.reset();
     lpgR.reset();
+    semL.reset();
+    semR.reset();
     combL.reset();
     combR.reset();
     for (auto& st : strings) st.reset();
-    for (auto& sh : shepards) sh.reset();
-    crusher.reset();
-    tape.reset();
     subClip.reset();
     midClip.reset();
     subDelay.fill(0);
@@ -205,9 +208,6 @@ class Voice {
       osc[n].voices = (int)cur[P.osc[n].voices];
     }
     filterType = (int)cur[P.fType];
-    distType = (int)cur[P.dType];
-    adaaF[0] = curveIntegral(adaaU[0]);
-    adaaF[1] = curveIntegral(adaaU[1]);
     subWave = (int)cur[P.subWave];
   }
 
@@ -215,12 +215,11 @@ class Voice {
 
   void control(const double* gsrc, double bend, const double* xdst) {
     const auto& P = PI_();
-    ampEnv.set(cur[P.amp[0]], cur[P.amp[1]], cur[P.amp[2]], cur[P.amp[3]], fs, cur[P.ampBend[0]], cur[P.ampBend[1]], cur[P.ampBend[2]]);
-    modEnv.set(cur[P.mod[0]], cur[P.mod[1]], cur[P.mod[2]], cur[P.mod[3]], fs, cur[P.modBend[0]], cur[P.modBend[1]], cur[P.modBend[2]]);
-    env2.set(cur[P.env2[0]], cur[P.env2[1]], cur[P.env2[2]], cur[P.env2[3]], fs / CONTROL_BLOCK);
-    if (env2.stage != 0) env2.tick();
-    env3.set(cur[P.env3[0]], cur[P.env3[1]], cur[P.env3[2]], cur[P.env3[3]], fs / CONTROL_BLOCK);
-    if (env3.stage != 0) env3.tick();
+    // the voice card (poly only, scaled by Analog) and this note's jitter stretch the envelope times
+    const double card = cur[P.poly] > 1.5 ? cur[P.analog] : 0;
+    const double et = (1 + 0.2 * card * cardEnv) * noteEnvJitter;
+    ampEnv.set(cur[P.amp[0]] * et, cur[P.amp[1]] * et, cur[P.amp[2]], cur[P.amp[3]] * et, fs, cur[P.ampBend[0]], cur[P.ampBend[1]], cur[P.ampBend[2]]);
+    modEnv.set(cur[P.mod[0]] * et, cur[P.mod[1]] * et, cur[P.mod[2]], cur[P.mod[3]] * et, fs, cur[P.modBend[0]], cur[P.modBend[1]], cur[P.modBend[2]]);
 
     const double glideMs = cur[P.glide];
     if (glideMs > 0.5) {
@@ -231,24 +230,29 @@ class Voice {
     }
 
     for (int i = 0; i < SRC_COUNT; i++) src[i] = gsrc[i];
-    for (int l = 0; l < 4; l++) {
+    for (int l = 0; l < LFO_COUNT; l++) {
+      const auto& lp = P.lfo[l];
       if (lfoFade[l] < 1) {
-        const double fadeMs = cur[P.lfo[l].fade];
+        const double fadeMs = cur[lp.fade];
         lfoFade[l] = fadeMs > 0 ? std::fmin(1, lfoFade[l] + (CONTROL_BLOCK * 1000) / (fadeMs * fs)) : 1;
       }
+      const int s = SRC_LFO[l];
+      if (lfoPerNote((int)cur[lp.shape])) {
+        // A per-note shape: one cycle from this note's start (Rate or the synced note value), then held.
+        const int sync = (int)cur[lp.sync];
+        double rate = sync > 0 ? bps / SYNC_BEATS[sync] : cur[lp.rate];
+        const double rm = dst[LFO_RATE_DEST[l]];
+        if (rm != 0) rate *= std::pow(2.0, 3 * rm);
+        lfoProg[l] = std::fmin(1, lfoProg[l] + (rate * CONTROL_BLOCK) / fs);
+        src[s] = lfoNow(l) * cur[P.lfoOn[l]] * lfoFade[l];
+      } else {
+        src[s] *= lfoFade[l];
+      }
     }
-    src[SRC_LFO1] *= lfoFade[0];
-    src[SRC_LFO2] *= lfoFade[1];
-    src[SRC_LFO3] *= lfoFade[2];
-    src[SRC_LFO4] *= lfoFade[3];
-    src[SRC_PRODUCT] = src[SRC_LFO1] * src[SRC_LFO2];
     src[SRC_MOD_ENV] = modEnv.level * cur[P.modEnvOn];
     src[SRC_AMP_ENV] = ampEnv.level;
     src[SRC_VEL] = velocity;
     src[SRC_KEY] = clampd((pitch - KEYTRACK_CENTER) / 24, -1, 1);
-    src[SRC_RANDOM] = noteRandom;
-    src[SRC_ENV2] = env2.level * cur[P.env2On];
-    src[SRC_ENV3] = env3.level * cur[P.env3On];
     for (int d = 0; d < DEST_COUNT; d++) dst[d] = xdst[d];
     for (int s = 0; s < SLOT_COUNT; s++) {
       const auto& slot = P.slots[s];
@@ -265,6 +269,7 @@ class Voice {
     }
 
     analog = cur[P.analog];
+    sawBow = analog;
     syncOn = cur[P.osc2Sync] > 0.5;
 
     noteTime += (double)CONTROL_BLOCK / fs;
@@ -281,7 +286,7 @@ class Voice {
 
     // Pitch moves the whole note (the sub too); Osc A+B pitch and vibrato only the two oscillators.
     const double notePitch = pitch + 12 * cur[P.octave] + 2 * bend + mpeBend + 24 * dst[D_PITCH];
-    const double basePitch = notePitch + 24 * dst[D_OSC_PITCH] + vib;
+    const double basePitch = notePitch + 24 * dst[D_OSC_PITCH] + vib + 0.1 * card * cardTune;
 
     for (int n = 0; n < 2; n++) {
       OscState& o = osc[n];
@@ -291,7 +296,7 @@ class Voice {
       while (center < 20 / fs) center *= 2;
       if (n == 0) syncInc = center;
       const int voices = o.voices;
-      const double detune = clampd(cur[op.detune] + 100 * dst[D_DETUNE], 0, 100);
+      const double detune = clampd(cur[op.detune] + 100 * (dst[D_DETUNE] + dst[n == 0 ? D_OSC1_DETUNE : D_OSC2_DETUNE]), 0, 100);
       const double spread = cur[op.spread];
       if (voices == 1) {
         o.inc[0] = center;
@@ -307,7 +312,8 @@ class Voice {
         for (int j = 0; j < voices; j++) {
           if (rng.next() > 0.996) o.driftTarget[j] = rng.next();
           o.drift[j] += (o.driftTarget[j] - o.drift[j]) * 0.003;
-          const double cents = analog * (j == 0 ? 2.5 : 7) * o.drift[j];
+          const double a4 = analog * analog * analog * analog;
+          const double cents = (j == 0 ? 2.5 * analog + 37.5 * a4 : 7 * analog + 53 * a4) * o.drift[j];
           o.inc[j] *= 1 + cents * 0.000577623;
         }
       }
@@ -322,7 +328,7 @@ class Voice {
         o.lastVoices = voices;
       }
       const double level = clampd(cur[op.level] + dst[n == 0 ? D_OSC1_LEVEL : D_OSC2_LEVEL], 0, 1);
-      if (o.wave == WAVE_STRING || o.wave == WAVE_SHEPARD) {
+      if (o.wave == WAVE_STRING) {
         o.gain = level;
         strPeriod[n] = 1 / center;
         const double t60 = 0.08 * std::pow(100.0, cur[P.strDecay]);
@@ -330,14 +336,16 @@ class Voice {
       } else {
         o.gain = level / std::sqrt((double)voices);
       }
-      o.pw = clampd(cur[op.pw] + 0.45 * dst[n == 0 ? D_OSC1_PW : D_OSC2_PW], 0.05, 0.95);
+      // A / B shape (and A+B shape) move the Shape knob: pulse width, or the wavetable position below.
+      const double shape = dst[n == 0 ? D_OSC1_PW : D_OSC2_PW] + dst[D_SHAPE];
+      o.pw = clampd(cur[op.pw] + 0.45 * shape + 0.04 * analog * o.drift[0], 0.05, 0.95);
       double wt;
       if (o.wave == WAVE_SINE) wt = 0;
       else if (o.wave == WAVE_TRI) wt = (double)FRAMES_PER_SEGMENT / (FRAME_COUNT - 1);
-      else wt = clampd(cur[op.wt] + dst[n == 0 ? D_OSC1_WT : D_OSC2_WT], 0, 1);
+      else wt = clampd(cur[op.wt] + dst[n == 0 ? D_OSC1_WT : D_OSC2_WT] + shape, 0, 1);
       const double fpos = wt * (FRAME_COUNT - 1);
       const int fa = std::min(FRAME_COUNT - 2, (int)std::floor(fpos));
-      const int mip = mipForIncrement(o.inc[voices - 1] * (n == 0 && fmActive ? 2 : 1));
+      const int mip = mipForIncrement(o.inc[voices - 1]);
       o.baseA = (fa * MIP_LEVELS + mip) * TABLE_SIZE;
       o.baseB = ((fa + 1) * MIP_LEVELS + mip) * TABLE_SIZE;
       o.frac = fpos - fa;
@@ -375,20 +383,6 @@ class Voice {
       subF.set(sk.kind, sk.p24, hz, fs);
     }
     strTone = cur[P.strTone];
-    shepRate = (cur[P.shepRate] * 0.4) / fs;
-
-    const double fmAmt = clampd(cur[P.fmAmount] + dst[D_FM], 0, 1);
-    const double fm2 = clampd(cur[P.fm2Amount] + dst[D_FM2], 0, 1);
-    fmIndex = fmAmt * fmAmt * 1.3;
-    fmPunchIdx = cur[P.fmPunch] * 2;
-    fm2Index = fm2 * fm2 * 1.3;
-    fmFbAmt = cur[P.fmFb] * 0.3;
-    fmAlgo = (int)cur[P.fmAlgo];
-    fmEnvCoef = std::exp(-4.6 / ((cur[P.fmDecay] / 1000) * fs));
-    fmActive = fmIndex > 0 || fmPunchIdx > 0 || fm2Index > 0;
-    const double carrier = toInc(basePitch + cur[P.osc[0].semi]);
-    fmInc = std::fmin(0.45, carrier * cur[P.fmRatio]);
-    fm2Inc = std::fmin(0.45, carrier * cur[P.fm2Ratio]);
 
     double sInc = toInc(notePitch + 12 * cur[P.subOct] + 24 * dst[D_SUB_PITCH]);
     while (sInc < 20 / fs) sInc *= 2;
@@ -397,6 +391,10 @@ class Voice {
     subLevel = clampd(cur[P.subLevel] + dst[D_SUB], 0, 1) * SUB_GAIN;
     noiseLevel = clampd(cur[P.noise] + dst[D_NOISE], 0, 1) * 0.5;
 
+    // mixer drive (see voice.ts)
+    const double md = cur[P.mixDrive];
+    mixGain = 1 + 8 * md;
+    mixComp = 1 / std::sqrt(mixGain);
     const double drive = clampd(cur[P.drive] + dst[D_DRIVE], 0, 1);
     driveMix = std::fmin(1, drive * 4);
     driveGain = 1 + 15 * drive * drive;
@@ -405,10 +403,8 @@ class Voice {
     accentAmt = cur[P.accent] * clampd((velocity - 0.6) / 0.4, 0, 1);
     const double res = clampd(cur[P.res] + dst[D_RES] + 0.15 * accentAmt, 0, 1);
     const double fsOs = fs * OS;
-    grindOn = cur[P.grindOn] > 0.5;
-    if (grindOn) grind.control(cur, beatPos, bps, (pitch + 12 * cur[P.octave] - KEYTRACK_CENTER) / 12, fs, fsOs, CONTROL_BLOCK * OS, rng);
     double octs = (cur[P.keytrack] * (pitch + 12 * cur[P.octave] - KEYTRACK_CENTER)) / 12 +
-                  6 * cur[P.envAmt] * cur[P.modEnvOn] * (1 + 1.5 * accentAmt) * modEnv.level + 6 * dst[D_CUTOFF] + 0.12 * analog * noteCutoffJitter;
+                  6 * cur[P.envAmt] * cur[P.modEnvOn] * (1 + 1.5 * accentAmt) * modEnv.level + 6 * dst[D_CUTOFF] + 0.12 * analog * noteCutoffJitter + 0.3 * card * cardCut;
     if (filterType == FILTER_LPG) octs += 1.5 * std::log2(std::fmax(ampEnv.level, 0.002));
     const double fc = clampd(cur[P.cutoff] * std::pow(2.0, octs), 20, std::fmin(20000, fs * 0.45));
     const double gTarget = std::tan((PI * fc) / fsOs);
@@ -433,6 +429,8 @@ class Voice {
       k = 1.4 - 1.1 * res;
     } else if (filterType == FILTER_HP) {
       k = 0.765 * (1 - res) + 0.05;
+    } else if (filterType == FILTER_SEM) {
+      k = 1.9 * (1 - res) + 0.12;
     } else {
       const double v = clampd(cur[P.vowel] + dst[D_VOWEL], 0, 1) * 4;
       const int vi = std::min(3, (int)std::floor(v));
@@ -445,60 +443,19 @@ class Voice {
       fmtK = 1 / (3 + 15 * res);
     }
 
-    const double dDrive = clampd(cur[P.dDrive] + dst[D_DIST_DRIVE], 0, 1);
-    const double dMix = clampd(cur[P.dMix] + dst[D_DIST_MIX], 0, 1);
-    distAmt = std::fmin(1, dDrive * 5) * dMix;
-    distGain = 1 + 49 * dDrive * dDrive;
-    if (distType == DIST_FUZZ) {
-      const double b = FUZZ_BIAS_REL * distGain;
-      if (b != fuzzBias) {
-        fuzzBias = b;
-        fuzzOffset = fuzz(b);
-        adaaF[0] = curveIntegral(adaaU[0]);
-        adaaF[1] = curveIntegral(adaaU[1]);
-      }
-    }
-    const double dTone = clampd(cur[P.dTone] + dst[D_DIST_TONE], 0, 1);
-    if (dTone != lastTone) {
-      const double toneHz = 300 * std::pow(20000.0 / 300, dTone);
-      toneCoef = 1 - std::exp((-TWO_PI * std::fmin(toneHz, fs * 0.45)) / fsOs);
-      lastTone = dTone;
-    }
-    if (cur[P.dSplit] != lastSplit) {
-      const double sp = cur[P.dSplit];
-      splitG = sp > 22 ? std::tan((PI * sp) / fsOs) : 0;
-      if (splitG > 0)
-        for (auto& f : split) f.setCoefs(splitG, SQRT2);
-      lastSplit = sp;
-    }
-
-    crushMix = clampd(cur[P.crushMix] + dst[D_CRUSH], 0, 1);
-    crushQ = std::pow(2.0, cur[P.crushBits] - 1);
-    crushRate = cur[P.crushRate];
-    crushLc = cur[P.crushLowcut] > 21 ? std::exp((-TWO_PI * cur[P.crushLowcut]) / fs) : 0;
-    tapeLc = cur[P.tapeLowcut] > 21 ? std::exp((-TWO_PI * cur[P.tapeLowcut]) / fs) : 0;
-
-    tapeWow = clampd(cur[P.tapeWow] + dst[D_TAPE_WOW], 0, 1);
-    tapeOn = cur[P.tapeDrive] > 0 || tapeWow > 0 || cur[P.tapeAge] > 0;
-    if (cur[P.tapeAge] != lastTapeAge) {
-      const double hz = 20000 * std::pow(0.15, cur[P.tapeAge]);
-      tapeLpCoef = 1 - std::exp((-TWO_PI * std::fmin(hz, fs * 0.45)) / fs);
-      lastTapeAge = cur[P.tapeAge];
-    }
 
     subClip.setDrive(cur[P.subClip]);
     midClip.setDrive(cur[P.midClip]);
 
     const double ampTarget = clampd(1 + dst[D_AMP], 0, 2);
     ampModStep = (ampTarget - ampMod) / CONTROL_BLOCK;
-    velGain = (1 - cur[P.velocity] * (1 - velocity)) * (1 + 0.4 * accentAmt);
+    velGain = (1 - cur[P.velocity] * (1 - velocity)) * (1 + 0.4 * accentAmt) * (1 + 0.12 * card * cardLevel);
   }
 
   // ------------------------------------------------------------ audio rate
 
   /** One stereo sample of this voice (out[0], out[1]) and its clean sub (out[2]). */
   void render(double duck, double* out) {
-    const auto& P = PI_();
     double l = 0, r = 0;
     ampMod += ampModStep;
     double* os = osOut;
@@ -509,42 +466,18 @@ class Voice {
       const double env = ampEnv.tick();
       modEnv.tick();
 
-      double dpm = 0;
-      if (fmActive) {
-        fmEnv *= fmEnvCoef;
-        fm2Phase += fm2Inc;
-        if (fm2Phase >= 1) fm2Phase -= 1;
-        const double op2 = fm2Index > 0 ? fm2Index * std::sin(TWO_PI * fm2Phase) : 0;
-        fmPhase += fmInc;
-        if (fmPhase >= 1) fmPhase -= 1;
-        const bool stack = fmAlgo == 0;
-        const double op1 = std::sin(TWO_PI * (fmPhase + (stack ? op2 : 0) + fmFbAmt * fmPrevOut));
-        fmPrevOut = op1;
-        const double pm = (fmIndex + fmPunchIdx * fmEnv) * op1 + (stack ? 0 : op2);
-        dpm = pm - pmPrev;
-        pmPrev = pm;
-      } else if (pmPrev != 0) {
-        dpm = -pmPrev;
-        pmPrev = 0;
-      }
-
       if (o1.gain > 0 && o1.wave >= WAVE_STRING) {
-        const double s = specialOsc(0, o1) * o1.gain;
+        const double s = specialOsc(0) * o1.gain;
         l += s;
         r += s;
       } else if (o1.gain > 0) {
         for (int j = 0; j < o1.voices; j++) {
-          double ph = o1.phase[j] + o1.inc[j] + dpm;
+          double ph = o1.phase[j] + o1.inc[j];
           ph -= std::floor(ph);
           o1.phase[j] = ph;
           const double s = oscSample(o1, ph) * o1.gain;
           l += s * o1.panL[j];
           r += s * o1.panR[j];
-        }
-      } else if (dpm != 0) {
-        for (int j = 0; j < o1.voices; j++) {
-          const double ph = o1.phase[j] + o1.inc[j] + dpm;
-          o1.phase[j] = ph - std::floor(ph);
         }
       }
       if (oscF[0].active) {
@@ -555,7 +488,7 @@ class Voice {
       const double preL = l, preR = r;
       if (sepB) l = r = 0;
       if (o2.gain > 0 && o2.wave >= WAVE_STRING) {
-        const double s = specialOsc(1, o2) * o2.gain;
+        const double s = specialOsc(1) * o2.gain;
         l += s;
         r += s;
       } else if (o2.gain > 0 && syncOn) {
@@ -679,40 +612,6 @@ class Voice {
       l = dnL.process(os[0], os[2]);
       r = dnR.process(os[1], os[3]);
 
-      if (crushMix > 0) {
-        double lowL = 0, lowR = 0;
-        if (crushLc > 0) {
-          const double c = crushLc;
-          auto& s = crushLp;
-          s[0] = l + c * (s[0] - l);
-          s[1] = s[0] + c * (s[1] - s[0]);
-          s[2] = r + c * (s[2] - r);
-          s[3] = s[2] + c * (s[3] - s[2]);
-          lowL = s[1];
-          lowR = s[3];
-        }
-        crusher.process(l - lowL, r - lowR, crushMix, crushQ, crushRate, tmp);
-        l = lowL + tmp[0];
-        r = lowR + tmp[1];
-      }
-
-      if (tapeOn) {
-        double lowL = 0, lowR = 0;
-        if (tapeLc > 0) {
-          const double c = tapeLc;
-          auto& s = tapeLp;
-          s[0] = l + c * (s[0] - l);
-          s[1] = s[0] + c * (s[1] - s[0]);
-          s[2] = r + c * (s[2] - r);
-          s[3] = s[2] + c * (s[3] - s[2]);
-          lowL = s[1];
-          lowR = s[3];
-        }
-        tape.process(l - lowL, r - lowR, cur[P.tapeDrive], tapeWow, cur[P.tapeAge], tapeLpCoef, env, tmp);
-        l = lowL + tmp[0];
-        r = lowR + tmp[1];
-      }
-
       if (postCut.active) {
         l = postCut.process(l, 0);
         r = postCut.process(r, 1);
@@ -762,9 +661,17 @@ class Voice {
     return a + (table[base + ((i + 1) & TABLE_MASK)] - a) * f;
   }
 
-  double specialOsc(int n, const OscState& o) {
-    if (o.wave == WAVE_STRING) return strings[n].process(strPeriod[n], strTone, strGain[n]) * 1.4;
-    return shepards[n].process(o.inc[0], shepRate);
+  double specialOsc(int n) {
+    return strings[n].process(strPeriod[n], strTone, strGain[n]) * 1.4;
+  }
+
+  // the analog-bowed saw (see voice.ts)
+  double saw(int base, double ph) const {
+    const double s = readTable(base, ph);
+    if (sawBow == 0) return s;
+    double r = ph + 0.5;
+    if (r >= 1) r -= 1;
+    return s + sawBow * r * (1 - r);
   }
 
   double oscSample(const OscState& o, double ph) const {
@@ -772,15 +679,15 @@ class Voice {
       case WAVE_PWMSAW: {
         double p2 = ph - o.pw;
         if (p2 < 0) p2 += 1;
-        const double saw = readTable(o.baseSaw, ph);
-        return 0.6 * saw + 0.35 * (saw - readTable(o.baseSaw, p2));
+        const double sw = saw(o.baseSaw, ph);
+        return 0.6 * sw + 0.35 * (sw - saw(o.baseSaw, p2));
       }
       case WAVE_SAW:
-        return readTable(o.baseSaw, ph);
+        return saw(o.baseSaw, ph);
       case WAVE_PULSE: {
         double p2 = ph - o.pw;
         if (p2 < 0) p2 += 1;
-        return 0.5 * (readTable(o.baseSaw, ph) - readTable(o.baseSaw, p2));
+        return 0.5 * (saw(o.baseSaw, ph) - saw(o.baseSaw, p2));
       }
       default: {
         const double pos = ph * TABLE_SIZE;
@@ -795,6 +702,17 @@ class Voice {
     }
   }
 
+  double mixShape(double x, int ch) {
+    const double u = mixGain * x;
+    const double up = mixU[ch];
+    const double fu = tanhIntegral(u);
+    const double du = u - up;
+    const double y = std::fabs(du) > 1e-5 ? (fu - mixF[ch]) / du : fastTanh(0.5 * (u + up));
+    mixU[ch] = u;
+    mixF[ch] = fu;
+    return y * mixComp;
+  }
+
   double driveShape(double x, int ch) {
     const double u = driveGain * x;
     const double up = driveU[ch];
@@ -806,42 +724,10 @@ class Voice {
     return y;
   }
 
-  double curve(double u) const {
-    switch (distType) {
-      case DIST_SOFT: return fastTanh(u);
-      case DIST_HARD: return u > 1 ? 1 : u < -1 ? -1 : u;
-      case DIST_FOLD: return std::sin(HALF_PI * u);
-      case DIST_FUZZ: return fuzz(u + fuzzBias) - fuzzOffset;
-      default: return fastTanh(u + TUBE_BIAS) - TUBE_OFFSET;
-    }
-  }
-
-  double curveIntegral(double u) const {
-    switch (distType) {
-      case DIST_SOFT: return tanhIntegral(u);
-      case DIST_HARD: return u > 1 ? u - 0.5 : u < -1 ? -u - 0.5 : 0.5 * u * u;
-      case DIST_FOLD: return -std::cos(HALF_PI * u) / HALF_PI;
-      case DIST_FUZZ: return fuzzIntegral(u + fuzzBias) - fuzzOffset * u;
-      default: return tanhIntegral(u + TUBE_BIAS) - TUBE_OFFSET * u;
-    }
-  }
-
-  double shape(double x, int ch) {
-    const double u = distGain * x;
-    const double up = adaaU[ch];
-    const double fu = curveIntegral(u);
-    const double du = u - up;
-    const double y = std::fabs(du) > 1e-5 ? (fu - adaaF[ch]) / du : curve(0.5 * (u + up));
-    adaaU[ch] = u;
-    adaaF[ch] = fu;
-    return y;
-  }
-
   void nonlinear(double l, double r, int slot, double bl, double br) {
-    if (grindOn) {
-      grind.process(l, r);
-      l = grind.l;
-      r = grind.r;
+    if (mixGain > 1) {
+      l = mixShape(l, 0);
+      r = mixShape(r, 1);
     }
     if (driveMix > 0) {
       const double dc = driveComp, dm = driveMix;
@@ -856,35 +742,40 @@ class Voice {
       l = ladL.processG(l, G, k);
       r = ladR.processG(r, G, k);
     } else if (filterType == FILTER_BP) {
-      bpL[0].process(l, gg, k);
-      bpL[1].process(bpL[0].bp * k, gg, k);
+      bpL[0].processSat(l, gg, k);
+      bpL[1].processSat(bpL[0].bp * k, gg, k);
       l = bpL[1].bp * k * 1.5;
-      bpR[0].process(r, gg, k);
-      bpR[1].process(bpR[0].bp * k, gg, k);
+      bpR[0].processSat(r, gg, k);
+      bpR[1].processSat(bpR[0].bp * k, gg, k);
       r = bpR[1].bp * k * 1.5;
     } else if (filterType == FILTER_DIODE) {
       l = diodeL.process(l, gg, k) * 1.4;
       r = diodeR.process(r, gg, k) * 1.4;
     } else if (filterType == FILTER_NOTCH) {
-      notchL[0].process(l, gg, k);
-      notchL[1].process(notchL[0].lp + notchL[0].hp, gg, k);
+      notchL[0].processSat(l, gg, k);
+      notchL[1].processSat(notchL[0].lp + notchL[0].hp, gg, k);
       l = notchL[1].lp + notchL[1].hp;
-      notchR[0].process(r, gg, k);
-      notchR[1].process(notchR[0].lp + notchR[0].hp, gg, k);
+      notchR[0].processSat(r, gg, k);
+      notchR[1].processSat(notchR[0].lp + notchR[0].hp, gg, k);
       r = notchR[1].lp + notchR[1].hp;
     } else if (filterType == FILTER_COMB) {
       l = combL.process(l, combDelay, combFb);
       r = combR.process(r, combDelay, combFb);
     } else if (filterType == FILTER_HP) {
-      hpL[0].process(l, gg, 1.848);
-      hpL[1].process(hpL[0].hp, gg, k);
+      hpL[0].processSat(l, gg, 1.848);
+      hpL[1].processSat(hpL[0].hp, gg, k);
       l = hpL[1].hp;
-      hpR[0].process(r, gg, 1.848);
-      hpR[1].process(hpR[0].hp, gg, k);
+      hpR[0].processSat(r, gg, 1.848);
+      hpR[1].processSat(hpR[0].hp, gg, k);
       r = hpR[1].hp;
+    } else if (filterType == FILTER_SEM) {
+      semL.processSat(l, gg, k);
+      semR.processSat(r, gg, k);
+      l = semL.lp;
+      r = semR.lp;
     } else if (filterType == FILTER_LPG) {
-      lpgL.process(l, gg, k);
-      lpgR.process(r, gg, k);
+      lpgL.processSat(l, gg, k);
+      lpgR.processSat(r, gg, k);
       l = lpgL.lp;
       r = lpgR.lp;
     } else {
@@ -909,26 +800,6 @@ class Voice {
       l += bl * POST_FILTER_GAIN;
       r += br * POST_FILTER_GAIN;
     }
-    if (distAmt > 0) {
-      double lowL = 0, lowR = 0, hl = l, hr = r;
-      if (splitG > 0) {
-        auto& sp = split;
-        sp[0].processFixed(l);
-        sp[1].processFixed(sp[0].lp);
-        sp[2].processFixed(sp[0].hp);
-        lowL = sp[1].lp;
-        hl = sp[2].hp;
-        sp[3].processFixed(r);
-        sp[4].processFixed(sp[3].lp);
-        sp[5].processFixed(sp[3].hp);
-        lowR = sp[4].lp;
-        hr = sp[5].hp;
-      }
-      toneL += (shape(hl, 0) - toneL) * toneCoef;
-      toneR += (shape(hr, 1) - toneR) * toneCoef;
-      l = lowL + hl + (toneL - hl) * distAmt;
-      r = lowR + hr + (toneR - hr) * distAmt;
-    }
     osOut[slot] = l;
     osOut[slot + 1] = r;
   }
@@ -937,29 +808,20 @@ class Voice {
   const double* cur;
   const float* table;
   Rng rng;
-  Grind grind;
-  bool grindOn = false;
   const double* dstMask;
 
   bool hasPlayed = false;
-  double noteRandom = 0;
   double subMix = 1, subRamp = 0;
 
-  Envelope modEnv, env2, env3;
+  Envelope modEnv;
   std::array<double, SRC_COUNT> src{};
-  std::array<double, 4> lfoFade{};
+  std::array<double, LFO_COUNT> lfoFade{}, lfoProg{}, lfoRand{};
 
   OscState osc[2];
-  double fmPhase = 0, fmInc = 0, fmIndex = 0, pmPrev = 0, fm2Phase = 0, fm2Inc = 0, fm2Index = 0, fmFbAmt = 0, fmPrevOut = 0;
-  double fmEnv = 0, fmEnvCoef = 0.99, fmPunchIdx = 0;
-  int fmAlgo = 0;
-  bool fmActive = false;
   DiodeLadder diodeL, diodeR;
   Comb combL, combR;
   KarplusString strings[2];
   double strPeriod[2] = {}, strGain[2] = {}, strTone = 0.5;
-  Shepard shepards[2];
-  double shepRate = 0;
   double noteTime = 0, vibPhase = 0, vibRate = 5, accentAmt = 0, subPhase = 0;
   double syncPhase = 0, syncInc = 0;
   bool syncOn = false;
@@ -967,7 +829,6 @@ class Voice {
   int subDelayPos = 0;
   double subInc = 0, subLevel = 0;
   int subWave = 0;
-  Tape tape;
   Clipper subClip, midClip;
   double clipOut[2] = {};
   SlotFilter<2> oscF[2];
@@ -977,11 +838,13 @@ class Voice {
   Upsampler2x upBL, upBR;
   double fMix = 1, noiseLevel = 0;
 
+  double mixGain = 1, mixComp = 1;
+  std::array<double, 2> mixU{}, mixF{};
   double driveMix = 0, driveGain = 1, driveComp = 1;
   int filterType = FILTER_LP;
   double g = 0.1, gStep = 0, gPrevTarget = -1, k = 0;
   Ladder ladL, ladR;
-  Svf hpL[2], hpR[2], notchL[2], notchR[2], lpgL, lpgR;
+  Svf hpL[2], hpR[2], notchL[2], notchR[2], lpgL, lpgR, semL, semR;
   double combDelay = 100, combFb = 0;
   Svf bpL[2], bpR[2], fmtL[3], fmtR[3];
   double fmtG[3] = {}, fmtK = 0.2;
@@ -990,22 +853,14 @@ class Voice {
   Downsampler2x dnL, dnR;
   double osOut[4] = {};
   Biquad voiceDcL, voiceDcR;
-  double analog = 0, noteCutoffJitter = 0;
+  double analog = 0, noteCutoffJitter = 0, sawBow = 0;
+  // the voice card (fixed per voice) and this note's envelope jitter (see voice.ts)
+  double cardTune = 0, cardCut = 0, cardEnv = 0, cardLevel = 0, noteEnvJitter = 1;
 
-  int distType = DIST_SOFT;
-  double distGain = 1, fuzzBias = FUZZ_BIAS_REL, fuzzOffset = fuzz(FUZZ_BIAS_REL), distAmt = 0, toneCoef = 1, toneL = 0, toneR = 0, lastTone = -1;
-  double splitG = 0, lastSplit = NAN;
-  std::array<double, 2> adaaU{}, driveU{}, driveF{}, adaaF{};
-  Svf split[6];
+  std::array<double, 2> driveU{}, driveF{};
 
-  Crusher crusher;
-  double crushQ = 128, crushRate = 1, crushMix = 0, crushLc = 0, tapeLc = 0;
-  std::array<double, 4> crushLp{}, tapeLp{};
-  double tapeWow = 0, lastTapeAge = -1;
-  bool tapeOn = false;
 
   double ampMod = 1, ampModStep = 0, velGain = 1;
-  double tmp[2] = {};
 };
 
 }  // namespace lt

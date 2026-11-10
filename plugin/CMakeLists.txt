@@ -25,7 +25,7 @@ juce_add_plugin(LowTalk
   PLUGIN_MANUFACTURER_CODE Lwtk
   PLUGIN_CODE Lwt1
   FORMATS ${LOWTALK_FORMATS}
-  PRODUCT_NAME "Low Talk"
+  PRODUCT_NAME "RUIN-1"
   IS_SYNTH TRUE
   NEEDS_MIDI_INPUT TRUE
   NEEDS_MIDI_OUTPUT FALSE
@@ -68,6 +68,6 @@ endif()
 add_executable(lowtalk_render tools/render_cli.cpp)
 target_include_directories(lowtalk_render PRIVATE engine)
 
-# Dev test: the plugin-only engine additions (MPE, host-locked Wobbler clock).
+# Dev test: the plugin-only engine additions (MPE).
 add_executable(lowtalk_engine_test tools/engine_test.cpp)
 target_include_directories(lowtalk_engine_test PRIVATE engine)

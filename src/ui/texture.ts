@@ -42,8 +42,8 @@ function pixels(w: number, h: number, f: (x: number, y: number) => [number, numb
  * grain, faint horizontal wear, dust specks, a few scratches, darker towards the edges and an
  * uneven, slightly lit rim.
  */
-export function panelTexture(): string {
-  const w = 600, h = 460, r = rng(5);
+export function panelTexture(w = 600, h = 460, seed = 5): string {
+  const r = rng(seed);
   const m1 = valueNoise(70, r), m2 = valueNoise(18, r), row = valueNoise(3, r), rim = valueNoise(9, r);
   const cv = pixels(w, h, (x, y) => {
     const e = Math.min(x, y, w - 1 - x, h - 1 - y);
@@ -53,12 +53,13 @@ export function panelTexture(): string {
     return [Math.max(0, l), 255];
   });
   const g = cv.getContext('2d')!;
-  for (let i = 0; i < 260; i++) {
+  const area = (w * h) / (600 * 460);
+  for (let i = 0; i < 260 * area; i++) {
     const x = r() * w, y = r() * h, light = r() < 0.7;
     g.fillStyle = light ? `rgba(225,225,228,${0.08 + r() * r() * 0.45})` : `rgba(0,0,0,${0.4 + r() * 0.4})`;
     g.fillRect(x, y, 1 + (r() < 0.15 ? 1 : 0), 1 + (r() < 0.15 ? 1 : 0));
   }
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < 16 * area; i++) {
     const x = r() * w, y = r() * h, ang = (r() - 0.5) * 0.5 + (r() < 0.3 ? Math.PI / 2 : 0), len = 8 + r() * r() * 70;
     g.strokeStyle = `rgba(220,220,225,${0.025 + r() * 0.05})`;
     g.lineWidth = 0.6 + r() * 0.6;

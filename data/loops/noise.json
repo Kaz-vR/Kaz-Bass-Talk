@@ -1,0 +1,57 @@
+{
+  "id": "noise",
+  "name": "Noise phrase",
+  "description": "Eight two-beat notes at 100 BPM around C3, so gates, ratchets and hits are heard on every note and KEY'd noise moves with the line.",
+  "bpm": 100,
+  "length_beats": 16,
+  "notes": [
+    {
+      "start": 0,
+      "dur": 1.9,
+      "note": 48,
+      "vel": 0.85
+    },
+    {
+      "start": 2,
+      "dur": 1.9,
+      "note": 48,
+      "vel": 0.85
+    },
+    {
+      "start": 4,
+      "dur": 1.9,
+      "note": 55,
+      "vel": 0.85
+    },
+    {
+      "start": 6,
+      "dur": 1.9,
+      "note": 48,
+      "vel": 0.85
+    },
+    {
+      "start": 8,
+      "dur": 1.9,
+      "note": 51,
+      "vel": 0.85
+    },
+    {
+      "start": 10,
+      "dur": 1.9,
+      "note": 48,
+      "vel": 0.85
+    },
+    {
+      "start": 12,
+      "dur": 1.9,
+      "note": 55,
+      "vel": 0.85
+    },
+    {
+      "start": 14,
+      "dur": 1.9,
+      "note": 53,
+      "vel": 0.85
+    }
+  ]
+}

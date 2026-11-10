@@ -55,11 +55,11 @@ const between = (r: Rand, lo: number, hi: number) => lo + (hi - lo) * r();
 
 /** Boxes a roll can swap in from another preset. */
 const SWAP_GROUPS = [
-  'osc1', 'osc2', 'fm', 'string', 'sub', 'noise', 'texture', 'drive', 'filter', 'dist', 'crush', 'tape', 'amp_env', 'mod_env',
-  'env2', 'env3', 'vibrato', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'mod', 'fx', 'eq',
+  'osc1', 'osc2', 'string', 'sub', 'noise', 'texture', 'drive', 'filter', 'dist', 'crush', 'tape', 'amp_env', 'mod_env',
+  'vibrato', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo5', 'lfo6', 'mod', 'fx', 'eq',
 ];
 /** Never randomized: level and the low-end crossover are set by the leveler and the safety rules. */
-const FIXED = new Set(['output.gain', 'output.crossover', 'wheel.move']);
+const FIXED = new Set(['output.gain', 'wheel.move']);
 const byGroup = new Map<string, ParamDef[]>();
 for (const p of params) {
   if (!byGroup.has(p.group)) byGroup.set(p.group, []);
@@ -95,40 +95,43 @@ interface Idea {
 
 /** Free mod slot (amount 0), or the last one. */
 function freeSlot(p: Patch): number {
-  for (let n = 1; n <= 12; n++) if (!p[`mod${n}.amount`]) return n;
-  return 12;
+  for (let n = 1; n <= 5; n++) if (!p[`mod${n}.amount`]) return n;
+  return 5;
+}
+
+/** An LFO no matrix row uses (the last one if all are), set up with this shape and rate and switched on. */
+function freeLfo(p: Patch, shape: string, rate: number): string {
+  let pickN = 6;
+  for (let n = 6; n >= 1; n--) {
+    let used = false;
+    for (let m = 1; m <= 9 && !used; m++) used = p[`mod${m}.source`] === `lfo${n}` && !!p[`mod${m}.amount`];
+    if (!used) {
+      pickN = n;
+      break;
+    }
+  }
+  p[`lfo${pickN}.shape`] = shape;
+  p[`lfo${pickN}.rate`] = rate;
+  p[`lfo${pickN}.sync`] = 'free';
+  p[`lfo${pickN}.fade`] = 0;
+  p[`lfo${pickN}.on`] = true;
+  return `lfo${pickN}`;
 }
 
 const IDEAS: Idea[] = [
-  { groups: ['fm'], text: 'an inharmonic FM edge', apply: (p, r) => {
-    p['fm.amount'] = between(r, 0.15, 0.45);
-    p['fm.ratio'] = pick(r, [1.41, 2.76, 3.7, 0.71, 5.19, 1.13]);
-  } },
   { groups: ['filter'], text: 'a comb-filter resonance', apply: (p, r) => {
     p['filter.type'] = 'comb';
     p['filter.cutoff'] = between(r, 90, 400);
     p['filter.resonance'] = between(r, 0.3, 0.55);
-  } },
-  { groups: ['filter', 'mod'], text: 'a talking formant filter', apply: (p, r) => {
-    p['filter.type'] = 'formant';
-    p['filter.vowel'] = r();
-    const n = freeSlot(p);
-    p[`mod${n}.source`] = pick(r, ['lfo1', 'lfo2', 'drift_slow', 'env2']);
-    p[`mod${n}.dest`] = 'filter_vowel';
-    p[`mod${n}.amount`] = between(r, 0.15, 0.4);
   } },
   { groups: ['dist'], text: 'folded distortion', apply: (p, r) => {
     p['dist.type'] = 'fold';
     p['dist.drive'] = between(r, 0.3, 0.65);
     p['dist.mix'] = between(r, 0.4, 0.8);
   } },
-  { groups: ['env3', 'mod'], text: 'a pitch drop on every note', apply: (p, r) => {
-    p['env3.attack'] = 0;
-    p['env3.decay'] = between(r, 40, 400);
-    p['env3.sustain'] = 0;
-    p['env3.release'] = p['env3.decay'];
+  { groups: ['mod'], text: 'a pitch drop on every note', apply: (p, r) => {
     const n = freeSlot(p);
-    p[`mod${n}.source`] = 'env3';
+    p[`mod${n}.source`] = freeLfo(p, 'drop', 1000 / between(r, 40, 400));
     p[`mod${n}.dest`] = 'pitch';
     p[`mod${n}.amount`] = (pick(r, [-1, 1]) * between(r, 7, 24)) / 24;
     p[`mod${n}.on`] = true;
@@ -146,29 +149,24 @@ const IDEAS: Idea[] = [
     p['crush.bits'] = Math.round(between(r, 4, 7));
     p['crush.rate'] = Math.round(between(r, 3, 10));
   } },
-  { groups: ['osc2'], text: 'an endless gliding layer', apply: (p, r) => {
-    p['osc2.wave'] = 'shepard';
-    p['shepard.rate'] = pick(r, [-1, 1]) * between(r, 0.1, 0.5);
-    p['osc2.level'] = between(r, 0.2, 0.4);
-  } },
   { groups: ['osc1', 'string'], text: 'a plucked-string body', apply: (p, r) => {
     p['osc1.wave'] = 'string';
     p['string.tone'] = r();
     p['string.decay'] = between(r, 0.3, 0.9);
   } },
-  { groups: ['amp_env', 'env2', 'mod'], text: 'a reversed swell', apply: (p, r) => {
+  { groups: ['amp_env', 'mod'], text: 'a reversed swell', apply: (p, r) => {
     p['amp_env.attack'] = between(r, 400, 2500);
-    p['env2.attack'] = between(r, 800, 3000);
-    p['env2.sustain'] = 1;
     const n = freeSlot(p);
-    p[`mod${n}.source`] = 'env2';
+    p[`mod${n}.source`] = freeLfo(p, 'bloom', 1000 / between(r, 800, 3000));
     p[`mod${n}.dest`] = 'filter_cutoff';
     p[`mod${n}.amount`] = between(r, 0.15, 0.35);
   } },
   { groups: ['mod'], text: 'an unusual modulation', apply: (p, r) => {
     const n = freeSlot(p);
-    p[`mod${n}.source`] = pick(r, ['velocity', 'env2', 'drift_slow', 'random', 'keytrack', 'lfo_product']);
-    p[`mod${n}.dest`] = pick(r, ['dist_drive', 'fm_amount', 'filter_resonance', 'osc2_pitch', 'crush_mix', 'delay_time', 'unison_detune', 'tape_wow']);
+    const kind = pick(r, ['velocity', 'bloom', 'slow drift', 'random', 'drift', 'keytrack']);
+    const rate = kind === 'drift' ? 1 : kind === 'slow drift' ? 0.25 : between(r, 0.1, 0.6);
+    p[`mod${n}.source`] = kind === 'velocity' || kind === 'keytrack' ? kind : freeLfo(p, kind, rate);
+    p[`mod${n}.dest`] = pick(r, ['dist_drive', 'filter_resonance', 'osc2_pitch', 'osc12_shape', 'osc1_detune', 'osc2_detune', 'unison_detune', 'dist_tone']);
     p[`mod${n}.amount`] = pick(r, [-1, 1]) * between(r, 0.1, 0.35);
   } },
   { groups: ['filter', 'mod'], text: 'a band-pass sweep', apply: (p, r) => {
@@ -176,7 +174,7 @@ const IDEAS: Idea[] = [
     p['filter.cutoff'] = between(r, 300, 1500);
     p['filter.resonance'] = between(r, 0.25, 0.5);
     const n = freeSlot(p);
-    p[`mod${n}.source`] = pick(r, ['lfo1', 'drift_slow', 'env2']);
+    p[`mod${n}.source`] = r() < 0.5 ? 'lfo1' : r() < 0.5 ? freeLfo(p, 'slow drift', 0.25) : freeLfo(p, 'bloom', between(r, 0.15, 0.5));
     p[`mod${n}.dest`] = 'filter_cutoff';
     p[`mod${n}.amount`] = between(r, 0.15, 0.3);
   } },
@@ -237,9 +235,7 @@ const ADJECTIVES = ['Rust', 'Ghost', 'Static', 'Hollow', 'Glass', 'Iron', 'Ash',
   'Sunken', 'Ember', 'Fog', 'Signal', 'Bone', 'Chrome', 'Smoke', 'Wire', 'Pale', 'Low'];
 const NOUNS: Record<string, string[]> = {
   bass: ['Bass', 'Low', 'Weight', 'Floor'], lead: ['Lead', 'Line', 'Call', 'Voice'], pad: ['Pad', 'Cloud', 'Field', 'Haze'],
-  keys: ['Keys', 'Piano', 'Organ'], pluck: ['Pluck', 'Pick', 'Drop'], arp: ['Pulse', 'Sequence', 'Engine'], strings: ['Strings', 'Section', 'Bow'],
-  brass: ['Horn', 'Brass', 'Call'], choir: ['Choir', 'Voices', 'Hymn'], bells: ['Bell', 'Chime', 'Mallet'], hits: ['Hit', 'Impact', 'Slam'],
-  risers: ['Rise', 'Fall', 'Swell'], drone: ['Drone', 'Hum', 'Machine'], texture: ['Bed', 'Grain', 'Air'],
+  keys: ['Keys', 'Piano', 'Organ'], pluck: ['Pluck', 'Pick', 'Drop'], arp: ['Pulse', 'Sequence', 'Engine'], noise: ['Noise', 'Grain', 'Hiss', 'Static'],
 };
 
 /** Build one candidate. */

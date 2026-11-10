@@ -17,24 +17,26 @@
 //   → chorus → flanger → phaser (each only above its own low cut) → OTT
 //   → EQ → high cut
 //   + the clean mono sub (its own path: only the Sub box touches it)
-//   → subsonic/DC filter → mono below crossover
-//   → output gain → look-ahead limiter (always on) → side high-pass again (mono below crossover)
+//   → subsonic/DC filter → output gain → a 5 Hz DC filter
+//   (no limiter and no forced mono low end: owner's call, as Serum and Vital, the level and the stereo
+//   low end are the producer's)
 //
 // voice.polyphony = 1 is monophonic (note stack, legato, glide: the bass
 // default); 2-8 plays chords, stealing the oldest note when all are busy.
 // LFOs, drift sources, the texture bed and the FX are shared by all voices;
 // the mod matrix runs per voice, and FX targets follow the newest voice.
 
-import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobShapeAt, wobSmoothRadius, wobSmoothTable, wobTableAt } from './wobshape';
 import { PARAM_COUNT, params } from '../../schema';
 import { AUX_SLOT, Biquad, clamp, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
-import { Chorus, Flanger, Limiter, Phaser } from './fx';
-import { Grind, Ott } from './grind';
+import { Chorus, Flanger, OctaveDown, Phaser, Reverb } from './fx';
+import { DirtBus } from './bus';
+import { Ott } from './grind';
 import { OVERSAMPLE_LATENCY } from './oversample';
 import * as K from './params';
 import { Voice } from './voice';
 import { Texture } from './voicefx';
 import { getWavetable } from './wavetable';
+import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobShapeAt, wobSmoothRadius, wobSmoothTable, wobTableAt } from './wobshape';
 
 export const CONTROL_BLOCK = K.CONTROL_BLOCK;
 /** Most voices a patch can ask for. */
@@ -52,7 +54,22 @@ const WOB_TEMPLATE_ARRAYS = K.WOB_SHAPES.map((name) => {
 const N_PARAMS = PARAM_COUNT;
 const LFO_COUNT = K.LFO_COUNT, SRC_COUNT = K.SRC_COUNT;
 const SYNC_BEATS = K.SYNC_BEATS, LFO_RATE_DEST = K.LFO_RATE_DEST;
-const XO_Q = K.XO_Q, SUBSONIC_Q = K.SUBSONIC_Q, TEXTURE_GAIN = K.TEXTURE_GAIN;
+// Octave down: 2x windowed-sinc interpolator (Blackman), HS_TAPS taps a side, normalised to unity gain.
+const HS_TAPS = 12;
+const HS_COEF = (() => {
+  const c = new Float64Array(HS_TAPS);
+  let sum = 0;
+  for (let j = 0; j < HS_TAPS; j++) {
+    const t = j + 0.5, x = t / HS_TAPS;
+    c[j] = (Math.sin(Math.PI * t) / (Math.PI * t)) * (0.42 + 0.5 * Math.cos(Math.PI * x) + 0.08 * Math.cos(2 * Math.PI * x));
+    sum += 2 * c[j];
+  }
+  for (let j = 0; j < HS_TAPS; j++) c[j] /= sum;
+  return c;
+})();
+const SUBSONIC_Q = K.SUBSONIC_Q, TEXTURE_GAIN = K.TEXTURE_GAIN;
+
+const TAP_LEN = 1024;
 
 export class Synth {
   readonly sampleRate: number;
@@ -77,6 +94,8 @@ export class Synth {
   // Voices and notes.
   private readonly voices: Voice[] = [];
   private poly = 1;
+  /** Where the next free-voice search starts (voices rotate). */
+  private rotate = 0;
   private order = 0;
   private readonly stack = new Int32Array(16); // mono note stack
   private stackLen = 0;
@@ -89,7 +108,7 @@ export class Synth {
   private texMonTarget = 1;
   /** Analysis only: the wheel's move without its moving/noisy parts (see WHEEL_MOVING_DESTS). */
   wheelFrozen = false;
-  /** Extra modulation shared by every voice: the wheel move and the wobble. */
+  /** Extra modulation shared by every voice: the mod wheel's move. */
   private readonly xdst = new Float64Array(K.DEST_COUNT);
   // Wobble: its own random source, so switching it on doesn't change anything else.
   private readonly wobRng = new Rng(0x60bb1e);
@@ -139,24 +158,38 @@ export class Synth {
   readonly lfoValue = new Float64Array(LFO_COUNT);
   private readonly lfoHold = new Float64Array(LFO_COUNT); // current random value (S&H; wander end point)
   private readonly lfoPrev = new Float64Array(LFO_COUNT); // previous random value (wander start point)
+  // Drift and slow drift: each segment's length in cycles (random), and drift's own smoothed value.
+  private readonly lfoSeg = new Float64Array(LFO_COUNT).fill(1);
+  private readonly lfoDrift = new Float64Array(LFO_COUNT);
+  // humanize's tremble: a second, faster, smaller wander riding on the slow one
+  private readonly trPh = new Float64Array(LFO_COUNT);
+  private readonly trPrev = new Float64Array(LFO_COUNT);
+  private readonly trHold = new Float64Array(LFO_COUNT);
+  private readonly trSeg = new Float64Array(LFO_COUNT).fill(1);
   private readonly gsrc = new Float64Array(SRC_COUNT);
   private readonly rng = new Rng(0x1234567);
   /** The texture bed's own GRIND chain (the bed is shared, so it follows the newest note), when not on Direct out. */
-  private readonly texGrind = new Grind(new Rng(0x6a1d));
-  private texGrindOn = false;
+  /** RUIN → DRIVE → bitcrusher → tape, once on all the voices together (and the bed): bus.ts. */
+  private readonly bus: DirtBus;
+  /** The clean sub waits as long as the bus's oversampling takes, so it stays in phase with the rest. */
+  private readonly subWait = new Float64Array(32);
+  private subWaitPos = 0;
   /** GRIND's OTT, after the amp envelopes (on the voices and the noise bed, before the effects). */
   private readonly ott = new Ott();
-  /** The FX page's OTT: after the phaser, before the EQ (the clean sub stays out). */
-  private readonly fxOtt = new Ott();
-  // Slow random 'drift' modulation source.
-  private driftVal = 0;
-  private driftTarget = 0;
-  private driftCount = 0;
-  // Slower, smoother wanderer ('drift_slow'): cosine steps between random points every 2-6 s.
-  private slowA = 0;
-  private slowB = 0;
-  private slowPos = 1;
-  private slowStep = 0;
+  /**
+   * The RUIN page's taps (display only, nothing on the audio thread reads them): the signal (L + R) / 2 at
+   * 0 the chain's input, 1-2 the input again (where SAT and PRE OTT were), 3-10 after boxes 1-8,
+   * 11 after RUIN's OTT, 12 the output,
+   * a ring of the newest TAP_LEN samples each, `tapPos` the next write.
+   */
+  readonly taps = Array.from({ length: 13 }, () => new Float32Array(TAP_LEN));
+  tapPos = 0;
+  /** Listening (the RUIN page's S / B / Δ): the tap point (1-11, 0 none) and 1 solo, 2 bypass, 3 delta. */
+  private listenAt = 0;
+  private listenMode = 0;
+  /** What the page shows of each LFO: its phase (0..1) and value; the per-note shapes show the newest note's. */
+  readonly liveLfoPhase = new Float64Array(LFO_COUNT);
+  readonly liveLfoValue = new Float64Array(LFO_COUNT);
 
   // Texture bed: follows the notes with its own tail; added after the voices so it can outlast them.
   private readonly texture = new Texture();
@@ -172,6 +205,8 @@ export class Synth {
   private texPanL = 1;
   private texPanR = 1;
   private texDirect = false;
+  /** RUIN's NOISE THRU: the bed skips the chain and its OTT. */
+  private texThru = false;
   private texEnv = 0;
   private texGain = 0;
   private texType = 0;
@@ -184,20 +219,17 @@ export class Synth {
   private readonly texCur = new Float64Array(2);
   private texAtk = 0.001;
   private texRel = 0.999;
-  private texLpL = 0;
-  private texLpR = 0;
-  private texLpCoef = 1;
   private anyGate = false;
   /** The newest sounding voice's filter, for the UI's moving filter print: cutoff in Hz (0 = no voice sounding), resonance. */
   liveCutoff = 0;
   /** Each GRIND stage's filter frequency right now (Hz, the newest voice's), -1 when off or silent. */
-  readonly liveGrind = new Float64Array(4).fill(-1);
-  readonly liveGrindRes = new Float64Array(4);
+  readonly liveGrind = new Float64Array(8).fill(-1);
+  readonly liveGrindRes = new Float64Array(8);
   liveRes = 0;
 
-  /** Position in the bar, in beats [0, 4): the wobble's clock. */
+  /** Position in the bar, in beats [0, 4): the clock of tempo-synced LFOs and RUIN. */
   private beatPos = 0;
-  /** The song position in beats, never wrapped: the Wobbler's clock, so cycles longer than a bar (2 bars … 32 bars) run their full length. */
+  /** The song position in beats, never wrapped. */
   private songBeat = 0;
 
   // FX + output.
@@ -220,15 +252,16 @@ export class Synth {
   private readonly lastLowcut = new Float64Array(5);
   private readonly chorus: Chorus;
   private readonly phaser: Phaser;
+  private readonly reverb: Reverb;
+  /** The reverb's -1 octave: its input shifted down before its Lo cut. */
+  private readonly verbOct: OctaveDown;
+  private reverbMix = 0;
   private readonly eqL = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
   private readonly eqR = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
   private readonly dcL = [new Biquad(), new Biquad()];
   private readonly dcR = [new Biquad(), new Biquad()];
-  private readonly xo = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
-  // Side high-pass again after the limiter: its fast gain changes modulate the side and
-  // would otherwise splash a little stereo content back below the crossover.
-  private readonly xoPost = [new Biquad(), new Biquad()];
-  private readonly limiter: Limiter;
+  /** The loudest output since the last takeLimiterMinGain() (there is no limiter: this only reports). */
+  private overPeak = 0;
   private outGain = 1;
   private outGainStep = 0;
   private postDcXL = 0;
@@ -242,6 +275,17 @@ export class Synth {
   private readonly tmp = new Float64Array(2);
   private readonly vout = new Float64Array(3);
   private ctrlCount = 0;
+
+  // Octave down (half speed): interpolator history, the one-sample engine output, the real-rate safety stages.
+  private readonly hsL = new Float64Array(2 * HS_TAPS);
+  private readonly hsR = new Float64Array(2 * HS_TAPS);
+  private readonly hsOne = new Float32Array(1);
+  private readonly hsOneR = new Float32Array(1);
+  private readonly hsDcL = [new Biquad(), new Biquad()];
+  private readonly hsDcR = [new Biquad(), new Biquad()];
+  private hsPhase = 0;
+  private hsOn = false;
+  private hsDrain = -1;
 
   /** Peak of the last rendered output (for metering). */
   peak = 0;
@@ -262,12 +306,16 @@ export class Synth {
     for (let i = 0; i < MAX_VOICES; i++) this.voices.push(new Voice(sampleRate, this.cur, table, 0x2468ace + 0x9e3779b * i, this.dstMask));
     this.chorus = new Chorus(sampleRate);
     this.phaser = new Phaser(sampleRate);
+    this.reverb = new Reverb(sampleRate);
+    this.verbOct = new OctaveDown(sampleRate);
     this.flanger = new Flanger(sampleRate);
-    this.limiter = new Limiter(sampleRate, K.LIMITER_CEILING_DB);
+    this.bus = new DirtBus(sampleRate, new Rng(0x6a1d));
     // Subsonic + DC filter: 15 Hz 4th-order high-pass (−0.4 dB at 20 Hz, flat by 30 Hz).
     for (let i = 0; i < 2; i++) {
       this.dcL[i].setHighpass(K.SUBSONIC_HZ, SUBSONIC_Q[i], sampleRate);
       this.dcR[i].setHighpass(K.SUBSONIC_HZ, SUBSONIC_Q[i], sampleRate);
+      this.hsDcL[i].setHighpass(K.SUBSONIC_HZ, SUBSONIC_Q[i], sampleRate);
+      this.hsDcR[i].setHighpass(K.SUBSONIC_HZ, SUBSONIC_Q[i], sampleRate);
     }
     this.lastFx.fill(NaN);
     this.eqLast.fill(NaN);
@@ -280,20 +328,24 @@ export class Synth {
     this.control();
   }
 
+  /** The level a limiter would hold the output under (there is none, owner's call): what the checks measure against. */
   get limiterCeiling(): number {
-    return this.limiter.ceiling;
+    return Math.pow(10, K.LIMITER_CEILING_DB / 20);
   }
 
-  /** Lowest limiter gain since the last call (1 = no limiting); resets the meter. */
+  /**
+   * How far a limiter at that ceiling would have had to pull the output down since the last call (1 = not at
+   * all): the output is never limited (owner's call), so this only reports, for the checks; resets.
+   */
   takeLimiterMinGain(): number {
-    const g = this.limiter.minGain;
-    this.limiter.minGain = 1;
+    const g = this.overPeak > this.limiterCeiling ? this.limiterCeiling / this.overPeak : 1;
+    this.overPeak = 0;
     return g;
   }
 
-  /** Latency of the output limiter, in samples. */
+  /** The engine's latency in samples: the voices' and the dirt bus's oversampling. */
   get latency(): number {
-    return this.limiter.lookahead - 1 + OVERSAMPLE_LATENCY;
+    return 2 * OVERSAMPLE_LATENCY;
   }
 
   private anyActive(): boolean {
@@ -326,8 +378,10 @@ export class Synth {
     this.tempo = clamp(bpm, 20, 400);
   }
 
-  /** Align the internal beat clock (used by the wobble) to a song position in beats. */
+  /** Align the internal beat clock to a song position in beats. */
   syncBeat(beat: number): void {
+    // At half speed the engine's clock runs at half the host's: it free-runs (as a pitched-down render would).
+    if (this.cur[P.halfSpeed] >= 0.5) return;
     this.beatPos = beat - 4 * Math.floor(beat / 4);
     this.songBeat = beat;
   }
@@ -340,6 +394,14 @@ export class Synth {
    * Solo / mute sound layers (osc1, osc2, sub, noise, breath, texture):
    * a listening aid, not part of the patch. With any solo, only soloed layers play.
    */
+  /** The RUIN page's listening: `at` the tap point (1 SAT, 2 PRE OTT, 3-10 filter 1 … drive 4, 11 RUIN's OTT, 0 none), `mode` 1 solo, 2 bypass, 3 delta. */
+  setListen(at: number, mode: number): void {
+    this.listenAt = mode > 0 ? at : 0;
+    this.listenMode = mode > 0 && at > 0 ? mode : 0;
+    this.bus.grind.listenAt = this.listenAt >= 1 && this.listenAt <= 10 ? this.listenAt - 1 : -1;
+    this.bus.grind.listenMode = this.bus.grind.listenAt >= 0 ? this.listenMode : 0;
+  }
+
   setMonitor(solo: readonly string[], mute: readonly string[]): void {
     this.monitorSolo = solo;
     this.monitorMute = mute;
@@ -364,8 +426,7 @@ export class Synth {
     const off = (flag: number) => r[flag] < 0.5;
     const zero = (...ix: number[]) => { for (const i of ix) t[i] = 0; };
     const block = (...ds: number[]) => { for (const d of ds) m[d] = 0; };
-    if (off(P.fmOn)) { zero(P.fmAmount, P.fm2Amount); block(K.D_FM, K.D_FM2); }
-    if (off(P.driveOn)) { zero(P.drive); block(K.D_DRIVE); }
+    if (off(P.driveOn)) { zero(P.drive); zero(P.mixDrive); block(K.D_DRIVE); }
     if (off(P.filterOn)) {
       // Wide open: a plain low-pass at the top of the range.
       t[P.cutoff] = 20000;
@@ -375,10 +436,11 @@ export class Synth {
     }
     if (off(P.distOn)) { zero(P.dMix); block(K.D_DIST_MIX, K.D_DIST_DRIVE, K.D_DIST_TONE); }
     if (off(P.crushOn)) { zero(P.crushMix); block(K.D_CRUSH); }
-    if (off(P.tapeOn)) { zero(P.tapeDrive, P.tapeWow, P.tapeAge); block(K.D_TAPE_WOW); }
+    if (off(P.tapeOn)) { zero(P.tapeWow); block(K.D_TAPE_WOW); }
     if (off(P.vibOn)) { zero(P.vibDepth); block(K.D_VIBRATO); }
     if (off(P.wobOn)) zero(P.wobDepth);
-    for (const s of P.slots) if (off(P.modOn) || off(s.on)) t[s.amt] = 0;
+    // the matrix's master switch is PATCH LFO'S (rows 1-5); RUIN'S LFO (6-10) has only its rows' own lamps
+    P.slots.forEach((s) => { if (off(P.modOn) || off(s.on)) t[s.amt] = 0; });
     if (off(P.eqOn)) { zero(P.eqScale, ...P.eq.map((b) => b.type)); t[P.eqHighcut] = 20000; }
     if (off(P.chorusOn)) { zero(P.chorusMix); block(K.D_CHORUS_DEPTH); }
     if (off(P.flangerOn)) zero(P.flangerMix);
@@ -386,8 +448,8 @@ export class Synth {
     if (off(P.delayOn)) { zero(P.delayMix); block(K.D_DELAY_MIX, K.D_DELAY_TIME); }
     if (off(P.reverbOn)) { zero(P.reverbMix); block(K.D_REVERB_MIX); }
     if (off(P.ottOn)) zero(P.ottDepth);
-    // reverb and delay were taken out of the synth (owner's call: every producer has their own)
-    block(K.D_REVERB_MIX, K.D_DELAY_MIX, K.D_DELAY_TIME);
+    // the delay was taken out of the synth (owner's call: every producer has their own); the reverb came back
+    block(K.D_DELAY_MIX, K.D_DELAY_TIME);
 
     const solo = this.monitorSolo, mute = this.monitorMute;
     const hear = (layer: string) => !mute.includes(layer) && (solo.length === 0 || solo.includes(layer));
@@ -395,10 +457,9 @@ export class Synth {
     if (!hear('osc2')) { zero(P.osc[1].level); block(K.D_OSC2_LEVEL); }
     if (!hear('sub')) { zero(P.subLevel); block(K.D_SUB); }
     if (!hear('noise')) { zero(P.noise); block(K.D_NOISE); }
-    // Tape age hisses on its own: with every layer of the oscillator path silent (e.g. the sub
-    // soloed), the tape goes quiet too, so a solo only plays what it names.
+    // With every layer of the oscillator path silent (e.g. the sub soloed), the tape goes quiet too.
     if (!hear('osc1') && !hear('osc2') && !hear('noise') && !hear('breath')) {
-      zero(P.tapeDrive, P.tapeWow, P.tapeAge);
+      zero(P.tapeWow);
       block(K.D_TAPE_WOW);
     }
     this.texMonTarget = hear('texture') ? 1 : 0;
@@ -428,9 +489,12 @@ export class Synth {
       if (v.gate && v.note === note) { pick = v; break; }
     }
     if (!pick) {
-      for (let i = 0; i < this.poly; i++) {
+      // A free voice, searched from the one after the last started (voices rotate, as on a
+      // Prophet or Jupiter, so repeated notes land on different voice cards).
+      for (let n = 0; n < this.poly; n++) {
+        const i = (this.rotate + n) % this.poly;
         const v = this.voices[i];
-        if (!v.active && v.tail === 0) { pick = v; break; }
+        if (!v.active && v.tail === 0) { pick = v; this.rotate = (i + 1) % this.poly; break; }
       }
     }
     if (!pick) {
@@ -491,7 +555,7 @@ export class Synth {
   /** A note (re)started its envelopes: retrigger LFOs that ask for it (fade-ins are per voice, see Voice). */
   private onTrigger(velocity = 1): void {
     this.texture.trigger(velocity);
-    this.texGrind.noteOn(this.rng);
+    this.bus.noteOn(this.rng);
     for (let l = 0; l < LFO_COUNT; l++) {
       if (this.cur[P.lfo[l].retrig] > 0.5) {
         this.lfoPhase[l] = 0;
@@ -518,18 +582,19 @@ export class Synth {
       this.hpL[k].reset();
       this.hpR[k].reset();
     }
-    for (let i = 0; i < 4; i++) this.xo[i].reset();
-    for (let i = 0; i < 2; i++) this.xoPost[i].reset();
     this.chorus.reset();
     this.phaser.reset();
-    this.limiter.reset();
+    this.reverb.reset();
+    this.verbOct.reset();
+    this.bus.reset();
+    this.subWait.fill(0);
     this.postDcXL = this.postDcYL = this.postDcXR = this.postDcYR = 0;
     for (let i = 0; i < 2; i++) {
       this.dcL[i].reset();
       this.dcR[i].reset();
     }
     this.texture.reset();
-    this.texEnv = this.texLpL = this.texLpR = 0;
+    this.texEnv = 0;
     this.wobCycle = -1;
     this.wobGate = this.wobGateTarget = 1;
     for (const f of this.wobBand) for (const b of f) b.reset();
@@ -538,7 +603,6 @@ export class Synth {
     this.hcL.reset();
     this.hcR.reset();
     this.flanger.reset();
-    this.fxOtt.reset();
   }
 
   private removeFromStack(note: number): void {
@@ -604,6 +668,18 @@ export class Synth {
     return v;
   }
 
+  /**
+   * Wander's next point, as a player moves (owner's call: never a pendulum): mostly small nudges,
+   * now and then a big move, either way, reflected off ±1.
+   */
+  private wanderMove(prev: number): number {
+    const a = 0.5 * (this.rng.next() + 1);
+    let v = prev + (this.rng.next() < 0 ? -1 : 1) * (0.08 + 1.2 * a * a);
+    if (v > 1) v = 2 - v;
+    else if (v < -1) v = -2 - v;
+    return v;
+  }
+
   private lfoShape(shape: number, p: number, hold: number, prev: number): number {
     switch (shape) {
       case K.LFO_SINE: return Math.sin(TWO_PI * p);
@@ -617,7 +693,7 @@ export class Synth {
     }
   }
 
-  /** The mod wheel's move and the wobble, as offsets every voice adds to its mod matrix. */
+  /** The mod wheel's move, as offsets every voice adds to its mod matrix. */
   private extraModulation(): void {
     const cur = this.cur;
     const x = this.xdst;
@@ -755,31 +831,11 @@ export class Synth {
     const src = this.gsrc;
     src[0] = 0;
     // A switched-off LFO outputs nothing, wherever it's routed.
-    src[K.SRC_LFO1] = this.lfoValue[0] * cur[P.lfoOn[0]];
-    src[K.SRC_LFO2] = this.lfoValue[1] * cur[P.lfoOn[1]];
-    src[K.SRC_LFO3] = this.lfoValue[2] * cur[P.lfoOn[2]];
-    src[K.SRC_LFO4] = this.lfoValue[3] * cur[P.lfoOn[3]];
+    // (the per-note shapes are filled in by each voice)
+    for (let l = 0; l < LFO_COUNT; l++) src[K.SRC_LFO[l]] = this.lfoValue[l] * cur[P.lfoOn[l]];
     this.wheel += (this.modWheel - this.wheel) * (1 - Math.exp(-BLOCK / (0.02 * fs)));
     src[K.SRC_MODWHEEL] = this.wheel;
     this.extraModulation();
-    if (--this.driftCount <= 0) {
-      this.driftTarget = this.rng.next();
-      this.driftCount = Math.round(((0.4 + 1.2 * (0.5 + 0.5 * this.rng.next())) * fs) / BLOCK);
-    }
-    this.driftVal += (this.driftTarget - this.driftVal) * 0.004;
-    src[K.SRC_DRIFT] = this.driftVal;
-    src[K.SRC_PRODUCT] = src[K.SRC_LFO1] * src[K.SRC_LFO2];
-    if (this.slowPos >= 1) {
-      this.slowA = this.slowB;
-      this.slowB = this.wanderStep(this.slowA);
-      this.slowPos = 0;
-      this.slowStep = BLOCK / ((2 + 4 * (0.5 + 0.5 * this.rng.next())) * fs);
-    }
-    this.slowPos += this.slowStep;
-    {
-      const t = this.slowPos > 1 ? 1 : this.slowPos;
-      src[K.SRC_DRIFT_SLOW] = this.slowA + (this.slowB - this.slowA) * (0.5 - 0.5 * Math.cos(Math.PI * t));
-    }
 
     // Voices; find the newest one (its mod matrix drives the shared FX targets)
     // and, in poly mode, the lowest held note (only it carries the sub).
@@ -801,9 +857,10 @@ export class Synth {
     }
     this.anyGate = anyGate;
     this.liveCutoff = lead.active ? lead.fcNow : 0;
-    for (let i = 0; i < 4; i++) {
-      this.liveGrind[i] = lead.active ? lead.grindFc(i) : -1;
-      this.liveGrindRes[i] = lead.grindRes(i);
+    for (let i = 0; i < 8; i++) {
+      const st = this.bus.grind.stages[i];
+      this.liveGrind[i] = lead.active && this.bus.grindOn ? st.fcNow : -1;
+      this.liveGrindRes[i] = st.resNow;
     }
     this.liveRes = lead.resNow;
     if (this.poly > 1) {
@@ -824,14 +881,50 @@ export class Synth {
       let rate = sync > 0 ? this.tempo / 60 / SYNC_BEATS[sync] : cur[lp.rate];
       const rm = dst[LFO_RATE_DEST[l]];
       if (rm !== 0) rate *= Math.pow(2, 3 * rm);
-      let ph = this.lfoPhase[l] + (rate * BLOCK) / fs;
+      const shape = cur[lp.shape];
+      const drifting = shape === K.LFO_DRIFT || shape === K.LFO_SLOW_DRIFT || shape === K.LFO_WANDER;
+      let ph = this.lfoPhase[l] + (rate * BLOCK) / fs / (drifting ? this.lfoSeg[l] : 1);
       if (ph >= 1) {
         ph -= Math.floor(ph);
         this.lfoPrev[l] = this.lfoHold[l];
-        this.lfoHold[l] = cur[lp.shape] === K.LFO_WANDER ? this.wanderStep(this.lfoHold[l]) : this.rng.next();
+        this.lfoHold[l] = shape === K.LFO_WANDER ? this.wanderMove(this.lfoHold[l]) : shape === K.LFO_SLOW_DRIFT ? this.wanderStep(this.lfoHold[l]) : this.rng.next();
+        // as the old sources: drift a new point every 0.4-1.6 cycles (s at 1 Hz), slow drift every 0.5-1.5 (2-6 s at 0.25 Hz)
+        if (shape === K.LFO_DRIFT) this.lfoSeg[l] = 0.4 + 1.2 * (0.5 + 0.5 * this.rng.next());
+        else if (shape === K.LFO_SLOW_DRIFT) this.lfoSeg[l] = 0.5 + 1.0 * (0.5 + 0.5 * this.rng.next());
+        // wander: every move its own length, a third of a cycle to three (Rate is how often on average)
+        else if (shape === K.LFO_WANDER) this.lfoSeg[l] = Math.pow(3, this.rng.next());
       }
       this.lfoPhase[l] = ph;
-      this.lfoValue[l] = this.lfoShape(cur[lp.shape], ph, this.lfoHold[l], this.lfoPrev[l]);
+      if (shape === K.LFO_DRIFT) {
+        // glides towards its point (the old source's 0.004 per block at 1 Hz)
+        this.lfoDrift[l] += (this.lfoHold[l] - this.lfoDrift[l]) * (1 - Math.pow(0.996, rate));
+        this.lfoValue[l] = this.lfoDrift[l];
+      } else if (shape === K.LFO_SLOW_DRIFT) {
+        this.lfoValue[l] = this.lfoPrev[l] + (this.lfoHold[l] - this.lfoPrev[l]) * (0.5 - 0.5 * Math.cos(Math.PI * ph));
+      } else {
+        this.lfoValue[l] = this.lfoShape(shape, ph, this.lfoHold[l], this.lfoPrev[l]);
+      }
+      if (shape === K.LFO_WANDER) {
+        // HUMANIZE (owner's call): as a player wobbles, slow and fast at once. The slow, uneven moves
+        // above, and on top a tremble six times as fast, a quarter of the depth, just as uneven.
+        let tp = this.trPh[l] + (6 * rate * BLOCK) / fs / this.trSeg[l];
+        if (tp >= 1) {
+          tp -= Math.floor(tp);
+          this.trPrev[l] = this.trHold[l];
+          this.trHold[l] = this.rng.next();
+          this.trSeg[l] = Math.pow(3, this.rng.next());
+        }
+        this.trPh[l] = tp;
+        const s = tp * tp * (3 - 2 * tp);
+        this.lfoValue[l] = 0.8 * this.lfoValue[l] + 0.2 * (this.trPrev[l] + (this.trHold[l] - this.trPrev[l]) * s);
+      }
+      if (K.lfoPerNote(shape)) {
+        this.liveLfoPhase[l] = lead.active ? lead.lfoProgress(l) : 0;
+        this.liveLfoValue[l] = lead.active ? lead.lfoNow(l) : 0;
+      } else {
+        this.liveLfoPhase[l] = ph;
+        this.liveLfoValue[l] = this.lfoValue[l];
+      }
     }
 
     // Texture bed.
@@ -851,7 +944,6 @@ export class Synth {
     this.texRel = Math.exp(-4.6 / ((cur[P.texTail] / 1000) * fs));
     // breath is a puff per note: Tail is how long it lasts
     this.texture.puffLen = cur[P.texTail] / 1000;
-    this.texLpCoef = lead.tapeLpCoef;
     {
       const [kind, p24] = AUX_SLOT[cur[P.texFType]] ?? AUX_SLOT[0];
       let hz = cur[P.texFCut];
@@ -880,19 +972,20 @@ export class Synth {
       this.texPanR = Math.sin(a) * Math.SQRT2;
     }
     this.texDirect = cur[P.texDirect] > 0.5;
-    // the bed goes through GRIND too, unless it is on its own clean path
-    const tg = cur[P.grindOn] > 0.5 && !this.texDirect;
-    if (tg && !this.texGrindOn) this.texGrind.reset();
-    this.texGrindOn = tg;
-    this.ott.set(cur[P.grindOn] > 0.5 ? cur[P.grindOtt] : 0, cur[P.grindLowcut], fs);
-    if (tg) this.texGrind.control(cur, this.beatPos, this.tempo / 60, (lead.pitch + 12 * cur[P.octave] - K.KEYTRACK_CENTER) / 12, fs, fs, BLOCK, this.rng);
+    // the bed goes through the bus (RUIN and the rest) with the voices, unless it is on its own clean path
+    // or RUIN lets it through (NOISE THRU: it joins after RUIN's OTT)
+    this.texThru = cur[P.grindNoiseThru] > 0.5;
+    this.bus.control(cur, lead.dst, this.beatPos, this.tempo / 60, (lead.pitch + 12 * cur[P.octave] - K.KEYTRACK_CENTER) / 12, fs, BLOCK, this.rng);
+    // RUIN's OTT is part of the chain: its Mix scales it too, so Mix 0 is the chain switched off
+    this.ott.set(cur[P.grindOn] > 0.5 ? cur[P.grindOtt] * cur[P.grindMix] : 0, cur[P.grindLowcut], fs);
 
-    // The bar clock (the wobble locks to it).
+    // The bar clock.
     this.beatPos += (this.tempo / 60) * (BLOCK / fs);
     this.songBeat += (this.tempo / 60) * (BLOCK / fs);
     if (this.beatPos >= 4) this.beatPos -= 4;
 
-    this.fxOtt.set(cur[P.ottDepth], cur[P.ottLowcut], fs);
+    // (the FX page's OTT was taken out again, owner's call: RUIN keeps its own)
+    this.reverbMix = clamp(cur[P.reverbMix] + dst[K.D_REVERB_MIX], 0, 1);
 
     // Modulated FX amounts.
     this.chorusDepth = clamp(cur[P.chorusDepth] + dst[K.D_CHORUS_DEPTH], 0, 1);
@@ -926,12 +1019,6 @@ export class Synth {
         else type > 0.5 ? f.setNotch(hz, q, fs) : f.setPeak(hz, db, q, fs);
       }
     }
-    if (cur[P.crossover] !== lf[5]) {
-      // 8th-order Butterworth high-pass on the side channel (48 dB/oct).
-      for (let i = 0; i < 4; i++) this.xo[i].setHighpass(cur[P.crossover], XO_Q[i], fs);
-      for (let i = 0; i < 2; i++) this.xoPost[i].setHighpass(cur[P.crossover], SUBSONIC_Q[i], fs);
-      lf[5] = cur[P.crossover];
-    }
     if (cur[P.eqHighcut] !== lf[6]) {
       const hc = cur[P.eqHighcut];
       this.highcutOn = hc < 19500;
@@ -956,6 +1043,62 @@ export class Synth {
    */
   render(outL: Float32Array, outR: Float32Array, offset: number, frames: number): void {
     const end = offset + frames;
+    let n = offset;
+    while (n < end) n = this.hsOn ? this.renderHalf(outL, outR, n, end) : this.renderCore(outL, outR, n, end - n);
+  }
+
+  // Octave down, live: the engine renders one sample for every two played (half speed, as a frozen
+  // render pitched down in Repitch mode: an octave lower, every time twice as long), read back at the
+  // real rate through a windowed-sinc 2x interpolator. The output's safety stages run again at the real
+  // rate (the engine's own sit an octave low now): the subsonic / DC filter.
+  // The mode changes where the parameter lands: at the bottom of the engine's duck, so it never clicks.
+  private renderHalf(outL: Float32Array, outR: Float32Array, n: number, end: number): number {
+    const hL = this.hsL, hR = this.hsR, c = HS_COEF, M = HS_TAPS;
+    let peak = this.peak;
+    while (n < end) {
+      let l: number, r: number;
+      if (this.hsPhase === 0) {
+        this.renderCore(this.hsOne, this.hsOneR, 0, 1);
+        for (let k = 2 * M - 1; k > 0; k--) {
+          hL[k] = hL[k - 1];
+          hR[k] = hR[k - 1];
+        }
+        hL[0] = this.hsOne[0];
+        hR[0] = this.hsOneR[0];
+        if (this.hsDrain > 0 && --this.hsDrain === 0) {
+          this.hsDrain = -1;
+          this.hsOn = false;
+        }
+        l = hL[M];
+        r = hR[M];
+        this.hsPhase = 1;
+      } else {
+        l = 0;
+        r = 0;
+        for (let j = 0; j < M; j++) {
+          l += c[j] * (hL[M - 1 - j] + hL[M + j]);
+          r += c[j] * (hR[M - 1 - j] + hR[M + j]);
+        }
+        this.hsPhase = 0;
+      }
+      l = this.hsDcL[1].process(this.hsDcL[0].process(l));
+      r = this.hsDcR[1].process(this.hsDcR[0].process(r));
+      outL[n] = l;
+      outR[n] = r;
+      const a = Math.abs(l) > Math.abs(r) ? Math.abs(l) : Math.abs(r);
+      if (a > peak) peak = a;
+      if (a > this.overPeak) this.overPeak = a;
+      n++;
+      if (!this.hsOn) break; // switched off inside the engine: the real rate from the next sample
+    }
+    if (this.peak > peak) peak = this.peak;
+    this.peak = peak;
+    return n;
+  }
+
+  /** Renders up to `frames` samples; stops early (returning where) when octave down switches. */
+  private renderCore(outL: Float32Array, outR: Float32Array, offset: number, frames: number): number {
+    const end = offset + frames;
     const out = this.tmp;
     const vout = this.vout;
     const cur = this.cur;
@@ -974,9 +1117,11 @@ export class Synth {
         this.duckGain -= this.duckStep;
         if (this.duckGain <= 0) {
           this.duckGain = 0;
+          const hs = cur[P.halfSpeed];
           this.copyDiscrete();
           this.duckDir = 1;
-          this.duckHold = 2 * OVERSAMPLE_LATENCY + 8;
+          // Octave down switching: stay silent until what was in the limiter and the interpolator is out.
+          this.duckHold = cur[P.halfSpeed] !== hs ? this.latency + HS_TAPS + 8 : 3 * OVERSAMPLE_LATENCY + 8;
         }
       } else if (this.duckHold > 0) {
         this.duckHold--;
@@ -1024,13 +1169,6 @@ export class Synth {
         }
         const tf = this.texPos;
         let tl = this.texPrev[0] + (this.texCur[0] - this.texPrev[0]) * tf, tr = this.texPrev[1] + (this.texCur[1] - this.texPrev[1]) * tf;
-        if (cur[P.tapeAge] > 0) {
-          // Worn tape dulls the texture the same way it dulls the voice.
-          this.texLpL += (tl - this.texLpL) * this.texLpCoef;
-          this.texLpR += (tr - this.texLpR) * this.texLpCoef;
-          tl = this.texLpL;
-          tr = this.texLpR;
-        }
         if (this.texF.active) {
           tl = this.texF.process(tl, 0);
           tr = this.texF.process(tr, 1);
@@ -1055,19 +1193,42 @@ export class Synth {
       }
       // Direct out: the bed joins the clean sub after every effect.
       const texDirect = this.texDirect;
-      if (!texDirect) {
-        if (this.texGrindOn) {
-          this.texGrind.process(texL, texR);
-          texL = this.texGrind.l;
-          texR = this.texGrind.r;
-        }
+      if (!texDirect && !this.texThru) {
         l += texL;
         r += texR;
       }
-      if (this.ott.on) {
+      // RUIN → DRIVE → bitcrusher → tape on everything together (bus.ts); the sub waits as long
+      const tp = this.tapPos, taps = this.taps;
+      taps[0][tp] = 0.5 * (l + r);
+      this.bus.process(l, r);
+      l = this.bus.l;
+      r = this.bus.r;
+      for (let k = 0; k < 10; k++) taps[1 + k][tp] = this.bus.tap[k];
+      {
+        const w = this.subWait, p = this.subWaitPos;
+        w[p] = sub;
+        let rp = p - OVERSAMPLE_LATENCY;
+        if (rp < 0) rp += 32;
+        sub = w[rp];
+        this.subWaitPos = (p + 1) & 31;
+      }
+      // RUIN's OTT; while a stage is soloed or its delta heard (S / Δ on the RUIN page) it stays out
+      const lm = this.listenMode, la = this.listenAt;
+      if (this.ott.on && !(lm === 2 && la === 11) && !((lm === 1 || lm === 3) && la < 11 && la > 0)) {
+        const il = l, ir = r;
         this.ott.process(l, r);
         l = this.ott.l;
         r = this.ott.r;
+        if (lm === 3 && la === 11) {
+          l -= il;
+          r -= ir;
+        }
+      }
+      taps[11][tp] = 0.5 * (l + r);
+      // NOISE THRU: the bed joins after RUIN's OTT, untouched by RUIN, still into the effects.
+      if (!texDirect && this.texThru) {
+        l += texL;
+        r += texR;
       }
 
       // Effects, each only on what is above its own low cut (the part below passes dry).
@@ -1093,11 +1254,17 @@ export class Synth {
         l += out[0] - hl;
         r += out[1] - hr;
       }
-      // The FX page's OTT (below its Lo cut the sound passes as it is).
-      if (this.fxOtt.on) {
-        this.fxOtt.process(l, r);
-        l = this.fxOtt.l;
-        r = this.fxOtt.r;
+      const rMix = this.reverbMix;
+      if (rMix > 1e-4) {
+        let vin: number;
+        if (cur[P.reverbOct] < -0.5) {
+          // an octave down first, then the Lo cut, so the deeper cloud still stays off the low end
+          const sh = this.verbOct.process(0.5 * (l + r));
+          vin = 0.5 * (hpL[4].process(sh) + hpR[4].process(sh));
+        } else vin = 0.5 * (hpL[4].process(l) + hpR[4].process(r));
+        this.reverb.process(vin, cur[P.reverbType], cur[P.reverbDecay], cur[P.reverbPre], out);
+        l += out[0] * rMix;
+        r += out[1] * rMix;
       }
 
       // EQ (bands at 0 dB are skipped) and high cut.
@@ -1119,6 +1286,7 @@ export class Synth {
         l += texL;
         r += texR;
       }
+
 
       // LFO 5 on the volume: the gate, ~2 ms per step.
       if (this.wobFiltOn || this.wobGate !== 1 || this.wobGateTarget !== 1) {
@@ -1144,12 +1312,10 @@ export class Synth {
       l = this.dcL[1].process(this.dcL[0].process(l));
       r = this.dcR[1].process(this.dcR[0].process(r));
 
-      // Mono below the crossover: keep the mid intact, high-pass the side.
+      // Stereo width (mod target) scales the side; nothing forces the low end to mono (owner's call).
       const m = 0.5 * (l + r);
-      const xo = this.xo;
-      // Stereo width (mod target) scales the side, which is already above the crossover.
       this.width += this.widthStep;
-      const s = this.width * xo[3].process(xo[2].process(xo[1].process(xo[0].process(0.5 * (l - r)))));
+      const s = this.width * 0.5 * (l - r);
       l = (m + s) * this.outGain;
       r = (m - s) * this.outGain;
 
@@ -1159,31 +1325,38 @@ export class Synth {
         l = r = 0;
       }
 
-      this.limiter.process(l, r, out);
-      {
-        const pm = 0.5 * (out[0] + out[1]);
-        const ps = this.xoPost[1].process(this.xoPost[0].process(0.5 * (out[0] - out[1])));
-        out[0] = pm + ps;
-        out[1] = pm - ps;
-      }
-      // Final DC filter (5 Hz one-pole): removes the near-DC intermodulation a
-      // limiter produces under heavy gain reduction. It shifts peaks by well
-      // under 0.1%; the clamp keeps the ceiling an absolute guarantee.
-      const c = this.limiter.ceiling;
-      let yl = out[0] - this.postDcXL + this.postDcR * this.postDcYL;
-      this.postDcXL = out[0];
+      // Final DC filter (5 Hz one-pole). No limiter, no ceiling (owner's call): the level is the producer's.
+      let yl = l - this.postDcXL + this.postDcR * this.postDcYL;
+      this.postDcXL = l;
       this.postDcYL = yl;
-      let yr = out[1] - this.postDcXR + this.postDcR * this.postDcYR;
-      this.postDcXR = out[1];
+      let yr = r - this.postDcXR + this.postDcR * this.postDcYR;
+      this.postDcXR = r;
       this.postDcYR = yr;
-      yl = yl > c ? c : yl < -c ? -c : yl;
-      yr = yr > c ? c : yr < -c ? -c : yr;
       outL[n] = yl;
       outR[n] = yr;
+      taps[12][tp] = 0.5 * (yl + yr);
+      this.tapPos = (tp + 1) & (TAP_LEN - 1);
       const a = Math.abs(yl) > Math.abs(yr) ? Math.abs(yl) : Math.abs(yr);
       if (a > peak) peak = a;
+      if (a > this.overPeak) this.overPeak = a;
+      const half = cur[P.halfSpeed] >= 0.5;
+      if (half !== this.hsOn) {
+        // Octave down switched (silent here: the bottom of the duck, or no note sounding).
+        if (half) {
+          this.hsOn = true;
+          this.hsL.fill(0);
+          this.hsR.fill(0);
+          this.hsPhase = 0;
+          this.peak = peak;
+          return n + 1;
+        }
+        // Off: the interpolator still holds the last moments before the duck's bottom; play them out
+        // first (the engine is silent meanwhile), then go back to the real rate.
+        if (this.hsDrain < 0) this.hsDrain = this.latency + HS_TAPS + 1;
+      }
     }
     this.peak = peak;
+    return end;
   }
 
   /** True when every voice is silent. */

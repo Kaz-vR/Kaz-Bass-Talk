@@ -63,7 +63,7 @@ const def: CategoryDef = {
       description: 'Chords played back from a stretched, dying tape: seasick wow, dull top and crackle.',
       tags: ['pad', 'tape', 'wow', 'lo-fi', 'worn', 'crackle', 'lorn'],
       texture: ['crackle', 0.65, 0.35, 2500],
-      set: { 'tape.wow': 0.5, 'tape.age': 0.65, 'tape.drive': 0.5, 'eq.highcut': 5500 },
+      set: { 'tape.wow': 0.5, 'eq.highcut': 5500 },
     },
     {
       id: 'sunken', name: 'Sunken',
@@ -119,9 +119,9 @@ const def: CategoryDef = {
       tags: ['pad', 'fm', 'soft', 'warm', 'smoke', 'evolving', 'lorn'],
       texture: ['dust', 0.55, 0.25, 2500],
       set: {
-        'osc1.wave': 'sine', 'osc1.unison_voices': 3, 'osc1.unison_detune': 10, 'osc1.unison_spread': 0.6, 'fm.amount': 0.3, 'fm.ratio': 2,
+        'osc1.wave': 'sine', 'osc1.unison_voices': 3, 'osc1.unison_detune': 10, 'osc1.unison_spread': 0.6, 
         'filter.cutoff': 2500, 'drive.amount': 0.6, 'dist.type': 'fold', 'dist.drive': 0.28, 'dist.mix': 0.5, 'chorus.mix': 0.15,
-        'breath.level': 0.15, 'breath.tone': 0.5, 'tape.drive': 0.55,
+        'breath.level': 0.15, 'breath.tone': 0.5, 
       },
       // An FM sine body: move the modulation, not a filter it barely reaches.
       mods: kit(ALIVE, [], {
@@ -203,7 +203,7 @@ const def: CategoryDef = {
       description: "A pad on a warped tape that won't stay in tune: every chord leans and slides, nauseous and beautiful.",
       tags: ['pad', 'wobbly', 'detuned', 'warped', 'tape', 'uneasy', 'lorn', 'new'],
       texture: ['crackle', 0.65, 0.4, 2000],
-      set: { 'tape.wow': 0.6, 'tape.age': 0.65, 'filter.cutoff': 900, 'texture.position': 'after dynamics' },
+      set: { 'tape.wow': 0.6, 'filter.cutoff': 900, 'texture.position': 'after dynamics' },
       mods: kit(ALIVE, [['drift', 'osc_pitch', 0.006]]),
     },
     {

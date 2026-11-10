@@ -70,7 +70,7 @@ describe('split-band distortion', () => {
 describe('the sub is untouched by voice effects', () => {
   const subOnly = { ...base, 'osc1.level': 0, 'sub.level': 1 };
   it.each([
-    ['tape', { 'tape.drive': 1, 'tape.wow': 1 }],
+    ['tape', { 'tape.wow': 1 }],
     ['bitcrusher', { 'crush.mix': 1, 'crush.bits': 3, 'crush.rate': 20 }],
     ['distortion', { 'dist.drive': 1, 'dist.type': 'fold' }],
   ] as const)('%s', (_name, fx) => {
@@ -82,14 +82,6 @@ describe('the sub is untouched by voice effects', () => {
   });
 });
 
-it('tape age only adds quiet hiss on top of the sub', () => {
-  const subOnly = { ...base, 'osc1.level': 0, 'sub.level': 1 };
-  const a = renderPatch(subOnly, heldNote(45, 4), { seconds: 1 });
-  const b = renderPatch({ ...subOnly, 'tape.age': 1 }, heldNote(45, 4), { seconds: 1 });
-  const diff = new Float32Array(a.left.length);
-  for (let i = 0; i < diff.length; i++) diff[i] = a.left[i] - b.left[i];
-  expect(rms(diff)).toBeLessThan(0.002); // ≈ -54 dBFS
-});
 
 describe('chorus hyper and the FX OTT', () => {
   const p = { ...base, 'osc1.wave': 'saw', 'osc1.level': 1, 'filter.cutoff': 3000, 'chorus.on': true, 'chorus.mix': 0.8, 'chorus.depth': 0.7, 'chorus.lowcut': 150 };

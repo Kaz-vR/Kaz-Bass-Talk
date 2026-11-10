@@ -25,6 +25,17 @@ function item(sel: HTMLSelectElement, o: HTMLOptionElement): HTMLButtonElement {
   const it = document.createElement('button');
   it.className = 'dd-item';
   it.textContent = o.text;
+  if (o.dataset.icon) {
+    // a tiny picture in front of the name (the drive types: one sine cycle through each)
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 22 12');
+    svg.setAttribute('class', 'dd-icon');
+    const p = document.createElementNS(ns, 'path');
+    p.setAttribute('d', o.dataset.icon);
+    svg.append(p);
+    it.prepend(svg);
+  }
   it.disabled = o.disabled;
   it.dataset.value = o.value;
   if (o.value === sel.value) it.classList.add('on');
@@ -45,7 +56,7 @@ function show(sel: HTMLSelectElement): void {
   menu.style.setProperty('--dd-accent', accent);
   const groups = [...sel.children].filter((c): c is HTMLOptGroupElement => c instanceof HTMLOptGroupElement);
   if (groups.length) {
-    // option groups become columns with a heading each (the Wobbler's rate menu)
+    // option groups become columns with a heading each
     menu.classList.add('dd-groups');
     const cols = document.createElement('div');
     cols.className = 'dd-group-cols';

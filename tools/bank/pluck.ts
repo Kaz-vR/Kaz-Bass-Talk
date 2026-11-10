@@ -54,7 +54,7 @@ const def: CategoryDef = {
       tags: ['pluck', 'fm', 'woody', 'knock', 'hollow', 'percussive', 'lorn'],
       texture: ['dust', 0.3, 0.3, 600],
       set: {
-        'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.3, 'fm.ratio': 1.5, 'fm.punch': 0.6, 'fm.decay': 60,
+        'osc1.wave': 'sine', 'osc1.unison_voices': 1, 
         'filter.cutoff': 3000, 'filter.env_amount': 0, 'drive.amount': 0.6,
         'chorus.mix': 0.25,
       },
@@ -99,7 +99,7 @@ const def: CategoryDef = {
       description: "A soft, round marimba pluck with a little glassy shimmer, warm wood under a cold night sky.",
       tags: ['pluck', 'marimba', 'soft', 'wooden', 'tropical', 'round', 'lorn'],
       texture: ['dust', 0.3, 0.3, 800],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.15, 'fm.ratio': 4, 'fm.punch': 0.5, 'fm.decay': 100, 'amp_env.decay': 450, 'filter.cutoff': 1800, 'filter.env_amount': 0.05, 'eq.highcut': 5000 },
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'amp_env.decay': 450, 'filter.cutoff': 1800, 'filter.env_amount': 0.05, 'eq.highcut': 5000 },
       mods: SOFT_PLUCK_KIT,
     },
     {
@@ -147,7 +147,7 @@ const def: CategoryDef = {
       description: "A soft triangle pluck with an octave shadow and a slow chorus, velvet-smooth.",
       tags: ['pluck', 'soft', 'velvet', 'octave', 'chorus', 'smooth', 'lorn'],
       texture: ['dust', 0.45, 0.3, 800],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'triangle', 'osc2.wave': 'sine', 'osc2.semi': 12, 'osc2.level': 0.2, 'filter.cutoff': 1200, 'filter.env_amount': 0.2, 'chorus.mix': 0.35, 'chorus.mode': 'classic', 'tape.age': 0.6 },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'triangle', 'osc2.wave': 'sine', 'osc2.semi': 12, 'osc2.level': 0.2, 'filter.cutoff': 1200, 'filter.env_amount': 0.2, 'chorus.mix': 0.35, 'chorus.mode': 'classic', },
       mods: SOFT_PLUCK_KIT,
     },
     {
@@ -155,7 +155,7 @@ const def: CategoryDef = {
       description: "A soft wooden mallet on a marimba bar: a warm knock that fades fast.",
       tags: ['pluck', 'marimba', 'wood', 'mallet', 'soft', 'warm', 'lorn'],
       texture: ['dust', 0.3, 0.3, 600],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.15, 'fm.ratio': 4, 'fm.punch': 0.5, 'fm.decay': 60, 'filter.cutoff': 1600, 'filter.env_amount': 0, 'amp_env.decay': 400, 'eq.highcut': 4500 },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'filter.cutoff': 1600, 'filter.env_amount': 0, 'amp_env.decay': 400, 'eq.highcut': 4500 },
       mods: SOFT_PLUCK_KIT,
     },
     // ------------------------------------------------ producer range: the roles this category was missing

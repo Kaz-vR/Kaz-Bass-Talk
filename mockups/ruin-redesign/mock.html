@@ -1,0 +1,109 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:SG;src:url(../../src/ui/fonts/space-grotesk.woff2)}
+:root{--bg:#050506;--panel:#0d0d0f;--edge:#1c1c20;--ink:#8a8a90;--dim:#4a4a50;--hi:#e8e8ea;--s1:#ff3b2f;--s2:#ff7a1a;--s3:#ffb020;--s4:#d0203a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:SG;color:var(--ink);width:1200px}
+.hdr{height:44px;background:#000;display:flex;align-items:center;padding:0 18px;gap:22px;font-size:12px;letter-spacing:.14em}
+.hdr .t{color:#fff;font-weight:600;text-shadow:0 0 8px #fff8;letter-spacing:.2em}.hdr .n{color:var(--hi);margin-left:40px}
+.tabs{margin-left:auto;display:flex;gap:22px}.tabs span.on{color:#fff;border-bottom:1px solid #fff;padding-bottom:3px;box-shadow:0 6px 8px -6px #fff}
+.page{height:452px;padding:6px;display:grid;gap:6px}
+.box{background:var(--panel);border:1px solid var(--edge);border-radius:3px;position:relative;overflow:hidden}
+.lbl{font-size:9px;letter-spacing:.16em;text-transform:uppercase}
+.cap{padding:14px 20px 18px;font-size:13px;color:#b8b8bc;line-height:1.5;background:#0a0a0b;border-top:1px solid var(--edge)}
+.cap b{color:#fff;font-weight:600}
+svg text{font-family:SG}
+.btn{display:inline-block;font-size:8px;letter-spacing:.12em;padding:2px 5px;border:1px solid #2a2a30;border-radius:2px;color:var(--dim)}
+.btn.on{color:#fff;border-color:#fff6;box-shadow:0 0 6px #fff4}
+</style></head><body>
+<div class="hdr"><span class="t">RUIN-1</span><span class="n">DESTROYED REESE &nbsp;‹ ›</span><div class="tabs"><span>OSC</span><span>LFO</span><span>WOBBLER</span><span class="on">RUIN</span><span>FX</span><span>PRESETS</span></div></div>
+<div class="page" id="page"></div><div class="cap" id="cap"></div>
+<script>
+const V=new URLSearchParams(location.search).get('v')||'A';
+const C=['#ff3b2f','#ff7a1a','#ffb020','#d0203a'];
+let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+const NS='http://www.w3.org/2000/svg';
+function svg(w,h,inner){return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="${NS}">${inner}</svg>`}
+const glow=(id,c)=>`<filter id="${id}" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+// spectrum: log freq x, a tilted curve with bumps
+function spec(w,h,{tilt=-0.55,bumps=[],noise=0.05,base=0.25}={}){let pts=[];for(let i=0;i<=120;i++){const x=i/120;let y=base+tilt*x*0.6+Math.sin(x*40+seed)*noise*rnd();for(const[b,a,wd]of bumps)y+=a*Math.exp(-((x-b)**2)/(2*wd*wd));if(x<0.08)y-=(0.08-x)*4;pts.push([x*w,h-(Math.max(0.02,Math.min(0.98,0.55+y)))*h])}return pts}
+const path=p=>'M'+p.map(q=>q[0].toFixed(1)+','+q[1].toFixed(1)).join('L');
+const fill=(p,w,h)=>path(p)+`L${w},${h}L0,${h}Z`;
+function knob(x,y,v,label,c='#ff7a1a',r=15){const a0=-225,a1=45,a=a0+(a1-a0)*v;const pol=(ang,rr)=>[x+rr*Math.cos(ang*Math.PI/180),y+rr*Math.sin(ang*Math.PI/180)];const [sx,sy]=pol(a0,r),[ex,ey]=pol(a,r);const large=(a-a0)>180?1:0;const [px,py]=pol(a,r-5);
+return `<circle cx="${x}" cy="${y}" r="${r}" fill="#111114" stroke="#26262c"/><path d="M${sx},${sy}A${r},${r} 0 ${large} 1 ${ex},${ey}" fill="none" stroke="${c}" stroke-width="2" filter="url(#g)"/><line x1="${x}" y1="${y}" x2="${px}" y2="${py}" stroke="#ddd" stroke-width="1.5"/><text x="${x}" y="${y+r+13}" fill="#6a6a70" font-size="8.5" text-anchor="middle" letter-spacing="1.2">${label}</text>`}
+function meter(x,y,w,h,v,peak,c,hot){const n=Math.round(v*h);return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#0a0a0c" stroke="#222"/><rect x="${x+1}" y="${y+h-n}" width="${w-2}" height="${n}" fill="${c}" opacity=".85" filter="url(#g)"/>${hot?`<rect x="${x}" y="${y}" width="${w}" height="4" fill="#ff2020" filter="url(#g)"/>`:''}<line x1="${x-2}" y1="${y+h-peak*h}" x2="${x+w+2}" y2="${y+h-peak*h}" stroke="#fff" stroke-width="1"/>`}
+const defs=`<defs>${glow('g')}<linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>`;
+function grid(w,h){let s='';[50,100,200,500,1000,2000,5000,10000].forEach(f=>{const x=Math.log(f/20)/Math.log(1000)*w;s+=`<line x1="${x}" y1="0" x2="${x}" y2="${h}" stroke="#18181c"/><text x="${x+3}" y="${h-4}" fill="#3a3a40" font-size="8">${f>=1000?f/1000+'k':f}</text>`});return s}
+function filterCurve(w,h,type,fx,res,amp=1){let p=[];for(let i=0;i<=200;i++){const x=i/200;const d=(x-fx)/(0.03+0.1*(1-res));let y=0;if(type=='notch')y=-0.5*Math.exp(-d*d/2);if(type=='peak')y=0.42*res*Math.exp(-d*d/2);if(type=='band')y=-Math.min(0.6,Math.abs(x-fx)*1.8);if(type=='comb')y=-0.18*(1+Math.cos(x*60))*0.6;p.push([x*w,h*0.42-y*h*0.55*amp])}return p}
+
+if(V==='A'){
+ const nodes=[['IN',null,'#888'],['SAT','tape',C[0]],['PRE OTT','',C[0]],['1','NOTCH · TAPE',C[0]],['2','PEAK · TUBE',C[1]],['3','COMB · FOLD',C[2]],['4','— · SOFT CLIP',C[3]],['OTT','',C[0]],['OUT',null,'#888']];
+ const lv=[[.55,.6,0],[.7,.74,0],[.78,.82,0],[.86,.9,0],[.97,1,1],[.93,.96,1],[.84,.87,0],[.8,.82,0],[.76,.79,0]];
+ let strip='';const W=1188,nw=124,gap=(W-12-9*nw)/8;
+ nodes.forEach((n,i)=>{const x=6+i*(nw+gap),sel=i===4;const c=n[2];const pts=spec(nw-30,46,{tilt:-0.5+i*0.05,bumps:[[0.3+i*0.05,0.08+i*0.02,0.05]],noise:0.06});
+  strip+=`<g transform="translate(${x},8)"><rect width="${nw}" height="112" rx="3" fill="${sel?'#141012':'#0f0f11'}" stroke="${sel?c:'#1e1e22'}" ${sel?'filter="url(#g)"':''}/>
+  ${n[1]!==null&&i>0&&i<8?`<rect x="8" y="9" width="12" height="2" fill="${c}" filter="url(#g)"/>`:''}
+  <text x="${n[1]!==null&&i>0&&i<8?26:8}" y="14" fill="${sel?'#fff':'#9a9aa0'}" font-size="10" letter-spacing="1.5">${n[0]}</text>
+  <text x="8" y="27" fill="#55555c" font-size="7.5" letter-spacing="1">${n[1]||''}</text>
+  <g transform="translate(8,34)"><path d="${fill(pts,nw-30,46)}" fill="${c}" opacity=".18"/><path d="${path(pts)}" fill="none" stroke="${c}" stroke-width="1.2" filter="url(#g)"/></g>
+  ${meter(nw-16,10,7,72,lv[i][0],lv[i][1],c,lv[i][2])}
+  <text x="8" y="96" fill="${lv[i][2]?'#ff5040':'#6a6a70'}" font-size="9">${['-12','-8','-6','-4','+2.1','+0.8','-3','-4','-5'][i]} dB</text>
+  ${i>0&&i<8?`<g transform="translate(62,88)"><rect width="16" height="12" rx="2" fill="none" stroke="#2a2a30"/><text x="8" y="9" fill="#6a6a70" font-size="7.5" text-anchor="middle">S</text><rect x="19" width="16" height="12" rx="2" fill="none" stroke="#2a2a30"/><text x="27" y="9" fill="#6a6a70" font-size="7.5" text-anchor="middle">B</text><rect x="38" width="16" height="12" rx="2" fill="${sel?'#ff7a1a22':'none'}" stroke="${sel?'#ff7a1a':'#2a2a30'}"/><text x="46" y="9" fill="${sel?'#fff':'#6a6a70'}" font-size="7.5" text-anchor="middle">Δ</text></g>`:''}
+  </g>`;
+  if(i<8)strip+=`<line x1="${x+nw}" y1="64" x2="${x+nw+gap}" y2="64" stroke="#2a2a30"/>`;});
+ // editor
+ const aw=600,ah=294;const before=spec(aw,ah,{tilt:-0.6,bumps:[[0.25,0.1,0.05]],noise:0.03});seed=11;const after=spec(aw,ah,{tilt:-0.45,bumps:[[0.62,0.22,0.035],[0.25,0.1,0.05],[0.8,0.08,0.05]],noise:0.05});
+ const fc=filterCurve(aw,ah,'peak',0.62,0.79);
+ let ana=`${grid(aw,ah)}<path d="${fill(before,aw,ah)}" fill="#ffffff" opacity=".04"/><path d="${path(before)}" fill="none" stroke="#777" stroke-width="1" stroke-dasharray="2 2"/>
+ <path d="${fill(after,aw,ah)}" fill="url(#fade)"/><path d="${path(after)}" fill="none" stroke="#ff7a1a" stroke-width="1.6" filter="url(#g)"/>
+ <path d="${path(fc)}" fill="none" stroke="#fff" stroke-width="1.3" opacity=".85"/>
+ <rect x="${aw*0.5}" y="${ah-22}" width="${aw*0.25}" height="4" fill="#ff7a1a" opacity=".5"/><circle cx="${aw*0.66}" cy="${ah-20}" r="4" fill="#fff" filter="url(#g)"/>
+ <circle cx="${aw*0.62}" cy="${ah*0.42-0.42*0.79*ah*0.55}" r="5" fill="#ff7a1a" stroke="#fff" filter="url(#g)"/>
+ <text x="10" y="16" fill="#fff" font-size="10" letter-spacing="1.5">STAGE 2 · WHAT IT ADDS</text>
+ <text x="10" y="30" fill="#777" font-size="8.5">— — before   </text><text x="80" y="30" fill="#ff7a1a" font-size="8.5">——  after</text><text x="140" y="30" fill="#ddd" font-size="8.5">——  filter (live)</text>
+ <text x="${aw*0.62+10}" y="${ah*0.42-0.42*0.79*ah*0.55-6}" fill="#ff7a1a" font-size="9">+6 dB @ 3.4k ← adds fizz</text>`;
+ // transfer
+ const tw=240,th=140;let tc=[];for(let i=0;i<=100;i++){const u=(i/50-1)*2.2;const y=Math.tanh(u+0.3*u*u*0.2);tc.push([tw/2+u/2.2*tw/2*0.92,th/2-y*th*0.42])}
+ let tr=`<line x1="0" y1="${th/2}" x2="${tw}" y2="${th/2}" stroke="#1c1c20"/><line x1="${tw/2}" y1="0" x2="${tw/2}" y2="${th}" stroke="#1c1c20"/>
+ <rect x="${tw/2-tw*0.36}" y="0" width="${tw*0.72}" height="${th}" fill="#ff7a1a" opacity=".07"/><path d="${path(tc)}" fill="none" stroke="#ff7a1a" stroke-width="1.8" filter="url(#g)"/>
+ <circle cx="${tw/2+tw*0.3}" cy="${th/2-Math.tanh(1.45)*th*0.42}" r="4" fill="#fff" filter="url(#g)"/>
+ <text x="8" y="14" fill="#fff" font-size="10" letter-spacing="1.5">DRIVE 2 · TUBE</text><text x="8" y="${th-8}" fill="#ff7a1a" font-size="8.5">signal reaches 72 % into the curve → clipping</text>`;
+ // ott gr
+ let gr='';['LOW','MID','HIGH'].forEach((b,i)=>{gr+=`<text x="${8+i*40}" y="${60}" fill="#666" font-size="7.5">${b}</text><rect x="${12+i*40}" y="2" width="8" height="46" fill="#0a0a0c" stroke="#222"/><rect x="${13+i*40}" y="${2}" width="6" height="${[8,22,30][i]}" fill="#20c0b0" opacity=".8" filter="url(#g)"/>`});
+ let kn='';[['FREQ',.62],['RES',.79],['H RANGE',.5],['V RANGE',.82],['RATE',.37]].forEach((k,i)=>kn+=knob(30+i*62,22,k[1],k[0]));
+ let kn2='';[['DRIVE',1],['TONE',.7],['DRY/WET',.94],['BIAS',0],['OTT',.3]].forEach((k,i)=>kn2+=knob(30+i*62,22,k[1],k[0]));
+ page.style.gridTemplateRows='128px 1fr';
+ page.innerHTML=`<div class="box">${svg(1188,128,defs+strip)}</div>
+ <div style="display:grid;grid-template-columns:${aw+12}px 1fr;gap:6px"><div class="box" style="padding:6px">${svg(aw,ah,defs+ana)}</div>
+ <div style="display:grid;grid-template-rows:152px 1fr;gap:6px"><div style="display:grid;grid-template-columns:252px 1fr;gap:6px"><div class="box" style="padding:6px">${svg(tw,th,defs+tr)}</div><div class="box" style="padding:10px"><div class="lbl" style="color:#fff">OTT 2 · SQUASH</div>${svg(140,64,defs+gr)}<div class="lbl" style="margin-top:4px">IN <span style="color:#fff">-4</span> → OUT <span style="color:#ff5040">+2.1 dB</span></div><div style="font-size:9px;margin-top:6px;color:#ff5040">hits stage 3 hard</div></div></div>
+ <div class="box" style="padding:6px 8px"><div class="lbl" style="margin:2px 0 0 4px">FILTER 2 · PEAK &nbsp;&nbsp;<span class="btn on">WANDER</span> <span class="btn">NOTE</span></div>${svg(320,56,defs+kn)}<div class="lbl" style="margin:0 0 0 4px">DRIVE 2 · TUBE</div>${svg(320,56,defs+kn2)}</div></div></div>`;
+ cap.innerHTML='<b>A · Chain + focus.</b> The top strip is the whole path, left to right, live: each node shows its spectrum and a level meter (red cap = slamming the next stage) with <b>S</b>olo / <b>B</b>ypass / <b>Δ</b> (hear only what it adds). Click a node and the area below becomes that stage: what it adds (before dotted, after lit) with its filter moving live on top, its drive curve with how far the real signal swings into it, its OTT squash, and only its own knobs.';
+}
+if(V==='B'){
+ const aw=1176,ah=300;seed=3;const inp=spec(aw,ah,{tilt:-0.6,noise:0.03});seed=5;const out=spec(aw,ah,{tilt:-0.4,bumps:[[0.62,0.18,0.03],[0.25,0.08,0.06],[0.45,-0.12,0.04]],noise:0.05});
+ let s=grid(aw,ah)+`<path d="${fill(inp,aw,ah)}" fill="#fff" opacity=".04"/><path d="${path(inp)}" fill="none" stroke="#666" stroke-dasharray="2 2"/><path d="${fill(out,aw,ah)}" fill="url(#fade)"/><path d="${path(out)}" fill="none" stroke="#eee" stroke-width="1.4" filter="url(#g)"/>`;
+ const st=[['notch',0.45,0.63],['peak',0.62,0.79],['comb',0.3,0.6],['band',0.78,0.5]];
+ st.forEach(([t,f,r],i)=>{const fc=filterCurve(aw,ah,t,f,r,0.8);s+=`<path d="${path(fc)}" fill="none" stroke="${C[i]}" stroke-width="${i==1?2:1.2}" opacity="${i==1?1:.65}" filter="url(#g)"/>`;
+  const by=ah-34+i*7;const b0=[0.3,0.5,0.15,0.65][i],b1=[0.7,0.8,0.5,0.95][i];s+=`<rect x="${aw*b0}" y="${by}" width="${aw*(b1-b0)}" height="3" fill="${C[i]}" opacity=".6"/>`;
+  const bx=aw*f,byy=ah*0.42-(t=='peak'?0.42*r*ah*0.55*0.8:t=='notch'?-0.5*ah*0.55*0.8:0);s+=`<circle cx="${bx}" cy="${byy}" r="${i==1?9:7}" fill="#0d0d0f" stroke="${C[i]}" stroke-width="2" filter="url(#g)"/><text x="${bx}" y="${byy+3.5}" fill="#fff" font-size="10" text-anchor="middle">${i+1}</text>
+  <line x1="${bx-aw*0.04}" y1="${byy+18}" x2="${bx+aw*0.04}" y2="${byy+18}" stroke="${C[i]}" stroke-dasharray="1 3" opacity=".8"/>`;});
+ s+=`<text x="10" y="16" fill="#fff" font-size="10" letter-spacing="1.5">OUTPUT (lit) vs INPUT (dotted) · every stage on one analyser</text><text x="10" y="30" fill="#666" font-size="8.5">balls = filters (drag: freq / res) · dotted span = where it wanders · bars at the bottom = each drive's band</text>`;
+ let chips='';[['1','NOTCH · TAPE','-6'],['2','PEAK · TUBE','+2.1'],['3','COMB · FOLD','+0.8'],['4','SOFT CLIP','-3']].forEach((c,i)=>chips+=`<div class="box" style="padding:8px 10px;${i==1?'border-color:'+C[1]+';box-shadow:0 0 8px '+C[1]+'55':''}"><div style="display:flex;align-items:center;gap:8px"><span style="width:12px;height:2px;background:${C[i]};box-shadow:0 0 6px ${C[i]}"></span><span style="color:#fff;font-size:11px">${c[0]}</span><span class="lbl">${c[1]}</span><span style="margin-left:auto;font-size:10px;color:${c[2][0]=='+'?'#ff5040':'#777'}">${c[2]} dB</span></div><div style="margin-top:6px;display:flex;gap:4px"><span class="btn">S</span><span class="btn">B</span><span class="btn ${i==1?'on':''}">Δ</span><div style="flex:1;margin-left:6px;height:6px;margin-top:3px;background:#0a0a0c;border:1px solid #222"><div style="width:${[55,96,85,70][i]}%;height:100%;background:${C[i]};box-shadow:0 0 6px ${C[i]}"></div></div></div></div>`);
+ let kn='';[['FREQ',.62],['RES',.79],['RANGE',.5],['RATE',.37],['DRIVE',1],['TONE',.7],['MIX',.94],['BIAS',0],['OTT',.3]].forEach((k,i)=>kn+=knob(24+i*52,24,k[1],k[0],C[1],13));
+ page.style.gridTemplateRows='312px 1fr';
+ page.innerHTML=`<div class="box" style="padding:6px">${svg(aw,ah,defs+s)}</div><div style="display:grid;grid-template-columns:repeat(4,1fr) 480px;gap:6px">${chips}<div class="box" style="padding:4px 8px"><div class="lbl" style="color:#fff">STAGE 2 · PEAK → TUBE</div>${svg(470,60,defs+kn)}</div></div>`;
+ cap.innerHTML='<b>B · One big analyser.</b> The whole chain on one live spectrum: the output lit, the input dotted, every stage\'s filter drawn in its colour with a numbered ball you drag, its wander span dotted, each drive\'s band as a bar along the bottom. Under it a chip per stage (level, how hot it hits the next, S / B / Δ) and the selected stage\'s knobs. Clearest for <i>tone</i>; levels are only the chips.';
+}
+if(V==='C'){
+ const strips=[['SAT','TAPE',C[0]],['PRE OTT','',C[0]],['1','NOTCH · TAPE',C[0]],['2','PEAK · TUBE',C[1]],['3','COMB · FOLD',C[2]],['4','SOFT CLIP',C[3]],['OTT','',C[0]],['OUT','',"#bbb"]];
+ const lv=[[.7,.6],[.78,.74],[.86,.82],[.97,.9],[.93,.97],[.84,.86],[.8,.84],[.76,.8]];
+ let html='';strips.forEach((s,i)=>{const c=s[2],w=141;seed=20+i;const p=spec(w-20,60,{tilt:-0.5,bumps:[[0.3+i*0.06,0.12,0.05]],noise:0.05});
+  const fc=i>=2&&i<=5?filterCurve(w-20,60,['notch','peak','comb','band'][i-2],[0.45,0.62,0.3,0.78][i-2],0.7,0.6):null;
+  let k='';const ks=i>=2&&i<=5?[['FREQ',.6],['RES',.7],['RATE',.4],['DRIVE',.8],['TONE',.7],['BIAS',.1]]:i==7?[['OUTPUT',.5],['MIX',1]]:[['AMOUNT',.9],['LO CUT',.3]];
+  ks.forEach((q,j)=>k+=knob(20+(j%2)*44,22+Math.floor(j/2)*50,q[1],q[0],c,13));
+  html+=`<div class="box" style="padding:8px;${i==3?'border-color:'+c:''}"><div style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:2px;background:${c};box-shadow:0 0 6px ${c}"></span><span style="color:#fff;font-size:11px;letter-spacing:.12em">${s[0]}</span></div><div class="lbl" style="font-size:7.5px;height:12px;margin-top:2px">${s[1]}</div>
+  ${svg(w-20,60,defs+`<path d="${fill(p,w-20,60)}" fill="${c}" opacity=".15"/><path d="${path(p)}" fill="none" stroke="${c}" filter="url(#g)"/>`+(fc?`<path d="${path(fc)}" fill="none" stroke="#fff" opacity=".7"/>`:''))}
+  <div style="display:flex;gap:8px;margin-top:6px"><div style="flex:none">${svg(30,250,defs+meter(2,2,9,230,lv[i][0],lv[i][0]+.02,c,lv[i][0]>.95)+meter(17,2,9,230,lv[i][1],lv[i][1]+.02,c,lv[i][1]>.95)+'<text x="2" y="246" fill="#555" font-size="7">IN OUT</text>')}</div><div style="flex:none">${svg(88,250,defs+k)}</div></div>
+  <div style="display:flex;gap:4px;margin-top:4px"><span class="btn">S</span><span class="btn">B</span><span class="btn">Δ</span><span style="margin-left:auto;font-size:9px;color:${lv[i][1]>.95?'#ff5040':'#777'}">${['-8','-6','-4','+2.1','+0.8','-3','-4','-5'][i]}</span></div></div>`});
+ page.style.gridTemplateColumns='repeat(8,1fr)';page.innerHTML=html;
+ cap.innerHTML='<b>C · Console.</b> Every step is a channel strip like a mixing desk: in / out meters side by side (you see exactly which stage pushes the next too hard), its tone as a small spectrum with its filter on it, its knobs, S / B / Δ. Clearest for <i>levels</i> and order; tone is small, and stages 1–4 have to squeeze their knobs in.';
+}
+</script></body></html>

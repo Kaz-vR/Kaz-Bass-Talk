@@ -76,7 +76,7 @@ const def: CategoryDef = {
       description: 'A glassy FM lead whose edge thickens and thins as it sings.',
       tags: ['lead', 'fm', 'glass', 'bell-like', 'clean', 'eerie', 'lorn'],
       texture: ['air', 0.45, 0.4, 1200],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 2, 'fm.amount': 0.3, 'fm.ratio': 2, 'osc2.level': 0, 'drive.amount': 0.6, 'dist.drive': 0.3 },
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 2, 'osc2.level': 0, 'drive.amount': 0.6, 'dist.drive': 0.3 },
       mods: kit(LEAD_KIT, [], {
         'lfo1>filter_cutoff': ['lfo1', 'fm_amount', 0.15],
         'env2>filter_cutoff': ['env2', 'fm_amount', 0.12],
@@ -102,7 +102,7 @@ const def: CategoryDef = {
       tags: ['lead', 'fm', 'soft', 'glide', 'reverb', 'ambient', 'lorn'],
       texture: ['air', 0.45, 0.3, 2000],
       set: {
-        'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'osc2.wave': 'triangle', 'osc2.level': 0.3, 'fm.amount': 0.18, 'fm.ratio': 1,
+        'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'osc2.wave': 'triangle', 'osc2.level': 0.3, 
         'voice.glide': 250, 'reverb.mix': 0.5, 'drive.amount': 0.6, 'dist.drive': 0.3, 'filter.env_amount': 0, 'chorus.mix': 0.2,
       },
       mods: kit(SOFT_KIT, [], {
@@ -199,7 +199,7 @@ const def: CategoryDef = {
       texture: ['air', 0.35, 0.35, 1500],
       set: {
         'osc1.wave': 'wavetable', 'osc1.wt_pos': 0.55, 'osc1.unison_voices': 1, 'osc2.wave': 'saw', 'osc2.fine': 14, 'osc2.level': 0.3,
-        'voice.glide': 150, 'vibrato.depth': 25, 'vibrato.rate': 4.5, 'tape.wow': 0.45, 'tape.age': 0.6, 'filter.cutoff': 1100,
+        'voice.glide': 150, 'vibrato.depth': 25, 'vibrato.rate': 4.5, 'tape.wow': 0.45, 'filter.cutoff': 1100,
       },
       mods: kit(LEAD_KIT, [['lfo1', 'filter_cutoff', 0.3]], {
         'lfo3>unison_detune': ['lfo3', 'osc1_wt_pos', 0.2],
@@ -241,7 +241,7 @@ const def: CategoryDef = {
       description: "A high, whining sine lead sliding between notes with a quick vibrato, warped like a tape from a lowrider at dusk.",
       tags: ['lead', 'whistle', 'sine', 'g-funk', 'slide', 'high', 'lorn'],
       texture: ['crackle', 0.7, 0.35, 1200],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'voice.octave': 1, 'osc2.level': 0.18, 'voice.glide': 180, 'vibrato.depth': 25, 'vibrato.rate': 6, 'vibrato.delay': 200, 'filter.cutoff': 4000, 'filter.env_amount': 0, 'osc2.wave': 'sine', 'osc2.semi': 12, 'breath.level': 0.3, 'drive.amount': 0.75, 'tape.age': 0.8},
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'voice.octave': 1, 'osc2.level': 0.18, 'voice.glide': 180, 'vibrato.depth': 25, 'vibrato.rate': 6, 'vibrato.delay': 200, 'filter.cutoff': 4000, 'filter.env_amount': 0, 'osc2.wave': 'sine', 'osc2.semi': 12, 'breath.level': 0.3, 'drive.amount': 0.75, },
       mods: kit(SOFT_KIT, [['lfo1', 'osc2_level', 0.4], ['lfo2', 'breath_level', 0.25]], { 'drift_slow>drive': ['drift_slow', 'osc2_level', 0.25], 'velocity>drive': ['velocity', 'amp', 0.25] }),
       allow: { vibeDirt: { min: 0.2, why: 'a pure whistle: its wear is tape, crackle and breath, not grit in the tone' } },
     },
@@ -296,7 +296,7 @@ const def: CategoryDef = {
       description: "A soft, hollow pulse lead whose width breathes slowly: warm, a little sad, very eighties.",
       tags: ['lead', 'pwm', 'soft', 'hollow', 'warm', 'eighties', 'lorn'],
       texture: ['dust', 0.5, 0.35, 1200],
-      set: { 'osc1.wave': 'pulse', 'osc1.pulse_width': 0.4, 'osc1.unison_voices': 1, 'osc2.level': 0.2, 'filter.cutoff': 1100, 'tape.age': 0.6 },
+      set: { 'osc1.wave': 'pulse', 'osc1.pulse_width': 0.4, 'osc1.unison_voices': 1, 'osc2.level': 0.2, 'filter.cutoff': 1100, },
       mods: kit(LEAD_KIT, [], { 'lfo2>amp': ['lfo2', 'osc1_pw', 0.25] }),
     },
     {
@@ -304,7 +304,7 @@ const def: CategoryDef = {
       description: "A simple, lonely square melody echoing in dotted time, like a game left running in an empty arcade.",
       tags: ['lead', 'square', 'delay', 'simple', 'lonely', 'game', 'lorn'],
       texture: ['dust', 0.6, 0.35, 1200],
-      set: { 'osc1.wave': 'pulse', 'osc1.pulse_width': 0.5, 'osc1.unison_voices': 1, 'osc2.level': 0, 'delay.time': '1/4D', 'delay.mix': 0.4, 'delay.feedback': 0.6, 'reverb.mix': 0.35, 'tape.age': 0.6, 'filter.cutoff': 900 },
+      set: { 'osc1.wave': 'pulse', 'osc1.pulse_width': 0.5, 'osc1.unison_voices': 1, 'osc2.level': 0, 'delay.time': '1/4D', 'delay.mix': 0.4, 'delay.feedback': 0.6, 'reverb.mix': 0.35, 'filter.cutoff': 900 },
       mods: kit(LEAD_KIT, [['lfo1', 'filter_cutoff', 0.32], ['drift_slow', 'drive', 0.3]], { 'env2>filter_cutoff': ['lfo3', 'osc1_pw', 0.3] }),
     },
     {
@@ -312,7 +312,7 @@ const def: CategoryDef = {
       description: "A glassy FM bell melody, bright at every strike and ringing into a cold room.",
       tags: ['lead', 'fm', 'bell', 'glassy', 'bright', 'melodic', 'lorn'],
       texture: ['air', 0.35, 0.35, 1200],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'osc2.level': 0.15, 'fm.amount': 0.2, 'fm.ratio': 3.5, 'fm.punch': 0.6, 'fm.decay': 400, 'filter.cutoff': 1800, 'filter.env_amount': 0, 'eq.highcut': 4500, 'osc2.wave': 'sine', 'osc2.semi': 12, 'breath.level': 0.1, 'drive.amount': 0.7 },
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'osc2.level': 0.15, 'filter.cutoff': 1800, 'filter.env_amount': 0, 'eq.highcut': 4500, 'osc2.wave': 'sine', 'osc2.semi': 12, 'breath.level': 0.1, 'drive.amount': 0.7 },
       mods: kit(SOFT_KIT, [['lfo1', 'osc2_level', 0.4]], { 'drift_slow>drive': ['drift_slow', 'osc2_level', 0.25], 'env2>drive': ['env2', 'osc2_level', 0.3], 'velocity>drive': ['velocity', 'amp', 0.25] }),
     },
     {
@@ -342,7 +342,7 @@ const def: CategoryDef = {
       description: "A lead on a badly warped tape: the pitch wanders and sags, nostalgic and slightly seasick.",
       tags: ['lead', 'tape', 'warped', 'wobbly', 'nostalgic', 'lo-fi', 'lorn'],
       texture: ['crackle', 0.4, 0.35, 1200],
-      set: { 'tape.wow': 0.55, 'tape.age': 0.65 },
+      set: { 'tape.wow': 0.55, },
       mods: kit(LEAD_KIT, [['drift', 'osc_pitch', 0.008]]),
     },
     // ------------------------------------------------ producer range: the roles this category was missing

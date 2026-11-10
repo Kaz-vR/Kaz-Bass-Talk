@@ -1,9 +1,9 @@
 // One synth voice: everything that belongs to a single note, from the
 // oscillators through the amp, plus its clean sub.
 //
-//   osc1 (+FM) + osc2 + noise
+//   osc1 + osc2 + noise
 //   → [2× oversampled: drive → filter → distortion (optionally mids only)]
-//   → bitcrusher → tape (saturation, wow/flutter, age) → DC filter → amp
+//   → DC filter → amp (RUIN, DRIVE, the bitcrusher and tape run once on the summed voices: bus.ts)
 //   + sub (clean, mono, phase-stable: bypasses everything above)
 //
 // The Synth owns up to 8 of these (polyphony) and everything shared: the
@@ -11,11 +11,9 @@
 // Pure TypeScript, allocation-free after construction.
 
 import { AUX_SLOT, Biquad, clamp, Clipper, Envelope, Ladder, OSC_SLOT, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
-import { Crusher, Tape } from './fx';
-import { Grind } from './grind';
 import { Downsampler2x, OVERSAMPLE_LATENCY, Upsampler2x } from './oversample';
 import * as K from './params';
-import { Comb, DiodeLadder, KarplusString, Shepard } from './voicefx';
+import { Comb, DiodeLadder, KarplusString } from './voicefx';
 import { FRAME_COUNT, FRAMES_PER_SEGMENT, MIP_LEVELS, mipForIncrement, TABLE_MASK, TABLE_SIZE } from './wavetable';
 
 // Module-local bindings: avoids live-binding getter overhead on hot paths in
@@ -40,22 +38,19 @@ const PRE_FILTER_GAIN = K.PRE_FILTER_GAIN, POST_FILTER_GAIN = K.POST_FILTER_GAIN
 /** The sub routed into the main filter arrives at about the level the clean path would have had. */
 const SUB_ROUTE_GAIN = 1 / (VOICE_GAIN * PRE_FILTER_GAIN * POST_FILTER_GAIN);
 const WAVE_SINE = K.WAVE_SINE, WAVE_TRI = K.WAVE_TRI, WAVE_SAW = K.WAVE_SAW, WAVE_PULSE = K.WAVE_PULSE, WAVE_PWMSAW = K.WAVE_PWMSAW;
-const WAVE_STRING = K.WAVE_STRING, WAVE_SHEPARD = K.WAVE_SHEPARD;
+const WAVE_STRING = K.WAVE_STRING;
 const FILTER_LP = K.FILTER_LP, FILTER_BP = K.FILTER_BP, FILTER_DIODE = K.FILTER_DIODE, FILTER_NOTCH = K.FILTER_NOTCH;
-const FILTER_COMB = K.FILTER_COMB, FILTER_LPG = K.FILTER_LPG, FILTER_HP = K.FILTER_HP;
-const DIST_SOFT = K.DIST_SOFT, DIST_HARD = K.DIST_HARD, DIST_FOLD = K.DIST_FOLD, DIST_FUZZ = K.DIST_FUZZ;
-const TUBE_BIAS = K.TUBE_BIAS, TUBE_OFFSET = K.TUBE_OFFSET, HALF_PI = K.HALF_PI;
+const FILTER_COMB = K.FILTER_COMB, FILTER_LPG = K.FILTER_LPG, FILTER_HP = K.FILTER_HP, FILTER_SEM = K.FILTER_SEM;
 
-const fuzz = K.fuzz, fuzzIntegral = K.fuzzIntegral, FUZZ_BIAS_REL = K.FUZZ_BIAS_REL;
 const tanh = K.tanh, tanhIntegral = K.tanhIntegral;
 const SLOT_COUNT = K.SLOT_COUNT, SRC_COUNT = K.SRC_COUNT, DEST_COUNT = K.DEST_COUNT;
 const VOWELS = K.VOWELS, FORMANT_GAIN = K.FORMANT_GAIN;
 const TABLE_N = TABLE_SIZE, TABLE_M = TABLE_MASK;
 const D = {
   PITCH: K.D_PITCH, OSC_PITCH: K.D_OSC_PITCH, OSC1_PITCH: K.D_OSC1_PITCH, OSC2_PITCH: K.D_OSC2_PITCH, OSC1_WT: K.D_OSC1_WT, OSC2_WT: K.D_OSC2_WT,
-  OSC1_PW: K.D_OSC1_PW, OSC2_PW: K.D_OSC2_PW, OSC1_LEVEL: K.D_OSC1_LEVEL, OSC2_LEVEL: K.D_OSC2_LEVEL, DETUNE: K.D_DETUNE,
-  FM: K.D_FM, SUB: K.D_SUB, NOISE: K.D_NOISE, DRIVE: K.D_DRIVE, CUTOFF: K.D_CUTOFF, RES: K.D_RES, VOWEL: K.D_VOWEL,
-  DIST_DRIVE: K.D_DIST_DRIVE, DIST_MIX: K.D_DIST_MIX, AMP: K.D_AMP, FM2: K.D_FM2, CRUSH: K.D_CRUSH, TAPE_WOW: K.D_TAPE_WOW,
+  OSC1_PW: K.D_OSC1_PW, OSC2_PW: K.D_OSC2_PW, OSC1_LEVEL: K.D_OSC1_LEVEL, OSC2_LEVEL: K.D_OSC2_LEVEL, DETUNE: K.D_DETUNE, SHAPE: K.D_SHAPE, OSC1_DETUNE: K.D_OSC1_DETUNE, OSC2_DETUNE: K.D_OSC2_DETUNE,
+  SUB: K.D_SUB, NOISE: K.D_NOISE, DRIVE: K.D_DRIVE, CUTOFF: K.D_CUTOFF, RES: K.D_RES, VOWEL: K.D_VOWEL,
+  DIST_DRIVE: K.D_DIST_DRIVE, DIST_MIX: K.D_DIST_MIX, AMP: K.D_AMP, CRUSH: K.D_CRUSH, TAPE_WOW: K.D_TAPE_WOW,
   DIST_TONE: K.D_DIST_TONE, VIBRATO: K.D_VIBRATO, BREATH: K.D_BREATH, SUB_PITCH: K.D_SUB_PITCH,
 };
 
@@ -99,16 +94,6 @@ export class Voice {
   private readonly cur: Float64Array;
   private readonly table: Float32Array;
   private readonly rng: Rng;
-  private grind!: Grind;
-  /** Where GRIND stage i's filter is right now (Hz), or -1 when the stage (or the chain) is off. */
-  grindFc(i: number): number {
-    return this.grindOn ? this.grind.stages[i].fcNow : -1;
-  }
-  /** GRIND stage i's resonance right now (with V RANGE's movement). */
-  grindRes(i: number): number {
-    return this.grind.stages[i].resNow;
-  }
-  private grindOn = false;
   /** The bar position in beats (0..4), set by the synth before control(): GRIND's beat movement. */
   beatPos = 0;
   /** The tempo in beats per second (set with beatPos). */
@@ -127,7 +112,6 @@ export class Voice {
   /** Samples left to drain the sub delay line after the amp envelope ends. */
   tail = 0;
   private hasPlayed = false;
-  private noteRandom = 0;
   /** 1 when this voice carries the sub (poly: only the lowest note does); ramped per sample. */
   subOn = 1;
   private subMix = 1;
@@ -136,37 +120,23 @@ export class Voice {
   // Modulation.
   readonly ampEnv = new Envelope();
   private readonly modEnv = new Envelope();
-  private readonly env2 = new Envelope(); // slow 'bloom' envelope, ticked at control rate
-  private readonly env3 = new Envelope(); // a third mod envelope (pitch bumps and drops), control rate
-  private readonly src = new Float64Array(SRC_COUNT);
+  readonly src = new Float64Array(SRC_COUNT);
   // LFO fade-in per voice, from this note's start: a shared fade would restart on every new
   // note and, in a fast arp or a chord, never get to fade in.
-  private readonly lfoFade = new Float64Array(4).fill(1);
+  private readonly lfoFade = new Float64Array(K.LFO_COUNT).fill(1);
+  // The per-note LFO shapes (bloom, drop, per note): how far through its cycle each is since this
+  // note started (0..1, held at 1), and the note's random value; each voice runs its own.
+  private readonly lfoProg = new Float64Array(K.LFO_COUNT);
+  private readonly lfoRand = new Float64Array(K.LFO_COUNT);
   /** Mod matrix result for this voice (the Synth reads the newest voice's FX targets). */
   readonly dst = new Float64Array(DEST_COUNT);
 
   // Oscillators.
   private readonly osc: OscState[] = [makeOsc(), makeOsc()];
-  private fmPhase = 0;
-  private fmInc = 0;
-  private fmIndex = 0;
-  private pmPrev = 0;
-  private fm2Phase = 0;
-  private fm2Inc = 0;
-  private fm2Index = 0;
-  private fmFbAmt = 0;
-  private fmPrevOut = 0;
-  private fmEnv = 0;
-  private fmEnvCoef = 0.99;
-  private fmPunchIdx = 0;
-  private fmAlgo = 0;
-  private fmActive = false;
   private readonly strings: KarplusString[];
   private readonly strPeriod = new Float64Array(2);
   private readonly strGain = new Float64Array(2);
   private strTone = 0.5;
-  private readonly shepards = [new Shepard(), new Shepard()];
-  private shepRate = 0;
   // Delayed vibrato (per note: its own phase and a slightly different rate).
   private noteTime = 0;
   private vibPhase = 0;
@@ -205,7 +175,11 @@ export class Voice {
   private fMix = 1;
   private noiseLevel = 0;
 
-  // Drive + filter.
+  // Mixer drive (the oscillators' sum overdriving), then drive + filter.
+  private mixGain = 1;
+  private mixComp = 1;
+  private readonly mixU = new Float64Array(2);
+  private readonly mixF = new Float64Array(2).fill(tanhIntegral(0));
   private driveMix = 0;
   private driveGain = 1;
   private driveComp = 1;
@@ -224,6 +198,9 @@ export class Voice {
   private readonly notchR = [new Svf(), new Svf()];
   private readonly lpgL = new Svf();
   private readonly lpgR = new Svf();
+  /** The SEM-style 12 dB low-pass (a bending state-variable filter). */
+  private readonly semL = new Svf();
+  private readonly semR = new Svf();
   private readonly combL: Comb;
   private readonly combR: Comb;
   private combDelay = 100;
@@ -244,61 +221,43 @@ export class Voice {
   private readonly voiceDcL = new Biquad();
   private readonly voiceDcR = new Biquad();
   private analog = 0;
+  /** The saws' analog bow (a charging capacitor's ramp, not a straight line), from Analog. */
+  private sawBow = 0;
   private noteCutoffJitter = 0;
+  /**
+   * This voice's own fixed character, its "voice card" (as each voice of a Prophet or Jupiter is a
+   * little different): offsets in tuning, cutoff, envelope times and level, each -1..1, scaled by
+   * Analog, in poly only (a mono patch keeps its one tuning against its sub).
+   */
+  private readonly cardTune: number;
+  private readonly cardCut: number;
+  private readonly cardEnv: number;
+  private readonly cardLevel: number;
+  /** This note's envelope timing, a touch different every note (analog envelopes never repeat exactly). */
+  private noteEnvJitter = 1;
 
-  // Distortion.
-  private distType = DIST_SOFT;
-  private distGain = 1;
-  /** Fuzz: its bias (it follows the drive) and the curve's output at zero input (taken off so silence stays silent). */
-  private fuzzBias = FUZZ_BIAS_REL;
-  private fuzzOffset = fuzz(FUZZ_BIAS_REL);
-  private distAmt = 0;
-  private toneCoef = 1;
-  private toneL = 0;
-  private toneR = 0;
-  private lastTone = -1;
-  private splitG = 0; // 0 = full-band distortion
-  private lastSplit = NaN;
-  private readonly adaaU = new Float64Array(2);
   private readonly driveU = new Float64Array(2);
   private readonly driveF = new Float64Array(2).fill(tanhIntegral(0));
-  private readonly adaaF = new Float64Array(2);
-  private readonly split = [new Svf(), new Svf(), new Svf(), new Svf(), new Svf(), new Svf()];
-
-  // Bitcrusher, tape.
-  private readonly crusher = new Crusher();
-  private crushQ = 128;
-  private crushRate = 1;
-  private crushMix = 0;
-  /** Crush / tape low cut: one-pole pair coefficients (0 = off) and their state (L, L, R, R). */
-  private crushLc = 0;
-  private tapeLc = 0;
-  private readonly crushLp = new Float64Array(4);
-  private readonly tapeLp = new Float64Array(4);
-  private readonly tape: Tape;
-  private tapeWow = 0;
-  /** Tape-age low-pass coefficient (the Synth's texture bed uses the newest voice's). */
-  tapeLpCoef = 1;
-  private lastTapeAge = -1;
-  private tapeOn = false;
 
   // Amp.
   private ampMod = 1;
   private ampModStep = 0;
   private velGain = 1;
-  private readonly tmp = new Float64Array(2);
 
   constructor(fs: number, cur: Float64Array, table: Float32Array, seed: number, private readonly dstMask?: Float64Array) {
     this.fs = fs;
     this.cur = cur;
     this.table = table;
     this.rng = new Rng(seed);
-    this.grind = new Grind(this.rng);
+    const card = new Rng(seed ^ 0x6c8e9cf5);
+    this.cardTune = card.next();
+    this.cardCut = card.next();
+    this.cardEnv = card.next();
+    this.cardLevel = card.next();
     this.subRamp = 1 / (0.01 * fs);
     this.combL = new Comb(Math.ceil((fs * OS) / 20));
     this.combR = new Comb(Math.ceil((fs * OS) / 20));
     this.strings = [new KarplusString(Math.ceil(fs / 15)), new KarplusString(Math.ceil(fs / 15))];
-    this.tape = new Tape(fs);
     this.subClip = new Clipper(fs);
     this.midClip = new Clipper(fs);
     this.voiceDcL.setHighpass(VOICE_DC_HZ, Math.SQRT1_2, fs);
@@ -324,8 +283,6 @@ export class Voice {
     this.gate = true;
     this.order = order;
     this.tail = 40;
-    // GRIND's note movement starts again on every new note, legato notes too
-    this.grind.noteOn(this.rng);
     if (!retrigger) return;
     this.velocity = clamp(velocity, 0, 1);
     const cur = this.cur;
@@ -342,8 +299,6 @@ export class Voice {
       this.subPhase = 0;
       this.syncPhase = 0;
       this.osc[1].held.fill(0);
-      this.fmPhase = 0;
-      this.pmPrev = 0;
       this.ladL.reset();
       this.ladR.reset();
       this.upL.reset();
@@ -352,13 +307,11 @@ export class Voice {
       this.dnR.reset();
       this.diodeL.reset();
       this.diodeR.reset();
-      this.fm2Phase = 0;
-      this.fmPrevOut = 0;
-      this.grind.reset();
     }
     this.noteCutoffJitter = this.rng.next();
-    // Per-note excitations: FM punch, string pluck.
-    this.fmEnv = 1;
+    // (poly only, as the voice cards: a mono bass keeps the same punch on every note)
+    this.noteEnvJitter = cur[P.poly] > 1.5 ? 1 + 0.12 * cur[P.analog] * this.rng.next() : 1;
+    // Per-note excitations: the string pluck.
     const noteHz = 440 * Math.pow(2, (note + 12 * cur[P.octave] - 69) / 12);
     for (let n = 0; n < 2; n++) {
       if (cur[P.osc[n].wave] === WAVE_STRING) {
@@ -368,10 +321,11 @@ export class Voice {
     }
     this.ampEnv.trigger();
     this.modEnv.trigger();
-    this.env2.trigger();
-    this.env3.trigger();
-    this.noteRandom = this.rng.next();
-    for (let l = 0; l < 4; l++) this.lfoFade[l] = cur[P.lfo[l].fade] > 0 ? 0 : 1;
+    for (let l = 0; l < K.LFO_COUNT; l++) {
+      this.lfoFade[l] = cur[P.lfo[l].fade] > 0 ? 0 : 1;
+      this.lfoProg[l] = 0;
+      this.lfoRand[l] = this.rng.next();
+    }
     this.noteTime = 0;
     this.vibPhase = 0.5 * (this.rng.next() + 1);
     this.vibRate = cur[P.vibRate] * (1 + 0.05 * this.rng.next());
@@ -381,19 +335,13 @@ export class Voice {
     this.gate = false;
     this.ampEnv.release();
     this.modEnv.release();
-    this.env2.release();
-    this.env3.release();
   }
 
   /** Clear all DSP state (after a fault). */
   reset(): void {
-    this.crushLp.fill(0);
-    this.tapeLp.fill(0);
     this.gate = false;
     this.ampEnv.reset();
     this.modEnv.reset();
-    this.env2.reset();
-    this.env3.reset();
     this.ladL.reset();
     this.ladR.reset();
     for (let i = 0; i < 2; i++) {
@@ -404,23 +352,18 @@ export class Voice {
       this.fmtL[i].reset();
       this.fmtR[i].reset();
     }
-    this.toneL = this.toneR = 0;
     this.upL.reset();
     this.upR.reset();
     this.dnL.reset();
     this.dnR.reset();
     this.voiceDcL.reset();
     this.voiceDcR.reset();
-    for (const f of this.split) f.reset();
     this.diodeL.reset();
     this.diodeR.reset();
-    for (const f of [...this.notchL, ...this.notchR, ...this.hpL, ...this.hpR, this.lpgL, this.lpgR]) f.reset();
+    for (const f of [...this.notchL, ...this.notchR, ...this.hpL, ...this.hpR, this.lpgL, this.lpgR, this.semL, this.semR]) f.reset();
     this.combL.reset();
     this.combR.reset();
     for (const st of this.strings) st.reset();
-    for (const sh of this.shepards) sh.reset();
-    this.crusher.reset();
-    this.tape.reset();
     this.subClip.reset();
     this.midClip.reset();
     this.subDelay.fill(0);
@@ -441,10 +384,6 @@ export class Voice {
       o.voices = cur[P.osc[n].voices];
     }
     this.filterType = cur[P.fType];
-    this.distType = cur[P.dType];
-    // Keep the ADAA state consistent with the (possibly new) curve.
-    this.adaaF[0] = this.curveIntegral(this.adaaU[0]);
-    this.adaaF[1] = this.curveIntegral(this.adaaU[1]);
     this.subWave = cur[P.subWave];
   }
 
@@ -462,12 +401,11 @@ export class Voice {
     const fs = this.fs;
     const cur = this.cur;
 
-    this.ampEnv.set(cur[P.amp[0]], cur[P.amp[1]], cur[P.amp[2]], cur[P.amp[3]], fs, cur[P.ampBend[0]], cur[P.ampBend[1]], cur[P.ampBend[2]]);
-    this.modEnv.set(cur[P.mod[0]], cur[P.mod[1]], cur[P.mod[2]], cur[P.mod[3]], fs, cur[P.modBend[0]], cur[P.modBend[1]], cur[P.modBend[2]]);
-    this.env2.set(cur[P.env2[0]], cur[P.env2[1]], cur[P.env2[2]], cur[P.env2[3]], fs / CONTROL_BLOCK);
-    if (this.env2.stage !== 0) this.env2.tick();
-    this.env3.set(cur[P.env3[0]], cur[P.env3[1]], cur[P.env3[2]], cur[P.env3[3]], fs / CONTROL_BLOCK);
-    if (this.env3.stage !== 0) this.env3.tick();
+    // The voice card (poly only, scaled by Analog) and this note's jitter stretch the envelope times.
+    const card = cur[P.poly] > 1.5 ? cur[P.analog] : 0;
+    const et = (1 + 0.2 * card * this.cardEnv) * this.noteEnvJitter;
+    this.ampEnv.set(cur[P.amp[0]] * et, cur[P.amp[1]] * et, cur[P.amp[2]], cur[P.amp[3]] * et, fs, cur[P.ampBend[0]], cur[P.ampBend[1]], cur[P.ampBend[2]]);
+    this.modEnv.set(cur[P.mod[0]] * et, cur[P.mod[1]] * et, cur[P.mod[2]], cur[P.mod[3]] * et, fs, cur[P.modBend[0]], cur[P.modBend[1]], cur[P.modBend[2]]);
 
     // Glide.
     const glideMs = cur[P.glide];
@@ -481,24 +419,29 @@ export class Voice {
     // Mod matrix: global sources plus this voice's own.
     const src = this.src;
     src.set(gsrc);
-    for (let l = 0; l < 4; l++) {
+    for (let l = 0; l < K.LFO_COUNT; l++) {
+      const lp = P.lfo[l];
       if (this.lfoFade[l] < 1) {
-        const fadeMs = cur[P.lfo[l].fade];
+        const fadeMs = cur[lp.fade];
         this.lfoFade[l] = fadeMs > 0 ? Math.min(1, this.lfoFade[l] + (CONTROL_BLOCK * 1000) / (fadeMs * fs)) : 1;
       }
+      const s = K.SRC_LFO[l];
+      if (K.lfoPerNote(cur[lp.shape])) {
+        // A per-note shape: one cycle from this note's start (Rate or the synced note value), then held.
+        const sync = cur[lp.sync];
+        let rate = sync > 0 ? this.bps / K.SYNC_BEATS[sync] : cur[lp.rate];
+        const rm = this.dst[K.LFO_RATE_DEST[l]];
+        if (rm !== 0) rate *= Math.pow(2, 3 * rm);
+        this.lfoProg[l] = Math.min(1, this.lfoProg[l] + (rate * CONTROL_BLOCK) / fs);
+        src[s] = this.lfoNow(l) * cur[P.lfoOn[l]] * this.lfoFade[l];
+      } else {
+        src[s] *= this.lfoFade[l];
+      }
     }
-    src[K.SRC_LFO1] *= this.lfoFade[0];
-    src[K.SRC_LFO2] *= this.lfoFade[1];
-    src[K.SRC_LFO3] *= this.lfoFade[2];
-    src[K.SRC_LFO4] *= this.lfoFade[3];
-    src[K.SRC_PRODUCT] = src[K.SRC_LFO1] * src[K.SRC_LFO2];
     src[K.SRC_MOD_ENV] = this.modEnv.level * cur[P.modEnvOn];
     src[K.SRC_AMP_ENV] = this.ampEnv.level;
     src[K.SRC_VEL] = this.velocity;
     src[K.SRC_KEY] = clamp((this.pitch - KEYTRACK_CENTER) / 24, -1, 1);
-    src[K.SRC_RANDOM] = this.noteRandom;
-    src[K.SRC_ENV2] = this.env2.level * cur[P.env2On];
-    src[K.SRC_ENV3] = this.env3.level * cur[P.env3On];
     const dst = this.dst;
     dst.set(xdst); // the mod wheel's move and the wobble, shared by all voices
     for (let s = 0; s < SLOT_COUNT; s++) {
@@ -511,7 +454,8 @@ export class Voice {
     if (mask) for (let d = 1; d < dst.length; d++) dst[d] *= mask[d];
 
     this.analog = cur[P.analog];
-    // Sync needs a table oscillator on osc 2 (not string or shepard).
+    this.sawBow = this.analog;
+    // Sync needs a table oscillator on osc 2 (not string).
     this.syncOn = cur[P.osc2Sync] > 0.5;
 
     // Delayed vibrato: the note starts straight, then sings.
@@ -530,7 +474,7 @@ export class Voice {
     // Pitch.
     // Pitch moves the whole note (the sub too); Osc A+B pitch and vibrato only the two oscillators.
     const notePitch = this.pitch + 12 * cur[P.octave] + 2 * bend + 24 * dst[D.PITCH];
-    const basePitch = notePitch + 24 * dst[D.OSC_PITCH] + vib;
+    const basePitch = notePitch + 24 * dst[D.OSC_PITCH] + vib + 0.1 * card * this.cardTune;
 
     // Oscillators.
     for (let n = 0; n < 2; n++) {
@@ -542,7 +486,7 @@ export class Voice {
       while (center < 20 / fs) center *= 2;
       if (n === 0) this.syncInc = center;
       const voices = o.voices;
-      const detune = clamp(cur[op.detune] + 100 * dst[D.DETUNE], 0, 100);
+      const detune = clamp(cur[op.detune] + 100 * (dst[D.DETUNE] + dst[n === 0 ? D.OSC1_DETUNE : D.OSC2_DETUNE]), 0, 100);
       const spread = cur[op.spread];
       if (voices === 1) {
         o.inc[0] = center;
@@ -562,7 +506,9 @@ export class Voice {
         for (let j = 0; j < voices; j++) {
           if (this.rng.next() > 0.996) o.driftTarget[j] = this.rng.next();
           o.drift[j] += (o.driftTarget[j] - o.drift[j]) * 0.003;
-          const cents = this.analog * (j === 0 ? 2.5 : 7) * o.drift[j];
+          // ±2.5 → ±40 cents on the core, ±7 → ±60 on the copies, curved (owner's call: extreme at the top)
+          const a = this.analog, a4 = a * a * a * a;
+          const cents = (j === 0 ? 2.5 * a + 37.5 * a4 : 7 * a + 53 * a4) * o.drift[j];
           o.inc[j] *= 1 + cents * 0.000577623; // ≈ 2^(cents/1200)
         }
       }
@@ -577,7 +523,7 @@ export class Voice {
         o.lastVoices = voices;
       }
       const level = clamp(cur[op.level] + dst[n === 0 ? D.OSC1_LEVEL : D.OSC2_LEVEL], 0, 1);
-      if (o.wave === WAVE_STRING || o.wave === WAVE_SHEPARD) {
+      if (o.wave === WAVE_STRING) {
         // Single-voice oscillators: unison doesn't apply.
         o.gain = level;
         this.strPeriod[n] = 1 / center;
@@ -587,15 +533,18 @@ export class Voice {
       } else {
         o.gain = level / Math.sqrt(voices);
       }
-      o.pw = clamp(cur[op.pw] + 0.45 * dst[n === 0 ? D.OSC1_PW : D.OSC2_PW], 0.05, 0.95);
+      // A / B shape (and A+B shape) move the Shape knob: pulse width, or the wavetable position below.
+      const shape = dst[n === 0 ? D.OSC1_PW : D.OSC2_PW] + dst[D.SHAPE];
+      // (an analog pulse's width drifts a little with its pitch, from Analog)
+      o.pw = clamp(cur[op.pw] + 0.45 * shape + 0.04 * this.analog * o.drift[0], 0.05, 0.95);
       // Wavetable frame selection.
       let wt: number;
       if (o.wave === WAVE_SINE) wt = 0;
       else if (o.wave === WAVE_TRI) wt = FRAMES_PER_SEGMENT / (FRAME_COUNT - 1);
-      else wt = clamp(cur[op.wt] + dst[n === 0 ? D.OSC1_WT : D.OSC2_WT], 0, 1);
+      else wt = clamp(cur[op.wt] + dst[n === 0 ? D.OSC1_WT : D.OSC2_WT] + shape, 0, 1);
       const fpos = wt * (FRAME_COUNT - 1);
       const fa = Math.min(FRAME_COUNT - 2, Math.floor(fpos));
-      const mip = mipForIncrement(o.inc[voices - 1] * (n === 0 && this.fmActive ? 2 : 1));
+      const mip = mipForIncrement(o.inc[voices - 1]);
       o.baseA = (fa * MIP_LEVELS + mip) * TABLE_SIZE;
       o.baseB = ((fa + 1) * MIP_LEVELS + mip) * TABLE_SIZE;
       o.frac = fpos - fa;
@@ -634,23 +583,6 @@ export class Voice {
       this.subF.set(kind, p24, hz, fs);
     }
     this.strTone = cur[P.strTone];
-    this.shepRate = (cur[P.shepRate] * 0.4) / fs; // octaves per sample (±0.4 oct/s)
-
-    // FM: sine operators phase-modulate osc 1 (indices in cycles). Operator 1
-    // has a steady depth plus a decaying punch and self-feedback; operator 2
-    // either modulates operator 1 (stack) or the oscillator directly (parallel).
-    const fmAmt = clamp(cur[P.fmAmount] + dst[D.FM], 0, 1);
-    const fm2 = clamp(cur[P.fm2Amount] + dst[D.FM2], 0, 1);
-    this.fmIndex = fmAmt * fmAmt * 1.3;
-    this.fmPunchIdx = cur[P.fmPunch] * 2;
-    this.fm2Index = fm2 * fm2 * 1.3;
-    this.fmFbAmt = cur[P.fmFb] * 0.3;
-    this.fmAlgo = cur[P.fmAlgo];
-    this.fmEnvCoef = Math.exp(-4.6 / ((cur[P.fmDecay] / 1000) * fs));
-    this.fmActive = this.fmIndex > 0 || this.fmPunchIdx > 0 || this.fm2Index > 0;
-    const carrier = this.toInc(basePitch + cur[P.osc[0].semi]);
-    this.fmInc = Math.min(0.45, carrier * cur[P.fmRatio]);
-    this.fm2Inc = Math.min(0.45, carrier * cur[P.fm2Ratio]);
 
     // Sub, folded up an octave at a time if it would fall below 20 Hz (inaudible, wastes headroom).
     // The sub follows the note: glide, bend and the matrix's Pitch (Env 3 → Pitch for an 808 drop).
@@ -666,6 +598,11 @@ export class Voice {
     this.subLevel = clamp(cur[P.subLevel] + dst[D.SUB], 0, 1) * SUB_GAIN;
     this.noiseLevel = clamp(cur[P.noise] + dst[D.NOISE], 0, 1) * 0.5;
 
+    // Mixer drive: the mix saturates harder the hotter it is; the make-up keeps a full mix near its level.
+    const md = cur[P.mixDrive];
+    this.mixGain = 1 + 8 * md;
+    this.mixComp = 1 / Math.sqrt(this.mixGain);
+
     // Pre-filter drive.
     const drive = clamp(cur[P.drive] + dst[D.DRIVE], 0, 1);
     this.driveMix = Math.min(1, drive * 4);
@@ -677,10 +614,8 @@ export class Voice {
     this.accentAmt = cur[P.accent] * clamp((this.velocity - 0.6) / 0.4, 0, 1);
     const res = clamp(cur[P.res] + dst[D.RES] + 0.15 * this.accentAmt, 0, 1);
     const fsOs = fs * OS;
-    this.grindOn = cur[P.grindOn] > 0.5;
-    if (this.grindOn) this.grind.control(cur, this.beatPos, this.bps, (this.pitch + 12 * cur[P.octave] - K.KEYTRACK_CENTER) / 12, fs, fsOs, CONTROL_BLOCK * OS, this.rng);
     let octs = (cur[P.keytrack] * (this.pitch + 12 * cur[P.octave] - KEYTRACK_CENTER)) / 12 +
-      6 * cur[P.envAmt] * cur[P.modEnvOn] * (1 + 1.5 * this.accentAmt) * this.modEnv.level + 6 * dst[D.CUTOFF] + 0.12 * this.analog * this.noteCutoffJitter;
+      6 * cur[P.envAmt] * cur[P.modEnvOn] * (1 + 1.5 * this.accentAmt) * this.modEnv.level + 6 * dst[D.CUTOFF] + 0.12 * this.analog * this.noteCutoffJitter + 0.3 * card * this.cardCut;
     // Low-pass gate: the cutoff closes together with the amp envelope.
     if (this.filterType === FILTER_LPG) octs += 1.5 * Math.log2(Math.max(this.ampEnv.level, 0.002));
     const fc = clamp(cur[P.cutoff] * Math.pow(2, octs), 20, Math.min(20000, fs * 0.45));
@@ -707,6 +642,9 @@ export class Voice {
     } else if (this.filterType === FILTER_HP) {
       // 4-pole high-pass: two 2-pole stages (Butterworth at res 0), the resonance on the sharper one
       this.k = 0.765 * (1 - res) + 0.05;
+    } else if (this.filterType === FILTER_SEM) {
+      // SEM: a 12 dB state-variable low-pass, gentle at res 0, singing but never self-oscillating at the top
+      this.k = 1.9 * (1 - res) + 0.12;
     } else {
       const v = clamp(cur[P.vowel] + dst[D.VOWEL], 0, 1) * 4;
       const vi = Math.min(3, Math.floor(v));
@@ -719,49 +657,6 @@ export class Voice {
       this.fmtK = 1 / (3 + 15 * res);
     }
 
-    // Distortion.
-    const dDrive = clamp(cur[P.dDrive] + dst[D.DIST_DRIVE], 0, 1);
-    const dMix = clamp(cur[P.dMix] + dst[D.DIST_MIX], 0, 1);
-    this.distAmt = Math.min(1, dDrive * 5) * dMix;
-    this.distGain = 1 + 49 * dDrive * dDrive;
-    if (this.distType === DIST_FUZZ) {
-      const b = FUZZ_BIAS_REL * this.distGain;
-      if (b !== this.fuzzBias) {
-        this.fuzzBias = b;
-        this.fuzzOffset = fuzz(b);
-        // keep the ADAA state on the moved curve
-        this.adaaF[0] = this.curveIntegral(this.adaaU[0]);
-        this.adaaF[1] = this.curveIntegral(this.adaaU[1]);
-      }
-    }
-    const dTone = clamp(cur[P.dTone] + dst[D.DIST_TONE], 0, 1);
-    if (dTone !== this.lastTone) {
-      const toneHz = 300 * Math.pow(20000 / 300, dTone);
-      this.toneCoef = 1 - Math.exp((-TWO_PI * Math.min(toneHz, fs * 0.45)) / fsOs);
-      this.lastTone = dTone;
-    }
-    if (cur[P.dSplit] !== this.lastSplit) {
-      const split = cur[P.dSplit];
-      this.splitG = split > 22 ? Math.tan((Math.PI * split) / fsOs) : 0;
-      if (this.splitG > 0) for (const f of this.split) f.setCoefs(this.splitG, Math.SQRT2);
-      this.lastSplit = split;
-    }
-
-    // Bitcrusher.
-    this.crushMix = clamp(cur[P.crushMix] + dst[D.CRUSH], 0, 1);
-    this.crushQ = Math.pow(2, cur[P.crushBits] - 1);
-    this.crushRate = cur[P.crushRate];
-    this.crushLc = cur[P.crushLowcut] > 21 ? Math.exp((-TWO_PI * cur[P.crushLowcut]) / fs) : 0;
-    this.tapeLc = cur[P.tapeLowcut] > 21 ? Math.exp((-TWO_PI * cur[P.tapeLowcut]) / fs) : 0;
-
-    // Tape.
-    this.tapeWow = clamp(cur[P.tapeWow] + dst[D.TAPE_WOW], 0, 1);
-    this.tapeOn = cur[P.tapeDrive] > 0 || this.tapeWow > 0 || cur[P.tapeAge] > 0;
-    if (cur[P.tapeAge] !== this.lastTapeAge) {
-      const hz = 20000 * Math.pow(0.15, cur[P.tapeAge]);
-      this.tapeLpCoef = 1 - Math.exp((-TWO_PI * Math.min(hz, fs * 0.45)) / fs);
-      this.lastTapeAge = cur[P.tapeAge];
-    }
 
     // Clippers: the drive (dB) lowers the knee; the curve above it is half as tall as the
     // distance from the knee to the nominal peak; an automatic level match keeps the loudness.
@@ -771,7 +666,7 @@ export class Voice {
     // Amp.
     const ampTarget = clamp(1 + dst[D.AMP], 0, 2);
     this.ampModStep = (ampTarget - this.ampMod) / CONTROL_BLOCK;
-    this.velGain = (1 - cur[P.velocity] * (1 - this.velocity)) * (1 + 0.4 * this.accentAmt);
+    this.velGain = (1 - cur[P.velocity] * (1 - this.velocity)) * (1 + 0.4 * this.accentAmt) * (1 + 0.12 * card * this.cardLevel);
   }
 
   // ------------------------------------------------------------ audio rate
@@ -786,10 +681,38 @@ export class Voice {
     return a + (t[base + ((i + 1) & TABLE_M)] - a) * f;
   }
 
-  /** Physical-model string or Shepard oscillator (single voice, centred). */
-  private specialOsc(n: number, o: OscState): number {
-    if (o.wave === WAVE_STRING) return this.strings[n].process(this.strPeriod[n], this.strTone, this.strGain[n]) * 1.4;
-    return this.shepards[n].process(o.inc[0], this.shepRate);
+  /** How far a per-note LFO shape is through its cycle (0..1). */
+  lfoProgress(l: number): number {
+    return this.lfoProg[l];
+  }
+
+  /** A per-note LFO shape's value right now: bloom rises 0 → 1 (eased), drop falls 1 → 0 (fast first), per note holds its random value. */
+  lfoNow(l: number): number {
+    const x = this.lfoProg[l];
+    switch (this.cur[P.lfo[l].shape]) {
+      case K.LFO_BLOOM: return 0.5 - 0.5 * Math.cos(Math.PI * x);
+      case K.LFO_DROP: return (1 - x) * (1 - x);
+      default: return this.lfoRand[l];
+    }
+  }
+
+  /** Physical-model string oscillator (single voice, centred). */
+  private specialOsc(n: number): number {
+    return this.strings[n].process(this.strPeriod[n], this.strTone, this.strGain[n]) * 1.4;
+  }
+
+  /**
+   * The band-limited saw from the mip-mapped table (no aliasing at any pitch), bowed like an analog
+   * saw: its ramp is a charging capacitor, rising a touch faster early and slower late, not a straight
+   * line (a parabola across the ramp, zero at the reset so the jump stays band-limited). Pulses made
+   * from two of them droop on their tops, as real pulses do.
+   */
+  private saw(base: number, ph: number): number {
+    const s = this.readTable(base, ph);
+    if (this.sawBow === 0) return s;
+    let r = ph + 0.5; // the table's ramp restarts at phase 0.5
+    if (r >= 1) r -= 1;
+    return s + this.sawBow * r * (1 - r);
   }
 
   private oscSample(o: OscState, ph: number): number {
@@ -798,17 +721,16 @@ export class Voice {
         // Rave "hoover": saw blended with a pulse whose width is modulated.
         let p2 = ph - o.pw;
         if (p2 < 0) p2 += 1;
-        const saw = this.readTable(o.baseSaw, ph);
-        return 0.6 * saw + 0.35 * (saw - this.readTable(o.baseSaw, p2));
+        const saw = this.saw(o.baseSaw, ph);
+        return 0.6 * saw + 0.35 * (saw - this.saw(o.baseSaw, p2));
       }
       case WAVE_SAW:
-        // Band-limited saw from the mip-mapped table (no aliasing at any pitch).
-        return this.readTable(o.baseSaw, ph);
+        return this.saw(o.baseSaw, ph);
       case WAVE_PULSE: {
         // Pulse = difference of two band-limited saws, offset by the pulse width.
         let p2 = ph - o.pw;
         if (p2 < 0) p2 += 1;
-        return 0.5 * (this.readTable(o.baseSaw, ph) - this.readTable(o.baseSaw, p2));
+        return 0.5 * (this.saw(o.baseSaw, ph) - this.saw(o.baseSaw, p2));
       }
       default: {
         // Wavetable (also used for band-limited sine and triangle).
@@ -825,6 +747,18 @@ export class Voice {
     }
   }
 
+  /** Mixer drive: tanh saturation of the oscillators' sum, with first-order ADAA (see shape()). */
+  private mixShape(x: number, ch: number): number {
+    const u = this.mixGain * x;
+    const up = this.mixU[ch];
+    const fu = tanhIntegral(u);
+    const du = u - up;
+    const y = Math.abs(du) > 1e-5 ? (fu - this.mixF[ch]) / du : tanh(0.5 * (u + up));
+    this.mixU[ch] = u;
+    this.mixF[ch] = fu;
+    return y * this.mixComp;
+  }
+
   /** Pre-filter drive: tanh saturation with first-order ADAA (see shape()). */
   private driveShape(x: number, ch: number): number {
     const u = this.driveGain * x;
@@ -837,52 +771,12 @@ export class Voice {
     return y;
   }
 
-  /** The waveshaper curve itself (used directly when ADAA is ill-conditioned). */
-  private curve(u: number): number {
-    switch (this.distType) {
-      case DIST_SOFT: return tanh(u);
-      case DIST_HARD: return u > 1 ? 1 : u < -1 ? -1 : u;
-      case DIST_FOLD: return Math.sin(HALF_PI * u);
-      case DIST_FUZZ: return fuzz(u + this.fuzzBias) - this.fuzzOffset; // fuzz pedal: lopsided, gated
-      default: return tanh(u + TUBE_BIAS) - TUBE_OFFSET; // tube: asymmetric, even harmonics
-    }
-  }
-
-  /** Antiderivative of curve(). */
-  private curveIntegral(u: number): number {
-    switch (this.distType) {
-      case DIST_SOFT: return tanhIntegral(u);
-      case DIST_HARD: return u > 1 ? u - 0.5 : u < -1 ? -u - 0.5 : 0.5 * u * u;
-      case DIST_FOLD: return -Math.cos(HALF_PI * u) / HALF_PI;
-      case DIST_FUZZ: return fuzzIntegral(u + this.fuzzBias) - this.fuzzOffset * u;
-      default: return tanhIntegral(u + TUBE_BIAS) - TUBE_OFFSET * u;
-    }
-  }
-
-  /**
-   * First-order antiderivative anti-aliasing (ADAA): output the average of the
-   * curve between consecutive inputs, (F(u) - F(u_prev)) / (u - u_prev). This
-   * suppresses the harmonics a sharp curve would fold back, on top of the
-   * oversampling. `ch` selects the left/right state.
-   */
-  private shape(x: number, ch: number): number {
-    const u = this.distGain * x;
-    const up = this.adaaU[ch];
-    const fu = this.curveIntegral(u);
-    const du = u - up;
-    const y = Math.abs(du) > 1e-5 ? (fu - this.adaaF[ch]) / du : this.curve(0.5 * (u + up));
-    this.adaaU[ch] = u;
-    this.adaaF[ch] = fu;
-    return y;
-  }
-
   /** One oversampled stereo sample through drive → filter → distortion into osOut[slot], osOut[slot + 1]. */
   private nonlinear(l: number, r: number, slot: number, bl: number, br: number): void {
-    // GRIND chain (moving filter → drive, four times) before the drive and main filter.
-    if (this.grindOn) {
-      this.grind.process(l, r);
-      l = this.grind.l;
-      r = this.grind.r;
+    // Mixer drive: the oscillators' sum overdriving first, the Minimoog way.
+    if (this.mixGain > 1) {
+      l = this.mixShape(l, 0);
+      r = this.mixShape(r, 1);
     }
     // Pre-filter drive.
     if (this.driveMix > 0) {
@@ -901,37 +795,42 @@ export class Voice {
       r = this.ladR.processG(r, G, this.k);
     } else if (this.filterType === FILTER_BP) {
       const k = this.k;
-      this.bpL[0].process(l, g, k);
-      this.bpL[1].process(this.bpL[0].bp * k, g, k);
+      this.bpL[0].processSat(l, g, k);
+      this.bpL[1].processSat(this.bpL[0].bp * k, g, k);
       l = this.bpL[1].bp * k * 1.5;
-      this.bpR[0].process(r, g, k);
-      this.bpR[1].process(this.bpR[0].bp * k, g, k);
+      this.bpR[0].processSat(r, g, k);
+      this.bpR[1].processSat(this.bpR[0].bp * k, g, k);
       r = this.bpR[1].bp * k * 1.5;
     } else if (this.filterType === FILTER_DIODE) {
       l = this.diodeL.process(l, g, this.k) * 1.4;
       r = this.diodeR.process(r, g, this.k) * 1.4;
     } else if (this.filterType === FILTER_NOTCH) {
       const k = this.k, nl = this.notchL, nr = this.notchR;
-      nl[0].process(l, g, k);
-      nl[1].process(nl[0].lp + nl[0].hp, g, k);
+      nl[0].processSat(l, g, k);
+      nl[1].processSat(nl[0].lp + nl[0].hp, g, k);
       l = nl[1].lp + nl[1].hp;
-      nr[0].process(r, g, k);
-      nr[1].process(nr[0].lp + nr[0].hp, g, k);
+      nr[0].processSat(r, g, k);
+      nr[1].processSat(nr[0].lp + nr[0].hp, g, k);
       r = nr[1].lp + nr[1].hp;
     } else if (this.filterType === FILTER_COMB) {
       l = this.combL.process(l, this.combDelay, this.combFb);
       r = this.combR.process(r, this.combDelay, this.combFb);
     } else if (this.filterType === FILTER_HP) {
       const k = this.k, hl = this.hpL, hr = this.hpR;
-      hl[0].process(l, g, 1.848);
-      hl[1].process(hl[0].hp, g, k);
+      hl[0].processSat(l, g, 1.848);
+      hl[1].processSat(hl[0].hp, g, k);
       l = hl[1].hp;
-      hr[0].process(r, g, 1.848);
-      hr[1].process(hr[0].hp, g, k);
+      hr[0].processSat(r, g, 1.848);
+      hr[1].processSat(hr[0].hp, g, k);
       r = hr[1].hp;
+    } else if (this.filterType === FILTER_SEM) {
+      this.semL.processSat(l, g, this.k);
+      this.semR.processSat(r, g, this.k);
+      l = this.semL.lp;
+      r = this.semR.lp;
     } else if (this.filterType === FILTER_LPG) {
-      this.lpgL.process(l, g, this.k);
-      this.lpgR.process(r, g, this.k);
+      this.lpgL.processSat(l, g, this.k);
+      this.lpgR.processSat(r, g, this.k);
       l = this.lpgL.lp;
       r = this.lpgR.lp;
     } else {
@@ -959,28 +858,6 @@ export class Voice {
       r += br * POST_FILTER_GAIN;
     }
 
-    // Distortion, optionally on the mids only (below dist.clean_below stays clean).
-    if (this.distAmt > 0) {
-      let lowL = 0, lowR = 0, hl = l, hr = r;
-      if (this.splitG > 0) {
-        // Linkwitz-Riley 4th-order crossover: low = LP∘LP, high = HP∘HP (sum is allpass).
-        const sp = this.split;
-        sp[0].processFixed(l);
-        sp[1].processFixed(sp[0].lp);
-        sp[2].processFixed(sp[0].hp);
-        lowL = sp[1].lp;
-        hl = sp[2].hp;
-        sp[3].processFixed(r);
-        sp[4].processFixed(sp[3].lp);
-        sp[5].processFixed(sp[3].hp);
-        lowR = sp[4].lp;
-        hr = sp[5].hp;
-      }
-      this.toneL += (this.shape(hl, 0) - this.toneL) * this.toneCoef;
-      this.toneR += (this.shape(hr, 1) - this.toneR) * this.toneCoef;
-      l = lowL + hl + (this.toneL - hl) * this.distAmt;
-      r = lowR + hr + (this.toneR - hr) * this.distAmt;
-    }
     this.osOut[slot] = l;
     this.osOut[slot + 1] = r;
   }
@@ -996,51 +873,24 @@ export class Voice {
     const os = this.osOut;
     const o1 = this.osc[0];
     const o2 = this.osc[1];
-    const cur = this.cur;
-    const tmp = this.tmp;
 
     if (this.ampEnv.stage !== 0) {
       const env = this.ampEnv.tick();
       this.modEnv.tick();
 
-      // FM modulator.
-      let dpm = 0;
-      if (this.fmActive) {
-        this.fmEnv *= this.fmEnvCoef;
-        this.fm2Phase += this.fm2Inc;
-        if (this.fm2Phase >= 1) this.fm2Phase -= 1;
-        const op2 = this.fm2Index > 0 ? this.fm2Index * Math.sin(TWO_PI * this.fm2Phase) : 0;
-        this.fmPhase += this.fmInc;
-        if (this.fmPhase >= 1) this.fmPhase -= 1;
-        const stack = this.fmAlgo === 0;
-        const op1 = Math.sin(TWO_PI * (this.fmPhase + (stack ? op2 : 0) + this.fmFbAmt * this.fmPrevOut));
-        this.fmPrevOut = op1;
-        const pm = (this.fmIndex + this.fmPunchIdx * this.fmEnv) * op1 + (stack ? 0 : op2);
-        dpm = pm - this.pmPrev;
-        this.pmPrev = pm;
-      } else if (this.pmPrev !== 0) {
-        dpm = -this.pmPrev;
-        this.pmPrev = 0;
-      }
-
       // Oscillators (band-limited at the base rate).
       if (o1.gain > 0 && o1.wave >= WAVE_STRING) {
-        const s = this.specialOsc(0, o1) * o1.gain;
+        const s = this.specialOsc(0) * o1.gain;
         l += s;
         r += s;
       } else if (o1.gain > 0) {
         for (let j = 0; j < o1.voices; j++) {
-          let ph = o1.phase[j] + o1.inc[j] + dpm;
+          let ph = o1.phase[j] + o1.inc[j];
           ph -= Math.floor(ph);
           o1.phase[j] = ph;
           const s = this.oscSample(o1, ph) * o1.gain;
           l += s * o1.panL[j];
           r += s * o1.panR[j];
-        }
-      } else if (dpm !== 0) {
-        for (let j = 0; j < o1.voices; j++) {
-          const ph = o1.phase[j] + o1.inc[j] + dpm;
-          o1.phase[j] = ph - Math.floor(ph);
         }
       }
       if (this.oscF[0].active) {
@@ -1054,7 +904,7 @@ export class Voice {
       const preL = l, preR = r;
       if (sepB) l = r = 0;
       if (o2.gain > 0 && o2.wave >= WAVE_STRING) {
-        const s = this.specialOsc(1, o2) * o2.gain;
+        const s = this.specialOsc(1) * o2.gain;
         l += s;
         r += s;
       } else if (o2.gain > 0 && this.syncOn) {
@@ -1190,41 +1040,6 @@ export class Voice {
       }
       l = this.dnL.process(os[0], os[2]);
       r = this.dnR.process(os[1], os[3]);
-
-      // Bitcrusher / downsampler.
-      // (below its low cut the sound passes clean: split off with a one-pole pair, added back after)
-      if (this.crushMix > 0) {
-        let lowL = 0, lowR = 0;
-        if (this.crushLc > 0) {
-          const c = this.crushLc, s = this.crushLp;
-          s[0] = l + c * (s[0] - l);
-          s[1] = s[0] + c * (s[1] - s[0]);
-          s[2] = r + c * (s[2] - r);
-          s[3] = s[2] + c * (s[3] - s[2]);
-          lowL = s[1];
-          lowR = s[3];
-        }
-        this.crusher.process(l - lowL, r - lowR, this.crushMix, this.crushQ, this.crushRate, tmp);
-        l = lowL + tmp[0];
-        r = lowR + tmp[1];
-      }
-
-      // Tape (voice only; the sub joins later and stays clean).
-      if (this.tapeOn) {
-        let lowL = 0, lowR = 0;
-        if (this.tapeLc > 0) {
-          const c = this.tapeLc, s = this.tapeLp;
-          s[0] = l + c * (s[0] - l);
-          s[1] = s[0] + c * (s[1] - s[0]);
-          s[2] = r + c * (s[2] - r);
-          s[3] = s[2] + c * (s[3] - s[2]);
-          lowL = s[1];
-          lowR = s[3];
-        }
-        this.tape.process(l - lowL, r - lowR, cur[P.tapeDrive], this.tapeWow, cur[P.tapeAge], this.tapeLpCoef, env, tmp);
-        l = lowL + tmp[0];
-        r = lowR + tmp[1];
-      }
 
       if (this.postCut.active) {
         l = this.postCut.process(l, 0);

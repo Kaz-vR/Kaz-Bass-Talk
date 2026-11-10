@@ -1,0 +1,1630 @@
+RUIN-1 · BATCH 1 · PRESET RECIPES
+==================================
+Sound types RUIN-1 can make, per category, each with what it sounds like and
+how to build it with the synth's own controls (OSC page, LFO page, FX page,
+RUIN page). Values are starting points: dial by ear from there.
+
+HOW TO READ THE RECIPES
+- Voice: Mono (with legato / glide) or Poly; Analog = the analog drift amount.
+- OSC A / OSC B: wave, OCT / SEM / FIN, UNI (unison voices) + Detune, Shape,
+  Level, Lo cut. OSC B at level 0 = off.
+- Sub: wave, OCT (relative to the note), level. Direct out ON unless noted
+  (the sub then skips filter, dirt and effects: a clean low end).
+- Noise: type, level, tone, tail, Lo cut. "hit" types = one burst per note.
+- Filter: type, cutoff, res (resonance), Drive (the pre-filter drive in the
+  Filter box), KEY (key tracking amount).
+- Filter env: on/off, ENV = the filter envelope amount in octaves (the lit
+  second ring on the Cutoff dial: how far the envelope sweeps the cutoff, + up
+  or - down), and the filter envelope's A/D/S/R. "off (ENV 0)" = the filter
+  envelope isn't used and the cutoff stays put (movement comes from LFOs).
+- Amp: the amp envelope A/D/S/R.
+- LFO / Mod: "LFO n shape rate → destination amount". Amounts are the matrix
+  percentage. Scale: Fil Cutoff 10% ≈ 0.6 octave; A+B Pitch 1% ≈ 24 cents;
+  Pitch 50% = 12 semitones down/up.
+- FX: in page order (Distortion, Crush, Tape, Chorus, Flanger, Phaser, OTT,
+  EQ). Anything not listed is off. No reverb / delay in the synth: add space
+  after it.
+- RUIN: off unless noted.
+- Wheel: the mod wheel's move.
+- Low-end rule for every bass: sub on Direct out, oscillators' Lo cut
+  120-150 Hz, distortion "clean below" 120-200 Hz.
+
+
+==============================================================================
+1. BASS LONG  (sustained basses: held notes, long tails, lines that sing)
+==============================================================================
+
+BassLong.Batch1.Reese
+  Sound: The classic dark drum & bass / LORN bass: two saws slightly out of
+         tune, a slow beating "chorus" that moves by itself, warm and thick.
+  Voice: Mono, legato, glide 40 ms, Analog 30%
+  OSC A: saw, OCT 0, UNI 1, level 80%, Lo cut 130 Hz
+  OSC B: saw, OCT 0, FIN -12 ct, level 70%, Lo cut 130 Hz
+  Sub:   sine, OCT -1, level 60%
+  Noise: dust, level 15%, tone 30%, tail 300 ms, Lo cut 400 Hz
+  Filter: low-pass 24, cutoff 450 Hz, res 20%, Drive 35%, KEY 50%
+  Filter env: on, ENV +1.5 oct (the ring on Cutoff), A 5 / D 700 / S 25% / R 200 ms
+  Amp:   A 6 / D 300 / S 100% / R 200 ms
+  LFO / Mod: LFO 1 slow drift 0.25 Hz → Fil Cutoff 8%;
+             LFO 2 drift 1 Hz → A+B Pitch 0.4%; Velocity → Fil Cutoff 15%
+  FX:    Distortion tube, drive 30%, mix 60%, clean below 150 Hz;
+         Tape drive 30%, wow 15%, age 40%; Chorus ensemble mix 20%, Lo cut 250 Hz
+  Wheel: snarl
+
+BassLong.Batch1.ReeseWide
+  Sound: A huge, stereo Reese: unison saws spread wide above a solid mono sub.
+  Voice: Mono, legato, glide 50 ms, Analog 35%
+  OSC A: saw, UNI 5, detune 22 ct, spread 80%, level 75%, Lo cut 150 Hz
+  OSC B: saw, UNI 3, detune 14 ct, FIN +7 ct, level 60%, Lo cut 150 Hz
+  Sub:   sine, OCT -1, level 65%
+  Filter: low-pass 24, cutoff 700 Hz, res 15%, Drive 40%, KEY 40%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 5 / D 900 / S 40% / R 250 ms
+  Amp:   A 5 / S 100% / R 250 ms
+  LFO / Mod: LFO 1 slow drift 0.2 Hz → Fil Cutoff 10%; LFO 2 wander 0.13 Hz → Fil Drive 12%
+  FX:    Distortion soft, drive 35%, clean below 180 Hz; Tape age 35%, wow 10%;
+         Chorus hyper mix 25%, Lo cut 300 Hz; OTT mix 20%, Lo cut 200 Hz
+  Wheel: open
+
+BassLong.Batch1.ReeseNeuro
+  Sound: A Reese pushed through RUIN: moving notches and folding grit, the
+         modern neuro / industrial Reese that snarls as you hold it.
+  Voice: Mono, legato, glide 30 ms, Analog 25%
+  OSC A: saw, UNI 3, detune 15 ct, level 80%, Lo cut 140 Hz
+  OSC B: saw, FIN -10 ct, level 70%, Lo cut 140 Hz
+  Sub:   sine, OCT -1, level 65%
+  Filter: low-pass 24, cutoff 1.2 kHz, res 15%, Drive 25%, KEY 50%
+  Filter env: on, ENV +0.5 oct (the ring on Cutoff), A 3 / D 400 / S 60% / R 150 ms
+  Amp:   A 4 / S 100% / R 150 ms
+  LFO / Mod: LFO 1 slow drift 0.3 Hz → Fil Cutoff 6%
+  RUIN:  on, 2-3 stages (notch + comb + phaser), wander, Rate 0.5-1.5 Hz (RAND),
+         drives fold/hard, chain Mix 80%, Lo cut 150 Hz, OTT 30%, NOISE THRU on
+  FX:    Distortion hard, drive 25%, mix 40%, clean below 160 Hz; Tape age 30%
+  Wheel: snarl
+
+BassLong.Batch1.PWM
+  Sound: A hollow, slowly swirling pulse bass (Juno / SH-101 family), round in
+         the low end and animated in the mids.
+  Voice: Mono, legato, glide 20 ms, Analog 30%
+  OSC A: pulse, Shape 40%, level 80%, Lo cut 120 Hz
+  OSC B: pulse, OCT 0, FIN +6 ct, Shape 60%, level 50%, Lo cut 120 Hz
+  Sub:   pulse (25%), OCT -1, level 55%
+  Filter: low-pass 24, cutoff 600 Hz, res 20%, Drive 20%, KEY 50%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 3 / D 500 / S 30% / R 150 ms
+  Amp:   A 5 / S 100% / R 150 ms
+  LFO / Mod: LFO 1 triangle 0.4 Hz → A Shape 20%; LFO 2 sine 0.27 Hz → B Shape 25%;
+             LFO 3 slow drift 0.25 Hz → Fil Cutoff 6%
+  FX:    Tape drive 25%, age 30%; Chorus classic mix 20%, Lo cut 250 Hz
+  Wheel: open
+
+BassLong.Batch1.PureSub
+  Sound: A clean, deep sine sub: felt more than heard, for minimal and
+         cinematic tracks.
+  Voice: Mono, legato, glide 60 ms, Analog 10%
+  OSC A: sine, level 0% (or triangle at 15%, Lo cut 200 Hz, for a hint of upper harmonics)
+  Sub:   sine, OCT 0, level 90%, Clip 2 dB
+  Filter: off (the sub is on Direct out, so nothing goes through the filter)
+  Filter env: off (ENV 0: no ring on Cutoff)
+  Amp:   A 8 / S 100% / R 200 ms
+  FX:    none (EQ only if needed)
+  Wheel: pressure
+
+BassLong.Batch1.WarmSub
+  Sound: A sine sub with a touch of its octave so it's heard on phones and
+         laptop speakers; the modern 808-style long sub without the drop.
+  Voice: Mono, legato, glide 40 ms
+  Sub:   warm sine, OCT 0, level 85%, Clip 4 dB
+  OSC A: triangle, OCT +1, level 15%, Lo cut 200 Hz
+  Filter: low-pass 24, cutoff 1 kHz, res 0%, Drive 15%, KEY 50% (only shapes the triangle layer; the sub is on Direct out)
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 5 / S 100% / R 400 ms
+  FX:    Distortion soft, drive 20%, mix 30%, clean below 120 Hz; Tape drive 20%
+  Wheel: pressure
+
+BassLong.Batch1.MoogFat
+  Sound: The thick, round mono-synth bass: two saws and a square through a
+         warm, slightly resonant low-pass, punchy but sustained.
+  Voice: Mono, legato, glide 25 ms, Analog 25%
+  OSC A: saw, level 80%, Lo cut 100 Hz
+  OSC B: pulse, Shape 50%, OCT 0, FIN -6 ct, level 50%, Lo cut 100 Hz
+  Sub:   square, OCT -1, level 40%
+  Filter: low-pass 24, cutoff 500 Hz, res 30%, Drive 45%, KEY 60%
+  Filter env: on, ENV +2 oct (the ring on Cutoff), A 2 / D 400 / S 35% / R 120 ms
+  Amp:   A 3 / D 400 / S 85% / R 120 ms
+  LFO / Mod: Velocity → Fil Cutoff 20%; LFO 1 slow drift 0.25 Hz → Fil Cutoff 5%
+  FX:    Tape drive 35%, age 20%
+  Wheel: snarl
+
+BassLong.Batch1.Hoover
+  Sound: The rave "hoover": a PWM-saw stack that swirls and swoops, gliding
+         between notes.
+  Voice: Mono, legato, glide 180 ms, Analog 30%
+  OSC A: pwm_saw, UNI 5, detune 30 ct, spread 70%, Shape 30%, level 80%, Lo cut 120 Hz
+  OSC B: pwm_saw, OCT -1, UNI 3, detune 20 ct, level 50%, Lo cut 120 Hz
+  Sub:   sine, OCT -1, level 50%
+  Filter: low-pass 24, cutoff 2.5 kHz, res 10%, Drive 20%, KEY 40%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 10 / S 100% / R 300 ms
+  LFO / Mod: LFO 1 sine 0.5 Hz → A+B Shape 30%; LFO 2 drop 0.4 Hz → A+B Pitch -4% (a scoop)
+  FX:    Chorus hyper mix 30%, Lo cut 250 Hz; Phaser mix 25%, rate slow
+  Wheel: unstable
+
+BassLong.Batch1.IndustrialSaw
+  Sound: A raw, distorted saw bass: aggressive, metallic edge, the cyberpunk /
+         EBM grind.
+  Voice: Mono, legato, glide 15 ms, Analog 20%
+  OSC A: saw, UNI 3, detune 12 ct, level 80%, Lo cut 150 Hz
+  OSC B: pulse, Shape 30%, FIN +5 ct, level 50%, Lo cut 150 Hz
+  Sub:   sine, OCT -1, level 60%
+  Filter: low-pass 24, cutoff 1.8 kHz, res 25%, Drive 60%, KEY 50%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 2 / D 300 / S 50% / R 100 ms
+  Amp:   A 2 / S 100% / R 100 ms
+  LFO / Mod: LFO 1 wander 0.4 Hz → Dis Drive 15%; LFO 2 slow drift 0.25 Hz → Fil Cutoff 8%
+  FX:    Distortion hard, drive 55%, mix 80%, clean below 180 Hz; Crush bits 10,
+         mix 15%; Tape age 25%; OTT mix 25%, Lo cut 200 Hz
+  Wheel: snarl
+
+BassLong.Batch1.Fuzz
+  Sound: A guitar-fuzz-pedal bass: lopsided, spitting, sputtering as notes die.
+  Voice: Mono, legato, glide 20 ms
+  OSC A: saw, level 80%, Lo cut 140 Hz
+  OSC B: square (pulse 50%), OCT +1, level 30%, Lo cut 200 Hz
+  Sub:   sine, OCT -1, level 60%
+  Filter: low-pass 24, cutoff 1.5 kHz, res 10%, Drive 30%, KEY 40%
+  Filter env: on, ENV +0.7 oct (the ring on Cutoff), A 3 / D 600 / S 50% / R 200 ms
+  Amp:   A 3 / D 800 / S 70% / R 200 ms
+  FX:    Distortion fuzz, drive 65%, mix 100%, tone 40%, clean below 160 Hz; Tape age 30%
+  Wheel: snarl
+
+BassLong.Batch1.Wavefold
+  Sound: A metallic, growling bass whose harmonics fold over as it gets
+         louder; glassy at low drive, snarling at high.
+  Voice: Mono, legato, glide 20 ms
+  OSC A: sine, OCT 0, level 85%, Lo cut 120 Hz
+  OSC B: triangle, OCT +1, level 30%, Lo cut 150 Hz
+  Sub:   sine, OCT -1, level 60%
+  Filter: low-pass 24, cutoff 3 kHz, res 10%, Drive 20%, KEY 40%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 3 / S 100% / R 150 ms
+  LFO / Mod: LFO 1 wander 0.3 Hz → Dis Drive 25%; Velocity → Dis Drive 20%
+  FX:    Distortion fold, drive 45%, mix 90%, tone 50%, clean below 150 Hz; Tape age 30%
+  Wheel: snarl
+
+BassLong.Batch1.OminousFifth
+  Sound: A root + fifth bass: dark, cinematic, slightly unsettling power.
+  Voice: Mono, legato, glide 40 ms, Analog 30%
+  OSC A: saw, level 80%, Lo cut 130 Hz
+  OSC B: saw, SEM +7, level 50%, Lo cut 130 Hz
+  Sub:   sine, OCT -1, level 60%
+  Filter: low-pass 24, cutoff 380 Hz, res 15%, Drive 35%, KEY 40%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 10 / D 1200 / S 30% / R 300 ms
+  Amp:   A 10 / S 100% / R 300 ms
+  LFO / Mod: LFO 1 slow drift 0.2 Hz → Fil Cutoff 8%; LFO 2 drift 1 Hz → A+B Pitch 0.3%
+  FX:    Tape drive 40%, wow 20%, age 50%
+  Wheel: choke
+
+BassLong.Batch1.Tritone
+  Sound: Root + tritone: an evil, horror-film bass.
+  Voice: Mono, legato, glide 30 ms
+  OSC A: saw, level 80%, Lo cut 130 Hz
+  OSC B: pulse, Shape 45%, SEM +6, level 45%, Lo cut 130 Hz
+  Sub:   sine, OCT -1, level 60%
+  Filter: low-pass 24, cutoff 500 Hz, res 25%, Drive 40%, KEY 40%
+  Filter env: on, ENV +0.7 oct (the ring on Cutoff), A 5 / D 800 / S 40% / R 300 ms
+  Amp:   A 8 / S 100% / R 300 ms
+  LFO / Mod: LFO 1 slow drift 0.25 Hz → Fil Cutoff 8%
+  FX:    Distortion tube, drive 30%, mix 50%, clean below 150 Hz; Tape wow 20%, age 45%
+  Wheel: choke
+
+BassLong.Batch1.OctaveScreamer
+  Sound: A bass with a screaming upper octave on top: weight below, a
+         distorted cry above, cinematic.
+  Voice: Mono, legato, glide 50 ms
+  OSC A: saw, level 80%, Lo cut 130 Hz
+  OSC B: saw, OCT +1, UNI 3, detune 15 ct, level 45%, Lo cut 250 Hz
+  Sub:   sine, OCT -1, level 60%
+  Filter: low-pass 24, cutoff 1.4 kHz, res 30%, Drive 45%, KEY 50%
+  Filter env: on, ENV +1.5 oct (the ring on Cutoff), A 4 / D 900 / S 40% / R 250 ms
+  Amp:   A 4 / S 100% / R 250 ms
+  LFO / Mod: LFO 1 wander 0.3 Hz → Fil Cutoff 8%; Velocity → Dis Drive 15%
+  FX:    Distortion hard, drive 40%, mix 70%, clean below 200 Hz; Tape age 35%
+  Wheel: snarl
+
+BassLong.Batch1.DeepRumble
+  Sound: A two-octaves-down rumble: a huge, sub-heavy cinematic bass bed.
+  Voice: Mono, legato, glide 80 ms
+  OSC A: saw, OCT -1, level 70%, Lo cut 60 Hz
+  OSC B: saw, FIN +8 ct, level 50%, Lo cut 200 Hz
+  Sub:   sine, OCT -2, level 70%
+  Noise: rumble, level 25%, tone 30%, tail 800 ms
+  Filter: low-pass 24, cutoff 300 Hz, res 10%, Drive 30%, KEY 30%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 40 / S 100% / R 600 ms
+  LFO / Mod: LFO 1 slow drift 0.15 Hz → Fil Cutoff 10%
+  FX:    Tape drive 30%, wow 20%, age 50%
+  Wheel: open
+
+BassLong.Batch1.SupersawBass
+  Sound: A wide supersaw bass for big drops and trance-y basslines.
+  Voice: Mono, legato, glide 20 ms
+  OSC A: saw, UNI 7, detune 25 ct, spread 90%, level 75%, Lo cut 180 Hz
+  Sub:   sine, OCT -1, level 70%
+  Filter: low-pass 24, cutoff 2 kHz, res 10%, Drive 25%, KEY 40%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 3 / D 400 / S 60% / R 150 ms
+  Amp:   A 3 / S 100% / R 150 ms
+  FX:    Chorus hyper mix 20%, Lo cut 300 Hz; OTT mix 30%, Lo cut 200 Hz
+  Wheel: open
+
+BassLong.Batch1.SyncBass
+  Sound: A hard-sync bass with a ripping, vowel-like edge that sweeps.
+  Voice: Mono, legato, glide 25 ms
+  OSC A: saw, level 40%, Lo cut 130 Hz
+  OSC B: saw, SEM +12, Sync on, level 75%, Lo cut 130 Hz
+  Sub:   sine, OCT -1, level 60%
+  Filter: low-pass 24, cutoff 2 kHz, res 15%, Drive 30%, KEY 50%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 2 / D 350 / S 50% / R 150 ms
+  Amp:   A 3 / S 100% / R 150 ms
+  LFO / Mod: Velocity → Fil Cutoff 15%; LFO 1 wander 0.4 Hz → Fil Drive 15%
+  FX:    Distortion soft, drive 30%, clean below 150 Hz; Tape age 30%
+  Wheel: snarl
+  Note:  A classic sync sweep needs B's pitch to move on its own (B Pitch is in the
+         full destination list, outside COMMON): LFO drop 1 Hz → B Pitch +40% gives the "zip".
+
+BassLong.Batch1.CombMetal
+  Sound: A metallic, ringing bass from the comb filter: like a struck pipe that
+         keeps singing.
+  Voice: Mono, legato
+  OSC A: saw, level 80%, Lo cut 120 Hz
+  Sub:   sine, OCT -1, level 60%
+  Noise: dust, level 15%
+  Filter: comb, cutoff 200 Hz, res 55%, Drive 25%, KEY 100% (KEY 100% makes the comb ring at the played note)
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 3 / S 100% / R 300 ms
+  LFO / Mod: LFO 1 slow drift 0.3 Hz → Fil Cutoff 4%
+  FX:    Distortion tube, drive 25%, clean below 150 Hz; Tape age 40%
+  Wheel: open
+
+BassLong.Batch1.NotchPhase
+  Sound: A grinding, phasey bass: a moving notch carves a hollow through a
+         thick saw.
+  Voice: Mono, legato
+  OSC A: saw, UNI 3, detune 12 ct, level 80%, Lo cut 140 Hz
+  Sub:   sine, OCT -1, level 60%
+  Filter: notch, cutoff 800 Hz, res 40%, Drive 40%, KEY 30%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 3 / S 100% / R 150 ms
+  LFO / Mod: LFO 1 wander 0.5 Hz → Fil Cutoff 25%
+  FX:    Distortion hard, drive 30%, clean below 160 Hz; Phaser mix 30%, Lo cut 250 Hz
+  Wheel: snarl
+
+BassLong.Batch1.VocalTable
+  Sound: A bass that seems to say "aah / ooh": the wavetable's vocal end,
+         morphing slowly.
+  Voice: Mono, legato, glide 30 ms
+  OSC A: wavetable, Shape 85%, level 80%, Lo cut 130 Hz
+  OSC B: wavetable, Shape 60%, FIN +8 ct, level 40%, Lo cut 130 Hz
+  Sub:   sine, OCT -1, level 60%
+  Filter: low-pass 24, cutoff 1.8 kHz, res 15%, Drive 30%, KEY 50%
+  Filter env: on, ENV +0.5 oct (the ring on Cutoff), A 5 / D 500 / S 60% / R 200 ms
+  Amp:   A 5 / S 100% / R 200 ms
+  LFO / Mod: LFO 1 slow drift 0.3 Hz → A+B Shape 15%
+  FX:    Distortion tube, drive 30%, clean below 150 Hz; Tape age 30%
+  Wheel: open
+
+BassLong.Batch1.JunoSquare
+  Sound: A detuned square bass, hollow and warm, a little chorus: 80s and
+         synthwave.
+  Voice: Mono, legato, glide 15 ms
+  OSC A: pulse, Shape 50%, level 75%, Lo cut 110 Hz
+  OSC B: pulse, Shape 50%, FIN +8 ct, level 60%, Lo cut 110 Hz
+  Sub:   square, OCT -1, level 40%
+  Filter: low-pass 24, cutoff 900 Hz, res 20%, Drive 20%, KEY 50%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 3 / D 350 / S 40% / R 150 ms
+  Amp:   A 3 / S 100% / R 150 ms
+  FX:    Chorus classic mix 35%, Lo cut 200 Hz; Tape age 20%
+  Wheel: open
+
+BassLong.Batch1.SlowFilterDub
+  Sound: A dub / deep techno bass: a round tone whose filter breathes very
+         slowly, never in time, always moving.
+  Voice: Mono, legato
+  OSC A: saw, level 70%, Lo cut 100 Hz
+  Sub:   sine, OCT -1, level 75%
+  Filter: low-pass 24, cutoff 300 Hz, res 35%, Drive 25%, KEY 30%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 5 / S 100% / R 300 ms
+  LFO / Mod: LFO 1 slow drift 0.12 Hz → Fil Cutoff 18%; LFO 2 wander 0.07 Hz → Fil Drive 10%
+  FX:    Tape drive 25%, wow 15%, age 40%
+  Wheel: open
+
+BassLong.Batch1.LofiCrushed
+  Sound: A broken, low-bit bass: grainy, aliasing-tinged, lo-fi hip-hop or
+         glitch.
+  Voice: Mono, legato
+  OSC A: triangle, level 80%, Lo cut 120 Hz
+  OSC B: pulse, Shape 50%, OCT +1, level 25%
+  Sub:   sine, OCT -1, level 65%
+  Noise: crackle, level 20%, tone 35%
+  Filter: low-pass 24, cutoff 1.2 kHz, res 10%, Drive 0%, KEY 40%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 3 / S 100% / R 200 ms
+  FX:    Crush bits 7, rate reduced, mix 45%, Lo cut 150 Hz; Tape wow 30%, age 60%
+  Wheel: decay
+
+BassLong.Batch1.BloomBass
+  Sound: A bass that opens up slowly while you hold it: soft at the start,
+         rich and gritty after a few seconds.
+  Voice: Mono, legato, Analog 30%
+  OSC A: saw, level 80%, Lo cut 130 Hz
+  OSC B: saw, FIN +10 ct, level 60%, Lo cut 130 Hz
+  Sub:   sine, OCT -1, level 60%
+  Filter: low-pass 24, cutoff 250 Hz, res 20%, Drive 20%, KEY 50% (the bloom LFO does the opening)
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 20 / S 100% / R 400 ms
+  LFO / Mod: LFO 1 bloom 0.3 Hz → Fil Cutoff 30%; LFO 2 bloom 0.25 Hz → Fil Drive 25%;
+             LFO 3 slow drift 0.25 Hz → Fil Cutoff 5%
+  FX:    Tape drive 30%, age 40%
+  Wheel: open
+
+BassLong.Batch1.BreathBass
+  Sound: A soft, airy bass for intimate tracks: a sine body with breath on top.
+  Voice: Mono, legato, glide 50 ms
+  OSC A: triangle, level 50%, Lo cut 150 Hz
+  Sub:   sine, OCT -1, level 75%
+  Noise: air, level 30%, tone 40%, tail 500 ms, through the filter (N)
+  Filter: low-pass 24, cutoff 900 Hz, res 10%, Drive 0%, KEY 50%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 30 / S 100% / R 400 ms
+  LFO / Mod: LFO 1 slow drift 0.2 Hz → Fil Cutoff 8%
+  FX:    Tape wow 15%, age 50%
+  Wheel: vibrato
+
+BassLong.Batch1.TapeWorn
+  Sound: A bass that sounds recorded to an old cassette: wobbling pitch,
+         dull top, hiss underneath.
+  Voice: Mono, legato
+  OSC A: saw, level 75%, Lo cut 120 Hz
+  OSC B: triangle, FIN -6 ct, level 50%
+  Sub:   sine, OCT -1, level 60%
+  Noise: tape hiss, level 20%, tone 30%, tail 600 ms
+  Filter: low-pass 24, cutoff 700 Hz, res 15%, Drive 30%, KEY 40%
+  Filter env: on, ENV +0.7 oct (the ring on Cutoff), A 5 / D 600 / S 40% / R 300 ms
+  Amp:   A 5 / S 100% / R 300 ms
+  LFO / Mod: LFO 1 drift 1 Hz → A+B Pitch 0.6%
+  FX:    Tape drive 40%, wow 35%, age 65%
+  Wheel: unstable
+
+
+==============================================================================
+2. BASS SHORT  (plucked, stabbed, percussive and sequenced basses)
+==============================================================================
+
+BassShort.Batch1.PluckSaw
+  Sound: The basic plucked synth bass: a quick filter "pew" on each note,
+         tight and rhythmic.
+  Voice: Mono (retrigger), Analog 20%
+  OSC A: saw, level 80%, Lo cut 110 Hz
+  OSC B: saw, FIN +7 ct, level 50%, Lo cut 110 Hz
+  Sub:   sine, OCT -1, level 60%
+  Filter: low-pass 24, cutoff 250 Hz, res 25%, Drive 30%, KEY 50%
+  Filter env: on, ENV +3 oct (the ring on Cutoff), A 1 / D 220 / S 0% / R 100 ms
+  Amp:   A 1 / D 350 / S 40% / R 100 ms
+  LFO / Mod: Velocity → Fil Cutoff 20%
+  FX:    Tape drive 25%, age 25%
+  Wheel: open
+
+BassShort.Batch1.Acid303
+  Sound: The squelchy TB-303 acid line: resonant diode filter, accents,
+         slides between overlapping notes.
+  Voice: Mono, legato ON (slides when notes overlap), glide 70 ms
+  OSC A: saw (or pulse 50% for the square version), level 85%, Lo cut 80 Hz
+  Sub:   off (or sine OCT -1 at 30% for weight)
+  Filter: diode, cutoff 400 Hz, res 70%, Drive 35%, KEY 30%, ACCENT 60%
+  Filter env: on, ENV +3 oct (the ring on Cutoff), A 1 / D 250 / S 0% / R 60 ms
+  Amp:   A 1 / D 400 / S 60% / R 60 ms
+  LFO / Mod: Velocity → Fil Cutoff 25% (harder = brighter "accent")
+  FX:    Distortion soft, drive 35%, mix 60%, clean below 100 Hz; Tape drive 20%
+  Wheel: open
+
+BassShort.Batch1.Classic808
+  Sound: The 808 bass: a boomy sine that drops into its note, with a long or
+         medium tail.
+  Voice: Mono, glide 40 ms (slides between notes)
+  OSC A: off (or sine at 20% with Distortion for grit)
+  Sub:   warm sine, OCT 0, level 90%, Clip 4 dB
+  Filter: off (the sub carries the sound on Direct out)
+  Filter env: off (ENV 0: no ring on Cutoff)
+  Amp:   A 1 / D 1200 / S 0% / R 400 ms
+  LFO / Mod: LFO 1 drop 6 Hz (≈170 ms) → Pitch 25% (starts ~6 semitones high and falls)
+  FX:    Distortion soft, drive 25%, mix 40%, clean below 60 Hz; (or fuzz for a "rage" 808)
+  Wheel: pressure
+
+BassShort.Batch1.Distorted808
+  Sound: A clipped, aggressive 808: the trap / rage version that growls.
+  Voice: Mono, glide 60 ms
+  OSC A: sine, OCT 0, level 60%, Lo cut 60 Hz
+  Sub:   warm sine, OCT 0, level 80%, Clip 6 dB
+  Filter: low-pass 24, cutoff 2 kHz, res 0%, Drive 0%, KEY 0% (only touches the sine layer of OSC A)
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 1 / D 1500 / S 0% / R 500 ms
+  LFO / Mod: LFO 1 drop 5 Hz → Pitch 30%
+  FX:    Distortion fuzz, drive 60%, mix 70%, clean below 50 Hz; OTT mix 25%
+  Wheel: snarl
+
+BassShort.Batch1.Thump
+  Sound: A short, punchy "thump" bass: almost a kick with a note.
+  Voice: Mono
+  Sub:   sine, OCT 0, level 90%
+  Noise: dust hit, level 30%, tone 50%, tail 40 ms (the click)
+  Filter: off (the sub carries the sound on Direct out)
+  Filter env: off (ENV 0: no ring on Cutoff)
+  Amp:   A 1 / D 250 / S 0% / R 80 ms
+  LFO / Mod: LFO 1 drop 15 Hz → Pitch 35% (fast pitch dive)
+  FX:    Distortion soft, drive 20%
+  Wheel: pressure
+
+BassShort.Batch1.LogDrum
+  Sound: The amapiano log drum: a woody, pitched, slightly squelchy drum-bass.
+  Voice: Mono
+  OSC A: triangle, level 70%, Lo cut 80 Hz
+  Sub:   sine, OCT 0, level 70%
+  Noise: dust hit, level 20%, tail 30 ms
+  Filter: lpg, cutoff 900 Hz, res 30%, Drive 0%, KEY 50%
+  Filter env: on, ENV +2 oct (the ring on Cutoff), A 1 / D 180 / S 0% / R 150 ms
+  Amp:   A 1 / D 450 / S 0% / R 150 ms
+  LFO / Mod: LFO 1 drop 8 Hz → Pitch 15%
+  FX:    Distortion tube, drive 25%, mix 40%
+  Wheel: open
+
+BassShort.Batch1.Donk
+  Sound: The "pipe donk": a hollow, bouncy, tuned-percussion bass (hard dance,
+         bouncy house).
+  Voice: Mono
+  OSC A: square (pulse 50%), level 70%, Lo cut 100 Hz
+  Sub:   sine, OCT 0, level 60%
+  Filter: comb, cutoff 200 Hz, res 50%, Drive 20%, KEY 100% (KEY 100% tunes the comb to the note)
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 1 / D 150 / S 0% / R 80 ms
+  Amp:   A 1 / D 200 / S 0% / R 80 ms
+  LFO / Mod: LFO 1 drop 12 Hz → Pitch 30%
+  FX:    Distortion soft, drive 20%
+  Wheel: open
+
+BassShort.Batch1.Rubber
+  Sound: A round, bouncy rubber bass: sine-ish with a quick filter bump.
+  Voice: Mono, glide 30 ms
+  OSC A: triangle, level 75%, Lo cut 90 Hz
+  Sub:   sine, OCT -1, level 60%
+  Filter: low-pass 24, cutoff 200 Hz, res 45%, Drive 0%, KEY 40%
+  Filter env: on, ENV +2 oct (the ring on Cutoff), A 1 / D 150 / S 0% / R 100 ms
+  Amp:   A 1 / D 300 / S 30% / R 100 ms
+  FX:    Tape drive 20%
+  Wheel: open
+
+BassShort.Batch1.FunkResonant
+  Sound: A synth-funk bass: a resonant filter "quack" on every note,
+         velocity-sensitive.
+  Voice: Mono, glide 20 ms
+  OSC A: saw, level 80%, Lo cut 90 Hz
+  OSC B: pulse, Shape 50%, level 40%
+  Sub:   square, OCT -1, level 35%
+  Filter: low-pass 24, cutoff 300 Hz, res 55%, Drive 25%, KEY 40%
+  Filter env: on, ENV +2.5 oct (the ring on Cutoff), A 1 / D 180 / S 10% / R 80 ms
+  Amp:   A 1 / D 300 / S 50% / R 80 ms
+  LFO / Mod: Velocity → Fil Cutoff 30%
+  FX:    Distortion soft, drive 20%, clean below 120 Hz
+  Wheel: open
+
+BassShort.Batch1.MoogStab
+  Sound: A short, fat mono-synth stab: thick saws, warm drive, snappy envelope.
+  Voice: Mono
+  OSC A: saw, level 80%, Lo cut 100 Hz
+  OSC B: saw, OCT -1, FIN +5 ct, level 55%, Lo cut 100 Hz
+  Sub:   sine, OCT -1, level 50%
+  Filter: low-pass 24, cutoff 350 Hz, res 30%, Drive 50%, KEY 50%
+  Filter env: on, ENV +2 oct (the ring on Cutoff), A 1 / D 250 / S 0% / R 120 ms
+  Amp:   A 1 / D 350 / S 0% / R 120 ms
+  FX:    Tape drive 35%, age 20%
+  Wheel: snarl
+
+BassShort.Batch1.EBMSequence
+  Sound: A tight, driving EBM / darkwave sequencer bass: short pulses, dark
+         and mechanical.
+  Voice: Mono (retrigger)
+  OSC A: pulse, Shape 40%, level 80%, Lo cut 110 Hz
+  OSC B: saw, FIN +4 ct, level 40%
+  Sub:   square, OCT -1, level 35%
+  Filter: low-pass 24, cutoff 450 Hz, res 30%, Drive 45%, KEY 40%
+  Filter env: on, ENV +1.5 oct (the ring on Cutoff), A 1 / D 120 / S 0% / R 60 ms
+  Amp:   A 1 / D 160 / S 0% / R 60 ms
+  LFO / Mod: LFO 1 slow drift 0.2 Hz → Fil Cutoff 10% (slow change across the sequence)
+  FX:    Distortion hard, drive 30%, clean below 150 Hz; Tape age 25%
+  Wheel: snarl
+
+BassShort.Batch1.DnBStab
+  Sound: A short Reese stab for rolling drum & bass: detuned grit cut short.
+  Voice: Mono
+  OSC A: saw, UNI 3, detune 18 ct, level 80%, Lo cut 140 Hz
+  OSC B: saw, FIN -10 ct, level 60%, Lo cut 140 Hz
+  Sub:   sine, OCT -1, level 65%
+  Filter: low-pass 24, cutoff 900 Hz, res 15%, Drive 40%, KEY 40%
+  Filter env: on, ENV +1.5 oct (the ring on Cutoff), A 1 / D 300 / S 20% / R 120 ms
+  Amp:   A 1 / D 400 / S 20% / R 120 ms
+  FX:    Distortion hard, drive 35%, clean below 160 Hz; OTT mix 20%, Lo cut 200 Hz
+  Wheel: snarl
+
+BassShort.Batch1.PickString
+  Sound: A picked, string-like bass from the physical string model: twangy
+         attack, natural decay.
+  Voice: Mono
+  OSC A: string (tone ~50%, decay ~40% under "All controls"), level 85%, Lo cut 70 Hz
+  Sub:   sine, OCT -1, level 45%
+  Noise: dust hit, level 15%, tail 20 ms (pick noise)
+  Filter: low-pass 24, cutoff 2.5 kHz, res 10%, Drive 0%, KEY 70%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 1 / D 300 / S 20% / R 200 ms
+  Amp:   A 1 / D 900 / S 0% / R 200 ms
+  FX:    Tape drive 25%, age 20%
+  Wheel: open
+
+BassShort.Batch1.SubThump
+  Sound: A short clean sub hit for minimal techno and sparse beats.
+  Voice: Mono
+  Sub:   sine, OCT 0, level 90%
+  OSC A: triangle, OCT +1, level 15%, Lo cut 200 Hz
+  Filter: off (the sub carries the sound on Direct out)
+  Filter env: off (ENV 0: no ring on Cutoff)
+  Amp:   A 1 / D 300 / S 0% / R 120 ms
+  LFO / Mod: LFO 1 drop 10 Hz → Pitch 8% (a small knock)
+  Wheel: pressure
+
+BassShort.Batch1.NoiseSnap
+  Sound: A bass with a snappy noise transient: the attack cracks, then a
+         short tone.
+  Voice: Mono
+  OSC A: saw, level 70%, Lo cut 110 Hz
+  Sub:   sine, OCT -1, level 60%
+  Noise: white noise hit, level 40%, tone 70%, tail 60 ms, Lo cut 1 kHz
+  Filter: low-pass 24, cutoff 400 Hz, res 20%, Drive 15%, KEY 40%
+  Filter env: on, ENV +2 oct (the ring on Cutoff), A 1 / D 180 / S 0% / R 100 ms
+  Amp:   A 1 / D 300 / S 0% / R 100 ms
+  FX:    Distortion soft, drive 25%, clean below 120 Hz
+  Wheel: snarl
+
+BassShort.Batch1.ChipBass
+  Sound: A video-game square bass: buzzy, crunchy, retro.
+  Voice: Mono
+  OSC A: pulse, Shape 25%, level 80%
+  Sub:   off
+  Filter: off (the raw pulse is the sound)
+  Filter env: off (ENV 0: no ring on Cutoff)
+  Amp:   A 1 / D 200 / S 50% / R 50 ms
+  FX:    Crush bits 6, rate reduced, mix 60%
+  Wheel: decay
+
+BassShort.Batch1.LPGBass
+  Sound: A low-pass-gate bass: dark, woody and organic, the brightness and
+         level die together.
+  Voice: Mono
+  OSC A: triangle, level 75%, Lo cut 80 Hz
+  OSC B: saw, OCT +1, level 25%
+  Sub:   sine, OCT -1, level 50%
+  Filter: lpg, cutoff 600 Hz, res 20%, Drive 0%, KEY 50%
+  Filter env: on, ENV +2.5 oct (the ring on Cutoff), A 1 / D 300 / S 0% / R 200 ms
+  Amp:   A 1 / D 500 / S 0% / R 200 ms
+  FX:    Tape age 30%
+  Wheel: open
+
+BassShort.Batch1.RuinedStab
+  Sound: A short, mangled neuro stab: RUIN's moving filters and folds on a
+         quick note.
+  Voice: Mono
+  OSC A: saw, UNI 3, detune 15 ct, level 80%, Lo cut 140 Hz
+  Sub:   sine, OCT -1, level 65%
+  Filter: low-pass 24, cutoff 2 kHz, res 10%, Drive 25%, KEY 50%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 1 / D 300 / S 20% / R 120 ms
+  Amp:   A 1 / D 350 / S 10% / R 120 ms
+  RUIN:  on, 3 stages, ONE SHOT on (stages sweep down once per note), drives fold/hard,
+         Mix 85%, Lo cut 150 Hz, OTT 35%
+  FX:    Distortion hard, drive 20%, clean below 160 Hz
+  Wheel: snarl
+
+
+==============================================================================
+3. LEAD
+==============================================================================
+
+Lead.Batch1.Chainsaw
+  Sound: The hard-sync "chainsaw" lead: ripping, aggressive, cuts through
+         anything.
+  Voice: Mono, legato, glide 40 ms
+  OSC A: saw, level 50%
+  OSC B: saw, SEM +7..+19, Sync on, UNI 3, detune 12 ct, level 80%
+  Filter: low-pass 24, cutoff 4 kHz, res 10%, Drive 30%, KEY 60%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 2 / S 100% / R 200 ms
+  LFO / Mod: Velocity → Dis Drive 20%
+  FX:    Distortion hard, drive 45%, mix 70%; OTT mix 20%; EQ high shelf -3 dB
+  Wheel: snarl
+  Note:  For the sync sweep move B's pitch: LFO bloom/drop → B Pitch (outside COMMON).
+
+Lead.Batch1.Supersaw
+  Sound: The huge trance / EDM supersaw lead: bright, wide, shimmering.
+  Voice: Poly 4 (or Mono legato), glide 0
+  OSC A: saw, UNI 7, detune 30 ct, spread 90%, level 75%
+  OSC B: saw, OCT +1, UNI 5, detune 20 ct, level 35%
+  Filter: low-pass 24, cutoff 6 kHz, res 5%, Drive 0%, KEY 60%
+  Filter env: on, ENV +0.5 oct (the ring on Cutoff), A 5 / D 500 / S 70% / R 300 ms
+  Amp:   A 5 / S 100% / R 300 ms
+  FX:    Chorus hyper mix 30%, Lo cut 300 Hz; OTT mix 25%
+  Wheel: open
+
+Lead.Batch1.MonoSaw
+  Sound: The classic analog mono lead (Minimoog-style): one or two saws, warm
+         filter, expressive glide.
+  Voice: Mono, legato, glide 60 ms, Analog 30%
+  OSC A: saw, level 80%
+  OSC B: saw, FIN +6 ct, level 60%
+  Filter: low-pass 24, cutoff 1.8 kHz, res 30%, Drive 35%, KEY 70%
+  Filter env: on, ENV +1.5 oct (the ring on Cutoff), A 3 / D 400 / S 50% / R 200 ms
+  Amp:   A 3 / S 100% / R 200 ms
+  LFO / Mod: Velocity → Fil Cutoff 20%
+  FX:    Tape drive 25%, age 20%
+  Wheel: vibrato
+
+Lead.Batch1.HollowSquare
+  Sound: A hollow, woody square lead: clarinet-ish, soft and nasal.
+  Voice: Mono, legato, glide 30 ms
+  OSC A: pulse, Shape 50%, level 80%
+  OSC B: triangle, OCT +1, level 20%
+  Filter: low-pass 24, cutoff 1.5 kHz, res 15%, Drive 0%, KEY 80%
+  Filter env: on, ENV +0.5 oct (the ring on Cutoff), A 15 / D 400 / S 70% / R 150 ms
+  Noise: air hit, level 20%, tail 120 ms (breath at the start)
+  Amp:   A 15 / S 100% / R 150 ms
+  Wheel: vibrato
+
+Lead.Batch1.PWMLead
+  Sound: A singing PWM lead: animated, a bit nasal, 80s.
+  Voice: Mono, legato, glide 40 ms
+  OSC A: pulse, Shape 35%, level 80%
+  OSC B: pulse, Shape 65%, FIN +8 ct, level 50%
+  Filter: low-pass 24, cutoff 2.5 kHz, res 20%, Drive 10%, KEY 70%
+  Filter env: on, ENV +0.5 oct (the ring on Cutoff), A 5 / D 400 / S 70% / R 200 ms
+  Amp:   A 5 / S 100% / R 200 ms
+  LFO / Mod: LFO 1 triangle 0.5 Hz → A Shape 25%; LFO 2 triangle 0.37 Hz → B Shape 25%
+  FX:    Chorus classic mix 20%
+  Wheel: vibrato
+
+Lead.Batch1.HooverLead
+  Sound: A screaming hoover lead with long swooping glides.
+  Voice: Mono, legato, glide 250 ms
+  OSC A: pwm_saw, UNI 7, detune 35 ct, spread 80%, level 80%
+  OSC B: pwm_saw, OCT -1, UNI 3, level 45%
+  Filter: low-pass 24, cutoff 3.5 kHz, res 10%, Drive 30%, KEY 50%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 8 / S 100% / R 300 ms
+  LFO / Mod: LFO 1 sine 0.6 Hz → A+B Shape 30%
+  FX:    Distortion soft, drive 30%; Chorus hyper mix 25%; Phaser mix 20%
+  Wheel: unstable
+
+Lead.Batch1.Screamer
+  Sound: A distorted, screaming lead: industrial, cinematic, menacing.
+  Voice: Mono, legato, glide 50 ms
+  OSC A: saw, UNI 3, detune 15 ct, level 80%
+  OSC B: saw, OCT +1, level 40%
+  Filter: low-pass 24, cutoff 2.5 kHz, res 35%, Drive 55%, KEY 60%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 3 / D 600 / S 50% / R 250 ms
+  Amp:   A 3 / S 100% / R 250 ms
+  LFO / Mod: LFO 1 wander 0.4 Hz → Fil Cutoff 10%; LFO 2 drift 1 Hz → A+B Pitch 0.4%
+  FX:    Distortion hard, drive 55%, mix 80%; Tape age 30%; EQ high cut / shelf for a darker top
+  Wheel: snarl
+
+Lead.Batch1.AcidLead
+  Sound: A squelchy acid lead: the 303 filter an octave or two up.
+  Voice: Mono, legato, glide 80 ms
+  OSC A: saw, level 85%
+  Filter: diode, cutoff 800 Hz, res 75%, Drive 40%, KEY 40%, ACCENT 70%
+  Filter env: on, ENV +2.5 oct (the ring on Cutoff), A 1 / D 300 / S 10% / R 80 ms
+  Amp:   A 1 / D 400 / S 70% / R 80 ms
+  LFO / Mod: Velocity → Fil Cutoff 25%; LFO 1 slow drift 0.3 Hz → Fil Cutoff 10%
+  FX:    Distortion soft, drive 40%, mix 60%
+  Wheel: open
+
+Lead.Batch1.WhistleSine
+  Sound: A pure, soft sine lead: whistle-like, tender, worn by tape.
+  Voice: Mono, legato, glide 60 ms
+  OSC A: sine, level 85%
+  OSC B: triangle, OCT +1, level 10%
+  Noise: air, level 10%, tone 50%
+  Filter: low-pass 24, cutoff 4 kHz, res 0%, Drive 0%, KEY 80% (wide open: a sine has nothing to filter)
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 20 / S 100% / R 250 ms
+  LFO / Mod: LFO 1 sine 5 Hz, fade 600 ms → A+B Pitch 0.6% (delayed vibrato)
+  FX:    Tape wow 20%, age 45%
+  Wheel: vibrato
+
+Lead.Batch1.FluteLike
+  Sound: A breathy flute-like synth lead: triangle body and an airy chiff.
+  Voice: Mono, legato, glide 30 ms
+  OSC A: triangle, level 80%
+  OSC B: sine, OCT +1, level 15%
+  Noise: air hit, level 35%, tone 60%, tail 150 ms
+  Filter: low-pass 24, cutoff 3 kHz, res 5%, Drive 0%, KEY 80%
+  Filter env: on, ENV +0.5 oct (the ring on Cutoff), A 40 / D 300 / S 80% / R 200 ms
+  Amp:   A 40 / S 100% / R 200 ms
+  LFO / Mod: LFO 1 sine 5 Hz, fade 800 ms → A+B Pitch 0.5%
+  FX:    Tape age 25%
+  Wheel: vibrato
+  Limit: A synth flute; not a realistic flute.
+
+Lead.Batch1.BrassLead
+  Sound: A synth-brass lead: the filter "bwah" on each note, a breath puff.
+  Voice: Mono, legato, glide 20 ms
+  OSC A: saw, level 80%
+  OSC B: saw, FIN +7 ct, level 60%
+  Noise: air hit, level 20%, tail 100 ms
+  Filter: low-pass 24, cutoff 700 Hz, res 10%, Drive 25%, KEY 60%
+  Filter env: on, ENV +2 oct (the ring on Cutoff), A 60 / D 400 / S 60% / R 200 ms
+  Amp:   A 30 / S 100% / R 200 ms
+  LFO / Mod: Velocity → Fil Cutoff 20%
+  FX:    Chorus classic mix 15%; Tape drive 20%
+  Wheel: pressure
+
+Lead.Batch1.GFunkWhine
+  Sound: The G-funk "whine": a thin, high, portamento lead sliding between
+         notes.
+  Voice: Mono, legato, glide 120 ms
+  OSC A: sine, level 70%
+  OSC B: saw, level 15%
+  Filter: low-pass 24, cutoff 3 kHz, res 5%, Drive 0%, KEY 80%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 5 / S 100% / R 200 ms
+  LFO / Mod: LFO 1 sine 5.5 Hz, fade 400 ms → A+B Pitch 0.7%
+  Wheel: vibrato
+
+Lead.Batch1.FuzzGuitar
+  Sound: A fuzz-guitar-like synth lead: sputtering, saturated, rock-ish.
+  Voice: Mono, legato, glide 20 ms
+  OSC A: saw, level 80%
+  OSC B: pulse, Shape 50%, OCT -1, level 40%
+  Filter: low-pass 24, cutoff 3 kHz, res 15%, Drive 30%, KEY 60%
+  Filter env: on, ENV +0.5 oct (the ring on Cutoff), A 2 / D 800 / S 60% / R 250 ms
+  Amp:   A 2 / D 1500 / S 70% / R 250 ms
+  FX:    Distortion fuzz, drive 70%, mix 100%, tone 45%; Tape age 25%
+  Wheel: snarl
+  Limit: A synth take on fuzz guitar, not a real guitar.
+
+Lead.Batch1.FoldLead
+  Sound: A glassy-to-gnarly wavefolded lead that changes colour with how hard
+         you play.
+  Voice: Mono, legato
+  OSC A: sine, level 85%
+  OSC B: triangle, SEM +7, level 25%
+  Filter: low-pass 24, cutoff 5 kHz, res 5%, Drive 0%, KEY 60%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 3 / S 100% / R 200 ms
+  LFO / Mod: Velocity → Dis Drive 30%; LFO 1 wander 0.3 Hz → Dis Drive 10%
+  FX:    Distortion fold, drive 40%, mix 90%
+  Wheel: snarl
+
+Lead.Batch1.VocalLead
+  Sound: A lead with a vowel-like colour from the wavetable's vocal end.
+  Voice: Mono, legato, glide 40 ms
+  OSC A: wavetable, Shape 90%, level 80%
+  OSC B: wavetable, Shape 70%, FIN +6 ct, level 40%
+  Filter: low-pass 24, cutoff 3 kHz, res 15%, Drive 10%, KEY 70%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 10 / S 100% / R 250 ms
+  LFO / Mod: LFO 1 slow drift 0.4 Hz → A+B Shape 12%
+  Wheel: vibrato
+  Limit: Vowel-ish, not a talking or singing voice (no formant filter).
+
+Lead.Batch1.LofiTapeLead
+  Sound: A detuned, wobbling lead that sounds like a worn cassette.
+  Voice: Mono, legato, glide 40 ms
+  OSC A: triangle, level 80%
+  OSC B: pulse, Shape 50%, FIN +12 ct, level 30%
+  Noise: tape hiss, level 15%
+  Filter: low-pass 24, cutoff 2 kHz, res 10%, Drive 10%, KEY 60%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 10 / S 100% / R 300 ms
+  LFO / Mod: LFO 1 drift 1 Hz → A+B Pitch 0.8%
+  FX:    Tape drive 30%, wow 40%, age 60%; Crush bits 10, mix 15%
+  Wheel: unstable
+
+Lead.Batch1.ChipLead
+  Sound: An 8-bit chiptune lead: thin pulse, crunchy.
+  Voice: Mono, legato, glide 0
+  OSC A: pulse, Shape 12%, level 85%
+  Filter: off (the raw pulse is the sound)
+  Filter env: off (ENV 0: no ring on Cutoff)
+  Amp:   A 1 / S 100% / R 50 ms
+  LFO / Mod: LFO 1 square 12 Hz → A+B Pitch 0.4% (fast trill-vibrato), fade 300 ms
+  FX:    Crush bits 5, rate reduced, mix 70%
+  Wheel: decay
+
+Lead.Batch1.NoiseLead
+  Sound: A lead made of noise: hiss or static played like an instrument,
+         gliding between notes (a signature RUIN-1 sound).
+  Voice: Mono, legato, glide 150 ms
+  OSC A / OSC B: level 0
+  Noise: tape hiss (or static), level 80%, tone 55%, tail 300 ms, KEY on, OCT 0
+  Filter: band-pass, cutoff 1.5 kHz, res 50%, Drive 0%, KEY 100%, N lamp on (the noise goes through the filter)
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 10 / S 100% / R 300 ms
+  FX:    Tape age 30%; Chorus ensemble mix 20%
+  Wheel: open
+
+Lead.Batch1.RuinLead
+  Sound: A mangled, talking-ish neuro lead from RUIN's moving filters.
+  Voice: Mono, legato, glide 40 ms
+  OSC A: saw, UNI 3, detune 15 ct, level 80%
+  OSC B: pulse, Shape 40%, level 40%
+  Filter: low-pass 24, cutoff 4 kHz, res 10%, Drive 15%, KEY 60%
+  Filter env: on, ENV +0.5 oct (the ring on Cutoff), A 2 / D 400 / S 60% / R 200 ms
+  Amp:   A 2 / S 100% / R 200 ms
+  RUIN:  on, 2 stages (peak + phaser), wander 1-2 Hz RAND, V Range 40%, drives tube/fold,
+         Mix 75%, KEY on (stages follow the note)
+  FX:    Distortion soft, drive 20%
+  Wheel: snarl
+
+Lead.Batch1.SoftBell
+  Sound: A soft, bell-like lead: sine with a fifth-up sync shimmer and a short
+         bright attack.
+  Voice: Mono, legato
+  OSC A: sine, level 80%
+  OSC B: sine, SEM +19, Sync on, level 25%
+  Filter: low-pass 24, cutoff 3 kHz, res 5%, Drive 0%, KEY 70%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 2 / D 300 / S 30% / R 400 ms
+  Amp:   A 2 / D 1200 / S 50% / R 400 ms
+  FX:    Tape age 30%; Chorus classic mix 15%
+  Wheel: vibrato
+  Limit: Bell-ish synth tone, not a real bell.
+
+
+==============================================================================
+4. PADS  (including string pads and brass pads)
+==============================================================================
+
+Pads.Batch1.WarmAnalog
+  Sound: The classic warm analog pad: detuned saws, soft attack, gentle
+         movement.
+  Voice: Poly 8, Analog 35%
+  OSC A: saw, UNI 3, detune 15 ct, level 70%, Lo cut 150 Hz
+  OSC B: saw, FIN +8 ct, level 60%, Lo cut 150 Hz
+  Filter: low-pass 24, cutoff 1.2 kHz, res 10%, Drive 15%, KEY 50%
+  Filter env: on, ENV +0.7 oct (the ring on Cutoff), A 600 / D 1500 / S 60% / R 1500 ms
+  Amp:   A 600 / D 1000 / S 85% / R 1500 ms
+  LFO / Mod: LFO 1 slow drift 0.2 Hz → Fil Cutoff 8%; LFO 2 drift 1 Hz → A+B Pitch 0.3%
+  FX:    Chorus ensemble mix 35%, Lo cut 200 Hz; Tape age 30%
+  Wheel: bloom
+
+Pads.Batch1.DarkBloom
+  Sound: A dark pad where every chord slowly opens up by itself, LORN-style:
+         dim at first, warm and rich after a few seconds.
+  Voice: Poly 8, Analog 30%
+  OSC A: saw, UNI 3, detune 12 ct, level 70%, Lo cut 150 Hz
+  OSC B: triangle, OCT -1, level 50%, Lo cut 120 Hz
+  Noise: dust, level 15%, tone 30%, Lo cut 400 Hz
+  Filter: low-pass 24, cutoff 350 Hz, res 15%, Drive 25%, KEY 50% (the bloom LFO does the opening)
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 900 / S 100% / R 2500 ms
+  LFO / Mod: LFO 1 bloom 0.2 Hz → Fil Cutoff 30%; LFO 2 slow drift 0.15 Hz → Fil Drive 10%;
+             LFO 3 drift 1 Hz → A+B Pitch 0.3%
+  FX:    Tape drive 25%, wow 20%, age 55%; Chorus ensemble mix 25%, Lo cut 250 Hz
+  Wheel: open
+
+Pads.Batch1.SupersawPad
+  Sound: A wide, bright supersaw pad for big chords (trance, EDM).
+  Voice: Poly 8
+  OSC A: saw, UNI 7, detune 28 ct, spread 90%, level 70%, Lo cut 200 Hz
+  OSC B: saw, OCT +1, UNI 5, detune 20 ct, level 30%
+  Filter: low-pass 24, cutoff 5 kHz, res 5%, Drive 0%, KEY 40%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 300 / S 100% / R 1200 ms
+  FX:    Chorus hyper mix 30%; OTT mix 20%
+  Wheel: open
+
+Pads.Batch1.PWMStrings
+  Sound: Juno-style string pad: PWM shimmer with chorus, smooth and lush.
+  Voice: Poly 8
+  OSC A: pulse, Shape 40%, level 70%, Lo cut 180 Hz
+  OSC B: pulse, Shape 60%, FIN +7 ct, level 60%, Lo cut 180 Hz
+  Filter: low-pass 24, cutoff 2.5 kHz, res 10%, Drive 0%, KEY 50%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 400 / S 100% / R 1200 ms
+  LFO / Mod: LFO 1 triangle 0.6 Hz → A Shape 25%; LFO 2 triangle 0.45 Hz → B Shape 25%
+  FX:    Chorus classic mix 45%, Lo cut 200 Hz
+  Wheel: bloom
+
+Pads.Batch1.StringEnsemble
+  Sound: The 70s string machine (Solina-style): bright, buzzy saw strings in
+         a thick ensemble chorus.
+  Voice: Poly 8
+  OSC A: saw, level 70%, Lo cut 200 Hz
+  OSC B: saw, OCT +1, level 40%, Lo cut 300 Hz
+  Filter: low-pass 24, cutoff 3.5 kHz, res 5%, Drive 0%, KEY 60%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 250 / S 100% / R 800 ms
+  FX:    Chorus ensemble mix 60%, Lo cut 200 Hz; Phaser mix 15%; Tape age 25%
+  Wheel: bloom
+
+Pads.Batch1.BowedStrings
+  Sound: A slow, bowed synth-string pad with a breathy bow attack.
+  Voice: Poly 8
+  OSC A: saw, UNI 5, detune 15 ct, spread 70%, level 70%, Lo cut 180 Hz
+  OSC B: saw, FIN -7 ct, level 50%
+  Noise: air hit, level 20%, tone 50%, tail 400 ms (the bow)
+  Filter: low-pass 24, cutoff 1.8 kHz, res 10%, Drive 0%, KEY 60%
+  Filter env: on, ENV +0.5 oct (the ring on Cutoff), A 700 / D 1500 / S 70% / R 1200 ms
+  Amp:   A 700 / S 100% / R 1200 ms
+  LFO / Mod: LFO 1 sine 5 Hz, fade 1200 ms → A+B Pitch 0.4% (delayed vibrato);
+             LFO 2 slow drift 0.2 Hz → Fil Cutoff 6%
+  FX:    Chorus ensemble mix 30%; Tape age 30%
+  Wheel: vibrato
+  Limit: Synth strings, not a realistic orchestra.
+
+Pads.Batch1.AggressiveStrings
+  Sound: Hard, distorted string pad: biting attack, gritty sustain
+         (cinematic tension).
+  Voice: Poly 8
+  OSC A: saw, UNI 5, detune 18 ct, level 75%, Lo cut 200 Hz
+  OSC B: saw, OCT +1, level 35%
+  Filter: low-pass 24, cutoff 2.5 kHz, res 20%, Drive 45%, KEY 50%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 20 / D 600 / S 60% / R 600 ms
+  Amp:   A 40 / S 100% / R 600 ms
+  FX:    Distortion tube, drive 40%, mix 60%, clean below 200 Hz; Chorus ensemble mix 25%
+  Wheel: snarl
+
+Pads.Batch1.SynthBrass
+  Sound: The 80s synth-brass pad (Jupiter / OB-style): stacked saws with a
+         filter swell on every chord.
+  Voice: Poly 8
+  OSC A: saw, level 75%, Lo cut 150 Hz
+  OSC B: saw, FIN +8 ct, level 65%, Lo cut 150 Hz
+  Noise: air hit, level 15%, tail 120 ms
+  Filter: low-pass 24, cutoff 600 Hz, res 10%, Drive 20%, KEY 50%
+  Filter env: on, ENV +2 oct (the ring on Cutoff), A 80 / D 600 / S 60% / R 500 ms
+  Amp:   A 50 / S 100% / R 500 ms
+  LFO / Mod: Velocity → Fil Cutoff 20%
+  FX:    Chorus classic mix 25%; Tape drive 20%
+  Wheel: pressure
+
+Pads.Batch1.SoftBrass
+  Sound: A mellow, rounded brass pad: horns in the distance, swelling slowly.
+  Voice: Poly 8
+  OSC A: saw, level 70%, Lo cut 150 Hz
+  OSC B: pulse, Shape 50%, level 40%
+  Noise: air hit, level 20%, tail 250 ms
+  Filter: low-pass 24, cutoff 500 Hz, res 5%, Drive 10%, KEY 50%
+  Filter env: on, ENV +1.5 oct (the ring on Cutoff), A 300 / D 1000 / S 70% / R 800 ms
+  Amp:   A 300 / S 100% / R 800 ms
+  FX:    Chorus ensemble mix 20%; Tape age 35%
+  Wheel: pressure
+  Limit: Synth brass, not realistic horns.
+
+Pads.Batch1.Braam
+  Sound: The cinematic "braam": a huge, distorted brass-like blast an octave
+         down, menacing.
+  Voice: Poly 6
+  OSC A: saw, UNI 5, detune 20 ct, level 75%, Lo cut 120 Hz
+  OSC B: saw, OCT -1, level 60%, Lo cut 100 Hz
+  Sub:   sine, OCT -1, level 50%
+  Noise: rumble, level 25%, tail 1000 ms
+  Filter: low-pass 24, cutoff 500 Hz, res 20%, Drive 55%, KEY 40%
+  Filter env: on, ENV +1.5 oct (the ring on Cutoff), A 120 / D 1500 / S 50% / R 2000 ms
+  Amp:   A 60 / S 100% / R 2000 ms
+  FX:    Distortion hard, drive 50%, mix 70%, clean below 150 Hz; Tape age 40%; OTT mix 25%
+  Wheel: snarl
+
+Pads.Batch1.GlassPad
+  Sound: A clear, glassy pad: sines and triangles, a fragile shimmer.
+  Voice: Poly 8
+  OSC A: triangle, level 70%
+  OSC B: sine, OCT +1, FIN +5 ct, level 40%
+  Filter: low-pass 24, cutoff 6 kHz, res 0%, Drive 0%, KEY 40%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 500 / S 100% / R 2000 ms
+  LFO / Mod: LFO 1 slow drift 0.2 Hz → A+B Pitch 0.2%
+  FX:    Chorus classic mix 30%; Tape wow 15%, age 25%
+  Wheel: bloom
+
+Pads.Batch1.TapeWorn
+  Sound: A pad that sounds sampled off an old tape: warped pitch, hiss, dull
+         top.
+  Voice: Poly 8
+  OSC A: saw, UNI 3, detune 10 ct, level 70%, Lo cut 150 Hz
+  OSC B: triangle, level 50%
+  Noise: tape hiss, level 20%, tone 30%, tail 1200 ms
+  Filter: low-pass 24, cutoff 700 Hz, res 15%, Drive 30%, KEY 40%
+  Filter env: on, ENV +0.7 oct (the ring on Cutoff), A 5 / D 600 / S 40% / R 300 ms
+  Amp:   A 500 / S 100% / R 1500 ms
+  LFO / Mod: LFO 1 drift 1 Hz → A+B Pitch 0.6%
+  FX:    Tape drive 30%, wow 40%, age 70%
+  Wheel: unstable
+
+Pads.Batch1.DustPad
+  Sound: A warm pad sitting in vinyl crackle and dust: nostalgic, lo-fi.
+  Voice: Poly 8
+  OSC A: triangle, level 65%
+  OSC B: saw, FIN +6 ct, level 35%
+  Noise: crackle, level 30%, tone 40%, density 50%, tail 1500 ms, Lo cut 500 Hz
+  Filter: low-pass 24, cutoff 900 Hz, res 5%, Drive 0%, KEY 50%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 400 / S 100% / R 1500 ms
+  FX:    Tape age 50%; Chorus classic mix 20%
+  Wheel: decay
+
+Pads.Batch1.HyperShimmer
+  Sound: A very wide, shimmering pad: six detuned copies across the stereo
+         field.
+  Voice: Poly 8
+  OSC A: saw, UNI 3, level 70%, Lo cut 200 Hz
+  OSC B: wavetable, Shape 40%, OCT +1, level 35%
+  Filter: low-pass 24, cutoff 3 kHz, res 5%, Drive 0%, KEY 50%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 400 / S 100% / R 1800 ms
+  FX:    Chorus hyper mix 45%, Lo cut 300 Hz; Phaser mix 15%
+  Wheel: bloom
+
+Pads.Batch1.PhaserPad
+  Sound: A swirling, sweeping pad: the classic phased string pad (Jarre-style).
+  Voice: Poly 8
+  OSC A: saw, level 70%, Lo cut 200 Hz
+  OSC B: pulse, Shape 45%, FIN +6 ct, level 50%
+  Filter: low-pass 24, cutoff 2.5 kHz, res 10%, Drive 0%, KEY 50%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 400 / S 100% / R 1500 ms
+  FX:    Phaser mix 60%, rate slow; Chorus ensemble mix 25%
+  Wheel: bloom
+
+Pads.Batch1.JetFlange
+  Sound: A metallic, jet-plane flanged pad.
+  Voice: Poly 8
+  OSC A: saw, UNI 3, level 70%
+  OSC B: off
+  Noise: white noise, level 15%, tone 60%
+  Filter: low-pass 24, cutoff 3 kHz, res 10%, Drive 0%, KEY 50%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 600 / S 100% / R 1500 ms
+  FX:    Flanger mix 60%, rate slow, feedback 60%
+  Wheel: bloom
+
+Pads.Batch1.DarkDrone
+  Sound: A dark, droning fifths pad for tension and soundtracks.
+  Voice: Poly 6, Analog 35%
+  OSC A: saw, level 65%, Lo cut 120 Hz
+  OSC B: saw, SEM +7, level 50%, Lo cut 150 Hz
+  Sub:   sine, OCT -1, level 35%
+  Noise: rumble, level 25%, tail 2000 ms
+  Filter: low-pass 24, cutoff 400 Hz, res 20%, Drive 30%, KEY 40%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 1500 / S 100% / R 3000 ms
+  LFO / Mod: LFO 1 slow drift 0.1 Hz → Fil Cutoff 15%; LFO 2 wander 0.07 Hz → Fil Drive 15%
+  FX:    Tape wow 25%, age 60%
+  Wheel: open
+
+Pads.Batch1.EvolvingTable
+  Sound: A pad that slowly changes colour by itself: the wavetable morphing
+         between shapes.
+  Voice: Poly 8
+  OSC A: wavetable, Shape 30%, UNI 3, detune 12 ct, level 70%
+  OSC B: wavetable, Shape 70%, FIN +7 ct, level 50%
+  Filter: low-pass 24, cutoff 2 kHz, res 10%, Drive 10%, KEY 50%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 700 / S 100% / R 2000 ms
+  LFO / Mod: LFO 1 slow drift 0.15 Hz → A Shape 30%; LFO 2 wander 0.11 Hz → B Shape 30%
+  FX:    Chorus ensemble mix 30%; Tape age 30%
+  Wheel: bloom
+
+Pads.Batch1.ReverseSwell
+  Sound: A pad that swells in like a reversed sound: silent, then rushing up.
+  Voice: Poly 8
+  OSC A: saw, UNI 3, level 70%
+  OSC B: triangle, OCT +1, level 30%
+  Filter: low-pass 24, cutoff 300 Hz, res 15%, Drive 15%, KEY 50% (the filter opens with the swell)
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 2500 / D 500 / S 100% / R 300 ms
+  Amp:   A 2500 (attack curve bent towards a swell) / S 100% / R 300 ms
+  LFO / Mod: LFO 1 bloom 0.35 Hz → Fil Cutoff 35%
+  FX:    Tape age 30%
+  Wheel: open
+
+Pads.Batch1.BreathPad
+  Sound: An airy, breathy pad: more air than tone, intimate.
+  Voice: Poly 8
+  OSC A: sine, level 50%
+  OSC B: triangle, OCT +1, level 25%
+  Noise: air, level 50%, tone 45%, tail 1500 ms, N lamp on (through the filter)
+  Filter: band-pass, cutoff 1.2 kHz, res 25%, Drive 0%, KEY 80%, N lamp on (the air goes through the filter)
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 800 / S 100% / R 2000 ms
+  FX:    Chorus ensemble mix 20%; Tape age 30%
+  Wheel: vibrato
+
+Pads.Batch1.VocalPad
+  Sound: An "aah"-coloured pad from the wavetable's vocal end: choir-ish.
+  Voice: Poly 8
+  OSC A: wavetable, Shape 85%, UNI 5, detune 12 ct, level 70%
+  OSC B: wavetable, Shape 95%, FIN +6 ct, level 50%
+  Noise: air, level 15%
+  Filter: low-pass 24, cutoff 2.5 kHz, res 10%, Drive 0%, KEY 50%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 600 / S 100% / R 1500 ms
+  FX:    Chorus ensemble mix 35%
+  Wheel: vibrato
+  Limit: Vowel-coloured, not a real choir (no formant filter, no voices).
+
+Pads.Batch1.RuinedPad
+  Sound: A pad slowly eaten by RUIN: chords that grind and wander.
+  Voice: Poly 4 (RUIN costs CPU per voice)
+  OSC A: saw, UNI 3, level 70%
+  OSC B: pulse, Shape 50%, level 40%
+  Filter: low-pass 24, cutoff 2 kHz, res 10%, Drive 10%, KEY 50%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 500 / S 100% / R 1500 ms
+  RUIN:  on, 2 stages (phaser + notch), wander 0.2-0.5 Hz, drives soft/tube, Mix 50%
+  FX:    Tape age 40%; Chorus ensemble mix 20%
+  Wheel: snarl
+
+
+==============================================================================
+5. KEYS AND ORGANS  (and other key-like sounds)
+==============================================================================
+
+Keys.Batch1.ElectricPiano
+  Sound: A Rhodes-like electric piano: soft bell-ish attack, warm body,
+         velocity-sensitive.
+  Voice: Poly 8, Velocity 70%
+  OSC A: sine, level 75%
+  OSC B: triangle, OCT +1, level 25%
+  Noise: dust hit, level 10%, tail 30 ms (the tine "tick")
+  Filter: low-pass 24, cutoff 2 kHz, res 5%, Drive 0%, KEY 70%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 1 / D 600 / S 30% / R 400 ms
+  Amp:   A 2 / D 2500 / S 30% / R 400 ms
+  LFO / Mod: Velocity → Fil Cutoff 25%; (tremolo: LFO 1 sine 4 Hz → Level 15%)
+  FX:    Chorus classic mix 20%; Tape age 25%
+  Wheel: vibrato
+  Limit: Rhodes-ish synth tone, not a sampled piano.
+
+Keys.Batch1.Wurli
+  Sound: A Wurlitzer-like reedy electric piano: barkier, slightly driven.
+  Voice: Poly 8, Velocity 70%
+  OSC A: pulse, Shape 45%, level 60%
+  OSC B: sine, level 50%
+  Filter: low-pass 24, cutoff 1.5 kHz, res 10%, Drive 30%, KEY 70%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 1 / D 400 / S 20% / R 300 ms
+  Amp:   A 2 / D 1800 / S 25% / R 300 ms
+  LFO / Mod: Velocity → Fil Drive 25%; (tremolo: LFO 1 sine 5 Hz → Level 15%)
+  FX:    Tape drive 25%, age 25%
+  Wheel: pressure
+
+Keys.Batch1.Clav
+  Sound: A clavinet-like funky key: thin, percussive, bright and nasal.
+  Voice: Poly 6
+  OSC A: pulse, Shape 20%, level 75%
+  Filter: band-pass, cutoff 1.5 kHz, res 30%, Drive 10%, KEY 80%
+  Filter env: on, ENV +1.5 oct (the ring on Cutoff), A 1 / D 200 / S 10% / R 80 ms
+  Amp:   A 1 / D 600 / S 10% / R 80 ms
+  LFO / Mod: Velocity → Fil Cutoff 30%
+  FX:    Phaser mix 20% (optional, classic)
+  Wheel: open
+
+Keys.Batch1.DrawbarOrgan
+  Sound: A drawbar organ (Hammond-ish): sine harmonics, instant attack,
+         steady.
+  Voice: Poly 8, Velocity 0%
+  OSC A: sine, level 70%
+  OSC B: sine, OCT +1, level 45%
+  Sub:   sine, OCT -1, level 45% (the 16' drawbar)
+  Noise: dust hit, level 8%, tail 15 ms (key click)
+  Filter: off (sines have nothing to filter)
+  Filter env: off (ENV 0: no ring on Cutoff)
+  Amp:   A 2 / S 100% / R 40 ms
+  FX:    Chorus classic mix 30% + Phaser mix 15% (rotary-ish); Distortion tube, drive 20%
+  Wheel: vibrato
+  Limit: Only 3 "drawbars" (A, B, sub); no real rotary speaker.
+
+Keys.Batch1.PipeOrgan
+  Sound: A church-like pipe organ: stacked octaves, full and steady.
+  Voice: Poly 8, Velocity 0%
+  OSC A: saw, level 50%
+  OSC B: pulse, Shape 50%, OCT +1, level 40%
+  Sub:   square, OCT -1, level 40%, Direct out off
+  Noise: air, level 10%, tone 50% (pipe breath)
+  Filter: low-pass 24, cutoff 3 kHz, res 5%, Drive 0%, KEY 60%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 60 / S 100% / R 400 ms
+  FX:    Chorus ensemble mix 15%
+  Wheel: bloom
+
+Keys.Batch1.ComboOrgan
+  Sound: A 60s combo organ (Farfisa / Vox-ish): buzzy, bright, reedy.
+  Voice: Poly 8
+  OSC A: pulse, Shape 30%, level 65%
+  OSC B: pulse, Shape 50%, OCT +1, level 45%
+  Filter: low-pass 24, cutoff 4 kHz, res 5%, Drive 10%, KEY 60%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 2 / S 100% / R 40 ms
+  LFO / Mod: LFO 1 sine 6 Hz → A+B Pitch 0.4% (organ vibrato)
+  FX:    Distortion soft, drive 15%
+  Wheel: vibrato
+
+Keys.Batch1.HouseOrganStab
+  Sound: The 90s house organ / M1-style stab: punchy, bright, short.
+  Voice: Poly 8
+  OSC A: sine, level 60%
+  OSC B: pulse, Shape 50%, OCT +1, level 40%
+  Sub:   sine, OCT -1, level 35%
+  Filter: low-pass 24, cutoff 3 kHz, res 10%, Drive 0%, KEY 60%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 1 / D 250 / S 30% / R 120 ms
+  Amp:   A 1 / D 400 / S 30% / R 120 ms
+  FX:    OTT mix 15%
+  Wheel: open
+
+Keys.Batch1.SynthPiano
+  Sound: A hard, bright synth-piano: percussive saw stack, 80s/90s.
+  Voice: Poly 8, Velocity 60%
+  OSC A: saw, level 65%
+  OSC B: pulse, Shape 35%, OCT +1, level 35%
+  Filter: low-pass 24, cutoff 1.5 kHz, res 10%, Drive 0%, KEY 70%
+  Filter env: on, ENV +2 oct (the ring on Cutoff), A 1 / D 400 / S 10% / R 300 ms
+  Amp:   A 1 / D 1600 / S 10% / R 300 ms
+  LFO / Mod: Velocity → Fil Cutoff 25%
+  FX:    Chorus classic mix 20%
+  Wheel: open
+  Limit: A synth piano, not a real piano.
+
+Keys.Batch1.FeltKeys
+  Sound: Dark, soft "felt" keys: muted, intimate, LORN/ambient.
+  Voice: Poly 8, Velocity 50%
+  OSC A: triangle, level 75%
+  OSC B: sine, OCT +1, level 20%
+  Noise: dust hit, level 15%, tone 30%, tail 50 ms (felt thump)
+  Filter: low-pass 24, cutoff 900 Hz, res 5%, Drive 0%, KEY 60%
+  Filter env: on, ENV +0.8 oct (the ring on Cutoff), A 3 / D 500 / S 20% / R 700 ms
+  Amp:   A 3 / D 1800 / S 15% / R 700 ms
+  FX:    Tape wow 15%, age 50%
+  Wheel: decay
+
+Keys.Batch1.LofiTapeKeys
+  Sound: Lo-fi hip-hop keys: wobbly tape, dusty, warm.
+  Voice: Poly 8
+  OSC A: sine, level 70%
+  OSC B: triangle, OCT +1, FIN +5 ct, level 30%
+  Noise: crackle, level 25%, tone 35%, tail 1500 ms
+  Filter: low-pass 24, cutoff 1.5 kHz, res 5%, Drive 0%, KEY 60%
+  Filter env: on, ENV +0.5 oct (the ring on Cutoff), A 2 / D 600 / S 40% / R 500 ms
+  Amp:   A 2 / D 2000 / S 30% / R 500 ms
+  LFO / Mod: LFO 1 drift 1 Hz → A+B Pitch 0.5%
+  FX:    Tape wow 35%, age 60%; Crush bits 11, mix 15%
+  Wheel: unstable
+
+Keys.Batch1.Harmonium
+  Sound: A reed organ / harmonium / accordion-ish tone: buzzy, breathy,
+         slightly detuned.
+  Voice: Poly 8
+  OSC A: pulse, Shape 35%, level 65%
+  OSC B: pulse, Shape 35%, FIN +10 ct, level 55%
+  Noise: air, level 15%, tone 40%
+  Filter: low-pass 24, cutoff 2 kHz, res 5%, Drive 0%, KEY 60%
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 80 / S 100% / R 200 ms
+  FX:    Chorus ensemble mix 15%
+  Wheel: pressure
+
+Keys.Batch1.Vibraphone
+  Sound: A vibraphone-ish mallet key: soft sine bell, with tremolo.
+  Voice: Poly 8, Velocity 60%
+  OSC A: sine, level 75%
+  OSC B: sine, SEM +24, level 15%
+  Noise: dust hit, level 10%, tail 20 ms
+  Filter: lpg, cutoff 3 kHz, res 10%, Drive 0%, KEY 60%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 1 / D 1500 / S 0% / R 1500 ms
+  Amp:   A 1 / D 3000 / S 0% / R 1500 ms
+  LFO / Mod: LFO 1 sine 5 Hz → Level 20% (the vibraphone's motor tremolo)
+  FX:    Chorus classic mix 15%
+  Wheel: vibrato
+  Limit: A synth vibraphone; real metallic partials are only approximated.
+
+Keys.Batch1.Celesta
+  Sound: A celesta / music-box-like key: small, high, sweet bell tone.
+  Voice: Poly 8
+  OSC A: sine, OCT +1, level 70%
+  OSC B: triangle, OCT +2, level 20%
+  Filter: low-pass 24, cutoff 5 kHz, res 0%, Drive 0%, KEY 70%
+  Filter env: on, ENV +0.5 oct (the ring on Cutoff), A 1 / D 400 / S 40% / R 1000 ms
+  Amp:   A 1 / D 1500 / S 0% / R 1000 ms
+  FX:    Tape age 25%
+  Wheel: vibrato
+
+Keys.Batch1.ToyPiano
+  Sound: A toy piano: plinky, slightly out of tune, metallic.
+  Voice: Poly 8
+  OSC A: triangle, OCT +1, level 70%
+  OSC B: sine, SEM +31, FIN +15 ct, level 20% (an inharmonic overtone)
+  Filter: comb, cutoff 300 Hz, res 25%, Drive 0%, KEY 100% (KEY 100% tunes the comb to the note)
+  Filter env: on, ENV +0.5 oct (the ring on Cutoff), A 1 / D 300 / S 0% / R 300 ms
+  Amp:   A 1 / D 900 / S 0% / R 300 ms
+  FX:    Tape wow 20%, age 30%
+  Wheel: decay
+
+Keys.Batch1.Harpsichord
+  Sound: A harpsichord-like key: thin, plucked, bright, no sustain.
+  Voice: Poly 8, Velocity 10%
+  OSC A: string (tone bright, decay medium; "All controls"), level 70%
+  OSC B: pulse, Shape 15%, OCT +1, level 25%
+  Filter: high-pass 24, cutoff 150 Hz, res 10%, Drive 0%, KEY 0% (thins the body)
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 1 / D 1500 / S 0% / R 200 ms
+  Wheel: open
+  Limit: Harpsichord-ish, not a sampled harpsichord.
+
+Keys.Batch1.ChordStab
+  Sound: A full chord stab key (deep house / garage): detuned, punchy,
+         filtered.
+  Voice: Poly 8
+  OSC A: saw, UNI 3, detune 12 ct, level 70%
+  OSC B: pulse, Shape 50%, level 45%
+  Filter: low-pass 24, cutoff 900 Hz, res 25%, Drive 10%, KEY 50%
+  Filter env: on, ENV +2 oct (the ring on Cutoff), A 1 / D 300 / S 10% / R 200 ms
+  Amp:   A 1 / D 500 / S 10% / R 200 ms
+  FX:    Chorus classic mix 20%; OTT mix 15%
+  Wheel: open
+
+Keys.Batch1.DarkSynthKeys
+  Sound: Dark, gritty synth keys: a dirty, worn tone for melancholic chords.
+  Voice: Poly 8
+  OSC A: saw, level 65%
+  OSC B: triangle, OCT -1, level 45%
+  Noise: dust, level 15%
+  Filter: low-pass 24, cutoff 800 Hz, res 15%, Drive 35%, KEY 50%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 3 / D 900 / S 40% / R 800 ms
+  Amp:   A 3 / D 1500 / S 50% / R 800 ms
+  LFO / Mod: LFO 1 slow drift 0.2 Hz → Fil Cutoff 6%
+  FX:    Distortion tube, drive 20%, mix 40%; Tape wow 15%, age 50%
+  Wheel: snarl
+
+
+==============================================================================
+6. PLUCKS
+==============================================================================
+
+Plucks.Batch1.Trance
+  Sound: The trance / EDM supersaw pluck: bright, wide, short, gated by its
+         envelope.
+  Voice: Poly 8
+  OSC A: saw, UNI 7, detune 28 ct, spread 90%, level 75%
+  OSC B: saw, OCT +1, UNI 3, level 30%
+  Filter: low-pass 24, cutoff 800 Hz, res 15%, Drive 0%, KEY 60%
+  Filter env: on, ENV +3 oct (the ring on Cutoff), A 1 / D 220 / S 0% / R 200 ms
+  Amp:   A 1 / D 300 / S 0% / R 200 ms
+  FX:    Chorus hyper mix 25%; OTT mix 30%
+  Wheel: open
+
+Plucks.Batch1.Marimba
+  Sound: A wooden marimba-like mallet: round, hollow, short.
+  Voice: Poly 8, Velocity 60%
+  OSC A: sine, level 75%
+  OSC B: sine, SEM +24 (two octaves up), level 15%
+  Noise: dust hit, level 20%, tone 50%, tail 25 ms (mallet)
+  Filter: lpg, cutoff 2 kHz, res 10%, Drive 0%, KEY 70%
+  Filter env: on, ENV +1.5 oct (the ring on Cutoff), A 1 / D 200 / S 0% / R 200 ms
+  Amp:   A 1 / D 450 / S 0% / R 200 ms
+  Wheel: open
+  Limit: Marimba-ish, not a sampled marimba.
+
+Plucks.Batch1.Kalimba
+  Sound: A kalimba / thumb-piano pluck: soft metal tine, warm, a little
+         buzzy.
+  Voice: Poly 8
+  OSC A: sine, level 70%
+  OSC B: triangle, SEM +31, level 12% (inharmonic glint)
+  Noise: dust hit, level 15%, tail 20 ms
+  Filter: low-pass 24, cutoff 3 kHz, res 10%, Drive 0%, KEY 70%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 1 / D 150 / S 0% / R 400 ms
+  Amp:   A 1 / D 900 / S 0% / R 400 ms
+  FX:    Tape age 25%
+  Wheel: decay
+
+Plucks.Batch1.HarpString
+  Sound: A plucked harp / guitar-like string from the string model: natural
+         twang and decay.
+  Voice: Poly 8, Velocity 60%
+  OSC A: string (tone ~60%, decay ~60%), level 80%
+  Filter: low-pass 24, cutoff 4 kHz, res 5%, Drive 0%, KEY 70%
+  Filter env: on, ENV +0.5 oct (the ring on Cutoff), A 1 / D 800 / S 30% / R 600 ms
+  Amp:   A 1 / D 2500 / S 0% / R 600 ms
+  FX:    Chorus classic mix 15%
+  Wheel: vibrato
+  Limit: A simple string model; no fret noise, body or strumming.
+
+Plucks.Batch1.Pizzicato
+  Sound: Pizzicato strings: short plucked string-section notes.
+  Voice: Poly 8
+  OSC A: saw, UNI 3, detune 10 ct, level 70%
+  OSC B: string, level 40%
+  Filter: low-pass 24, cutoff 1.2 kHz, res 10%, Drive 0%, KEY 70%
+  Filter env: on, ENV +1.5 oct (the ring on Cutoff), A 1 / D 120 / S 0% / R 150 ms
+  Amp:   A 1 / D 250 / S 0% / R 150 ms
+  FX:    Chorus ensemble mix 20%
+  Wheel: open
+
+Plucks.Batch1.Koto
+  Sound: A koto / zither-like pluck: twangy, nasal, Eastern-flavoured.
+  Voice: Poly 8
+  OSC A: string (tone bright), level 75%
+  OSC B: pulse, Shape 20%, level 20%
+  Filter: band-pass, cutoff 1.8 kHz, res 30%, Drive 0%, KEY 80%
+  Filter env: on, ENV +0.7 oct (the ring on Cutoff), A 1 / D 300 / S 20% / R 400 ms
+  Amp:   A 1 / D 1800 / S 0% / R 400 ms
+  LFO / Mod: LFO 1 drop 4 Hz → A+B Pitch 1% (a slight pitch bend-in)
+  Wheel: vibrato
+
+Plucks.Batch1.SynthPluck
+  Sound: The basic analog synth pluck: saw through a fast filter envelope.
+  Voice: Poly 8
+  OSC A: saw, level 75%
+  OSC B: pulse, Shape 40%, FIN +6 ct, level 40%
+  Filter: low-pass 24, cutoff 500 Hz, res 25%, Drive 10%, KEY 60%
+  Filter env: on, ENV +2.5 oct (the ring on Cutoff), A 1 / D 180 / S 0% / R 200 ms
+  Amp:   A 1 / D 400 / S 0% / R 200 ms
+  LFO / Mod: Velocity → Fil Cutoff 25%
+  FX:    Tape age 20%
+  Wheel: open
+
+Plucks.Batch1.BellPluck
+  Sound: A bright, bell-like pluck from sync and a high partial.
+  Voice: Poly 8
+  OSC A: sine, level 70%
+  OSC B: sine, SEM +19, Sync on, level 30%
+  Filter: low-pass 24, cutoff 4 kHz, res 5%, Drive 0%, KEY 70%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 1 / D 300 / S 0% / R 800 ms
+  Amp:   A 1 / D 1800 / S 0% / R 800 ms
+  Wheel: vibrato
+  Limit: Bell-ish, not a real bell or gong.
+
+Plucks.Batch1.GlassPluck
+  Sound: A glassy, ringing pluck from the comb filter.
+  Voice: Poly 8
+  OSC A: triangle, level 70%
+  Noise: white noise hit, level 25%, tail 30 ms (excites the comb)
+  Filter: comb, cutoff 300 Hz, res 65%, Drive 0%, KEY 100% (KEY 100% tunes the comb to the note)
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 1 / D 1200 / S 0% / R 500 ms
+  FX:    Chorus classic mix 15%
+  Wheel: decay
+
+Plucks.Batch1.ChipPluck
+  Sound: An 8-bit square pluck: short, bleepy, retro.
+  Voice: Poly 4
+  OSC A: pulse, Shape 25%, level 80%
+  Filter: off (the raw pulse is the sound)
+  Filter env: off (ENV 0: no ring on Cutoff)
+  Amp:   A 1 / D 150 / S 0% / R 40 ms
+  FX:    Crush bits 6, mix 50%
+  Wheel: decay
+
+Plucks.Batch1.Bubble
+  Sound: A bubbly, watery pluck: a resonant filter blip.
+  Voice: Poly 8
+  OSC A: triangle, level 75%
+  Filter: low-pass 24, cutoff 300 Hz, res 70%, Drive 0%, KEY 60%
+  Filter env: on, ENV +3 oct (the ring on Cutoff), A 1 / D 100 / S 0% / R 100 ms
+  Amp:   A 1 / D 250 / S 0% / R 100 ms
+  Wheel: open
+
+Plucks.Batch1.DubChord
+  Sound: The dub-techno chord pluck: a dark, resonant, filtered chord
+         (Basic Channel style). Add delay after the synth.
+  Voice: Poly 8
+  OSC A: saw, UNI 3, detune 10 ct, level 70%
+  OSC B: pulse, Shape 50%, level 45%
+  Filter: low-pass 24, cutoff 600 Hz, res 40%, Drive 20%, KEY 50%
+  Filter env: on, ENV +1.5 oct (the ring on Cutoff), A 1 / D 250 / S 0% / R 250 ms
+  Amp:   A 1 / D 400 / S 0% / R 250 ms
+  LFO / Mod: LFO 1 slow drift 0.1 Hz → Fil Cutoff 12%
+  FX:    Chorus ensemble mix 20%; Tape age 35%
+  Wheel: open
+
+Plucks.Batch1.HouseStab
+  Sound: A bright house / garage pluck-stab.
+  Voice: Poly 8
+  OSC A: saw, level 70%
+  OSC B: sine, OCT -1, level 40%
+  Filter: low-pass 24, cutoff 1 kHz, res 20%, Drive 0%, KEY 60%
+  Filter env: on, ENV +2 oct (the ring on Cutoff), A 1 / D 150 / S 0% / R 120 ms
+  Amp:   A 1 / D 250 / S 0% / R 120 ms
+  FX:    OTT mix 20%
+  Wheel: open
+
+Plucks.Batch1.LofiMuted
+  Sound: A muted, dusty lo-fi pluck: dull, wobbling, recorded-sounding.
+  Voice: Poly 8
+  OSC A: triangle, level 70%
+  OSC B: saw, FIN +8 ct, level 25%
+  Noise: crackle hit, level 25%, tail 200 ms
+  Filter: low-pass 24, cutoff 700 Hz, res 10%, Drive 0%, KEY 60%
+  Filter env: on, ENV +1 oct (the ring on Cutoff), A 1 / D 200 / S 0% / R 300 ms
+  Amp:   A 1 / D 500 / S 0% / R 300 ms
+  FX:    Tape wow 30%, age 60%; Crush bits 11, mix 15%
+  Wheel: decay
+
+Plucks.Batch1.SteelDrum
+  Sound: A steel-pan-like pluck: metallic, bright, island-ish.
+  Voice: Poly 8
+  OSC A: sine, level 70%
+  OSC B: sine, SEM +19, level 25%
+  Filter: comb, cutoff 300 Hz, res 30%, Drive 0%, KEY 100% (KEY 100% tunes the comb to the note)
+  Filter env: on, ENV +0.5 oct (the ring on Cutoff), A 1 / D 200 / S 0% / R 300 ms
+  Amp:   A 1 / D 800 / S 0% / R 300 ms
+  FX:    Distortion fold, drive 15%, mix 40%
+  Wheel: open
+  Limit: Steel-pan-ish, not a real steel pan.
+
+Plucks.Batch1.AcidPluck
+  Sound: A short acid blip: the 303 squelch on a pluck.
+  Voice: Mono, glide 40 ms
+  OSC A: saw, level 85%
+  Filter: diode, cutoff 500 Hz, res 75%, Drive 20%, KEY 40%, ACCENT 60%
+  Filter env: on, ENV +2.5 oct (the ring on Cutoff), A 1 / D 150 / S 0% / R 60 ms
+  Amp:   A 1 / D 200 / S 0% / R 60 ms
+  FX:    Distortion soft, drive 30%
+  Wheel: open
+
+Plucks.Batch1.FutureBass
+  Sound: A future-bass pluck: wide supersaw with a quick pitch drop into the
+         note.
+  Voice: Poly 8
+  OSC A: saw, UNI 7, detune 25 ct, spread 90%, level 75%
+  OSC B: saw, OCT +1, level 25%
+  Filter: low-pass 24, cutoff 1.2 kHz, res 10%, Drive 0%, KEY 60%
+  Filter env: on, ENV +2 oct (the ring on Cutoff), A 1 / D 250 / S 0% / R 250 ms
+  Amp:   A 1 / D 400 / S 0% / R 250 ms
+  LFO / Mod: LFO 1 drop 8 Hz → Pitch 8% (a fast scoop down into the note)
+  FX:    Chorus hyper mix 25%; OTT mix 35%
+  Wheel: open
+
+Plucks.Batch1.Woodblock
+  Sound: A wooden click / woodblock-like pluck: mostly attack, pitched.
+  Voice: Poly 8
+  OSC A: sine, level 50%
+  Noise: dust hit, level 50%, tone 55%, tail 30 ms, through the filter (N)
+  Filter: band-pass, cutoff 1.2 kHz, res 40%, Drive 0%, KEY 100%, N lamp on (the noise hit goes through the filter)
+  Filter env: off (ENV 0: no ring on Cutoff; the filter stays where Cutoff is)
+  Amp:   A 1 / D 80 / S 0% / R 40 ms
+  Wheel: open
+
+Plucks.Batch1.FeltPluck
+  Sound: A dark, soft felt pluck: muted, warm, intimate (LORN / ambient).
+  Voice: Poly 8, Velocity 50%
+  OSC A: triangle, level 75%
+  Noise: dust hit, level 15%, tone 30%, tail 40 ms
+  Filter: low-pass 24, cutoff 600 Hz, res 5%, Drive 0%, KEY 60%
+  Filter env: on, ENV +0.8 oct (the ring on Cutoff), A 2 / D 250 / S 0% / R 400 ms
+  Amp:   A 2 / D 700 / S 0% / R 400 ms
+  FX:    Tape wow 15%, age 55%
+  Wheel: decay
+
+Plucks.Batch1.NoiseKit
+  Sound: A noise "kit" across the keys: crackle and static hits pitched by
+         the keyboard, from low thumps to high ticks.
+  Voice: Mono
+  OSC A / OSC B: level 0
+  Noise: crackle hit (or static hit), level 80%, tone 50%, tail 250 ms, KEY on
+  Filter: off (the noise hits play unfiltered)
+  Filter env: off (ENV 0: no ring on Cutoff)
+  Amp:   A 1 / D 300 / S 0% / R 200 ms
+  FX:    Tape age 30%
+  Wheel: decay
+
+
+------------------------------------------------------------------------------
+LIMITS TO KEEP IN MIND FOR ALL OF THE ABOVE
+------------------------------------------------------------------------------
+- Acoustic instruments (piano, guitar, real strings, brass, mallets, bells,
+  organs) are SYNTH versions: recognisable in character, not realistic.
+- No reverb or delay in the synth: pads, plucks and dub chords need space
+  added after it. No arpeggiator: arps are played or sequenced in the DAW.
+- No rhythmic gating inside the synth (tremolo with an LFO on Level is
+  possible; rhythmic chopping is done after the synth).
+- One noise type at a time; the noise layer is shared by all voices.
+- One main filter per voice; no formant/vowel filter.
+- B Pitch / A Pitch alone (for sync sweeps) exist but are outside the COMMON
+  destination column.

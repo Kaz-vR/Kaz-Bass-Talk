@@ -60,7 +60,7 @@ const TERROR_BASE: Record<string, number | string | boolean> = {
   'env2.attack': 1800, 'env2.decay': 4000, 'env2.sustain': 0.8, 'env2.release': 1200,
   // Dirt above the sub, kept dark.
   'dist.type': 'tube', 'dist.drive': 0.28, 'dist.mix': 0.65, 'dist.post_tone': 0.35, 'dist.clean_below': 120,
-  'tape.drive': 0.45, 'tape.wow': 0.22, 'tape.age': 0.45,
+  'tape.wow': 0.22, 
   'crush.mix': 0,
   // Glue and breath.
   'comp.amount': 0.5, 'comp.speed': 0.4, 'comp.pump': 0.25, 'ott.amount': 0.2,
@@ -143,7 +143,7 @@ const D: Def[] = [
     description: 'Bass from a tape that has been played to death: sick wow and flutter, crushed grain, hiss and a dull, warm top.',
     tags: ['lorn', 'terror', 'tape', 'lo-fi', 'worn', 'wonky', 'grain', 'haunted'],
     set: {
-      'tape.drive': 0.6, 'tape.wow': 0.55, 'tape.age': 0.7, 'crush.mix': 0.3, 'crush.bits': 6, 'crush.rate': 10,
+      'tape.wow': 0.55, 'crush.mix': 0.3, 'crush.bits': 6, 'crush.rate': 10,
       'noise.level': 0.025, 'filter.cutoff': 700, 'eq.highcut': 5000,
     },
     mods: kit([['drift', 'osc2_pitch', 0.004]]),
@@ -240,7 +240,7 @@ const D: Def[] = [
     texture: ['crackle', 1, 0.45, 1500],
     set: {
       'osc1.wave': 'triangle', 'osc1.unison_voices': 1, 'osc1.level': 0.7, 'osc2.wave': 'saw', 'osc2.level': 0.3, 'osc2.semi': 0, 'osc2.fine': 6,
-      'filter.cutoff': 380, 'filter.resonance': 0.15, 'drive.amount': 0.5, 'tape.drive': 0.6, 'tape.wow': 0.35, 'tape.age': 0.65,
+      'filter.cutoff': 380, 'filter.resonance': 0.15, 'drive.amount': 0.5, 'tape.wow': 0.35, 
       'chorus.mix': 0.06, 'reverb.mix': 0.12, 'reverb.size': 0.5, 'delay.mix': 0.05, 'comp.pump': 0.15, 'eq.highcut': 6000,
     },
     mods: kit([['lfo2', 'filter_cutoff', 0.1]], {
@@ -258,7 +258,7 @@ const D: Def[] = [
       'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'osc1.level': 0.7, 'osc2.wave': 'triangle', 'osc2.semi': 12, 'osc2.level': 0.25, 'osc2.fine': 5,
       'osc2.unison_voices': 3, 'osc2.unison_detune': 14,
       'drive.amount': 0.45, 'filter.cutoff': 600, 'amp_env.attack': 60, 'amp_env.release': 1500, 'env2.attack': 2200,
-      'reverb.mix': 0.3, 'reverb.size': 0.85, 'delay.mix': 0.16, 'delay.time': '1/2', 'delay.feedback': 0.5, 'comp.pump': 0.1, 'eq.highcut': 7500, 'tape.age': 0.25,
+      'reverb.mix': 0.3, 'reverb.size': 0.85, 'delay.mix': 0.16, 'delay.time': '1/2', 'delay.feedback': 0.5, 'comp.pump': 0.1, 'eq.highcut': 7500, 
     },
     // A sine body barely reacts to the filter: move its drive and the octave layer instead, and let the dust breathe.
     mods: kit([['drift_slow', 'drive', 0.25]], {
@@ -291,7 +291,7 @@ const D: Def[] = [
     texture: ['rumble', 0.9, 0.3, 1800],
     set: {
       'osc1.unison_voices': 5, 'osc1.unison_detune': 22, 'osc2.semi': -12, 'osc2.fine': -9, 'osc2.level': 0.4,
-      'eq.mid_gain': -3.5, 'reverb.mix': 0.18, 'comp.pump': 0.3, 'tape.age': 0.6, 'drive.amount': 0.75, 'dist.drive': 0.36, 'filter.cutoff': 640,
+      'eq.mid_gain': -3.5, 'reverb.mix': 0.18, 'comp.pump': 0.3, 'drive.amount': 0.75, 'dist.drive': 0.36, 'filter.cutoff': 640,
     },
     mods: kit([], {
       'drift_slow>reverb_mix': ['drift_slow', 'texture_level', 0.35],

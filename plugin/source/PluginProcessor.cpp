@@ -178,7 +178,7 @@ void LowTalkProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     mpeWas = mpe;
   }
 
-  // The pump and the wobble run on the host's tempo and bar, so they land on the beat.
+  // The synced LFOs and RUIN run on the host's tempo and bar, so they land on the beat.
   if (auto* head = getPlayHead()) {
     if (auto pos = head->getPosition()) {
       // (While the window's audition loop plays, it keeps its own tempo.)
@@ -222,10 +222,14 @@ void LowTalkProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     live[(size_t)k++].store((float)synth->liveRes);
     live[(size_t)k++].store((float)synth->liveWob);
     live[(size_t)k++].store((float)synth->liveWobFc);
-    for (int l = 0; l < 4; l++) live[(size_t)k++].store((float)synth->lfoPhase[(size_t)l]);
-    for (int l = 0; l < 4; l++) live[(size_t)k++].store((float)synth->lfoValue[(size_t)l]);
+    for (int l = 0; l < 4; l++) live[(size_t)k++].store((float)synth->liveLfoPhase[(size_t)l]);
+    for (int l = 0; l < 4; l++) live[(size_t)k++].store((float)synth->liveLfoValue[(size_t)l]);
     for (int g = 0; g < 4; g++) live[(size_t)k++].store((float)synth->liveGrind[(size_t)g]);
     for (int g = 0; g < 4; g++) live[(size_t)k++].store((float)synth->liveGrindRes[(size_t)g]);
+    for (int l = 4; l < 6; l++) live[(size_t)k++].store((float)synth->liveLfoPhase[(size_t)l]);
+    for (int l = 4; l < 6; l++) live[(size_t)k++].store((float)synth->liveLfoValue[(size_t)l]);
+    for (int g = 4; g < 8; g++) live[(size_t)k++].store((float)synth->liveGrind[(size_t)g]);
+    for (int g = 4; g < 8; g++) live[(size_t)k++].store((float)synth->liveGrindRes[(size_t)g]);
   }
 
   // Feed the window's scope and meter.

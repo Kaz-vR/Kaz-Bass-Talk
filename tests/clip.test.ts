@@ -87,7 +87,7 @@ describe('clean sub', () => {
 
 describe('sub solo', () => {
   it('plays only the sub: no tape hiss from the silent oscillator path', () => {
-    const p = { ...sub, 'tape.on': true, 'tape.age': 0.8, 'tape.drive': 0.6, 'sub.level': 0 };
+    const p = { ...sub, 'tape.on': true, 'tape.wow': 0.8, 'sub.level': 0 };
     const r = renderPatch(p, heldNote(36), { sampleRate: FS, seconds: 1.5, monitor: { solo: ['sub'] } });
     expect(20 * Math.log10(rms(r.left) + 1e-12)).toBeLessThan(-110);
   });

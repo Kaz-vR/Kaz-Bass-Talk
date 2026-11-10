@@ -1,5 +1,5 @@
 // Dev test for the plugin-only engine additions (not covered by the parity
-// check): MPE per-note bend / pressure, and the host-locked Wobbler clock.
+// check): MPE per-note bend / pressure.
 //   g++ -std=c++17 -O2 -I engine tools/engine_test.cpp -o engine_test && ./engine_test
 #include <cstdio>
 #include <vector>
@@ -80,36 +80,6 @@ int main() {
       return e;
     };
     check(bright(1.0) > 1.5 * bright(0.0), "MPE pressure plays the note brighter");
-  }
-  {
-    // The Wobbler follows syncBeat: a square on the volume, open on the beat, shut halfway, wherever the host jumps to.
-    Synth s(fs);
-    auto v = plainPatch(1);
-    v[paramIndex("wobble.on")] = 1;
-    v[paramIndex("wobble.depth")] = 1;
-    v[paramIndex("wobble.volume")] = 1;
-    v[paramIndex("wobble.cutoff")] = 0;
-    v[paramIndex("wobble.lowcut")] = 20;
-    v[paramIndex("wobble.life")] = 0;
-    v[paramIndex("wobble.shape")] = 3;  // square
-    v[paramIndex("wobble.rate")] = 10;  // 1/4
-    s.setParams(v.data(), true);
-    s.setTempo(120);
-    s.noteOn(57, 0.8);
-    std::vector<float> l(48000), r(48000);
-    s.render(l.data(), r.data(), 0, 24000);
-    auto rmsAt = [&](double beat) {
-      s.syncBeat(beat);
-      std::vector<float> a(960), b(960);  // 20 ms, after 10 ms for the gate to settle
-      s.render(a.data(), b.data(), 0, 480);
-      s.render(a.data(), b.data(), 0, 960);
-      double e = 0;
-      for (float x : a) e += x * x;
-      return std::sqrt(e / a.size());
-    };
-    const double open = rmsAt(2.1);
-    const double shut = rmsAt(2.6);
-    check(shut < 0.3 * open, "the Wobbler gates on the host's beat");
   }
   std::printf("%s\n", fails ? "FAILED" : "all ok");
   return fails ? 1 : 0;

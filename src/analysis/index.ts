@@ -59,7 +59,7 @@ export interface RawMeasures {
   fundamentalDb: { low: number; mid: number; high: number };
   /** Spread of held-note loudness across low / mid / high, dB. */
   noteSpreadDb: number;
-  /** Inharmonic energy in the frozen render (worst of mid / high note), dB; null when not meaningful (inharmonic FM, bitcrusher). */
+  /** Inharmonic energy in the frozen render (worst of mid / high note), dB; null when not meaningful (bitcrusher). */
   aliasDb: number | null;
   /** Largest narrow harmonic peak above its neighbours in the frozen mid note, dB. */
   whistleDb: number;
@@ -222,22 +222,14 @@ function latticeBase(p: Patch, f0: number): number | null {
   for (const n of [1, 2]) {
     if ((p[`osc${n}.level`] as number) <= 0) continue;
     if (n === 2 && !harmonicInterval(p['osc2.semi'] as number)) continue; // muted in the frozen probe
-    // Shepard partials glide and a physical-model string is not exactly harmonic: no lattice.
+    // A physical-model string is not exactly harmonic: no lattice.
     const wave = p[`osc${n}.wave`];
-    if (wave === 'shepard' || wave === 'string') return null;
+    if (wave === 'string') return null;
     const semi = p[`osc${n}.semi`] as number;
     base = Math.min(base, f0 * Math.pow(2, octaveShift(semi)));
     if (semi % 12 !== 0) base = Math.min(base, (f0 * Math.pow(2, octaveShift(semi))) / 2); // fifths etc. fall on half-steps of the lattice
   }
   if ((p['sub.level'] as number) > 0) base = Math.min(base, f0 * Math.pow(2, p['sub.octave'] as number));
-  const fm = p['fm.amount'] as number;
-  if (fm > 0.01) {
-    const r = p['fm.ratio'] as number;
-    let q = 0;
-    for (let d = 1; d <= 4 && !q; d++) if (Math.abs(r * d - Math.round(r * d)) < 0.01) q = d;
-    if (!q) return null;
-    base = Math.min(base, f0 / q);
-  }
   return base;
 }
 
@@ -410,8 +402,8 @@ export function frozen(p: Patch): Patch {
   q['osc2.unison_voices'] = 1;
   q['osc1.fine'] = 0;
   q['osc2.fine'] = 0;
-  for (let n = 1; n <= 12; n++) q[`mod${n}.amount`] = 0;
-  for (const id of ['chorus.mix', 'flanger.mix', 'phaser.mix', 'delay.mix', 'reverb.mix', 'tape.wow', 'tape.age', 'filter.env_amount', 'noise.level', 'fm.punch']) q[id] = 0;
+  for (let n = 1; n <= 9; n++) q[`mod${n}.amount`] = 0;
+  for (const id of ['chorus.mix', 'flanger.mix', 'phaser.mix', 'delay.mix', 'reverb.mix', 'tape.wow', 'filter.env_amount', 'noise.level']) q[id] = 0;
   // Hold the note at full level so short plucks are measured, not their silence.
   q['amp_env.attack'] = 1;
   q['amp_env.sustain'] = 1;

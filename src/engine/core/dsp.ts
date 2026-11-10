@@ -97,15 +97,44 @@ export class Rng {
   }
 }
 
-/** Zero-delay-feedback 4-pole ladder low-pass (Zavalishin TPT form). */
+/** Level (in signal units) where the ladder's poles start to bend: lower = they saturate sooner. */
+export const LADDER_V = 0.5;
+/** Level where the 12 dB filter's input and resonance start to bend. */
+export const SVF_V = 0.6;
+
+/**
+ * The slope of V·tanh(x/V) between a and b (its derivative where they meet): how much a
+ * transistor stage passes of the difference between its input and its output right now.
+ */
+function bendGain(a: number, b: number, V: number): number {
+  const d = a - b;
+  if (d > 1e-6 || d < -1e-6) return (V * (fastTanh(a / V) - fastTanh(b / V))) / d;
+  const t = fastTanh(a / V);
+  return 1 - t * t;
+}
+
+/**
+ * Zero-delay-feedback 4-pole ladder low-pass (Zavalishin TPT form) that saturates like the
+ * transistor ladder: the input / resonance stage bends (tanh), and so does each of the four poles
+ * (each pole follows tanh(in) − tanh(out), as in Huovilainen's model). The poles are solved with
+ * their gain linearised around the last sample (Mystran's method), so the feedback stays
+ * zero-delay and stable: loud signals pull the poles down and thicken, the resonance squashes,
+ * and the bass sags as the resonance rises, as on the real circuit.
+ */
 export class Ladder {
   private s1 = 0;
   private s2 = 0;
   private s3 = 0;
   private s4 = 0;
+  // Each pole's gain factor (0..1] for this sample, from its input and output a sample ago.
+  private t1 = 1;
+  private t2 = 1;
+  private t3 = 1;
+  private t4 = 1;
 
   reset(): void {
     this.s1 = this.s2 = this.s3 = this.s4 = 0;
+    this.t1 = this.t2 = this.t3 = this.t4 = 1;
   }
 
   /** g = tan(π·fc/fs); k = feedback 0..~3.9 */
@@ -115,28 +144,32 @@ export class Ladder {
 
   /** Same as process() with G = g / (1 + g) precomputed (share it across channels). */
   processG(x: number, G: number, k: number): number {
-    const b = 1 - G;
-    const G2 = G * G;
-    const G3 = G2 * G;
-    const G4 = G3 * G;
-    const S = G3 * b * this.s1 + G2 * b * this.s2 + G * b * this.s3 + b * this.s4;
+    const g = G / (1 - G);
+    const g1 = g * this.t1, g2 = g * this.t2, g3 = g * this.t3, g4 = g * this.t4;
+    const G1 = g1 / (1 + g1), G2 = g2 / (1 + g2), G3 = g3 / (1 + g3), G4 = g4 / (1 + g4);
+    const Gp = G1 * G2 * G3 * G4;
+    const S = G4 * G3 * G2 * (1 - G1) * this.s1 + G4 * G3 * (1 - G2) * this.s2 + G4 * (1 - G3) * this.s3 + (1 - G4) * this.s4;
     // Partial passband compensation so resonance doesn't hollow out the bass.
     const xin = x * (1 + 0.3 * k);
-    const y4est = (G4 * xin + S) / (1 + k * G4);
+    const y4est = (Gp * xin + S) / (1 + k * Gp);
     const u = fastTanh(xin - k * y4est);
 
-    let v = (u - this.s1) * G;
+    let v = (u - this.s1) * G1;
     const y1 = v + this.s1;
     this.s1 = y1 + v;
-    v = (y1 - this.s2) * G;
+    v = (y1 - this.s2) * G2;
     const y2 = v + this.s2;
     this.s2 = y2 + v;
-    v = (y2 - this.s3) * G;
+    v = (y2 - this.s3) * G3;
     const y3 = v + this.s3;
     this.s3 = y3 + v;
-    v = (y3 - this.s4) * G;
+    v = (y3 - this.s4) * G4;
     const y4 = v + this.s4;
     this.s4 = y4 + v;
+    this.t1 = bendGain(u, y1, LADDER_V);
+    this.t2 = bendGain(y1, y2, LADDER_V);
+    this.t3 = bendGain(y2, y3, LADDER_V);
+    this.t4 = bendGain(y3, y4, LADDER_V);
     return y4;
   }
 }
@@ -176,6 +209,15 @@ export class Svf {
     this.lp = v2;
     this.bp = v1;
     this.hp = x - this.ck * v1 - v2;
+  }
+
+  /**
+   * process() as an analog 12 dB filter: the input and the resonance (the band-pass state)
+   * bend softly (tanh), so loud notes thicken and high resonance squashes instead of whistling.
+   */
+  processSat(x: number, g: number, k: number): void {
+    this.process(SVF_V * fastTanh(x / SVF_V), g, k);
+    this.ic1 = SVF_V * fastTanh(this.ic1 / SVF_V);
   }
 
   /** g = tan(π·fc/fs); k = 1/Q */

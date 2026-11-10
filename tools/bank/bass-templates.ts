@@ -53,7 +53,7 @@ export function templateSettings(t: BassTemplate, s: Settings): Settings {
   const out: Settings = {
     'sub.wave': 'sine', 'sub.octave': -1, 'osc1.semi': 0,
     'osc1.highpass': 130, 'osc2.highpass': 130,
-    'output.crossover': 250, 'fx.lowcut': Math.max(250, num(s, 'fx.lowcut', 250)),
+    'fx.lowcut': Math.max(250, num(s, 'fx.lowcut', 250)),
   };
   switch (t) {
     case 'A':
@@ -65,7 +65,7 @@ export function templateSettings(t: BassTemplate, s: Settings): Settings {
       break;
     case 'C':
       Object.assign(out, { 'osc2.semi': 7, 'osc2.fine': 0, 'osc2.level': Math.max(0.25, num(s, 'osc2.level', 0)),
-        'tape.drive': Math.max(0.5, num(s, 'tape.drive', 0.4)), 'filter.cutoff': Math.round(num(s, 'filter.cutoff', 600) * 0.85) });
+        'filter.cutoff': Math.round(num(s, 'filter.cutoff', 600) * 0.85) });
       break;
     case 'D':
       // osc1 an octave under the note: a gentler high-pass, or the cut would take most of it.

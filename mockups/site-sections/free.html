@@ -1,0 +1,142 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>RUIN + Alive, free versions</title>
+<link rel="stylesheet" href="../../design/tokens.css">
+<link rel="stylesheet" href="../../website/style.css">
+<style>
+body { background: #0d0b0a; }
+.sec { position: relative; border-top: 2px solid rgba(170,160,150,.35); overflow: hidden; }
+.in { width: 1264px; margin: 0 auto; padding: 96px 24px; position: relative; z-index: 2; }
+.k { margin: 0 0 14px; color: var(--ember-kick); font-weight: 600; font-size: 15px; letter-spacing: .3em; text-transform: uppercase; }
+h2 { margin: 0 0 22px; }
+.p { margin: 0 0 16px; font-weight: 500; font-size: 17.5px; line-height: 1.7; letter-spacing: .03em; color: #c9c2ba; }
+.pts { list-style: none; margin: 22px 0 0; padding: 0; }
+.pts li { display: flex; gap: 16px; margin-bottom: 14px; font-size: 15.5px; line-height: 1.55; color: #b3ada6; }
+.pts li b { flex: 0 0 26px; font-weight: 600; letter-spacing: .2em; font-size: 13px; color: var(--ember-kick); padding-top: 3px; }
+.pts li strong { color: #ece6df; font-weight: 600; }
+canvas { display: block; }
+.lab { font-size: 11.5px; letter-spacing: .26em; text-transform: uppercase; color: #8f8983; }
+.red { position: absolute; inset: 0; z-index: 1; background: radial-gradient(ellipse 55% 75% at var(--gx, 70%) 50%, rgba(150,20,10,.42), rgba(70,8,4,.25) 45%, transparent 75%); }
+.card { background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.01)); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; box-shadow: 0 30px 60px rgba(0,0,0,.6); }
+</style></head><body><div id="root"></div>
+<script>
+const V = +(new URLSearchParams(location.search).get('v') || 1);
+// ------------------------------------------------------------ the signal: one cycle, run through the real kind of stages RUIN has
+const N = 256, TAU = Math.PI * 2;
+let seed = 11; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+const saw = () => Array.from({ length: N }, (_, i) => { let s = 0; for (let h = 1; h <= 24; h++) s += Math.sin(TAU * h * i / N) / h; return s * 0.6; });
+function spectral(x, gain) { // DFT, scale each harmonic, back
+  const re = [], im = [];
+  for (let k = 0; k < N / 2; k++) { let a = 0, b = 0; for (let n = 0; n < N; n++) { a += x[n] * Math.cos(TAU * k * n / N); b -= x[n] * Math.sin(TAU * k * n / N); } re.push(a * gain(k)); im.push(b * gain(k)); }
+  return Array.from({ length: N }, (_, n) => { let s = re[0] / N; for (let k = 1; k < N / 2; k++) s += 2 * (re[k] * Math.cos(TAU * k * n / N) - im[k] * Math.sin(TAU * k * n / N)) / N; return s; });
+}
+const norm = (x) => { const m = Math.max(...x.map(Math.abs)) || 1; return x.map((v) => v / m); };
+const STAGES = [
+  { name: 'Filter 1', type: 'notch', col: '#8ae9ff', f: (x) => spectral(x, (k) => (k === 3 || k === 4 ? 0.05 : 1)) },
+  { name: 'Drive 1', type: 'tape', col: '#ffb020', f: (x) => x.map((v) => Math.tanh(2.2 * v + 0.15) - Math.tanh(0.15)) },
+  { name: 'Filter 2', type: 'peak', col: '#3fb8ff', f: (x) => spectral(x, (k) => (k >= 6 && k <= 8 ? 4 : 1)) },
+  { name: 'Drive 2', type: 'tube', col: '#ff8a1f', f: (x) => x.map((v) => Math.tanh(3.5 * v + 0.4) - Math.tanh(0.4)) },
+  { name: 'Filter 4', type: 'comb', col: '#5a78ff', f: (x) => spectral(x, (k) => 0.55 + 0.45 * Math.cos(k * 1.3)) },
+  { name: 'Drive 4', type: 'wavefold', col: '#e0204a', f: (x) => x.map((v) => Math.sin(3.4 * v)) },
+];
+const STEPS = [norm(saw())]; for (const s of STAGES) STEPS.push(norm(s.f(STEPS[STEPS.length - 1])));
+// ------------------------------------------------------------ life: smooth random paths (humanize) and tape pitch
+function humanize(n, s) { seed = s; const out = []; let a = 0, b = rnd() * 2 - 1, pos = 0, len = 40 + rnd() * 80, t = 0, tr = 0, trb = rnd() * 2 - 1, trp = 0;
+  for (let i = 0; i < n; i++) { pos++; if (pos > len) { pos = 0; a = b; const big = rnd() < 0.15; b = (rnd() * 2 - 1) * (big ? 1 : 0.4) + a * (big ? 0 : 0.5); b = Math.max(-1, Math.min(1, b)); len = 30 + rnd() * 140; }
+    trp++; if (trp > 9) { trp = 0; tr = trb; trb = rnd() * 2 - 1; }
+    const u = 0.5 - 0.5 * Math.cos(Math.PI * pos / len), v = 0.5 - 0.5 * Math.cos(Math.PI * trp / 9);
+    out.push((a + (b - a) * u) * 0.8 + (tr + (trb - tr) * v) * 0.12); } return out; }
+const tapeLine = (n, ph, s) => { const h = humanize(n, s); return Array.from({ length: n }, (_, i) => 0.55 * Math.sin(i / n * TAU * 1.3 + ph) + 0.35 * h[i] + 0.06 * Math.sin(i * 0.9 + ph)); };
+// ------------------------------------------------------------ drawing: the prototype's photographed light (hot core, tight glow, a wide haze)
+function cv(w, h, cls = '', style = '') { return `<canvas data-w="${w}" data-h="${h}" class="${cls}" style="width:${w}px;height:${h}px;${style}"></canvas>`; }
+const draws = [];
+function glow(g, pts, col, w = 2) {
+  g.lineJoin = g.lineCap = 'round';
+  for (const [lw, a, blur] of [[w * 5, 0.06, 24], [w * 2.2, 0.25, 10], [w, 1, 4]]) {
+    g.save(); g.strokeStyle = col; g.globalAlpha = a; g.lineWidth = lw; g.shadowColor = col; g.shadowBlur = blur;
+    g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.stroke(); g.restore(); }
+  g.save(); g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = Math.max(0.6, w * 0.35); g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.stroke(); g.restore();
+}
+const cycles = (sig, x0, x1, yc, amp, reps = 2) => { const pts = []; const n = Math.round((x1 - x0)); for (let i = 0; i <= n; i++) { const t = (i / n) * reps; pts.push([x0 + i, yc - amp * sig[Math.floor((t % 1) * N) % N]]); } return pts; };
+const path = (arr, x0, x1, yc, amp) => arr.map((v, i) => [x0 + (i / (arr.length - 1)) * (x1 - x0), yc - amp * v]);
+function grid(g, w, h, a = 0.05) { g.strokeStyle = `rgba(255,255,255,${a})`; g.lineWidth = 1; for (let x = 0; x < w; x += 40) { g.beginPath(); g.moveTo(x + .5, 0); g.lineTo(x + .5, h); g.stroke(); } for (let y = 0; y < h; y += 40) { g.beginPath(); g.moveTo(0, y + .5); g.lineTo(w, y + .5); g.stroke(); } }
+function label(g, t, x, y, col = '#8f8983', size = 11, align = 'left') { g.font = `600 ${size}px Barlow, sans-serif`; g.fillStyle = col; g.textAlign = align; g.letterSpacing = '3px'; g.fillText(t.toUpperCase(), x, y); g.letterSpacing = '0px'; g.textAlign = 'left'; }
+// a small picture of what a box does: a filter's response or a drive's curve
+function icon(g, s, x, y, w, h) {
+  const pts = [];
+  for (let i = 0; i <= 60; i++) { const u = i / 60, d = u - 0.5; let v;
+    if (s.type === 'notch') v = 0.75 - 0.75 * Math.exp(-(d * d) / 0.004); else if (s.type === 'peak') v = 0.25 + 0.7 * Math.exp(-(d * d) / 0.008); else if (s.type === 'comb') v = 0.45 + 0.4 * Math.cos(u * TAU * 4);
+    else { const xin = (u * 2 - 1) * 1.5; v = 0.5 + 0.45 * (s.type === 'wavefold' ? Math.sin(2.2 * xin) : Math.tanh((s.type === 'tube' ? 2.6 : 1.8) * xin + (s.type === 'tube' ? .3 : 0)) / Math.tanh(2.7)); }
+    pts.push([x + u * w, y + h - v * h]); }
+  glow(g, pts, s.col, 1.6);
+}
+const ruinText = (pts = true) => `<p class="k">The RUIN chain</p><h2>Distortion<br>in series</h2><p class="p">Neuro basses aren't one distortion: they are many small ones in a row, each shaping what the next one hears. RUIN gives you eight boxes in any order.</p>${pts ? `<ul class="pts"><li><b>01</b><span><strong>Filters</strong> move on their own: notches, peaks and combs that wander.</span></li><li><b>02</b><span><strong>Drives</strong> in ten flavours, warm tape to digital ruin, on the band you choose.</span></li><li><b>03</b><span><strong>EQs</strong> between them decide what the next drive bites into.</span></li></ul>` : ''}`;
+const aliveText = (pts = true) => `<p class="k">Always alive</p><h2>Nothing<br>ever repeats</h2><p class="p">Real instruments never play the same note twice. RUIN-1 moves the way a player does, on many small, independent time scales.</p>${pts ? `<ul class="pts"><li><b>01</b><span><strong>Humanize LFOs</strong> wobble slow and fast at once: never a pendulum, never a clock.</span></li><li><b>02</b><span><strong>Tape</strong> adds wow and drift, from a studio reel to a worn-out Walkman.</span></li><li><b>03</b><span><strong>Analog drift</strong> gives every voice its own tuning and timing.</span></li></ul>` : ''}`;
+
+const L = {
+  // 1 · SIGNAL JOURNEY: one wave travels left to right through the chain and is changed by each box; life as automation lanes
+  1: () => [`<section class="sec"><div class="red" style="--gx:60%"></div><div class="in"><div style="display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:end"><div>${ruinText(false)}</div><ul class="pts" style="margin:0"><li><b>01</b><span><strong>Filters</strong> carve and move: notches, peaks, combs.</span></li><li><b>02</b><span><strong>Drives</strong> bend the wave: ten flavours, warm to wrecked.</span></li><li><b>03</b><span><strong>Order</strong> is yours: eight boxes, filters, drives and EQs.</span></li></ul></div>${cv(1216, 300, 'c1a', 'margin-top:60px')}</div></section>
+    <section class="sec"><div class="red" style="--gx:40%"></div><div class="in" style="display:grid;grid-template-columns:1fr 380px;gap:70px;align-items:center">${cv(780, 420, 'c1b')}<div>${aliveText()}</div></div></section>`,
+    () => { const g = ctx('c1a'), W = 1216, H = 300, seg = W / 7; grid(g, W, H, .035);
+      for (let i = 0; i < 7; i++) { const x0 = i * seg + 14, x1 = (i + 1) * seg - 14, col = i ? STAGES[i - 1].col : '#e6e1dc';
+        if (i) { g.strokeStyle = 'rgba(255,255,255,.08)'; g.beginPath(); g.moveTo(i * seg + .5, 40); g.lineTo(i * seg + .5, H - 20); g.stroke(); }
+        label(g, i ? STAGES[i - 1].name : 'In', x0, 26, col); label(g, i ? STAGES[i - 1].type : 'saw', x0, H - 8, '#6e6964', 10);
+        glow(g, cycles(STEPS[i], x0, x1, H / 2 + 6, 82, 2), col, 2.2); } },
+    () => { const g = ctx('c1b'), W = 780, H = 420; grid(g, W, H, .035);
+      const lanes = [['LFO 1 · humanize → pitch', '#ff4a3a', humanize(W, 3)], ['LFO 2 · humanize → tone', '#ff9a2a', humanize(W, 17)], ['Tape · wow + drift', '#ffcf80', tapeLine(W, 0.4, 9)]];
+      lanes.forEach(([t, col, d], i) => { const yc = 70 + i * 130; label(g, t, 0, yc - 50, col); g.strokeStyle = 'rgba(255,255,255,.07)'; g.beginPath(); g.moveTo(0, yc); g.lineTo(W, yc); g.stroke(); glow(g, path(d, 0, W, yc, 34), col, 2); if (i === 2) glow(g, path(tapeLine(W, 1.9, 23), 0, W, yc, 30), 'rgba(255,207,128,.5)', 1); });
+      label(g, '0 s', 0, H - 6, '#55555b', 10); label(g, '12 s', W, H - 6, '#55555b', 10, 'right'); }],
+
+  // 2 · PEDALBOARD: each box a small glowing pedal with its own curve, joined by a cable carrying the signal; life on round scopes
+  2: () => [`<section class="sec"><div class="in"><div style="max-width:620px">${ruinText(false)}</div>${cv(1216, 260, 'c2a', 'margin-top:50px')}<ul class="pts" style="display:grid;grid-template-columns:repeat(3,1fr);gap:40px;margin-top:40px"><li><b>01</b><span><strong>Filters</strong> that wander on their own.</span></li><li><b>02</b><span><strong>Drives</strong> in ten flavours, on the band you choose.</span></li><li><b>03</b><span><strong>Any order</strong>: up to eight of each.</span></li></ul></div></section>
+    <section class="sec"><div class="in" style="display:grid;grid-template-columns:400px 1fr;gap:60px;align-items:center"><div>${aliveText()}</div>${cv(780, 300, 'c2b')}</div></section>`,
+    () => { const g = ctx('c2a'), W = 1216, H = 260, pw = 150, ph = 170, gap = (W - 6 * pw) / 5;
+      const cable = []; for (let x = 0; x <= W; x += 4) cable.push([x, 210 + 10 * Math.sin(x / 70)]); glow(g, cable, 'rgba(255,140,60,.55)', 1.6);
+      STAGES.forEach((s, i) => { const x = i * (pw + gap), y = 20; g.save(); g.fillStyle = '#121010'; g.strokeStyle = 'rgba(255,255,255,.09)'; g.shadowColor = 'rgba(0,0,0,.8)'; g.shadowBlur = 20; g.beginPath(); g.roundRect(x, y, pw, ph, 12); g.fill(); g.shadowBlur = 0; g.stroke(); g.restore();
+        g.save(); g.fillStyle = s.col; g.shadowColor = s.col; g.shadowBlur = 12; g.beginPath(); g.arc(x + 20, y + 20, 4, 0, TAU); g.fill(); g.restore();
+        label(g, s.name, x + 32, y + 24, '#e6e1dc', 11); icon(g, s, x + 18, y + 46, pw - 36, 70); label(g, s.type, x + pw / 2, y + ph - 18, s.col, 11, 'center'); }); },
+    () => { const g = ctx('c2b'), r = 120; [['Humanize 1', '#ff4a3a', humanize(400, 3)], ['Humanize 2', '#ff9a2a', humanize(400, 17)], ['Tape', '#ffcf80', tapeLine(400, 0.4, 9)]].forEach(([t, col, d], i) => { const cx = 130 + i * 260, cy = 140;
+        g.save(); g.fillStyle = '#0a0909'; g.strokeStyle = 'rgba(255,255,255,.1)'; g.lineWidth = 2; g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.fill(); g.stroke(); g.clip(); grid(g, 800, 300, .04); glow(g, path(d, cx - r, cx + r, cy, 46), col, 2); g.restore(); label(g, t, cx, cy + r + 30, col, 11, 'center'); }); }],
+
+  // 3 · LAYERS: the chain as glass panes stacked in depth, the wave ruined a little more on each; life on a pair of tape reels
+  3: () => [`<section class="sec"><div class="red" style="--gx:65%"></div><div class="in" style="display:grid;grid-template-columns:400px 1fr;gap:40px;align-items:center"><div>${ruinText()}</div><div style="perspective:1200px;height:440px;position:relative">${STAGES.map((s, i) => cv(560, 200, 'c3p' + i, `position:absolute;left:${40 + i * 34}px;top:${20 + i * 38}px;transform:rotateY(-32deg) rotateX(8deg);background:rgba(18,14,13,.82);border:1px solid ${s.col}55;border-radius:10px;box-shadow:0 20px 40px rgba(0,0,0,.6)`)).join('')}</div></div></section>
+    <section class="sec"><div class="in" style="display:grid;grid-template-columns:1fr 400px;gap:60px;align-items:center">${cv(780, 360, 'c3b')}<div>${aliveText()}</div></div></section>`,
+    () => STAGES.forEach((s, i) => { const g = ctx('c3p' + i); glow(g, cycles(STEPS[i + 1], 20, 540, 112, 64, 2), s.col, 2); label(g, s.name + ' · ' + s.type, 18, 26, s.col); }),
+    () => { const g = ctx('c3b'); const reel = (cx, cy, r, rot) => { g.save(); g.translate(cx, cy); g.rotate(rot); g.strokeStyle = 'rgba(230,220,200,.35)'; g.lineWidth = 2; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.stroke(); g.beginPath(); g.arc(0, 0, r * .28, 0, TAU); g.stroke(); for (let k = 0; k < 3; k++) { g.rotate(TAU / 3); g.beginPath(); g.moveTo(r * .32, 0); g.lineTo(r * .9, 0); g.lineWidth = 10; g.strokeStyle = 'rgba(230,220,200,.12)'; g.stroke(); } g.restore(); };
+      reel(150, 110, 90, .3); reel(630, 110, 90, 1.1); glow(g, path(tapeLine(480, 0.4, 9), 150, 630, 250, 40), '#ffcf80', 2.2); glow(g, path(tapeLine(480, 1.9, 23), 150, 630, 250, 34), 'rgba(255,207,128,.45)', 1.1);
+      label(g, 'Wow', 150, 330, '#ffcf80', 11, 'center'); label(g, 'pitch over 4 s · ±40 ct', 390, 330, '#6e6964', 10, 'center'); label(g, 'Drift', 630, 330, '#ffcf80', 11, 'center'); }],
+
+  // 4 · NODES: the chain as a line of glowing nodes on one wire; life as one huge humanize line with notes on it
+  4: () => [`<section class="sec"><div class="in"><div style="text-align:center;max-width:720px;margin:0 auto">${ruinText(false)}</div>${cv(1216, 220, 'c4a', 'margin-top:40px')}</div></section>
+    <section class="sec"><div class="red" style="--gx:50%"></div><div class="in"><div style="max-width:620px">${aliveText(false)}</div>${cv(1216, 300, 'c4b', 'margin-top:30px')}</div></section>`,
+    () => { const g = ctx('c4a'), W = 1216; glow(g, [[20, 90], [W - 20, 90]], 'rgba(255,255,255,.35)', 1.2); label(g, 'In', 20, 70, '#8f8983'); label(g, 'Out', W - 20, 70, '#8f8983', 11, 'right');
+      STAGES.forEach((s, i) => { const x = 140 + i * 188; g.save(); g.fillStyle = '#0d0b0a'; g.strokeStyle = s.col; g.lineWidth = 2; g.shadowColor = s.col; g.shadowBlur = 16; g.beginPath(); g.arc(x, 90, 40, 0, TAU); g.fill(); g.stroke(); g.restore(); icon(g, s, x - 24, 72, 48, 36);
+        label(g, s.name, x, 160, s.col, 11, 'center'); label(g, s.type, x, 180, '#6e6964', 10, 'center'); }); },
+    () => { const g = ctx('c4b'), W = 1216, H = 300, d = humanize(W, 5); grid(g, W, H, .03); glow(g, path(d, 0, W, 150, 100), '#ff6a2a', 2.6);
+      const note = (x, t) => { const y = 150 - 100 * d[x]; g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, 3.5, 0, TAU); g.fill(); g.strokeStyle = 'rgba(255,255,255,.3)'; g.beginPath(); g.moveTo(x, y - 10); g.lineTo(x, 26); g.stroke(); label(g, t, x + 8, 30, '#e6e1dc', 11); };
+      note(150, 'a small nudge'); note(520, 'a big move, now and then'); note(940, 'the tremble on top'); label(g, 'Humanize LFO · twelve seconds of one held note', 0, H - 4, '#6e6964', 10); }],
+
+  // 5 · BEFORE / AFTER: a clean wave in, a ruined wave out, the chain as small chips on the arrow; life as three glass cards
+  5: () => [`<section class="sec"><div class="red" style="--gx:75%"></div><div class="in"><div style="max-width:640px">${ruinText(false)}</div>${cv(1216, 300, 'c5a', 'margin-top:40px')}</div></section>
+    <section class="sec"><div class="in"><div style="max-width:640px">${aliveText(false)}</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:40px">${[0, 1, 2].map((i) => `<div class="card" style="padding:22px">${cv(340, 170, 'c5c' + i)}<p class="p" style="margin:16px 0 0;font-size:15px">${['<strong style="color:#ece6df">Humanize</strong> — slow and fast at once, never a pendulum.', '<strong style="color:#ece6df">A second LFO</strong> — its own speed, so the two never line up.', '<strong style="color:#ece6df">Tape</strong> — wow and drift on everything but the sub.'][i]}</p></div>`).join('')}</div></div></section>`,
+    () => { const g = ctx('c5a'), W = 1216; glow(g, cycles(STEPS[0], 0, 360, 150, 90, 2), '#e6e1dc', 2.2); glow(g, cycles(STEPS[6], 856, 1216, 150, 90, 2), '#ff5a2a', 2.6);
+      label(g, 'In · a plain saw', 0, 30, '#e6e1dc'); label(g, 'Out · through six boxes', W, 30, '#ff7a3a', 11, 'right');
+      glow(g, [[390, 150], [826, 150]], 'rgba(255,255,255,.3)', 1); g.fillStyle = 'rgba(255,255,255,.5)'; g.beginPath(); g.moveTo(826, 143); g.lineTo(840, 150); g.lineTo(826, 157); g.fill();
+      STAGES.forEach((s, i) => { const x = 404 + i * 70; g.save(); g.fillStyle = '#121010'; g.strokeStyle = s.col + '99'; g.beginPath(); g.roundRect(x, 124, 58, 52, 8); g.fill(); g.stroke(); g.restore(); icon(g, s, x + 8, 134, 42, 30); label(g, s.type, x + 29, 196, s.col, 9, 'center'); }); },
+    () => [['#ff4a3a', humanize(340, 3)], ['#ff9a2a', humanize(340, 17)], ['#ffcf80', tapeLine(340, .4, 9)]].forEach(([col, d], i) => { const g = ctx('c5c' + i); grid(g, 340, 170, .04); glow(g, path(d, 0, 340, 85, 55), col, 2.2); if (i === 2) glow(g, path(tapeLine(340, 1.9, 23), 0, 340, 85, 48), 'rgba(255,207,128,.45)', 1); })],
+
+  // 6 · WATERFALL: the wave drawn line under line, clean at the top and ruined at the bottom (Unknown Pleasures); every note different below
+  6: () => [`<section class="sec"><div class="in" style="display:grid;grid-template-columns:400px 1fr;gap:70px;align-items:center"><div>${ruinText()}</div>${cv(760, 520, 'c6a')}</div></section>
+    <section class="sec"><div class="red" style="--gx:35%"></div><div class="in" style="display:grid;grid-template-columns:1fr 400px;gap:70px;align-items:center">${cv(760, 520, 'c6b')}<div>${aliveText()}</div></div></section>`,
+    () => { const g = ctx('c6a'); STEPS.forEach((sig, i) => { const y = 50 + i * 70, col = i ? STAGES[i - 1].col : '#e6e1dc'; const pts = cycles(sig, 170, 740, y, 30, 3);
+        g.save(); g.fillStyle = '#0d0b0a'; g.beginPath(); g.moveTo(170, 520); pts.forEach(([x, yy]) => g.lineTo(x, yy)); g.lineTo(740, 520); g.fill(); g.restore(); glow(g, pts, col, 1.8);
+        label(g, i ? STAGES[i - 1].name : 'In', 0, y - 2, col); label(g, i ? STAGES[i - 1].type : 'saw', 0, y + 16, '#6e6964', 10); }); },
+    () => { const g = ctx('c6b'); for (let i = 0; i < 14; i++) { const y = 40 + i * 34, d = humanize(560, 30 + i * 7), env = (k) => Math.exp(-((k / 560 - .5) ** 2) / .06);
+        const pts = d.map((v, k) => [170 + k, y - 26 * v * env(k)]); g.save(); g.fillStyle = '#0d0b0a'; g.beginPath(); g.moveTo(170, 520); pts.forEach(([x, yy]) => g.lineTo(x, yy)); g.lineTo(730, 520); g.fill(); g.restore();
+        glow(g, pts, i % 2 ? '#ff9a2a' : '#ff5a2a', 1.4); if (i % 3 === 0) label(g, 'note ' + (i + 1), 0, y + 4, '#6e6964', 10); }
+      label(g, 'Fourteen notes, the same key, every one different', 170, 515, '#8f8983', 10); }],
+};
+const [html, ...fns] = L[V]();
+document.getElementById('root').innerHTML = html;
+function ctx(cls) { const c = document.querySelector('.' + cls), w = +c.dataset.w, h = +c.dataset.h; c.width = w * 2; c.height = h * 2; const g = c.getContext('2d'); g.scale(2, 2); return g; }
+document.fonts.ready.then(() => { fns.forEach((f) => f()); document.title = 'done'; });
+</script></body></html>

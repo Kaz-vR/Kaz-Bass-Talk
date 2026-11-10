@@ -1,0 +1,41 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:SG;src:url(../../src/ui/fonts/space-grotesk.woff2)}
+body{margin:0;background:#050506;font-family:SG;color:#9a9aa0;width:1200px;padding:24px;box-sizing:border-box}
+h2{color:#fff;font-weight:500;letter-spacing:.18em;font-size:15px;margin:0 0 4px}
+.sub{font-size:12px;margin-bottom:14px;color:#77777d}
+.batch{background:#0d0d0f;border:1px solid #1c1c20;border-radius:4px;padding:18px 20px;margin-bottom:16px}
+.fams{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.fam .t{font-size:10px;letter-spacing:.22em;margin-bottom:8px}
+.row{display:flex;gap:10px}
+.sw{flex:1}
+.chip{height:46px;border-radius:3px}
+.hex{font-size:10px;margin-top:5px;color:#88888e;letter-spacing:.06em}
+canvas{display:block;margin-top:8px}
+</style></head><body>
+<div id="out"></div>
+<script>
+const B=[
+ ['A · FIRE + ICE','Drives warm, filters cool: the clearest split. Dirt burns, filters shape.',
+  ['FILTERS · ICE',['#8ae9ff','#3fb8ff','#5a78ff']],['DRIVES · FIRE',['#ffb020','#ff5a1f','#e0204a']]],
+ ['B · EMBER + SMOKE','Both from the dark, smoky world: drives as glowing embers, filters as pale violet smoke. Moodier, less contrast.',
+  ['FILTERS · SMOKE',['#d9c8ff','#a88cff','#7b5cff']],['DRIVES · EMBER',['#ff8a3d','#ff3b2f','#b8123a']]],
+ ['C · ACID + RUST','Drives rust and blood, filters toxic acid green to teal: aggressive, neuro, very distinct.',
+  ['FILTERS · ACID',['#d4ff5a','#5affa0','#2ad6c8']],['DRIVES · RUST',['#ff9b3d','#e8502a','#b0281e']]],
+];
+const out=document.getElementById('out');
+for(const [name,sub,...fams] of B){
+  const b=document.createElement('div');b.className='batch';
+  b.innerHTML=`<h2>${name}</h2><div class="sub">${sub}</div><div class="fams"></div>`;
+  const F=b.querySelector('.fams');
+  for(const [t,cols] of fams){
+    const f=document.createElement('div');f.className='fam';
+    f.innerHTML=`<div class="t" style="color:${cols[1]}">${t}</div><div class="row">${cols.map((c,i)=>`<div class="sw"><div class="chip" style="background:${c};box-shadow:0 0 14px ${c}55"></div><div class="hex">${i+1} · ${c}</div><canvas width="340" height="56" style="width:170px;height:28px"></canvas></div>`).join('')}</div>`;
+    F.append(f);
+    [...f.querySelectorAll('canvas')].forEach((cv,i)=>{const g=cv.getContext('2d');g.scale(2,2);const c=cols[i];
+      g.fillStyle='#0a0a0c';g.fillRect(0,0,170,28);
+      g.beginPath();for(let x=0;x<=170;x++){const y=14-Math.sin(x/12+i)*7*Math.exp(-(((x-85)/70)**2))-(t.startsWith('FILTERS')?0:Math.tanh(Math.sin(x/9)*3)*2);x?g.lineTo(x,y):g.moveTo(x,y)}
+      g.lineWidth=4;g.strokeStyle=c+'44';g.shadowColor=c;g.shadowBlur=8;g.stroke();g.lineWidth=1.4;g.strokeStyle=c;g.stroke();g.shadowBlur=0;g.lineWidth=.6;g.strokeStyle='#ffffffaa';g.stroke();});
+  }
+  out.append(b);
+}
+</script></body></html>

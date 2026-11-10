@@ -6,7 +6,6 @@
       "wave:pulse",
       "wave:pwm",
       "wave:wavetable",
-      "fm",
       "osc2-layer",
       "sub:2oct",
       "filter:lowpass",
@@ -37,7 +36,6 @@
       "wave:sine",
       "wave:wavetable",
       "sync",
-      "fm",
       "osc2-layer",
       "layer:breath",
       "filter:lowpass",
@@ -64,7 +62,6 @@
       "wave:wavetable",
       "wave:triangle",
       "osc2-layer",
-      "fm",
       "layer:noise",
       "filter:lowpass",
       "filter:formant",
@@ -82,7 +79,43 @@
       "flanger",
       "texture:dust",
       "texture:air",
-      "texture:crackle"
+      "texture:crackle",
+      "wave:saw",
+      "wave:pwm",
+      "wave:pulse",
+      "osc2-layer",
+      "layer:breath",
+      "filter:lowpass",
+      "filter:formant",
+      "tape:heavy",
+      "amp:swell",
+      "amp:short-sustain",
+      "vibrato",
+      "move:fade-in",
+      "move:synced",
+      "modenv:slow",
+      "reverb:huge",
+      "chorus:ensemble",
+      "phaser",
+      "texture:dust",
+      "wave:saw",
+      "wave:pulse",
+      "osc2-layer",
+      "layer:breath",
+      "filter:lowpass",
+      "filter:formant",
+      "filter-env:strong",
+      "dist:hard",
+      "tape:heavy",
+      "amp:swell",
+      "amp:short-sustain",
+      "modenv:slow",
+      "modenv:snappy",
+      "vibrato",
+      "glide",
+      "move:fade-in",
+      "reverb:huge",
+      "chorus:ensemble"
     ],
     "keys": [
       "wave:saw",
@@ -90,8 +123,6 @@
       "wave:pwm",
       "wave:wavetable",
       "wave:sine",
-      "fm",
-      "fm:operator2",
       "osc2-layer",
       "filter:lowpass",
       "filter:lpg",
@@ -114,7 +145,6 @@
       "wave:pulse",
       "wave:string",
       "wave:sine",
-      "fm",
       "osc2-layer",
       "filter:lowpass",
       "filter:lpg",
@@ -138,7 +168,6 @@
       "wave:pulse",
       "wave:pwm",
       "wave:sine",
-      "fm",
       "osc2-layer",
       "filter:lowpass",
       "filter:diode",
@@ -157,168 +186,6 @@
       "delay:straight",
       "phaser",
       "texture:dust"
-    ],
-    "strings": [
-      "wave:saw",
-      "wave:pwm",
-      "wave:pulse",
-      "osc2-layer",
-      "layer:breath",
-      "filter:lowpass",
-      "filter:formant",
-      "tape:heavy",
-      "amp:swell",
-      "amp:short-sustain",
-      "vibrato",
-      "move:fade-in",
-      "move:synced",
-      "modenv:slow",
-      "reverb:huge",
-      "chorus:ensemble",
-      "phaser",
-      "texture:dust"
-    ],
-    "brass": [
-      "wave:saw",
-      "wave:pulse",
-      "fm",
-      "osc2-layer",
-      "layer:breath",
-      "filter:lowpass",
-      "filter:formant",
-      "filter-env:strong",
-      "dist:hard",
-      "tape:heavy",
-      "amp:swell",
-      "amp:short-sustain",
-      "modenv:slow",
-      "modenv:snappy",
-      "vibrato",
-      "glide",
-      "move:fade-in",
-      "reverb:huge",
-      "chorus:ensemble"
-    ],
-    "choir": [
-      "wave:saw",
-      "wave:pulse",
-      "wave:sine",
-      "wave:triangle",
-      "osc2-layer",
-      "layer:breath",
-      "filter:formant",
-      "filter:lowpass",
-      "tape:heavy",
-      "crush",
-      "amp:swell",
-      "vibrato",
-      "move:fade-in",
-      "reverb:huge",
-      "chorus:ensemble",
-      "phaser"
-    ],
-    "bells": [
-      "wave:sine",
-      "wave:triangle",
-      "wave:string",
-      "fm",
-      "fm:operator2",
-      "fm:feedback",
-      "osc2-layer",
-      "filter:lowpass",
-      "filter:comb",
-      "crush",
-      "tape:heavy",
-      "amp:pluck",
-      "velocity:strong",
-      "move:pitch",
-      "delay:dotted",
-      "reverb:huge",
-      "chorus:ensemble",
-      "texture:dust",
-      "texture:air"
-    ],
-    "hits": [
-      "wave:sine",
-      "wave:saw",
-      "fm",
-      "osc2-layer",
-      "layer:noise",
-      "filter:lowpass",
-      "filter:comb",
-      "dist:fold",
-      "dist:hard",
-      "crush",
-      "pitch-env",
-      "amp:pluck",
-      "reverb:huge",
-      "texture:rumble",
-      "texture:crackle"
-    ],
-    "risers": [
-      "wave:saw",
-      "wave:pulse",
-      "wave:wavetable",
-      "fm",
-      "osc2-layer",
-      "layer:noise",
-      "layer:breath",
-      "filter:lowpass",
-      "filter:bandpass",
-      "filter:comb",
-      "crush",
-      "tape:heavy",
-      "move:bloom",
-      "move:synced",
-      "vibrato",
-      "reverb:huge",
-      "delay:dotted",
-      "phaser",
-      "flanger",
-      "texture:air",
-      "texture:rumble"
-    ],
-    "drone": [
-      "wave:saw",
-      "wave:wavetable",
-      "wave:pulse",
-      "fm",
-      "osc2-layer",
-      "layer:noise",
-      "filter:lowpass",
-      "filter:comb",
-      "filter:bandpass",
-      "dist:fold",
-      "crush",
-      "tape:heavy",
-      "move:bloom",
-      "move:wavetable",
-      "move:synced",
-      "reverb:huge",
-      "phaser",
-      "flanger",
-      "texture:rumble",
-      "texture:dust",
-      "texture:air"
-    ],
-    "texture": [
-      "wave:triangle",
-      "wave:saw",
-      "fm",
-      "osc2-layer",
-      "layer:noise",
-      "layer:breath",
-      "filter:bandpass",
-      "filter:comb",
-      "crush",
-      "tape:heavy",
-      "move:synced",
-      "move:retrigger",
-      "reverb:huge",
-      "texture:crackle",
-      "texture:dust",
-      "texture:rumble",
-      "texture:air"
     ]
   },
   "iconic": [
@@ -348,7 +215,7 @@
     {
       "id": "poly-brass-stab",
       "name": "Poly brass stab",
-      "category": "brass",
+      "category": "pad",
       "preset": "brass-rooftop-stab",
       "identity": "Stacked detuned saws, a quick filter swell on every chord, punchy and short.",
       "requires": [
@@ -392,21 +259,9 @@
       ]
     },
     {
-      "id": "fm-epiano",
-      "name": "FM electric piano",
-      "category": "keys",
-      "preset": "keys-glass-tine",
-      "identity": "Two-operator FM tine: a glassy bell-like attack over a soft body; harder playing brings more tine.",
-      "requires": [
-        "fm",
-        "fm:operator2",
-        "velocity:strong"
-      ]
-    },
-    {
       "id": "string-machine",
       "name": "String machine",
-      "category": "strings",
+      "category": "pad",
       "preset": "strings-machine-strings",
       "identity": "Thin bright saw strings thickened by an ensemble chorus, with a soft attack.",
       "requires": [
@@ -439,7 +294,7 @@
     {
       "id": "braam",
       "name": "Giant brass braam",
-      "category": "brass",
+      "category": "pad",
       "preset": "brass-monolith",
       "identity": "A huge, low, distorted brass blast that hangs in a vast space.",
       "requires": [
@@ -455,55 +310,13 @@
       "preset": "bass-rebar",
       "identity": "A metallic, grinding bass: FM and fold make it clank.",
       "requires": [
-        "fm",
         "dist:fold"
-      ]
-    },
-    {
-      "id": "fm-hit",
-      "name": "Metallic FM hit",
-      "category": "hits",
-      "preset": "hits-steel-rain",
-      "identity": "A clanging metallic FM impact with a pitch drop.",
-      "requires": [
-        "fm",
-        "pitch-env"
-      ]
-    },
-    {
-      "id": "glitch-ticks",
-      "name": "Glitchy digital ticks",
-      "category": "texture",
-      "preset": "texture-data-rot",
-      "identity": "Crushed digital ticks chopped in time, like a machine reading data.",
-      "requires": [
-        "crush",
-        "move:synced"
-      ]
-    },
-    {
-      "id": "pump-drone",
-      "name": "Pulsing sidechained drone",
-      "category": "drone",
-      "preset": "drone-black-pump",
-      "identity": "A dark drone breathing hard on the beat.",
-      "requires": []
-    },
-    {
-      "id": "ethereal-choir",
-      "name": "Ethereal choir pad",
-      "category": "choir",
-      "preset": "choir-neon-hymn",
-      "identity": "Floating, ghostly vowel choir in a vast space.",
-      "requires": [
-        "filter:formant",
-        "reverb:huge"
       ]
     },
     {
       "id": "cs-brass-lead",
       "name": "Expressive brass lead",
-      "category": "brass",
+      "category": "pad",
       "preset": "brass-rain-brass",
       "identity": "A brass lead that brightens as it's held, with a singing vibrato and glide.",
       "requires": [
@@ -513,37 +326,15 @@
       ]
     },
     {
-      "id": "crystal-bells",
-      "name": "Crystal bells",
-      "category": "bells",
-      "preset": "bells-glass-rain",
-      "identity": "Clear, glistening FM bells ringing long in a big space.",
-      "requires": [
-        "fm",
-        "reverb:huge"
-      ]
-    },
-    {
       "id": "title-brass-pad",
       "name": "Swelling brass pad",
-      "category": "brass",
+      "category": "pad",
       "preset": "brass-tower-swell",
       "identity": "Big, slow-swelling brass chords opening up in a huge space.",
       "requires": [
         "amp:swell",
         "reverb:huge",
         "modenv:slow"
-      ]
-    },
-    {
-      "id": "title-drone",
-      "name": "Deep pulsing drone",
-      "category": "drone",
-      "preset": "drone-city-below",
-      "identity": "A deep, low drone pulsing in time under everything.",
-      "requires": [
-        "move:synced",
-        "reverb:huge"
       ]
     },
     {
@@ -602,17 +393,6 @@
         "glide",
         "vibrato",
         "tape:heavy"
-      ]
-    },
-    {
-      "id": "glass-plinks",
-      "name": "Glassy plinks",
-      "category": "bells",
-      "preset": "bells-bicycle-lights",
-      "identity": "Small glassy bell notes, nostalgic and sparkling.",
-      "requires": [
-        "amp:pluck",
-        "wave:sine"
       ]
     }
   ],
@@ -778,7 +558,6 @@
       "preset": "keys-bell-piano",
       "identity": "An FM piano with a glassy bell an octave and more above: the eighties layered piano.",
       "requires": [
-        "fm",
         "osc2-layer"
       ]
     },
@@ -789,7 +568,6 @@
       "preset": "keys-stage-phase",
       "identity": "A tine electric piano through a swirling stage phaser.",
       "requires": [
-        "fm",
         "phaser"
       ]
     },
@@ -800,8 +578,7 @@
       "preset": "keys-small-hours",
       "identity": "Tiny glassy keyboard bells: sweet and fragile.",
       "requires": [
-        "wave:sine",
-        "fm"
+        "wave:sine"
       ]
     },
     {
@@ -929,16 +706,6 @@
       ]
     },
     {
-      "id": "mouth-lead",
-      "name": "Talking formant lead",
-      "category": "lead",
-      "preset": "lead-mouth-lead",
-      "identity": "A lead whose vowel slowly shifts as it plays: it seems to talk.",
-      "requires": [
-        "filter:formant"
-      ]
-    },
-    {
       "id": "velvet-pulse",
       "name": "PWM soft lead",
       "category": "lead",
@@ -965,9 +732,7 @@
       "category": "lead",
       "preset": "lead-glass-bell-lead",
       "identity": "A glassy, bell-like FM melody voice.",
-      "requires": [
-        "fm"
-      ]
+      "requires": []
     },
     {
       "id": "zap-line",
@@ -1051,7 +816,6 @@
       "preset": "arp-dream-children",
       "identity": "A soft piano-like FM arp with a long echo in a huge space.",
       "requires": [
-        "fm",
         "reverb:huge"
       ]
     },
@@ -1117,7 +881,6 @@
       "preset": "keys-glass-decade",
       "identity": "A glassy FM bell attack over a soft sustained pad body.",
       "requires": [
-        "fm:operator2",
         "osc2-layer"
       ]
     },

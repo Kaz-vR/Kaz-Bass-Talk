@@ -31,7 +31,7 @@ describe('bass directory', () => {
   it('every bass type (all non-performance entries) has a library patch', () => {
     const covered = new Set(libraryPatches().map(({ json }) => json.meta.directory));
     const types = dir.entries.filter((e: { group: string }) => e.group !== 'Performance modification states');
-    expect(types.length).toBe(51);
+    expect(types.length).toBe(48); // 51 until Yoi and talk-box basses left with the formant filter, 49 until the shepard wave went (owner's calls)
     for (const e of types) expect(covered, e.id).toContain(e.id);
   });
   it('library patch names are unique and each family appears', () => {

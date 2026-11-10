@@ -141,7 +141,7 @@ const def: CategoryDef = {
       description: "A dreamy, piano-like arpeggio echoing into a huge space: nineties euphoria remembered through fog.",
       tags: ['arp', 'dreamy', 'piano-like', 'fm', 'echo', 'nineties', 'lorn'],
       texture: ['air', 0.3, 0.35, 900],
-      set: { 'osc1.wave': 'triangle', 'fm.amount': 0.2, 'fm.ratio': 1, 'fm.punch': 0.4, 'amp_env.decay': 500, 'delay.time': '1/4D', 'delay.mix': 0.4, 'reverb.size': 0.93, 'reverb.mix': 0.4 },
+      set: { 'osc1.wave': 'triangle', 'amp_env.decay': 500, 'delay.time': '1/4D', 'delay.mix': 0.4, 'reverb.size': 0.93, 'reverb.mix': 0.4 },
       mods: SOFT_ARP_KIT,
     },
     {
@@ -165,7 +165,7 @@ const def: CategoryDef = {
       description: "A slow, soft sine-bell arpeggio rocking back and forth like a cradle.",
       tags: ['arp', 'soft', 'lullaby', 'bell', 'gentle', 'sine', 'lorn'],
       texture: ['air', 0.3, 0.35, 1000],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'comp.pump': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.1, 'fm.ratio': 3, 'fm.punch': 0.3, 'fm.decay': 200, 'amp_env.decay': 500, 'amp_env.release': 500, 'filter.cutoff': 1500, 'filter.env_amount': 0, 'eq.highcut': 4500 },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'comp.pump': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'amp_env.decay': 500, 'amp_env.release': 500, 'filter.cutoff': 1500, 'filter.env_amount': 0, 'eq.highcut': 4500 },
       mods: SOFT_ARP_KIT,
     },
     {
@@ -173,7 +173,7 @@ const def: CategoryDef = {
       description: "A glassy music-box arpeggio, small and sweet, ringing in a big quiet room.",
       tags: ['arp', 'glass', 'music-box', 'lullaby', 'soft', 'sweet', 'lorn'],
       texture: ['air', 0.3, 0.35, 1200],
-      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'comp.pump': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'voice.octave': 1, 'fm.amount': 0.12, 'fm.ratio': 4, 'fm.punch': 0.4, 'fm.decay': 120, 'amp_env.decay': 600, 'amp_env.release': 700, 'filter.cutoff': 1600, 'filter.env_amount': 0, 'reverb.size': 0.9, 'reverb.mix': 0.4, 'eq.highcut': 4500 },
+      set: { 'drive.amount': 0.3, 'dist.drive': 0.12, 'comp.pump': 0.12, 'amp_env.attack': 8, 'mod_env.attack': 5, 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'voice.octave': 1, 'amp_env.decay': 600, 'amp_env.release': 700, 'filter.cutoff': 1600, 'filter.env_amount': 0, 'reverb.size': 0.9, 'reverb.mix': 0.4, 'eq.highcut': 4500 },
       mods: SOFT_ARP_KIT,
     },
     {
@@ -198,7 +198,7 @@ const def: CategoryDef = {
       description: "A clean, glassy sequence: pure FM notes with no grit, just tape age and air around them.",
       tags: ['arp', 'sequence', 'clean', 'glassy', 'fm', 'pure', 'lorn', 'new'],
       texture: ['air', 0.2, 0.35, 900],
-      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'fm.amount': 0.12, 'fm.ratio': 2, 'fm.punch': 0.3, 'fm.decay': 150, 'drive.amount': 0.3, 'dist.drive': 0.08, 'filter.cutoff': 1500, 'filter.env_amount': 0, 'eq.highcut': 4500, 'comp.pump': 0.15 },
+      set: { 'osc1.wave': 'sine', 'osc1.unison_voices': 1, 'drive.amount': 0.3, 'dist.drive': 0.08, 'filter.cutoff': 1500, 'filter.env_amount': 0, 'eq.highcut': 4500, 'comp.pump': 0.15 },
       mods: SOFT_ARP_KIT,
     },
   ],

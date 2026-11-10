@@ -24,6 +24,7 @@ class LowTalkProcessor extends AudioWorkletProcessor {
       case 'bend': this.synth.pitchBend(m.value); break;
       case 'modwheel': this.synth.setModWheel(m.value); break;
       case 'monitor': this.synth.setMonitor(m.solo, m.mute); break;
+      case 'listen': this.synth.setListen(m.at, m.mode); break;
       case 'loop': this.player.setLoop(m.loop); break;
       case 'play': this.player.start(); break;
       case 'stop': this.player.stop(); break;
@@ -51,11 +52,34 @@ class LowTalkProcessor extends AudioWorkletProcessor {
       // channels 16-19: their resonance right now
       if (ctl.length >= 16) for (let i = 0; i < 4; i++) ctl[12 + i].fill(this.synth.liveGrind[i]);
       if (ctl.length >= 20) for (let i = 0; i < 4; i++) ctl[16 + i].fill(this.synth.liveGrindRes[i]);
+      // channels 24-27: stages 5-8's filter frequency, 28-31: their resonance
+      if (ctl.length >= 32) for (let i = 0; i < 4; i++) {
+        ctl[24 + i].fill(this.synth.liveGrind[4 + i]);
+        ctl[28 + i].fill(this.synth.liveGrindRes[4 + i]);
+      }
       if (ctl.length >= 11) {
         for (let l = 0; l < 4; l++) {
-          ctl[3 + l].fill(this.synth.lfoPhase[l]);
-          ctl[7 + l].fill(this.synth.lfoValue[l]);
+          ctl[3 + l].fill(this.synth.liveLfoPhase[l]);
+          ctl[7 + l].fill(this.synth.liveLfoValue[l]);
         }
+      }
+      // channels 20-21: LFO 5 and 6's phase, 22-23: their value
+      if (ctl.length >= 24) {
+        for (let l = 4; l < 6; l++) {
+          ctl[16 + l].fill(this.synth.liveLfoPhase[l]);
+          ctl[18 + l].fill(this.synth.liveLfoValue[l]);
+        }
+      }
+    }
+    // Output 3: the RUIN page's taps (chain input, each box, RUIN's OTT, the output),
+    // the newest samples of each ring, for the page's meters and spectra.
+    const tp = outputs[2];
+    if (tp && tp.length >= 13) {
+      const n = tp[0].length, taps = this.synth.taps, len = taps[0].length;
+      let p = (this.synth.tapPos - n + len) & (len - 1);
+      for (let i = 0; i < n; i++) {
+        for (let k = 0; k < 13; k++) tp[k][i] = taps[k][p];
+        p = (p + 1) & (len - 1);
       }
     }
     return true;

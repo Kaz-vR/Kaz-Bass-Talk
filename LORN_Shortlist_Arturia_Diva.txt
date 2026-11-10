@@ -1,0 +1,934 @@
+LORN SHORTLIST · TOP 50 PER CATEGORY
+====================================
+From the uploaded Arturia V Collection and u-he Diva presets (P1, P2, P3: about 13,300 files).
+Ranked by what the files say (Arturia's Type / Subtype / Characteristics / Genres / Styles tags, Diva's
+Categories / Character / Features, and the preset names): dark, dirty, distorted, cinematic, industrial,
+deep, lo-fi, sad, evolving count up; bright, clean, pop, funky, chiptune, trance count down. Not
+listened to: audition them and keep what really has the LORN feel. At most 12 per synth per category,
+so the list stays varied. Same-named presets in several versions of a synth are listed once.
+Diva and Arturia are ranked each on its own scale (Diva carries far fewer tags), then merged.
+
+==============================================================================
+1. BASS LONG  (695 candidates)
+==============================================================================
+ 1. Rumblestiltskin  [Emulator II V]  score 22.6
+    Emulator II V/Factory/Factory/Rumblestiltskin
+    tags: Distorted, Noise, Glitch, Game Audio, Cinematic, Trip Hop, Soundtrack, Lofi
+ 2. Deep Throat Drone  [Synclavier V]  score 19.0
+    Synclavier V/Factory/Factory/Deep Throat Drone
+    tags: Analog, Distorted, Evolving, Reese, Bass Music, Drum & Bass, Soundtrack, Dark
+ 3. Abyssal Horn  [MiniBrute V]  score 18.7
+    MiniBrute V/Factory/Factory/Abyssal Horn
+    tags: Distorted, Evolving, Processed, Ambient, Bass Music, Cinematic, Drum & Bass, Dubstep
+ 4. SG MS-101  [Diva]  score 9.6
+    Diva/THIRD PARTY/Sjoerd van Geffen/SG MS-101.h2p
+    tags: Dark, Moving, Dirty, Aggressive, Phat, Analogue, Dist+LoFi
+ 5. Down Not Out  [Jup-8 V4]  score 15.5
+    Jup-8 V4/Factory/Factory/Down Not Out
+    tags: Analog, Long Release, Evolving, Processed, Ambient, Cinematic, Experimental, Game Audio
+ 6. Dark Unison  [MiniBrute V]  score 15.0
+    MiniBrute V/Factory/Factory/Dark Unison
+    tags: Analog, Distorted, Reese, Bass Music, Cinematic, Drum & Bass, Trance, Dark
+ 7. Drone Lord  [Buchla Easel V]  score 15.0
+    Buchla Easel V/Factory/Factory/Drone Lord
+    tags: Analog, Distorted, Experimental, Hard Techno, Industrial, Lofi, Synthwave, Dark
+ 8. From The Deep  [SEM V3]  score 14.5
+    SEM V3/Factory/Factory/From The Deep
+    tags: Analog, Distorted, Ambient, Cinematic, Downtempo, Synthwave, Dark, Deep
+ 9. N01Z14  [Jup-8000 V]  score 13.9
+    Jup-8000 V/Factory/Factory/N01Z14
+    tags: Distorted, Reese, Bass Music, Drum & Bass, Dubstep, Grime, Industrial, UK Garage
+10. Fat Analogue Bass  [Vocoder V]  score 13.7
+    Vocoder V/Factory/Factory/Fat Analogue Bass
+    tags: Analog, Distorted, Cinematic, Soundtrack, Dirty, Dark, Deep, Harsh
+11. XS Modwheel Reese  [Diva]  score 8.9
+    Diva/1 BASS/XS Modwheel Reese.h2p
+    tags: Dark, Moving, Dirty, Phat, Analogue
+12. We Have Been Here Before  [Vocoder V]  score 13.7
+    Vocoder V/Factory/Factory/We Have Been Here Before
+    tags: Evolving, Analog, Processed, Soundtrack, Cinematic, Ambient, Soundscape, Atmospheric
+13. EG Timbre Bass  [Buchla Easel V]  score 13.4
+    Buchla Easel V/Factory/Factory/EG Timbre Bass
+    tags: Analog, Distorted, Noise, Bass Music, Experimental, Grime, Industrial, Lofi
+14. Dark Roller  [KORG MS-20 V]  score 13.3
+    KORG MS-20 V/Factory/Factory/Dark Roller
+    tags: Analog, Distorted, Reese, Bass Music, Drum & Bass, Dubstep, Dark, Deep
+15. Resin Bass  [OP-Xa V]  score 13.2
+    OP-Xa V/Factory/Factory/Resin Bass
+    tags: Evolving, Analog, Cinematic, Soundtrack, Berlin, Ambient, Experimental, Industrial
+16. Night Bass  [SQ80 V]  score 13.0
+    SQ80 V/Factory/Factory/Night Bass
+    tags: Distorted, Analog, Industrial, Techno, Indie Dance, Hard Techno, Dark, Dirty
+17. Tamed FB Bass  [Synthi V]  score 12.8
+    Synthi V/Factory/Factory/Tamed FB Bass
+    tags: Long Release, Ambient, Cinematic, Downtempo, Soundtrack, Atmospheric, Dark, Deep
+18. TH Fattistico Mono Divine II  [Diva]  score 8.9
+    Diva/THIRD PARTY/TREASURE TROVE!/TH Fattistico Mono Divine II.h2p
+    tags: Dark, Moving, Dirty, Phat, Analogue, Dist+LoFi
+19. Hard Sink  [KORG MS-20 V]  score 12.6
+    KORG MS-20 V/Factory/Factory/Hard Sink
+    tags: Distorted, Analog, Dubstep, Bass Music, Drum & Bass, Hip Hop/Trap, Warm, Dark
+20. Zans Himmer  [Vocoder V]  score 12.5
+    Vocoder V/Factory/Factory/Zans Himmer
+    tags: Soundtrack, Cinematic, Harsh, Atmospheric, Huge, Dark, Dirty, Deep
+21. Below Low  [Matrix-12 V2]  score 12.0
+    Matrix-12 V2/Factory/Factory/Below Low
+    tags: Analog, Ambient, Cinematic, Downtempo, Soundtrack, Synthwave, Dark, Deep
+22. Dark Fire  [Synthi V]  score 11.9
+    Synthi V/Factory/Factory/Dark Fire
+    tags: Processed, Evolving, Grime, Industrial, Bass Music, Dubstep, Deep, Dark
+23. Subulus  [Synthi V]  score 11.8
+    Synthi V/Factory/Factory/Subulus
+    tags: Analog, Distorted, Processed, Dubstep, Grime, Hard Techno, Industrial, Dark
+24. DXReese  [DX7 V]  score 11.8
+    DX7 V/Factory/Factory/DXReese
+    tags: Distorted, Reese, Drum & Bass, Soundtrack, Synthwave, Dark, Huge
+25. Emerson Mode  [Diva]  score 8.9
+    Diva/THIRD PARTY/TREASURE TROVE!/Emerson Mode.h2p
+    tags: Dark, Moving, Dirty, Phat, Analogue, Dist+LoFi, Analogue, Dist+LoFi
+26. KV BassDass 2  [Diva]  score 8.2
+    Diva/THIRD PARTY/TREASURE TROVE!/KV BassDass 2.h2p
+    tags: Dark, Moving, Dirty, Phat, Dist+LoFi
+27. 4 Mono Synth  [Matrix-12 V2]  score 11.7
+    Matrix-12 V2/Factory/Factory/4 Mono Synth
+    tags: Analog, Distorted, Long Release, Ambient, Bass Music, Cinematic, Drum & Bass, Dubstep
+28. Massive Growl  [MiniFreak V]  score 11.6
+    MiniFreak V/Factory/Factory/Massive Growl
+    tags: Distorted, Dubstep, Industrial, Bass Music, Drum & Bass, Deep, Dirty
+29. Annihilation Bass  [SynthX V]  score 11.6
+    SynthX V/Factory/Factory/Annihilation Bass
+    tags: Ambient, Bass Music, Cinematic, Game Audio, Grime, Soundtrack, Dark, Deep
+30. Deepster  [Synthi V]  score 11.4
+    Synthi V/Factory/Factory/Deepster
+    tags: Noise, Grime, Hard Techno, Bass Music, Dubstep, Deep, Dirty, Dark
+31. Overexposed  [Acid V]  score 11.3
+    Acid V/Factory/Factory/Overexposed
+    tags: Distorted, Processed, Experimental, Hard Techno, Industrial, Techno, Dark, Dirty
+32. XS Hot Signal  [Diva]  score 7.9
+    Diva/1 BASS/XS Hot Signal.h2p
+    tags: Dark, Dirty, Aggressive, Analogue, Dist+LoFi
+33. Faulty Bass  [MiniFreak V]  score 11.3
+    MiniFreak V/Factory/MiniFreak 3.0/Faulty Bass
+    tags: Distorted, Glitch, Bass Music, Cinematic, Drum & Bass, Game Audio, Dark, Dirty
+34. Foundations Crumble  [Mini V4]  score 11.3
+    Mini V4/Factory/Factory/Foundations Crumble
+    tags: Reese, Drum & Bass, Dubstep, Lofi, Dark, Dirty, Warm
+35. BC-8 Unison Fear  [OP-Xa V]  score 11.2
+    OP-Xa V/Factory/Vintage Factory/BC-8 Unison Fear
+    tags: Evolving, Analog, Soundtrack, Experimental, Clean, Dark, Sad, Dirty
+36. Blunt Force  [SEM V3]  score 11.0
+    SEM V3/Factory/Factory/Blunt Force
+    tags: Analog, Distorted, Bass Music, Industrial, Dark, Deep, Warm
+37. Humming  [DX7 V]  score 10.9
+    DX7 V/Factory/Factory/Humming
+    tags: Distorted, Processed, Bass Music, Drum & Bass, Dubstep, Hip Hop/Trap, Dark, Dirty
+38. Black Hole  [KORG MS-20 V]  score 10.8
+    KORG MS-20 V/Factory/Factory/Black Hole
+    tags: Analog, Evolving, Bass Music, Techno, Atmospheric, Dark, Deep, Huge
+39. FH Bass Balls  [Diva]  score 7.9
+    Diva/THIRD PARTY/TREASURE TROVE!/FH Bass Balls.h2p
+    tags: Dark, Dirty, Phat, Analogue, Dist+LoFi
+40. Aboriginal Drum & Bass  [Synclavier V]  score 10.8
+    Synclavier V/Factory/Factory/Aboriginal Drum & Bass
+    tags: Distorted, Evolving, Bass Music, Cinematic, Dark, Dirty
+41. Seafood  [Matrix-12 V2]  score 10.7
+    Matrix-12 V2/Factory/Factory/Seafood
+    tags: Analog, Noise, Ambient, Berlin, Downtempo, Soundtrack, Dark, Dirty
+42. West West  [SEM V2]  score 10.6
+    SEM V2/Factory/Factory/West West
+    tags: Evolving, Soundtrack, Grime, Game Audio, Industrial, Bass Music, Deep, Huge
+43. Warm Drop  [Buchla Easel V]  score 10.6
+    Buchla Easel V/Factory/Factory/Warm Drop
+    tags: Analog, Distorted, Soundtrack, Drum & Bass, Psytrance, Synthwave, Bass Music, Dubstep
+44. Acid Brute  [MiniBrute V]  score 10.5
+    MiniBrute V/Factory/Factory/Acid Brute
+    tags: Analog, Evolving, Experimental, Hard Techno, Industrial, Techno, Dark, Dirty
+45. Subby Sub Bass  [SQ80 V]  score 10.4
+    SQ80 V/Factory/Factory/Subby Sub Bass
+    tags: Distorted, Industrial, Lofi, Techno, Hard Techno, Hip Hop/Trap, Bass Music, Dirty
+46. SG We Pwm All Urs Bass  [Diva]  score 7.6
+    Diva/THIRD PARTY/Sjoerd van Geffen/SG We Pwm All Urs Bass.h2p
+    tags: Dark, Moving, Aggressive, Phat, Analogue, Dist+LoFi
+47. Moon Fall  [MiniFreak V]  score 10.4
+    MiniFreak V/Factory/MiniFreak 2.0/Moon Fall
+    tags: Distorted, Processed, Bass Music, Drum & Bass, Dubstep, Grime, Dark, Deep
+48. Suspense Bass  [SEM V3]  score 10.3
+    SEM V3/Factory/Factory/Suspense Bass
+    tags: Reese, Bass Music, Soundtrack, Dark, Deep, Huge, Warm
+49. Dogtooth  [Mini V4]  score 10.2
+    Mini V4/Factory/Factory/Dogtooth
+    tags: Analog, Reese, Cinematic, Drum & Bass, Soundtrack, Dark
+50. Long Modulbass  [Matrix-12 V2]  score 10.2
+    Matrix-12 V2/Factory/Factory/Long Modulbass
+    tags: Analog, Evolving, Ambient, Soundtrack, Downtempo, House, Trip Hop, Deep
+
+==============================================================================
+2. BASS SHORT  (865 candidates)
+==============================================================================
+ 1. Beneath  [Emulator II V]  score 18.5
+    Emulator II V/Factory/Factory/Beneath
+    tags: Analog, Distorted, Noise, Cinematic, Soundtrack, Lofi, Bass Music, Drum & Bass
+ 2. Dark Colors  [MiniFreak V]  score 15.8
+    MiniFreak V/Factory/MiniFreak 2.0/Dark Colors
+    tags: Distorted, Reese, Bass Music, Cinematic, Drum & Bass, Dark, Deep, Dirty
+ 3. Velo SEM  [SEM V3]  score 13.7
+    SEM V3/Factory/Factory/Velo SEM
+    tags: Analog, Distorted, Industrial, Lofi, Dark, Dirty, Huge, Sad
+ 4. To the Praise of Lorn  [SynthX V]  score 13.5
+    SynthX V/Factory/Factory/To the Praise of Lorn
+    tags: Distorted, Reese, Cinematic, Experimental, Industrial, Soundtrack, Dark, Huge
+ 5. BT crushed sines (mw+pb+vel)  [Diva]  score 9.5
+    Diva/THIRD PARTY/Bigtone eco bank/BT crushed sines (mw+pb+vel).h2p
+    tags: Dark, Dirty, Phat, Vintage, Dist+LoFi, Dist+LoFi, Dist+LoFi
+ 6. Big Silure  [CZ V]  score 13.3
+    CZ V/Factory/Factory/Big Silure
+    tags: Distorted, Noise, Drum & Bass, Dubstep, Hard Techno, Industrial, Soundtrack, Dark
+ 7. Crowling Bass  [Matrix-12 V2]  score 12.6
+    Matrix-12 V2/Factory/Factory/Crowling Bass
+    tags: Analog, Distorted, Bass Music, Cinematic, Soundtrack, Synthwave, Techno, Dark
+ 8. Excited Drive  [Buchla Easel V]  score 12.3
+    Buchla Easel V/Factory/Factory/Excited Drive
+    tags: Analog, Distorted, Evolving, Experimental, Hard Techno, Techno, Industrial, Bass Music
+ 9. Bass Rising  [MiniBrute V]  score 12.0
+    MiniBrute V/Factory/Factory/Bass Rising
+    tags: Analog, Ambient, Bass Music, Downtempo, Drum & Bass, Experimental, Dark, Deep
+10. Emission Pulse  [SynthX V]  score 11.7
+    SynthX V/Factory/Factory/Emission Pulse
+    tags: Analog, Distorted, Cinematic, Downtempo, Soundtrack, Dark, Warm
+11. Passive Aggressive  [Acid V]  score 11.3
+    Acid V/Factory/Factory/Passive Aggressive
+    tags: Distorted, Berlin, Experimental, Hard Techno, Industrial, Techno, Dark, Dirty
+12. Sharp Edges  [Mini V4]  score 11.0
+    Mini V4/Factory/Factory/Sharp Edges
+    tags: Distorted, Noise, Experimental, Game Audio, Hard Techno, Industrial, Dark, Dirty
+13. SF_Mini_Bass_01  [Diva]  score 8.6
+    Diva/THIRD PARTY/TREASURE TROVE!/SF_Mini_Bass_01.h2p
+    tags: Dark, Dirty, Aggressive, Phat, Analogue, Dist+LoFi
+14. TH Rough Rider  [Diva]  score 8.2
+    Diva/THIRD PARTY/TREASURE TROVE!/TH Rough Rider.h2p
+    tags: Dark, Moving, Dirty, Aggressive, Dist+LoFi
+15. Over the Black Rainbow  [SynthX V]  score 11.0
+    SynthX V/Factory/Factory/Over the Black Rainbow
+    tags: Distorted, Ambient, Cinematic, Experimental, Soundtrack, Dark, Soundscape
+16. Digital Pluck Bass  [Prophet V3]  score 10.8
+    Prophet V3/Factory/Factory/Digital Pluck Bass
+    tags: Evolving, Reese, Bass Music, Drum & Bass, Hard Techno, Industrial, Deep, Dirty
+17. Bass Runner  [Acid V]  score 10.6
+    Acid V/Factory/Factory/Bass Runner
+    tags: Distorted, Processed, Bass Music, Berlin, Experimental, Hard Techno, Techno, Dark
+18. Foul Mouth  [SQ80 V]  score 10.3
+    SQ80 V/Factory/Factory/Foul Mouth
+    tags: Distorted, Analog, Techno, Grime, Drum & Bass, Dark, Harsh, Dirty
+19. Low Pluckwave  [Mini V4]  score 10.2
+    Mini V4/Factory/Factory/Low Pluckwave
+    tags: Analog, Distorted, Game Audio, Industrial, Dark, Dirty, Harsh, Huge
+20. Downsample Bassline  [Acid V]  score 10.1
+    Acid V/Factory/Factory/Downsample Bassline
+    tags: Distorted, Processed, Bass Music, Drum & Bass, Hard Techno, Techno, Dark, Dirty
+21. MC Thumper Bass  [Diva]  score 8.1
+    Diva/THIRD PARTY/MCnoone/MC Thumper Bass.h2p
+    tags: Dark, Moving, Dirty, Aggressive, Phat, Analogue
+22. SF_Mini_Bass_01a  [Diva]  score 7.9
+    Diva/THIRD PARTY/TREASURE TROVE!/SF_Mini_Bass_01a.h2p
+    tags: Dark, Dirty, Phat, Analogue, Dist+LoFi
+23. Square Roller  [Jup-8000 V]  score 10.1
+    Jup-8000 V/Factory/Factory/Square Roller
+    tags: Bass Music, Experimental, Industrial, Techno, Trip Hop, Dark, Deep
+24. Fast Bass  [Buchla Easel V]  score 10.1
+    Buchla Easel V/Factory/Factory/Fast Bass
+    tags: Analog, Long Release, Hard Techno, Industrial, Lofi, Synthwave, Techno, Dark
+25. Cyber Dread  [CZ V]  score 9.9
+    CZ V/Factory/Factory/Cyber Dread
+    tags: Distorted, Bass Music, Dubstep, Hip Hop/Trap, Dark, Dirty
+26. Wicked Bass  [SEM V2]  score 9.8
+    SEM V2/Factory/Factory/Wicked Bass
+    tags: Analog, Distorted, Evolving, Hard Techno, Techno, Industrial, Dubstep, Dirty
+27. Noisetted  [Synthi V]  score 9.8
+    Synthi V/Factory/Factory/Noisetted
+    tags: Distorted, Dubstep, Game Audio, Hard Techno, Industrial, Dark, Dirty
+28. Rythmo Robot  [Buchla Easel V]  score 9.8
+    Buchla Easel V/Factory/Factory/Rythmo Robot
+    tags: Analog, Distorted, Noise, House, Lofi, Synthwave, Techno, Dark
+29. Sassai Unbon  [Jup-8000 V]  score 9.6
+    Jup-8000 V/Factory/Factory/Sassai Unbon
+    tags: Bass Music, Berlin, Detroit, Disco, Downtempo, Experimental, Dark, Deep
+30. FMR Mini High Bass  [Diva]  score 7.9
+    Diva/THIRD PARTY/Fernando's hardware factory/FMR Mini High Bass.h2p
+    tags: Dark, Dirty, Aggressive, Phat, Vintage, Analogue
+31. MC Squash  [Diva]  score 7.7
+    Diva/THIRD PARTY/MCnoone/MC Squash.h2p
+    tags: Moving, Dirty, Aggressive, Phat, Slow Release, Dist+LoFi
+32. Dual Mod Bass  [MiniFreak V]  score 9.6
+    MiniFreak V/Factory/Factory/Dual Mod Bass
+    tags: Distorted, Downtempo, Dubstep, Bass Music, Dark, Deep
+33. Stranger  [KORG MS-20 V]  score 9.5
+    KORG MS-20 V/Factory/Factory/Stranger
+    tags: Analog, Distorted, Evolving, Synthwave, Dark, Deep, Dirty, Funky
+34. Italian 808  [SynthX V]  score 9.3
+    SynthX V/Factory/Factory/Italian 808
+    tags: Distorted, Drum & Bass, Trip Hop, Hip Hop/Trap, Dark, Deep
+35. Monolith  [MiniFreak V]  score 9.3
+    MiniFreak V/Factory/Factory/Monolith
+    tags: Distorted, Noise, Cinematic, Soundtrack, Bass Music, Drum & Bass, Deep
+36. Destro  [MiniFreak V]  score 9.3
+    MiniFreak V/Factory/Factory/Destro
+    tags: Distorted, Bass Music, Industrial, Dark, Deep
+37. Industrial Walker  [SEM V3]  score 9.3
+    SEM V3/Factory/Factory/Industrial Walker
+    tags: Industrial, Soundtrack, Techno, Deep, Dirty, Harsh
+38. Small Reflection  [MiniBrute V]  score 9.3
+    MiniBrute V/Factory/Factory/Small Reflection
+    tags: Distorted, Processed, Ambient, Bass Music, Berlin, Cinematic, Pop, Atmospheric
+39. BT growler (mw+pb)  [Diva]  score 7.4
+    Diva/THIRD PARTY/Bigtone eco bank/BT growler (mw+pb).h2p
+    tags: Moving, Dirty, Aggressive, Phat, Dist+LoFi, Dist+LoFi
+40. BASS Torment  [Diva]  score 7.4
+    Diva/THIRD PARTY/Tasmodia/BASS Torment.h2p
+    tags: Dark, Moving, Dirty, Phat, Analogue
+41. Breese  [MiniFreak V]  score 9.1
+    MiniFreak V/Factory/MiniFreak 2.0/Breese
+    tags: Distorted, Evolving, Reese, Bass Music, Drum & Bass, Dubstep
+42. Drone In Stereo  [Matrix-12 V2]  score 9.1
+    Matrix-12 V2/Factory/Factory/Drone In Stereo
+    tags: Analog, Distorted, Ambient, Bass Music, Soundtrack, Synthwave, Techno, Bright
+43. Acid Bass  [Acid V]  score 9.1
+    Acid V/Factory/Factory/Acid Bass
+    tags: Distorted, Processed, Bass Music, Hard Techno, Techno, Dark, Dirty
+44. Didge2  [ARP 2600 V3]  score 9.0
+    ARP 2600 V3/Factory/Factory/Didge2
+    tags: Evolving, Processed, Experimental, Hard Techno, Industrial, Dark, Deep
+45. Smeuige Bass  [Matrix-12 V2]  score 8.8
+    Matrix-12 V2/Factory/Factory/Smeuige Bass
+    tags: Analog, Distorted, Bass Music, Techno, Dark, Dirty
+46. Dub Essence  [Acid V]  score 8.8
+    Acid V/Factory/Factory/Dub Essence
+    tags: Evolving, Ambient, Experimental, Techno, Atmospheric, Dark, Deep
+47. Talking Bass  [Matrix-12 V2]  score 8.7
+    Matrix-12 V2/Factory/Factory/Talking Bass
+    tags: Analog, Distorted, Ambient, Experimental, Rock, Dark, Dirty
+48. 3EE_Pndrosa Beef  [Diva]  score 7.2
+    Diva/THIRD PARTY/TREASURE TROVE!/3EE_Pndrosa Beef.h2p
+    tags: Dark, Dirty, Analogue, Dist+LoFi
+49. JA Woofstock  [Diva]  score 7.2
+    Diva/THIRD PARTY/TREASURE TROVE!/JA Woofstock.h2p
+    tags: Dark, Dirty, Phat, Dist+LoFi
+50. Aborigen  [Buchla Easel V]  score 8.6
+    Buchla Easel V/Factory/Factory/Aborigen
+    tags: Analog, Distorted, Evolving, Long Release, Ambient, Cinematic, Soundtrack, Synthwave
+
+==============================================================================
+3. LEAD  (1552 candidates)
+==============================================================================
+ 1. Ramping Lead  [DX7 V]  score 15.0
+    DX7 V/Factory/Factory/Ramping Lead
+    tags: Distorted, Evolving, Reese, Ambient, Industrial, Soundtrack, Atmospheric, Dark
+ 2. Arcane Organ  [CS-80 V3]  score 14.5
+    CS-80 V3/Factory/Factory/Arcane Organ
+    tags: Analog, Noise, Evolving, Long Release, Ambient, Soundtrack, Experimental, Downtempo
+ 3. Aut Lead  [SQ80 V]  score 14.3
+    SQ80 V/Factory/Factory/Aut Lead
+    tags: Distorted, Industrial, Lofi, Techno, Indie Dance, Hard Techno, Dark, Atmospheric
+ 4. Rita  [SEM V3]  score 13.7
+    SEM V3/Factory/Factory/Rita
+    tags: Analog, Distorted, Industrial, Lofi, Dark, Dirty, Huge, Sad
+ 5. Lilytwo  [CS-80 V3]  score 13.5
+    CS-80 V3/Factory/Factory/Lilytwo
+    tags: Analog, Evolving, Ambient, Cinematic, Downtempo, Soundtrack, Synthwave, Atmospheric
+ 6. Fmod Loop  [Buchla Easel V]  score 13.3
+    Buchla Easel V/Factory/Factory/Fmod Loop
+    tags: Analog, Distorted, Noise, Experimental, Hard Techno, Industrial, Lofi, Soundtrack
+ 7. Elpmis  [Buchla Easel V]  score 12.8
+    Buchla Easel V/Factory/Factory/Elpmis
+    tags: Analog, Distorted, Long Release, Ambient, Downtempo, Synthwave, Game Audio, Dirty
+ 8. SF_DirtyStrat_02  [Diva]  score 9.4
+    Diva/THIRD PARTY/TREASURE TROVE!/SF_DirtyStrat_02.h2p
+    tags: Dark, Dirty, Aggressive, Phat, Dist+LoFi
+ 9. SF_DirtyStrat_01  [Diva]  score 8.7
+    Diva/THIRD PARTY/TREASURE TROVE!/SF_DirtyStrat_01.h2p
+    tags: Dark, Dirty, Phat, Dist+LoFi
+10. King  Commodore  [Matrix-12 V2]  score 12.7
+    Matrix-12 V2/Factory/Factory/King  Commodore
+    tags: Analog, Distorted, Experimental, Hard Techno, Industrial, Lofi, Dark, Dirty
+11. Mellotronics  [Mini V3]  score 12.7
+    Mini V3/Factory/Factory/Mellotronics
+    tags: Analog, Noise, Ambient, Downtempo, Experimental, Game Audio, Soundtrack, Trip Hop
+12. Razor Hoover  [Mini V4]  score 12.5
+    Mini V4/Factory/Factory/Razor Hoover
+    tags: Analog, Distorted, Bass Music, Experimental, Hard Techno, Industrial, Dark, Dirty
+13. Ghost In The Cabinet  [Vocoder V]  score 12.2
+    Vocoder V/Factory/Factory/Ghost In The Cabinet
+    tags: Analog, Distorted, Processed, Ambient, Cinematic, Experimental, Lofi, Pop
+14. Dark Pathways  [SEM V3]  score 12.2
+    SEM V3/Factory/Factory/Dark Pathways
+    tags: Analog, Distorted, Cinematic, Soundtrack, Dark, Deep
+15. Brutal Voltage  [Mini V4]  score 12.0
+    Mini V4/Factory/Factory/Brutal Voltage
+    tags: Distorted, Evolving, Experimental, Hard Techno, Industrial, Dark, Dirty, Harsh
+16. Band Past  [CS-80 V3]  score 11.5
+    CS-80 V3/Factory/Factory/Band Past
+    tags: Analog, Evolving, Noise, Ambient, Cinematic, Downtempo, Lofi, Soundtrack
+17. Fear Of Voltage  [OP-Xa V]  score 11.2
+    OP-Xa V/Factory/Factory/Fear Of Voltage
+    tags: Analog, Reese, Ambient, Drum & Bass, Dark, Sad
+18. Weather  [CS-80 V3]  score 11.2
+    CS-80 V3/Factory/Factory/Weather
+    tags: Analog, Noise, Ambient, Cinematic, Downtempo, Experimental, Soundtrack, Dark
+19. Morphing Lead  [Jup-8 V4]  score 11.1
+    Jup-8 V4/Factory/Factory/Morphing Lead
+    tags: Synthwave, Cinematic, Future Bass, Ambient, Soundtrack, Bass Music, Atmospheric, Soundscape
+20. Lenient  [MiniBrute V]  score 11.0
+    MiniBrute V/Factory/Factory/Lenient
+    tags: Analog, Distorted, Evolving, Ambient, Cinematic, Dubstep, Deep, Dirty
+21. Fire Cracker  [Jup-8 V4]  score 10.9
+    Jup-8 V4/Factory/Factory/Fire Cracker
+    tags: Noise, Distorted, Long Release, Analog, Soundtrack, Ambient, Cinematic, Lofi
+22. Zord  [KORG MS-20 V]  score 10.8
+    KORG MS-20 V/Factory/Factory/Zord
+    tags: Analog, Distorted, Evolving, Noise, Drum & Bass, Dubstep, Hard Techno, House
+23. RT Lead01  [Diva]  score 8.0
+    Diva/THIRD PARTY/TREASURE TROVE!/RT Lead01.h2p
+    tags: Dark, Moving, Dirty, Phat, Natural, Slow Release, Dist+LoFi
+24. TAS Electric Mist  [Diva]  score 7.9
+    Diva/2 LEAD/TAS Electric Mist.h2p
+    tags: Moving, Dirty, Aggressive, Phat, Dist+LoFi
+25. Dirty Harry  [MiniBrute V]  score 10.7
+    MiniBrute V/Factory/Factory/Dirty Harry
+    tags: Analog, Distorted, Ambient, Experimental, Dark, Dirty
+26. NastyLead  [Synclavier V]  score 10.6
+    Synclavier V/Factory/Factory/NastyLead
+    tags: Evolving, Processed, Dubstep, Grime, Hard Techno, Industrial, Dark, Dirty
+27. I've Got A Headache  [Mini V4]  score 10.6
+    Mini V4/Factory/Factory/I've Got A Headache
+    tags: Analog, Cinematic, Drum & Bass, Experimental, Grime, Jazz/Blues, Lofi, Soul/R&B
+28. Dirty Lead  [Mini V3]  score 10.5
+    Mini V3/Factory/Factory/Dirty Lead
+    tags: Analog, Distorted, Noise, Drum & Bass, Hard Techno, Industrial, Techno, Dirty
+29. Harmony Retro  [Synthi V]  score 10.3
+    Synthi V/Factory/Factory/Harmony Retro
+    tags: Ambient, Soundtrack, Cinematic, Synthwave, Atmospheric, Huge, Dark, Mellow
+30. Doom  [MiniFreak V]  score 10.0
+    MiniFreak V/Factory/Factory/Doom
+    tags: Distorted, Industrial, Dark, Deep
+31. Super Fedback  [KORG MS-20 V]  score 10.0
+    KORG MS-20 V/Factory/Factory/Super Fedback
+    tags: Distorted, Reese, Hard Techno, Industrial, Trance, Dark, Dirty
+32. Decay Station  [MiniBrute V]  score 10.0
+    MiniBrute V/Factory/Factory/Decay Station
+    tags: Distorted, Experimental, Dark, Dirty, Soundscape
+33. stilly  [ARP 2600 V3]  score 10.0
+    ARP 2600 V3/Factory/Factory/stilly
+    tags: Noise, Ambient, Industrial, Atmospheric, Dark, Dirty
+34. Dirty Moving Lead  [SQ80 V]  score 9.9
+    SQ80 V/Factory/Factory/Dirty Moving Lead
+    tags: Distorted, Industrial, Lofi, Techno, Indie Dance, Hard Techno, Hip Hop/Trap, Bass Music
+35. Slighty Gritty  [Synclavier V]  score 9.9
+    Synclavier V/Factory/Factory/Slighty Gritty
+    tags: Evolving, Noise, Processed, Dubstep, Grime, Hard Techno, Hip Hop/Trap, Industrial
+36. Deviated Division  [Jup-8 V4]  score 9.8
+    Jup-8 V4/Factory/Factory/Deviated Division
+    tags: Evolving, Synthwave, Cinematic, Soundtrack, Experimental, Atmospheric, Dark
+37. Potheads  [CS-80 V3]  score 9.8
+    CS-80 V3/Factory/Factory/Potheads
+    tags: Analog, Long Release, Ambient, Berlin, Cinematic, Soundtrack, Synthwave, Dark
+38. Machinery Lead  [Buchla Easel V]  score 9.8
+    Buchla Easel V/Factory/Factory/Machinery Lead
+    tags: Analog, Distorted, Noise, Downtempo, Experimental, House, Industrial, Lofi
+39. IW Mini Dirty Lead  [Diva]  score 7.1
+    Diva/THIRD PARTY/Ingo Weidner/IW Mini Dirty Lead.h2p
+    tags: Dirty, Aggressive, Phat, Analogue, Dist+LoFi
+40. 3EE_Huno  [Diva]  score 6.6
+    Diva/THIRD PARTY/TREASURE TROVE!/3EE_Huno.h2p
+    tags: Dark, Aggressive, Phat, Analogue, Dist+LoFi
+41. Fluitter Arp  [Buchla Easel V]  score 9.6
+    Buchla Easel V/Factory/Factory/Fluitter Arp
+    tags: Analog, Distorted, Long Release, Experimental, Synthwave, Techno, Dark, Dirty
+42. The Sky Might Fall  [Synclavier V]  score 9.6
+    Synclavier V/Factory/Factory/The Sky Might Fall
+    tags: Evolving, Noise, Processed, Ambient, Experimental, Grime, Industrial, Synthwave
+43. Dirty Atmosphere  [CS-80 V3]  score 9.5
+    CS-80 V3/Factory/Factory/Dirty Atmosphere
+    tags: Analog, Distorted, Experimental, Synthwave, Industrial, Dirty, Huge
+44. Warm Gliss  [CS-80 V3]  score 9.5
+    CS-80 V3/Factory/Factory/Warm Gliss
+    tags: Analog, Long Release, Noise, Cinematic, Experimental, Funk, Soundtrack, Dark
+45. Smoothring  [Synthi V]  score 9.4
+    Synthi V/Factory/Factory/Smoothring
+    tags: Distorted, Evolving, Detroit, Techno, Dubstep, Dirty, Dark
+46. Crying Lead  [SEM V3]  score 9.3
+    SEM V3/Factory/Factory/Crying Lead
+    tags: Ambient, Cinematic, Soundtrack, Synthwave, Dark, Deep
+47. Naughty Shark  [KORG MS-20 V]  score 9.3
+    KORG MS-20 V/Factory/Factory/Naughty Shark
+    tags: Analog, Distorted, Evolving, Noise, Drum & Bass, Dubstep, Hard Techno, Techno
+48. Copywriter Lead  [MiniBrute V]  score 9.3
+    MiniBrute V/Factory/Factory/Copywriter Lead
+    tags: Distorted, Reese, Bass Music, Cinematic, Hard Techno, Dirty
+49. Airhorn Anthem  [Jup-8000 V]  score 9.3
+    Jup-8000 V/Factory/Factory/Airhorn Anthem
+    tags: Distorted, Trance, Techno, Hard Techno, Industrial, Dark, Dirty, Harsh
+50. Skull  [CS-80 V3]  score 9.3
+    CS-80 V3/Factory/Factory/Skull
+    tags: Analog, Ambient, Cinematic, Downtempo, Synthwave, Techno, Dark, Huge
+
+==============================================================================
+4. PADS (incl. strings and brass)  (2664 candidates)
+==============================================================================
+ 1. Stormbringer  [Emulator II V]  score 25.3
+    Emulator II V/Factory/Factory/Stormbringer
+    tags: Analog, Distorted, Noise, Long Release, Ambient, Cinematic, Trip Hop, Soundtrack
+ 2. Icarus Fallen  [Emulator II V]  score 24.9
+    Emulator II V/Factory/Factory/Icarus Fallen
+    tags: Distorted, Evolving, Processed, Long Release, Glitch, Techno, Synthwave, Ambient
+ 3. Skogsraet  [Emulator II V]  score 24.8
+    Emulator II V/Factory/Factory/Skogsraet
+    tags: Analog, Distorted, Evolving, Long Release, Ambient, Cinematic, Trip Hop, Downtempo
+ 4. End of Line  [Emulator II V]  score 23.8
+    Emulator II V/Factory/Factory/End of Line
+    tags: Analog, Distorted, Noise, Long Release, Ambient, Cinematic, Trip Hop, Soundtrack
+ 5. Devolution  [Emulator II V]  score 23.8
+    Emulator II V/Factory/Factory/Devolution
+    tags: Analog, Distorted, Noise, Long Release, Ambient, Cinematic, Trip Hop, Soundtrack
+ 6. Backdraught  [Emulator II V]  score 23.8
+    Emulator II V/Factory/Factory/Backdraught
+    tags: Analog, Distorted, Noise, Long Release, Ambient, Cinematic, Trip Hop, Soundtrack
+ 7. Changeling  [Emulator II V]  score 23.8
+    Emulator II V/Factory/Factory/Changeling
+    tags: Analog, Distorted, Noise, Long Release, Ambient, Cinematic, Trip Hop, Soundtrack
+ 8. Sunflower  [Emulator II V]  score 23.8
+    Emulator II V/Factory/Factory/Sunflower
+    tags: Analog, Distorted, Noise, Long Release, Ambient, Cinematic, Trip Hop, Soundtrack
+ 9. Chronology  [Emulator II V]  score 23.6
+    Emulator II V/Factory/Factory/Chronology
+    tags: Distorted, Noise, Long Release, Ambient, Cinematic, Trip Hop, Soundtrack, Lofi
+10. Terraform  [Emulator II V]  score 23.1
+    Emulator II V/Factory/Factory/Terraform
+    tags: Distorted, Noise, Long Release, Ambient, Cinematic, Trip Hop, Soundtrack, Lofi
+11. New Gold Dreams  [Emulator II V]  score 22.8
+    Emulator II V/Factory/Factory/New Gold Dreams
+    tags: Analog, Distorted, Noise, Long Release, Ambient, Cinematic, Downtempo, Soundtrack
+12. Icarus Rises  [Emulator II V]  score 21.8
+    Emulator II V/Factory/Factory/Icarus Rises
+    tags: Analog, Noise, Long Release, Ambient, Cinematic, Trip Hop, Soundtrack, Lofi
+13. TUC Steam Planet  [Diva]  score 10.2
+    Diva/4 DREAM SYNTH/TUC Steam Planet.h2p
+    tags: Dark, Moving, Dirty, Aggressive, Phat, Slow Release, Dist+LoFi, Evolving
+14. TUC Steam Starter  [Diva]  score 10.2
+    Diva/4 DREAM SYNTH/TUC Steam Starter.h2p
+    tags: Dark, Moving, Dirty, Aggressive, Phat, Slow Release, Dist+LoFi, Evolving
+15. Discrete Drone Layer  [SQ80 V]  score 20.1
+    SQ80 V/Factory/Factory/Discrete Drone Layer
+    tags: Distorted, Evolving, Long Release, Processed, Ambient, Cinematic, Soundtrack, Downtempo
+16. Fairy Night  [SQ80 V]  score 19.0
+    SQ80 V/Factory/Factory/Fairy Night
+    tags: Distorted, Evolving, Cinematic, Soundtrack, Downtempo, Experimental, Dark, Atmospheric
+17. Lazy Brass  [SQ80 V]  score 18.3
+    SQ80 V/Factory/Factory/Lazy Brass
+    tags: Distorted, Cinematic, Industrial, Lofi, Soundtrack, Indie Dance, Hard Techno, Bass Music
+18. Slow Distort  [MiniBrute V]  score 18.0
+    MiniBrute V/Factory/Factory/Slow Distort
+    tags: Distorted, Evolving, Ambient, Cinematic, Game Audio, Soundtrack, Trip Hop, Atmospheric
+19. Analog Baroque  [KORG MS-20 V]  score 17.5
+    KORG MS-20 V/Factory/Factory/Analog Baroque
+    tags: Analog, Distorted, Evolving, Noise, Ambient, Bass Music, Drum & Bass, Dubstep
+20. Mysterious  [SQ80 V]  score 17.0
+    SQ80 V/Factory/Factory/Mysterious
+    tags: Evolving, Processed, Ambient, Cinematic, Industrial, Soundtrack, Dark, Atmospheric
+21. Drone Peter  [Buchla Easel V]  score 16.8
+    Buchla Easel V/Factory/Factory/Drone Peter
+    tags: Analog, Distorted, Evolving, Long Release, Ambient, Experimental, Game Audio, Soundtrack
+22. So Good  [SEM V3]  score 16.7
+    SEM V3/Factory/Factory/So Good
+    tags: Analog, Distorted, Ambient, Cinematic, Industrial, Lofi, Dark, Dirty
+23. Strange Drone  [CS-80 V3]  score 16.6
+    CS-80 V3/Factory/Factory/Strange Drone
+    tags: Analog, Evolving, Long Release, Ambient, Cinematic, Drum & Bass, Soundtrack, Synthwave
+24. Unwieldy  [CS-80 V3]  score 16.5
+    CS-80 V3/Factory/Factory/Unwieldy
+    tags: Analog, Evolving, Ambient, Cinematic, Downtempo, Soundtrack, Synthwave, Atmospheric
+25. Ambient Growth  [SEM V3]  score 16.3
+    SEM V3/Factory/Factory/Ambient Growth
+    tags: Distorted, Ambient, Cinematic, Industrial, Soundtrack, Techno, Atmospheric, Dark
+26. Sadness Waves  [Matrix-12 V2]  score 16.3
+    Matrix-12 V2/Factory/Factory/Sadness Waves
+    tags: Analog, Long Release, Ambient, Soundtrack, Downtempo, Cinematic, Synthwave, Atmospheric
+27. Down The Back  [Vocoder V]  score 16.1
+    Vocoder V/Factory/Factory/Down The Back
+    tags: Evolving, Long Release, Glitch, Soundtrack, Cinematic, Industrial, Synthwave, Ambient
+28. Resonators  [Prophet V3]  score 16.0
+    Prophet V3/Factory/Factory/Resonators
+    tags: Analog, Evolving, Long Release, Ambient, Soundtrack, Experimental, Downtempo, Cinematic
+29. Brutish  [Jup-8 V4]  score 15.8
+    Jup-8 V4/Factory/Factory/Brutish
+    tags: Analog, Long Release, Evolving, Distorted, Processed, Techno, Ambient, Cinematic
+30. TAS Sublime Rage  [Diva]  score 9.9
+    Diva/7 EFFECTS/TAS Sublime Rage.h2p
+    tags: Dark, Moving, Dirty, Aggressive, Phat, Dist+LoFi, Evolving
+31. SG Broken Machines  [Diva]  score 9.5
+    Diva/THIRD PARTY/Sjoerd van Geffen/SG Broken Machines.h2p
+    tags: Moving, Dirty, Aggressive, Natural, Slow Release, Dist+LoFi, Soundscape, Ambient
+32. F Mtoxic  [Matrix-12 V2]  score 15.5
+    Matrix-12 V2/Factory/Factory/F Mtoxic
+    tags: Analog, Distorted, Evolving, Ambient, Cinematic, Downtempo, Soundtrack, Synthwave
+33. Nemo's Dreams  [Matrix-12 V2]  score 15.5
+    Matrix-12 V2/Factory/Factory/Nemo's Dreams
+    tags: Analog, Distorted, Long Release, Noise, Ambient, Downtempo, Experimental, Soundtrack
+34. Fair Fact  [CS-80 V3]  score 15.2
+    CS-80 V3/Factory/Factory/Fair Fact
+    tags: Analog, Evolving, Noise, Ambient, Cinematic, Experimental, Atmospheric, Dark
+35. Under The Earth  [SQ80 V]  score 15.0
+    SQ80 V/Factory/Factory/Under The Earth
+    tags: Evolving, Long Release, Analog, Ambient, Industrial, Dark, Atmospheric, Dirty
+36. Degraded DigiHorns  [SQ80 V]  score 15.0
+    SQ80 V/Factory/Factory/Degraded DigiHorns
+    tags: Distorted, Ambient, Cinematic, Industrial, Experimental, Dark, Atmospheric, Dirty
+37. Sad But Funny  [SEM V3]  score 15.0
+    SEM V3/Factory/Factory/Sad But Funny
+    tags: Analog, Distorted, Industrial, Lofi, Techno, Dark, Dirty, Sad
+38. Flashback  [Matrix-12 V2]  score 15.0
+    Matrix-12 V2/Factory/Factory/Flashback
+    tags: Analog, Evolving, Ambient, Soundtrack, Downtempo, Cinematic, Synthwave, Dark
+39. Soft Pad Phrenetic  [CS-80 V3]  score 15.0
+    CS-80 V3/Factory/Factory/Soft Pad Phrenetic
+    tags: Analog, Noise, Ambient, Cinematic, Downtempo, Experimental, Soundtrack, Synthwave
+40. Analog Search  [Matrix-12 V2]  score 14.8
+    Matrix-12 V2/Factory/Factory/Analog Search
+    tags: Analog, Long Release, Ambient, Soundtrack, Downtempo, Cinematic, Synthwave, Deep
+41. Dronangel  [Vocoder V]  score 14.6
+    Vocoder V/Factory/Factory/Dronangel
+    tags: Evolving, Long Release, Processed, Bass Music, Soundtrack, Cinematic, Ambient, Soundscape
+42. Cyber Dread  [Jup-8000 V]  score 14.6
+    Jup-8000 V/Factory/Factory/Cyber Dread
+    tags: Ambient, Techno, Cinematic, Industrial, Soundtrack, Synthwave, Atmospheric, Dark
+43. Slow Shimmer  [CS-80 V3]  score 14.6
+    CS-80 V3/Factory/Factory/Slow Shimmer
+    tags: Analog, Long Release, Ambient, Cinematic, Downtempo, Experimental, Lofi, Synthwave
+44. Jelly Chord  [Matrix-12 V2]  score 14.5
+    Matrix-12 V2/Factory/Factory/Jelly Chord
+    tags: Analog, Evolving, Ambient, Downtempo, Soundtrack, Synthwave, Trip Hop, Atmospheric
+45. Low Shimmer  [Matrix-12 V2]  score 14.5
+    Matrix-12 V2/Factory/Factory/Low Shimmer
+    tags: Analog, Long Release, Ambient, Soundtrack, Downtempo, Cinematic, Trip Hop, Atmospheric
+46. Wo Is Comming  [CS-80 V3]  score 14.5
+    CS-80 V3/Factory/Factory/Wo Is Comming
+    tags: Analog, Evolving, Noise, Ambient, Cinematic, Experimental, Soundtrack, Synthwave
+47. Tremolo Atmos  [CS-80 V3]  score 14.5
+    CS-80 V3/Factory/Factory/Tremolo Atmos
+    tags: Analog, Long Release, Ambient, Cinematic, Downtempo, Soundtrack, Atmospheric, Dark
+48. Ripleys Dream  [CS-80 V3]  score 14.5
+    CS-80 V3/Factory/Factory/Ripleys Dream
+    tags: Analog, Noise, Evolving, Long Release, Ambient, Soundtrack, Downtempo, Cinematic
+49. Save The prophet  [Synclavier V]  score 14.3
+    Synclavier V/Factory/Factory/Save The prophet
+    tags: Evolving, Ambient, Cinematic, Downtempo, Lofi, Soundtrack, Synthwave, Trip Hop
+50. Glitch Textured Pad  [DX7 V]  score 14.3
+    DX7 V/Factory/Factory/Glitch Textured Pad
+    tags: Distorted, Evolving, Glitch, Long Release, Ambient, Cinematic, Experimental, Soundtrack
+
+==============================================================================
+5. KEYS AND ORGANS  (1970 candidates)
+==============================================================================
+ 1. Resonate  [Emulator II V]  score 22.4
+    Emulator II V/Factory/Factory/Resonate
+    tags: Distorted, Noise, Long Release, Ambient, Cinematic, Trip Hop, Soundtrack, Lofi
+ 2. Thaw  [Emulator II V]  score 22.2
+    Emulator II V/Factory/Factory/Thaw
+    tags: Distorted, Long Release, Grime, Ambient, Cinematic, Trip Hop, Soundtrack, Lofi
+ 3. All Are Lost  [Emulator II V]  score 22.1
+    Emulator II V/Factory/Factory/All Are Lost
+    tags: Analog, Distorted, Evolving, Long Release, Ambient, Cinematic, Soundtrack, Lofi
+ 4. Damascus  [KORG MS-20 V]  score 16.5
+    KORG MS-20 V/Factory/Factory/Damascus
+    tags: Analog, Distorted, Ambient, Hip Hop/Trap, Industrial, Trance, Trip Hop, Atmospheric
+ 5. Futur Retro  [Buchla Easel V]  score 15.5
+    Buchla Easel V/Factory/Factory/Futur Retro
+    tags: Analog, Distorted, Evolving, Ambient, Soundtrack, Experimental, Downtempo, Synthwave
+ 6. Dirty EP  [Emulator II V]  score 15.2
+    Emulator II V/Factory/Factory/Dirty EP
+    tags: Analog, Future Bass, Ambient, Downtempo, Soundtrack, Lofi, Experimental, Harsh
+ 7. Not Broken  [Matrix-12 V2]  score 15.2
+    Matrix-12 V2/Factory/Factory/Not Broken
+    tags: Analog, Distorted, Noise, Ambient, Experimental, Industrial, Soundtrack, Dark
+ 8. Eclipse Keys  [Matrix-12 V2]  score 14.5
+    Matrix-12 V2/Factory/Factory/Eclipse Keys
+    tags: Analog, Distorted, Evolving, Long Release, Ambient, Downtempo, Soundtrack, Atmospheric
+ 9. TH Dirty Stabber  [Diva]  score 8.2
+    Diva/THIRD PARTY/TREASURE TROVE!/TH Dirty Stabber.h2p
+    tags: Dark, Dirty, Phat, Natural, Dist+LoFi
+10. Bonk 2  [Diva]  score 7.4
+    Diva/THIRD PARTY/TREASURE TROVE!/Bonk 2.h2p
+    tags: Dark, Dirty, Aggressive, Phat, Natural, Dist+LoFi, Dist+LoFi
+11. Distorted Bell  [Matrix-12 V2]  score 14.2
+    Matrix-12 V2/Factory/Factory/Distorted Bell
+    tags: Analog, Distorted, Noise, Experimental, Industrial, Soundtrack, Dark, Dirty
+12. Deep Bells  [Vocoder V]  score 13.3
+    Vocoder V/Factory/Factory/Deep Bells
+    tags: Long Release, Distorted, Processed, Cinematic, Ambient, Disco, Soundscape, Atmospheric
+13. Drone Bird  [Vocoder V]  score 12.8
+    Vocoder V/Factory/Factory/Drone Bird
+    tags: Processed, Bass Music, Cinematic, Ambient, Soundscape, Atmospheric, Dark, Deep
+14. Tron End Titles  [Synclavier V]  score 12.5
+    Synclavier V/Factory/Factory/Tron End Titles
+    tags: Evolving, Ambient, Downtempo, Drum & Bass, Lofi, Soundtrack, Trip Hop, Dark
+15. Hidden Lands Of India  [SynthX V]  score 12.3
+    SynthX V/Factory/Factory/Hidden Lands Of India
+    tags: Evolving, Ambient, Cinematic, Soundtrack, World, Atmospheric, Dark, Deep
+16. Richard Keys  [Mini V3]  score 12.3
+    Mini V3/Factory/Factory/Richard Keys
+    tags: Analog, Long Release, Noise, Ambient, Hip Hop/Trap, Lofi, Soundtrack, Trip Hop
+17. Trippin Lead  [CS-80 V3]  score 12.3
+    CS-80 V3/Factory/Factory/Trippin Lead
+    tags: Analog, Evolving, Long Release, Ambient, Downtempo, Pop, Synthwave, Trip Hop
+18. Dim The Lights  [SEM V3]  score 12.0
+    SEM V3/Factory/Factory/Dim The Lights
+    tags: Analog, Distorted, Lofi, Soundtrack, Synthwave, Dark, Sad, Warm
+19. Resilience  [Buchla Easel V]  score 11.8
+    Buchla Easel V/Factory/Factory/Resilience
+    tags: Analog, Evolving, Long Release, Ambient, Soundtrack, Downtempo, Synthwave, Dirty
+20. Hells Bells  [Jup-8 V4]  score 11.6
+    Jup-8 V4/Factory/Factory/Hells Bells
+    tags: Processed, Synthwave, Ambient, Soundtrack, Experimental, Game Audio, Bass Music, Atmospheric
+21. Unknown Harp  [SynthX V]  score 11.5
+    SynthX V/Factory/Factory/Unknown Harp
+    tags: Ambient, Cinematic, Downtempo, Soundtrack, Atmospheric, Deep, Mellow, Sad
+22. Hypnos  [SynthX V]  score 11.5
+    SynthX V/Factory/Factory/Hypnos
+    tags: Analog, Ambient, Cinematic, Soundtrack, Synthwave, Atmospheric, Dark, Deep
+23. Harmonic Assault  [Mini V4]  score 11.5
+    Mini V4/Factory/Factory/Harmonic Assault
+    tags: Analog, Distorted, Evolving, Experimental, Game Audio, Industrial, Techno, Dark
+24. Simple Minds  [OP-Xa V]  score 11.2
+    OP-Xa V/Factory/Factory/Simple Minds
+    tags: Analog, Cinematic, Soundtrack, Ambient, Lofi, Atmospheric, Dark
+25. Subil  [Synthi V]  score 11.2
+    Synthi V/Factory/Factory/Subil
+    tags: Noise, Bass Music, Dubstep, Grime, Soundtrack, Synthwave, Dark, Deep
+26. Head Full of Ghosts  [SEM V3]  score 11.2
+    SEM V3/Factory/Factory/Head Full of Ghosts
+    tags: Analog, Noise, Ambient, Cinematic, Lofi, Soundtrack, Atmospheric, Warm
+27. xh POLY (pad) Vampire Mermaid Biker Girl  [Diva]  score 7.4
+    Diva/THIRD PARTY/TREASURE TROVE!/xh POLY (pad) Vampire Mermaid Biker Girl.h2p
+    tags: Dark, Dirty, Aggressive, Phat, Natural, Dist+LoFi
+28. FMR JunoJupiter 66 Space Sound 1  [Diva]  score 6.9
+    Diva/THIRD PARTY/Fernando's hardware factory/FMR JunoJupiter 66 Space Sound 1.h2p
+    tags: Dark, Moving, Aggressive, Phat, Vintage, Analogue
+29. FMR JunoJupiter 62 FX Sound One  [Diva]  score 6.5
+    Diva/THIRD PARTY/Fernando's hardware factory/FMR JunoJupiter 62 FX Sound One.h2p
+    tags: Dark, Moving, Phat, Vintage, Slow Release, Analogue
+30. FMR Mini Steel Drum 1  [Diva]  score 6.0
+    Diva/THIRD PARTY/Fernando's hardware factory/FMR Mini Steel Drum 1.h2p
+    tags: Dark, Dirty, Natural
+31. Orgabre  [Synthi V]  score 11.0
+    Synthi V/Factory/Factory/Orgabre
+    tags: Noise, Lofi, Trip Hop, Dark, Dirty, Sad
+32. Sunday Best  [Jup-8 V4]  score 10.8
+    Jup-8 V4/Factory/Factory/Sunday Best
+    tags: Long Release, Evolving, Processed, Cinematic, Experimental, Lofi, Dark, Huge
+33. Beautiful Keys  [KORG MS-20 V]  score 10.7
+    KORG MS-20 V/Factory/Factory/Beautiful Keys
+    tags: Analog, Ambient, Lofi, Downtempo, Soundtrack, Warm, Atmospheric, Deep
+34. The Gimmick  [Synclavier V]  score 10.3
+    Synclavier V/Factory/Factory/The Gimmick
+    tags: Evolving, Ambient, Lofi, Synthwave, Trip Hop, Dark, Mellow, Soundscape
+35. Astral Ranger  [MiniBrute V]  score 10.2
+    MiniBrute V/Factory/Factory/Astral Ranger
+    tags: Analog, Processed, Cinematic, Experimental, Fusion, Lofi, Soundtrack, Deep
+36. Reflections on Broken Glass  [Mini V4]  score 10.2
+    Mini V4/Factory/Factory/Reflections on Broken Glass
+    tags: Analog, Evolving, Ambient, Cinematic, Drum & Bass, Soundtrack, Atmospheric
+37. Sand Dunes  [CS-80 V4]  score 10.2
+    CS-80 V4/Factory/Factory/Sand Dunes
+    tags: Analog, Evolving, Ambient, Lofi, Trip Hop, Atmospheric, Mellow, Sad
+38. Cyclical Oscillating  [Synclavier V]  score 10.0
+    Synclavier V/Factory/Factory/Cyclical Oscillating
+    tags: Evolving, Noise, Reese, Ambient, Experimental, Industrial, Dark, Huge
+39. Processed Harp  [MiniBrute V]  score 10.0
+    MiniBrute V/Factory/Factory/Processed Harp
+    tags: Distorted, Ambient, Cinematic, Atmospheric, Deep, Dirty
+40. Tin Roof  [Jup-8 V4]  score 10.0
+    Jup-8 V4/Factory/Factory/Tin Roof
+    tags: Noise, Ambient, Cinematic, Experimental, Lofi, Soundscape, Dark, Mellow
+41. Father Peter  [Matrix-12 V2]  score 10.0
+    Matrix-12 V2/Factory/Factory/Father Peter
+    tags: Analog, Ambient, Soundtrack, Downtempo, Cinematic, Synthwave, Dark
+42. In A Dream  [ARP 2600 V3]  score 10.0
+    ARP 2600 V3/Factory/Factory/In A Dream
+    tags: Noise, Ambient, Soundtrack, Experimental, Downtempo, Dark, Sad
+43. Pro5 56-ResonantBells  [Prophet V3]  score 9.8
+    Prophet V3/Factory/Factory/Pro5 56-ResonantBells
+    tags: Long Release, Ambient, Experimental, Atmospheric, Bright, Dark, Deep, Dirty
+44. Shadow Pluckscape  [MiniBrute V]  score 9.8
+    MiniBrute V/Factory/Factory/Shadow Pluckscape
+    tags: Evolving, Processed, Ambient, Berlin, Cinematic, Pop, Synthwave, Dark
+45. Wha Wha  [Buchla Easel V]  score 9.8
+    Buchla Easel V/Factory/Factory/Wha Wha
+    tags: Analog, Evolving, Long Release, Ambient, Soundtrack, Downtempo, Synthwave, Dark
+46. Ring World  [CS-80 V4]  score 9.7
+    CS-80 V4/Factory/Factory/Ring World
+    tags: Analog, Processed, Ambient, Cinematic, Trip Hop, Atmospheric, Sad
+47. TUC Old Radio Organ  [Diva]  score 6.0
+    Diva/2 LEAD/TUC Old Radio Organ.h2p
+    tags: Dark, Dirty, Natural, Dist+LoFi
+48. FMR JunoJupiter 57 Reed 3  [Diva]  score 5.9
+    Diva/THIRD PARTY/Fernando's hardware factory/FMR JunoJupiter 57 Reed 3.h2p
+    tags: Moving, Dirty, Aggressive, Phat, Vintage, Analogue
+49. KEY Desert Sand  [Diva]  score 5.9
+    Diva/THIRD PARTY/Tasmodia/KEY Desert Sand.h2p
+    tags: Moving, Dirty, Aggressive, Phat, Dist+LoFi
+50. KEY Pie Hole  [Diva]  score 5.7
+    Diva/THIRD PARTY/Tasmodia/KEY Pie Hole.h2p
+    tags: Moving, Dirty, Aggressive, Dist+LoFi
+
+==============================================================================
+6. PLUCKS (sequences)  (1459 candidates)
+==============================================================================
+ 1. Freq Me  [Buchla Easel V]  score 17.0
+    Buchla Easel V/Factory/Factory/Freq Me
+    tags: Analog, Distorted, Noise, Evolving, Soundtrack, Experimental, Cinematic, Synthwave
+ 2. Reshaped Third  [Buchla Easel V]  score 16.5
+    Buchla Easel V/Factory/Factory/Reshaped Third
+    tags: Analog, Distorted, Evolving, Noise, Experimental, Industrial, Lofi, Soundtrack
+ 3. Downard  [Buchla Easel V]  score 16.5
+    Buchla Easel V/Factory/Factory/Downard
+    tags: Analog, Distorted, Evolving, Noise, Experimental, Industrial, Soundtrack, Synthwave
+ 4. Cascading  [Emulator II V]  score 16.1
+    Emulator II V/Factory/Factory/Cascading
+    tags: Evolving, Long Release, Ambient, Soundtrack, Downtempo, Drum & Bass, Cinematic, Bass Music
+ 5. Play m7  [Buchla Easel V]  score 15.5
+    Buchla Easel V/Factory/Factory/Play m7
+    tags: Analog, Distorted, Evolving, Ambient, Soundtrack, Experimental, Downtempo, Cinematic
+ 6. Stay Puff  [Buchla Easel V]  score 14.8
+    Buchla Easel V/Factory/Factory/Stay Puff
+    tags: Analog, Distorted, Long Release, Noise, Experimental, Industrial, Soundtrack, Synthwave
+ 7. Fixmybody  [Buchla Easel V]  score 14.8
+    Buchla Easel V/Factory/Factory/Fixmybody
+    tags: Analog, Distorted, Experimental, Hard Techno, Industrial, Lofi, Soundtrack, Synthwave
+ 8. Buzzer Melody  [Buchla Easel V]  score 14.5
+    Buchla Easel V/Factory/Factory/Buzzer Melody
+    tags: Analog, Distorted, Ambient, Cinematic, Experimental, Soundtrack, Synthwave, Atmospheric
+ 9. HS Wiper  [Diva]  score 8.2
+    Diva/6 RHYTHMIC/HS Wiper.h2p
+    tags: Dark, Moving, Dirty, Phat, Dist+LoFi
+10. Polynomial  [Buchla Easel V]  score 14.3
+    Buchla Easel V/Factory/Factory/Polynomial
+    tags: Analog, Noise, Glitch, Long Release, Ambient, Soundtrack, Experimental, Downtempo
+11. Lfaux  [Buchla Easel V]  score 14.3
+    Buchla Easel V/Factory/Factory/Lfaux
+    tags: Distorted, Evolving, Noise, Experimental, Industrial, Lofi, Soundtrack, Synthwave
+12. Randometalik  [Buchla Easel V]  score 14.0
+    Buchla Easel V/Factory/Factory/Randometalik
+    tags: Analog, Noise, Ambient, Soundtrack, Experimental, Downtempo, Synthwave, Industrial
+13. Speed Metal  [CS-80 V3]  score 13.8
+    CS-80 V3/Factory/Factory/Speed Metal
+    tags: Analog, Cinematic, Dubstep, Rock, Soundtrack, Synthwave, Trip Hop, Dark
+14. Deep Forest  [Buchla Easel V]  score 13.3
+    Buchla Easel V/Factory/Factory/Deep Forest
+    tags: Analog, Evolving, Distorted, Noise, Synthwave, Techno, Experimental, Soundscape
+15. Lost Arp  [Matrix-12 V2]  score 13.2
+    Matrix-12 V2/Factory/Factory/Lost Arp
+    tags: Analog, Soundtrack, Downtempo, Drum & Bass, Trip Hop, Lofi, Dark, Mellow
+16. Pulsy Loop  [Buchla Easel V]  score 13.1
+    Buchla Easel V/Factory/Factory/Pulsy Loop
+    tags: Analog, Distorted, Long Release, Ambient, Downtempo, Experimental, Lofi, Synthwave
+17. Geiger  [Mini V4]  score 12.7
+    Mini V4/Factory/Factory/Geiger
+    tags: Analog, Distorted, Evolving, Cinematic, Experimental, Soundtrack, Dark, Dirty
+18. Fm Floaters  [Matrix-12 V2]  score 12.7
+    Matrix-12 V2/Factory/Factory/Fm Floaters
+    tags: Analog, Evolving, Noise, Experimental, Industrial, Soundtrack, Dark, Dirty
+19. Lost a Nickels  [CS-80 V3]  score 12.7
+    CS-80 V3/Factory/Factory/Lost a Nickels
+    tags: Analog, Noise, Cinematic, Experimental, Indie Dance, Industrial, Dark, Dirty
+20. Darkside Calypso  [DX7 V]  score 12.5
+    DX7 V/Factory/Factory/Darkside Calypso
+    tags: Evolving, Noise, Processed, Berlin, Industrial, Dark, Dirty, Huge
+21. Night Ride  [KORG MS-20 V]  score 12.0
+    KORG MS-20 V/Factory/Factory/Night Ride
+    tags: Evolving, Cinematic, Soundtrack, Atmospheric, Dark, Deep
+22. Tribal Move  [Synclavier V]  score 11.8
+    Synclavier V/Factory/Factory/Tribal Move
+    tags: Evolving, Noise, Processed, Downtempo, Grime, Hard Techno, Industrial, Dark
+23. Modular Swamp  [Matrix-12 V2]  score 11.7
+    Matrix-12 V2/Factory/Factory/Modular Swamp
+    tags: Analog, Distorted, Noise, Cinematic, Experimental, Industrial, Soundtrack, Dirty
+24. Very Psychedelic  [Synclavier V]  score 11.5
+    Synclavier V/Factory/Factory/Very Psychedelic
+    tags: Evolving, Noise, Ambient, Downtempo, Lofi, Soundtrack, Trip Hop, Dark
+25. Telephone Harp  [CS-80 V3]  score 11.5
+    CS-80 V3/Factory/Factory/Telephone Harp
+    tags: Analog, Ambient, Soundtrack, Downtempo, Cinematic, Synthwave, Game Audio, Atmospheric
+26. Frippy  [CS-80 V3]  score 11.5
+    CS-80 V3/Factory/Factory/Frippy
+    tags: Analog, Evolving, Long Release, Ambient, Cinematic, Downtempo, Soundtrack, Dark
+27. Brandon Arpeggio  [CZ V]  score 11.5
+    CZ V/Factory/Factory/Brandon Arpeggio
+    tags: Distorted, Ambient, Downtempo, Lofi, Soundtrack, Dirty, Sad
+28. Cyber Pulse  [MiniBrute V]  score 11.3
+    MiniBrute V/Factory/Factory/Cyber Pulse
+    tags: Distorted, Evolving, Processed, Berlin, Cinematic, Industrial, Synthwave, Dirty
+29. Asymmetric Sequence  [Synclavier V]  score 11.2
+    Synclavier V/Factory/Factory/Asymmetric Sequence
+    tags: Analog, Evolving, Ambient, Berlin, Lofi, Soundtrack, Atmospheric, Clean
+30. Bender Brother  [Matrix-12 V2]  score 11.2
+    Matrix-12 V2/Factory/Factory/Bender Brother
+    tags: Analog, Distorted, Noise, Experimental, Hard Techno, Industrial, Soundtrack, Deep
+31. Metal Cans  [ARP 2600 V3]  score 11.2
+    ARP 2600 V3/Factory/Factory/Metal Cans
+    tags: Analog, Evolving, Noise, Experimental, Hard Techno, Industrial, Soundtrack, Dark
+32. ROY FX Rewinding the Tape  [Diva]  score 7.4
+    Diva/6 RHYTHMIC/ROY FX Rewinding the Tape.h2p
+    tags: Moving, Dirty, Aggressive, Phat, Dist+LoFi
+33. Pulse Beat  [Synclavier V]  score 11.1
+    Synclavier V/Factory/Factory/Pulse Beat
+    tags: Noise, Ambient, Downtempo, Grime, Hip Hop/Trap, Soundtrack, Dark, Sad
+34. Toneperc Arp  [Synclavier V]  score 11.0
+    Synclavier V/Factory/Factory/Toneperc Arp
+    tags: Evolving, Processed, Ambient, Cinematic, Experimental, Soundtrack, Atmospheric, Dark
+35. Far Away  [CS-80 V3]  score 11.0
+    CS-80 V3/Factory/Factory/Far Away
+    tags: Analog, Evolving, Noise, Cinematic, Experimental, Synthwave, Dark, Dirty
+36. Suspense  [ARP 2600 V3]  score 10.8
+    ARP 2600 V3/Factory/Factory/Suspense
+    tags: Distorted, Noise, Ambient, Hard Techno, Techno, Dark, Deep, Dirty
+37. Noise Rotation  [Matrix-12 V2]  score 10.7
+    Matrix-12 V2/Factory/Factory/Noise Rotation
+    tags: Analog, Distorted, Noise, Experimental, Industrial, Dirty, Harsh, Soundscape
+38. E Invaders  [CS-80 V3]  score 10.7
+    CS-80 V3/Factory/Factory/E Invaders
+    tags: Analog, Noise, Cinematic, Soundtrack, Dark, Dirty, Soundscape
+39. Session 6  [Synclavier V]  score 10.6
+    Synclavier V/Factory/Factory/Session 6
+    tags: Evolving, Processed, Ambient, Bass Music, Grime, Industrial, Soundtrack, Dark
+40. In The Matrix  [Matrix-12 V2]  score 10.5
+    Matrix-12 V2/Factory/Factory/In The Matrix
+    tags: Analog, Cinematic, Experimental, Game Audio, Industrial, Soundtrack, Techno, Dark
+41. Sparkle  [CS-80 V3]  score 10.5
+    CS-80 V3/Factory/Factory/Sparkle
+    tags: Analog, Ambient, Cinematic, Downtempo, Synthwave, Atmospheric, Dark, Deep
+42. Dirty Tape Bass  [CS-80 V4]  score 10.3
+    CS-80 V4/Factory/Factory/Dirty Tape Bass
+    tags: Analog, Bass Music, Lofi, Techno, Dark, Dirty
+43. Not Far  [CS-80 V3]  score 10.3
+    CS-80 V3/Factory/Factory/Not Far
+    tags: Analog, Evolving, Long Release, Noise, Ambient, Downtempo, Synthwave, Dark
+44. Sonic Seven  [CS-80 V3]  score 10.3
+    CS-80 V3/Factory/Factory/Sonic Seven
+    tags: Analog, Evolving, Ambient, Downtempo, Techno, Cinematic, Synthwave, Atmospheric
+45. Fillets  [Matrix-12 V2]  score 10.2
+    Matrix-12 V2/Factory/Factory/Fillets
+    tags: Analog, Noise, Ambient, Cinematic, Experimental, Soundtrack, Dark, Soundscape
+46. Fluttery Loop  [Matrix-12 V2]  score 10.2
+    Matrix-12 V2/Factory/Factory/Fluttery Loop
+    tags: Analog, Evolving, Experimental, Industrial, Soundtrack, Dark, Harsh, Soundscape
+47. Sub Gliders  [Synclavier V]  score 10.0
+    Synclavier V/Factory/Factory/Sub Gliders
+    tags: Evolving, Processed, Ambient, Downtempo, Lofi, Soundtrack, Atmospheric, Deep
+48. Liquid Bounce  [Matrix-12 V2]  score 10.0
+    Matrix-12 V2/Factory/Factory/Liquid Bounce
+    tags: Analog, Distorted, Evolving, Long Release, Ambient, Experimental, Soundtrack, Trip Hop
+49. Story Time  [Matrix-12 V2]  score 10.0
+    Matrix-12 V2/Factory/Factory/Story Time
+    tags: Analog, Distorted, Evolving, Long Release, Ambient, Experimental, Soundtrack, Dirty
+50. Without Answer  [Matrix-12 V2]  score 10.0
+    Matrix-12 V2/Factory/Factory/Without Answer
+    tags: Analog, Distorted, Evolving, Long Release, Noise, Ambient, Cinematic, Experimental
+
