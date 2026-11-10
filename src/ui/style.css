@@ -1683,3 +1683,13 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-shot-dir { background: none; border: 1px solid rgba(255,255,255,0.12); border-radius: 2px; color: #6e6e74; line-height: 0; padding: 3px 5px; cursor: pointer; display: inline-flex; align-items: center; }
 .v2 .gr-shot-dir:hover { border-color: rgba(255,255,255,0.3); color: #c8c8cc; }
 .v2 .gr-shot-dir.on { color: #e8e8ea; }
+
+/* ---- Lifted dark (owner's reference): charcoal boxes a step up from black, edges and gaps that read,
+   and the small labels a step brighter; the accents and the dark space stay as they are. ---- */
+.v2 .osc-page > .c, .v2 .mod-page2 > .c, .v2 .preset-page .pp-col, .v2 .v2-bottom, .v2 .kb-side, .v2 .grind-page .c.ob, .v2 .grind-page .gr-node {
+  background-color: #151517 !important; border: 1px solid rgba(255,255,255,0.075) !important; box-shadow: 0 1px 0 rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.03) !important; }
+.v2 .k-label { color: #a2a2a8 !important; }
+.v2 .k.off .k-label { color: #606066 !important; }
+.v2 .gr-sub, .v2 .gr-shot-dir { color: #8e8e94; }
+.v2 .tab { color: #7c7c82 !important; }
+.v2 .brand-sub { color: #77777c !important; }

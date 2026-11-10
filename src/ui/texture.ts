@@ -43,26 +43,33 @@ function pixels(w: number, h: number, f: (x: number, y: number) => [number, numb
  * uneven, slightly lit rim.
  */
 export function panelTexture(w = 600, h = 460, seed = 5): string {
+  // lifted charcoal (owner's reference): a bit less dark than black so the boxes read, with heavier wear:
+  // broad stains, mottling, grain, horizontal wear, specks and scratches, darker towards the edges
   const r = rng(seed);
-  const m1 = valueNoise(70, r), m2 = valueNoise(18, r), row = valueNoise(3, r), rim = valueNoise(9, r);
+  const m1 = valueNoise(70, r), m2 = valueNoise(18, r), row = valueNoise(3, r), rim = valueNoise(9, r), stain = valueNoise(150, r), pit = valueNoise(5, r);
   const cv = pixels(w, h, (x, y) => {
     const e = Math.min(x, y, w - 1 - x, h - 1 - y);
-    let l = 8.5 + (m1(x, y) - 0.5) * 8 + (m2(x, y) - 0.5) * 3 + (r() - 0.5) * 6 + (row(0, y) - 0.5) * 1.5;
-    l -= 6 * Math.exp(-e / 26);
-    if (e < 2.5 && rim(x, y) > 0.3) l += 22 * (1 - e / 2.5);
+    let l = 20 + (m1(x, y) - 0.5) * 12 + (m2(x, y) - 0.5) * 6 + (r() - 0.5) * 10 + (row(0, y) - 0.5) * 2.5;
+    // broad worn patches: lighter scuffed areas and darker grime
+    const st = stain(x, y);
+    l += st > 0.62 ? (st - 0.62) * 26 : st < 0.3 ? (st - 0.3) * 18 : 0;
+    // fine pitting in the surface
+    if (pit(x, y) > 0.82) l -= 4;
+    l -= 10 * Math.exp(-e / 30);
+    if (e < 2.5 && rim(x, y) > 0.3) l += 24 * (1 - e / 2.5);
     return [Math.max(0, l), 255];
   });
   const g = cv.getContext('2d')!;
   const area = (w * h) / (600 * 460);
-  for (let i = 0; i < 260 * area; i++) {
-    const x = r() * w, y = r() * h, light = r() < 0.7;
-    g.fillStyle = light ? `rgba(225,225,228,${0.08 + r() * r() * 0.45})` : `rgba(0,0,0,${0.4 + r() * 0.4})`;
+  for (let i = 0; i < 700 * area; i++) {
+    const x = r() * w, y = r() * h, light = r() < 0.65;
+    g.fillStyle = light ? `rgba(225,225,228,${0.08 + r() * r() * 0.5})` : `rgba(0,0,0,${0.4 + r() * 0.45})`;
     g.fillRect(x, y, 1 + (r() < 0.15 ? 1 : 0), 1 + (r() < 0.15 ? 1 : 0));
   }
-  for (let i = 0; i < 16 * area; i++) {
-    const x = r() * w, y = r() * h, ang = (r() - 0.5) * 0.5 + (r() < 0.3 ? Math.PI / 2 : 0), len = 8 + r() * r() * 70;
-    g.strokeStyle = `rgba(220,220,225,${0.025 + r() * 0.05})`;
-    g.lineWidth = 0.6 + r() * 0.6;
+  for (let i = 0; i < 46 * area; i++) {
+    const x = r() * w, y = r() * h, ang = (r() - 0.5) * 0.5 + (r() < 0.3 ? Math.PI / 2 : 0), len = 8 + r() * r() * 110;
+    g.strokeStyle = r() < 0.75 ? `rgba(220,220,225,${0.03 + r() * 0.08})` : `rgba(0,0,0,${0.2 + r() * 0.25})`;
+    g.lineWidth = 0.6 + r() * 0.7;
     g.beginPath();
     g.moveTo(x, y);
     g.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
