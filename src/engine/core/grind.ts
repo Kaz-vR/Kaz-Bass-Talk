@@ -626,12 +626,13 @@ export class Grind {
         // an envelope, not an LFO: from the top of the range it falls fast, then settles at the bottom
         // and stays there until the next note; Rate sets how long the fall takes (its time = half a cycle)
         s.phase += dt;
-        m = -1 + 2 * Math.exp((-s.phase * 2 * hz * s.spd) * 3);
+        m = -1 + 2 * Math.exp((-s.phase * 2 * hz) * 3);
       } else if (clock === GC_SYNC) {
         const p = beatPos / GRIND_BEATS[grindBeat(rate)];
         m = Math.cos(TWO_PI * (p - Math.floor(p)));
       } else {
-        s.phase += hz * s.spd * dt;
+        // an even swing at exactly Rate (only RANDOM varies its speed)
+        s.phase += hz * dt;
         if (s.phase >= 1) s.phase -= Math.floor(s.phase);
         m = Math.cos(TWO_PI * s.phase); // from the top at every note
       }

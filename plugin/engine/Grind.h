@@ -561,12 +561,12 @@ class Grind {
         m = s.wFrom + (s.wTo - s.wFrom) * (0.5 - 0.5 * std::cos(PI * s.wPos));
       } else if (oneShot) {
         s.phase += dt;
-        m = -1 + 2 * std::exp((-s.phase * 2 * hz * s.spd) * 3);
+        m = -1 + 2 * std::exp((-s.phase * 2 * hz) * 3);
       } else if (clock == GC_SYNC) {
         const double p = beatPos / GRIND_BEATS[grindBeat(rate)];
         m = std::cos(TWO_PI * (p - std::floor(p)));
       } else {
-        s.phase += hz * s.spd * dt;
+        s.phase += hz * dt; // an even swing at exactly Rate
         if (s.phase >= 1) s.phase -= std::floor(s.phase);
         m = std::cos(TWO_PI * s.phase);
       }
