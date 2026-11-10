@@ -256,46 +256,44 @@ export function logoWear(s = 128, seed = 41): string {
 }
 
 /**
- * Damage for the wooden sides (owner's reference): weathered, scratched and gouged, worn pale where hands
- * rubbed it, dark knots and rot spots; laid over the wood (transparent where the wood is fine).
+ * The wooden sides, all code (owner's reference): dark red-brown, weathered, quiet vertical grain, rusty
+ * orange flecks and small dark pits, darker towards both edges. No bright patches: the variation stays small.
  */
-export function woodDamage(w = 134, h = 1600, seed = 51): string {
-  const r = rng(seed), blot = valueNoise(40, r), grain = valueNoise(6, r), rot = valueNoise(90, r);
-  const cv = rgba(w, h, (x, y) => {
-    const b = blot(x, y), o = rot(x, y * 0.6);
-    // rot and grime: dark, along the grain
-    if (o > 0.74) return [18, 10, 6, Math.min(200, (o - 0.74) * 800)];
-    // worn pale patches
-    if (b > 0.74) return [190, 150, 110, Math.min(90, (b - 0.74) * 500 * grain(x, y * 0.2))];
-    // weathering: a dark, uneven film
-    return [25, 14, 8, 12 + 30 * grain(x * 3, y * 0.15)];
-  });
-  const g = cv.getContext('2d')!;
-  // scratches: long, thin, mostly diagonal, some deep and dark
-  for (let i = 0; i < 45; i++) {
-    const x = r() * w, y = r() * h, ang = Math.PI / 2 + (r() - 0.5) * 1.6, len = 20 + r() * r() * 260, deep = r() < 0.3;
-    g.strokeStyle = deep ? `rgba(15,8,4,${0.5 + r() * 0.4})` : `rgba(225,195,160,${0.08 + r() * 0.22})`;
-    g.lineWidth = deep ? 1 + r() : 0.6 + r() * 0.6;
+export function woodTexture(w = 134, h = 1800, seed = 61): string {
+  const r = rng(seed), grainA = valueNoise(3, r), grainB = valueNoise(9, r), mott = valueNoise(26, r), fleck = valueNoise(5, r), pit = valueNoise(3, r);
+  const cv = document.createElement('canvas');
+  cv.width = w;
+  cv.height = h;
+  const g = cv.getContext('2d')!, img = g.createImageData(w, h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      // grain: noise stretched along the board (long, thin streaks)
+      const gr = 0.6 * grainA(x, y / 40) + 0.4 * grainB(x, y / 25);
+      const m = mott(x, y / 3);
+      let R = 67 + (gr - 0.5) * 26 + (m - 0.5) * 20 + (r() - 0.5) * 9;
+      let G = 30 + (gr - 0.5) * 11 + (m - 0.5) * 9 + (r() - 0.5) * 5;
+      let B = 21 + (gr - 0.5) * 7 + (m - 0.5) * 6 + (r() - 0.5) * 4;
+      // rusty flecks: a little more orange, never bright
+      const f = fleck(x, y / 1.5);
+      if (f > 0.76) { const k = (f - 0.76) * 3; R += 22 * k; G += 10 * k; B += 3 * k; }
+      // small dark pits
+      if (pit(x, y / 1.2) > 0.86) { R *= 0.62; G *= 0.6; B *= 0.6; }
+      // darker towards both edges of the board
+      const e = Math.min(x, w - 1 - x) / w, dk = e < 0.06 ? 0.35 + 0.65 * (e / 0.06) : 1;
+      const o = (y * w + x) * 4;
+      img.data[o] = R * dk; img.data[o + 1] = G * dk; img.data[o + 2] = B * dk; img.data[o + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  // fine scratches, faint and mostly along the board
+  for (let i = 0; i < 40; i++) {
+    const x = r() * w, y = r() * h, ang = Math.PI / 2 + (r() - 0.5) * 0.9, len = 30 + r() * r() * 300;
+    g.strokeStyle = r() < 0.5 ? `rgba(14,6,3,${0.25 + r() * 0.3})` : `rgba(140,80,55,${0.08 + r() * 0.12})`;
+    g.lineWidth = 0.6 + r() * 0.5;
     g.beginPath();
     g.moveTo(x, y);
     g.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
     g.stroke();
-  }
-  // knots and dents
-  for (let i = 0; i < 9; i++) {
-    const x = r() * w, y = r() * h, rad = 3 + r() * 9;
-    const gr = g.createRadialGradient(x, y, 0, x, y, rad);
-    gr.addColorStop(0, 'rgba(10,5,2,0.85)');
-    gr.addColorStop(0.6, 'rgba(30,15,6,0.5)');
-    gr.addColorStop(1, 'rgba(30,15,6,0)');
-    g.fillStyle = gr;
-    g.beginPath();
-    g.ellipse(x, y, rad * 0.7, rad * 1.4, 0, 0, Math.PI * 2);
-    g.fill();
-  }
-  for (let i = 0; i < 1200; i++) {
-    g.fillStyle = r() < 0.6 ? `rgba(10,5,2,${0.3 + r() * 0.5})` : `rgba(230,200,165,${0.1 + r() * 0.3})`;
-    g.fillRect(r() * w, r() * h, 1 + (r() < 0.2 ? 1 : 0), 1 + (r() < 0.3 ? 1 : 0));
   }
   return cv.toDataURL();
 }
