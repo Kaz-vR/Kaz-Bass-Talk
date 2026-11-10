@@ -9,7 +9,8 @@ import { Biquad, ENV_ATTACK_BEND, ENV_FALL_BEND, envSegment } from '../engine/co
 import { fromNormalized, getParam, params, PATCH_ROWS, toNormalized, type ParamValue, type Patch } from '../schema';
 import { formatValue } from './params-panel';
 import { DRIVE_FAMILIES, RUIN_RECIPES, recipeParams, stageParams, type RuinStage } from './ruin-recipes';
-import { frameTexture, keyGrime, lightGrain, panelTexture } from './texture';
+import { corrosionTexture, frameTexture, keyGrime, lightGrain, logoWear, panelTexture, woodDamage } from './texture';
+import logoSvg from '../../design/logo.svg?raw';
 import { GRIND_BEAT_NAMES, grindBeat, grindHz } from '../engine/core/grind';
 import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobPointsAt, wobSmoothRadius, wobSmoothTable, wobTableAt, type WobPoint } from '../engine/core/wobshape';
 
@@ -921,7 +922,8 @@ export class SynthView {
     for (const [src, side] of [[woodL, 'l'], [woodR, 'r']]) {
       const img = h('img', `wood wood-${side}`) as HTMLImageElement;
       img.src = src; img.alt = ''; img.draggable = false;
-      this.page.append(img);
+      // the wood is weathered and damaged (owner's reference): scratches, gouges, rot and worn patches on top
+      this.page.append(img, h('div', `wood-dmg wood-dmg-${side}`));
     }
     try {
       const z = Number(localStorage.getItem(ZOOM_KEY));
@@ -5045,6 +5047,15 @@ export class SynthView {
 
   // ------------------------------------------------------------------ the page
 
+  /** The website's logo on a dark, chipped plate at the left of the header (owner's reference). */
+  private logoPlate(): HTMLElement {
+    const plate = h('div', 'v2-logo');
+    plate.innerHTML = logoSvg;
+    plate.append(h('div', 'v2-logo-wear'));
+    plate.title = 'RUIN-1';
+    return plate;
+  }
+
   /** The header's scene (code-drawn for now; a painted image can replace it). */
   private build(): void {
     this.page.style.setProperty('--dust', `url(${panelTexture()})`);
@@ -5054,6 +5065,9 @@ export class SynthView {
     this.page.style.setProperty('--light-grain', `url(${lightGrain()})`);
     // the frame behind the boxes, also round the page (the wrapper is outside this element, so it goes on the root)
     document.documentElement.style.setProperty('--frame', `url(${frameTexture()})`);
+    this.page.style.setProperty('--corrosion', `url(${corrosionTexture()})`);
+    this.page.style.setProperty('--logo-wear', `url(${logoWear()})`);
+    this.page.style.setProperty('--wood-dmg', `url(${woodDamage()})`);
     this.page.style.setProperty('--key-grime', `url(${keyGrime()})`);
     const tabs = h('div', 'v2-tabs');
     for (const [t, ready] of [['OSC', true], ['LFO', true], ['WOBBLER', true], ['RUIN', true], ['FX', true], ['PRESETS', true]] as const) {
@@ -5098,7 +5112,7 @@ export class SynthView {
     this.fxPage.style.display = 'none';
     this.lfoPage.style.display = 'none';
     this.page.append(
-      h('div', 'v2-top', h('div', 'v2-brand', h('span', 'brand-name', 'RUIN-1'), h('span', 'brand-sub', 'Synthesizer')), this.presetSelector(), h('div', 'v2-top-right', tabs, this.zoomBtn)),
+      h('div', 'v2-top', h('div', 'v2-corrode'), this.logoPlate(), h('div', 'v2-brand', h('span', 'brand-name', 'RUIN-1'), h('span', 'brand-sub', 'Synthesizer')), this.presetSelector(), h('div', 'v2-top-right', tabs, this.zoomBtn)),
       this.oscPage,
       this.modPage,
       this.lfoPage,

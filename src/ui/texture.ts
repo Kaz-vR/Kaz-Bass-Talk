@@ -174,3 +174,128 @@ export function decaySignal(cv: HTMLCanvasElement, seed = 3): void {
   g.fillRect(0, 0, W, H);
   g.restore();
 }
+
+/** Colour pixels: `f` returns [r, g, b, a] (0-255) for each pixel. */
+function rgba(w: number, h: number, f: (x: number, y: number) => [number, number, number, number]): HTMLCanvasElement {
+  const cv = document.createElement('canvas');
+  cv.width = w;
+  cv.height = h;
+  const g = cv.getContext('2d')!, img = g.createImageData(w, h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const p = f(x, y), o = (y * w + x) * 4;
+      img.data[o] = p[0]; img.data[o + 1] = p[1]; img.data[o + 2] = p[2]; img.data[o + 3] = p[3];
+    }
+  }
+  g.putImageData(img, 0, 0);
+  return cv;
+}
+
+/** A crack: a jagged dark line with a faint lit edge. */
+function crack(g: CanvasRenderingContext2D, r: () => number, x: number, y: number, len: number, ang: number, a = 0.8): void {
+  const pts: [number, number][] = [[x, y]];
+  for (let i = 0; i < 8; i++) {
+    ang += (r() - 0.5) * 0.9;
+    x += Math.cos(ang) * (len / 8);
+    y += Math.sin(ang) * (len / 8);
+    pts.push([x, y]);
+  }
+  for (const [col, wd, dy] of [[`rgba(200,190,175,${0.12 * a})`, 1, 1], [`rgba(0,0,0,${a})`, 1.2, 0]] as const) {
+    g.strokeStyle = col;
+    g.lineWidth = wd;
+    g.beginPath();
+    pts.forEach(([px, py], i) => (i ? g.lineTo(px, py + dy) : g.moveTo(px, py + dy)));
+    g.stroke();
+  }
+}
+
+/**
+ * The header's corroded plate (owner's reference): dark paint flaking off to grey-brown metal and rust round
+ * the logo and the name, cracks and specks, fading out into the black bar towards the right.
+ */
+export function corrosionTexture(w = 1100, h = 156, seed = 31): string {
+  const r = rng(seed), big = valueNoise(26, r), mid = valueNoise(8, r), fine = valueNoise(3, r), edge = valueNoise(22, r);
+  const cv = rgba(w, h, (x, y) => {
+    const f = 0.55 * big(x, y) + 0.3 * mid(x, y) + 0.15 * fine(x, y);
+    // how far the paint has gone: most at the left, none past ~60 % (a noisy edge)
+    const t = x / w, fade = Math.max(0, Math.min(1, (0.62 - t + (edge(x, y) - 0.5) * 0.25) / 0.22));
+    const g0 = (r() - 0.5) * 14;
+    if (f > 0.58 - 0.08 * fade && fade > 0) {
+      // exposed metal: grey-brown, rust where it is deepest, a dark rim at the flake's edge
+      const deep = Math.min(1, (f - 0.5) * 4), rim = f < 0.61 - 0.08 * fade ? 0.4 : 1;
+      const lr = (34 + 26 * deep + g0) * rim, lg = (31 + 16 * deep + g0) * rim, lb = (28 + 6 * deep + g0) * rim;
+      return [lr, lg, lb, 255 * fade];
+    }
+    // the paint: near black, worn and grainy
+    const l = 9 + (mid(x + 50, y) - 0.5) * 8 + g0 * 0.5;
+    return [l, l, l, 255 * Math.min(1, fade * 1.3)];
+  });
+  const g = cv.getContext('2d')!;
+  for (let i = 0; i < 40; i++) {
+    const x = r() * w * 0.55, y = r() * h;
+    crack(g, r, x, y, 20 + r() * 90, r() * Math.PI * 2, 0.5 + r() * 0.4);
+  }
+  for (let i = 0; i < 900; i++) {
+    const x = Math.pow(r(), 1.6) * w * 0.6, y = r() * h, light = r() < 0.55;
+    g.fillStyle = light ? `rgba(215,200,180,${0.08 + r() * r() * 0.5})` : `rgba(0,0,0,${0.4 + r() * 0.5})`;
+    g.fillRect(x, y, 1 + (r() < 0.25 ? 1 : 0), 1 + (r() < 0.25 ? 1 : 0));
+  }
+  return cv.toDataURL();
+}
+
+/** Wear over the logo: dark specks and chips, transparent elsewhere (laid on top of the mark). */
+export function logoWear(s = 128, seed = 41): string {
+  const r = rng(seed), m = valueNoise(10, r);
+  const cv = rgba(s, s, (x, y) => (m(x, y) > 0.72 ? [10, 9, 8, 150] : [0, 0, 0, 0]));
+  const g = cv.getContext('2d')!;
+  for (let i = 0; i < 260; i++) {
+    g.fillStyle = `rgba(8,7,6,${0.3 + r() * 0.6})`;
+    g.fillRect(r() * s, r() * s, 1 + (r() < 0.3 ? 1 : 0), 1);
+  }
+  return cv.toDataURL();
+}
+
+/**
+ * Damage for the wooden sides (owner's reference): weathered, scratched and gouged, worn pale where hands
+ * rubbed it, dark knots and rot spots; laid over the wood (transparent where the wood is fine).
+ */
+export function woodDamage(w = 134, h = 1600, seed = 51): string {
+  const r = rng(seed), blot = valueNoise(40, r), grain = valueNoise(6, r), rot = valueNoise(90, r);
+  const cv = rgba(w, h, (x, y) => {
+    const b = blot(x, y), o = rot(x, y * 0.6);
+    // rot and grime: dark, along the grain
+    if (o > 0.74) return [18, 10, 6, Math.min(200, (o - 0.74) * 800)];
+    // worn pale patches
+    if (b > 0.74) return [190, 150, 110, Math.min(90, (b - 0.74) * 500 * grain(x, y * 0.2))];
+    // weathering: a dark, uneven film
+    return [25, 14, 8, 12 + 30 * grain(x * 3, y * 0.15)];
+  });
+  const g = cv.getContext('2d')!;
+  // scratches: long, thin, mostly diagonal, some deep and dark
+  for (let i = 0; i < 45; i++) {
+    const x = r() * w, y = r() * h, ang = Math.PI / 2 + (r() - 0.5) * 1.6, len = 20 + r() * r() * 260, deep = r() < 0.3;
+    g.strokeStyle = deep ? `rgba(15,8,4,${0.5 + r() * 0.4})` : `rgba(225,195,160,${0.08 + r() * 0.22})`;
+    g.lineWidth = deep ? 1 + r() : 0.6 + r() * 0.6;
+    g.beginPath();
+    g.moveTo(x, y);
+    g.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
+    g.stroke();
+  }
+  // knots and dents
+  for (let i = 0; i < 9; i++) {
+    const x = r() * w, y = r() * h, rad = 3 + r() * 9;
+    const gr = g.createRadialGradient(x, y, 0, x, y, rad);
+    gr.addColorStop(0, 'rgba(10,5,2,0.85)');
+    gr.addColorStop(0.6, 'rgba(30,15,6,0.5)');
+    gr.addColorStop(1, 'rgba(30,15,6,0)');
+    g.fillStyle = gr;
+    g.beginPath();
+    g.ellipse(x, y, rad * 0.7, rad * 1.4, 0, 0, Math.PI * 2);
+    g.fill();
+  }
+  for (let i = 0; i < 1200; i++) {
+    g.fillStyle = r() < 0.6 ? `rgba(10,5,2,${0.3 + r() * 0.5})` : `rgba(230,200,165,${0.1 + r() * 0.3})`;
+    g.fillRect(r() * w, r() * h, 1 + (r() < 0.2 ? 1 : 0), 1 + (r() < 0.3 ? 1 : 0));
+  }
+  return cv.toDataURL();
+}
