@@ -430,9 +430,19 @@ function drawKnobVariant(g: CanvasRenderingContext2D, style: string, k: { cx: nu
     }
     case 'flat': {
       arc(r - 1.5, 1.7, false);
-      circle(kr, '#141416');
+      // owner's reference: a grey cap lighter than the box so it stands out, a dark gap round it,
+      // lit softly from above
+      circle(kr + 0.8, '#040405');
+      const body = g.createRadialGradient(cx, cy - kr * 0.25, kr * 0.1, cx, cy, kr);
+      body.addColorStop(0, '#2b2b2f');
+      body.addColorStop(0.7, '#222225');
+      body.addColorStop(1, '#19191c');
+      circle(kr, body);
       g.save();
-      g.strokeStyle = 'rgba(255,255,255,0.10)';
+      const edge = g.createLinearGradient(cx, cy - kr, cx, cy + kr);
+      edge.addColorStop(0, 'rgba(255,255,255,0.22)');
+      edge.addColorStop(1, 'rgba(255,255,255,0.05)');
+      g.strokeStyle = edge;
       g.lineWidth = 1;
       g.beginPath();
       g.arc(cx, cy, kr - 0.5, 0, 2 * Math.PI);
@@ -1166,8 +1176,11 @@ export class SynthView {
     if (!g) return;
     const [W, H] = this.scopeSize;
     // phosphor persistence: the last frames fade instead of vanishing; a faint graticule
-    g.fillStyle = 'rgba(9,9,9,0.24)';
+    g.save();
+    g.globalCompositeOperation = 'destination-out';
+    g.fillStyle = 'rgba(0,0,0,0.24)';
     g.fillRect(0, 0, W, H);
+    g.restore();
     let start = 0;
     for (let i = 1; i < buf.length / 2; i++) if (buf[i - 1] < 0 && buf[i] >= 0) { start = i; break; }
     const n = Math.min(1600, buf.length - start);
@@ -2058,8 +2071,8 @@ export class SynthView {
     const [cv, g] = canvas(W, H, 'scope-screen');
     this.scopeG = g;
     this.scopeSize = [W, H];
-    g.fillStyle = '#0b0b0b';
-    g.fillRect(0, 0, W, H);
+    // transparent (owner's reference): the screen shows the box's own worn surface behind the trace
+    g.clearRect(0, 0, W, H);
     const el = h('div', 'c ob box-scope', h('div', 'scope-glass', cv));
     el.title = 'Oscilloscope: the sound coming out, as a waveform';
     return el;

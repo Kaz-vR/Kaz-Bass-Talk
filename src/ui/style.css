@@ -1697,3 +1697,8 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-sub, .v2 .gr-shot-dir { color: #8e8e94; }
 .v2 .tab { color: #7c7c82 !important; }
 .v2 .brand-sub { color: #77777c !important; }
+/* the scope sits on the box's worn surface (owner's reference), framed by a faint inner edge */
+.v2 .box-scope .scope-glass { background: rgba(255,255,255,0.018) !important; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.07), inset 0 0 24px rgba(0,0,0,0.35) !important; }
+.v2 .box-scope .scope-glass::after { background: repeating-linear-gradient(0deg, rgba(0,0,0,0.12) 0 1px, transparent 1px 3px) !important; }
+/* a switched-off dial stays visible as an object, only quieter */
+.v2 .k.off { opacity: 0.6; }
