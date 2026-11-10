@@ -3949,6 +3949,91 @@ export class SynthView {
       for (const d of nodeDraws) d(this.ruinTaps);
       this.ruinSelect(this.ruinSel);
     });
+    // drag a box to another place, the way apps move on a phone (owner's call): hold it and drag, the boxes it
+    // passes step aside to show where it will land, let go and it drops there (the chain plays in the new order)
+    let press: { box: HTMLElement; from: number; x: number; y: number; id: number } | null = null;
+    let held: { rects: DOMRect[]; to: number } | null = null;
+    let swallowClick = false;
+    const kids = () => Array.from(chain.children) as HTMLElement[];
+    const arrange = (from: number, to: number) => {
+      const order = kids().map((_, i) => i).filter((i) => i !== from);
+      order.splice(to, 0, from);
+      return order;
+    };
+    const endDrag = (commit: boolean) => {
+      const p = press, d = held;
+      press = null;
+      held = null;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onCancel);
+      if (!p || !d) return;
+      const was = p.box.getBoundingClientRect();
+      for (const el of kids()) {
+        el.classList.remove('gr-shift', 'gr-dragging');
+        el.style.transform = '';
+      }
+      chain.classList.remove('gr-held-on');
+      if (commit && d.to !== p.from) {
+        const vals = SLOT_IDS.map((id) => String(this.get(id)));
+        const order = arrange(p.from, d.to);
+        SLOT_IDS.forEach((id, s) => this.set(id, vals[order[s]]));
+      }
+      // the dropped box glides from where it was let go into its place
+      const now = p.box.getBoundingClientRect();
+      p.box.style.transition = 'none';
+      p.box.style.transform = `translate(${was.left - now.left}px, ${was.top - now.top}px)`;
+      void p.box.offsetWidth;
+      p.box.style.transition = 'transform 160ms ease-out';
+      p.box.style.transform = '';
+      window.setTimeout(() => { p.box.style.transition = ''; }, 200);
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!press || e.pointerId !== press.id) return;
+      const dx = e.clientX - press.x, dy = e.clientY - press.y;
+      if (!held) {
+        if (Math.hypot(dx, dy) < 6) return;
+        held = { rects: kids().map((el) => el.getBoundingClientRect()), to: press.from };
+        chain.classList.add('gr-held-on');
+        kids().forEach((el) => el.classList.add(el === press!.box ? 'gr-dragging' : 'gr-shift'));
+        swallowClick = true;
+      }
+      press.box.style.transform = `translate(${dx}px, ${dy}px) scale(1.04)`;
+      // the place under the pointer: the box whose centre is nearest
+      let to = held.to, best = Infinity;
+      held.rects.forEach((r, i) => {
+        const dd = Math.hypot(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2));
+        if (dd < best) { best = dd; to = i; }
+      });
+      if (to === held.to) return;
+      held.to = to;
+      const order = arrange(press.from, to), rects = held.rects;
+      kids().forEach((el, i) => {
+        if (i === press!.from) return;
+        const at = order.indexOf(i);
+        el.style.transform = `translate(${rects[at].left - rects[i].left}px, ${rects[at].top - rects[i].top}px)`;
+      });
+    };
+    const onUp = (e: PointerEvent) => { if (press && e.pointerId === press.id) endDrag(true); };
+    const onCancel = (e: PointerEvent) => { if (press && e.pointerId === press.id) endDrag(false); };
+    chain.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || press) return;
+      const t = e.target as HTMLElement;
+      if (t.closest('button, select, input, .sel')) return;
+      const box = t.closest('.gr-node') as HTMLElement | null;
+      if (!box || box.parentElement !== chain || box.classList.contains('gr-empty')) return;
+      press = { box, from: kids().indexOf(box), x: e.clientX, y: e.clientY, id: e.pointerId };
+      swallowClick = false;
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onCancel);
+    });
+    // a drag is not a click: the box you let go of is not selected by it
+    chain.addEventListener('click', (e) => {
+      if (!swallowClick) return;
+      swallowClick = false;
+      e.stopPropagation();
+    }, true);
 
     // ---- the focus: what the selected node adds, its drive curve, its controls
     const GW = 520, GH = 168, LMW = 30;

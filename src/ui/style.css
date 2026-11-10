@@ -1554,6 +1554,11 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-node:hover { border-color: rgba(255,255,255,0.16); }
 .v2 .gr-node.gr-cur { border-color: var(--knob-accent); box-shadow: 0 0 10px color-mix(in srgb, var(--knob-accent) 35%, transparent), inset 0 0 18px color-mix(in srgb, var(--knob-accent) 8%, transparent); }
 .v2 .gr-node.is-off .gr-node-cv { opacity: 0.35; }
+/* dragging a box to another place (like apps on a phone): it lifts and follows the pointer, the others step aside */
+.v2 .gr-chain > .gr-node:not(.gr-empty) { touch-action: none; user-select: none; }
+.v2 .gr-chain.gr-drag-on, .v2 .gr-chain.gr-drag-on * { cursor: grabbing !important; }
+.v2 .gr-node.gr-shift { transition: transform 180ms ease; }
+.v2 .gr-node.gr-dragging { position: relative; z-index: 5; transition: none; box-shadow: 0 10px 28px rgba(0,0,0,0.6), 0 0 0 1px var(--knob-accent); opacity: 0.95; }
 .v2 .gr-node-head { display: flex; align-items: center; gap: 6px; height: 14px; }
 .v2 .gr-node-head .power { transform: scale(0.85); }
 .v2 .gr-node-name { font-size: 11px; letter-spacing: 0.16em; color: #e8e8ea; white-space: nowrap; }
