@@ -551,7 +551,11 @@ class Grind {
       // HZ: a swing from the top at every note; SYNC: the same swing on the bar; RANDOM: it wanders, every step its own speed
       const double hz = clock == GC_SYNC ? bps / GRIND_BEATS[grindBeat(rate)] : grindHz(rate);
       double m;
-      if (clock == GC_RANDOM) {
+      if (oneShot) {
+        // a single sweep that holds; on RANDOM each note's sweep has its own speed around Rate
+        s.phase += dt;
+        m = shotDir * (-1 + 2 * std::exp((-s.phase * 2 * hz * (clock == GC_RANDOM ? s.spd : 1.0)) * 3));
+      } else if (clock == GC_RANDOM) {
         s.wPos += hz * s.spd * dt;
         if (s.wPos >= 1) {
           s.wPos -= std::floor(s.wPos);
@@ -560,9 +564,6 @@ class Grind {
           s.spd = grindRandomSpeed(rng);
         }
         m = s.wFrom + (s.wTo - s.wFrom) * (0.5 - 0.5 * std::cos(PI * s.wPos));
-      } else if (oneShot) {
-        s.phase += dt;
-        m = shotDir * (-1 + 2 * std::exp((-s.phase * 2 * hz) * 3));
       } else if (clock == GC_SYNC) {
         const double p = beatPos / GRIND_BEATS[grindBeat(rate)];
         m = std::cos(TWO_PI * (p - std::floor(p)));

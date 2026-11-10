@@ -3320,7 +3320,7 @@
       "type": "bool",
       "default": true,
       "group": "grind",
-      "describes": "Stages on HZ or SYNC sweep once at Rate and stay at the end until the next note (DIR sets which way)."
+      "describes": "Every stage sweeps once at Rate (on RANDOM each note at its own speed around Rate) and stays at the end until the next note; the arrow beside it sets which way."
     },
     {
       "id": "grind.oneshot_dir",

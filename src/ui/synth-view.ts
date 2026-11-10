@@ -3961,6 +3961,47 @@ export class SynthView {
     });
     // drag a box to another place, the way apps move on a phone (owner's call): hold it and drag, the boxes it
     // passes step aside to show where it will land, let go and it drops there (the chain plays in the new order)
+    // after a drop the numbers read 1, 2, 3 … left to right again, per kind (owner's call): each part's
+    // settings move with it to its new number, so the chain sounds exactly as it was dropped
+    const KIND_KEYS: Record<(typeof KINDS)[number], string[]> = {
+      filter: ['filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'filter_level'],
+      drive: ['drive_type', 'drive', 'mix', 'drive_level', 'drive_freq', 'drive_width', 'drive_tone', 'drive_dyn'],
+      eq: ['eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`))],
+    };
+    const renumber = () => {
+      const vals = SLOT_IDS.map((id) => String(this.get(id)));
+      const stageOnBefore = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => !!this.get(`grind${n}.on`));
+      const heard: boolean[][] = [[], [], [], [], [], [], [], [], []];
+      const selKind = kindOf(this.ruinSel);
+      let selStage = stageOf(this.ruinSel);
+      let changed = false;
+      for (const kind of KINDS) {
+        // the order this kind should be numbered in: the boxes left to right, then the parts not in the chain
+        const inChain = vals.filter((v) => v.startsWith(`${kind} `)).map((v) => Number(v.split(' ')[1]));
+        const src = [...inChain, ...[1, 2, 3, 4, 5, 6, 7, 8].filter((n) => !inChain.includes(n))];
+        if (src.every((n, i) => n === i + 1)) {
+          for (let m = 1; m <= 8; m++) heard[m].push(stageOnBefore[m - 1] && !!this.get(`grind${m}.${kind}_on`));
+          continue;
+        }
+        changed = true;
+        const keys = KIND_KEYS[kind].filter((k) => getParam(`grind1.${k}`));
+        const old = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => keys.map((k) => this.get(`grind${n}.${k}`)));
+        const oldOn = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => stageOnBefore[n - 1] && !!this.get(`grind${n}.${kind}_on`));
+        for (let m = 1; m <= 8; m++) {
+          const from = src[m - 1];
+          keys.forEach((k, j) => this.set(`grind${m}.${k}`, old[from - 1][j]));
+          this.set(`grind${m}.${kind}_on`, oldOn[from - 1]);
+          heard[m].push(oldOn[from - 1]);
+        }
+        vals.forEach((v, s) => { if (v.startsWith(`${kind} `)) vals[s] = `${kind} ${src.indexOf(Number(v.split(' ')[1])) + 1}`; });
+        if (kind === selKind) selStage = src.indexOf(selStage) + 1;
+      }
+      if (!changed) return;
+      // a stage is on when one of its parts is heard (a part keeps its own on / off as it moves)
+      for (let m = 1; m <= 8; m++) this.set(`grind${m}.on`, heard[m].some(Boolean));
+      SLOT_IDS.forEach((id, s) => this.set(id, vals[s]));
+      this.ruinSelect(PART_VALUE.indexOf(`${selKind} ${selStage}`));
+    };
     let press: { box: HTMLElement; from: number; x: number; y: number; id: number } | null = null;
     let held: { rects: DOMRect[]; to: number } | null = null;
     let swallowClick = false;
@@ -3988,6 +4029,7 @@ export class SynthView {
         const vals = SLOT_IDS.map((id) => String(this.get(id)));
         const order = arrange(p.from, d.to);
         SLOT_IDS.forEach((id, s) => this.set(id, vals[order[s]]));
+        renumber();
       }
       // the dropped box glides from where it was let go into its place
       const now = p.box.getBoundingClientRect();
@@ -4083,7 +4125,7 @@ export class SynthView {
       const rateFmt = (v: number) => {
         const clock = this.get(`${pre}.clock`), avg = clock === 'random' ? '~' : '';
         if (clock === 'sync') return GRIND_BEAT_NAMES[grindBeat(v)];
-        if (this.get('grind.oneshot') && clock === 'hz') return `${avg}${Math.round(500 / grindHz(v))} ms`;
+        if (this.get('grind.oneshot')) return `${avg}${Math.round(500 / grindHz(v))} ms`;
         return `${avg}${grindHz(v).toFixed(grindHz(v) < 1 ? 2 : 1)} Hz`;
       };
       const sync = h('span', 'fx-kinds sw-small gr-sync');

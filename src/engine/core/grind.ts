@@ -597,7 +597,7 @@ export class Grind {
         this.split[4 * c + 2 + j].setHighpass(Math.min(lc, fs * 0.45), Math.SQRT1_2, fsOs);
       }
     }
-    // KEY: every stage follows the note (Freq is where it sits at C3); ONE SHOT: the HZ / SYNC swing sweeps once and holds
+    // KEY: every stage follows the note (Freq is where it sits at C3); ONE SHOT: every stage sweeps once and holds
     const key = cur[P.grindKey] > 0.5 ? Math.pow(2, keyOct) : 1, oneShot = cur[P.grindOneShot] > 0.5;
     // ONE SHOT's way: down = from the top to the bottom (right to left), up = from the bottom to the top
     const shotDir = cur[P.grindOneShotUp] > 0.5 ? -1 : 1;
@@ -615,7 +615,13 @@ export class Grind {
       // so nothing ever repeats (owner's call: the clock is the movement, no separate move switch)
       const hz = clock === GC_SYNC ? bps / GRIND_BEATS[grindBeat(rate)] : grindHz(rate);
       let m: number;
-      if (clock === GC_RANDOM) {
+      if (oneShot) {
+        // an envelope, not an LFO: from one end of the range it moves fast, then settles at the other end
+        // and stays there until the next note; Rate sets how long the move takes (its time = half a cycle);
+        // on RANDOM every note's sweep gets its own speed around Rate (owner's call: ONE SHOT on all three clocks)
+        s.phase += dt;
+        m = shotDir * (-1 + 2 * Math.exp((-s.phase * 2 * hz * (clock === GC_RANDOM ? s.spd : 1)) * 3));
+      } else if (clock === GC_RANDOM) {
         s.wPos += hz * s.spd * dt;
         if (s.wPos >= 1) {
           s.wPos -= Math.floor(s.wPos);
@@ -624,11 +630,6 @@ export class Grind {
           s.spd = randomSpeed(rng);
         }
         m = s.wFrom + (s.wTo - s.wFrom) * (0.5 - 0.5 * Math.cos(Math.PI * s.wPos));
-      } else if (oneShot) {
-        // an envelope, not an LFO: from the top of the range it falls fast, then settles at the bottom
-        // and stays there until the next note; Rate sets how long the fall takes (its time = half a cycle)
-        s.phase += dt;
-        m = shotDir * (-1 + 2 * Math.exp((-s.phase * 2 * hz) * 3));
       } else if (clock === GC_SYNC) {
         const p = beatPos / GRIND_BEATS[grindBeat(rate)];
         m = Math.cos(TWO_PI * (p - Math.floor(p)));
