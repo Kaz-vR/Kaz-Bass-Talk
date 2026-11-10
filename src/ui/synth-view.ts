@@ -3988,7 +3988,7 @@ export class SynthView {
       const rateFmt = (v: number) => {
         const clock = this.get(`${pre}.clock`), avg = clock === 'random' ? '~' : '';
         if (clock === 'sync') return GRIND_BEAT_NAMES[grindBeat(v)];
-        if (this.get('grind.oneshot') && this.get(`${pre}.move`) === 'note') return `${avg}${Math.round(500 / grindHz(v))} ms`;
+        if (this.get('grind.oneshot') && clock === 'hz') return `${avg}${Math.round(500 / grindHz(v))} ms`;
         return `${avg}${grindHz(v).toFixed(grindHz(v) < 1 ? 2 : 1)} Hz`;
       };
       const sync = h('span', 'fx-kinds sw-small gr-sync');
@@ -4001,11 +4001,10 @@ export class SynthView {
       this.watch([`${pre}.clock`], () => clocks.forEach((b, j) => b.classList.toggle('on', ['hz', 'sync', 'random'][j] === this.get(`${pre}.clock`))));
       sync.title = getParam(`${pre}.clock`)!.describes;
       const fk = n - 1, dk = 8 + n - 1, ek = 16 + n - 1;
-      const fhead = h('div', 'ob-head gr-row-head', partPower(fk), h('span', 'c-title', `FILTER ${n}`), this.filterTypeSelector(`${pre}.filter`),
-        h('span', 'gr-moves', h('span', 'gr-moves-label', 'MOVES'), this.selector(`${pre}.move`)), h('span', 'gr-icons', dice, lock));
+      const fhead = h('div', 'ob-head gr-row-head', partPower(fk), h('span', 'c-title', `FILTER ${n}`), this.filterTypeSelector(`${pre}.filter`), h('span', 'gr-icons', dice, lock));
       // Freq and H Range are the ball on the graph (owner's call): only Res, Depth and Rate are dials
       const fdials = h('div', 'ob-dials gr-fdials', md(`${pre}.width`, 'Width', { fmt: pct }), md(`${pre}.depth`, 'Depth', { fmt: pct }),
-        md(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.clock`, `${pre}.move`, 'grind.oneshot'] }), sync);
+        md(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.clock`, 'grind.oneshot'] }), sync);
       const dhead = h('div', 'ob-head gr-row-head', partPower(dk), h('span', 'c-title', `DRIVE ${n}`), this.driveTypeSelector(`${pre}.drive_type`));
       const ddials = h('div', 'ob-dials gr-ddials', md(`${pre}.drive`, 'Drive', { fmt: pct }), md(`${pre}.drive_tone`, 'Tone', { fmt: pct }), md(`${pre}.mix`, 'Dry/Wet', { fmt: pct }));
       sets[fk] = h('div', `gr-set gr-s${n}`, fhead, fdials);
@@ -4440,14 +4439,15 @@ export class SynthView {
       s.mix = round(nudge(s.mix, 0.06, 0.4, 1));
       if (rnd() < 0.6 * w) s.type = w < 0.5 ? pick(DRIVE_FAMILIES.find((f) => f.includes(s.type)) ?? ALL_TYPES) : pick(ALL_TYPES);
       if (rnd() < 0.4 * w) s.filter = rnd() < 0.15 ? null : pick(FILTERS);
-      if (rnd() < 0.25 * w) s.move = s.move === 'wander' ? 'note' : 'wander';
+      // the clock is the movement: HZ / SYNC swing, RANDOM wanders
+      if (rnd() < 0.25 * w) s.clock = s.clock === 'random' ? 'hz' : 'random';
       return s;
     };
     const anyStage = (): RuinStage => {
       if (!wild) return vary(pick(RUIN_RECIPES.flatMap((r) => r.stages.filter((x): x is RuinStage => !!x))));
       return {
         filter: rnd() < 0.15 ? null : pick(FILTERS), freq: Math.round(80 * Math.pow(90, rnd())), width: round(0.05 + 0.85 * rnd()), depth: round(0.4 + 0.6 * rnd()), range: round(4 * rnd(), 10),
-        move: rnd() < 0.7 ? 'wander' : 'note', rate: round(0.1 + 0.8 * rnd()), clock: rnd() < 0.6 ? 'random' : 'hz',
+        rate: round(0.1 + 0.8 * rnd()), clock: rnd() < 0.7 ? 'random' : 'hz',
         type: pick(ALL_TYPES), drive: round(0.15 + 0.8 * rnd()), tone: round(0.3 + 0.7 * rnd()), mix: round(0.4 + 0.6 * rnd()),
       };
     };
@@ -4963,7 +4963,7 @@ export class SynthView {
 // ------------------------------------------------------------------ GRIND prints
 
 /** A GRIND stage's parameters (grind<n>.*), in the order a roll snapshot keeps them. */
-const GRIND_KEYS = ['on', 'filter', 'freq', 'range', 'move', 'rate', 'clock', 'width', 'depth', 'drive_type', 'drive', 'mix', 'filter_on', 'drive_on', 'filter_level', 'drive_level',
+const GRIND_KEYS = ['on', 'filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'drive_type', 'drive', 'mix', 'filter_on', 'drive_on', 'filter_level', 'drive_level',
   'drive_freq', 'drive_width', 'drive_tone', 'eq_on', 'eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`))];
 type GrindView = { filter: string; freq: number; range: number; res: number; depth?: number };
 type Cx = [number, number];

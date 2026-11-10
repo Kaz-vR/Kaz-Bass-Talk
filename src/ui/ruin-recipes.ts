@@ -9,9 +9,8 @@ export interface RuinStage {
   width: number; // 0..1, the filter's width (narrow … wide)
   depth?: number; // 0..1, how deep the filter goes (absent = all the way)
   range: number; // octaves the filter swings
-  move: 'wander' | 'note';
   rate: number; // 0..1 (0.3 ≈ 0.5 Hz, 0.5 ≈ 1.6 Hz, 0.6 ≈ 2.8 Hz)
-  clock: 'hz' | 'random';
+  clock: 'hz' | 'random'; // hz = a swing that restarts with every note, random = it wanders
   type: string; // drive type
   drive: number; // 0..1 = 0 … +30 dB
   tone: number; // 0..1, 1 = open
@@ -31,7 +30,7 @@ export interface RuinRecipe {
 }
 
 const st = (s: Partial<RuinStage> & Pick<RuinStage, 'type' | 'drive'>): RuinStage => ({
-  filter: null, freq: 900, width: 0.6, range: 1, move: 'wander', rate: 0.4, clock: 'random', tone: 1, mix: 1, ...s,
+  filter: null, freq: 900, width: 0.6, range: 1, rate: 0.4, clock: 'random', tone: 1, mix: 1, ...s,
 });
 
 export const RUIN_RECIPES: RuinRecipe[] = [
@@ -69,7 +68,7 @@ export const RUIN_RECIPES: RuinRecipe[] = [
     name: 'NEURO TALK', idea: 'mid-forward growl: a moving peak and band into the amp, evened out between stages',
     ott: 0.5, lowcut: 180, mix: 1, output: -5.6,
     stages: [
-      st({ filter: 'peak', freq: 700, width: 0.3, range: 2.2, move: 'note', rate: 0.55, clock: 'hz', type: 'amp', drive: 0.55 }),
+      st({ filter: 'peak', freq: 700, width: 0.3, range: 2.2, rate: 0.55, clock: 'hz', type: 'amp', drive: 0.55 }),
       st({ filter: 'band', freq: 1400, width: 0.5, range: 1.6, rate: 0.5, type: 'diode', drive: 0.45 }),
       st({ filter: 'notch', freq: 2400, width: 0.5, range: 1, rate: 0.6, type: 'hard clip', drive: 0.4 }),
       st({ type: 'soft clip', drive: 0.3, tone: 0.55 }),
@@ -138,7 +137,7 @@ export function recipeParams(r: RuinRecipe): Record<string, number | string | bo
 export function stageParams(p: string, s: RuinStage): Record<string, number | string | boolean> {
   return {
     [`${p}.on`]: true, [`${p}.filter_on`]: !!s.filter, [`${p}.filter`]: s.filter ?? 'notch', [`${p}.freq`]: s.freq, [`${p}.width`]: s.width, [`${p}.depth`]: s.depth ?? 1,
-    [`${p}.range`]: s.range, [`${p}.move`]: s.move, [`${p}.rate`]: s.rate, [`${p}.clock`]: s.clock,
+    [`${p}.range`]: s.range, [`${p}.rate`]: s.rate, [`${p}.clock`]: s.clock,
     [`${p}.drive_on`]: true, [`${p}.drive_type`]: s.type, [`${p}.drive`]: s.drive, [`${p}.drive_tone`]: s.tone, [`${p}.mix`]: s.mix,
     [`${p}.drive_freq`]: s.band ? s.band[0] : 1000, [`${p}.drive_width`]: s.band ? s.band[1] : 9, [`${p}.filter_level`]: 0, [`${p}.drive_level`]: 0, [`${p}.eq_on`]: false, [`${p}.eq_level`]: 0,
   };

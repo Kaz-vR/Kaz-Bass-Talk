@@ -261,17 +261,22 @@ function migrateGrindSlots(src: Record<string, unknown>): Record<string, unknown
 }
 
 function migrateGrind(src: Record<string, unknown>): Record<string, unknown> {
-  if (![1, 2, 3, 4].some((n) => src[`grind${n}.move`] === 'beat' || src[`grind${n}.filter`] === 'formant' || `grind${n}.sync` in src || String(src[`grind${n}.drive_type`]) in OLD_GRIND_DRIVE)) return src;
+  const N = [1, 2, 3, 4, 5, 6, 7, 8];
+  if (!N.some((n) => `grind${n}.move` in src || src[`grind${n}.filter`] === 'formant' || `grind${n}.sync` in src || String(src[`grind${n}.drive_type`]) in OLD_GRIND_DRIVE)) return src;
   const out: Record<string, unknown> = { ...src };
-  for (let n = 1; n <= 4; n++) {
+  for (const n of N) {
     const dt = String(out[`grind${n}.drive_type`]);
     if (dt in OLD_GRIND_DRIVE) out[`grind${n}.drive_type`] = OLD_GRIND_DRIVE[dt];
-    if (out[`grind${n}.move`] === 'beat') {
-      out[`grind${n}.move`] = 'note';
-      out[`grind${n}.clock`] = 'sync';
-    }
+    // the old beat movement: a swing on the bar
+    if (out[`grind${n}.move`] === 'beat') out[`grind${n}.clock`] = 'sync';
     if (out[`grind${n}.sync`] === true) out[`grind${n}.clock`] = 'sync';
     delete out[`grind${n}.sync`];
+    // the move switch is gone (owner's call): HZ and SYNC swing, RANDOM wanders; an old wander on HZ or SYNC
+    // was random already, so it loads as RANDOM (the move then defaulted to wander when a patch left it out)
+    if (`grind${n}.move` in out) {
+      if (out[`grind${n}.move`] === 'wander') out[`grind${n}.clock`] = 'random';
+      delete out[`grind${n}.move`];
+    }
     if (out[`grind${n}.filter`] === 'formant') out[`grind${n}.filter`] = 'peak';
   }
   return out;

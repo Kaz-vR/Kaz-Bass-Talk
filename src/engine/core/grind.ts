@@ -1,7 +1,7 @@
 // GRIND: the neuro-bass chain. Four stages between the oscillators and the drive / main filter,
 // each a moving filter into its own drive (filter → drive → filter → drive …, the way the sound is
 // built by stacking), run at the oversampled rate like the rest of the nonlinear section.
-// Each stage's filter moves on its own, restarted by every note or wandering at random, at a rate
+// Each stage's filter moves on its own: a swing restarted by every note (HZ, SYNC) or wandering at random (RANDOM), at a rate
 // in Hz (free, for life) or synced to the bar; the chain only ever sees what goes into the main filter (A / B), so the sub stays clean.
 
 import { Biquad, Rng, Svf } from './dsp';
@@ -24,8 +24,6 @@ const LV_SMOOTH = 0.002;
 /** The filter's movement zone stays inside 20 Hz-20 kHz (log2). */
 const GZ_LO = Math.log2(20), GZ_HI = Math.log2(20000);
 const randomSpeed = (rng: Rng): number => Math.pow(2, 1.5 * rng.next());
-/** grind<n>.move option order. */
-export const GM_NOTE = 0, GM_WANDER = 1;
 /** Beats per cycle when a stage's rate is synced (grind<n>.sync), by rate (0..1 in six steps). */
 export const GRIND_BEATS = [4, 2, 1, 0.5, 0.25, 0.125];
 export const GRIND_BEAT_NAMES = ['1 BAR', '1/2', '1/4', '1/8', '1/16', '1/32'];
@@ -155,7 +153,6 @@ class Stage {
   wFrom = 0;
   wTo = 0;
   wPos = 0;
-  wCycle = -1;
   /** Wander's second path: the resonance drifts too, at its own slower speed, so the two never line up. */
   /** RANDOM clock: this cycle's speed for the sweep and for the depth (× Rate). */
   spd = 1;
@@ -600,7 +597,7 @@ export class Grind {
         this.split[4 * c + 2 + j].setHighpass(Math.min(lc, fs * 0.45), Math.SQRT1_2, fsOs);
       }
     }
-    // KEY: every stage follows the note (Freq is where it sits at C3); ONE SHOT: note movement sweeps once and holds
+    // KEY: every stage follows the note (Freq is where it sits at C3); ONE SHOT: the HZ / SYNC swing sweeps once and holds
     const key = cur[P.grindKey] > 0.5 ? Math.pow(2, keyOct) : 1, oneShot = cur[P.grindOneShot] > 0.5;
     for (let k = 0; k < GRIND_SLOTS; k++) this.slots[k] = cur[P.grindSlot[k]];
     for (let i = 0; i < GRIND_STAGES; i++) {
@@ -610,45 +607,33 @@ export class Grind {
         s.fcNow = -1;
         continue;
       }
-      const rate = cur[gp.rate], wander = cur[gp.move] === GM_WANDER, clock = cur[gp.clock];
-      // HZ: free running at Rate; SYNC: on the bar clock; RANDOM: Rate is the average, every cycle (note)
-      // or segment (wander) gets its own speed, so nothing ever repeats
-      const hz = clock === GC_SYNC ? bps / GRIND_BEATS[grindBeat(rate)] : grindHz(rate), rnd = clock === GC_RANDOM;
+      const rate = cur[gp.rate], clock = cur[gp.clock];
+      // HZ: a swing from the top of the range at every note, free running at Rate; SYNC: the same swing on the
+      // bar clock; RANDOM: it wanders (smooth random), Rate is the average and every step gets its own speed,
+      // so nothing ever repeats (owner's call: the clock is the movement, no separate move switch)
+      const hz = clock === GC_SYNC ? bps / GRIND_BEATS[grindBeat(rate)] : grindHz(rate);
       let m: number;
-      if (oneShot && !wander) {
+      if (clock === GC_RANDOM) {
+        s.wPos += hz * s.spd * dt;
+        if (s.wPos >= 1) {
+          s.wPos -= Math.floor(s.wPos);
+          s.wFrom = s.wTo;
+          s.wTo = rng.next();
+          s.spd = randomSpeed(rng);
+        }
+        m = s.wFrom + (s.wTo - s.wFrom) * (0.5 - 0.5 * Math.cos(Math.PI * s.wPos));
+      } else if (oneShot) {
         // an envelope, not an LFO: from the top of the range it falls fast, then settles at the bottom
         // and stays there until the next note; Rate sets how long the fall takes (its time = half a cycle)
         s.phase += dt;
         m = -1 + 2 * Math.exp((-s.phase * 2 * hz * s.spd) * 3);
-      } else if (clock === GC_SYNC && !wander) {
+      } else if (clock === GC_SYNC) {
         const p = beatPos / GRIND_BEATS[grindBeat(rate)];
         m = Math.cos(TWO_PI * (p - Math.floor(p)));
-      } else if (!wander) {
-        s.phase += hz * s.spd * dt;
-        if (s.phase >= 1) {
-          s.phase -= Math.floor(s.phase);
-          if (rnd) s.spd = randomSpeed(rng);
-        }
-        m = Math.cos(TWO_PI * s.phase); // from the top at every note
       } else {
-        if (clock === GC_SYNC) {
-          const p = beatPos / GRIND_BEATS[grindBeat(rate)], cycle = Math.floor(p);
-          if (cycle !== s.wCycle) {
-            s.wCycle = cycle;
-            s.wFrom = s.wTo;
-            s.wTo = rng.next();
-          }
-          s.wPos = p - cycle;
-        } else {
-          s.wPos += hz * s.spd * dt;
-          if (s.wPos >= 1) {
-            s.wPos -= Math.floor(s.wPos);
-            s.wFrom = s.wTo;
-            s.wTo = rng.next();
-            if (rnd) s.spd = randomSpeed(rng);
-          }
-        }
-        m = s.wFrom + (s.wTo - s.wFrom) * (0.5 - 0.5 * Math.cos(Math.PI * s.wPos));
+        s.phase += hz * s.spd * dt;
+        if (s.phase >= 1) s.phase -= Math.floor(s.phase);
+        m = Math.cos(TWO_PI * s.phase); // from the top at every note
       }
       // where it moves: Freq (times KEY) ± half the H Range, in octaves, slid inside 20 Hz-20 kHz so the zone keeps
       // its width at the edges; at the top of the range (10 octaves) the zone is the whole spectrum (owner's call)

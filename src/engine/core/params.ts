@@ -219,7 +219,7 @@ export const P = {
   grindOn: ix('grind.on'), grindMix: ix('grind.mix'), grindLowcut: ix('grind.lowcut'), grindKey: ix('grind.key'), grindOneShot: ix('grind.oneshot'), grindNoiseThru: ix('grind.noise_thru'), grindOtt: ix('grind.ott'), grindOut: ix('grind.output'),
   grindSlot: [1, 2, 3, 4, 5, 6, 7, 8].map((k) => ix(`grind.slot${k}`)),
   grind: [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
-    on: ix(`grind${n}.on`), filter: ix(`grind${n}.filter`), freq: ix(`grind${n}.freq`), range: ix(`grind${n}.range`), move: ix(`grind${n}.move`),
+    on: ix(`grind${n}.on`), filter: ix(`grind${n}.filter`), freq: ix(`grind${n}.freq`), range: ix(`grind${n}.range`),
     rate: ix(`grind${n}.rate`), clock: ix(`grind${n}.clock`), width: ix(`grind${n}.width`), depth: ix(`grind${n}.depth`), dtype: ix(`grind${n}.drive_type`), drive: ix(`grind${n}.drive`), mix: ix(`grind${n}.mix`),
     filterOn: ix(`grind${n}.filter_on`), driveOn: ix(`grind${n}.drive_on`), fLevel: ix(`grind${n}.filter_level`), dLevel: ix(`grind${n}.drive_level`),
     eqOn: ix(`grind${n}.eq_on`), eqLevel: ix(`grind${n}.eq_level`), eqScale: ix(`grind${n}.eq_scale`),

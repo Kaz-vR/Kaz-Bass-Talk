@@ -1462,10 +1462,7 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-ic { background: transparent; border: 0; padding: 0; color: #7c7c82; cursor: pointer; display: flex; align-items: center; }
 .v2 .gr-ic:hover { color: #d8d8dc; }
 .v2 .gr-ic.on { color: var(--knob-accent); filter: drop-shadow(0 0 4px var(--knob-accent)); }
-.v2 .gr-moves { display: flex; align-items: center; justify-content: flex-end; gap: 8px; height: 18px; margin-top: 0; flex: none; }
-.v2 .gr-moves .sel-btn { display: none; }
-.v2 .gr-moves-label, .v2 .gr-sub { font-size: 9px; letter-spacing: 0.22em; color: #6e6e74; text-transform: uppercase; white-space: nowrap; }
-.v2 .gr-moves .sel-name { font-size: 9.5px !important; }
+.v2 .gr-sub { font-size: 9px; letter-spacing: 0.22em; color: #6e6e74; text-transform: uppercase; white-space: nowrap; }
 .v2 .gr-drive-row { display: flex; align-items: center; gap: 10px; height: 22px; margin-top: 8px; flex: none; }
 .v2 .gr-drive-row .sel-btn { display: none; }
 .v2 .grind-page > .gr-strip { grid-column: 1 / -1; display: flex !important; align-items: center; padding: 0 14px !important; }
@@ -1590,7 +1587,6 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-set { display: flex; flex-direction: column; gap: 2px; height: 100%; }
 .v2 .gr-row { display: flex; flex-direction: column; }
 .v2 .gr-row-head { height: 22px; gap: 10px; }
-.v2 .gr-row-head .gr-moves { margin-left: 8px; height: auto; }
 .v2 .gr-set .ob-dials { justify-content: flex-start; gap: 10px; margin-top: 0; }
 .v2 .gr-set .gr-sync { margin-bottom: 10px; }
 .v2 .gr-simple .gr-about { font-size: 11px; line-height: 1.5; color: #9a9aa0; max-width: 520px; margin: 6px 0 10px; }
@@ -1651,7 +1647,6 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-focus .ob-dials { grid-row: 3; justify-content: center; align-items: center; gap: 14px; margin: 0; }
 .v2 .gr-focus .gr-about { grid-row: 3; align-self: center; text-align: center; font-size: 11px; color: #8a8a90; }
 .v2 .gr-focus .gr-level-cv { margin-left: 0; }
-.v2 .gr-focus .gr-moves { margin-left: 6px; }
 .v2 .gr-focus .gr-sync { margin: 0 0 14px 2px; }
 .v2 .gr-focus .gr-eq-hint { margin-left: auto; }
 /* the RUIN box: CHAINS in its title, the rocker at its right; ROLL, WEIRD and the lamps centred; its dials at the bottom */

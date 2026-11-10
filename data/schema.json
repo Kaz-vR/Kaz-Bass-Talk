@@ -3681,18 +3681,6 @@
       "describes": "How far the filter moves, in octaves, around its frequency (kept inside 20 Hz-20 kHz). 0 = it stays still, 10 = it roams the whole spectrum."
     },
     {
-      "id": "grind1.move",
-      "label": "Grind 1 moves",
-      "type": "enum",
-      "options": [
-        "note",
-        "wander"
-      ],
-      "default": "wander",
-      "group": "grind1",
-      "describes": "How the filter moves: note = a sweep that restarts with every note (from the top of its range); wander = smooth random, never repeating."
-    },
-    {
       "id": "grind1.rate",
       "label": "Grind 1 rate",
       "type": "float",
@@ -3715,7 +3703,7 @@
       ],
       "default": "random",
       "group": "grind1",
-      "describes": "What times the movement: hz = free running at Rate; sync = on the tempo (1 bar to 1/32); random = Rate is only the average, every sweep or wander step gets its own speed, so it never repeats."
+      "describes": "How the filter moves: hz = it swings up and down at Rate, from the top of its range at every note; sync = the same swing on the tempo (1 bar to 1/32); random = it wanders, smooth random, never repeating: Rate is only the average, every step gets its own speed."
     },
     {
       "id": "grind1.depth",
@@ -4081,18 +4069,6 @@
       "describes": "How far the filter moves, in octaves, around its frequency (kept inside 20 Hz-20 kHz). 0 = it stays still, 10 = it roams the whole spectrum."
     },
     {
-      "id": "grind2.move",
-      "label": "Grind 2 moves",
-      "type": "enum",
-      "options": [
-        "note",
-        "wander"
-      ],
-      "default": "wander",
-      "group": "grind2",
-      "describes": "How the filter moves: note = a sweep that restarts with every note (from the top of its range); wander = smooth random, never repeating."
-    },
-    {
       "id": "grind2.rate",
       "label": "Grind 2 rate",
       "type": "float",
@@ -4115,7 +4091,7 @@
       ],
       "default": "random",
       "group": "grind2",
-      "describes": "What times the movement: hz = free running at Rate; sync = on the tempo (1 bar to 1/32); random = Rate is only the average, every sweep or wander step gets its own speed, so it never repeats."
+      "describes": "How the filter moves: hz = it swings up and down at Rate, from the top of its range at every note; sync = the same swing on the tempo (1 bar to 1/32); random = it wanders, smooth random, never repeating: Rate is only the average, every step gets its own speed."
     },
     {
       "id": "grind2.depth",
@@ -4481,18 +4457,6 @@
       "describes": "How far the filter moves, in octaves, around its frequency (kept inside 20 Hz-20 kHz). 0 = it stays still, 10 = it roams the whole spectrum."
     },
     {
-      "id": "grind3.move",
-      "label": "Grind 3 moves",
-      "type": "enum",
-      "options": [
-        "note",
-        "wander"
-      ],
-      "default": "wander",
-      "group": "grind3",
-      "describes": "How the filter moves: note = a sweep that restarts with every note (from the top of its range); wander = smooth random, never repeating."
-    },
-    {
       "id": "grind3.rate",
       "label": "Grind 3 rate",
       "type": "float",
@@ -4515,7 +4479,7 @@
       ],
       "default": "random",
       "group": "grind3",
-      "describes": "What times the movement: hz = free running at Rate; sync = on the tempo (1 bar to 1/32); random = Rate is only the average, every sweep or wander step gets its own speed, so it never repeats."
+      "describes": "How the filter moves: hz = it swings up and down at Rate, from the top of its range at every note; sync = the same swing on the tempo (1 bar to 1/32); random = it wanders, smooth random, never repeating: Rate is only the average, every step gets its own speed."
     },
     {
       "id": "grind3.depth",
@@ -4881,18 +4845,6 @@
       "describes": "How far the filter moves, in octaves, around its frequency (kept inside 20 Hz-20 kHz). 0 = it stays still, 10 = it roams the whole spectrum."
     },
     {
-      "id": "grind4.move",
-      "label": "Grind 4 moves",
-      "type": "enum",
-      "options": [
-        "note",
-        "wander"
-      ],
-      "default": "wander",
-      "group": "grind4",
-      "describes": "How the filter moves: note = a sweep that restarts with every note (from the top of its range); wander = smooth random, never repeating."
-    },
-    {
       "id": "grind4.rate",
       "label": "Grind 4 rate",
       "type": "float",
@@ -4915,7 +4867,7 @@
       ],
       "default": "hz",
       "group": "grind4",
-      "describes": "What times the movement: hz = free running at Rate; sync = on the tempo (1 bar to 1/32); random = Rate is only the average, every sweep or wander step gets its own speed, so it never repeats."
+      "describes": "How the filter moves: hz = it swings up and down at Rate, from the top of its range at every note; sync = the same swing on the tempo (1 bar to 1/32); random = it wanders, smooth random, never repeating: Rate is only the average, every step gets its own speed."
     },
     {
       "id": "grind4.depth",
@@ -6736,18 +6688,6 @@
       "describes": "How far the filter moves, in octaves, around its frequency (kept inside 20 Hz-20 kHz). 0 = it stays still, 10 = it roams the whole spectrum."
     },
     {
-      "id": "grind5.move",
-      "label": "Grind 5 moves",
-      "type": "enum",
-      "options": [
-        "note",
-        "wander"
-      ],
-      "default": "wander",
-      "group": "grind5",
-      "describes": "How the filter moves: note = a sweep that restarts with every note (from the top of its range); wander = smooth random, never repeating."
-    },
-    {
       "id": "grind5.rate",
       "label": "Grind 5 rate",
       "type": "float",
@@ -6770,7 +6710,7 @@
       ],
       "default": "random",
       "group": "grind5",
-      "describes": "What times the movement: hz = free running at Rate; sync = on the tempo (1 bar to 1/32); random = Rate is only the average, every sweep or wander step gets its own speed, so it never repeats."
+      "describes": "How the filter moves: hz = it swings up and down at Rate, from the top of its range at every note; sync = the same swing on the tempo (1 bar to 1/32); random = it wanders, smooth random, never repeating: Rate is only the average, every step gets its own speed."
     },
     {
       "id": "grind5.depth",
@@ -7200,18 +7140,6 @@
       "describes": "How far the filter moves, in octaves, around its frequency (kept inside 20 Hz-20 kHz). 0 = it stays still, 10 = it roams the whole spectrum."
     },
     {
-      "id": "grind6.move",
-      "label": "Grind 6 moves",
-      "type": "enum",
-      "options": [
-        "note",
-        "wander"
-      ],
-      "default": "wander",
-      "group": "grind6",
-      "describes": "How the filter moves: note = a sweep that restarts with every note (from the top of its range); wander = smooth random, never repeating."
-    },
-    {
       "id": "grind6.rate",
       "label": "Grind 6 rate",
       "type": "float",
@@ -7234,7 +7162,7 @@
       ],
       "default": "random",
       "group": "grind6",
-      "describes": "What times the movement: hz = free running at Rate; sync = on the tempo (1 bar to 1/32); random = Rate is only the average, every sweep or wander step gets its own speed, so it never repeats."
+      "describes": "How the filter moves: hz = it swings up and down at Rate, from the top of its range at every note; sync = the same swing on the tempo (1 bar to 1/32); random = it wanders, smooth random, never repeating: Rate is only the average, every step gets its own speed."
     },
     {
       "id": "grind6.depth",
@@ -7664,18 +7592,6 @@
       "describes": "How far the filter moves, in octaves, around its frequency (kept inside 20 Hz-20 kHz). 0 = it stays still, 10 = it roams the whole spectrum."
     },
     {
-      "id": "grind7.move",
-      "label": "Grind 7 moves",
-      "type": "enum",
-      "options": [
-        "note",
-        "wander"
-      ],
-      "default": "wander",
-      "group": "grind7",
-      "describes": "How the filter moves: note = a sweep that restarts with every note (from the top of its range); wander = smooth random, never repeating."
-    },
-    {
       "id": "grind7.rate",
       "label": "Grind 7 rate",
       "type": "float",
@@ -7698,7 +7614,7 @@
       ],
       "default": "random",
       "group": "grind7",
-      "describes": "What times the movement: hz = free running at Rate; sync = on the tempo (1 bar to 1/32); random = Rate is only the average, every sweep or wander step gets its own speed, so it never repeats."
+      "describes": "How the filter moves: hz = it swings up and down at Rate, from the top of its range at every note; sync = the same swing on the tempo (1 bar to 1/32); random = it wanders, smooth random, never repeating: Rate is only the average, every step gets its own speed."
     },
     {
       "id": "grind7.depth",
@@ -8128,18 +8044,6 @@
       "describes": "How far the filter moves, in octaves, around its frequency (kept inside 20 Hz-20 kHz). 0 = it stays still, 10 = it roams the whole spectrum."
     },
     {
-      "id": "grind8.move",
-      "label": "Grind 8 moves",
-      "type": "enum",
-      "options": [
-        "note",
-        "wander"
-      ],
-      "default": "wander",
-      "group": "grind8",
-      "describes": "How the filter moves: note = a sweep that restarts with every note (from the top of its range); wander = smooth random, never repeating."
-    },
-    {
       "id": "grind8.rate",
       "label": "Grind 8 rate",
       "type": "float",
@@ -8162,7 +8066,7 @@
       ],
       "default": "hz",
       "group": "grind8",
-      "describes": "What times the movement: hz = free running at Rate; sync = on the tempo (1 bar to 1/32); random = Rate is only the average, every sweep or wander step gets its own speed, so it never repeats."
+      "describes": "How the filter moves: hz = it swings up and down at Rate, from the top of its range at every note; sync = the same swing on the tempo (1 bar to 1/32); random = it wanders, smooth random, never repeating: Rate is only the average, every step gets its own speed."
     },
     {
       "id": "grind8.depth",

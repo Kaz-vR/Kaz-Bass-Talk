@@ -7,10 +7,10 @@ const FS = 48000;
 // The chain's settings these tests were written against (the schema's GRIND defaults are the owner's own patch now).
 const GRIND_BASE = {
   'grind.key': false, 'grind.oneshot': false, 'grind.ott': 0, 'grind.sat': 0, 'grind.preott': 0,
-  'grind1.filter': 'notch', 'grind1.freq': 700, 'grind1.range': 2, 'grind1.move': 'note', 'grind1.rate': 0.45, 'grind1.clock': 'hz', 'grind1.vrange': 0.3, 'grind1.res': 0.55, 'grind1.drive_type': 'soft', 'grind1.drive': 0.35, 'grind1.mix': 1,
-  'grind2.filter': 'phaser', 'grind2.freq': 1200, 'grind2.range': 1.5, 'grind2.move': 'note', 'grind2.rate': 0.6, 'grind2.clock': 'hz', 'grind2.vrange': 0.3, 'grind2.res': 0.6, 'grind2.drive_type': 'fold', 'grind2.drive': 0.25, 'grind2.mix': 1,
-  'grind3.filter': 'comb', 'grind3.freq': 300, 'grind3.range': 1, 'grind3.move': 'wander', 'grind3.rate': 0.3, 'grind3.clock': 'hz', 'grind3.vrange': 0.3, 'grind3.res': 0.5, 'grind3.drive_type': 'fuzz', 'grind3.drive': 0.2, 'grind3.mix': 1,
-  'grind4.filter': 'peak', 'grind4.freq': 600, 'grind4.range': 2, 'grind4.move': 'wander', 'grind4.rate': 0.4, 'grind4.clock': 'hz', 'grind4.vrange': 0.3, 'grind4.res': 0.5, 'grind4.drive_type': 'hard', 'grind4.drive': 0.2, 'grind4.mix': 1,
+  'grind1.filter': 'notch', 'grind1.freq': 700, 'grind1.range': 2, 'grind1.rate': 0.45, 'grind1.clock': 'hz', 'grind1.vrange': 0.3, 'grind1.res': 0.55, 'grind1.drive_type': 'soft', 'grind1.drive': 0.35, 'grind1.mix': 1,
+  'grind2.filter': 'phaser', 'grind2.freq': 1200, 'grind2.range': 1.5, 'grind2.rate': 0.6, 'grind2.clock': 'hz', 'grind2.vrange': 0.3, 'grind2.res': 0.6, 'grind2.drive_type': 'fold', 'grind2.drive': 0.25, 'grind2.mix': 1,
+  'grind3.filter': 'comb', 'grind3.freq': 300, 'grind3.range': 1, 'grind3.rate': 0.3, 'grind3.clock': 'random', 'grind3.vrange': 0.3, 'grind3.res': 0.5, 'grind3.drive_type': 'fuzz', 'grind3.drive': 0.2, 'grind3.mix': 1,
+  'grind4.filter': 'peak', 'grind4.freq': 600, 'grind4.range': 2, 'grind4.rate': 0.4, 'grind4.clock': 'random', 'grind4.vrange': 0.3, 'grind4.res': 0.5, 'grind4.drive_type': 'hard', 'grind4.drive': 0.2, 'grind4.mix': 1,
 };
 const saw = {
   ...GRIND_BASE,
@@ -32,9 +32,9 @@ describe('grind', () => {
     expect(diff(off, b, 0, FS)).toBe(0);
   });
   for (const filter of ['notch', 'peak', 'band', 'comb', 'phaser']) {
-    for (const [move, sync] of [['note', 'hz'], ['note', 'sync'], ['note', 'random'], ['wander', 'hz'], ['wander', 'sync'], ['wander', 'random']] as const) {
-      it(`${filter} / ${move} ${sync}: changes the sound, stays finite and level-matched`, () => {
-        const p = { ...saw, 'grind.on': true, 'grind1.filter': filter, 'grind1.move': move, 'grind1.clock': sync, 'grind2.on': false, 'grind3.on': false, 'grind4.on': false };
+    for (const clock of ['hz', 'sync', 'random'] as const) {
+      it(`${filter} / ${clock}: changes the sound, stays finite and level-matched`, () => {
+        const p = { ...saw, 'grind.on': true, 'grind1.filter': filter, 'grind1.clock': clock, 'grind2.on': false, 'grind3.on': false, 'grind4.on': false };
         const a = mono(renderPatch(p, heldNote(36, 4), { seconds: 1 }));
         expect(a.every(Number.isFinite)).toBe(true);
         expect(diff(off, a, 0.2 * FS, 0.9 * FS)).toBeGreaterThan(0.01);
@@ -45,7 +45,7 @@ describe('grind', () => {
     }
   }
   it('the filter moves: the sound changes over a held note', () => {
-    const p = { ...saw, 'grind.on': true, 'grind1.move': 'note', 'grind1.rate': 0.3, 'grind1.range': 3 };
+    const p = { ...saw, 'grind.on': true, 'grind1.rate': 0.3, 'grind1.range': 3 };
     const a = mono(renderPatch(p, heldNote(36, 4), { seconds: 1.2 }));
     const seg = (t: number) => a.subarray(Math.round(t * FS), Math.round((t + 0.05) * FS));
     const s1 = seg(0.2), s2 = seg(0.9);
@@ -63,12 +63,21 @@ describe('grind', () => {
 });
 
 describe('grind migration', () => {
-  it('beat becomes note with Sync on, formant becomes peak', async () => {
+  it('beat becomes a swing on Sync, formant becomes peak', async () => {
     const { validatePatch } = await import('../src/schema');
     const { patch } = validatePatch({ meta: { name: 't' }, 'grind1.move': 'beat', 'grind2.filter': 'formant' });
-    expect(patch['grind1.move']).toBe('note');
+    expect('grind1.move' in patch).toBe(false);
     expect(patch['grind1.clock']).toBe('sync');
     expect(patch['grind2.filter']).toBe('peak');
+  });
+  it('the move switch is gone: an old wander on HZ or SYNC loads as RANDOM, a note sweep keeps its clock', async () => {
+    const { validatePatch } = await import('../src/schema');
+    const { patch } = validatePatch({
+      meta: { name: 't' }, 'grind1.move': 'wander', 'grind1.clock': 'hz', 'grind2.move': 'wander', 'grind2.clock': 'sync',
+      'grind3.move': 'note', 'grind3.clock': 'hz', 'grind4.move': 'note', 'grind4.clock': 'sync',
+    });
+    expect([1, 2, 3, 4].map((n) => patch[`grind${n}.clock`])).toEqual(['random', 'random', 'hz', 'sync']);
+    expect([1, 2, 3, 4].some((n) => `grind${n}.move` in patch)).toBe(false);
   });
 });
 
@@ -124,7 +133,7 @@ describe('grind key, one shot and OTT', () => {
     expect(Math.abs(Math.log(ratio(k)) - Math.log(ratio(nk)))).toBeGreaterThan(0.05);
   });
   it('ONE SHOT sweeps once and stays: the end of a held note no longer moves', () => {
-    const p = { ...saw, 'grind.on': true, 'grind2.on': false, 'grind3.on': false, 'grind4.on': false, 'grind1.move': 'note', 'grind1.rate': 0.5, 'grind1.range': 3, 'grind.oneshot': true };
+    const p = { ...saw, 'grind.on': true, 'grind2.on': false, 'grind3.on': false, 'grind4.on': false, 'grind1.rate': 0.5, 'grind1.range': 3, 'grind.oneshot': true };
     const a = mono(renderPatch(p as never, heldNote(36, 4), { seconds: 1.6 }));
     const seg = (t: number) => rms(Float32Array.from(a), Math.round(t * FS), Math.round((t + 0.1) * FS));
     expect(Math.abs(seg(1.2) / seg(1.4) - 1)).toBeLessThan(0.05);
@@ -155,7 +164,7 @@ describe('grind sat, pre OTT, random clock and V RANGE', () => {
     }
   });
   it('V RANGE moves the resonance: the sound changes against V RANGE 0', () => {
-    const p = { ...base, 'grind1.move': 'wander', 'grind1.range': 0, 'grind1.res': 0.5, 'grind2.on': false, 'grind3.on': false, 'grind4.on': false };
+    const p = { ...base, 'grind1.range': 0, 'grind1.res': 0.5, 'grind2.on': false, 'grind3.on': false, 'grind4.on': false };
     expect(diff(render({ ...p, 'grind1.vrange': 0 }), render({ ...p, 'grind1.vrange': 1 }), 0.2 * FS, 0.9 * FS)).toBeGreaterThan(0.005);
   });
 });

@@ -14,7 +14,6 @@ constexpr int GRIND_STAGES = 8;
 constexpr int GRIND_SLOTS = 8;  // the RUIN page's eight boxes (grind.slot1..8)
 constexpr int GF_NOTCH = 0, GF_PEAK = 1, GF_BAND = 2, GF_COMB = 3, GF_PHASER = 4;
 constexpr int GC_HZ = 0, GC_SYNC = 1, GC_RANDOM = 2;
-constexpr int GM_NOTE = 0, GM_WANDER = 1;
 constexpr double GRIND_BEATS[6] = {4, 2, 1, 0.5, 0.25, 0.125};
 inline double grindRandomSpeed(Rng& rng) { return std::pow(2.0, 1.5 * rng.next()); }
 inline double grindHz(double rate) { return 0.1 * std::pow(2.0, rate * 8); }
@@ -199,7 +198,6 @@ struct GrindStage {
   bool on = false;
   int ftype = GF_NOTCH, dtype = GD_TAPE;
   double phase = 0, wFrom = 0, wTo = 0, wPos = 0, spd = 1, depth = 1, fLvT = 1, fLv = 1, dLvT = 1, dLv = 1;
-  double wCycle = -1;
   double fcNow = -1, resNow = 0;
   double g = 0.05, gStep = 0, k = 1, peak = 0, delay = 100, delayStep = 0, fb = 0;
   bool driveOn = false, filterOn = true;
@@ -548,43 +546,29 @@ class Grind {
         continue;
       }
       const double rate = cur[gp.rate];
-      const bool wander = (int)cur[gp.move] == GM_WANDER;
       const int clock = (int)cur[gp.clock];
+      // HZ: a swing from the top at every note; SYNC: the same swing on the bar; RANDOM: it wanders, every step its own speed
       const double hz = clock == GC_SYNC ? bps / GRIND_BEATS[grindBeat(rate)] : grindHz(rate);
-      const bool rnd = clock == GC_RANDOM;
       double m;
-      if (oneShot && !wander) {
-        s.phase += dt;
-        m = -1 + 2 * std::exp((-s.phase * 2 * hz * s.spd) * 3);
-      } else if (clock == GC_SYNC && !wander) {
-        const double p = beatPos / GRIND_BEATS[grindBeat(rate)];
-        m = std::cos(TWO_PI * (p - std::floor(p)));
-      } else if (!wander) {
-        s.phase += hz * s.spd * dt;
-        if (s.phase >= 1) {
-          s.phase -= std::floor(s.phase);
-          if (rnd) s.spd = grindRandomSpeed(rng);
-        }
-        m = std::cos(TWO_PI * s.phase);
-      } else {
-        if (clock == GC_SYNC) {
-          const double p = beatPos / GRIND_BEATS[grindBeat(rate)], cycle = std::floor(p);
-          if (cycle != s.wCycle) {
-            s.wCycle = cycle;
-            s.wFrom = s.wTo;
-            s.wTo = rng.next();
-          }
-          s.wPos = p - cycle;
-        } else {
-          s.wPos += hz * s.spd * dt;
-          if (s.wPos >= 1) {
-            s.wPos -= std::floor(s.wPos);
-            s.wFrom = s.wTo;
-            s.wTo = rng.next();
-            if (rnd) s.spd = grindRandomSpeed(rng);
-          }
+      if (clock == GC_RANDOM) {
+        s.wPos += hz * s.spd * dt;
+        if (s.wPos >= 1) {
+          s.wPos -= std::floor(s.wPos);
+          s.wFrom = s.wTo;
+          s.wTo = rng.next();
+          s.spd = grindRandomSpeed(rng);
         }
         m = s.wFrom + (s.wTo - s.wFrom) * (0.5 - 0.5 * std::cos(PI * s.wPos));
+      } else if (oneShot) {
+        s.phase += dt;
+        m = -1 + 2 * std::exp((-s.phase * 2 * hz * s.spd) * 3);
+      } else if (clock == GC_SYNC) {
+        const double p = beatPos / GRIND_BEATS[grindBeat(rate)];
+        m = std::cos(TWO_PI * (p - std::floor(p)));
+      } else {
+        s.phase += hz * s.spd * dt;
+        if (s.phase >= 1) s.phase -= std::floor(s.phase);
+        m = std::cos(TWO_PI * s.phase);
       }
       // where it moves: Freq (times KEY) ± half the H Range, slid inside 20 Hz-20 kHz; the top of the range = the whole spectrum
       const double gzLo = std::log2(20.0), gzHi = std::log2(20000.0);
