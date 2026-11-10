@@ -5062,7 +5062,8 @@ export class SynthView {
     document.documentElement.style.setProperty('--frame', `url(${frameTexture()})`);
     this.page.style.setProperty('--corrosion', `url(${corrosionTexture()})`);
     this.page.style.setProperty('--logo-wear', `url(${logoWear()})`);
-    this.page.style.setProperty('--wood', `url(${woodTexture()})`);
+    this.page.style.setProperty('--wood-l', `url(${woodTexture('l')})`);
+    this.page.style.setProperty('--wood-r', `url(${woodTexture('r')})`);
     this.page.style.setProperty('--key-grime', `url(${keyGrime()})`);
     const tabs = h('div', 'v2-tabs');
     for (const [t, ready] of [['OSC', true], ['LFO', true], ['WOBBLER', true], ['RUIN', true], ['FX', true], ['PRESETS', true]] as const) {

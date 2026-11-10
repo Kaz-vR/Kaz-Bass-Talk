@@ -256,40 +256,111 @@ export function logoWear(s = 128, seed = 41): string {
 }
 
 /**
- * The wooden sides, all code (owner's reference): dark red-brown, weathered, quiet vertical grain, rusty
- * orange flecks and small dark pits, darker towards both edges. No bright patches: the variation stays small.
+ * The wooden sides, all code, with the reference's own damage in the reference's own places (owner's call):
+ * dark red-brown weathered boards with vertical grain and pits; pale paint flakes lifting (lit top edge, dark
+ * rim) clustered at the top and in streaks; round nail heads; a pale flaked patch low on the left; one long
+ * thin scratch across the right. Places are in the reference's units (a 66 x 711 board), stretched to fit.
  */
-export function woodTexture(w = 134, h = 1800, seed = 61): string {
-  const r = rng(seed), grainA = valueNoise(3, r), grainB = valueNoise(9, r), mott = valueNoise(26, r), fleck = valueNoise(5, r), pit = valueNoise(3, r);
+type Blob = [number, number, number, number, number]; // x, y, radius x, radius y, strength
+const WOOD_DAMAGE: Record<'l' | 'r', { flakes: Blob[]; nails: [number, number, number][]; scratches: [number, number, number, number][] }> = {
+  l: {
+    flakes: [[20, 22, 28, 34, 1], [50, 160, 16, 130, 0.85], [46, 340, 14, 80, 0.6], [50, 540, 16, 44, 0.8], [46, 650, 18, 52, 1.1], [20, 692, 20, 22, 0.6]],
+    nails: [[37, 610, 5.5]],
+    scratches: [],
+  },
+  r: {
+    flakes: [[20, 30, 28, 42, 1], [46, 80, 14, 32, 0.7], [20, 220, 18, 115, 0.95], [30, 420, 16, 64, 0.6], [26, 600, 22, 95, 0.9], [50, 560, 12, 42, 0.5]],
+    nails: [[24, 40, 5], [4, 133, 3.5], [34, 513, 7.5], [10, 470, 3.5], [43, 667, 4]],
+    scratches: [[-4, 278, 70, 342]],
+  },
+};
+export function woodTexture(side: 'l' | 'r' = 'l', w = 134, h = 1422, seed = 61): string {
+  const r = rng(seed + (side === 'r' ? 7 : 0));
+  const grainA = valueNoise(3, r), grainB = valueNoise(9, r), mott = valueNoise(26, r), fleck = valueNoise(5, r), pit = valueNoise(3, r);
+  const flakeN = valueNoise(2.5, r), flakeN2 = valueNoise(7, r), flakeTone = valueNoise(6, r), crust = valueNoise(1.6, r);
+  const sx = w / 66, sy = h / 711, D = WOOD_DAMAGE[side];
+  // how much flaking there is here: soft blobs at the reference's places, stretched along the grain
+  const amount = (x: number, y: number) => {
+    let a = 0;
+    for (const [bx, by, rx, ry, k] of D.flakes) {
+      const dx = (x / sx - bx) / rx, dy = (y / sy - by) / ry;
+      a += k * Math.exp(-(dx * dx + dy * dy) * 1.6);
+    }
+    return Math.min(1.2, a);
+  };
+  // the flake field: grain-stretched noise, so flakes come away in vertical slivers like old paint
+  const fl = (x: number, y: number) => (0.65 * flakeN(x, y / 2.2) + 0.35 * flakeN2(x, y / 1.6)) * (0.35 + 0.75 * amount(x, y));
+  const T = 0.5;
   const cv = document.createElement('canvas');
   cv.width = w;
   cv.height = h;
   const g = cv.getContext('2d')!, img = g.createImageData(w, h);
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      // grain: noise stretched along the board (long, thin streaks)
-      const gr = 0.6 * grainA(x, y / 40) + 0.4 * grainB(x, y / 25);
-      const m = mott(x, y / 3);
-      let R = 67 + (gr - 0.5) * 26 + (m - 0.5) * 20 + (r() - 0.5) * 9;
-      let G = 30 + (gr - 0.5) * 11 + (m - 0.5) * 9 + (r() - 0.5) * 5;
-      let B = 21 + (gr - 0.5) * 7 + (m - 0.5) * 6 + (r() - 0.5) * 4;
-      // rusty flecks: a little more orange, never bright
+      const gr = 0.6 * grainA(x, y / 40) + 0.4 * grainB(x, y / 25), m = mott(x, y / 3);
+      // where it is damaged the surface is crusty: a rough, fine-grained relief over the grain
+      const am = amount(x, y), cr = (crust(x, y) - 0.5) * (8 + 26 * am) + 7 * Math.min(1, am);
+      let R = 67 + (gr - 0.5) * 18 + (m - 0.5) * 22 + (r() - 0.5) * 9 + cr;
+      let G = 30 + (gr - 0.5) * 8 + (m - 0.5) * 10 + (r() - 0.5) * 5 + cr * 0.45;
+      let B = 21 + (gr - 0.5) * 5 + (m - 0.5) * 6 + (r() - 0.5) * 4 + cr * 0.3;
       const f = fleck(x, y / 1.5);
       if (f > 0.76) { const k = (f - 0.76) * 3; R += 22 * k; G += 10 * k; B += 3 * k; }
-      // small dark pits
       if (pit(x, y / 1.2) > 0.86) { R *= 0.62; G *= 0.6; B *= 0.6; }
-      // darker towards both edges of the board
+      // paint flakes: pale grey-tan where the flake has lifted, a dark rim round it, its top edge catching light
+      const v = fl(x, y);
+      if (v > T) {
+        const t = flakeTone(x, y), up = fl(x, y - 2) <= T, down = fl(x, y + 2) <= T;
+        let l = 0.8 + 0.35 * (t - 0.5) + (r() - 0.5) * 0.16;
+        if (up) l *= 1.18;
+        if (down) l *= 0.7;
+        // grey-brown scale with some of the rust still in it
+        R = (112 + 30 * (t - 0.5)) * l; G = (66 + 16 * (t - 0.5)) * l; B = (48 + 8 * (t - 0.5)) * l;
+      } else if (v > T - 0.04) {
+        R *= 0.6; G *= 0.56; B *= 0.55;
+      }
       const e = Math.min(x, w - 1 - x) / w, dk = e < 0.06 ? 0.35 + 0.65 * (e / 0.06) : 1;
       const o = (y * w + x) * 4;
       img.data[o] = R * dk; img.data[o + 1] = G * dk; img.data[o + 2] = B * dk; img.data[o + 3] = 255;
     }
   }
   g.putImageData(img, 0, 0);
-  // fine scratches, faint and mostly along the board
-  for (let i = 0; i < 40; i++) {
-    const x = r() * w, y = r() * h, ang = Math.PI / 2 + (r() - 0.5) * 0.9, len = 30 + r() * r() * 300;
-    g.strokeStyle = r() < 0.5 ? `rgba(14,6,3,${0.25 + r() * 0.3})` : `rgba(140,80,55,${0.08 + r() * 0.12})`;
-    g.lineWidth = 0.6 + r() * 0.5;
+  // nail heads: a domed, rusted head, lit from the top left, a dark ring where it sinks into the board
+  for (const [nx, ny, nr] of D.nails) {
+    const x = nx * sx, y = ny * sy, rad = nr * sx;
+    const ring = g.createRadialGradient(x, y, rad * 0.8, x, y, rad * 1.5);
+    ring.addColorStop(0, 'rgba(12,5,2,0.85)');
+    ring.addColorStop(1, 'rgba(12,5,2,0)');
+    g.fillStyle = ring;
+    g.beginPath(); g.arc(x, y, rad * 1.5, 0, Math.PI * 2); g.fill();
+    const head = g.createRadialGradient(x - rad * 0.35, y - rad * 0.4, rad * 0.1, x, y, rad);
+    head.addColorStop(0, 'rgb(100,48,30)');
+    head.addColorStop(0.5, 'rgb(58,25,14)');
+    head.addColorStop(1, 'rgb(28,11,6)');
+    g.fillStyle = head;
+    g.beginPath(); g.arc(x, y, rad, 0, Math.PI * 2); g.fill();
+    // rust crust on the head and flaking round it
+    for (let i = 0; i < rad * 14; i++) {
+      const a = r() * Math.PI * 2, d = r() * rad * 1.35;
+      g.fillStyle = r() < 0.55 ? `rgba(18,7,3,${0.4 + r() * 0.4})` : `rgba(120,70,50,${0.25 + r() * 0.3})`;
+      g.fillRect(x + Math.cos(a) * d, y + Math.sin(a) * d, 1 + (r() < 0.3 ? 1 : 0), 1 + (r() < 0.3 ? 1 : 0));
+    }
+  }
+  // scratches: a thin pale line with a dark groove under it
+  for (const [x0, y0, x1, y1] of D.scratches) {
+    for (const [col, dy, lw] of [['rgba(10,4,2,0.55)', 1.2, 1.4], ['rgba(205,165,135,0.55)', 0, 0.9]] as const) {
+      g.strokeStyle = col;
+      g.lineWidth = lw;
+      g.beginPath();
+      g.moveTo(x0 * sx, y0 * sy + dy);
+      g.quadraticCurveTo(((x0 + x1) / 2) * sx, ((y0 + y1) / 2 - 4) * sy + dy, x1 * sx, y1 * sy + dy);
+      g.stroke();
+    }
+  }
+  // faint fine scratches along the board
+  for (let i = 0; i < 26; i++) {
+    const x = r() * w, y = r() * h, ang = Math.PI / 2 + (r() - 0.5) * 0.7, len = 30 + r() * r() * 260;
+    g.strokeStyle = r() < 0.6 ? `rgba(14,6,3,${0.2 + r() * 0.25})` : `rgba(140,80,55,${0.06 + r() * 0.1})`;
+    g.lineWidth = 0.6 + r() * 0.4;
     g.beginPath();
     g.moveTo(x, y);
     g.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);

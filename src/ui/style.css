@@ -1716,6 +1716,6 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .v2-logo svg path[fill] { fill: #d99a45; }
 .v2 .v2-logo-wear { position: absolute; inset: 0; pointer-events: none; background: var(--logo-wear, none) 0 0 / 100% 100%; }
 .v2 .brand-name { text-shadow: -1px 0 rgba(255,60,50,0.35), 1px 0 rgba(60,190,255,0.3), 0 0 6px rgba(255,255,255,0.6), 0 0 18px rgba(255,255,255,0.3) !important; }
-.v2 .wood { background: var(--wood, #42201a) 0 0 / 67px 900px repeat-y; }
-.v2 .wood-r { background-position: 0 -420px; }
+.v2 .wood-l { background: var(--wood-l, #42201a) 0 0 / 100% 100% no-repeat; }
+.v2 .wood-r { background: var(--wood-r, #42201a) 0 0 / 100% 100% no-repeat; }
 .v2 .brand-sub { color: #9a9aa0 !important; text-shadow: 0 0 4px rgba(0,0,0,0.9); }
