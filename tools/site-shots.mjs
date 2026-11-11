@@ -21,17 +21,30 @@ try {
   await p.goto(`http://localhost:${PORT}/`);
   await p.click('#start button').catch(() => {});
   await p.waitForTimeout(700);
-  // the opening shelf's second sound (Destroyed Reese), a note held so every print is alive
-  await p.click('.pre-step >> nth=1');
+  // load a sound by name from the presets page
+  const load = async (name) => {
+    await p.getByText('PRESETS', { exact: true }).first().click();
+    await p.waitForTimeout(400);
+    await p.getByText(name, { exact: true }).first().click();
+    await p.waitForTimeout(400);
+  };
+  // the instrument page: Cavern (owner's pick: every box in use, as on the owner's mockup), a note held so every print is alive
+  await load('Cavern');
+  await p.getByText('OSC', { exact: true }).first().click();
   await p.waitForTimeout(300);
   await p.keyboard.down('a');
   await p.waitForTimeout(1500);
-  // the whole instrument as it looks: the page and its wooden side panels (the owner's images), nothing around them
+  // the whole instrument as it looks: the page and its wooden side panels, nothing around them
   const l = await p.locator('.wood-l').boundingBox(), r = await p.locator('.wood-r').boundingBox();
   const clip = { x: Math.floor(l.x), y: Math.floor(l.y), width: Math.ceil(r.x + r.width - l.x), height: Math.ceil(l.height) };
   await p.screenshot({ path: `${OUT}/osc.jpg`, clip, type: 'jpeg', quality: 86 });
+  await p.keyboard.up('a');
+  // the RUIN page: Destroyed Reese, its eight boxes all in use
+  await load('Destroyed Reese');
   await p.getByText('RUIN', { exact: true }).first().click();
-  await p.waitForTimeout(1200);
+  await p.waitForTimeout(300);
+  await p.keyboard.down('a');
+  await p.waitForTimeout(1500);
   await p.screenshot({ path: `${OUT}/ruin.jpg`, clip, type: 'jpeg', quality: 86 });
   await p.keyboard.up('a');
   await b.close();

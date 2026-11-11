@@ -1708,7 +1708,8 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .v2-top { position: relative; overflow: hidden; }
 .v2 .v2-corrode { position: absolute; left: 0; top: 0; bottom: 0; width: 550px; pointer-events: none; z-index: 0;
   background: var(--corrosion, none) 0 0 / 100% 100% no-repeat; }
-.v2 .v2-top > :not(.v2-corrode) { position: relative; z-index: 1; }
+.v2 .v2-top > :not(.v2-corrode):not(.pre-sel) { position: relative; z-index: 1; }
+.v2 .v2-top > .pre-sel { position: absolute; z-index: 3; }
 /* measured: the top of RUIN-1's letters sits 28.8 px down the bar, the bottom of SYNTHESIZER's at 67.2 px */
 .v2 .v2-logo { flex: none; position: relative; margin-right: 18px; display: block; line-height: 0; align-self: flex-start !important; margin-top: 28.8px; --logo-h: 38.4px; }
 .v2 .v2-logo svg { display: block; height: var(--logo-h, 44px); width: auto; filter: drop-shadow(0 0 3px rgba(240,160,64,0.35)) saturate(0.85) brightness(0.92); }
@@ -1721,3 +1722,4 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .brand-sub { color: #9a9aa0 !important; text-shadow: 0 0 4px rgba(0,0,0,0.9); }
 /* the logo's left edge on the OSC A box's outer left edge (the page's own left edge) */
 .v2 .v2-top { padding-left: 0 !important; }
+.v2 .v2-top > .v2-brand { margin-right: auto; }
