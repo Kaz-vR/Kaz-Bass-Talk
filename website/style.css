@@ -205,3 +205,6 @@ h1.lockup { display: flex; align-items: center; gap: 26px; margin: 0 0 30px; let
   .cap-title { min-width: 0; font-size: 18px; }
 }
 @media (prefers-reduced-motion: reduce) { .pages .track, .pages .slide { transition: none; } }
+
+/* the last call to action (owner's pick): a glow rising from the bottom centre, in the hero's ember red */
+.cta.photo { background: radial-gradient(ellipse 70% 90% at 50% 100%, rgba(200,40,12,.45), rgba(80,8,4,.25) 50%, transparent 78%), var(--bg-cta); }
