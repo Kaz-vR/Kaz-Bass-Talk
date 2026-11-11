@@ -60,6 +60,35 @@
     </div>
   </section>
 
+  <!-- EVERY PAGE, MOVING (owner's pick, pitch 5C): a filmstrip of the synth's pages, each a looping clip recorded from
+       the synth by tools/site-pages.mjs; the caption sits under the picture in two columns, arrows at the ends -->
+  <section class="panel pages" id="pages">
+    <div class="wrap">
+      <p class="kick">Inside RUIN-1</p>
+      <h2>Every page,<br>moving</h2>
+      <p class="body">Swipe through the instrument.</p>
+    </div>
+    <div class="strip" aria-roledescription="carousel" aria-label="The pages of RUIN-1">
+      <ul class="track">
+          <li class="slide" data-title="Sound source" data-text="Two oscillators with up to seven unison voices, a clean sine sub on its own path and fourteen noise textures, into the filter and its envelope. A live scope shows what comes out."><video src="assets/pages/osc.mp4" poster="assets/pages/osc.jpg" muted loop playsinline preload="none" aria-label="The OSC page of RUIN-1"></video></li>
+          <li class="slide" data-title="Movement" data-text="Six LFOs, with humanize, drift and bloom among their shapes, routed through a nine-row matrix. Smooth, random and never the same twice."><video src="assets/pages/lfo.mp4" poster="assets/pages/lfo.jpg" muted loop playsinline preload="none" aria-label="The LFO page of RUIN-1"></video></li>
+          <li class="slide" data-title="Wobble" data-text="Pick a shape or draw your own: sine, duck, gate, staircase and more, locked to your tempo from one bar to 1/32."><video src="assets/pages/wobbler.mp4" poster="assets/pages/wobbler.jpg" muted loop playsinline preload="none" aria-label="The Wobbler page of RUIN-1"></video></li>
+          <li class="slide" data-title="The RUIN chain" data-text="Eight boxes in any order: moving filters, ten drive types and EQs. Drag them around, or roll a whole chain with one click."><video src="assets/pages/ruin.mp4" poster="assets/pages/ruin.jpg" muted loop playsinline preload="none" aria-label="The RUIN page of RUIN-1"></video></li>
+          <li class="slide" data-title="Effects" data-text="Drive, crush, tape wow and drift, chorus, flanger, phaser, a dark vintage reverb and a four-band EQ, each with a live picture of what it does."><video src="assets/pages/fx.mp4" poster="assets/pages/fx.jpg" muted loop playsinline preload="none" aria-label="The FX page of RUIN-1"></video></li>
+          <li class="slide" data-title="Presets" data-text="Hand-built sounds on shelves, each with its own character sliders. Preview one, then open it on the instrument."><video src="assets/pages/presets.mp4" poster="assets/pages/presets.jpg" muted loop playsinline preload="none" aria-label="The Presets page of RUIN-1"></video></li>
+      </ul>
+    </div>
+    <div class="wrap">
+      <div class="strip-cap">
+        <button class="arrow prev" aria-label="Previous page">‹</button>
+        <div class="cap-name"><p class="tag"><span class="cap-n">01</span> / 06</p><h3 class="cap-title">Sound source</h3></div>
+        <span class="cap-rule" aria-hidden="true"></span>
+        <p class="cap-text" aria-live="polite">Two oscillators with up to seven unison voices, a clean sine sub on its own path and fourteen noise textures, into the filter and its envelope. A live scope shows what comes out.</p>
+        <button class="arrow next" aria-label="Next page">›</button>
+      </div>
+    </div>
+  </section>
+
   <!-- REQUIREMENTS -->
   <section class="panel photo" id="requirements" style="--photo: none" data-photo="assets/photos/panel.jpg">
     <div class="wrap req-row">
