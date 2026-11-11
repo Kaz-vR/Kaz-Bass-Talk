@@ -1729,8 +1729,9 @@ html, body, .v2-wrap { background: #070708; }
    or touch, and the box it sits in, is clean: no film grain over the page, no corrosion or wear behind the logo,
    no dust in the boxes, the scope without its extra frame. ==== */
 .v2 .film, .v2 .v2-corrode, .v2 .v2-logo-wear { display: none !important; }
-.v2.v2 { background: #050505 !important; }
-.v2 .v2-top { background: #000 !important; }
+/* one dark everywhere outside the boxes (owner's call): between the boxes, behind the logo and the tabs, and
+   between the boxes and the wooden cheeks are all the header's black */
+html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000 !important; background-image: none !important; }
 .v2.v2 .c, .v2.v2 .c.ob, .v2.v2 .pp-col, .v2.v2 .v2-bottom, .v2.v2 .kb-strip, .v2.v2 .kb-side,
 .v2.v2 .grind-page .c.ob, .v2.v2 .grind-page .gr-node, .v2.v2 .grind-page .gr-focus, .v2.v2 .grind-page .gr-master {
   background: #0c0b0b !important; background-image: none !important; border-color: rgba(255,255,255,.06) !important; box-shadow: none !important; }
