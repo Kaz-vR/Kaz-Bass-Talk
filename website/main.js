@@ -96,3 +96,31 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   const io = new IntersectionObserver((entries) => entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.15 });
   els.forEach((el) => { el.classList.add('rv'); io.observe(el); });
 }
+
+// The logo beside the name (hero and footer): its top on the top of the letters of RUIN-1, its bottom on the
+// bottom of the letters of SYNTHESIZER (owner's call). Measured from the font itself, so it holds at every size.
+const ink = (el, text) => {
+  // measured at 1000 px and scaled down: canvas rounds its metrics to whole pixels
+  const cs = getComputedStyle(el), g = document.createElement('canvas').getContext('2d'), k = parseFloat(cs.fontSize) / 1000;
+  g.font = `${cs.fontStyle} ${cs.fontWeight} 1000px ${cs.fontFamily}`;
+  const m = g.measureText(text.toUpperCase()), r = el.getBoundingClientRect();
+  const lh = parseFloat(cs.lineHeight) || r.height, A = m.fontBoundingBoxAscent * k, D = m.fontBoundingBoxDescent * k;
+  // the first line box's baseline: the line box is centred on the font's ascent + descent
+  const base = r.top + (lh - (A + D)) / 2 + A;
+  return { top: base - m.actualBoundingBoxAscent * k, bottom: base + m.actualBoundingBoxDescent * k };
+};
+const alignMarks = () => {
+  for (const box of document.querySelectorAll('.lockup, .brand-sm')) {
+    const mark = box.querySelector('.mark'), b = box.querySelector('.word b'), i = box.querySelector('.word i');
+    if (!mark || !b || !i) continue;
+    // placing the mark can re-centre the name in its row, so measure and place again until it settles
+    for (let n = 0; n < 4; n++) {
+      const top = ink(b, b.textContent).top, bottom = ink(i, i.textContent).bottom;
+      mark.style.height = `${bottom - top}px`;
+      mark.style.marginTop = `${(parseFloat(mark.style.marginTop) || 0) + top - mark.getBoundingClientRect().top}px`;
+    }
+  }
+};
+alignMarks();
+document.fonts?.ready.then(alignMarks);
+addEventListener('resize', alignMarks);

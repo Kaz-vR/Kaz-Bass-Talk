@@ -225,3 +225,6 @@ main > section { scroll-margin-top: 62px; }
 /* ---------- sections ease up into view as you scroll (owner's pick, motion 1); only with JS and full motion */
 .rv { opacity: 0; transform: translateY(26px); transition: opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1); }
 .rv.in { opacity: 1; transform: none; }
+
+/* the mark sized and placed by main.js so its top meets the top of RUIN-1 and its bottom the bottom of SYNTHESIZER */
+.lockup .mark, .brand-sm .mark { width: auto; align-self: flex-start; }
