@@ -1,0 +1,21 @@
+{
+ "page": "https://u-he.com/products/diva/",
+ "shots": [
+  {
+   "shot": "shot-1.webp",
+   "from": "https://u-he.com/products/diva/assets/images/uhe-diva-screenshot-synthlayout1-1000x558.jpg"
+  },
+  {
+   "shot": "shot-2.webp",
+   "from": "https://u-he.com/products/diva/assets/images/uhe-diva-screenshot-synthlayout5-1000x558.jpg"
+  },
+  {
+   "shot": "shot-3.webp",
+   "from": "https://u-he.com/products/diva/assets/images/uhe-diva-splash-photo-studio-setup-1100x350.jpg"
+  },
+  {
+   "shot": "shot-4.webp",
+   "from": "https://u-he.com/products/diva/assets/images/uhe-diva-screenshot-presets1-1000x558.jpg"
+  }
+ ]
+}

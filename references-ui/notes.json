@@ -1,0 +1,422 @@
+{
+ "hasselblad-phocus": {
+  "works": "Phocus Mobile on phone and tablet: the photo fills the screen, and the tools are a thin column of tiny white labels and sliders at the edge, with one orange accent.",
+  "controls": "Thin horizontal sliders with a small value at the end; icon buttons in a narrow rail.",
+  "displays": "The image is the display; histograms are small and quiet.",
+  "colour": "Black chrome, white text, one orange accent dot for the active state.",
+  "lesson": "Let the displays be the content and push controls to a quiet rail; one warm accent marks what is active."
+ },
+ "hasselblad-x2d": {
+  "works": "The camera's back screen and top display: a few large numbers, plenty of black, almost no chrome.",
+  "controls": "Physical dials and a touch screen with large tap targets.",
+  "displays": "Big readable values (ISO, shutter) in white on black.",
+  "colour": "Black and warm grey metal with one orange button.",
+  "lesson": "Large calm numbers on black read as premium; show the value, not a decoration."
+ },
+ "hasselblad-x2d-ii": {
+  "works": "Product shots of the camera body: machined grey metal, one orange accent, an X-ray view showing the inside.",
+  "controls": "Dials and buttons with a fine knurl.",
+  "displays": "Not shown.",
+  "colour": "Warm grey metal, black, orange.",
+  "lesson": "Materials do the talking: one finely machined object with a single warm accent."
+ },
+ "te-op1": {
+  "works": "The OP-1 field: a white aluminium body, round coloured encoders, and a small OLED screen that draws each engine as a playful graphic.",
+  "controls": "Four colour-coded encoders (blue, green, white, orange), each mapped to the matching colour on screen.",
+  "displays": "Tiny OLED graphics: each engine and effect is a picture (tape reels, a cow, circles) instead of a list of numbers.",
+  "colour": "Off-white body; screen in white, blue, green, orange on black.",
+  "lesson": "Colour-code controls to their place on the display, and draw each module as a picture of what it does."
+ },
+ "te-op1-guide": {
+  "works": "The manual's flat drawings of every OP-1 screen: synth engines, envelopes and FX each drawn as a simple graphic.",
+  "controls": "Not applicable: diagrams.",
+  "displays": "Minimal line graphics on black: waveforms, bars and dots, one colour per encoder.",
+  "colour": "Off-white pages, black screens, blue/green/white/orange.",
+  "lesson": "A display can explain a module with three or four simple shapes; resist drawing everything."
+ },
+ "te-opxy": {
+  "works": "OP-XY in black: dark anodised aluminium lit from one side, a tiny screen, the device photographed as sculpture.",
+  "controls": "A grid of square keys and a few round encoders.",
+  "displays": "A small screen with dense, crisp line graphics.",
+  "colour": "All black; light and reflection make the form.",
+  "lesson": "One raking light on dark material is the whole mood: close to our siren light on black."
+ },
+ "te-opxy-guide": {
+  "works": "The OP-XY manual pages: white line drawings and small grey type on pure black.",
+  "controls": "Not applicable.",
+  "displays": "Line art of the hardware.",
+  "colour": "Black and thin white lines.",
+  "lesson": "Pure black plus thin white line art is enough to explain a complex device."
+ },
+ "te-ep133": {
+  "works": "EP-133: a grey machined panel, orange and grey keys, a segmented LCD with tiny icons, labels printed on the panel.",
+  "controls": "Chunky keys and two big knobs (one orange); labels sit right on the panel.",
+  "displays": "A segmented LCD with small pictograms: a few things at once, very legible.",
+  "colour": "Light grey, black, orange as the hero colour, small red labels.",
+  "lesson": "Print the labels onto the surface and keep the display to a few big readings; one hero colour."
+ },
+ "te-ep-sample-tool": {
+  "works": "TE's desktop sample tool: a flat drawing of the device on a pale grid, orange tags as the only accent.",
+  "controls": "Software mirrors the hardware layout one to one.",
+  "displays": "A flat schematic of the device.",
+  "colour": "Pale grey-blue with orange tags.",
+  "lesson": "Software can echo the hardware's layout so the two feel like one instrument."
+ },
+ "te-opz": {
+  "works": "OP-Z: a dark slim body, colour-coded track keys, and a phone app as its screen, with flat white panels and one colour per track.",
+  "controls": "Rows of small round keys, colour rings per track.",
+  "displays": "The app: thin lines, small type, step grid, envelope graphics.",
+  "colour": "Dark grey body; red, yellow, green, blue per track.",
+  "lesson": "Colour-code by function across hardware and screen; keep the screen flat and thin-lined."
+ },
+ "te-tx6": {
+  "works": "TX-6: a tiny machined mixer (silver or black) with knurled knobs, short faders and a small display.",
+  "controls": "Knurled metal knobs and short faders in tight, perfect rows.",
+  "displays": "A small screen with a big number.",
+  "colour": "Black or silver metal, green LEDs.",
+  "lesson": "Density can look premium when everything sits on a strict grid and the materials are real."
+ },
+ "apple-logic-pro": {
+  "works": "Logic Pro on Mac and iPad: dark grey panels, coloured regions and instrument faces (Alchemy, Sample Alchemy, ChromaGlow) inside one consistent shell.",
+  "controls": "Round knobs with value arcs; flat sliders; plug-ins framed by a calm dark shell.",
+  "displays": "Big waveform and spectrum displays that light up in one colour per area.",
+  "colour": "Dark grey with blues and purples; colour only on content.",
+  "lesson": "A neutral, dark shell lets each module's colourful display carry the colour."
+ },
+ "apple-final-cut": {
+  "works": "Final Cut Pro: a dark editor with a large viewer, a timeline, and a colour-wheels inspector.",
+  "controls": "Colour wheels and slim sliders in an inspector column.",
+  "displays": "The viewer dominates; scopes are small and precise.",
+  "colour": "Near-black chrome; colour comes from the footage.",
+  "lesson": "Give the main display the most room, controls in a narrow, quiet inspector."
+ },
+ "leica-fotos": {
+  "works": "Leica FOTOS: black UI, white type, thumbnails, and Leica red only for the brand mark.",
+  "controls": "Large tap targets, thin icons.",
+  "displays": "Photos are the display.",
+  "colour": "Black, white, a single red.",
+  "lesson": "Red used once, for the most important thing, reads as luxury: same as our siren rule."
+ },
+ "uhe-diva": {
+  "works": "Diva: a hardware-style panel of dark modules on wood cheeks, a red lower section, every section labelled in small caps.",
+  "controls": "Many small black knobs with white pointers; vertical sliders for envelopes.",
+  "displays": "Almost none: the knobs are the display.",
+  "colour": "Dark grey, red, wood.",
+  "lesson": "Real modules in boxes with headers read instantly; but no displays makes it hard to see what the sound is doing."
+ },
+ "uhe-zebra": {
+  "works": "Zebra Legacy: a dense grid of lit panels with big orange editor displays (waveforms, MSEG envelopes).",
+  "controls": "Small knobs in tight rows, tabs per module.",
+  "displays": "Large orange displays that fill whole panels when editing.",
+  "colour": "Dark grey with warm orange displays.",
+  "lesson": "A big warm-coloured display per module plus tight knob rows: closest to our 'display above each module' rule."
+ },
+ "uhe-repro": {
+  "works": "Repro-1/5: photoreal hardware (Pro-One, Prophet-5) on wood, plus a pedalboard of coloured stomp boxes.",
+  "controls": "Photoreal knobs and switches, each to scale.",
+  "displays": "Small, hardware-style LED readouts.",
+  "colour": "Dark brown panels, wood, colourful pedals.",
+  "lesson": "Skeuomorphism works when it is faithful and lit consistently; colour in small separate blocks (the pedals)."
+ },
+ "serum-2": {
+  "works": "Serum 2: dark navy panels, a big animated display above each oscillator, a matrix of modulation lanes below.",
+  "controls": "Small round knobs with blue value rings; drag-to-modulate.",
+  "displays": "Big waveform and wavetable displays above the knobs; LFO shape editors.",
+  "colour": "Dark navy, bright blue and green traces.",
+  "lesson": "The display-above-knobs layout is the genre standard; Serum's value rings make every amount readable at a glance."
+ },
+ "surge-xt": {
+  "works": "Surge XT: a dense flat panel (grey, orange, blue skins), every module on one page, sliders everywhere.",
+  "controls": "Horizontal and vertical sliders more than knobs.",
+  "displays": "Small displays for oscillator and filter, a modulation list.",
+  "colour": "Skinnable; default grey with orange and blue.",
+  "lesson": "Shows the cost of fitting everything on one flat page: functional but busy. Hierarchy needs size and space, not more boxes."
+ },
+ "phase-plant": {
+  "works": "Phase Plant: modules as stacked cards with a display each; modulation drawn as curved lines between source and target.",
+  "controls": "Small knobs, value readouts under each.",
+  "displays": "A waveform in every generator card, envelopes drawn as curves.",
+  "colour": "Mid grey with blue traces and green modulation lines.",
+  "lesson": "Draw modulation as a visible connection; cards with one display each keep a modular synth readable."
+ },
+ "pigments": {
+  "works": "Pigments: a near-black synth with big animated, colour-coded displays and a coloured modulation system.",
+  "controls": "Knobs with colour arcs; modulation sources colour-code their targets.",
+  "displays": "Large, vivid, animated displays per engine.",
+  "colour": "Black UI, saturated blue/orange/purple per section.",
+  "lesson": "Colour-code by role (source colour on its targets) and animate the displays: alive without extra controls."
+ },
+ "arturia-v-collection": {
+  "works": "V Collection: faithful vintage recreations plus a modern toolbar and preset browser around them.",
+  "controls": "Photoreal knobs, keys and switches.",
+  "displays": "Mostly none on the instrument faces.",
+  "colour": "Each instrument's own colours; the shell is neutral.",
+  "lesson": "A neutral modern shell can frame a very skeuomorphic face without clashing."
+ },
+ "arturia-mini-v": {
+  "works": "Mini V: a photoreal Minimoog (wood, black panel, blue switches) with an advanced modern panel that slides out above.",
+  "controls": "Photoreal black knobs with skirts, coloured rocker switches.",
+  "displays": "The advanced panel adds modern displays (envelopes, curves) above the hardware face.",
+  "colour": "Black panel, wood, blue and orange switches, red/orange displays.",
+  "lesson": "Hardware look for the main face, modern displays on top: a direct model for skeuo plus displays."
+ },
+ "fabfilter-pro-q": {
+  "works": "Pro-Q 4: one huge interactive display is the interface; controls appear only near the band you touch.",
+  "controls": "A floating panel of three knobs under the selected band.",
+  "displays": "A full-width spectrum and EQ curve with coloured band fills.",
+  "colour": "Dark grey-purple, one colour per band, glowing curves.",
+  "lesson": "Let the display be the control; keep the knob strip small and contextual."
+ },
+ "fabfilter-saturn": {
+  "works": "Saturn 2: dark red, a spectrum display with band splits, drive knobs in a strip, modulation sources as small cards.",
+  "controls": "Big red drive knob, smaller knobs around it; mod cards below.",
+  "displays": "A spectrum display behind the band split.",
+  "colour": "Black and deep red, small coloured mod cards.",
+  "lesson": "Proof a distortion UI can live in deep red and black and still be clear: close to our siren palette."
+ },
+ "soundtoys-decapitator": {
+  "works": "Decapitator: a hardware-style box with a VU meter, chunky knobs and a style switch row.",
+  "controls": "Few large knobs with scales printed round them.",
+  "displays": "A single VU needle meter.",
+  "colour": "Black panel, wood edges, orange highlight.",
+  "lesson": "Few, big, characterful controls with printed scales feel instantly playable."
+ },
+ "baby-audio": {
+  "works": "Baby Audio's range: every plug-in art-directed (pastel, chrome, retro hardware), each a strong object.",
+  "controls": "Rounded knobs, big buttons, one hero control per plug-in.",
+  "displays": "Simple animated displays.",
+  "colour": "Each product its own palette.",
+  "lesson": "One hero control and a strong object shape make a plugin memorable; we would keep one palette across pages."
+ },
+ "valhalla": {
+  "works": "VintageVerb: a flat strip of labelled knobs in boxes, one big decay knob, colour themes (1970s, 1980s, Now).",
+  "controls": "Plain round knobs with value text under each; one oversized key knob.",
+  "displays": "None, values as text.",
+  "colour": "Swappable flat themes.",
+  "lesson": "Function first: one big knob for the main move and flat, readable values. Size shows importance."
+ },
+ "minimal-audio-current": {
+  "works": "Current: a dark navy synth with a large central circular display, keys and macros at the bottom.",
+  "controls": "Small knobs, slim sliders, a macro row.",
+  "displays": "A big circular, animated sound display at the centre.",
+  "colour": "Deep navy, violet accent.",
+  "lesson": "One big, beautiful central display gives a synth a face."
+ },
+ "output-arcade": {
+  "works": "Arcade: a dark circular performance view with orange dots and a browser panel beside it.",
+  "controls": "Round dial with points; macro knobs.",
+  "displays": "Circular visuals around a central dial.",
+  "colour": "Dark grey with orange.",
+  "lesson": "A round 'instrument face' feels playable and cinematic."
+ },
+ "massive-x": {
+  "works": "Massive X: dark, dense, modular panels with small blue displays and a large routing view.",
+  "controls": "Many small knobs with blue rings, tab rows.",
+  "displays": "Small waveform and envelope displays per module.",
+  "colour": "Charcoal with blue and green traces.",
+  "lesson": "Density works when every module has the same grid and the same knob; but too many tabs hide things."
+ },
+ "omnisphere": {
+  "works": "Omnisphere: a deep navy synth with a central display, layer tabs, and FX racks drawn as hardware units.",
+  "controls": "Flat knobs and sliders; FX units with skeuo faceplates.",
+  "displays": "A central waveform display and per-layer views.",
+  "colour": "Navy and blue with light grey.",
+  "lesson": "Drawing effects as small hardware units makes a long chain readable."
+ },
+ "moog-one": {
+  "works": "Moog's own product shots (Labyrinth, Muse): black panels, white legends, rows of black knobs, orange LEDs, wood sides.",
+  "controls": "Classic Moog knobs with skirts and white pointers.",
+  "displays": "LED rows rather than screens.",
+  "colour": "Black, white, wood, a few orange LEDs.",
+  "lesson": "Black panel, white legends, wood and a few orange LEDs is already close to RUIN-1's DNA."
+ },
+ "elektron-digitone": {
+  "works": "Digitone II: a dark panel, a small high-contrast OLED with big pixel type and icons, encoders round it.",
+  "controls": "Rows of identical encoders, trig keys with coloured LEDs.",
+  "displays": "An OLED drawing each parameter page as icons and big numbers.",
+  "colour": "Black and grey with teal and red LEDs.",
+  "lesson": "A tiny screen can carry a whole page if type is big and each parameter gets an icon."
+ },
+ "elektron-syntakt": {
+  "works": "Syntakt: the same Elektron language lit in blue: pixel-type OLED pages, numbered trig keys.",
+  "controls": "Encoders, numbered square keys with coloured legends.",
+  "displays": "OLED pages of icons (tune, decay, mod) above the encoders they map to.",
+  "colour": "Dark panel, blue and red legends.",
+  "lesson": "Map the screen's layout to the knobs under it: the display above each control row."
+ },
+ "buchla": {
+  "works": "Buchla Easel and 200 series: white panels with colour-coded jacks, knobs and sliders.",
+  "controls": "Coloured knobs and slider caps by function.",
+  "displays": "None; the panel is the display.",
+  "colour": "White, with red, blue, green, yellow by function.",
+  "lesson": "Colour by function across a whole panel; an iconic, strange-but-precise look."
+ },
+ "make-noise": {
+  "works": "0-Coast: a black panel with hand-drawn white graphics and coloured jacks.",
+  "controls": "Knobs of different sizes, coloured jacks.",
+  "displays": "None; panel graphics explain flow.",
+  "colour": "Black, white line art, a few colours.",
+  "lesson": "Hand-drawn panel graphics give character; flow lines can explain signal path."
+ },
+ "eventide-h90": {
+  "works": "H90: a white pedal with a dense OLED, a red knob, lit footswitches.",
+  "controls": "Encoders, one red hero knob.",
+  "displays": "An OLED with program names and small parameter icons.",
+  "colour": "White, black, a single red knob, green/red LEDs.",
+  "lesson": "A single red hero control on a neutral body: our Buy-button rule in hardware."
+ },
+ "polyend-tracker": {
+  "works": "Tracker+: a black device with a dense colour screen, white pads, coloured function keys.",
+  "controls": "White square pads, a big jog wheel.",
+  "displays": "A dense colourful tracker screen; colour-coded patterns.",
+  "colour": "Black and white with pastel accents.",
+  "lesson": "A dense screen stays readable with a monospaced grid and colour per track."
+ },
+ "dirtywave-m8": {
+  "works": "M8: a tiny black device with a pixel tracker screen, photographed in dark, contrasty light.",
+  "controls": "Few chunky keys.",
+  "displays": "A tiny colour pixel screen.",
+  "colour": "Black with neon screen colours.",
+  "lesson": "A small glowing screen in a dark object, lit hard from one side: a cinematic product mood."
+ },
+ "erica-synths": {
+  "works": "Erica Synths: black industrial hardware with red lit keys, sliders and lots of knobs, shot in the dark.",
+  "controls": "Black knobs, sliders, red-lit buttons.",
+  "displays": "Small LED displays.",
+  "colour": "Black, red, wood on some units.",
+  "lesson": "Black hardware with red light in the dark: almost exactly the siren mood, in a real instrument."
+ },
+ "ableton-push": {
+  "works": "Push 3: a black surface with a glowing RGB pad grid and a display bar above the encoders.",
+  "controls": "Encoders in a row under a display strip; lit pads.",
+  "displays": "A long thin display above the encoder row.",
+  "colour": "Black with coloured pad light.",
+  "lesson": "A display strip directly above a row of encoders: one screen, one row of controls, direct mapping."
+ },
+ "output-portal": {
+  "works": "Portal: a dark granular FX with a large circular particle display and a column of knobs at the side.",
+  "controls": "A few knobs in a side column.",
+  "displays": "A big animated round display.",
+  "colour": "Near-black with teal particles.",
+  "lesson": "A big living display plus a narrow control column feels cinematic and calm."
+ },
+ "heavyocity-damage": {
+  "works": "Damage 2: rusted, burnt metal backgrounds, worn type and glowing knobs; the most LORN-like UI in the library.",
+  "controls": "Dark knobs with orange glow, a big central 'punish' knob.",
+  "displays": "Waveform and stage displays printed on rust.",
+  "colour": "Rust, burnt orange, black, warm glow.",
+  "lesson": "Wear and rust as texture under clean controls reads as dangerous and cinematic; keep controls clean on top."
+ },
+ "ni-straylight": {
+  "works": "Straylight: a bold orange sound-design face with a waveform strip on top and modules below.",
+  "controls": "Small knobs and sliders under each section header.",
+  "displays": "A wide waveform display on top, a cinematic image on the perform page.",
+  "colour": "Saturated orange and charcoal.",
+  "lesson": "One bold colour per product can be the brand; a wide display on top anchors the page."
+ },
+ "slate-ash": {
+  "works": "Slate + Ash: muted olive and grey faces, thin type, a waveform floating in space; restrained and cinematic.",
+  "controls": "Few, quiet controls; text values.",
+  "displays": "A single waveform as the centrepiece.",
+  "colour": "Olive, grey, off-white.",
+  "lesson": "Restraint and thin type feel expensive and cinematic; colour can be muted and still strong."
+ },
+ "goodhertz": {
+  "works": "Goodhertz: playful pastel plugins with big type, thin lines, a coloured side bar and a clear signal flow.",
+  "controls": "Slim faders, small chips for values.",
+  "displays": "Simple, flat curves.",
+  "colour": "Pastels with one strong colour each.",
+  "lesson": "Typographic UI: big labels and clear sections can replace boxes and bevels."
+ },
+ "glitchmachines": {
+  "works": "Hysteresis: a dark panel of blue-ringed knobs grouped in labelled sections, plus a 3D render of it as hardware.",
+  "controls": "Uniform knobs with blue rings, section headers.",
+  "displays": "Small waveform icon.",
+  "colour": "Black, blue rings.",
+  "lesson": "Grouping knobs into named sections on black is the minimum that works."
+ },
+ "arturia-mello-fi": {
+  "works": "Tape MELLO-FI: a silver hardware box with a VU meter, a tape window and chunky knobs.",
+  "controls": "Big black knobs with hex grips, a vertical slider.",
+  "displays": "A VU meter and a tape reel window.",
+  "colour": "Silver-grey metal, black.",
+  "lesson": "Show the tape: a window onto the reel tells you what the effect does without words."
+ },
+ "xln-rc20": {
+  "works": "RC-20: six coloured modules (noise, wobble, distortion, digital, space, magnetic) side by side, each with a display and knobs.",
+  "controls": "Cream knobs with coloured rings, a big flux display per module.",
+  "displays": "An animated display on top of each module.",
+  "colour": "Retro cream with a different colour per module.",
+  "lesson": "Six modules, each with its own colour and a display on top: a direct model for a page of modules."
+ },
+ "davinci-resolve": {
+  "works": "Resolve: an extremely dense dark UI (edit, colour, Fairlight audio) that still looks calm: everything aligned, small grey type, colour only in content.",
+  "controls": "Colour wheels, slim sliders, knob rows in the mixer.",
+  "displays": "Big viewer, precise scopes, waveform lanes.",
+  "colour": "Very dark grey, white text, coloured content.",
+  "lesson": "Hundreds of controls stay calm with strict alignment, small muted labels and colour only where content is."
+ },
+ "ableton-live": {
+  "works": "Live: flat, functional, zero decoration; devices sit side by side in a strip, each with a small display.",
+  "controls": "Small flat knobs and buttons.",
+  "displays": "Small device displays (envelopes, filters).",
+  "colour": "Light or dark themes, muted colours.",
+  "lesson": "Flat and plain is fine if every device has the same grammar."
+ },
+ "bitwig": {
+  "works": "Bitwig: a dark DAW with colourful clips, a modular grid and modulators that show their movement on the targets.",
+  "controls": "Small knobs with modulation rings.",
+  "displays": "Modulator displays, a patchable grid.",
+  "colour": "Dark grey with saturated clip colours and orange accent.",
+  "lesson": "Show modulation on the target knob (a moving ring), not only on the source."
+ },
+ "pixelmator-pro": {
+  "works": "Pixelmator Pro: an Apple-like dark editor, calm side panels and a beautiful colour wheel.",
+  "controls": "Rounded sliders in grouped panels, a big colour wheel.",
+  "displays": "The image is the display.",
+  "colour": "Black, white, colour in content only.",
+  "lesson": "Apple restraint: one beautiful custom control (the wheel) among plain ones."
+ },
+ "linear": {
+  "works": "Linear: premium dark software: tiny precise type, almost no colour, depth from subtle surfaces.",
+  "controls": "Plain lists and small controls.",
+  "displays": "Small charts.",
+  "colour": "Near-black, greys, a little violet.",
+  "lesson": "Premium dark comes from precise small type and very subtle surface steps, not decoration."
+ },
+ "capture-one": {
+  "works": "Capture One: a dark photo editor with tool panels and a large colour wheel.",
+  "controls": "Sliders and wheels in a tool panel.",
+  "displays": "The photo, plus small histograms.",
+  "colour": "Dark grey, colour in content.",
+  "lesson": "Pro editors put the controls in one column so the display gets the space."
+ },
+ "resolume": {
+  "works": "Resolume: a dark, dense VJ app: a grid of clips, panels of parameters, node wiring.",
+  "controls": "Small sliders and buttons in dense panels.",
+  "displays": "Clip thumbnails and a big output view.",
+  "colour": "Dark grey with teal accents.",
+  "lesson": "Performance software keeps everything visible at once; density with a clear grid."
+ },
+ "cubase": {
+  "works": "Cubase: a big DAW with mixers, channel strips and editors on a dark grey theme.",
+  "controls": "Faders, knobs, channel strips.",
+  "displays": "Meters and waveforms.",
+  "colour": "Dark grey with blue and colourful tracks.",
+  "lesson": "Channel-strip layouts (one column per source) are a familiar way to show many sources."
+ },
+ "max": {
+  "works": "Max: patchable audio software: boxes connected by cords, with live UI objects (sliders, scopes, keys).",
+  "controls": "Simple sliders, dials and toggles placed freely.",
+  "displays": "Scopes and spectrum objects anywhere.",
+  "colour": "Grey with coloured objects.",
+  "lesson": "Signal flow drawn as wires makes routing obvious; free placement gets messy fast."
+ },
+ "houdini": {
+  "works": "Houdini: deep technical software with node networks and long parameter panels.",
+  "controls": "Parameter rows with sliders and fields.",
+  "displays": "The viewport and node graph.",
+  "colour": "Dark grey.",
+  "lesson": "Parameter rows in a strict list are clear for depth, but dull for an instrument."
+ }
+}

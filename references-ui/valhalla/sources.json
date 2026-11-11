@@ -1,0 +1,21 @@
+{
+ "page": "https://valhalladsp.com/shop/reverb/valhalla-vintage-verb/",
+ "shots": [
+  {
+   "shot": "shot-1.webp",
+   "from": "https://val-media-offload.s3.amazonaws.com/wp-content/uploads/2014/11/08074320/ValhallaVintageVerb70sGUI.jpg"
+  },
+  {
+   "shot": "shot-2.webp",
+   "from": "https://val-media-offload.s3.amazonaws.com/wp-content/uploads/2014/11/08074311/ValhallaVintageVerb80sGUI.jpg"
+  },
+  {
+   "shot": "shot-3.webp",
+   "from": "https://val-media-offload.s3.amazonaws.com/wp-content/uploads/2014/11/08074301/ValhallaVintageVerbDarkNowGUI.jpg.webp"
+  },
+  {
+   "shot": "shot-4.webp",
+   "from": "https://val-media-offload.s3.amazonaws.com/wp-content/uploads/2014/11/08074251/ValhallaVintageVerbLightNowGUI.jpg"
+  }
+ ]
+}

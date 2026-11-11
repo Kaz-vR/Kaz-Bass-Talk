@@ -1,0 +1,17 @@
+{
+ "page": "https://www.ericasynths.lv/",
+ "shots": [
+  {
+   "shot": "shot-1.webp",
+   "from": "https://www.ericasynths.lv/media/wysiwyg/brows_drum.jpg"
+  },
+  {
+   "shot": "shot-2.webp",
+   "from": "https://www.ericasynths.lv/media/wysiwyg/brows_synth.jpg"
+  },
+  {
+   "shot": "shot-3.webp",
+   "from": "https://www.ericasynths.lv/media/image_resizer/cache/2a48310591ea31f2de645e0a2dba2b68/wysiwyg/EricaSynths-web-banner-2_1_.png"
+  }
+ ]
+}

@@ -1,0 +1,21 @@
+{
+ "page": "https://teenage.engineering/products/op-z",
+ "shots": [
+  {
+   "shot": "shot-1.webp",
+   "from": "https://assets.teenage.engineering/_img/5b7ed3325f287f0004994305_2048.png"
+  },
+  {
+   "shot": "shot-2.webp",
+   "from": "https://assets.teenage.engineering/_img/5bd34dcccd0a000004349a00_2048.png"
+  },
+  {
+   "shot": "shot-3.webp",
+   "from": "https://assets.teenage.engineering/_img/5bd325fbcd0a0000043499d8_2048.jpg"
+  },
+  {
+   "shot": "shot-4.webp",
+   "from": "screenshot of https://teenage.engineering/products/op-z (screen-0)"
+  }
+ ]
+}

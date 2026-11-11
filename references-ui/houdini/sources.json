@@ -1,0 +1,13 @@
+{
+ "page": "https://www.sidefx.com/products/houdini/",
+ "shots": [
+  {
+   "shot": "shot-1.webp",
+   "from": "https://media.sidefx.com/uploads/products/houdini20/overview/h20_iterations.png"
+  },
+  {
+   "shot": "shot-2.webp",
+   "from": "https://media.sidefx.com/uploads/products/houdini20/overview/h20_pipeline.png"
+  }
+ ]
+}

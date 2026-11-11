@@ -1,0 +1,21 @@
+{
+ "page": "https://teenage.engineering/products/op-xy",
+ "shots": [
+  {
+   "shot": "shot-1.webp",
+   "from": "https://assets.teenage.engineering/_img/6735121cb0f88c1a719da2a7_2048.webp"
+  },
+  {
+   "shot": "shot-2.webp",
+   "from": "https://assets.teenage.engineering/_img/6735121cb0f88c1a719da2a7_4096.webp"
+  },
+  {
+   "shot": "shot-3.webp",
+   "from": "screenshot of https://teenage.engineering/products/op-xy (screen-2)"
+  },
+  {
+   "shot": "shot-4.webp",
+   "from": "screenshot of https://teenage.engineering/products/op-xy (screen-1)"
+  }
+ ]
+}

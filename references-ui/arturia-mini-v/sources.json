@@ -1,0 +1,17 @@
+{
+ "page": "https://www.arturia.com/products/software-instruments/mini-v/overview",
+ "shots": [
+  {
+   "shot": "shot-1.webp",
+   "from": "https://medias.arturia.net/images/products/mini-v/big.jpg"
+  },
+  {
+   "shot": "shot-2.webp",
+   "from": "https://medias.arturia.net/images/products/mini-v/gallery/advanced.jpg"
+  },
+  {
+   "shot": "shot-3.webp",
+   "from": "https://medias.arturia.net/images/products/mini-v/gallery/presets.jpg"
+  }
+ ]
+}

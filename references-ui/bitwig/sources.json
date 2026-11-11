@@ -1,0 +1,13 @@
+{
+ "page": "https://www.bitwig.com/",
+ "shots": [
+  {
+   "shot": "shot-1.webp",
+   "from": "https://assets.bitwig.net/media/image/bitwig-studio_bws6_full-gui-the-grid/Bitwig-Studio_BWS6_Full-GUI-The-Grid-LG-SD.jpg?v=5onxyqcsG0"
+  },
+  {
+   "shot": "shot-2.webp",
+   "from": "https://assets.bitwig.net/media/image/bitwig-studio_bws6_full-gui-arranger/Bitwig-Studio_BWS6_Full-GUI-Arranger-LG-SD.jpg?v=28a9FYQ9sg"
+  }
+ ]
+}

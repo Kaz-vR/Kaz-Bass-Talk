@@ -1,0 +1,21 @@
+{
+ "page": "https://xferrecords.com/products/serum-2",
+ "shots": [
+  {
+   "shot": "shot-1.webp",
+   "from": "https://xferrecords.com/assets/products-large/serum2_promo-3a72f21c8e6c81f5c65d1949cf6cd846cc793ad00def69d9ca18f46614f98778.png"
+  },
+  {
+   "shot": "shot-2.webp",
+   "from": "https://xferrecords.com/assets/s2assets/sample_osc-66b9bc9070d4944d098863cf887bb941efb5aa361d71a497e57f83f21d8d930a.png"
+  },
+  {
+   "shot": "shot-3.webp",
+   "from": "https://xferrecords.com/assets/s2assets/s2_lorenz-b765e3e23613428ef82636b1307694f47329e75e35e05c0740abd32dd5035849.png"
+  },
+  {
+   "shot": "shot-4.webp",
+   "from": "https://xferrecords.com/assets/s2assets/spectral_osc-e2373b4f32d54956fee856bda7d3e3e1d37de268e4978522c4ef48eeb94fd31e.png"
+  }
+ ]
+}

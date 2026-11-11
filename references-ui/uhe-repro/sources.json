@@ -1,0 +1,21 @@
+{
+ "page": "https://u-he.com/products/repro/",
+ "shots": [
+  {
+   "shot": "shot-1.webp",
+   "from": "https://u-he.com/products/repro/assets/images/uhe-repro1-screenshot-synth-1000x607.jpg"
+  },
+  {
+   "shot": "shot-2.webp",
+   "from": "https://u-he.com/products/repro/assets/images/uhe-repro1-screenshot-tweaks-1000x607.jpg"
+  },
+  {
+   "shot": "shot-3.webp",
+   "from": "https://u-he.com/products/repro/assets/images/uhe-repro5-screenshot-synth-1000x602.jpg"
+  },
+  {
+   "shot": "shot-4.webp",
+   "from": "https://u-he.com/products/repro/assets/images/uhe-repro5-screenshot-effects-1000x602.jpg"
+  }
+ ]
+}

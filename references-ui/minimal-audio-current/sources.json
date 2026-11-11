@@ -1,0 +1,17 @@
+{
+ "page": "https://www.minimal.audio/products/current",
+ "shots": [
+  {
+   "shot": "shot-1.webp",
+   "from": "https://www.minimal.audio/cdn-cgi/image/quality=85,format=auto/assets/plugins/current/current-909ed6cea668d14d923d4f3d247cf94893549cd2d395be9bb5a28295cce3a3d4.webp"
+  },
+  {
+   "shot": "shot-2.webp",
+   "from": "https://www.minimal.audio/vite/assets/lucid-2x-C6MyTT6M.webp"
+  },
+  {
+   "shot": "shot-3.webp",
+   "from": "https://www.minimal.audio/vite/assets/formant-2x-La4cuSnV.webp"
+  }
+ ]
+}

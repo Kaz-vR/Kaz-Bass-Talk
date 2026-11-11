@@ -1,0 +1,761 @@
+[
+ {
+  "slug": "hasselblad-phocus",
+  "name": "Hasselblad Phocus",
+  "group": "siren",
+  "url": "https://www.hasselblad.com/phocus/",
+  "tags": [
+   "siren",
+   "dark",
+   "software",
+   "dense"
+  ],
+  "why": "Hasselblad's own pro software: the brand behind our site's calm, expensive restraint, applied to a dense pro tool"
+ },
+ {
+  "slug": "hasselblad-x2d",
+  "name": "Hasselblad X2D camera UI",
+  "group": "siren",
+  "url": "https://www.hasselblad.com/x-system/x2d-100c/",
+  "tags": [
+   "siren",
+   "hardware",
+   "minimal"
+  ],
+  "why": "A camera menu and touch screen with very few colours and big calm type: premium hardware UI"
+ },
+ {
+  "slug": "hasselblad-x2d-ii",
+  "name": "Hasselblad X2D II",
+  "group": "siren",
+  "url": "https://www.hasselblad.com/x-system/x2d-ii-100c/",
+  "tags": [
+   "siren",
+   "hardware",
+   "minimal"
+  ],
+  "why": "The newest Hasselblad camera and its touch UI: the brand's current restraint"
+ },
+ {
+  "slug": "te-op1",
+  "name": "Teenage Engineering OP-1 field",
+  "group": "siren",
+  "url": "https://teenage.engineering/products/op-1",
+  "tags": [
+   "siren",
+   "synth",
+   "hardware",
+   "displays"
+  ],
+  "why": "The OP-1 screen: every synth engine drawn as a playful, readable picture instead of a knob wall"
+ },
+ {
+  "slug": "te-opxy",
+  "name": "Teenage Engineering OP-XY",
+  "group": "siren",
+  "url": "https://teenage.engineering/products/op-xy",
+  "tags": [
+   "siren",
+   "synth",
+   "hardware",
+   "displays"
+  ],
+  "why": "TE's newest sequencer: a small display explaining a huge feature set with graphics"
+ },
+ {
+  "slug": "te-ep133",
+  "name": "Teenage Engineering EP-133 K.O. II",
+  "group": "siren",
+  "url": "https://teenage.engineering/products/ep-133",
+  "tags": [
+   "siren",
+   "hardware",
+   "sampler"
+  ],
+  "why": "Hardware graphics, segment display and printed labels as the whole UI"
+ },
+ {
+  "slug": "te-ep-sample-tool",
+  "name": "Teenage Engineering EP sample tool",
+  "group": "siren",
+  "url": "https://teenage.engineering/apps/ep-sample-tool",
+  "tags": [
+   "siren",
+   "software",
+   "minimal"
+  ],
+  "why": "TE's desktop software: how the brand looks on a computer screen"
+ },
+ {
+  "slug": "te-opz",
+  "name": "Teenage Engineering OP-Z",
+  "group": "siren",
+  "url": "https://teenage.engineering/products/op-z",
+  "tags": [
+   "siren",
+   "hardware",
+   "software",
+   "colour-coding"
+  ],
+  "why": "A device with an app as its screen: colour coding per track, very little text"
+ },
+ {
+  "slug": "te-tx6",
+  "name": "Teenage Engineering TX-6",
+  "group": "siren",
+  "url": "https://teenage.engineering/products/tx-6",
+  "tags": [
+   "siren",
+   "hardware",
+   "dense",
+   "materials"
+  ],
+  "why": "A tiny, dense machined mixer: many controls, perfect order"
+ },
+ {
+  "slug": "apple-logic-pro",
+  "name": "Apple Logic Pro",
+  "group": "siren",
+  "url": "https://www.apple.com/logic-pro/",
+  "tags": [
+   "siren",
+   "music",
+   "software",
+   "synth",
+   "dense"
+  ],
+  "why": "Apple's pro music app: plugin UIs (Alchemy, Sample Alchemy, ChromaGlow), dark mode, precision"
+ },
+ {
+  "slug": "te-op1-guide",
+  "name": "Teenage Engineering OP-1 field guide",
+  "group": "siren",
+  "url": "https://teenage.engineering/guides/op-1",
+  "tags": [
+   "siren",
+   "synth",
+   "displays",
+   "manual"
+  ],
+  "why": "The OP-1 manual: every screen of the device drawn flat, one engine per picture"
+ },
+ {
+  "slug": "apple-final-cut",
+  "name": "Apple Final Cut Pro",
+  "group": "siren",
+  "url": "https://www.apple.com/final-cut-pro/",
+  "tags": [
+   "siren",
+   "software",
+   "dark",
+   "dense"
+  ],
+  "why": "A dark, dense pro app that still feels calm: panels, inspector, colour wheels"
+ },
+ {
+  "slug": "te-opxy-guide",
+  "name": "Teenage Engineering OP-XY guide",
+  "group": "siren",
+  "url": "https://teenage.engineering/guides/op-xy",
+  "tags": [
+   "siren",
+   "synth",
+   "displays",
+   "manual"
+  ],
+  "why": "The OP-XY manual: screen graphics for engines, envelopes and filters"
+ },
+ {
+  "slug": "leica-fotos",
+  "name": "Leica FOTOS",
+  "group": "siren",
+  "url": "https://leica-camera.com/en-int/photography/leica-fotos",
+  "tags": [
+   "siren",
+   "software",
+   "minimal",
+   "red-accent"
+  ],
+  "why": "Leica's app: luxury restraint, red as the only accent (like our siren)"
+ },
+ {
+  "slug": "uhe-diva",
+  "name": "u-he Diva",
+  "group": "synth",
+  "url": "https://u-he.com/products/diva/",
+  "tags": [
+   "synth",
+   "skeuo",
+   "modules"
+  ],
+  "why": "The reference for analog-modelled synth faces: module panels, real knobs, readable at a glance"
+ },
+ {
+  "slug": "uhe-zebra",
+  "name": "u-he Zebra",
+  "group": "synth",
+  "url": "https://u-he.com/products/zebra-legacy/",
+  "tags": [
+   "synth",
+   "dense",
+   "modules",
+   "modulation"
+  ],
+  "why": "Huge modular synth on one page with grids and lit panels"
+ },
+ {
+  "slug": "uhe-repro",
+  "name": "u-he Repro",
+  "group": "synth",
+  "url": "https://u-he.com/products/repro/",
+  "tags": [
+   "synth",
+   "skeuo",
+   "materials"
+  ],
+  "why": "Photoreal skeuomorphic hardware (Pro-One, Prophet-5) done tastefully"
+ },
+ {
+  "slug": "serum-2",
+  "name": "Xfer Serum 2",
+  "group": "synth",
+  "url": "https://xferrecords.com/products/serum-2",
+  "tags": [
+   "synth",
+   "displays",
+   "modulation",
+   "dark"
+  ],
+  "why": "The modern synth standard: big animated displays above each module, drag-to-modulate"
+ },
+ {
+  "slug": "surge-xt",
+  "name": "Surge XT",
+  "group": "synth",
+  "url": "https://surge-synthesizer.github.io/",
+  "tags": [
+   "synth",
+   "flat",
+   "dense",
+   "modulation"
+  ],
+  "why": "A free, deep synth with skinnable flat panels: one page, many modules"
+ },
+ {
+  "slug": "phase-plant",
+  "name": "Kilohearts Phase Plant",
+  "group": "synth",
+  "url": "https://kilohearts.com/docs/phase_plant",
+  "tags": [
+   "synth",
+   "modules",
+   "modulation",
+   "flat"
+  ],
+  "why": "Modular generators in tidy stacked cards; very clear modulation"
+ },
+ {
+  "slug": "pigments",
+  "name": "Arturia Pigments",
+  "group": "synth",
+  "url": "https://www.arturia.com/products/software-instruments/pigments/overview",
+  "tags": [
+   "synth",
+   "displays",
+   "modulation",
+   "colour-coding"
+  ],
+  "why": "Rich colour-coded modulation and animated displays; polished"
+ },
+ {
+  "slug": "arturia-v-collection",
+  "name": "Arturia V Collection",
+  "group": "synth",
+  "url": "https://www.arturia.com/products/software-instruments/v-collection/overview",
+  "tags": [
+   "synth",
+   "skeuo",
+   "materials"
+  ],
+  "why": "Faithful vintage hardware recreations with a clean modern toolbar"
+ },
+ {
+  "slug": "fabfilter-pro-q",
+  "name": "FabFilter Pro-Q 4",
+  "group": "synth",
+  "url": "https://www.fabfilter.com/products/pro-q-4-equalizer-plug-in",
+  "tags": [
+   "plugin",
+   "displays",
+   "flat",
+   "dark"
+  ],
+  "why": "The gold standard of a big interactive display as the whole interface"
+ },
+ {
+  "slug": "fabfilter-saturn",
+  "name": "FabFilter Saturn 2",
+  "group": "synth",
+  "url": "https://www.fabfilter.com/products/saturn-2-multiband-distortion-saturation-plug-in",
+  "tags": [
+   "plugin",
+   "displays",
+   "distortion"
+  ],
+  "why": "Distortion UI: bands, drive and modulation readable in one display"
+ },
+ {
+  "slug": "soundtoys-decapitator",
+  "name": "Soundtoys Decapitator",
+  "group": "synth",
+  "url": "https://www.soundtoys.com/product/decapitator/",
+  "tags": [
+   "plugin",
+   "skeuo",
+   "distortion"
+  ],
+  "why": "Hardware-style saturation box: few big knobs, strong character"
+ },
+ {
+  "slug": "baby-audio",
+  "name": "Baby Audio",
+  "group": "synth",
+  "url": "https://babyaud.io/",
+  "tags": [
+   "plugin",
+   "art-directed"
+  ],
+  "why": "Modern, playful, art-directed plugin faces"
+ },
+ {
+  "slug": "valhalla",
+  "name": "Valhalla VintageVerb",
+  "group": "synth",
+  "url": "https://valhalladsp.com/shop/reverb/valhalla-vintage-verb/",
+  "tags": [
+   "plugin",
+   "flat",
+   "minimal"
+  ],
+  "why": "Plain flat sliders that are completely clear: function first"
+ },
+ {
+  "slug": "minimal-audio-current",
+  "name": "Minimal Audio Current",
+  "group": "synth",
+  "url": "https://www.minimal.audio/products/current",
+  "tags": [
+   "synth",
+   "flat",
+   "modulation",
+   "dark"
+  ],
+  "why": "A new-generation synth with very clean, premium flat design"
+ },
+ {
+  "slug": "output-arcade",
+  "name": "Output Arcade",
+  "group": "synth",
+  "url": "https://output.com/products/arcade",
+  "tags": [
+   "synth",
+   "art-directed"
+  ],
+  "why": "Consumer-friendly, art-directed instrument; big imagery"
+ },
+ {
+  "slug": "massive-x",
+  "name": "Native Instruments Massive X",
+  "group": "synth",
+  "url": "https://www.native-instruments.com/en/products/komplete/synths/massive-x/",
+  "tags": [
+   "synth",
+   "dark",
+   "dense",
+   "modulation"
+  ],
+  "why": "Dense, dark, modular routing with a big tab structure"
+ },
+ {
+  "slug": "omnisphere",
+  "name": "Spectrasonics Omnisphere",
+  "group": "synth",
+  "url": "https://www.spectrasonics.net/products/omnisphere/",
+  "tags": [
+   "synth",
+   "dark",
+   "cinematic",
+   "dense"
+  ],
+  "why": "A deep cinematic synth with layered pages and hardware-like panels"
+ },
+ {
+  "slug": "arturia-mini-v",
+  "name": "Arturia Mini V",
+  "group": "synth",
+  "url": "https://www.arturia.com/products/software-instruments/mini-v/overview",
+  "tags": [
+   "synth",
+   "skeuo",
+   "materials"
+  ],
+  "why": "A Minimoog recreation: wood, metal and real knobs on screen"
+ },
+ {
+  "slug": "moog-one",
+  "name": "Moog One",
+  "group": "hardware",
+  "url": "https://www.moogmusic.com/products/moog-one",
+  "tags": [
+   "hardware",
+   "synth",
+   "materials",
+   "modules"
+  ],
+  "why": "A flagship synth panel: modules, a central display, premium materials"
+ },
+ {
+  "slug": "elektron-digitone",
+  "name": "Elektron Digitone II",
+  "group": "hardware",
+  "url": "https://www.elektron.se/explore/digitone-ii",
+  "tags": [
+   "hardware",
+   "synth",
+   "dark",
+   "displays"
+  ],
+  "why": "Dark, industrial, tight grid of encoders around one screen"
+ },
+ {
+  "slug": "buchla",
+  "name": "Buchla",
+  "group": "hardware",
+  "url": "https://buchla.com/",
+  "tags": [
+   "hardware",
+   "synth",
+   "colour-coding",
+   "modules"
+  ],
+  "why": "Colour-coded modular panels: iconic, strange, precise"
+ },
+ {
+  "slug": "make-noise",
+  "name": "Make Noise 0-Coast",
+  "group": "hardware",
+  "url": "https://www.makenoisemusic.com/instruments/0-coast/",
+  "tags": [
+   "hardware",
+   "synth",
+   "art-directed"
+  ],
+  "why": "Hand-drawn panel graphics and strong character"
+ },
+ {
+  "slug": "eventide-h90",
+  "name": "Eventide H90",
+  "group": "hardware",
+  "url": "https://www.eventideaudio.com/pedals/h90/",
+  "tags": [
+   "hardware",
+   "displays",
+   "dark"
+  ],
+  "why": "A pedal with a dense screen UI that stays readable"
+ },
+ {
+  "slug": "elektron-syntakt",
+  "name": "Elektron Syntakt",
+  "group": "hardware",
+  "url": "https://www.elektron.se/explore/syntakt",
+  "tags": [
+   "hardware",
+   "synth",
+   "dark",
+   "displays"
+  ],
+  "why": "Elektron's drum/synth machine: dark panel, coloured trig keys, one small screen"
+ },
+ {
+  "slug": "polyend-tracker",
+  "name": "Polyend Tracker+",
+  "group": "hardware",
+  "url": "https://polyend.com/tracker-plus/",
+  "tags": [
+   "hardware",
+   "displays",
+   "minimal"
+  ],
+  "why": "A screen-first instrument with bold, minimal graphics"
+ },
+ {
+  "slug": "dirtywave-m8",
+  "name": "Dirtywave M8",
+  "group": "hardware",
+  "url": "https://dirtywave.com/",
+  "tags": [
+   "hardware",
+   "displays",
+   "dense"
+  ],
+  "why": "A tiny tracker: dense pixel UI that people love"
+ },
+ {
+  "slug": "erica-synths",
+  "name": "Erica Synths",
+  "group": "hardware",
+  "url": "https://www.ericasynths.lv/",
+  "tags": [
+   "hardware",
+   "synth",
+   "dark",
+   "lorn"
+  ],
+  "why": "Dark, industrial, Eastern-European hardware: close to LORN's mood"
+ },
+ {
+  "slug": "ableton-push",
+  "name": "Ableton Push 3",
+  "group": "hardware",
+  "url": "https://www.ableton.com/en/push/",
+  "tags": [
+   "hardware",
+   "displays",
+   "lighting"
+  ],
+  "why": "Lit pads and a display bar: hardware glow as UI"
+ },
+ {
+  "slug": "output-portal",
+  "name": "Output Portal",
+  "group": "lorn",
+  "url": "https://output.com/products/portal",
+  "tags": [
+   "lorn",
+   "plugin",
+   "dark",
+   "cinematic"
+  ],
+  "why": "A granular effect with a dark, cinematic, animated face"
+ },
+ {
+  "slug": "heavyocity-damage",
+  "name": "Heavyocity Damage 2",
+  "group": "lorn",
+  "url": "https://heavyocity.com/product/damage-2/",
+  "tags": [
+   "lorn",
+   "dark",
+   "cinematic",
+   "worn"
+  ],
+  "why": "Industrial cinematic percussion: dark, gritty, worn UI"
+ },
+ {
+  "slug": "ni-straylight",
+  "name": "Native Instruments Straylight",
+  "group": "lorn",
+  "url": "https://www.native-instruments.com/en/products/komplete/synths/straylight/",
+  "tags": [
+   "lorn",
+   "synth",
+   "dark",
+   "cinematic"
+  ],
+  "why": "A cinematic pad instrument: dark, atmospheric, a big central display"
+ },
+ {
+  "slug": "slate-ash",
+  "name": "Slate + Ash",
+  "group": "lorn",
+  "url": "https://www.slateandash.com/",
+  "tags": [
+   "lorn",
+   "dark",
+   "cinematic",
+   "art-directed"
+  ],
+  "why": "Dark cinematic instruments with art-directed faces"
+ },
+ {
+  "slug": "goodhertz",
+  "name": "Goodhertz",
+  "group": "lorn",
+  "url": "https://goodhertz.com/",
+  "tags": [
+   "lorn",
+   "plugin",
+   "worn",
+   "tape"
+  ],
+  "why": "Tape wear, wobble and lo-fi plugins: worn, warm, typographic"
+ },
+ {
+  "slug": "glitchmachines",
+  "name": "Glitchmachines Hysteresis",
+  "group": "lorn",
+  "url": "https://glitchmachines.com/products/hysteresis/",
+  "tags": [
+   "lorn",
+   "plugin",
+   "dark"
+  ],
+  "why": "Glitchy, dark, sci-fi panels"
+ },
+ {
+  "slug": "arturia-mello-fi",
+  "name": "Arturia Tape MELLO-FI",
+  "group": "lorn",
+  "url": "https://www.arturia.com/products/software-effects/tape-mello-fi/overview",
+  "tags": [
+   "lorn",
+   "plugin",
+   "worn",
+   "tape",
+   "skeuo"
+  ],
+  "why": "Tape wear and degradation made visible and physical"
+ },
+ {
+  "slug": "xln-rc20",
+  "name": "XLN Audio RC-20 Retro Color",
+  "group": "lorn",
+  "url": "https://www.xlnaudio.com/products/addictive_fx/effect/rc-20_retro_color",
+  "tags": [
+   "lorn",
+   "plugin",
+   "worn",
+   "modules"
+  ],
+  "why": "The wear/texture plugin: noise, wobble, distortion, space, as modules"
+ },
+ {
+  "slug": "davinci-resolve",
+  "name": "DaVinci Resolve",
+  "group": "pro",
+  "url": "https://www.blackmagicdesign.com/products/davinciresolve",
+  "tags": [
+   "pro",
+   "dark",
+   "dense",
+   "software"
+  ],
+  "why": "Dark, very dense pro UI where hundreds of controls stay calm"
+ },
+ {
+  "slug": "ableton-live",
+  "name": "Ableton Live",
+  "group": "pro",
+  "url": "https://www.ableton.com/en/live/",
+  "tags": [
+   "pro",
+   "music",
+   "flat",
+   "dense"
+  ],
+  "why": "Flat, functional music software: clarity over decoration"
+ },
+ {
+  "slug": "bitwig",
+  "name": "Bitwig Studio",
+  "group": "pro",
+  "url": "https://www.bitwig.com/",
+  "tags": [
+   "pro",
+   "music",
+   "modulation",
+   "dark"
+  ],
+  "why": "Modern DAW with modulators everywhere; very clear modulation display"
+ },
+ {
+  "slug": "resolume",
+  "name": "Resolume",
+  "group": "pro",
+  "url": "https://resolume.com/software",
+  "tags": [
+   "pro",
+   "dark",
+   "dense",
+   "performance"
+  ],
+  "why": "Live visuals software: dark, dense, performance-first"
+ },
+ {
+  "slug": "pixelmator-pro",
+  "name": "Pixelmator Pro",
+  "group": "pro",
+  "url": "https://www.pixelmator.com/pro/",
+  "tags": [
+   "pro",
+   "dark",
+   "software",
+   "siren"
+  ],
+  "why": "An Apple-like pro editor: dark, calm, beautiful adjustment panels"
+ },
+ {
+  "slug": "cubase",
+  "name": "Steinberg Cubase",
+  "group": "pro",
+  "url": "https://www.steinberg.net/cubase/",
+  "tags": [
+   "pro",
+   "music",
+   "dense",
+   "dark"
+  ],
+  "why": "A big DAW with dense mixers and channel strips"
+ },
+ {
+  "slug": "linear",
+  "name": "Linear",
+  "group": "pro",
+  "url": "https://linear.app",
+  "tags": [
+   "pro",
+   "dark",
+   "software",
+   "minimal"
+  ],
+  "why": "Premium dark software: tight type, subtle depth, almost no colour"
+ },
+ {
+  "slug": "capture-one",
+  "name": "Capture One",
+  "group": "pro",
+  "url": "https://www.captureone.com/en",
+  "tags": [
+   "pro",
+   "dark",
+   "dense"
+  ],
+  "why": "Pro photo editing: dark, dense tool panels and colour tools"
+ },
+ {
+  "slug": "max",
+  "name": "Cycling '74 Max",
+  "group": "pro",
+  "url": "https://cycling74.com/products/max",
+  "tags": [
+   "pro",
+   "music",
+   "modules",
+   "dark"
+  ],
+  "why": "Patchable audio software: dark, modular, technical"
+ },
+ {
+  "slug": "houdini",
+  "name": "SideFX Houdini",
+  "group": "pro",
+  "url": "https://www.sidefx.com/products/houdini/",
+  "tags": [
+   "pro",
+   "dark",
+   "dense"
+  ],
+  "why": "Deep technical software with clear parameter panels"
+ }
+]

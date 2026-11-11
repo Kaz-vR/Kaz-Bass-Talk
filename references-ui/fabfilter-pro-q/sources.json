@@ -1,0 +1,21 @@
+{
+ "page": "https://www.fabfilter.com/products/pro-q-4-equalizer-plug-in",
+ "shots": [
+  {
+   "shot": "shot-1.webp",
+   "from": "https://www.fabfilter.com/img/products/pro-q-4-screenshot.jpg"
+  },
+  {
+   "shot": "shot-2.webp",
+   "from": "https://www.fabfilter.com/img/products/pro-q-4-highlight-spectral-fallback.jpg"
+  },
+  {
+   "shot": "shot-3.webp",
+   "from": "https://www.fabfilter.com/img/products/pro-q-4-highlight-instancelist-fallback.jpg"
+  },
+  {
+   "shot": "shot-4.webp",
+   "from": "https://www.fabfilter.com/img/products/pro-q-4-highlight-eqsketch-fallback.jpg"
+  }
+ ]
+}

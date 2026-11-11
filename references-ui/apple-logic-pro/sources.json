@@ -1,0 +1,21 @@
+{
+ "page": "https://www.apple.com/logic-pro/",
+ "shots": [
+  {
+   "shot": "shot-1.webp",
+   "from": "https://www.apple.com/v/logic-pro/n/images/overview/welcome/hero_endframe__dc7irycb3gia_medium_2x.jpg"
+  },
+  {
+   "shot": "shot-2.webp",
+   "from": "screenshot of https://www.apple.com/logic-pro/ (screen-2)"
+  },
+  {
+   "shot": "shot-3.webp",
+   "from": "screenshot of https://www.apple.com/logic-pro/ (screen-3)"
+  },
+  {
+   "shot": "shot-4.webp",
+   "from": "screenshot of https://www.apple.com/logic-pro/ (screen-4)"
+  }
+ ]
+}
