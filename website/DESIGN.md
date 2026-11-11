@@ -169,7 +169,30 @@ Dislikes: rounded buttons; divider lines; soft amber or "cosy" warm gradients; t
 everything centred on desktop; content hugging the screen edges; colours that are pulled back and tame
 when they should be neon; obvious template looks; typical plugin-site clutter (sale banners, loud gradients).
 
-## 10. How we work on the site
+## 10. The reference library (our own "UXKIN")
+
+`references/` is our own hand-picked library of 60 top-tier websites, built for RUIN-1 instead of a paid
+service like UXKIN (owner's call). Use it for every design decision, before relying on taste.
+
+- **What each site has** (`references/<site>/`): desktop and phone screenshots of the first screen and
+  the whole page (`desktop.webp`, `desktop-full.webp`, `phone.webp`, `phone-full.webp`); `tokens.json`
+  with the design measured from the live page (fonts, type sizes and tracking, colour palette by area,
+  accent, buttons, section spacing, whether the first screen is dark, measured from the pixels); and
+  `DESIGN.md` with what makes it work, what it is a good reference for, and the lesson for RUIN-1.
+- **Index:** `references/README.md`, grouped by tag. **`lorn`** (24 sites) = in line with RUIN-1's
+  concept: dark, worn, cinematic, analog (Ninja Tune, Warp, A24, Hasselblad, Moog, Blumhouse, ECM ...).
+  Other tags: `dark`, `hero`, `product`, `music`, `type-led`, `motion`, `software`, `studio`, `outlier` ...
+  Native Instruments and Output are in only as the plugin-site norm to beat.
+- **How to use it:** pick the tags that fit the task, read 5 to 8 of those `DESIGN.md` files and look at
+  their screenshots, and use them as the brief; name the references used in each pitch. Study patterns,
+  never copy a site's branding, images or copy.
+- **Rebuild or extend it:** add sites to `references/sites.json` (slug, url, tags, why), run
+  `node tools/references.mjs [slug,slug]` to capture them, add notes to `references/notes.json`, then
+  `node tools/references-index.mjs` to rewrite the DESIGN.md files and the index. Capturing needs open
+  internet access in the cloud environment (the owner set the Default environment to unrestricted);
+  some sites block cloud servers (Balenciaga, Saint Laurent, Criterion ...) and were swapped out.
+
+## 11. How we work on the site
 
 - The owner usually asks for several **pitches as PNG images** first, picks one, then gives notes.
   Render pitches on the real site or real assets, desktop and phone, and label each one.
