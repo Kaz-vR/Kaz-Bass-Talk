@@ -272,13 +272,15 @@ main > section { scroll-margin-top: 62px; }
   .stats-m span { display: block; margin-top: 4px; font-size: 13px; color: #a8a29c; letter-spacing: .04em; }
   .stats-m p { grid-column: 1 / -1; margin: 6px 0 0; font-size: 13px; line-height: 1.6; color: #a8a29c; }
   /* the closing call: two equal buttons */
-  .cta .ctas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 290px; margin: 0 auto; }
-  .cta .btn { width: auto; }
+  /* phone-sized buttons like the pinned bar's: smaller type with the same tracking, room round the words */
+  .cta .ctas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 310px; margin: 0 auto; }
+  .cta .btn { width: auto; height: 50px; padding: 0 12px; font-size: 13px; letter-spacing: .2em; gap: 8px; border-width: 1.5px; }
   /* the footer centred */
   .foot-row { align-items: center; text-align: center; }
   .brand-sm { justify-content: center; }
   .foot-links { justify-content: center; }
-  .foot-links { gap: 0 24px; flex-wrap: wrap; }
+  .foot-links { gap: 0 24px; flex-wrap: wrap; margin: 0 auto; width: 100%; }
+  .foot-row > .btn { display: none; } /* the pinned bar already offers Buy */
   .foot-links span { display: none; }
   .foot-links a { line-height: 44px; }
   .foot { padding-bottom: 110px; }
