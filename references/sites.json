@@ -1,0 +1,611 @@
+[
+ {
+  "slug": "ninja-tune",
+  "url": "https://ninjatune.net",
+  "tags": [
+   "lorn",
+   "music",
+   "label"
+  ],
+  "why": "LORN's own label: how a dark electronic label presents artists and releases"
+ },
+ {
+  "slug": "warp",
+  "url": "https://warp.net",
+  "tags": [
+   "lorn",
+   "music",
+   "label",
+   "type-led"
+  ],
+  "why": "Warp: restrained, type-led presentation of experimental electronic music"
+ },
+ {
+  "slug": "aphex-twin",
+  "url": "https://aphextwin.warp.net",
+  "tags": [
+   "lorn",
+   "music",
+   "outlier"
+  ],
+  "why": "Aphex Twin: raw, strange, anti-template; a deliberate outlier"
+ },
+ {
+  "slug": "ghostly",
+  "url": "https://ghostly.com",
+  "tags": [
+   "lorn",
+   "music",
+   "label"
+  ],
+  "why": "Ghostly International: moody, design-led electronic label"
+ },
+ {
+  "slug": "nin",
+  "url": "https://www.nin.com",
+  "tags": [
+   "lorn",
+   "music",
+   "dark",
+   "industrial"
+  ],
+  "why": "Nine Inch Nails: industrial, dark, minimal artist site"
+ },
+ {
+  "slug": "johann-johannsson",
+  "url": "https://www.johannjohannsson.com",
+  "tags": [
+   "lorn",
+   "score",
+   "dark"
+  ],
+  "why": "Jóhann Jóhannsson: cinematic score composer, quiet and dark"
+ },
+ {
+  "slug": "max-richter",
+  "url": "https://www.maxrichtermusic.com",
+  "tags": [
+   "lorn",
+   "score",
+   "cinematic"
+  ],
+  "why": "Max Richter: cinematic score composer, quiet and grand"
+ },
+ {
+  "slug": "nils-frahm",
+  "url": "https://www.nilsfrahm.com",
+  "tags": [
+   "lorn",
+   "music",
+   "analog"
+  ],
+  "why": "Nils Frahm: analog, warm, crafted musician site"
+ },
+ {
+  "slug": "jon-hopkins",
+  "url": "https://www.jonhopkins.co.uk",
+  "tags": [
+   "lorn",
+   "music",
+   "analog"
+  ],
+  "why": "Jon Hopkins: cinematic electronic artist"
+ },
+ {
+  "slug": "a24",
+  "url": "https://a24films.com",
+  "tags": [
+   "lorn",
+   "film",
+   "dark",
+   "hero"
+  ],
+  "why": "A24: the benchmark for dark, editorial film-studio design"
+ },
+ {
+  "slug": "neon",
+  "url": "https://neonrated.com",
+  "tags": [
+   "lorn",
+   "film"
+  ],
+  "why": "Neon: bold, cinematic film distributor"
+ },
+ {
+  "slug": "remedy",
+  "url": "https://www.remedygames.com",
+  "tags": [
+   "lorn",
+   "games",
+   "dark",
+   "hero"
+  ],
+  "why": "Remedy: dark, atmospheric game studio"
+ },
+ {
+  "slug": "supermassive",
+  "url": "https://www.supermassivegames.com",
+  "tags": [
+   "lorn",
+   "games",
+   "dark"
+  ],
+  "why": "Supermassive: horror games, moody presentation"
+ },
+ {
+  "slug": "playdead",
+  "url": "https://playdead.com",
+  "tags": [
+   "lorn",
+   "games",
+   "dark",
+   "minimal"
+  ],
+  "why": "Playdead (Limbo, Inside): stark, silent, atmospheric"
+ },
+ {
+  "slug": "bloober",
+  "url": "https://blooberteam.com",
+  "tags": [
+   "lorn",
+   "games",
+   "dark"
+  ],
+  "why": "Bloober Team: psychological horror studio"
+ },
+ {
+  "slug": "rick-owens",
+  "url": "https://www.rickowens.eu",
+  "tags": [
+   "lorn",
+   "fashion",
+   "dark",
+   "outlier"
+  ],
+  "why": "Rick Owens: brutal, dark, raw luxury; strong mood"
+ },
+ {
+  "slug": "hasselblad",
+  "url": "https://www.hasselblad.com",
+  "tags": [
+   "lorn",
+   "photo",
+   "product",
+   "dark"
+  ],
+  "why": "Hasselblad: dark, premium camera product pages"
+ },
+ {
+  "slug": "moog",
+  "url": "https://www.moogmusic.com",
+  "tags": [
+   "lorn",
+   "synth",
+   "analog",
+   "product"
+  ],
+  "why": "Moog: analog synth maker, instrument-as-object"
+ },
+ {
+  "slug": "analogue",
+  "url": "https://www.analogue.co",
+  "tags": [
+   "lorn",
+   "hardware",
+   "product",
+   "dark",
+   "hero"
+  ],
+  "why": "Analogue: dark, crafted hardware product pages"
+ },
+ {
+  "slug": "polaroid",
+  "url": "https://www.polaroid.com",
+  "tags": [
+   "lorn",
+   "analog",
+   "product"
+  ],
+  "why": "Polaroid: analog/instant photography, worn charm"
+ },
+ {
+  "slug": "apple-airpods-max",
+  "url": "https://www.apple.com/airpods-max/",
+  "tags": [
+   "product",
+   "hero",
+   "dark",
+   "motion",
+   "specs"
+  ],
+  "why": "Apple AirPods Max: the reference for a premium audio product page"
+ },
+ {
+  "slug": "apple-macbook-pro",
+  "url": "https://www.apple.com/macbook-pro/",
+  "tags": [
+   "product",
+   "hero",
+   "dark",
+   "specs",
+   "motion"
+  ],
+  "why": "Apple MacBook Pro: dark product storytelling, specs as design"
+ },
+ {
+  "slug": "apple-vision-pro",
+  "url": "https://www.apple.com/apple-vision-pro/",
+  "tags": [
+   "product",
+   "hero",
+   "motion"
+  ],
+  "why": "Apple Vision Pro: cinematic, motion-led product page"
+ },
+ {
+  "slug": "teenage-engineering",
+  "url": "https://teenage.engineering",
+  "tags": [
+   "product",
+   "hardware",
+   "music",
+   "dark",
+   "type-led"
+  ],
+  "why": "Teenage Engineering: instruments as objects, dramatic lighting"
+ },
+ {
+  "slug": "nothing",
+  "url": "https://nothing.tech",
+  "tags": [
+   "product",
+   "hardware",
+   "type-led"
+  ],
+  "why": "Nothing: distinctive type and dot-matrix identity"
+ },
+ {
+  "slug": "leica",
+  "url": "https://leica-camera.com/en-US",
+  "tags": [
+   "product",
+   "photo"
+  ],
+  "why": "Leica: heritage craft, restrained luxury"
+ },
+ {
+  "slug": "marshall",
+  "url": "https://www.marshall.com/us/en",
+  "tags": [
+   "product",
+   "audio",
+   "music"
+  ],
+  "why": "Marshall: music gear brand with character and texture"
+ },
+ {
+  "slug": "bowers-wilkins",
+  "url": "https://www.bowerswilkins.com/en-us",
+  "tags": [
+   "product",
+   "audio",
+   "luxury"
+  ],
+  "why": "Bowers & Wilkins: premium audio product pages"
+ },
+ {
+  "slug": "kef",
+  "url": "https://us.kef.com",
+  "tags": [
+   "product",
+   "audio"
+  ],
+  "why": "KEF: high-end speakers, product craft"
+ },
+ {
+  "slug": "mubi",
+  "url": "https://mubi.com/en/us",
+  "tags": [
+   "lorn",
+   "film",
+   "dark",
+   "type-led"
+  ],
+  "why": "MUBI: cinematic, curated film platform with editorial type"
+ },
+ {
+  "slug": "elektron",
+  "url": "https://www.elektron.se",
+  "tags": [
+   "music",
+   "product",
+   "synth",
+   "dark"
+  ],
+  "why": "Elektron: dark, technical, music hardware"
+ },
+ {
+  "slug": "ableton",
+  "url": "https://www.ableton.com/en/",
+  "tags": [
+   "music",
+   "software",
+   "type-led"
+  ],
+  "why": "Ableton: the best-made music software site, editorial"
+ },
+ {
+  "slug": "koenigsegg",
+  "url": "https://www.koenigsegg.com",
+  "tags": [
+   "product",
+   "luxury",
+   "dark",
+   "hero"
+  ],
+  "why": "Koenigsegg: dark, cinematic hypercar presentation"
+ },
+ {
+  "slug": "polestar",
+  "url": "https://www.polestar.com/us/",
+  "tags": [
+   "product",
+   "minimal",
+   "type-led"
+  ],
+  "why": "Polestar: Scandinavian minimal, precise type"
+ },
+ {
+  "slug": "lucid",
+  "url": "https://lucidmotors.com",
+  "tags": [
+   "product",
+   "luxury",
+   "hero"
+  ],
+  "why": "Lucid: luxury product storytelling"
+ },
+ {
+  "slug": "rivian",
+  "url": "https://rivian.com",
+  "tags": [
+   "product",
+   "hero"
+  ],
+  "why": "Rivian: product story with strong imagery"
+ },
+ {
+  "slug": "linear",
+  "url": "https://linear.app",
+  "tags": [
+   "software",
+   "dark",
+   "type-led",
+   "motion"
+  ],
+  "why": "Linear: the reference for dark, precise software design"
+ },
+ {
+  "slug": "raycast",
+  "url": "https://www.raycast.com",
+  "tags": [
+   "software",
+   "dark"
+  ],
+  "why": "Raycast: dark, glossy, crafted product site"
+ },
+ {
+  "slug": "arc",
+  "url": "https://arc.net",
+  "tags": [
+   "software",
+   "playful",
+   "outlier"
+  ],
+  "why": "Arc: playful, distinctive; a contrasting outlier"
+ },
+ {
+  "slug": "vercel",
+  "url": "https://vercel.com",
+  "tags": [
+   "software",
+   "dark",
+   "type-led"
+  ],
+  "why": "Vercel: dark, grid-precise developer brand"
+ },
+ {
+  "slug": "framer",
+  "url": "https://www.framer.com",
+  "tags": [
+   "software",
+   "dark",
+   "motion"
+  ],
+  "why": "Framer: motion-rich dark marketing site"
+ },
+ {
+  "slug": "cursor",
+  "url": "https://cursor.com",
+  "tags": [
+   "software",
+   "dark",
+   "minimal"
+  ],
+  "why": "Cursor: dark minimal product site"
+ },
+ {
+  "slug": "superhuman",
+  "url": "https://superhuman.com",
+  "tags": [
+   "software",
+   "dark",
+   "hero"
+  ],
+  "why": "Superhuman: cinematic dark hero for software"
+ },
+ {
+  "slug": "pentagram",
+  "url": "https://www.pentagram.com",
+  "tags": [
+   "studio",
+   "type-led"
+  ],
+  "why": "Pentagram: the world's top design studio, typographic rigour"
+ },
+ {
+  "slug": "basic",
+  "url": "https://www.basicagency.com",
+  "tags": [
+   "studio",
+   "motion",
+   "dark"
+  ],
+  "why": "BASIC/DEPT: premium digital studio, dark motion"
+ },
+ {
+  "slug": "locomotive",
+  "url": "https://locomotive.ca/en",
+  "tags": [
+   "studio",
+   "motion",
+   "type-led"
+  ],
+  "why": "Locomotive: smooth-scroll craft, editorial type"
+ },
+ {
+  "slug": "instrument",
+  "url": "https://www.instrument.com",
+  "tags": [
+   "studio",
+   "motion"
+  ],
+  "why": "Instrument: top digital studio, polished motion"
+ },
+ {
+  "slug": "collins",
+  "url": "https://www.wearecollins.com",
+  "tags": [
+   "studio",
+   "type-led",
+   "outlier"
+  ],
+  "why": "Collins: brand studio with bold, unusual systems"
+ },
+ {
+  "slug": "unseen",
+  "url": "https://unseen.co",
+  "tags": [
+   "studio",
+   "motion",
+   "dark"
+  ],
+  "why": "Unseen Studio: atmospheric, motion-led"
+ },
+ {
+  "slug": "studio-freight",
+  "url": "https://studiofreight.com",
+  "tags": [
+   "studio",
+   "type-led",
+   "motion"
+  ],
+  "why": "Studio Freight: bold type and scroll craft"
+ },
+ {
+  "slug": "rockstar",
+  "url": "https://www.rockstargames.com",
+  "tags": [
+   "games",
+   "hero",
+   "cinematic"
+  ],
+  "why": "Rockstar: cinematic game marketing"
+ },
+ {
+  "slug": "naughty-dog",
+  "url": "https://www.naughtydog.com",
+  "tags": [
+   "games",
+   "dark"
+  ],
+  "why": "Naughty Dog: dark, story-driven studio"
+ },
+ {
+  "slug": "cd-projekt-red",
+  "url": "https://www.cdprojektred.com/en",
+  "tags": [
+   "games",
+   "dark"
+  ],
+  "why": "CD Projekt Red: dark, cinematic studio presence"
+ },
+ {
+  "slug": "blumhouse",
+  "url": "https://www.blumhouse.com",
+  "tags": [
+   "lorn",
+   "film",
+   "dark"
+  ],
+  "why": "Blumhouse: horror film studio, dark"
+ },
+ {
+  "slug": "ecm",
+  "url": "https://www.ecmrecords.com",
+  "tags": [
+   "lorn",
+   "music",
+   "label",
+   "minimal"
+  ],
+  "why": "ECM Records: minimal, moody label with a strict visual identity"
+ },
+ {
+  "slug": "our-legacy",
+  "url": "https://www.ourlegacy.com",
+  "tags": [
+   "fashion",
+   "minimal"
+  ],
+  "why": "Our Legacy: quiet, minimal fashion"
+ },
+ {
+  "slug": "acronym",
+  "url": "https://acrnm.com",
+  "tags": [
+   "fashion",
+   "type-led",
+   "outlier"
+  ],
+  "why": "Acronym: technical, brutal, type-led outlier"
+ },
+ {
+  "slug": "olafur-arnalds",
+  "url": "https://olafurarnalds.com",
+  "tags": [
+   "lorn",
+   "music",
+   "score"
+  ],
+  "why": "Ólafur Arnalds: cinematic, atmospheric musician"
+ },
+ {
+  "slug": "native-instruments",
+  "url": "https://www.native-instruments.com/en/",
+  "tags": [
+   "music",
+   "product"
+  ],
+  "why": "Native Instruments: big music-tech brand, as a contrast"
+ },
+ {
+  "slug": "output",
+  "url": "https://output.com",
+  "tags": [
+   "music",
+   "product"
+  ],
+  "why": "Output: popular plugin brand, as a contrast (what to beat)"
+ }
+]

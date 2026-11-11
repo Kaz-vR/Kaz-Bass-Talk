@@ -1,0 +1,302 @@
+{
+ "ninja-tune": {
+  "works": "A wall of square record covers does all the work; the chrome stays tiny, grey and out of the way.",
+  "goodFor": "Release grids, catalogue pages.",
+  "lesson": "Let the sound's artwork (the synth's prints) be the colour; keep the frame quiet."
+ },
+ "warp": {
+  "works": "Full-bleed live photography with harsh coloured light; a thin nav bar and almost no type on top.",
+  "goodFor": "Atmospheric heroes, artist sections.",
+  "lesson": "Coloured light on black is the mood; one strong image beats several weak ones."
+ },
+ "aphex-twin": {
+  "works": "Deliberately broken: pixel and terminal type, raw text dumped on black, nothing polished.",
+  "goodFor": "An outlier for texture and attitude, not for structure.",
+  "lesson": "A little controlled rawness (a decayed-signal line, mono labels) reads as authentic; a lot reads as a joke."
+ },
+ "ghostly": {
+  "works": "A dense, typographic catalogue: mono labels, serif headings, filters as plain text lists.",
+  "goodFor": "Preset browsers, filter UIs, long lists.",
+  "lesson": "Mono for data and labels, a softer face for names: a tidy way to show a big preset bank."
+ },
+ "nin": {
+  "works": "Black, red and a hard industrial logo; one product block in the centre, nav as a short vertical list.",
+  "goodFor": "Dark merch or edition pages.",
+  "lesson": "Restraint: two colours and one object can feel heavier than a whole page of effects."
+ },
+ "johann-johannsson": {
+  "works": "A single quiet photograph, a tiny serif name, enormous white space: grief and stillness.",
+  "goodFor": "Calm about or story sections.",
+  "lesson": "Stillness is a design tool: give one image room and say almost nothing."
+ },
+ "max-richter": {
+  "works": "A surreal full-bleed still, a light-weight sans with tight tracking, a thin ticket bar at the bottom.",
+  "goodFor": "Cinematic heroes with a single announcement.",
+  "lesson": "A dream-like image plus one quiet line feels expensive; avoid stacking buttons on it."
+ },
+ "nils-frahm": {
+  "works": "Texture everywhere: a warm, grainy, distorted portrait over a patterned ground; thin wide-tracked caps.",
+  "goodFor": "Texture-led heroes, about pages.",
+  "lesson": "Grain and warmth make digital feel analog: the same job tape wear does in the synth."
+ },
+ "jon-hopkins": {
+  "works": "Deep blue darkness with one small figure; a tiny nav floating on top; huge negative space.",
+  "goodFor": "Atmospheric openers, scroll-in moments.",
+  "lesson": "Scale contrast (a tiny subject in a big dark space) creates awe cheaply."
+ },
+ "a24": {
+  "works": "Giant tight-tracked grotesk set straight over a film still; the type is part of the image.",
+  "goodFor": "Type-led heroes, editorial sections.",
+  "lesson": "Big confident type over the product can carry the whole first screen."
+ },
+ "neon": {
+  "works": "Condensed, very heavy titles over full-bleed stills, a dark floating nav pill.",
+  "goodFor": "Release or launch heroes.",
+  "lesson": "Condensed heavy type gives instant poster energy."
+ },
+ "remedy": {
+  "works": "A rainy, dim photograph with almost no UI; the brand mark small in a corner.",
+  "goodFor": "Mood-first openers.",
+  "lesson": "Let the atmosphere load before anything asks for attention."
+ },
+ "supermassive": {
+  "works": "Dark cinematic key art with centred, thin, widely tracked caps over it.",
+  "goodFor": "Game-style key art heroes.",
+  "lesson": "Thin wide caps over dark art is close to our current hero; keep it but cut the clutter."
+ },
+ "playdead": {
+  "works": "Near-monochrome greys, a small nav row, one silent landscape image.",
+  "goodFor": "Minimal dark pages.",
+  "lesson": "Desaturated, quiet frames feel more dread-filled than loud ones."
+ },
+ "bloober": {
+  "works": "A red logo glowing out of a dark textured scene; centred statement and one outlined button.",
+  "goodFor": "Dark brand openers.",
+  "lesson": "A single red accent in a sea of near-black: the same move as our ember."
+ },
+ "rick-owens": {
+  "works": "Stark black and white, tiny caps everywhere, the product photographed brutally.",
+  "goodFor": "Luxury, fashion-grade restraint.",
+  "lesson": "Tiny type and big imagery is how luxury says it doesn't need to shout."
+ },
+ "hasselblad": {
+  "works": "A glowing gold ring on pure black with thin, widely tracked caps: a product reveal as an eclipse.",
+  "goodFor": "Launch heroes, light-from-darkness moments.",
+  "lesson": "Light emerging from black is our safelight idea done perfectly."
+ },
+ "moog": {
+  "works": "A close, warmly lit macro shot of real hardware; dark nav, the instrument as a precious object.",
+  "goodFor": "Instrument product pages.",
+  "lesson": "Shoot (or render) the synth like an object under one warm light."
+ },
+ "analogue": {
+  "works": "A clean light studio shot of the product, centred, with one short title and a pill button.",
+  "goodFor": "Product heroes and buy moments.",
+  "lesson": "Product, name, one button: the cleanest possible buy path."
+ },
+ "polaroid": {
+  "works": "Real photographs scattered like on a table; texture and warmth from the medium itself.",
+  "goodFor": "Lifestyle and texture sections.",
+  "lesson": "Showing artefacts (prints, tape, notes) makes a digital product feel physical."
+ },
+ "apple-airpods-max": {
+  "works": "One huge product image, one big headline, price and Buy in a small pill: nothing else.",
+  "goodFor": "Product heroes, sticky buy bars.",
+  "lesson": "A tiny persistent price-plus-Buy pill: what our phone pin bar wants to be."
+ },
+ "apple-macbook-pro": {
+  "works": "Black page, products as glowing objects, short centred copy, two small blue links.",
+  "goodFor": "Dark product heroes, comparison rows.",
+  "lesson": "On black, let the product be the only light source."
+ },
+ "apple-vision-pro": {
+  "works": "A bright face and product, a short wordmark and one line; motion sells the experience.",
+  "goodFor": "Experience-led product pages.",
+  "lesson": "Show the experience (sound, motion), not only the object."
+ },
+ "teenage-engineering": {
+  "works": "A single object in dramatic top light on black; thin, light type set very small; a playful icon nav.",
+  "goodFor": "Instrument heroes, catalogue nav.",
+  "lesson": "Dramatic top light plus tiny type is the closest product-photo match to RUIN-1's mood."
+ },
+ "nothing": {
+  "works": "A dot-matrix and mono identity; bold product photography; big serif-ish headline at the bottom left.",
+  "goodFor": "Distinctive type systems.",
+  "lesson": "An ownable type detail (like their dot font) makes a brand recognisable at a glance."
+ },
+ "leica": {
+  "works": "Warm cinematic photography with a clean white headline and one white pill; a quiet tab row at the bottom.",
+  "goodFor": "Heroes with sub-navigation.",
+  "lesson": "A bottom row of product tabs under the hero is a neat way to jump between pages."
+ },
+ "marshall": {
+  "works": "Heavy condensed caps, gritty textures, music-gear attitude. (The consent box could not be dismissed in capture.)",
+  "goodFor": "Music gear with character.",
+  "lesson": "Grit and weight in the type can carry the brand's sound."
+ },
+ "bowers-wilkins": {
+  "works": "Soft grey studio light, products standing like sculptures, a thin elegant headline.",
+  "goodFor": "Premium audio product pages.",
+  "lesson": "Calm studio light makes audio gear feel high-end."
+ },
+ "kef": {
+  "works": "A lifestyle room scene with the product in place, a centred title and two buttons.",
+  "goodFor": "In-context product shots.",
+  "lesson": "Showing the synth in a dark studio scene could sell the mood fast."
+ },
+ "mubi": {
+  "works": "Dark, intimate film still, a big uppercase line and one email field with a solid button.",
+  "goodFor": "Sign-up and trial heroes.",
+  "lesson": "One clear action on a moody image: a template for a 'Get the free trial' hero."
+ },
+ "elektron": {
+  "works": "Saturated colour-blocked studio shot of hardware and cables; dark nav; the product among real gear.",
+  "goodFor": "Instrument-in-studio heroes.",
+  "lesson": "Show RUIN-1 inside a real setup to prove it belongs in one."
+ },
+ "ableton": {
+  "works": "Real studio photography with a hand-drawn headline; friendly and human.",
+  "goodFor": "Community and brand sections.",
+  "lesson": "A human touch (handwriting, real rooms) offsets a dark technical brand."
+ },
+ "koenigsegg": {
+  "works": "A machine shot from behind under cold light, a huge brand-script title, almost no UI.",
+  "goodFor": "Dramatic product reveals.",
+  "lesson": "A single dramatic angle and one huge title can carry a first screen."
+ },
+ "polestar": {
+  "works": "Cold grey photography, precise small type, lots of space, a quiet two-button pair.",
+  "goodFor": "Minimal, precise layouts.",
+  "lesson": "Precision (alignment, small type, grey) reads as engineering quality."
+ },
+ "lucid": {
+  "works": "Warm evening photography, a serif-tinged wordmark, a white button floating on the image.",
+  "goodFor": "Luxury heroes with offers.",
+  "lesson": "Golden-hour warmth against dark tones is a luxury signal."
+ },
+ "rivian": {
+  "works": "Big bold headline on an outdoor shot, a bright yellow accent button.",
+  "goodFor": "Award and announcement heroes.",
+  "lesson": "One saturated accent button against natural imagery pops hard: our ember does the same."
+ },
+ "linear": {
+  "works": "Near-black, precise Inter type with tight tracking, the product UI as the hero image.",
+  "goodFor": "Dark software heroes, UI showcases.",
+  "lesson": "Show the real interface big, framed in near-black, with tight confident type."
+ },
+ "raycast": {
+  "works": "Abstract red light streaks on black behind a centred headline; glossy and premium.",
+  "goodFor": "Dark abstract heroes.",
+  "lesson": "A red light effect behind the headline is close to our safelight; keep it abstract and soft."
+ },
+ "arc": {
+  "works": "A colourful logo on black with an expressive serif headline and one small button.",
+  "goodFor": "Single-message announcement pages.",
+  "lesson": "One message, one button, a lot of black."
+ },
+ "vercel": {
+  "works": "A single geometric shape, tight large type and a logo strip: ultra-minimal.",
+  "goodFor": "Minimal heroes, trust logos.",
+  "lesson": "A row of partner/press logos is a cheap trust signal we lack."
+ },
+ "framer": {
+  "works": "Dark page, product UI glowing in blue, short headline, two small buttons.",
+  "goodFor": "Software demos.",
+  "lesson": "A glowing UI on black (like our pages strip) is exactly the right instinct."
+ },
+ "cursor": {
+  "works": "Warm off-white, a calm serif accent, the product window as the image.",
+  "goodFor": "Calm software product pages.",
+  "lesson": "Even a technical tool can feel warm with a little serif and soft tone."
+ },
+ "superhuman": {
+  "works": "A dreamy gradient sky with a person and floating UI cards; soft, aspirational.",
+  "goodFor": "Aspirational lifestyle heroes.",
+  "lesson": "Mostly a contrast: the opposite of RUIN-1's mood."
+ },
+ "pentagram": {
+  "works": "Massive type and solid colour fields; the work at billboard scale.",
+  "goodFor": "Portfolio and project grids.",
+  "lesson": "Scale and colour discipline: big work, tiny labels."
+ },
+ "basic": {
+  "works": "Dark product photography with a round 'watch reel' button floating on it.",
+  "goodFor": "Video-led heroes.",
+  "lesson": "A round floating play button on the hero invites sound and motion."
+ },
+ "locomotive": {
+  "works": "Pixelated, red, glitchy portrait with a grotesk-plus-serif lockup; very editorial.",
+  "goodFor": "Glitch and decayed-signal moments.",
+  "lesson": "A pixel/decay effect in red is close to our decayed-signal header."
+ },
+ "instrument": {
+  "works": "Huge black condensed wordmark over a grid of playful 3D characters.",
+  "goodFor": "Bold wordmark headers, grids.",
+  "lesson": "A giant wordmark band can anchor a page: a cousin of mobile pitch 6D."
+ },
+ "collins": {
+  "works": "A single centred serif line on white with lots of air; quiet confidence.",
+  "goodFor": "Statement sections.",
+  "lesson": "One sentence, beautifully set, is often stronger than a feature list."
+ },
+ "unseen": {
+  "works": "Pale, soft gradient with one tiny centred mark and a short line; it waits for you to scroll.",
+  "goodFor": "Soft openers and loaders.",
+  "lesson": "A calm loading moment can set the mood before the page reveals."
+ },
+ "studio-freight": {
+  "works": "A scattered grid of work around a centred line, monospaced type, playful layout.",
+  "goodFor": "Gallery and work grids.",
+  "lesson": "Breaking the grid on purpose shows confidence; use sparingly."
+ },
+ "rockstar": {
+  "works": "Illustrated key art, big product title, two pill buttons and a pre-load call to action.",
+  "goodFor": "Launch and pre-order heroes.",
+  "lesson": "Pre-order energy: one bold product logo, two clear actions."
+ },
+ "naughty-dog": {
+  "works": "Heavy condensed caps over a dark textured background; story-first.",
+  "goodFor": "Announcement and news heroes.",
+  "lesson": "Condensed heavy caps on dark texture: strong for launch news."
+ },
+ "cd-projekt-red": {
+  "works": "A grey cinematic field with centred caps and a red accent; corporate yet dark.",
+  "goodFor": "Studio and about pages.",
+  "lesson": "A single red accent and centred caps hold a corporate page together."
+ },
+ "blumhouse": {
+  "works": "Saturated red light on a horror still with a heavy condensed title.",
+  "goodFor": "Horror-mood heroes.",
+  "lesson": "Red wash plus condensed type is pure dread: close to the darker LORN tracks."
+ },
+ "ecm": {
+  "works": "Austere: a single album cover centred on white, tiny Univers type, nothing else.",
+  "goodFor": "Single-release focus pages.",
+  "lesson": "One object, perfectly centred, with almost no chrome: maximum focus."
+ },
+ "our-legacy": {
+  "works": "Big editorial photography with a bold caps location title, nearly no UI.",
+  "goodFor": "Editorial image sections.",
+  "lesson": "Location or scene labels over images add story with two words."
+ },
+ "acronym": {
+  "works": "A strict grid of products on white, tiny technical labels, no decoration.",
+  "goodFor": "Catalogue and grid pages.",
+  "lesson": "Technical, tiny labels give a precise, engineered feel."
+ },
+ "olafur-arnalds": {
+  "works": "Split screen: a black-and-white photo beside a hand-drawn illustration and fine type.",
+  "goodFor": "Release pages, split layouts.",
+  "lesson": "Pairing a photo with a delicate drawing adds intimacy."
+ },
+ "native-instruments": {
+  "works": "A big lavender-and-purple burst behind the synth UI; busy nav and offers.",
+  "goodFor": "A contrast: big-brand plugin marketing.",
+  "lesson": "What to avoid: crowded offers and loud gradients around the product."
+ },
+ "output": {
+  "works": "Loud colourful sale banner, big rounded type, many offers.",
+  "goodFor": "A contrast: plugin-site norms.",
+  "lesson": "The bar we want to clear: no shouting, no sale clutter; let the sound and the dark do it."
+ }
+}
