@@ -1740,6 +1740,6 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 .v2.v2 .pre-menu, .v2.v2 .dd-menu { background: #0b0b0c !important; }
 .v2.v2 .scope-glass { box-shadow: none !important; border-radius: 4px !important; }
 .v2.v2 .scope-glass::after { display: none !important; }
-/* the wooden cheeks darkened to the owner's mockup: no colour, very dark, the grain still faintly there
-   (measured: neutral grey ~15/255 with the grain at ~1.3 deviation) */
-.v2 .wood { filter: grayscale(1) brightness(.39); }
+/* the wooden cheeks a really dark brown (owner's reference): the same wood at half its brightness, colour kept
+   (measured: rgb ~34 / 15.5 / 10.5, every channel 49% of the original) */
+.v2 .wood { filter: brightness(.49); }
