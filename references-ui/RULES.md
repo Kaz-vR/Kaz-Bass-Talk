@@ -42,6 +42,10 @@ top-tier instrument.
     *(Repro, Mini V, TE OP-XY's raking light, Moog, Erica Synths.)*
 12. **Wear goes under clean controls.** Rust, grain or burnt metal sit in the panel and at its edges; knobs, type
     and displays on top stay crisp and readable. *(Heavyocity Damage 2, the most LORN-like UI here; RC-20; MELLO-FI.)*
+12b. **Texture on the frame, never on the working surface** (owner's call, from picking "Quiet" over textured
+    versions). The frame (wooden cheeks, the area round the instrument) can be worn; everything you read or touch,
+    and the box it sits in, stays clean. A scratch behind a knob or a trace competes with it; a clean surface makes
+    every control obviously grabbable. RUIN-1 follows this on every tab.
 13. **A modern shell can frame a physical face.** Header, browser and tabs flat and quiet; the instrument face can
     be skeuomorphic. *(Arturia V Collection, Mini V, Logic Pro.)*
 

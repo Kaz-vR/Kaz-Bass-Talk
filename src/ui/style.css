@@ -1723,3 +1723,18 @@ html, body, .v2-wrap { background: #070708; }
 /* the logo's left edge on the OSC A box's outer left edge (the page's own left edge) */
 .v2 .v2-top { padding-left: 0 !important; }
 .v2 .v2-top > .v2-brand { margin-right: auto; }
+
+/* ==== Quiet (owner's pick of three simplifications, on every tab): texture belongs on the frame, never on the
+   surface you work on. The wooden cheeks and the area round the instrument keep their wear; everything you read
+   or touch, and the box it sits in, is clean: no film grain over the page, no corrosion or wear behind the logo,
+   no dust in the boxes, the scope without its extra frame. ==== */
+.v2 .film, .v2 .v2-corrode, .v2 .v2-logo-wear { display: none !important; }
+.v2.v2 { background: #050505 !important; }
+.v2 .v2-top { background: #000 !important; }
+.v2.v2 .c, .v2.v2 .c.ob, .v2.v2 .pp-col, .v2.v2 .v2-bottom, .v2.v2 .kb-strip, .v2.v2 .kb-side,
+.v2.v2 .grind-page .c.ob, .v2.v2 .grind-page .gr-node, .v2.v2 .grind-page .gr-focus, .v2.v2 .grind-page .gr-master {
+  background: #0c0b0b !important; background-image: none !important; border-color: rgba(255,255,255,.06) !important; box-shadow: none !important; }
+.v2.v2 .ob-print::after { content: none !important; }
+.v2.v2 .pre-menu, .v2.v2 .dd-menu { background: #0b0b0c !important; }
+.v2.v2 .scope-glass { box-shadow: none !important; border-radius: 4px !important; }
+.v2.v2 .scope-glass::after { display: none !important; }
