@@ -228,3 +228,64 @@ main > section { scroll-margin-top: 62px; }
 
 /* the mark sized and placed by main.js so its top meets the top of RUIN-1 and its bottom the bottom of SYNTHESIZER */
 .lockup .mark, .brand-sm .mark { width: auto; align-self: flex-start; }
+
+/* ---------- phones (owner's pick, mobile pitch 6C "Ember axis"): everything on one centred axis, made visible by
+   a thin glowing line that drops into the logo, picks up under the synth and links every section title; Buy and
+   play pinned at the bottom */
+.stats-m, .pin-bar, .cap-dots { display: none; }
+@media (max-width: 720px) {
+  .axis-line, .hero-copy::before, .hero-shot::after, main > section:not(.hero)::before {
+    content: ''; position: absolute; left: 50%; width: 1px; margin-left: -.5px; pointer-events: none;
+    box-shadow: 0 0 8px rgba(255,120,40,.6); }
+  /* the hero: the logo alone and large, the name under it, one line, the synth; the line runs into the logo */
+  .hero { text-align: center; }
+  .hero-row { padding: 72px 0 120px; gap: 30px; }
+  .hero-copy { position: relative; padding-top: 36px; }
+  .hero-copy::before { top: -12px; height: 40px; background: linear-gradient(180deg, transparent, rgba(240,138,42,.8)); }
+  h1.lockup { flex-direction: column; align-items: center; gap: 26px; margin-bottom: 20px; }
+  .lockup .mark { height: 88px !important; width: auto; margin-top: 0 !important; align-self: center; }
+  .lockup .word b { font-size: 38px; letter-spacing: .42em; margin-right: -.42em; }
+  .lockup .word i { letter-spacing: .8em; margin-right: -.8em; font-size: 11px; }
+  .hero-lede { margin: 0 auto; max-width: 290px; font-size: 15.5px; }
+  .hero-ctas, .hero-meta { display: none; }
+  .hero-shot { position: relative; }
+  .hero-shot::after { left: 50%; top: 100%; height: 90px; background: linear-gradient(180deg, rgba(240,138,42,.8), rgba(240,138,42,.15)); }
+  /* every section centred, its title hung on the line */
+  main > section:not(.hero) { text-align: center; }
+  main > section:not(.hero)::before { top: 0; height: 46px; background: linear-gradient(180deg, rgba(240,138,42,.2), rgba(240,138,42,.8)); }
+  main > section:not(.hero) > .wrap:first-child, .demo-row, .req-row, .cta-col { padding-top: 76px !important; }
+  .body, .demo-copy .body { margin-left: auto; margin-right: auto; }
+  .demo-copy hr { display: none; }
+  .demo-copy .btn { margin: 26px auto 0; }
+  /* the features strip: caption centred, dots instead of arrows (swipe to move) */
+  .strip-cap { display: block; text-align: center; border-top: 0; padding-top: 6px; }
+  .strip-cap .arrow, .cap-rule { display: none; }
+  .cap-title { min-width: 0; font-size: 18px; }
+  .cap-text { margin: 10px auto 0; max-width: 320px; }
+  .cap-dots { display: flex; justify-content: center; gap: 8px; margin-top: 18px; }
+  .cap-dots i { width: 6px; height: 6px; border-radius: 3px; background: #4a4440; transition: width .3s, background .3s; }
+  .cap-dots i.on { width: 18px; background: var(--ember); box-shadow: 0 0 8px #ff8a30; }
+  /* requirements: four numbers instead of the two OS columns */
+  .req-row .os { display: none; }
+  .stats-m { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 24px; }
+  .stats-m div { border: 1px solid var(--rule); border-radius: 8px; padding: 16px 10px; background: rgba(255,255,255,.015); }
+  .stats-m b { display: block; font-weight: 600; font-size: 26px; letter-spacing: .04em; color: var(--ink-head); }
+  .stats-m span { display: block; margin-top: 4px; font-size: 13px; color: #a8a29c; letter-spacing: .04em; }
+  .stats-m p { grid-column: 1 / -1; margin: 6px 0 0; font-size: 13px; line-height: 1.6; color: #a8a29c; }
+  /* the closing call: two equal buttons */
+  .cta .ctas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
+  .cta .btn { width: auto; }
+  /* the footer centred */
+  .foot-row { align-items: center; text-align: center; }
+  .brand-sm { justify-content: center; }
+  .foot-links { justify-content: center; }
+  .foot-links { gap: 0 24px; flex-wrap: wrap; }
+  .foot-links span { display: none; }
+  .foot-links a { line-height: 44px; }
+  .foot { padding-bottom: 110px; }
+  /* Buy and play, pinned under the thumb */
+  .pin-bar { display: grid; grid-template-columns: 1fr 54px; gap: 10px; position: fixed; left: 16px; right: 16px; bottom: max(14px, env(safe-area-inset-bottom)); z-index: 30; }
+  .pin-bar .btn { height: 54px; }
+  .pin-bar .btn-o { background: rgba(18,10,6,.92); }
+  .pin-bar .btn-g { background: rgba(10,8,8,.88); font-size: 16px; padding: 0; }
+}

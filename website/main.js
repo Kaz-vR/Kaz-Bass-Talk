@@ -38,6 +38,12 @@ if (strip) {
   const track = strip.querySelector('.track'), slides = [...track.children];
   const n = document.querySelector('.cap-n'), title = document.querySelector('.cap-title'), text = document.querySelector('.cap-text');
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // dots under the caption (shown on phones, where the strip is swiped)
+  const dotBox = document.createElement('div');
+  dotBox.className = 'cap-dots';
+  dotBox.setAttribute('aria-hidden', 'true');
+  const dots = slides.map(() => dotBox.appendChild(document.createElement('i')));
+  text.after(dotBox);
   let cur = 0;
   // a loop with no ends (owner's call): every page sits at its circular distance from the current one, so on the
   // first page the last one is already on the left; a page that wraps round does so while it is out of sight
@@ -56,6 +62,7 @@ if (strip) {
       const v = x.querySelector('video');
       if (d === 0 && !still) { v.preload = 'auto'; v.play().catch(() => {}); } else v.pause();
     });
+    dots.forEach((d, j) => d.classList.toggle('on', j === cur));
     n.textContent = String(cur + 1).padStart(2, '0');
     title.textContent = s.dataset.title;
     text.textContent = s.dataset.text;
@@ -113,6 +120,7 @@ const alignMarks = () => {
   for (const box of document.querySelectorAll('.lockup, .brand-sm')) {
     const mark = box.querySelector('.mark'), b = box.querySelector('.word b'), i = box.querySelector('.word i');
     if (!mark || !b || !i) continue;
+    if (getComputedStyle(box).flexDirection === 'column') { mark.style.height = ''; mark.style.marginTop = ''; continue; }
     // placing the mark can re-centre the name in its row, so measure and place again until it settles
     for (let n = 0; n < 4; n++) {
       const top = ink(b, b.textContent).top, bottom = ink(i, i.textContent).bottom;
