@@ -274,97 +274,126 @@ const WOOD_DAMAGE: Record<'l' | 'r', { flakes: Blob[]; nails: [number, number, n
     scratches: [[-4, 278, 70, 342]],
   },
 };
+/** Smooth noise without a visible grid: several octaves, each rotated and offset, quintic-faded. */
+function fbmNoise(r: () => number, oct: number): (x: number, y: number) => number {
+  const N = 256, tab = Array.from({ length: N * N }, () => r());
+  const at = (i: number, j: number) => tab[(j & (N - 1)) * N + (i & (N - 1))];
+  const fade = (t: number) => t * t * t * (t * (t * 6 - 15) + 10);
+  const base = (x: number, y: number) => {
+    const i = Math.floor(x), j = Math.floor(y), u = fade(x - i), v = fade(y - j);
+    const a = at(i, j), b = at(i + 1, j), c = at(i, j + 1), d = at(i + 1, j + 1);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+  };
+  const rot = Array.from({ length: oct }, (_, k) => { const a = 0.6 + k * 1.1; return [Math.cos(a), Math.sin(a), r() * 97, r() * 97]; });
+  return (x, y) => {
+    let s = 0, amp = 0.5, f = 1, n = 0;
+    for (let k = 0; k < oct; k++) {
+      const [c, sn, ox, oy] = rot[k];
+      s += amp * base((x * c - y * sn) * f + ox, (x * sn + y * c) * f + oy);
+      n += amp;
+      amp *= 0.5;
+      f *= 2.03;
+    }
+    return s / n;
+  };
+}
+
 export function woodTexture(side: 'l' | 'r' = 'l', w = 134, h = 1422, seed = 61): string {
   const r = rng(seed + (side === 'r' ? 7 : 0));
-  const grainA = valueNoise(3, r), grainB = valueNoise(9, r), mott = valueNoise(26, r), fleck = valueNoise(5, r), pit = valueNoise(3, r);
-  const flakeN = valueNoise(2.5, r), flakeN2 = valueNoise(7, r), flakeTone = valueNoise(6, r), crust = valueNoise(1.6, r);
   const sx = w / 66, sy = h / 711, D = WOOD_DAMAGE[side];
-  // how much flaking there is here: soft blobs at the reference's places, stretched along the grain
+  const warp = fbmNoise(r, 3), grainN = fbmNoise(r, 4), mottle = fbmNoise(r, 4), crustN = fbmNoise(r, 5), flakeN = fbmNoise(r, 5), tone = fbmNoise(r, 3), pitN = fbmNoise(r, 3);
+  // how damaged each place is: the reference's areas, their edges made ragged by noise
   const amount = (x: number, y: number) => {
     let a = 0;
     for (const [bx, by, rx, ry, k] of D.flakes) {
       const dx = (x / sx - bx) / rx, dy = (y / sy - by) / ry;
-      a += k * Math.exp(-(dx * dx + dy * dy) * 1.6);
+      a += k * (side === 'r' ? 1.3 : 1) * Math.exp(-(dx * dx + dy * dy) * 1.4);
     }
-    return Math.min(1.2, a);
+    return Math.min(1.2, a * (0.55 + 0.9 * warp(x * 0.05, y * 0.02)));
   };
-  // the flake field: grain-stretched noise, so flakes come away in vertical slivers like old paint
-  const fl = (x: number, y: number) => (0.65 * flakeN(x, y / 2.2) + 0.35 * flakeN2(x, y / 1.6)) * (0.35 + 0.75 * amount(x, y));
-  const T = 0.5;
+  // the fields, in pixels; everything is stretched along the board like real weathering
+  const H = new Float32Array(w * h), MAT = new Float32Array(w * h), TONE = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      // domain warp: the grain wanders a little instead of running in straight lines
+      const wx = x + 6 * (warp(x * 0.02, y * 0.004) - 0.5), wy = y + 30 * (warp(x * 0.03 + 9, y * 0.006) - 0.5);
+      const grain = grainN(wx * 0.22, wy * 0.008);
+      const am = amount(x, y);
+      // paint lost where the damage is: a warped, grain-stretched field, thresholded into flakes
+      const fl = flakeN(wx * 0.18, wy * 0.05) + 0.32 * Math.min(1, am) - 0.28;
+      const lost = fl > 0.5 ? 1 : 0;
+      const crust = crustN(x * 0.35, y * 0.2);
+      let hgt = 0.35 * grain + (lost ? -0.3 + 0.6 * crust : (crust - 0.5) * (0.03 + 0.6 * Math.min(1, am)));
+      // the paint's edge curls up a little round a flake
+      if (!lost && fl > 0.47) hgt += (fl - 0.47) * 5;
+      // pits: clustered, not sprinkled
+      const pt = pitN(x * 0.3, y * 0.12);
+      if (pt > 0.74 + 0.1 * (1 - Math.min(1, am))) hgt -= (pt - 0.74) * 2.2;
+      H[i] = hgt;
+      MAT[i] = lost;
+      TONE[i] = 0.45 * mottle(wx * 0.04, wy * 0.012) + 0.25 * tone(x * 0.12, y * 0.06) + 0.3 * grainN(wx * 0.3 + 50, wy * 0.004);
+    }
+  }
+  // nail heads: domes in the height field (a dished rim where they sink into the wood)
+  const NAIL = new Float32Array(w * h);
+  for (const [nx, ny, nr] of D.nails) {
+    const cx = nx * sx, cy = ny * sy, rad = nr * sx;
+    for (let y = Math.max(0, Math.floor(cy - rad * 2)); y < Math.min(h, cy + rad * 2); y++) {
+      for (let x = Math.max(0, Math.floor(cx - rad * 2)); x < Math.min(w, cx + rad * 2); x++) {
+        const d = Math.hypot(x - cx, y - cy) / rad, i = y * w + x;
+        const rough = crustN(x * 0.6 + 40, y * 0.6) - 0.5;
+        if (d < 1 + 0.2 * rough) { H[i] += 0.9 * Math.sqrt(Math.max(0, 1 - d * d)) + 0.9 * rough; NAIL[i] = 1; }
+        else if (d < 1.6) H[i] -= 0.35 * (1.6 - d);
+      }
+    }
+  }
+  // light it from the top left, like the rest of the page, and colour it
   const cv = document.createElement('canvas');
   cv.width = w;
   cv.height = h;
   const g = cv.getContext('2d')!, img = g.createImageData(w, h);
+  const L = [-0.5, -0.7, 0.5], Ln = Math.hypot(L[0], L[1], L[2]);
+  const hAt = (x: number, y: number) => H[Math.min(h - 1, Math.max(0, y)) * w + Math.min(w - 1, Math.max(0, x))];
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      const gr = 0.6 * grainA(x, y / 40) + 0.4 * grainB(x, y / 25), m = mott(x, y / 3);
-      // where it is damaged the surface is crusty: a rough, fine-grained relief over the grain
-      const am = amount(x, y), cr = (crust(x, y) - 0.5) * (8 + 26 * am) + 7 * Math.min(1, am);
-      let R = 67 + (gr - 0.5) * 18 + (m - 0.5) * 22 + (r() - 0.5) * 9 + cr;
-      let G = 30 + (gr - 0.5) * 8 + (m - 0.5) * 10 + (r() - 0.5) * 5 + cr * 0.45;
-      let B = 21 + (gr - 0.5) * 5 + (m - 0.5) * 6 + (r() - 0.5) * 4 + cr * 0.3;
-      const f = fleck(x, y / 1.5);
-      if (f > 0.76) { const k = (f - 0.76) * 3; R += 22 * k; G += 10 * k; B += 3 * k; }
-      if (pit(x, y / 1.2) > 0.86) { R *= 0.62; G *= 0.6; B *= 0.6; }
-      // paint flakes: pale grey-tan where the flake has lifted, a dark rim round it, its top edge catching light
-      const v = fl(x, y);
-      if (v > T) {
-        const t = flakeTone(x, y), up = fl(x, y - 2) <= T, down = fl(x, y + 2) <= T;
-        let l = 0.8 + 0.35 * (t - 0.5) + (r() - 0.5) * 0.16;
-        if (up) l *= 1.18;
-        if (down) l *= 0.7;
-        // grey-brown scale with some of the rust still in it
-        R = (112 + 30 * (t - 0.5)) * l; G = (66 + 16 * (t - 0.5)) * l; B = (48 + 8 * (t - 0.5)) * l;
-      } else if (v > T - 0.04) {
-        R *= 0.6; G *= 0.56; B *= 0.55;
+      const i = y * w + x;
+      const dx = (hAt(x + 1, y) - hAt(x - 1, y)) * 2.2, dy = (hAt(x, y + 1) - hAt(x, y - 1)) * 2.2;
+      const nl = Math.hypot(dx, dy, 1), dot = (-dx * L[0] - dy * L[1] + L[2]) / (nl * Ln);
+      const am2 = Math.min(1, amount(x, y)), shade = 0.66 + (0.42 + 0.3 * am2) * dot;
+      const t = TONE[i];
+      let R: number, G: number, B: number;
+      if (NAIL[i]) { R = 42 + 34 * t; G = 19 + 13 * t; B = 12 + 7 * t; }
+      else if (MAT[i]) {
+        // exposed: a crust, dark brown in its hollows and pale tan on its raised bits
+        const c = Math.max(0, Math.min(1, (H[i] + 0.3) / 0.6));
+        R = 46 + 78 * c + 20 * (t - 0.5); G = 22 + 46 * c + 8 * (t - 0.5); B = 15 + 34 * c + 5 * (t - 0.5);
       }
+      else { R = 76 + 74 * (t - 0.5); G = 35 + 27 * (t - 0.5); B = 24 + 15 * (t - 0.5); }
+      // grime gathers low down: pits and grooves go dark
+      const ao = Math.min(1, Math.max(0.45, 1 + 0.9 * (H[i] - 0.15)));
       const e = Math.min(x, w - 1 - x) / w, dk = e < 0.06 ? 0.35 + 0.65 * (e / 0.06) : 1;
-      const o = (y * w + x) * 4;
-      img.data[o] = R * dk; img.data[o + 1] = G * dk; img.data[o + 2] = B * dk; img.data[o + 3] = 255;
+      const k = shade * ao * dk, o = i * 4;
+      img.data[o] = R * k; img.data[o + 1] = G * k; img.data[o + 2] = B * k; img.data[o + 3] = 255;
     }
   }
   g.putImageData(img, 0, 0);
-  // nail heads: a domed, rusted head, lit from the top left, a dark ring where it sinks into the board
-  for (const [nx, ny, nr] of D.nails) {
-    const x = nx * sx, y = ny * sy, rad = nr * sx;
-    const ring = g.createRadialGradient(x, y, rad * 0.8, x, y, rad * 1.5);
-    ring.addColorStop(0, 'rgba(12,5,2,0.85)');
-    ring.addColorStop(1, 'rgba(12,5,2,0)');
-    g.fillStyle = ring;
-    g.beginPath(); g.arc(x, y, rad * 1.5, 0, Math.PI * 2); g.fill();
-    const head = g.createRadialGradient(x - rad * 0.35, y - rad * 0.4, rad * 0.1, x, y, rad);
-    head.addColorStop(0, 'rgb(100,48,30)');
-    head.addColorStop(0.5, 'rgb(58,25,14)');
-    head.addColorStop(1, 'rgb(28,11,6)');
-    g.fillStyle = head;
-    g.beginPath(); g.arc(x, y, rad, 0, Math.PI * 2); g.fill();
-    // rust crust on the head and flaking round it
-    for (let i = 0; i < rad * 14; i++) {
-      const a = r() * Math.PI * 2, d = r() * rad * 1.35;
-      g.fillStyle = r() < 0.55 ? `rgba(18,7,3,${0.4 + r() * 0.4})` : `rgba(120,70,50,${0.25 + r() * 0.3})`;
-      g.fillRect(x + Math.cos(a) * d, y + Math.sin(a) * d, 1 + (r() < 0.3 ? 1 : 0), 1 + (r() < 0.3 ? 1 : 0));
-    }
-  }
-  // scratches: a thin pale line with a dark groove under it
+  // scratches: thin and wavering, fading in and out along their length, a dark groove under a pale lip
   for (const [x0, y0, x1, y1] of D.scratches) {
-    for (const [col, dy, lw] of [['rgba(10,4,2,0.55)', 1.2, 1.4], ['rgba(205,165,135,0.55)', 0, 0.9]] as const) {
-      g.strokeStyle = col;
-      g.lineWidth = lw;
-      g.beginPath();
-      g.moveTo(x0 * sx, y0 * sy + dy);
-      g.quadraticCurveTo(((x0 + x1) / 2) * sx, ((y0 + y1) / 2 - 4) * sy + dy, x1 * sx, y1 * sy + dy);
-      g.stroke();
+    const n = 60;
+    for (let k = 0; k < n; k++) {
+      const a = k / n, b = (k + 1) / n, al = Math.sin(Math.PI * a) * (0.5 + 0.5 * warp(a * 9, 3));
+      const p = (u: number) => [(x0 + (x1 - x0) * u) * sx + 1.5 * (warp(u * 14, 7) - 0.5), (y0 + (y1 - y0) * u - 4 * Math.sin(Math.PI * u)) * sy];
+      const [ax, ay] = p(a), [bx, by] = p(b);
+      for (const [col, oy, lw] of [[`rgba(10,4,2,${0.6 * al})`, 1.1, 1.3], [`rgba(215,175,145,${0.55 * al})`, 0, 0.8]] as const) {
+        g.strokeStyle = col;
+        g.lineWidth = lw;
+        g.beginPath();
+        g.moveTo(ax, ay + oy);
+        g.lineTo(bx, by + oy);
+        g.stroke();
+      }
     }
-  }
-  // faint fine scratches along the board
-  for (let i = 0; i < 26; i++) {
-    const x = r() * w, y = r() * h, ang = Math.PI / 2 + (r() - 0.5) * 0.7, len = 30 + r() * r() * 260;
-    g.strokeStyle = r() < 0.6 ? `rgba(14,6,3,${0.2 + r() * 0.25})` : `rgba(140,80,55,${0.06 + r() * 0.1})`;
-    g.lineWidth = 0.6 + r() * 0.4;
-    g.beginPath();
-    g.moveTo(x, y);
-    g.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
-    g.stroke();
   }
   return cv.toDataURL();
 }
