@@ -74,3 +74,25 @@ if (strip) {
   addEventListener('resize', () => show(cur));
   show(0);
 }
+
+// The menu: shrinks into a dark bar once the page scrolls, and lights the link of the section you are in.
+const nav = document.querySelector('.nav');
+if (nav) {
+  const navLinks = [...nav.querySelectorAll('.links a')];
+  const ids = ['sound', 'pages', 'requirements', 'buy'];
+  const onScroll = () => {
+    nav.classList.toggle('small', scrollY > 60);
+    let cur = 'top';
+    for (const id of ids) { const el = document.getElementById(id); if (el && el.getBoundingClientRect().top < innerHeight * 0.4) cur = id; }
+    navLinks.forEach((a) => a.classList.toggle('on', a.getAttribute('href') === `#${cur}`));
+  };
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+}
+
+// Sections ease up into view as they reach the screen (not with reduced motion).
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) {
+  const els = document.querySelectorAll('.demo-copy, .video, .pages > .wrap:first-child > *, .pages .strip, .strip-cap, .req-copy, .os, .cta-col > *');
+  const io = new IntersectionObserver((entries) => entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.15 });
+  els.forEach((el) => { el.classList.add('rv'); io.observe(el); });
+}

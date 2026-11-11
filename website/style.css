@@ -208,3 +208,20 @@ h1.lockup { display: flex; align-items: center; gap: 26px; margin: 0 0 30px; let
 
 /* the last call to action (owner's pick): a glow rising from the bottom centre, in the hero's ember red */
 .cta.photo { background: radial-gradient(ellipse 70% 90% at 50% 100%, rgba(200,40,12,.45), rgba(80,8,4,.25) 50%, transparent 78%), var(--bg-cta); }
+
+/* ---------- the menu stays on top (owner's pick, motion 3): over the hero it is clear and tall; once the page
+   scrolls it shrinks into a dark bar, shows the name, and lights the section you are in */
+.nav { position: fixed; transition: background .4s cubic-bezier(.2,.7,.2,1), border-color .4s, backdrop-filter .4s; border-bottom: 1px solid transparent; }
+.nav .nav-row { transition: height .4s cubic-bezier(.2,.7,.2,1); }
+.nav.small { background: rgba(10,7,6,.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom-color: rgba(255,255,255,.06); }
+.nav.small .nav-row { height: 62px; }
+.nav .brand-quiet { visibility: visible; opacity: 0; transition: opacity .4s; }
+.nav.small .brand-quiet { opacity: 1; }
+.links a:not(.btn) { transition: color .3s; }
+.links a.on { color: #fff; text-shadow: 0 0 8px rgba(255,255,255,.35); }
+main > section { scroll-margin-top: 62px; }
+@media (max-width: 720px) { .links { top: 100%; } }
+
+/* ---------- sections ease up into view as you scroll (owner's pick, motion 1); only with JS and full motion */
+.rv { opacity: 0; transform: translateY(26px); transition: opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1); }
+.rv.in { opacity: 1; transform: none; }
