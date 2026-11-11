@@ -234,14 +234,13 @@ main > section { scroll-margin-top: 62px; }
    play pinned at the bottom */
 .stats-m, .pin-bar, .cap-dots { display: none; }
 @media (max-width: 720px) {
-  .axis-line, .hero-copy::before, .hero-shot::after, main > section:not(.hero)::before {
+  .axis-line, .hero-shot::after, main > section:not(.hero)::before {
     content: ''; position: absolute; left: 50%; width: 1px; margin-left: -.5px; pointer-events: none;
     box-shadow: 0 0 8px rgba(255,120,40,.6); }
   /* the hero: the logo alone and large, the name under it, one line, the synth; the line runs into the logo */
   .hero { text-align: center; }
   .hero-row { padding: 72px 0 120px; gap: 30px; }
   .hero-copy { position: relative; padding-top: 36px; }
-  .hero-copy::before { top: -12px; height: 40px; background: linear-gradient(180deg, transparent, rgba(240,138,42,.8)); }
   h1.lockup { flex-direction: column; align-items: center; gap: 26px; margin-bottom: 20px; }
   .lockup .mark { height: 88px !important; width: auto; margin-top: 0 !important; align-self: center; }
   .lockup .word b { font-size: 38px; letter-spacing: .42em; margin-right: -.42em; }
@@ -273,7 +272,7 @@ main > section { scroll-margin-top: 62px; }
   .stats-m span { display: block; margin-top: 4px; font-size: 13px; color: #a8a29c; letter-spacing: .04em; }
   .stats-m p { grid-column: 1 / -1; margin: 6px 0 0; font-size: 13px; line-height: 1.6; color: #a8a29c; }
   /* the closing call: two equal buttons */
-  .cta .ctas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
+  .cta .ctas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 290px; margin: 0 auto; }
   .cta .btn { width: auto; }
   /* the footer centred */
   .foot-row { align-items: center; text-align: center; }
