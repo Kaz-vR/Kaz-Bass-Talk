@@ -367,7 +367,7 @@ export function woodTexture(side: 'l' | 'r' = 'l', w = 134, h = 1422, seed = 61)
       else if (MAT[i]) {
         // exposed: a crust, dark brown in its hollows and pale tan on its raised bits
         const c = Math.max(0, Math.min(1, (H[i] + 0.3) / 0.6));
-        R = 46 + 78 * c + 20 * (t - 0.5); G = 22 + 46 * c + 8 * (t - 0.5); B = 15 + 34 * c + 5 * (t - 0.5);
+        R = 34 + 50 * c + 16 * (t - 0.5); G = 15 + 27 * c + 6 * (t - 0.5); B = 10 + 18 * c + 4 * (t - 0.5);
       }
       else { R = 76 + 74 * (t - 0.5); G = 35 + 27 * (t - 0.5); B = 24 + 15 * (t - 0.5); }
       // grime gathers low down: pits and grooves go dark
