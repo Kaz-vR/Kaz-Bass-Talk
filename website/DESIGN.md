@@ -77,7 +77,7 @@ always fade to pure black.
 - **Audio demo:** a soft red radial glow behind the video, `rgba(255,60,20,.14)` to `rgba(120,10,4,.08)`
   to transparent.
 - **Buy part:** a glow rising from the bottom centre: hot orange `.32` to alarm red `.22` to deep red `.12`
-  to transparent, 1500 x 700px, anchored below the section.
+  to transparent, 1500 x 700px, anchored below the section; plus the pixel embers (see below).
 - **The synth image:** `drop-shadow(0 50px 60px rgba(0,0,0,.95))` plus a faint red glow
   `drop-shadow(0 0 40px rgba(255,40,20,.18))`.
 - Every section with a glow has `overflow: hidden`, so glows never cause sideways scrolling.
@@ -137,7 +137,8 @@ Use these names when talking about the site.
    keys. Clips are recorded by `node tools/site-pages.mjs` into `website/assets/pages/`.
 4. **Set up** (`#setup`): label "Specs", heading "Light on the machine.", four large thin numbers (3% CPU
    per voice, 25 MB install size, 0 internet needed, 8 voices), one line about systems and formats.
-5. **Buy part** (`#buy`): the logo, "Your sound. Its ruin.", one red "Buy RUIN-1", and the bottom glow.
+5. **Buy part** (`#buy`): the logo, "Your sound. Its ruin.", one red "Buy RUIN-1", the bottom glow, and the
+   **pixel embers** along its bottom edge, right above the footer (owner's pick "Embers" of three fire looks).
 6. **Footer**: "© 2026 RUIN-1" and the links, small and dim.
 
 ---
@@ -155,13 +156,18 @@ Restrained (owner picked motions 1 and 3 from the motion pitches):
 - Parts ease up into view once as they reach the screen (0.8s, `cubic-bezier(.2,.7,.2,1)`).
 - The menu shrinks into a black bar on scroll and lights the link of the part you are in.
 - The carousel slides with the same curve.
+- **Pixel embers** (owner's pick of three: Inferno, Embers, Dither): a low, smouldering pixel fire (6px blocks,
+  deep red to alarm red to hot orange, no yellow) slowly breathing along the bottom of the Buy part, and single-pixel
+  sparks drifting up out of it, cooling (pale orange, orange, red, deep red) as they rise. The same sparks drift behind
+  the Header's content. Plain canvas in `main.js` (`embers()`), 24 frames a second, only while on screen; with
+  reduced motion the fire is one still frame and the header has no sparks.
 - Everything is off with `prefers-reduced-motion`.
 
 ---
 
 ## 9. The owner's taste (likes and dislikes)
 
-Likes: pure black; the siren red-orange; complex layered glows; square buttons; no lines; the video
+Likes: pure black; the siren red-orange; the pixel embers; complex layered glows; square buttons; no lines; the video
 melting into the dark; the carousel; the synth angled; neon that looks truly neon (gamut edge plus glow);
 dark, dangerous, cinematic; restraint.
 

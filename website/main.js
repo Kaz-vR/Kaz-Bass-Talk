@@ -108,3 +108,68 @@ if (!still && 'IntersectionObserver' in window) {
   const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.15 });
   els.forEach((el) => { el.classList.add('rv'); io.observe(el); });
 }
+
+// Pixel embers (owner's pick, "Embers"): a low, smouldering pixel fire at the bottom of the Buy part with single-pixel
+// sparks drifting up out of it and cooling as they rise, and the same sparks behind the header. Siren colours only.
+// Plain canvas, no images: one cell is a 6 px block; it runs at 24 frames a second, only while on screen, and with
+// reduced motion it shows one still frame (the header shows none).
+const embers = (host, { flames, count }) => {
+  const PX = 6, FH = 48;
+  const cv = document.createElement('canvas'); cv.className = 'embers'; cv.setAttribute('aria-hidden', 'true');
+  host.prepend(cv);
+  const g = cv.getContext('2d');
+  const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const STOPS = ['#000000', '#200301', '#5a0703', '#8a0a04', '#c8160b', '#ff2a14', '#ff6a1a'].map(hex), MAX = 24;
+  const PAL = Array.from({ length: MAX + 1 }, (_, i) => { const t = i / MAX * (STOPS.length - 1), k = Math.min(STOPS.length - 2, Math.floor(t)), f = t - k; return STOPS[k].map((v, j) => Math.round(v + (STOPS[k + 1][j] - v) * f)); });
+  const HOT = hex('#ffb070'), ORANGE = hex('#ff6a1a'), RED = hex('#ff2a14'), DEEP = hex('#8a0a04');
+  let W = 0, H = 0, heat, img, t = 0, sparks = [];
+  const spawn = (s, anywhere) => {
+    s.x = Math.random() * W; s.v = 0.25 + Math.random() * 0.5; s.p = Math.random() * 6;
+    s.y = flames ? H - 8 - Math.random() * 8 : H * (anywhere ? Math.random() : 0.55 + Math.random() * 0.45);
+    s.life = flames ? 0.6 + Math.random() * 0.4 : 0.35 + Math.random() * 0.65;
+    return s;
+  };
+  const size = () => {
+    const r = host.getBoundingClientRect(), w = Math.ceil(r.width / PX), h = Math.ceil(r.height / PX);
+    if (w === W && h === H) return;
+    W = w; H = h; cv.width = W; cv.height = H; img = g.createImageData(W, H); heat = new Float32Array(W * FH);
+    sparks = Array.from({ length: Math.round(count * W / 240) }, () => spawn({}, true));
+    if (flames) for (let i = 0; i < FH * 2; i++) burn();
+  };
+  // the classic fire spread: each cell takes the heat of the one below it, a little cooler and shifted sideways
+  const burn = () => {
+    for (let x = 0; x < W; x++) heat[(FH - 1) * W + x] = MAX * (0.55 + 0.45 * (0.5 + 0.5 * Math.sin(x * 0.07 + t * 0.03) * Math.sin(x * 0.023 - t * 0.017)));
+    for (let y = 1; y < FH; y++) for (let x = 0; x < W; x++) {
+      const r = Math.random() * 3 | 0, dx = Math.max(0, Math.min(W - 1, x - r + 1));
+      heat[(y - 1) * W + dx] = Math.max(0, heat[y * W + x] - (Math.random() < 0.72 ? 1.05 : 0));
+    }
+  };
+  const draw = () => {
+    t++; const d = img.data; d.fill(0);
+    if (flames) {
+      burn();
+      for (let y = 0; y < FH; y++) for (let x = 0; x < W; x++) {
+        const v = heat[y * W + x]; if (v < 0.5) continue;
+        const c = PAL[Math.min(MAX, Math.round(v))], i = ((H - FH + y) * W + x) * 4;
+        d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = Math.min(255, v * 40); // the cool edge fades into the glow
+      }
+    }
+    for (const s of sparks) {
+      s.y -= s.v; s.x += Math.sin(t * 0.05 + s.p) * 0.35; s.life -= 0.006;
+      if (s.y < 0 || s.life <= 0) spawn(s);
+      const xi = Math.round(s.x), yi = Math.round(s.y); if (xi < 0 || xi >= W || yi < 0 || yi >= H) continue;
+      const c = s.life > 0.6 ? HOT : s.life > 0.35 ? ORANGE : s.life > 0.12 ? RED : DEEP, i = (yi * W + xi) * 4;
+      d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+  };
+  size();
+  new ResizeObserver(size).observe(host);
+  if (still) { if (flames) { sparks = []; draw(); } return; }
+  let on = false, last = 0;
+  const loop = (ts) => { if (!on) return; if (ts - last > 1000 / 24) { draw(); last = ts; } requestAnimationFrame(loop); };
+  new IntersectionObserver(([e]) => { const was = on; on = e.isIntersecting; if (on && !was) requestAnimationFrame(loop); }).observe(host);
+};
+const buy = document.querySelector('.end'), hero = document.querySelector('.hero');
+if (buy) embers(buy, { flames: true, count: 34 });
+if (hero) embers(hero, { flames: false, count: 26 });
