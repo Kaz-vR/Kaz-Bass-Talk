@@ -1505,9 +1505,10 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-stage .gr-fdials .k-label { letter-spacing: 0.1em !important; white-space: nowrap; }
 
 /* the wooden side panels (owner's images): outside the 1200 px page, full height, casting a little shadow onto it */
+/* the wooden cheeks sit 12 px from the boxes: twice the 6 px between boxes, so the boxes read as one panel held by the wood (owner's call) */
 .v2 .wood { position: absolute; top: 0; height: 100%; width: 67px; object-fit: cover; z-index: 90; pointer-events: none; user-select: none; }
-.v2 .wood-l { left: -103px; box-shadow: 6px 0 12px rgba(0,0,0,0.55); }
-.v2 .wood-r { right: -103px; box-shadow: -6px 0 12px rgba(0,0,0,0.55); }
+.v2 .wood-l { left: -79px; box-shadow: 6px 0 12px rgba(0,0,0,0.55); }
+.v2 .wood-r { right: -79px; box-shadow: -6px 0 12px rgba(0,0,0,0.55); }
 
 /* UNI as a stepper beside Detune: label over number, sitting on the dials' row */
 .v2 .ob-dials .uni-dial { width: 30px !important; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; align-self: center; }
