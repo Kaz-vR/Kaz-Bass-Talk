@@ -34,7 +34,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .nav .btn { justify-self: end; }
 
 /* ---------- HEADER PART */
-.hero { position: relative; overflow: hidden; display: grid; grid-template-columns: 5fr 7fr; gap: 40px; align-items: center; padding: 128px 48px 120px; min-height: 820px; }
+/* the two halves held in a 1180 px column so neither sits against the edge of a wide screen (the glow still fills it) */
+.hero { position: relative; overflow: hidden; display: grid; grid-template-columns: 5fr 7fr; gap: 72px; align-items: center; padding: 128px max(48px, calc((100% - 1180px) / 2)) 120px; min-height: 820px; }
 /* two beams of a rotating warning light, caught mid-turn, and its lamp at the top right */
 .hero::before { content: ''; position: absolute; right: -10%; top: -40%; width: 110%; height: 180%; pointer-events: none;
   background: conic-gradient(from 200deg at 82% 18%, transparent 0deg, rgba(255,42,20,0) 8deg, rgba(255,60,20,.30) 18deg, rgba(255,106,26,.16) 26deg, transparent 40deg, transparent 150deg, rgba(255,42,20,.16) 165deg, transparent 185deg);
