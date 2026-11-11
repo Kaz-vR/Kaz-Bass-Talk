@@ -70,10 +70,26 @@ if (strip) {
   document.querySelector('.strip-cap .prev').addEventListener('click', () => show(cur - 1));
   document.querySelector('.strip-cap .next').addEventListener('click', () => show(cur + 1));
   slides.forEach((s, j) => s.addEventListener('click', () => { if (j !== cur) show(j); }));
-  // swipe on touch screens and drag with a mouse
-  let x0 = null;
-  strip.addEventListener('pointerdown', (e) => { x0 = e.clientX; });
-  strip.addEventListener('pointerup', (e) => { if (x0 !== null && Math.abs(e.clientX - x0) > 40) show(cur + (e.clientX < x0 ? 1 : -1)); x0 = null; });
+  // swipe on touch screens (the strip takes sideways gestures, the page keeps vertical scrolling) and drag with a mouse
+  let x0 = null, y0 = null, x1 = null;
+  const start = (x, y) => { x0 = x; y0 = y; x1 = x; };
+  const end = () => {
+    if (x0 !== null && Math.abs(x1 - x0) > 40) show(cur + (x1 < x0 ? 1 : -1));
+    x0 = y0 = x1 = null;
+  };
+  strip.addEventListener('touchstart', (e) => start(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+  strip.addEventListener('touchmove', (e) => {
+    if (x0 === null) return;
+    x1 = e.touches[0].clientX;
+    // a mostly sideways move is ours: keep the page from scrolling sideways meanwhile
+    if (Math.abs(x1 - x0) > Math.abs(e.touches[0].clientY - y0) && e.cancelable) e.preventDefault();
+  }, { passive: false });
+  strip.addEventListener('touchend', end);
+  strip.addEventListener('touchcancel', end);
+  strip.addEventListener('mousedown', (e) => start(e.clientX, e.clientY));
+  addEventListener('mousemove', (e) => { if (x0 !== null) x1 = e.clientX; });
+  addEventListener('mouseup', () => { if (x0 !== null) end(); });
+  strip.addEventListener('dragstart', (e) => e.preventDefault());
   strip.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') show(cur + 1); if (e.key === 'ArrowLeft') show(cur - 1); });
   strip.tabIndex = 0;
   // the clips only play while the strip is on screen

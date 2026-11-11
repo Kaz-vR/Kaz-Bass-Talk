@@ -290,3 +290,6 @@ main > section { scroll-margin-top: 62px; }
   .pin-bar .btn-o { background: rgba(18,10,6,.92); }
   .pin-bar .btn-g { background: rgba(10,8,8,.88); font-size: 16px; padding: 0; }
 }
+
+/* the strip takes sideways swipes itself; the page keeps vertical scrolling */
+.pages .strip { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
