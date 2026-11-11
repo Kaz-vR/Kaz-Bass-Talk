@@ -672,12 +672,12 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .lamp-safe { --knob-accent: #ff2a14; }
 
 /* each box its own colour */
-.v2 .box-osca { --knob-accent: #ff2a14; }
-.v2 .box-oscb { --knob-accent: #ff6a1a; }
-.v2 .box-amp { --knob-accent: #3fe3b6; }
-.v2 .box-flt, .v2 .box-fenv { --knob-accent: #5f9bff; }
-.v2 .box-sub { --knob-accent: #9a7cff; }
-.v2 .box-noise { --knob-accent: #e2c9a6; }
+.v2 .box-osca { --knob-accent: #af1904; }
+.v2 .box-oscb { --knob-accent: #ff4000; }
+.v2 .box-amp { --knob-accent: #039c8b; }
+.v2 .box-flt, .v2 .box-fenv { --knob-accent: #33668a; }
+.v2 .box-sub { --knob-accent: #5c0e17; }
+.v2 .box-noise { --knob-accent: #fa9d4f; }
 .v2 .box-scope { --knob-accent: #d8f0e6; }
 
 /* header: the scene behind the logo, the preset selector and the tabs */
@@ -1177,10 +1177,10 @@ html, body, .v2-wrap { background: #070708; }
    source's colour; an on/off lamp in front of every matrix row; All controls and Master on the right. */
 .v2 .ob-head > .direct-out { margin-left: auto; font-size: 9px; letter-spacing: 0.18em; white-space: nowrap; }
 .v2 .ob-dials .ob-routes { margin-left: 0 !important; margin-right: 6px; }
-.v2 .route-a { --knob-accent: #ff2a14; }
-.v2 .route-b { --knob-accent: #ff6a1a; }
-.v2 .route-s { --knob-accent: #9a7cff; }
-.v2 .route-n { --knob-accent: #e2c9a6; }
+.v2 .route-a { --knob-accent: #af1904; }
+.v2 .route-b { --knob-accent: #ff4000; }
+.v2 .route-s { --knob-accent: #5c0e17; }
+.v2 .route-n { --knob-accent: #fa9d4f; }
 .v2 .mx-on { flex: none; background: transparent; border: 0; padding: 0; margin-right: 2px; cursor: pointer; display: flex; }
 .v2 .mx-row.off > :not(.mx-on) { opacity: 0.32; }
 .v2 .v2-bottom .gear { margin-left: auto; }
@@ -1713,9 +1713,9 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .v2-top > .pre-sel { position: absolute; z-index: 3; }
 /* measured: the top of RUIN-1's letters sits 28.8 px down the bar, the bottom of SYNTHESIZER's at 67.2 px */
 .v2 .v2-logo { flex: none; position: relative; margin-right: 18px; display: block; line-height: 0; align-self: flex-start !important; margin-top: 28.8px; --logo-h: 38.4px; }
-.v2 .v2-logo svg { display: block; height: var(--logo-h, 44px); width: auto; filter: drop-shadow(0 0 3px rgba(240,160,64,0.35)) saturate(0.85) brightness(0.92); }
-.v2 .v2-logo svg path { stroke: #d99a45; }
-.v2 .v2-logo svg path[fill] { fill: #d99a45; }
+.v2 .v2-logo svg { display: block; height: var(--logo-h, 44px); width: auto; filter: drop-shadow(0 0 3px rgba(253,120,18,0.35)); }
+.v2 .v2-logo svg path { stroke: #fd7812; }
+.v2 .v2-logo svg path[fill] { fill: #fd7812; }
 .v2 .v2-logo-wear { position: absolute; inset: 0; pointer-events: none; background: var(--logo-wear, none) 0 0 / 100% 100%; }
 .v2 .brand-name { text-shadow: -1px 0 rgba(255,42,20,0.35), 1px 0 rgba(60,190,255,0.3), 0 0 6px rgba(255,255,255,0.6), 0 0 18px rgba(255,255,255,0.3) !important; }
 .v2 .wood-l { background: var(--wood-l, #42201a) 0 0 / 100% 100% no-repeat; }
@@ -1742,4 +1742,4 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 .v2.v2 .scope-glass::after { display: none !important; }
 /* the wooden cheeks a really dark brown (owner's reference): the same wood at half its brightness, colour kept
    (measured: rgb ~34 / 15.5 / 10.5, every channel 49% of the original) */
-.v2 .wood { filter: brightness(.49); }
+.v2 .wood { filter: brightness(.6) saturate(.49); }

@@ -30,7 +30,7 @@ All colours are CSS variables at the top of `website/style.css`.
 ### The siren (core)
 | Name | Hex | Variable | Use |
 |---|---|---|---|
-| Alarm red | `#ff2a14` | `--red` | Buy buttons and their glow, the play outline, active states, the carousel's active cue |
+| Alarm red | `#ff2a14` | `--red` | (Buy now uses `--buy` `#ff4000`, see below) the play outline, active states, the carousel's active cue |
 | Hot orange | `#ff6a1a` | `--hot` | Small labels (Sound, Inside, Specs), keyboard focus ring, the bright core of every glow |
 | Deep red | `#8a0a04` | `--deep` | The outer edge of glows, where the light falls off into black |
 
@@ -61,9 +61,15 @@ match that: pushed to the gamut edge at its hue, with its own glow.
 Visual sheet of the whole palette: ask Claude to render it (the owner keeps a PNG of it).
 
 ### Logo colour
-**Undecided.** Options pitched: alarm red `#ff2a14`, hot orange `#ff6a1a`, white-hot `#f6efe6` with a
-red glow. The current file (`design/logo.svg`, `design/logo-tight.svg`) is the old orange-gold `#f0a040`,
-which no longer fits the siren. Update this section when the owner picks.
+**Logo orange `#fd7812`** (`--logo`; owner's pick, painted on a screenshot): the logo files in `design/`
+(`logo.svg`, `logo-tight.svg`) and the synth's own logo use it.
+
+### Buy and the synth's colours (owner's paint-over)
+- **Buy buttons: `#ff4000`** (`--buy`), with a glow `rgba(255,64,0,.45)` (hover `.75`). Alarm red stays for the
+  other active states.
+- **The synth's modules** (`src/ui/style.css`, "each box its own colour"): OSC A `#af1904`, OSC B `#ff4000`,
+  amp envelope `#039c8b`, filter and filter envelope `#33668a`, sub `#5c0e17`, noise `#fa9d4f`; the routing LEDs
+  A / B / S / N follow their module. The wooden cheeks a dark brown, measured `#201513`.
 
 ---
 
