@@ -4,7 +4,7 @@
 
 ## Website — `website/`
 
-The product site (owner's call: built in this repository so it stays connected to the synth): static HTML / CSS / JS, laid out after the owner's reference (`mockups/website/match.html`, the reference image's layout with the photos as solid colours: the owner adds the photos later in `website/assets/photos/`). **The site follows the synth's design:** brand colours, fonts (Barlow, OFL) and the mark live in `design/` (`tokens.css`, `logo.svg`), read by the site; the product images in `website/assets/shots/` are taken from the synth by `node tools/site-shots.mjs` (rerun it after the synth's look changes). The site's copy describes only what the synth really has (no macros, delay, MIDI learn …); macOS / AU are "coming" until they exist. See `website/README.md`.
+The product site (owner's call: built in this repository so it stays connected to the synth): static HTML / CSS / JS. **Its whole look is defined in `website/DESIGN.md`** (the "Siren" direction: pure black, the siren red-orange palette, square buttons, no lines, Manrope self-hosted from `design/fonts/`, the six parts and the owner's likes and dislikes): read it before any site work and update it with every style change. The logo lives in `design/` (`logo.svg`, `logo-tight.svg`). The product images are taken from the synth: `node tools/site-shots.mjs` (`website/assets/shots/`) and the features carousel's clips `node tools/site-pages.mjs` (`website/assets/pages/`); rerun them after the synth's look changes. The reference library of top-tier sites is `references/` (`tools/references.mjs`). The site's copy describes only what the synth really has; macOS / AU are "coming" until they exist. See `website/README.md`.
 
 ## Tech stack
 
