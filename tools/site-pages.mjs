@@ -1,6 +1,6 @@
 // DEV ONLY: the website's moving page clips (the "Every page, moving" strip), recorded from the synth itself.
 //   node tools/site-pages.mjs        (builds the synth, serves it, writes website/assets/pages/<page>.mp4 + .jpg)
-// Each clip: the page above the play bar, notes played on a rhythm so envelopes, LFOs and RUIN move, a seamless
+// Each clip: the whole instrument (wooden sides, play bar and keyboard included), notes played on a rhythm so envelopes, LFOs and RUIN move, a seamless
 // loop (the end fades into the start), H.264 so every browser plays it like a GIF (muted, autoplay, loop).
 // Needs Playwright with a Chromium and ffmpeg with libx264.
 import { spawn, execSync, execFileSync } from 'node:child_process';
@@ -39,9 +39,9 @@ try {
     await p.waitForTimeout(300);
     await p.locator('.v2-top-right').getByText(tab, { exact: true }).click();
     await p.waitForTimeout(500);
-    // the page above the play bar, in device pixels
-    const v2 = await p.locator('.v2').boundingBox(), bot = await p.locator('.v2-bottom').boundingBox();
-    const box = { x: v2.x, y: v2.y, w: v2.width, h: bot.y - v2.y - 4 };
+    // the whole instrument (owner's call): the page with its wooden sides, the play bar and the keyboard
+    const l = await p.locator('.wood-l').boundingBox(), r = await p.locator('.wood-r').boundingBox();
+    const box = { x: l.x, y: l.y, w: r.x + r.width - l.x, h: l.height };
     // record frames with their own timestamps (screencast), playing notes on a rhythm meanwhile
     const dir = mkdtempSync(join(tmpdir(), 'pages-'));
     const frames = [];

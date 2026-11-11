@@ -39,14 +39,22 @@ if (strip) {
   const n = document.querySelector('.cap-n'), title = document.querySelector('.cap-title'), text = document.querySelector('.cap-text');
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let cur = 0;
+  // a loop with no ends (owner's call): every page sits at its circular distance from the current one, so on the
+  // first page the last one is already on the left; a page that wraps round does so while it is out of sight
+  const where = (j) => { const n = slides.length; let d = (j - cur) % n; if (d > n / 2) d -= n; if (d < -n / 2) d += n; return d; };
+  let was = slides.map(where);
   const show = (i) => {
     cur = (i + slides.length) % slides.length;
-    const s = slides[cur];
-    track.style.transform = `translateX(${strip.clientWidth / 2 - (s.offsetLeft + s.offsetWidth / 2)}px)`;
+    const s = slides[cur], step = s.offsetWidth + (innerWidth < 720 ? 14 : 30);
     slides.forEach((x, j) => {
-      x.classList.toggle('on', j === cur);
+      const d = where(j);
+      x.classList.toggle('jump', Math.abs(d - was[j]) > 1);
+      x.classList.toggle('far', Math.abs(d) > 1);
+      x.classList.toggle('on', d === 0);
+      x.style.transform = `translateX(${d * step}px) scale(${d === 0 ? 1 : 0.94})`;
+      was[j] = d;
       const v = x.querySelector('video');
-      if (j === cur && !still) { v.preload = 'auto'; v.play().catch(() => {}); } else v.pause();
+      if (d === 0 && !still) { v.preload = 'auto'; v.play().catch(() => {}); } else v.pause();
     });
     n.textContent = String(cur + 1).padStart(2, '0');
     title.textContent = s.dataset.title;
