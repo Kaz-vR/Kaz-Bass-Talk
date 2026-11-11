@@ -1,87 +1,67 @@
-// RUIN-1 website: the section photos, the phone menu and the demo video's play button.
+// RUIN-1 website: the menu, the demo video, the features strip and the reveals.
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// A section's photo (data-photo) is used once the file is there; until then the solid colour shows, with no broken requests.
-for (const el of document.querySelectorAll('[data-photo]')) {
-  const img = new Image();
-  img.onload = () => el.style.setProperty('--photo', `url('${el.dataset.photo}')`);
-  img.onerror = () => {};
-  img.src = el.dataset.photo;
+// The menu: shrinks into a black bar once the page scrolls, and lights the link of the part you are in.
+const nav = document.querySelector('.nav');
+if (nav) {
+  const links = [...nav.querySelectorAll('.links a')];
+  const onScroll = () => {
+    nav.classList.toggle('small', scrollY > 40);
+    let cur = '';
+    for (const id of ['sound', 'features', 'setup']) { const el = document.getElementById(id); if (el && el.getBoundingClientRect().top < innerHeight * 0.4) cur = id; }
+    links.forEach((a) => a.classList.toggle('on', a.getAttribute('href') === `#${cur}`));
+  };
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
 }
-const menu = document.querySelector('.menu');
-const links = document.querySelector('.links');
-menu?.addEventListener('click', () => {
-  const open = links.classList.toggle('open');
-  menu.setAttribute('aria-expanded', String(open));
-});
-links?.addEventListener('click', (e) => {
-  if (e.target.closest('a')) { links.classList.remove('open'); menu.setAttribute('aria-expanded', 'false'); }
-});
 
-const box = document.querySelector('.video');
-const video = box?.querySelector('video');
-const play = () => {
-  if (!video) return;
-  box.classList.add('playing');
+// The audio demo: the logo is the play button; until the video file is there, nothing happens.
+const vid = document.querySelector('.vid');
+const video = vid?.querySelector('video');
+vid?.querySelector('.vid-play')?.addEventListener('click', () => {
+  vid.classList.add('playing');
   video.controls = true;
-  video.play().catch(() => { /* no video file yet: the poster stays */ box.classList.remove('playing'); video.controls = false; });
-};
-box?.querySelector('.play')?.addEventListener('click', play);
-document.querySelector('[data-play]')?.addEventListener('click', (e) => {
-  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  e.preventDefault();
-  play();
+  video.play().catch(() => { vid.classList.remove('playing'); video.controls = false; });
 });
 
-// Every page, moving: the filmstrip. The current clip sits in the middle and plays; the others wait (paused).
-const strip = document.querySelector('.pages .strip');
+// The features strip: the current page in the middle, its neighbours at the sides, a loop with no ends
+// (owner's call): every page sits at its circular distance from the current one, so the last page is already
+// on the left of the first; a page that wraps round does so while it is out of sight.
+const strip = document.querySelector('.strip');
 if (strip) {
-  const track = strip.querySelector('.track'), slides = [...track.children];
+  const slides = [...strip.querySelectorAll('.slide')];
   const n = document.querySelector('.cap-n'), title = document.querySelector('.cap-title'), text = document.querySelector('.cap-text');
-  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // dots under the caption (shown on phones, where the strip is swiped)
-  const dotBox = document.createElement('div');
-  dotBox.className = 'cap-dots';
-  dotBox.setAttribute('aria-hidden', 'true');
-  const dots = slides.map(() => dotBox.appendChild(document.createElement('i')));
-  text.after(dotBox);
   let cur = 0;
-  // a loop with no ends (owner's call): every page sits at its circular distance from the current one, so on the
-  // first page the last one is already on the left; a page that wraps round does so while it is out of sight
-  const where = (j) => { const n = slides.length; let d = (j - cur) % n; if (d > n / 2) d -= n; if (d < -n / 2) d += n; return d; };
-  let was = slides.map(where);
+  const where = (j) => { const c = slides.length; let d = (j - cur) % c; if (d > c / 2) d -= c; if (d < -c / 2) d += c; return d; };
+  const was = slides.map(where);
   const show = (i) => {
     cur = (i + slides.length) % slides.length;
-    const s = slides[cur], step = s.offsetWidth + (innerWidth < 720 ? 14 : 30);
-    slides.forEach((x, j) => {
+    const step = slides[cur].offsetWidth + (innerWidth < 600 ? 14 : 34);
+    slides.forEach((s, j) => {
       const d = where(j);
-      x.classList.toggle('jump', Math.abs(d - was[j]) > 1);
-      x.classList.toggle('far', Math.abs(d) > 1);
-      x.classList.toggle('on', d === 0);
-      x.style.transform = `translateX(${d * step}px) scale(${d === 0 ? 1 : 0.94})`;
+      s.classList.toggle('jump', Math.abs(d - was[j]) > 1);
+      s.classList.toggle('far', Math.abs(d) > 1);
+      s.classList.toggle('on', d === 0);
+      s.style.transform = `translateX(${d * step}px) scale(${d === 0 ? 1 : 0.94})`;
       was[j] = d;
-      const v = x.querySelector('video');
+      const v = s.querySelector('video');
       if (d === 0 && !still) { v.preload = 'auto'; v.play().catch(() => {}); } else v.pause();
     });
-    dots.forEach((d, j) => d.classList.toggle('on', j === cur));
-    n.textContent = String(cur + 1).padStart(2, '0');
-    title.textContent = s.dataset.title;
-    text.textContent = s.dataset.text;
+    n.textContent = `${String(cur + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}`;
+    title.textContent = slides[cur].dataset.title;
+    text.textContent = slides[cur].dataset.text;
   };
-  document.querySelector('.strip-cap .prev').addEventListener('click', () => show(cur - 1));
-  document.querySelector('.strip-cap .next').addEventListener('click', () => show(cur + 1));
+  document.querySelector('.cap .prev').addEventListener('click', () => show(cur - 1));
+  document.querySelector('.cap .next').addEventListener('click', () => show(cur + 1));
   slides.forEach((s, j) => s.addEventListener('click', () => { if (j !== cur) show(j); }));
-  // swipe on touch screens (the strip takes sideways gestures, the page keeps vertical scrolling) and drag with a mouse
+  // swipe on touch screens (sideways gestures are the strip's, vertical scrolling stays the page's), drag with a mouse
   let x0 = null, y0 = null, x1 = null;
   const start = (x, y) => { x0 = x; y0 = y; x1 = x; };
-  const end = () => {
-    if (x0 !== null && Math.abs(x1 - x0) > 40) show(cur + (x1 < x0 ? 1 : -1));
-    x0 = y0 = x1 = null;
-  };
+  const end = () => { if (x0 !== null && Math.abs(x1 - x0) > 40) show(cur + (x1 < x0 ? 1 : -1)); x0 = y0 = x1 = null; };
   strip.addEventListener('touchstart', (e) => start(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
   strip.addEventListener('touchmove', (e) => {
     if (x0 === null) return;
     x1 = e.touches[0].clientX;
-    // a mostly sideways move is ours: keep the page from scrolling sideways meanwhile
     if (Math.abs(x1 - x0) > Math.abs(e.touches[0].clientY - y0) && e.cancelable) e.preventDefault();
   }, { passive: false });
   strip.addEventListener('touchend', end);
@@ -90,61 +70,41 @@ if (strip) {
   addEventListener('mousemove', (e) => { if (x0 !== null) x1 = e.clientX; });
   addEventListener('mouseup', () => { if (x0 !== null) end(); });
   strip.addEventListener('dragstart', (e) => e.preventDefault());
-  strip.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') show(cur + 1); if (e.key === 'ArrowLeft') show(cur - 1); });
   strip.tabIndex = 0;
-  // the clips only play while the strip is on screen
+  strip.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') show(cur + 1); if (e.key === 'ArrowLeft') show(cur - 1); });
+  // only the current clip plays, and only while the strip is on screen
   new IntersectionObserver(([en]) => { const v = slides[cur].querySelector('video'); if (en.isIntersecting && !still) v.play().catch(() => {}); else v.pause(); }).observe(strip);
   addEventListener('resize', () => show(cur));
   show(0);
 }
 
-// The menu: shrinks into a dark bar once the page scrolls, and lights the link of the section you are in.
-const nav = document.querySelector('.nav');
-if (nav) {
-  const navLinks = [...nav.querySelectorAll('.links a')];
-  const ids = ['sound', 'pages', 'requirements', 'buy'];
-  const onScroll = () => {
-    nav.classList.toggle('small', scrollY > 60);
-    let cur = 'top';
-    for (const id of ids) { const el = document.getElementById(id); if (el && el.getBoundingClientRect().top < innerHeight * 0.4) cur = id; }
-    navLinks.forEach((a) => a.classList.toggle('on', a.getAttribute('href') === `#${cur}`));
-  };
-  addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
-}
-
-// Sections ease up into view as they reach the screen (not with reduced motion).
-if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) {
-  const els = document.querySelectorAll('.demo-copy, .video, .pages > .wrap:first-child > *, .pages .strip, .strip-cap, .req-copy, .os, .cta-col > *');
-  const io = new IntersectionObserver((entries) => entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.15 });
-  els.forEach((el) => { el.classList.add('rv'); io.observe(el); });
-}
-
-// The logo beside the name (hero and footer): its top on the top of the letters of RUIN-1, its bottom on the
-// bottom of the letters of SYNTHESIZER (owner's call). Measured from the font itself, so it holds at every size.
-const ink = (el, text) => {
-  // measured at 1000 px and scaled down: canvas rounds its metrics to whole pixels
+// The logo beside the name: its top on the top of the letters of RUIN-1, its bottom on the bottom of the letters
+// of SYNTHESIZER (owner's call). Measured from the font itself (at 1000 px: canvas rounds its metrics), so it
+// holds at every size; placed until the row settles.
+const ink = (el, txt) => {
   const cs = getComputedStyle(el), g = document.createElement('canvas').getContext('2d'), k = parseFloat(cs.fontSize) / 1000;
   g.font = `${cs.fontStyle} ${cs.fontWeight} 1000px ${cs.fontFamily}`;
-  const m = g.measureText(text.toUpperCase()), r = el.getBoundingClientRect();
+  const m = g.measureText(txt.toUpperCase()), r = el.getBoundingClientRect();
   const lh = parseFloat(cs.lineHeight) || r.height, A = m.fontBoundingBoxAscent * k, D = m.fontBoundingBoxDescent * k;
-  // the first line box's baseline: the line box is centred on the font's ascent + descent
   const base = r.top + (lh - (A + D)) / 2 + A;
   return { top: base - m.actualBoundingBoxAscent * k, bottom: base + m.actualBoundingBoxDescent * k };
 };
-const alignMarks = () => {
-  for (const box of document.querySelectorAll('.lockup, .brand-sm')) {
-    const mark = box.querySelector('.mark'), b = box.querySelector('.word b'), i = box.querySelector('.word i');
-    if (!mark || !b || !i) continue;
-    if (getComputedStyle(box).flexDirection === 'column') { mark.style.height = ''; mark.style.marginTop = ''; continue; }
-    // placing the mark can re-centre the name in its row, so measure and place again until it settles
-    for (let n = 0; n < 4; n++) {
-      const top = ink(b, b.textContent).top, bottom = ink(i, i.textContent).bottom;
-      mark.style.height = `${bottom - top}px`;
-      mark.style.marginTop = `${(parseFloat(mark.style.marginTop) || 0) + top - mark.getBoundingClientRect().top}px`;
-    }
+const alignMark = () => {
+  const box = document.querySelector('.lockup'); if (!box) return;
+  const mark = box.querySelector('.mark'), b = box.querySelector('.word b'), i = box.querySelector('.word i');
+  for (let t = 0; t < 4; t++) {
+    const top = ink(b, b.textContent).top, bottom = ink(i, i.textContent).bottom;
+    mark.style.height = `${bottom - top}px`;
+    mark.style.marginTop = `${(parseFloat(mark.style.marginTop) || 0) + top - mark.getBoundingClientRect().top}px`;
   }
 };
-alignMarks();
-document.fonts?.ready.then(alignMarks);
-addEventListener('resize', alignMarks);
+alignMark();
+document.fonts?.ready.then(alignMark);
+addEventListener('resize', alignMark);
+
+// The parts ease up into view as they reach the screen (not with reduced motion).
+if (!still && 'IntersectionObserver' in window) {
+  const els = document.querySelectorAll('.part > .k, .part > h2, .vid, .strip, .cap, .specs, .note, .end > *');
+  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.15 });
+  els.forEach((el) => { el.classList.add('rv'); io.observe(el); });
+}

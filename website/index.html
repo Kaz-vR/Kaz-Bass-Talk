@@ -6,140 +6,88 @@
   <title>RUIN-1 · Synthesizer</title>
   <meta name="description" content="RUIN-1: a dark, cinematic synthesizer. Saturated, tape-worn and alive.">
   <link rel="icon" href="../design/logo.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="../design/tokens.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<!-- The site (owner's pick, round 2 of the redesigns): the header, audio demo, set up, buy part and footer of 2.2
+     "Siren sweep", the features part of 2.1 "Ember wall"; black, square buttons, no divider lines, siren light. -->
 
 <header class="nav" id="top">
-  <div class="wrap nav-row">
-    <a class="brand brand-quiet" href="#top" aria-label="RUIN-1 home">RUIN-1</a>
-    <button class="menu" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
-    <nav class="links">
-      <a href="#top" class="on">Overview</a>
-      <a href="#sound">Sound</a>
-      <a href="#pages">Features</a>
-      <a href="#requirements">Requirements</a>
-      <a href="#buy">Buy</a>
-    </nav>
-  </div>
+  <a class="nav-logo" href="#top" aria-label="RUIN-1 home"><img src="../design/logo-tight.svg" alt="" width="22" height="20"></a>
+  <nav class="links"><a href="#sound">Sound</a><a href="#features">Features</a><a href="#setup">Specs</a></nav>
+  <a class="btn b1 bs" href="#buy">Buy</a>
 </header>
 
 <main>
-  <!-- HERO: the photo goes in assets/photos/hero.jpg; until then the solid colour shows -->
-  <section class="hero photo" style="--photo: none" data-photo="assets/photos/hero.jpg">
-    <div class="wrap hero-row">
-      <div class="hero-copy">
-        <h1 class="lockup"><img class="mark" src="../design/logo-tight.svg" alt="" width="109" height="100"><span class="word"><b>RUIN-1</b> <i>Synthesizer</i></span></h1>
-        <p class="hero-lede">A dark, cinematic synthesizer for producers. Saturated, tape-worn and alive, built for the sound that sits in a dark room.</p>
-        <div class="ctas hero-ctas"><a class="btn btn-o" href="#buy">Buy now <span aria-hidden="true">›</span></a><a class="btn btn-g" href="#sound">Hear the demo <span aria-hidden="true">▷</span></a></div>
-        <p class="hero-meta">VST3 · Standalone · Fully offline</p>
-      </div>
-      <!-- the synth as it is now, taken from it by tools/site-shots.mjs (the prototype has the look of the owner's mockup) -->
-      <figure class="hero-shot"><img src="assets/shots/osc.jpg" alt="The RUIN-1 synthesizer: oscillators, envelopes, filter and keyboard" width="2812" height="1500"></figure>
+  <!-- HEADER PART: the lockup left, the synth right, two beams of a rotating warning light caught mid-turn -->
+  <section class="hero" aria-label="RUIN-1">
+    <div class="copy">
+      <h1 class="lockup"><img class="mark" src="../design/logo-tight.svg" alt="" width="109" height="100"><span class="word"><b>RUIN-1</b><i>Synthesizer</i></span></h1>
+      <p class="lede">A dark, cinematic synthesizer for producers. Saturated, tape-worn and alive.</p>
+      <div class="row"><a class="btn b1" href="#buy">Buy now</a><a class="btn b2" href="#sound">▷ &nbsp;Hear it</a></div>
+      <p class="meta">VST3 &nbsp; Standalone &nbsp; Fully offline</p>
+    </div>
+    <!-- the synth as it is now, taken from it by tools/site-shots.mjs -->
+    <figure class="synth"><img src="assets/shots/osc.jpg" alt="The RUIN-1 synthesizer: oscillators, envelopes, filter and keyboard" width="2812" height="1500"></figure>
+  </section>
+
+  <!-- AUDIO DEMO PART: the video sits in the dark with no frame; the logo is the play button until the video plays -->
+  <section class="part" id="sound">
+    <p class="k">Sound</p>
+    <h2>Listen first.</h2>
+    <div class="vid">
+      <video preload="none" playsinline>
+        <source src="assets/demo.mp4" type="video/mp4">
+      </video>
+      <button class="vid-play" aria-label="Play the demo"><img src="../design/logo-tight.svg" alt="" width="109" height="100"><span>▷ &nbsp;Play</span></button>
     </div>
   </section>
 
-  <!-- AUDIO DEMO -->
-  <section class="panel photo" id="sound" style="--photo: none" data-photo="assets/photos/panel.jpg">
-    <div class="wrap demo-row">
-      <div class="demo-copy">
-        <p class="kick">Audio demo</p>
-        <h2>Hear RUIN-1<br>in action</h2>
-        <p class="body">Reese basses ground through the RUIN chain, tape-worn pads, crackle and air, and the mod wheel pushed hard.</p>
-      </div>
-      <div class="video">
-        <!-- the demo video goes in assets/demo.mp4 -->
-        <video preload="none" poster="assets/shots/poster.jpg" playsinline><!-- temporary poster (owner's call): the logo on a clean background -->
-          <source src="assets/demo.mp4" type="video/mp4">
-        </video>
-        <button class="play" aria-label="Play the demo"></button>
-      </div>
-    </div>
-  </section>
-
-  <!-- EVERY PAGE, MOVING (owner's pick, pitch 5C): a filmstrip of the synth's pages, each a looping clip recorded from
-       the synth by tools/site-pages.mjs; the caption sits under the picture in two columns, arrows at the ends -->
-  <section class="panel pages" id="pages">
-    <div class="wrap">
-      <p class="kick">Inside RUIN-1</p>
-      <h2>The Features</h2>
-    </div>
+  <!-- FEATURES PART (from 2.1): every page as a looping clip in a strip with no ends, recorded by tools/site-pages.mjs -->
+  <section class="part" id="features">
+    <p class="k">Inside</p>
+    <h2>Every page lights up.</h2>
     <div class="strip" aria-roledescription="carousel" aria-label="The pages of RUIN-1">
       <ul class="track">
-          <li class="slide" data-title="Sound source" data-text="Two oscillators with up to seven unison voices, a clean sine sub on its own path and fourteen noise textures, into the filter and its envelope. A live scope shows what comes out."><video src="assets/pages/osc.mp4" poster="assets/pages/osc.jpg" muted loop playsinline preload="none" aria-label="The OSC page of RUIN-1"></video></li>
-          <li class="slide" data-title="Movement" data-text="Six LFOs, with humanize, drift and bloom among their shapes, routed through a nine-row matrix. Smooth, random and never the same twice."><video src="assets/pages/lfo.mp4" poster="assets/pages/lfo.jpg" muted loop playsinline preload="none" aria-label="The LFO page of RUIN-1"></video></li>
-          <li class="slide" data-title="Wobble" data-text="Pick a shape or draw your own: sine, duck, gate, staircase and more, locked to your tempo from one bar to 1/32."><video src="assets/pages/wobbler.mp4" poster="assets/pages/wobbler.jpg" muted loop playsinline preload="none" aria-label="The Wobbler page of RUIN-1"></video></li>
-          <li class="slide" data-title="The RUIN chain" data-text="Eight boxes in any order: moving filters, ten drive types and EQs. Drag them around, or roll a whole chain with one click."><video src="assets/pages/ruin.mp4" poster="assets/pages/ruin.jpg" muted loop playsinline preload="none" aria-label="The RUIN page of RUIN-1"></video></li>
-          <li class="slide" data-title="Effects" data-text="Drive, crush, tape wow and drift, chorus, flanger, phaser, a dark vintage reverb and a four-band EQ, each with a live picture of what it does."><video src="assets/pages/fx.mp4" poster="assets/pages/fx.jpg" muted loop playsinline preload="none" aria-label="The FX page of RUIN-1"></video></li>
-          <li class="slide" data-title="Presets" data-text="Hand-built sounds on shelves, each with its own character sliders. Preview one, then open it on the instrument."><video src="assets/pages/presets.mp4" poster="assets/pages/presets.jpg" muted loop playsinline preload="none" aria-label="The Presets page of RUIN-1"></video></li>
+        <li class="slide" data-title="Sound source" data-text="Two oscillators with up to seven unison voices, a clean sine sub on its own path and fourteen noise textures, into the filter and its envelope."><video src="assets/pages/osc.mp4" poster="assets/pages/osc.jpg" muted loop playsinline preload="none" aria-label="The OSC page of RUIN-1"></video></li>
+        <li class="slide" data-title="Movement" data-text="Six LFOs with humanize, drift and bloom, through a nine-row matrix. Smooth, random, never the same twice."><video src="assets/pages/lfo.mp4" poster="assets/pages/lfo.jpg" muted loop playsinline preload="none" aria-label="The LFO page of RUIN-1"></video></li>
+        <li class="slide" data-title="Wobble" data-text="Pick a shape or draw your own, locked to your tempo from one bar to 1/32."><video src="assets/pages/wobbler.mp4" poster="assets/pages/wobbler.jpg" muted loop playsinline preload="none" aria-label="The Wobbler page of RUIN-1"></video></li>
+        <li class="slide" data-title="The RUIN chain" data-text="Eight boxes in any order: moving filters, ten drive types and EQs. Drag them around or roll a whole chain."><video src="assets/pages/ruin.mp4" poster="assets/pages/ruin.jpg" muted loop playsinline preload="none" aria-label="The RUIN page of RUIN-1"></video></li>
+        <li class="slide" data-title="Effects" data-text="Drive, crush, tape wow and drift, chorus, flanger, phaser, a dark vintage reverb and a four-band EQ."><video src="assets/pages/fx.mp4" poster="assets/pages/fx.jpg" muted loop playsinline preload="none" aria-label="The FX page of RUIN-1"></video></li>
+        <li class="slide" data-title="Presets" data-text="Hand-built sounds on shelves, each with character sliders. Preview one, then open it on the instrument."><video src="assets/pages/presets.mp4" poster="assets/pages/presets.jpg" muted loop playsinline preload="none" aria-label="The Presets page of RUIN-1"></video></li>
       </ul>
     </div>
-    <div class="wrap">
-      <div class="strip-cap">
-        <button class="arrow prev" aria-label="Previous page">‹</button>
-        <div class="cap-name"><p class="tag"><span class="cap-n">01</span> / 06</p><h3 class="cap-title">Sound source</h3></div>
-        <span class="cap-rule" aria-hidden="true"></span>
-        <p class="cap-text" aria-live="polite">Two oscillators with up to seven unison voices, a clean sine sub on its own path and fourteen noise textures, into the filter and its envelope. A live scope shows what comes out.</p>
-        <button class="arrow next" aria-label="Next page">›</button>
-      </div>
+    <div class="cap">
+      <button class="sq prev" aria-label="Previous page">‹</button>
+      <div class="cap-name"><p class="k cap-n">01 / 06</p><h3 class="cap-title">Sound source</h3></div>
+      <p class="cap-text" aria-live="polite">Two oscillators with up to seven unison voices, a clean sine sub on its own path and fourteen noise textures, into the filter and its envelope.</p>
+      <button class="sq next" aria-label="Next page">›</button>
     </div>
   </section>
 
-  <!-- REQUIREMENTS -->
-  <section class="panel photo" id="requirements" style="--photo: none" data-photo="assets/photos/panel.jpg">
-    <div class="wrap req-row">
-      <div class="req-copy">
-        <p class="kick">System requirements</p>
-        <h2>Get set up</h2>
-        <p class="body">Light on the machine: about 3% CPU per voice, no GPU, no account, and it never goes online.</p>
-      </div>
-      <div class="stats-m" aria-hidden="true">
-        <div><b>3%</b><span>CPU per voice</span></div><div><b>25 MB</b><span>Install size</span></div>
-        <div><b>0</b><span>Internet needed</span></div><div><b>VST3</b><span>AU coming</span></div>
-        <p>Windows 10+ (64-bit) or macOS 11+, Apple Silicon or Intel, 4 GB RAM.</p>
-      </div>
-      <div class="os">
-        <div class="badge"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 5 H15 V15 H3 Z M17 5 H29 V15 H17 Z M3 17 H15 V27 H3 Z M17 17 H29 V27 H17 Z"/></svg></div>
-        <div><h3>Windows</h3><ul><li>Windows 10 or later (64-bit)</li><li>Any 64-bit CPU</li><li>4 GB RAM</li><li>Under 25 MB disk space</li><li>VST3</li></ul></div>
-      </div>
-      <div class="os">
-        <div class="badge"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M22 17c0-3 2.4-4.4 2.5-4.5-1.4-2-3.5-2.3-4.3-2.3-1.8-.2-3.6 1.1-4.5 1.1-.9 0-2.4-1.1-3.9-1-2 0-3.9 1.2-4.9 3-2.1 3.7-.5 9.1 1.5 12.1 1 1.5 2.2 3.1 3.7 3 1.5-.1 2-.9 3.8-.9 1.8 0 2.3.9 3.8.9 1.6 0 2.6-1.5 3.6-3 1.1-1.7 1.6-3.4 1.6-3.5 0 0-3-1.2-3-4.9zM19.2 8.2c.8-1 1.4-2.4 1.2-3.8-1.2.1-2.6.8-3.4 1.8-.8.9-1.4 2.3-1.2 3.7 1.3.1 2.6-.7 3.4-1.7z"/></svg></div>
-        <div><h3>macOS</h3><ul><li>macOS 11 or later</li><li>Apple Silicon or Intel</li><li>4 GB RAM</li><li>Under 25 MB disk space</li><li>AU, VST3 — coming</li></ul></div>
-      </div>
+  <!-- SET UP PART -->
+  <section class="part" id="setup">
+    <p class="k">Specs</p>
+    <h2>Light on the machine.</h2>
+    <div class="specs">
+      <div><b>3%</b><span>CPU per voice</span></div>
+      <div><b>25 MB</b><span>Install size</span></div>
+      <div><b>0</b><span>Internet needed</span></div>
+      <div><b>8</b><span>Voices</span></div>
     </div>
+    <p class="note">VST3 and standalone on Windows 10+ and macOS 11+. AU coming. No account, never online.</p>
   </section>
 
-  <!-- CALL TO ACTION -->
-  <section class="cta photo" id="buy" style="--photo: none" data-photo="assets/photos/cta.jpg">
-    <div class="wrap cta-col">
-      <p class="kick">Your sound. Its ruin.</p>
-      <h2 class="big">RUIN-1</h2>
-      <p class="lede">A dark, cinematic synthesizer.</p>
-      <div class="ctas"><a class="btn btn-o" href="#buy">Buy now <span aria-hidden="true">›</span></a><a class="btn btn-g" href="#sound">Listen <span aria-hidden="true">▷</span></a></div>
-    </div>
+  <!-- BUY PART: a siren glow rising from the bottom -->
+  <section class="end" id="buy">
+    <img class="end-mark" src="../design/logo-tight.svg" alt="" width="58" height="53">
+    <h2>Your sound. Its ruin.</h2>
+    <div class="row"><a class="btn b1" href="#buy">Buy RUIN-1</a></div>
   </section>
 </main>
 
-<footer class="foot">
-  <div class="wrap foot-row">
-    <a class="brand brand-sm" href="#top"><img class="mark" src="../design/logo-tight.svg" alt="" width="63" height="58"><span class="word"><b>RUIN-1</b><i>Synthesizer</i></span></a>
-    <nav class="foot-links"><a href="#top">Overview</a><span>/</span><a href="#sound">Sound</a><span>/</span><a href="#pages">Features</a><span>/</span><a href="#requirements">Requirements</a></nav>
-    <a class="btn btn-o btn-sm" href="#buy">Buy now <span aria-hidden="true">›</span></a>
-  </div>
-  <div class="wrap foot-row foot-small">
-    <span>© 2026 RUIN-1. All rights reserved.</span>
-    <span class="social">
-      <a href="#" aria-label="YouTube"><svg viewBox="0 0 24 20"><rect x="1" y="2" width="22" height="16" rx="5"/><path d="M10 6.5 L16 10 L10 13.5 Z" class="cut"/></svg></a>
-      <a href="#" aria-label="X"><svg viewBox="0 0 20 20"><path d="M3 2 L17 18 M17 2 L3 18" class="line"/></svg></a>
-      <a href="#" aria-label="Instagram"><svg viewBox="0 0 20 20"><rect x="2" y="2" width="16" height="16" rx="5" class="line"/><circle cx="10" cy="10" r="3.6" class="line"/><circle cx="14.6" cy="5.4" r="1.1"/></svg></a>
-      <a href="#" aria-label="SoundCloud"><svg viewBox="0 0 28 16"><path d="M10 15 V6 M12.5 15 V4 M15 15 V3.5 M7.5 15 V7.5 M5 15 V9" class="line"/><path d="M17 15 V4 C 20 2, 24 4, 24 8 C 26 8, 27 10, 27 11.5 C 27 13.5, 25.5 15, 24 15 Z"/></svg></a>
-    </span>
-  </div>
-</footer>
-
-<!-- phones only: Buy and play pinned under the thumb (owner's pick, mobile pitch 6C) -->
-<div class="pin-bar"><a class="btn btn-o" href="#buy">Buy now</a><a class="btn btn-g pin-play" href="#sound" aria-label="Hear the demo">▷</a></div>
+<!-- FOOTER -->
+<footer class="foot"><span>© 2026 RUIN-1</span><nav><a href="#sound">Sound</a><a href="#features">Features</a><a href="#setup">Specs</a></nav></footer>
 
 <script src="main.js"></script>
 </body>
