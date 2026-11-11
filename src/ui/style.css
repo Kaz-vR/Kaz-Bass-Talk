@@ -159,7 +159,7 @@ body.randomizing .group.locked { box-shadow: inset 0 0 0 1px #6f78ff; }
 .v2-top-right { display: flex; align-items: center; gap: 22px; }
 .v2-tabs { display: flex; gap: 20px; }
 .v2 .tab { background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--dimr); font-weight: 700; letter-spacing: 0.14em; font-size: 12px; padding: 2px 2px 5px; cursor: pointer; }
-.v2 .tab.on { color: #ffd2c4; border-bottom-color: #ff6a4d; }
+.v2 .tab.on { color: #ffd2c4; border-bottom-color: #ff2a14; }
 .v2 .tab:disabled { cursor: default; }
 .zoom { background: #0d0302; border: 1px solid #3a120c; border-radius: 4px; color: var(--t2); font-size: 11px; padding: 4px 10px; cursor: pointer; min-width: 52px; }
 .zoom:hover { border-color: var(--dimr); }
@@ -405,7 +405,7 @@ body.randomizing .group.locked { box-shadow: inset 0 0 0 1px #6f78ff; }
 .glide-fill { position: relative; height: 100%; border-radius: 2px; background: var(--src); }
 .glide-fill::after { content: ''; position: absolute; right: -7px; top: -5px; width: 14px; height: 14px; border-radius: 50%; background: #ffe3d9; }
 .safelight { display: flex; align-items: center; gap: 10px; margin-left: auto; }
-.lamp-safe { width: 13px; height: 13px; --knob-accent: #e0301a; }
+.lamp-safe { width: 13px; height: 13px; --knob-accent: #ff2a14; }
 .safe-text { font-size: 11px; color: var(--t3); white-space: nowrap; }
 .gear { display: flex; align-items: center; gap: 8px; background: transparent; border: 0; color: var(--t3); cursor: pointer; padding: 0; font-size: 11px; font-weight: 600; }
 .gear-icon { width: 18px; height: 18px; border-radius: 50%; border: 2.5px dashed var(--t3); box-sizing: border-box; position: relative; }
@@ -441,7 +441,7 @@ body.randomizing .group.locked { box-shadow: inset 0 0 0 1px #6f78ff; }
 .kb-keys .key { position: absolute; top: 0; border: 0; cursor: pointer; box-sizing: border-box; }
 .kb-keys .key.white { height: 100%; background: #EAE3D7; border-left: 1px solid #0C0B09; border-right: 1px solid #0C0B09; border-radius: 0 0 3px 3px; z-index: 1; }
 .kb-keys .key.black { height: 62%; background: #0C0B09; border-radius: 0 0 2px 2px; z-index: 2; }
-.kb-keys .key.down.white { background: linear-gradient(180deg, #7a3a2c 0%, #cdb9a2 35%, #dccbb4 100%); box-shadow: inset 0 0 0 999px rgba(255,59,34,0.3), inset 0 -6px 0 #ff5a40; }
+.kb-keys .key.down.white { background: linear-gradient(180deg, #7a3a2c 0%, #cdb9a2 35%, #dccbb4 100%); box-shadow: inset 0 0 0 999px rgba(255,42,20,0.3), inset 0 -6px 0 #ff2a14; }
 .kb-keys .key.down.black { background: linear-gradient(180deg, rgba(255,143,117,0.1), rgba(255,143,117,0.8)), #0C0B09; }
 .kb-keys .key .lbl { position: absolute; bottom: 10px; width: 100%; text-align: center; font-size: 10px; font-weight: 700; color: #5a3a2c; }
 
@@ -666,14 +666,14 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .led.on { color: #d4d4da; }
 .v2 .lamp { border: 0.8px solid rgba(0,0,0,0.6); background: radial-gradient(circle at 40% 35%, #3a3a3e, #121214 70%); }
 .v2 .on > .lamp, .v2 .power.on .lamp, .v2 .lamp-on, .v2 .lamp-safe {
-  background: radial-gradient(circle at 40% 35%, #fff 0%, var(--knob-accent, #ff3d2e) 45%, color-mix(in srgb, var(--knob-accent, #ff3d2e) 60%, #000) 100%);
-  box-shadow: 0 0 8px 2px color-mix(in srgb, var(--knob-accent, #ff3d2e) 45%, transparent);
+  background: radial-gradient(circle at 40% 35%, #fff 0%, var(--knob-accent, #ff2a14) 45%, color-mix(in srgb, var(--knob-accent, #ff2a14) 60%, #000) 100%);
+  box-shadow: 0 0 8px 2px color-mix(in srgb, var(--knob-accent, #ff2a14) 45%, transparent);
 }
-.v2 .lamp-safe { --knob-accent: #ff2a1a; }
+.v2 .lamp-safe { --knob-accent: #ff2a14; }
 
 /* each box its own colour */
-.v2 .box-osca { --knob-accent: #ff3d2e; }
-.v2 .box-oscb { --knob-accent: #ff7a1a; }
+.v2 .box-osca { --knob-accent: #ff2a14; }
+.v2 .box-oscb { --knob-accent: #ff6a1a; }
 .v2 .box-amp { --knob-accent: #3fe3b6; }
 .v2 .box-flt, .v2 .box-fenv { --knob-accent: #5f9bff; }
 .v2 .box-sub { --knob-accent: #9a7cff; }
@@ -750,7 +750,7 @@ html, body, .v2-wrap { background: #070708; }
 .osc-page .box-scope .scope-glass::after { display: none; }
 
 /* the play strip */
-.v2-bottom { margin-top: 4px; height: 46px; border-radius: 2px; padding: 0 18px; gap: 24px; --knob-accent: #ff3d2e; }
+.v2-bottom { margin-top: 4px; height: 46px; border-radius: 2px; padding: 0 18px; gap: 24px; --knob-accent: #ff2a14; }
 .v2 .seg-wrap { gap: 0; background: rgba(0,0,0,0.4); padding: 2px; border-radius: 2px; }
 .v2 .seg { background: transparent; border: 0; border-radius: 2px; color: #7c7c82; font-weight: 400; font-size: 10.5px; letter-spacing: 0.24em; width: 62px; height: 24px; }
 .v2 .seg.on { background: rgba(255,255,255,0.07); color: #f0f0f4; }
@@ -769,17 +769,17 @@ html, body, .v2-wrap { background: #070708; }
 .kb-strip { margin: 4px 0 0; padding: 6px 8px 8px; border-radius: 2px; gap: 8px; }
 .v2 .kb-side { background: transparent; border: 0; padding: 6px 4px 0 8px; }
 .v2 .kb-w-label, .v2 .kb-label { font-weight: 400; letter-spacing: 0.15em; color: #8c8c92; font-size: 9px; }
-.v2 .kb-move { color: #ff6a52; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; font-size: 11px; }
+.v2 .kb-move { color: #ff2a14; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; font-size: 11px; }
 .v2 .kb-vel { background: rgba(0,0,0,0.6); border-radius: 0; height: 4px; }
-.v2 .kb-vel-fill { background: #ff6a52; box-shadow: 0 0 6px #ff6a52; }
+.v2 .kb-vel-fill { background: #ff2a14; box-shadow: 0 0 6px #ff2a14; }
 .v2 .kb-oct-btn { color: #9a9aa0; }
 .kb-keys { background: #030303; }
 .kb-keys .key.white { background: linear-gradient(180deg, #5e5e60 0%, #bdbcba 6%, #d6d5d3 60%, #e2e1de 100%); border-left: 1px solid #030303; border-right: 1px solid #030303; border-radius: 0 0 2px 2px;
   box-shadow: inset 3px 0 4px -2px rgba(0,0,0,0.25), inset -3px 0 4px -2px rgba(0,0,0,0.3), inset 0 -6px 0 -1px rgba(255,255,255,0.35), inset 0 -7px 0 rgba(0,0,0,0.2); }
 .kb-keys .key.black { background: linear-gradient(180deg, #060607 0%, #151517 80%, #2a2a2d 92%, #0a0a0b 100%); border-left: 2px solid #232325; border-right: 2px solid #1a1a1c; border-radius: 0 0 2px 2px;
   box-shadow: 2px 5px 8px rgba(0,0,0,0.8), inset 2px 0 0 rgba(255,255,255,0.05); }
-.kb-keys .key.down.white { background: linear-gradient(180deg, rgba(255,60,30,0) 0%, rgba(255,60,30,0.28) 100%), linear-gradient(180deg, #5e5e60 0%, #bdbcba 6%, #d6d5d3 60%, #e2e1de 100%); box-shadow: inset 0 -4px 0 #ff4a30, inset 3px 0 4px -2px rgba(0,0,0,0.25); }
-.kb-keys .key.down.black { background: linear-gradient(180deg, rgba(255,60,30,0.05), rgba(255,60,30,0.55)), #0c0c0d; }
+.kb-keys .key.down.white { background: linear-gradient(180deg, rgba(255,42,20,0) 0%, rgba(255,42,20,0.28) 100%), linear-gradient(180deg, #5e5e60 0%, #bdbcba 6%, #d6d5d3 60%, #e2e1de 100%); box-shadow: inset 0 -4px 0 #ff2a14, inset 3px 0 4px -2px rgba(0,0,0,0.25); }
+.kb-keys .key.down.black { background: linear-gradient(180deg, rgba(255,42,20,0.05), rgba(255,42,20,0.55)), #0c0c0d; }
 .kb-keys .key .lbl { color: #6a6a6c; font-weight: 400; font-size: 9px; }
 
 .v2-top > .pre-sel { position: absolute; z-index: 3; }
@@ -928,8 +928,8 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .ob-chips .chip-val { position: relative; top: 0.5px; }
 
 /* ---- FX page: the OSC page's boxes, coloured by family (dirt warm, modulation cool, space deep, EQ neutral). */
-.v2 .box-dist { --knob-accent: #ff3d2e; }
-.v2 .box-crush { --knob-accent: #ff8a2a; }
+.v2 .box-dist { --knob-accent: #ff2a14; }
+.v2 .box-crush { --knob-accent: #ff6a1a; }
 .v2 .box-tape { --knob-accent: #e8b46a; }
 .v2 .box-chorus { --knob-accent: #3fe3b6; }
 .v2 .box-mfx { --knob-accent: #9a7cff; }
@@ -959,8 +959,8 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .sb .ob-corner { top: 0; right: 2px; height: 14px; }
 .v2 .sw-small .fx-kind { font-size: 10px; letter-spacing: 0.14em; }
 .v2 .mod-page2 .ob-head .sel-name { font-size: 10.5px; }
-.v2 .box-lfo1 { --knob-accent: #ff3d2e; }
-.v2 .box-lfo2 { --knob-accent: #ff8a2a; }
+.v2 .box-lfo1 { --knob-accent: #ff2a14; }
+.v2 .box-lfo2 { --knob-accent: #ff6a1a; }
 .v2 .box-lfo3 { --knob-accent: #3fe3b6; }
 .v2 .box-lfo4 { --knob-accent: #9a7cff; }
 .v2 .box-lfo5 { --knob-accent: #5f9bff; }
@@ -982,14 +982,14 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .box-matrix .amt-wrap { gap: 6px; }
 .v2 .box-matrix .amt-val { width: 38px; font-size: 10.5px; color: #cfcfd4; }
 .v2 .box-matrix .mx-row.empty { opacity: 0.4; }
-.v2 .mx-row[data-src="lfo1"] .mx-src .sel-name { color: #ff3d2e; }
-.v2 .mx-row[data-src="lfo2"] .mx-src .sel-name { color: #ff8a2a; }
+.v2 .mx-row[data-src="lfo1"] .mx-src .sel-name { color: #ff2a14; }
+.v2 .mx-row[data-src="lfo2"] .mx-src .sel-name { color: #ff6a1a; }
 .v2 .mx-row[data-src="lfo3"] .mx-src .sel-name { color: #3fe3b6; }
 .v2 .mx-row[data-src="lfo4"] .mx-src .sel-name { color: #9a7cff; }
 .v2 .mx-row[data-src="lfo5"] .mx-src .sel-name { color: #5f9bff; }
 .v2 .mx-row[data-src="lfo6"] .mx-src .sel-name { color: #e2c9a6; }
-.v2 .mx-row[data-src="lfo1"] .amt { --knob-accent: #ff3d2e; }
-.v2 .mx-row[data-src="lfo2"] .amt { --knob-accent: #ff8a2a; }
+.v2 .mx-row[data-src="lfo1"] .amt { --knob-accent: #ff2a14; }
+.v2 .mx-row[data-src="lfo2"] .amt { --knob-accent: #ff6a1a; }
 .v2 .mx-row[data-src="lfo3"] .amt { --knob-accent: #3fe3b6; }
 .v2 .mx-row[data-src="lfo4"] .amt { --knob-accent: #9a7cff; }
 .v2 .mx-row[data-src="lfo5"] .amt { --knob-accent: #5f9bff; }
@@ -997,7 +997,7 @@ html, body, .v2-wrap { background: #070708; }
 
 /* Touch (replaces VEL): a slider you drag sideways; the tick is the last note's velocity. */
 .v2 .kb-touch { position: relative; display: block; width: 44px; height: 6px; background: rgba(0,0,0,0.6); cursor: ew-resize; touch-action: none; margin-top: 3px; }
-.v2 .kb-touch-fill { display: block; height: 100%; background: #ff6a52; box-shadow: 0 0 6px #ff6a52; }
+.v2 .kb-touch-fill { display: block; height: 100%; background: #ff2a14; box-shadow: 0 0 6px #ff2a14; }
 .v2 .kb-vel-tick { position: absolute; top: -3px; width: 1px; height: 12px; background: #fff; opacity: 0; transform: translateX(-0.5px); transition: left .08s; }
 .v2 .kb-vel-tick.hit { opacity: 0.8; }
 .v2 .route-tag { text-shadow: 0 0 3px #000, 0 0 6px #000, 0 0 10px #000; }
@@ -1177,15 +1177,15 @@ html, body, .v2-wrap { background: #070708; }
    source's colour; an on/off lamp in front of every matrix row; All controls and Master on the right. */
 .v2 .ob-head > .direct-out { margin-left: auto; font-size: 9px; letter-spacing: 0.18em; white-space: nowrap; }
 .v2 .ob-dials .ob-routes { margin-left: 0 !important; margin-right: 6px; }
-.v2 .route-a { --knob-accent: #ff3d2e; }
-.v2 .route-b { --knob-accent: #ff7a1a; }
+.v2 .route-a { --knob-accent: #ff2a14; }
+.v2 .route-b { --knob-accent: #ff6a1a; }
 .v2 .route-s { --knob-accent: #9a7cff; }
 .v2 .route-n { --knob-accent: #e2c9a6; }
 .v2 .mx-on { flex: none; background: transparent; border: 0; padding: 0; margin-right: 2px; cursor: pointer; display: flex; }
 .v2 .mx-row.off > :not(.mx-on) { opacity: 0.32; }
 .v2 .v2-bottom .gear { margin-left: auto; }
-.v2 .mx-row[data-src="lfo1"] .mx-on { --knob-accent: #ff3d2e; }
-.v2 .mx-row[data-src="lfo2"] .mx-on { --knob-accent: #ff8a2a; }
+.v2 .mx-row[data-src="lfo1"] .mx-on { --knob-accent: #ff2a14; }
+.v2 .mx-row[data-src="lfo2"] .mx-on { --knob-accent: #ff6a1a; }
 .v2 .mx-row[data-src="lfo3"] .mx-on { --knob-accent: #3fe3b6; }
 .v2 .mx-row[data-src="lfo4"] .mx-on { --knob-accent: #9a7cff; }
 .v2 .mx-row[data-src="lfo5"] .mx-on { --knob-accent: #5f9bff; }
@@ -1448,9 +1448,9 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-stage .ob-dials { margin-top: auto; }
 .v2 .gr-dhead { margin-bottom: 4px; }
 /* GRIND is the dirt tab: four stages in fire colours (red, orange, amber, crimson), the strip's knobs red */
-.v2 .gr-s1 { --knob-accent: #ff3b2f; } .v2 .gr-s2 { --knob-accent: #ff7a1f; }
+.v2 .gr-s1 { --knob-accent: #ff2a14; } .v2 .gr-s2 { --knob-accent: #ff6a1a; }
 .v2 .gr-s3 { --knob-accent: #ffc02e; } .v2 .gr-s4 { --knob-accent: #e8306e; }
-.v2 .gr-strip .gr-knobs { --knob-accent: #ff3b2f; }
+.v2 .gr-strip .gr-knobs { --knob-accent: #ff2a14; }
 .v2 .gr-stage .ob-head { height: 24px; flex: none; }
 .v2 .gr-stage .ob-print { flex: none; }
 .v2 .gr-stage .gr-fprint { margin-top: 2px; }
@@ -1568,7 +1568,7 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-node-cv { margin-top: 3px; flex: none; }
 .v2 .gr-node-foot { display: flex; align-items: center; justify-content: space-between; margin-top: auto; height: 16px; }
 .v2 .gr-node-db { font-size: 9.5px; color: #8a8a90; font-variant-numeric: tabular-nums; }
-.v2 .gr-node-db.hot { color: #ff5040; }
+.v2 .gr-node-db.hot { color: #ff2a14; }
 .v2 .gr-listen { display: flex; gap: 2px; }
 .v2 .gr-lb { width: 15px; height: 13px; padding: 0; font: 8px "Space Grotesk", sans-serif; color: #66666c; background: transparent; border: 1px solid #2a2a30; border-radius: 2px; cursor: pointer; line-height: 11px; }
 .v2 .gr-lb:hover { color: #ddd; border-color: #444; }
@@ -1611,13 +1611,13 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-empty-n { font-size: 10px; letter-spacing: 0.2em; color: #3e3e44; }
 .v2 .gr-add { background: transparent; border: 1px solid #2a2a30; border-radius: 3px; padding: 4px 10px; font: 9px "Space Grotesk", sans-serif; letter-spacing: 0.16em; cursor: pointer; width: 92px; }
 .v2 .gr-add-f { color: #3fb8ff; }
-.v2 .gr-add-d { color: #ff5a1f; }
+.v2 .gr-add-d { color: #ff6a1a; }
 .v2 .gr-add-e { color: #e6dcc8; }
 .v2 .gr-add-e:hover { border-color: #e6dcc8; box-shadow: 0 0 8px #e6dcc855; }
 .v2 .gr-node-eq { margin: 0 auto; font-size: 9px; letter-spacing: 0.18em; color: var(--knob-accent); }
 .v2 .gr-eq-hint { margin-left: auto; font-size: 9px; letter-spacing: 0.08em; color: #55555b; }
 .v2 .gr-add-f:hover { border-color: #3fb8ff; box-shadow: 0 0 8px #3fb8ff55; }
-.v2 .gr-add-d:hover { border-color: #ff5a1f; box-shadow: 0 0 8px #ff5a1f55; }
+.v2 .gr-add-d:hover { border-color: #ff6a1a; box-shadow: 0 0 8px #ff5a1f55; }
 .v2 .gr-add[disabled] { opacity: 0.25; cursor: default; box-shadow: none; border-color: #2a2a30; }
 .v2 .gr-x { margin-left: auto; background: transparent; border: 0; color: #4a4a50; font-size: 9px; cursor: pointer; padding: 0 1px; }
 .v2 .gr-x:hover { color: #fff; }
@@ -1656,7 +1656,7 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-focus .gr-sync { margin: 0 0 14px 2px; }
 .v2 .gr-focus .gr-eq-hint { margin-left: auto; }
 /* the RUIN box: CHAINS in its title, the rocker at its right; ROLL, WEIRD and the lamps centred; its dials at the bottom */
-.v2 .gr-master { display: flex !important; flex-direction: column; padding: 12px 18px 12px !important; --knob-accent: #ff3b2f; }
+.v2 .gr-master { display: flex !important; flex-direction: column; padding: 12px 18px 12px !important; --knob-accent: #ff2a14; }
 .v2 .gr-master > .ob-head { height: 22px; gap: 12px; }
 .v2 .gr-master .gr-chains-sel { width: auto; }
 .v2 .gr-master .gr-rocker { margin: 0 -8px 0 auto; width: 44px; height: 22px; }
@@ -1717,7 +1717,7 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .v2-logo svg path { stroke: #d99a45; }
 .v2 .v2-logo svg path[fill] { fill: #d99a45; }
 .v2 .v2-logo-wear { position: absolute; inset: 0; pointer-events: none; background: var(--logo-wear, none) 0 0 / 100% 100%; }
-.v2 .brand-name { text-shadow: -1px 0 rgba(255,60,50,0.35), 1px 0 rgba(60,190,255,0.3), 0 0 6px rgba(255,255,255,0.6), 0 0 18px rgba(255,255,255,0.3) !important; }
+.v2 .brand-name { text-shadow: -1px 0 rgba(255,42,20,0.35), 1px 0 rgba(60,190,255,0.3), 0 0 6px rgba(255,255,255,0.6), 0 0 18px rgba(255,255,255,0.3) !important; }
 .v2 .wood-l { background: var(--wood-l, #42201a) 0 0 / 100% 100% no-repeat; }
 .v2 .wood-r { background: var(--wood-r, #42201a) 0 0 / 100% 100% no-repeat; }
 .v2 .brand-sub { color: #9a9aa0 !important; text-shadow: 0 0 4px rgba(0,0,0,0.9); }

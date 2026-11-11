@@ -705,7 +705,7 @@ function syncBeats(v: string): number {
 /** Options kept only as placeholders (removed, owner's call): never offered in a menu. */
 const RETIRED = new Set<string>(); // options kept in the data but never offered (none right now: formant came back, owner's call)
 
-const SHELF_COLOURS = ['#ff3d2e', '#ff8a2a', '#e8b46a', '#3fe3b6', '#9a7cff', '#5f9bff', '#a9dcff', '#ff6fae', '#d4d4da'];
+const SHELF_COLOURS = ['#ff2a14', '#ff6a1a', '#e8b46a', '#3fe3b6', '#9a7cff', '#5f9bff', '#a9dcff', '#ff6fae', '#d4d4da'];
 const PRINT_W = 247;
 const PRINT_H = 84;
 /** MOD page boxes (a third of a column high): a short print over the dials. */
@@ -3945,7 +3945,7 @@ export class SynthView {
           g.globalAlpha = 0.85;
           g.fillRect(NW - MW + 1, yOf(rd), MW - 2, NH - yOf(rd));
           g.globalAlpha = 1;
-          g.fillStyle = pd > 0 ? '#ff3020' : '#e8e8ea';
+          g.fillStyle = pd > 0 ? '#ff2a14' : '#e8e8ea';
           g.fillRect(NW - MW, yOf(pd) - 1, MW, 2);
           if (pd > 0) g.fillRect(NW - MW, 0, MW, 3);
         }
@@ -4405,14 +4405,14 @@ export class SynthView {
       const pk = t ? dB(t.peak[tapOf(k)]) : -120, rm = t ? dB(t.rms[tapOf(k)]) : -120, over = pk > 0;
       lg.fillStyle = hexA(col, 0.55);
       lg.fillRect(x0 + 3, lvY(rm), w - 6, LY1 - lvY(rm));
-      lg.fillStyle = over ? '#ff3020' : col;
+      lg.fillStyle = over ? '#ff2a14' : col;
       lg.fillRect(x0 + 3, lvY(pk) - 1, w - 6, 2);
       if (over) lg.fillRect(x0 + 3, lvY(pk), w - 6, lvY(0) - lvY(pk));
-      lg.fillStyle = over ? '#ff3020' : 'rgba(255,255,255,0.4)';
+      lg.fillStyle = over ? '#ff2a14' : 'rgba(255,255,255,0.4)';
       lg.fillRect(x0, lvY(0), w, 1);
       lg.font = '9px "Space Grotesk", sans-serif';
       lg.textAlign = 'center';
-      lg.fillStyle = over ? '#ff3020' : '#8a8a90';
+      lg.fillStyle = over ? '#ff2a14' : '#8a8a90';
       lg.fillText(pk > -100 ? `${over ? '+' : ''}${pk.toFixed(1)}` : '–', LMW / 2, 10);
       // the handle: the box's level, 0 dB on the 0 dB line
       const lv = this.num(lvId()), hy = lvY(lv);
