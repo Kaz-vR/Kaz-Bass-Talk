@@ -120,6 +120,12 @@ always fade to pure black.
 
 ## 6. The parts (the owner's names for them)
 
+**"The logo" (owner's word)** means the whole lockup: the triangle icon, the word **RUIN-1**, and the word
+**SYNTHESIZER** under it, together. The triangle alone is "the icon". On the website the full logo is in the Header;
+the menu, the play button and the Buy part show the icon only. Its rules: the icon's top meets the top of the letters
+of RUIN-1 and its bottom the bottom of the letters of SYNTHESIZER; **SYNTHESIZER is exactly as wide as RUIN-1** (its
+letter spacing is set from the font in `main.js`, first and last letters lined up with RUIN-1's at every size).
+
 Use these names when talking about the site.
 
 1. **Header** (`.hero`): the menu on top (logo left, Sound / Features / Specs in the middle, small red

@@ -45,6 +45,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .copy, .synth { position: relative; z-index: 2; }
 h1.lockup { display: flex; align-items: flex-start; gap: 26px; font-weight: 300; }
 .lockup .mark { height: 96px; width: auto; flex: none; }
+.lockup .word { text-align: left; } /* the two words as one block, even where the header is centred */
 .lockup .word b { display: block; font-weight: 300; font-size: 64px; line-height: .86; letter-spacing: .4em; margin-right: -.4em; color: var(--head); white-space: nowrap; }
 .lockup .word i { display: block; font-style: normal; font-weight: 400; font-size: 13px; letter-spacing: .86em; color: #a49d97; margin-top: 18px; text-transform: uppercase; white-space: nowrap; }
 .lede { font-weight: 300; font-size: 19px; line-height: 1.6; color: var(--soft); margin-top: 40px; max-width: 430px; }

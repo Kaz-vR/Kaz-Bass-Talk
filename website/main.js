@@ -89,8 +89,24 @@ const ink = (el, txt) => {
   const base = r.top + (lh - (A + D)) / 2 + A;
   return { top: base - m.actualBoundingBoxAscent * k, bottom: base + m.actualBoundingBoxDescent * k };
 };
+// SYNTHESIZER as wide as RUIN-1 (owner's call): its letter spacing set so its first and last letters' ink lines up with
+// RUIN-1's, measured from the font at 1000 px; the trailing spacing is cancelled so the box is the ink.
+const inkX = (el, txt, spacing) => {
+  const cs = getComputedStyle(el), g = document.createElement('canvas').getContext('2d'), k = parseFloat(cs.fontSize) / 1000, t = txt.toUpperCase();
+  g.font = `${cs.fontStyle} ${cs.fontWeight} 1000px ${cs.fontFamily}`;
+  const m = g.measureText(t);
+  return { left: -m.actualBoundingBoxLeft * k, width: (m.actualBoundingBoxLeft + m.actualBoundingBoxRight) * k + spacing * (t.length - 1), n: t.length };
+};
+const matchWidths = () => {
+  const b = document.querySelector('.lockup .word b'), i = document.querySelector('.lockup .word i'); if (!b || !i) return;
+  const sb = parseFloat(getComputedStyle(b).letterSpacing) || 0, tb = inkX(b, b.textContent, sb), ti = inkX(i, i.textContent, 0);
+  const s = (tb.width - ti.width) / (ti.n - 1);
+  i.style.letterSpacing = `${s}px`; i.style.marginRight = `${-s}px`;
+  i.style.marginLeft = `${tb.left - ti.left}px`; // first letters' left ink edges on one line
+};
 const alignMark = () => {
   const box = document.querySelector('.lockup'); if (!box) return;
+  matchWidths();
   const mark = box.querySelector('.mark'), b = box.querySelector('.word b'), i = box.querySelector('.word i');
   for (let t = 0; t < 4; t++) {
     const top = ink(b, b.textContent).top, bottom = ink(i, i.textContent).bottom;

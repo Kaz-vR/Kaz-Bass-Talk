@@ -4,6 +4,8 @@
 
 **Before redesigning any part of the synth's UI, read `references-ui/RULES.md`** (the rulebook drawn from our own library of 60 synth, plugin, hardware and pro-software UIs in `references-ui/`) and name the references each pitch uses.
 
+**"The logo" (owner's word)** means the triangle icon plus the words RUIN-1 and SYNTHESIZER together, on the synth and on the website (the triangle alone is "the icon"); see `website/DESIGN.md` section 6.
+
 **Texture rule (owner's pick "Quiet"):** texture belongs on the frame (the wooden cheeks and the area round the instrument), never on the working surface. Boxes, displays, knobs, the play bar and the keyboard strip are clean on every tab: no film grain, no dust in the boxes, no corrosion or wear behind the logo (the last block of `src/ui/style.css`).
 
 ## UI
