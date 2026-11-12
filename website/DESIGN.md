@@ -118,6 +118,11 @@ always fade to pure black.
   visual (the synth, the video, the carousel) is sized from the screen's height, so the whole part always fits; checked
   at 1920x1080, 1440x900, 1366x768, 1280x720, 820x1180, 430x932, 390x844 and 375x667. The black space is the
   screen's own: no extra gaps between parts.
+- **Optical centring** (owner's call): each part's content sits a little above the true middle (the empty space
+  split about 44 above / 56 below, between the menu bar and the screen's bottom; the Header 34 / 66, since the tilted
+  synth reads low), using two invisible spacers per part (`.sp-a`, `.sp-b`). Measured from the visible pixels at five
+  sizes. The Audio Demo is the exception until the video exists: its empty 16:9 box is centred, so the play icon
+  looks low; with the video in it, the part is balanced.
 - Focus: 2px hot orange outline, 3px offset.
 
 ---
