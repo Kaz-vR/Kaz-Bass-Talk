@@ -61,15 +61,15 @@ match that: pushed to the gamut edge at its hue, with its own glow.
 Visual sheet of the whole palette: ask Claude to render it (the owner keeps a PNG of it).
 
 ### Logo colour
-**Logo orange `#fd7812`** (`--logo`; owner's pick, painted on a screenshot): the logo files in `design/`
+**Logo orange `#f25d07`** (`--logo`; owner's pick, painted on a screenshot): the logo files in `design/`
 (`logo.svg`, `logo-tight.svg`) and the synth's own logo use it.
 
 ### Buy and the synth's colours (owner's paint-over)
-- **Buy buttons: `#ff4000`** (`--buy`), with a glow `rgba(255,64,0,.45)` (hover `.75`). Alarm red stays for the
+- **Buy buttons: `#f23005`** (`--buy`), with a glow `rgba(242,48,5,.45)` (hover `.75`). Alarm red stays for the
   other active states.
-- **The synth's modules** (`src/ui/style.css`, "each box its own colour"): OSC A `#af1904`, OSC B `#ff4000`,
-  amp envelope `#039c8b`, filter and filter envelope `#33668a`, sub `#5c0e17`, noise `#fa9d4f`; the routing LEDs
-  A / B / S / N follow their module. The wooden cheeks a dark brown, measured `#201513`.
+- **The synth's modules** (`src/ui/style.css`, "each box its own colour"): OSC A `#f21616`, OSC B `#f23005`,
+  amp envelope `#800ff2`, filter and filter envelope `#363ed9`, sub `#f2163e`, noise `#f29e38`; the routing LEDs
+  A / B / S / N follow their module. The wooden cheeks their original brown (measured `#451f16`, no filter).
 
 ---
 
