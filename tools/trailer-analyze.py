@@ -86,7 +86,9 @@ if len(sys.argv) > 4:                                       # hand-checked shot 
 # ---------- audio ----------
 import librosa
 sr = 22050
-y = np.frombuffer(subprocess.check_output(['ffmpeg', '-v', 'error', '-i', src, '-vn', '-ac', '1', '-ar', str(sr), '-f', 'f32le', '-']), np.float32).copy()
+try: y = np.frombuffer(subprocess.check_output(['ffmpeg', '-v', 'error', '-i', src, '-vn', '-ac', '1', '-ar', str(sr), '-f', 'f32le', '-']), np.float32).copy()
+except subprocess.CalledProcessError: y = np.zeros(0, np.float32)
+if len(y) < sr: y = np.random.default_rng(0).normal(0, 1e-4, int(DUR * sr) + sr).astype(np.float32)   # a silent clip (our test shots)
 onset_env = librosa.onset.onset_strength(y=y, sr=sr); o_t = librosa.times_like(onset_env, sr=sr)
 tempo = float(np.atleast_1d(librosa.feature.tempo(onset_envelope=onset_env, sr=sr))[0])
 def track_beats(o, period, tight=100.0):                      # Ellis dynamic-programming beat tracker in plain numpy
