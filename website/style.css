@@ -4,7 +4,7 @@
 @font-face { font-family: Manrope; font-weight: 200 600; font-display: swap; src: url('../design/fonts/manrope-latin-var.woff2') format('woff2'); }
 :root {
   --ink: #ece8e4; --head: #f3eee8; --soft: #9b958f; --mute: #7a746f; --dim: #55504c;
-  --red: #ff2a14; --buy: #ff2f00; --logo: #d66624; --hot: #ff6a1a; --deep: #8a0a04;
+  --red: #ff2a14; --buy: #ff3205; --logo: #d66624; --hot: #ff6a1a; --deep: #8a0a04;
   --ease: cubic-bezier(.2, .7, .2, 1);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17,8 +17,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 /* ---------- buttons: square, the main one solid alarm red */
 .btn { height: 48px; padding: 0 28px; display: inline-flex; align-items: center; justify-content: center; gap: 12px; font-size: 12px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; transition: box-shadow .3s, background .3s, border-color .3s; }
-.b1 { background: var(--buy); color: #0a0100; box-shadow: 0 0 24px rgba(255,47,0,.45); }
-.b1:hover { box-shadow: 0 0 36px rgba(255,47,0,.75); }
+.b1 { background: var(--buy); color: #0a0100; box-shadow: 0 0 24px rgba(255,50,5,.45); }
+.b1:hover { box-shadow: 0 0 36px rgba(255,50,5,.75); }
 .b2 { border: 1px solid #4a4542; }
 .b2:hover { border-color: var(--ink); }
 .bs { height: 34px; padding: 0 16px; font-size: 11px; }

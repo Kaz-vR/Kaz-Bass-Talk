@@ -65,10 +65,10 @@ Visual sheet of the whole palette: ask Claude to render it (the owner keeps a PN
 (`logo.svg`, `logo-tight.svg`) and the synth's own logo use it.
 
 ### Buy and the synth's colours (owner's paint-over)
-- **Buy buttons: `#ff2f00`** (`--buy`), with a glow `rgba(255,47,0,.45)` (hover `.75`). Alarm red stays for the
+- **Buy buttons: `#ff3205`** (`--buy`), with a glow `rgba(255,50,5,.45)` (hover `.75`). Alarm red stays for the
   other active states.
 - **The synth's modules** (`src/ui/style.css`, "each box its own colour"): OSC A `#ea1f1f`, OSC B `#e83911`,
-  amp envelope `#129b82`, filter and filter envelope `#5f64c8`, sub `#61348d`, noise `#e29e4b`; the routing LEDs
+  amp envelope `#129b82`, filter and filter envelope `#5f64c8`, sub `#6c3a9c`, noise `#c09b6d`; the routing LEDs
   A / B / S / N follow their module. The wooden cheeks a very dark brown `#1c120d` (the owner's own tuning, saved from the colour tuner).
 
 ---
