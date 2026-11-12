@@ -675,7 +675,7 @@ html, body, .v2-wrap { background: #070708; }
    change here moves all of them. Tied: LFO 1-6 = red, orange, green, blue, purple, sand; RUIN: every drive red, every
    filter blue (the EQ keeps its own); FX: drive red, crush orange, tape sand, chorus green, flanger purple, reverb blue
    (phaser and EQ their own). Never give those boxes their own hex again: use these names. */
-.v2 { --c-red: #ea1f1f; --c-orange: #e83911; --c-green: #129b82; --c-blue: #5f64c8; --c-purple: #6c3a9c; --c-sand: #c09b6d; --c-phaser: #5f9bff; --knob-body: #232324; }
+.v2 { --c-red: #ea1f1f; --c-orange: #e83911; --c-green: #129b82; --c-blue: #5f64c8; --c-purple: #6c3a9c; --c-sand: #c09b6d; --c-phaser: #aa418e; --knob-body: #232324; }
 .v2 .box-osca { --knob-accent: var(--c-red); }
 .v2 .box-oscb { --knob-accent: var(--c-orange); }
 .v2 .box-amp { --knob-accent: var(--c-green); }

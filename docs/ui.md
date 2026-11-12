@@ -17,8 +17,8 @@ them by name, so changing one there moves all of them:
 | Sub purple `--c-purple` | LFO 5 | | Flanger |
 | Noise sand `--c-sand` | LFO 6 | | Tape |
 
-Not tied: the RUIN EQs (their own bone tints), the FX EQ, and the FX phaser (`--c-phaser`, its own, being chosen by
-the owner). The routing lights (A / B / S / N) and the mod matrix's LFO rows follow too. Never give a tied box its own
+Not tied: the RUIN EQs (their own bone tints), the FX EQ, and the FX phaser (`--c-phaser`, its own: `#aa418e`, the
+owner's pick). The routing lights (A / B / S / N) and the mod matrix's LFO rows follow too. Never give a tied box its own
 hex again; use the names. The knobs' caps are `--knob-body`.
 
 **"The logo" (owner's word)** means the triangle icon plus the words RUIN-1 and SYNTHESIZER together, on the synth and on the website (the triangle alone is "the icon"); see `website/DESIGN.md` section 6.
