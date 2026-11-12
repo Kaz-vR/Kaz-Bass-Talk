@@ -150,3 +150,40 @@ canvas.embers { position: absolute; inset: 0; width: 100%; height: 100%; image-r
   .end { padding: 160px 20px 260px; }
   .foot { flex-direction: column; align-items: center; gap: 10px; padding: 24px 20px 40px; text-align: center; }
 }
+
+/* ==== One screen per part (owner's call): every part fits the screen exactly, on phones and computers, and the page
+   snaps to them: firmly on phones (each swipe lands on the next part, perfectly framed), gently on computers (it only
+   settles when you stop near a part, so wheels and trackpads scroll freely). Each part is one screen tall, its content
+   centred under the menu; the big visual of each part (the synth, the video, the carousel) is sized from the screen's
+   height so the whole part always fits. The footer shares the last screen with the Buy part. ==== */
+:root { --navh: 68px; --foot: 94px; --vh: 100vh; }
+@supports (height: 100svh) { :root { --vh: 100svh; } }
+html { scroll-snap-type: y proximity; }
+.hero, .part, .end { min-height: var(--vh); box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding-top: calc(var(--navh) + 24px); padding-bottom: 32px; scroll-snap-align: start; scroll-margin-top: 0; }
+.part > *, .end > * { width: 100%; }
+.foot { scroll-snap-align: end; }
+/* Header: the synth takes what the screen has left over the logo, text and buttons */
+.synth { width: min(860px, 100%, calc((var(--vh) - 480px) * 1.811)); margin-bottom: 40px; }
+.lede { margin-top: 26px; } .hero .row { margin-top: 28px; } .meta { margin-top: 24px; }
+/* Sound: the video as large as the screen allows */
+.vid { width: min(1040px, 100%, calc((var(--vh) - 270px) * 16 / 9)); margin-top: 32px; }
+/* Features: the carousel's page sized by height too; the arrows and caption keep their place under it */
+.strip { --slide: min(900px, 86vw, calc((var(--vh) - 390px) * 1600 / 854)); margin-top: 32px; }
+.track { height: calc(var(--slide) * 854 / 1600); }
+.slide { width: var(--slide); margin-left: calc(var(--slide) / -2); }
+.cap { margin-top: 28px; max-width: max(var(--slide), 640px); }
+/* Set up */
+.specs { margin-top: 48px; } .note { margin-top: 32px; }
+/* Buy: the screen minus the footer, the words held above the fire */
+.end { min-height: calc(var(--vh) - var(--foot)); padding-bottom: 230px; }
+@media (max-width: 600px) {
+  :root { --navh: 56px; --foot: 104px; }
+  html { scroll-snap-type: y mandatory; }
+  .hero, .part, .end { padding-left: 20px; padding-right: 20px; padding-bottom: 24px; }
+  .synth { width: min(calc(100% + 40px), calc((var(--vh) - 450px) * 1.811)); margin: 0 auto 28px; }
+  .lede { margin-top: 20px; } .hero .row { margin-top: 22px; } .meta { margin-top: 20px; }
+  .vid { width: min(100%, calc((var(--vh) - 230px) * 16 / 9)); }
+  .strip { --slide: min(86vw, calc((var(--vh) - 470px) * 1600 / 854)); }
+  .end { padding-bottom: 170px; }
+}

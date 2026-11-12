@@ -113,7 +113,11 @@ always fade to pure black.
   - Arrows: 52 x 52px square outline, hover red outline and glow.
 - **No divider lines** anywhere (owner: "I like the removal of the lines"). Separate parts with space.
 - **No frames around the video.** It sits in the darkness and becomes part of the background.
-- Lots of black space: 170px above each part on desktop (120px on phones), 230px above the Buy part.
+- **One screen per part** (owner's call): every part (Header, Audio Demo, Features, Set up, Buy part with the
+  footer) is exactly one screen tall, on phones and computers, its content centred under the menu. Each part's big
+  visual (the synth, the video, the carousel) is sized from the screen's height, so the whole part always fits; checked
+  at 1920x1080, 1440x900, 1366x768, 1280x720, 820x1180, 430x932, 390x844 and 375x667. The black space is the
+  screen's own: no extra gaps between parts.
 - Focus: 2px hot orange outline, 3px offset.
 
 ---
@@ -167,6 +171,10 @@ caption puts the arrows beside the title and the description below. Specs in two
 centred. No sideways scrolling at 375-390px; check it every time.
 
 ## 8. Motion
+
+- **Scroll snapping** (owner's call): on phones it is firm (`scroll-snap-type: y mandatory`): every swipe lands on
+  the next part, perfectly framed. On computers it is gentle (`proximity`): wheels and trackpads scroll freely, and
+  the page only settles onto a part when you stop close to it. The footer shares the last screen with the Buy part.
 
 Restrained (owner picked motions 1 and 3 from the motion pitches):
 - Parts ease up into view once as they reach the screen (0.8s, `cubic-bezier(.2,.7,.2,1)`).
