@@ -35,7 +35,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 /* ---------- HEADER PART */
 /* the two halves held in a 1300 px column so neither sits against the edge of a wide screen (the glow still fills it) */
-.hero { position: relative; overflow: hidden; display: grid; grid-template-columns: 5fr 7fr; gap: 72px; align-items: center; padding: 128px max(48px, calc((100% - 1300px) / 2)) 120px; min-height: 820px; }
+.hero { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 120px 48px 120px; }
 /* two beams of a rotating warning light, caught mid-turn, and its lamp at the top right */
 .hero::before { content: ''; position: absolute; right: -10%; top: -40%; width: 110%; height: 180%; pointer-events: none;
   background: conic-gradient(from 200deg at 82% 18%, transparent 0deg, rgba(255,42,20,0) 8deg, rgba(255,60,20,.30) 18deg, rgba(255,106,26,.16) 26deg, transparent 40deg, transparent 150deg, rgba(255,42,20,.16) 165deg, transparent 185deg);
@@ -43,17 +43,20 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .hero::after { content: ''; position: absolute; right: 14%; top: 10%; width: 220px; height: 220px; border-radius: 50%; pointer-events: none;
   background: radial-gradient(circle, rgba(255,140,60,.55), rgba(255,42,20,.25) 40%, transparent 70%); filter: blur(6px); }
 .copy, .synth { position: relative; z-index: 2; }
-h1.lockup { display: flex; align-items: flex-start; gap: 26px; font-weight: 300; }
+h1.lockup { display: flex; justify-content: center; align-items: flex-start; gap: 26px; font-weight: 300; }
 .lockup .mark { height: 96px; width: auto; flex: none; }
 .lockup .word { text-align: left; } /* the two words as one block, even where the header is centred */
 .lockup .word b { display: block; font-weight: 300; font-size: 64px; line-height: .86; letter-spacing: .4em; margin-right: -.4em; color: var(--head); white-space: nowrap; }
 .lockup .word i { display: block; font-style: normal; font-weight: 400; font-size: 13px; letter-spacing: .86em; color: #a49d97; margin-top: 18px; text-transform: uppercase; white-space: nowrap; }
-.lede { font-weight: 300; font-size: 19px; line-height: 1.6; color: var(--soft); margin-top: 40px; max-width: 430px; }
-.row { display: flex; gap: 12px; margin-top: 38px; }
+.lede { font-weight: 300; font-size: 19px; line-height: 1.6; color: var(--soft); margin: 40px auto 0; max-width: 430px; }
+.row { display: flex; justify-content: center; gap: 12px; margin-top: 38px; }
 .meta { margin-top: 40px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #6c6762; }
-.synth { perspective: 1600px; }
-/* the synth turned away to the left and tipped back a little, as it was before the redesign */
-.synth img { transform: rotateY(-14deg) rotateX(3deg); transform-origin: 60% 50%; filter: drop-shadow(0 50px 60px rgba(0,0,0,.95)) drop-shadow(0 0 40px rgba(255,40,20,.18)); }
+.synth { position: relative; perspective: 1600px; width: min(860px, 100%); margin: 0 auto 64px; touch-action: pan-y; }
+/* the synth facing you, tipped back a little (owner's call); the 3D version (hero3d.js) draws over it and turns */
+.synth img { width: 100%; transform: rotateX(3deg); transform-origin: 50% 50%; filter: drop-shadow(0 50px 60px rgba(0,0,0,.95)) drop-shadow(0 0 40px rgba(255,40,20,.18)); }
+.synth .synth3d { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); cursor: grab; filter: drop-shadow(0 50px 60px rgba(0,0,0,.95)) drop-shadow(0 0 40px rgba(255,40,20,.18)); }
+.synth .synth3d.grab { cursor: grabbing; }
+.synth.live img { visibility: hidden; }
 
 /* ---------- the parts below: centred, no lines, lots of black */
 .part { position: relative; overflow: hidden; padding: 170px 48px 0; text-align: center; scroll-margin-top: 56px; }
@@ -116,8 +119,7 @@ canvas.embers { position: absolute; inset: 0; width: 100%; height: 100%; image-r
 
 /* ---------- tablet */
 @media (max-width: 1100px) {
-  .hero { grid-template-columns: 1fr; padding-top: 110px; min-height: 0; }
-  .synth { max-width: 760px; }
+  .hero { padding-top: 110px; }
   .lockup .word b { font-size: 52px; }
   .specs { grid-template-columns: repeat(2, 1fr); }
 }
@@ -125,7 +127,7 @@ canvas.embers { position: absolute; inset: 0; width: 100%; height: 100%; image-r
 @media (max-width: 600px) {
   .nav { padding: 0 20px; grid-template-columns: 1fr auto; }
   .links { display: none; }
-  .hero { display: block; padding: 92px 20px 90px; text-align: center; }
+  .hero { padding: 92px 20px 90px; }
   h1.lockup { justify-content: center; gap: 16px; }
   .lockup .mark { height: 70px; }
   .lockup .word b { font-size: 40px; }
@@ -133,8 +135,7 @@ canvas.embers { position: absolute; inset: 0; width: 100%; height: 100%; image-r
   .lede { font-size: 16px; margin: 30px auto 0; }
   .row { flex-direction: column; align-items: stretch; max-width: 300px; margin-left: auto; margin-right: auto; }
   .meta { margin-top: 28px; }
-  .synth { margin: 48px -20px 0; }
-  .synth img { transform: none; }
+  .synth { width: calc(100% + 40px); max-width: none; margin: 0 -20px 40px; }
   .part { padding: 120px 20px 0; }
   h2 { font-size: 34px; }
   .vid-play img { height: 72px; }

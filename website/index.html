@@ -19,16 +19,17 @@
 </header>
 
 <main>
-  <!-- HEADER PART: the lockup left, the synth right, two beams of a rotating warning light caught mid-turn -->
+  <!-- HEADER PART: the synth in the middle as a 3D object you can turn (hero3d.js), the logo, text and buttons centred
+       under it, two beams of a rotating warning light caught mid-turn -->
   <section class="hero" aria-label="RUIN-1">
+    <!-- the synth as it is now, taken from it by tools/site-shots.mjs; the 3D draws from this picture and it stays as the fallback -->
+    <figure class="synth"><img src="assets/shots/osc.jpg" alt="The RUIN-1 synthesizer: oscillators, envelopes, filter and keyboard" width="2716" height="1500"></figure>
     <div class="copy">
       <h1 class="lockup"><img class="mark" src="../design/logo-tight.svg" alt="" width="109" height="100"><span class="word"><b>RUIN-1</b><i>Synthesizer</i></span></h1>
       <p class="lede">A dark, cinematic synthesizer for producers. Saturated, tape-worn and alive.</p>
       <div class="row"><a class="btn b1" href="#buy">Buy now</a><a class="btn b2" href="#sound">▷ &nbsp;Hear it</a></div>
       <p class="meta">VST3 &nbsp; Standalone &nbsp; Fully offline</p>
     </div>
-    <!-- the synth as it is now, taken from it by tools/site-shots.mjs -->
-    <figure class="synth"><img src="assets/shots/osc.jpg" alt="The RUIN-1 synthesizer: oscillators, envelopes, filter and keyboard" width="2812" height="1500"></figure>
   </section>
 
   <!-- AUDIO DEMO PART: the video sits in the dark with no frame; the logo is the play button until the video plays -->
@@ -90,5 +91,6 @@
 <footer class="foot"><span>© 2026 RUIN-1</span><nav><a href="#sound">Sound</a><a href="#features">Features</a><a href="#setup">Specs</a></nav></footer>
 
 <script src="main.js"></script>
+<script type="module" src="hero3d.js"></script>
 </body>
 </html>

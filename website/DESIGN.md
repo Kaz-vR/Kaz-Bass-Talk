@@ -128,15 +128,19 @@ letter spacing is set from the font in `main.js`, first and last letters lined u
 
 Use these names when talking about the site.
 
-1. **Header** (`.hero`): the menu on top (logo left, Sound / Features / Specs in the middle, small red
-   Buy right); it stays fixed and shrinks into a black bar when the page scrolls. Below it:
-   - left: the triangle logo plus "RUIN-1 / SYNTHESIZER" (no headline; the owner removed "Sound, out of
-     the dark."), the lede, the two buttons (Buy now, Hear it), a tiny "VST3 Standalone Fully offline" line;
-   - right: the synth screenshot, **angled in 3D** (`rotateY(-14deg) rotateX(3deg)`, perspective 1600px);
-   - the two halves are held in a 1300px column, toward the middle but not centred (the owner disliked
-     both "hugging the screen edges" and "too much in the middle");
-   - the logo is aligned so its top meets the top of the letters of RUIN-1 and its bottom the bottom of
-     the letters of SYNTHESIZER (measured from the font in `main.js`, holds at every size).
+1. **Header** (`.hero`): the menu on top (icon left, Sound / Features / Specs in the middle, small red Buy right); it
+   stays fixed and shrinks into a black bar when the page scrolls. Below it, **one centred column** (owner's call,
+   "for now"):
+   - **the synth in 3D, in the middle** (`hero3d.js`, three.js self-hosted in `vendor/`, MIT): a box with the synth's
+     picture on its face, deep wooden cheeks, the body running from wood to wood (no holes). **No lighting at all**:
+     every surface shows the picture's own colours exactly (colours pass straight through; measured against the flat
+     picture within half a level). At rest it faces you straight on, tipped back 3 degrees, turning round its exact
+     middle; it follows the mouse a little (about 14 degrees), drag it to turn it all the way, let go and it springs
+     back. The picture `<img>` underneath is the fallback (no WebGL, reduced motion);
+   - under it, centred: the logo, the lede, the two buttons (Buy now, Hear it), the tiny "VST3 Standalone Fully
+     offline" line;
+   - the logo is aligned so the icon's top meets the top of the letters of RUIN-1 and its bottom the bottom of the
+     letters of SYNTHESIZER (measured from the font in `main.js`, holds at every size).
 2. **Audio Demo** (`#sound`): label "Sound", heading "Listen first.", the video with no frame. Until the
    video plays, the glowing logo is the play button with a small "▷ Play" under it (no box around the
    logo). The video file goes in `website/assets/demo.mp4`.
@@ -179,7 +183,7 @@ Restrained (owner picked motions 1 and 3 from the motion pitches):
 
 ## 9. The owner's taste (likes and dislikes)
 
-Likes: pure black; the siren red-orange; the pixel embers; complex layered glows; square buttons; no lines; the video
+Likes: the synth in 3D in the header, unlit (true colours), tipped back slightly; pure black; the siren red-orange; the pixel embers; complex layered glows; square buttons; no lines; the video
 melting into the dark; the carousel; the synth angled; neon that looks truly neon (gamut edge plus glow);
 dark, dangerous, cinematic; restraint.
 
