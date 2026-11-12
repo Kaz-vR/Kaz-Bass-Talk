@@ -949,6 +949,8 @@ export class SynthView {
     new ResizeObserver(fit).observe(root);
     new ResizeObserver(fit).observe(this.page);
     window.addEventListener('resize', fit);
+    // repaint every control (a dev colour tuner changes the boxes' colours; the dials only redraw on a value change)
+    window.addEventListener('ruin:repaint', () => { for (const v of this.allViews) v(); });
     requestAnimationFrame(fit);
   }
 
