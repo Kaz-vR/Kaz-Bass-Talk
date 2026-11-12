@@ -9,3 +9,4 @@ render data for human review.
 | `npm run validate:data` | Validates every library patch and loop against the schema. |
 | `npm run level:patches` | Renders each library patch on the default loop and sets `output.gain` so they all sit at the same loudness. |
 | `npm run render:previews` | Renders every library patch to WAV in `renders/` (gitignored) for listening, and prints a level/brightness table. |
+| `python3 tools/trailer-analyze.py <name> <video> <out> [shots.json]` | Measures a reference trailer (cuts, camera, focus, grade, text cards, music) for `references/trailers/RULES.md`. Needs `pip install opencv-python-headless librosa numpy`. |
