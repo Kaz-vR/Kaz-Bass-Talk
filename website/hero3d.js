@@ -42,7 +42,7 @@ const start = async () => {
   };
   // the canvas is larger than the picture so the turning synth never gets cut off; the synth is drawn at the picture's size
   const size = () => {
-    const w = img.getBoundingClientRect().width, cw = Math.round(w * 1.5), ch = Math.round(w * PIC.H / PIC.W * 1.5);
+    const w = fig.getBoundingClientRect().width, cw = Math.round(w * 1.5), ch = Math.round(w * PIC.H / PIC.W * 1.5);
     r.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); r.setSize(cw, ch, false);
     cv.style.width = `${cw}px`; cv.style.height = `${ch}px`;
     cam.aspect = cw / ch; cam.fov = THREE.MathUtils.radToDeg(2 * Math.atan(ch / 2 / PERSP)); cam.position.set(0, 0, PERSP); cam.updateProjectionMatrix();
@@ -70,7 +70,8 @@ const start = async () => {
     aim.yaw = 0; aim.tilt = TILT; go(); };
   cv.addEventListener('pointerup', release); cv.addEventListener('pointercancel', release);
   fig.addEventListener('mouseleave', () => { if (!dragging) { aim.yaw = 0; aim.tilt = TILT; go(); } });
-  fig.append(cv); new ResizeObserver(size).observe(img); size();
+  // sized from the figure (always there), not the picture (another script may hide it)
+  fig.append(cv); new ResizeObserver(size).observe(fig); size();
   fig.classList.add('live');                                                // the picture steps back once the 3D is drawn
 };
 if (img?.complete && img.naturalWidth) start(); else img?.addEventListener('load', start, { once: true });

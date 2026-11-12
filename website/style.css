@@ -57,6 +57,7 @@ h1.lockup { display: flex; justify-content: center; align-items: flex-start; gap
 .synth .synth3d { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); cursor: grab; filter: drop-shadow(0 50px 60px rgba(0,0,0,.95)) drop-shadow(0 0 40px rgba(255,40,20,.18)); }
 .synth .synth3d.grab { cursor: grabbing; }
 .synth.live img { visibility: hidden; }
+.synth.live { aspect-ratio: 2716 / 1500; } /* keeps its height even when the picture is taken out */
 
 /* ---------- the parts below: centred, no lines, lots of black */
 .part { position: relative; overflow: hidden; padding: 170px 48px 0; text-align: center; scroll-margin-top: 56px; }
