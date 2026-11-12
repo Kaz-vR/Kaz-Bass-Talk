@@ -161,8 +161,8 @@ Use these names when talking about the site.
 
 ## 7. Phones (600px and under)
 
-One centred column. The header stacks (lockup, lede, buttons full width up to 300px, the synth full width
-and flat, not angled). The menu keeps only the logo and the small Buy. The carousel's slides are 86vw; the
+One centred column. The header stacks (the 3D synth edge to edge, then the logo, lede, buttons full width up
+to 300px); on touch, a sideways drag turns the synth and vertical scrolling stays the page's. The menu keeps only the logo and the small Buy. The carousel's slides are 86vw; the
 caption puts the arrows beside the title and the description below. Specs in two columns. The footer is
 centred. No sideways scrolling at 375-390px; check it every time.
 
