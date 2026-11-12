@@ -312,7 +312,7 @@ function waveShape(wave: string, x: number, pw: number, wt: number): number {
  * 'glass' (a dark glass dome), 'scale' (a printed tick scale around a machined cap). Same geometry: the
  * value shows outside the cap.
  */
-function drawKnobVariant(g: CanvasRenderingContext2D, style: string, k: { cx: number; cy: number; r: number; n: number; av: number; zero: number; a0: number; a1: number; accent: string; off: boolean; noValue?: boolean }): void {
+function drawKnobVariant(g: CanvasRenderingContext2D, style: string, k: { cx: number; cy: number; r: number; n: number; av: number; zero: number; a0: number; a1: number; accent: string; off: boolean; noValue?: boolean; body?: string }): void {
   const { cx, cy, r, av, zero, a0, a1, accent, off } = k;
   const col = off ? '#55555b' : accent;
   const kr = r - 5;
@@ -432,10 +432,13 @@ function drawKnobVariant(g: CanvasRenderingContext2D, style: string, k: { cx: nu
       // owner's reference: a grey cap lighter than the box so it stands out, a dark gap round it,
       // lit softly from above
       circle(kr + 0.8, '#040405');
+      // the cap's colour is the page's --knob-body (default #222225), lit 9 levels lighter on top and 9 darker at the edge
+      const bc = /^#[0-9a-f]{6}$/i.test(k.body ?? '') ? k.body! : '#222225';
+      const shade = (d: number) => '#' + [1, 3, 5].map((i) => Math.max(0, Math.min(255, parseInt(bc.slice(i, i + 2), 16) + d)).toString(16).padStart(2, '0')).join('');
       const body = g.createRadialGradient(cx, cy - kr * 0.25, kr * 0.1, cx, cy, kr);
-      body.addColorStop(0, '#2b2b2f');
-      body.addColorStop(0.7, '#222225');
-      body.addColorStop(1, '#19191c');
+      body.addColorStop(0, shade(9));
+      body.addColorStop(0.7, bc);
+      body.addColorStop(1, shade(-9));
       circle(kr, body);
       g.save();
       const edge = g.createLinearGradient(cx, cy - kr, cx, cy + kr);
@@ -1263,7 +1266,7 @@ export class SynthView {
       const style = cs.getPropertyValue('--knob-style').trim();
       // A modulation that is on takes the place of the value arc with its own lighter ring.
       const modOn = !!mod && (mod.on?.() ?? true) && Math.abs(this.num(mod.id)) > 1e-4;
-      if (style && style !== 'ring') drawKnobVariant(g, style, { cx, cy, r, n, av, zero, a0, a1, accent, off, noValue: modOn });
+      if (style && style !== 'ring') drawKnobVariant(g, style, { cx, cy, r, n, av, zero, a0, a1, accent, off, noValue: modOn, body: cs.getPropertyValue('--knob-body').trim() });
       else {
       // shadow under the knob
       g.save();
