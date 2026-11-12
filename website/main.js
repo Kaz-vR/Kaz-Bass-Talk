@@ -7,8 +7,9 @@ if (nav) {
   const links = [...nav.querySelectorAll('.links a')];
   const onScroll = () => {
     nav.classList.toggle('small', scrollY > 40);
-    let cur = '';
-    for (const id of ['sound', 'features', 'setup']) { const el = document.getElementById(id); if (el && el.getBoundingClientRect().top < innerHeight * 0.4) cur = id; }
+    let cur = 'home';                                                   // Home lights while you are in the header
+    for (const id of ['sound', 'features', 'setup', 'buy']) { const el = document.getElementById(id); if (el && el.getBoundingClientRect().top < innerHeight * 0.4) cur = id; }
+    if (innerHeight + scrollY >= document.documentElement.scrollHeight - 4) cur = 'buy'; // the very bottom is the Buy part
     links.forEach((a) => a.classList.toggle('on', a.getAttribute('href') === `#${cur}`));
   };
   addEventListener('scroll', onScroll, { passive: true });
@@ -189,3 +190,10 @@ const embers = (host, { flames, count }) => {
 const buy = document.querySelector('.end'), hero = document.querySelector('.hero');
 if (buy) embers(buy, { flames: true, count: 34 });
 if (hero) embers(hero, { flames: false, count: 26 });
+
+// Buy (the menu link and the buttons) takes you all the way to the bottom, the Buy part with its fire (owner's call).
+document.querySelectorAll('a[href="#buy"]').forEach((a) => a.addEventListener('click', (e) => {
+  e.preventDefault();
+  scrollTo({ top: document.documentElement.scrollHeight, behavior: still ? 'auto' : 'smooth' });
+  history.replaceState(null, '', '#buy');
+}));

@@ -128,7 +128,7 @@ letter spacing is set from the font in `main.js`, first and last letters lined u
 
 Use these names when talking about the site.
 
-1. **Header** (`.hero`): the menu on top (icon left, Sound / Features / Specs in the middle, small red Buy right); it
+1. **Header** (`.hero`): the menu on top (icon left, Home / Sound / Features / Specs / Buy in the middle: Home takes you to the Header, Buy to the Buy part; small red Buy right); it
    stays fixed and shrinks into a black bar when the page scrolls. Below it, **one centred column** (owner's call,
    "for now"):
    - **the synth in 3D, in the middle** (`hero3d.js`, three.js self-hosted in `vendor/`, MIT): a box with the synth's
