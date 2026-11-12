@@ -69,7 +69,7 @@ Visual sheet of the whole palette: ask Claude to render it (the owner keeps a PN
   other active states.
 - **The synth's modules** (`src/ui/style.css`, "each box its own colour"): OSC A `#ea1f1f`, OSC B `#e83911`,
   amp envelope `#129b82`, filter and filter envelope `#5f64c8`, sub `#6c3a9c`, noise `#c09b6d`; the routing LEDs
-  A / B / S / N follow their module. The wooden cheeks a very dark brown `#1c120d` (the owner's own tuning, saved from the colour tuner).
+  A / B / S / N follow their module. These colours lead every page of the synth (see `docs/ui.md`, tied colours). The wooden cheeks a very dark brown `#1c120d` (the owner's own tuning, saved from the colour tuner).
 
 ---
 

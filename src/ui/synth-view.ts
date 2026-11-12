@@ -3742,12 +3742,17 @@ export class SynthView {
     // placed in the boxes by grind.slot1..8; part n of each kind belongs to stage n (grind<n>.*)
     const KINDS = ['filter', 'drive', 'eq'] as const;
     const PARTS = KINDS.flatMap((kind) => [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ n, kind, drive: kind === 'drive' })));
-    // three colour families (owner's pick, "fire + ice", and bone for the EQs): the filters ice, light to deep; the
-    // drives fire, amber to crimson; the EQs bone, pale to grey (tone shaping, not an effect)
-    const FILTER_COLS = ['#8ae9ff', '#5fd2ff', '#3fb8ff', '#3f98ff', '#5a78ff', '#6466ff', '#6f55ff', '#8a5cff'];
-    const DRIVE_COLS = ['#ffb020', '#ff8a1f', '#ff5a1f', '#f03a2a', '#e0204a', '#c81a42', '#a8143a', '#8e1236'];
+    // colours (owner's call, tied to the OSC page, which leads): every drive the OSC A red, every filter the filter's
+    // blue, one each, no tints (the page's --c-red / --c-blue, so a change on the OSC page moves them too); the EQs
+    // keep their bone, pale to grey (tone shaping, not an effect).
     const EQ_COLS = ['#f4ecdc', '#e6dcc8', '#d8ceba', '#c9c0ae', '#bab3a4', '#aaa59a', '#9a9790', '#8b8a86'];
-    const COLS = PARTS.map((p) => (p.kind === 'drive' ? DRIVE_COLS : p.kind === 'eq' ? EQ_COLS : FILTER_COLS)[p.n - 1]);
+    const tied = (k: number) => PARTS[k].kind === 'drive' ? '--c-red' : PARTS[k].kind === 'eq' ? '' : '--c-blue';
+    // COLVAR: for CSS (follows the variable live); COLS[k]: the colour itself, for drawing on canvas
+    const COLVAR = (k: number) => (tied(k) ? `var(${tied(k)})` : EQ_COLS[PARTS[k].n - 1]);
+    const COLS = new Proxy([] as string[], { get: (_t, key) => {
+      const k = Number(key); if (typeof key !== 'string' || !Number.isInteger(k) || !PARTS[k]) return undefined;
+      const v = tied(k) ? getComputedStyle(this.page).getPropertyValue(tied(k)).trim() : '';
+      return v || (PARTS[k].kind === 'drive' ? '#ea1f1f' : PARTS[k].kind === 'eq' ? EQ_COLS[PARTS[k].n - 1] : '#5f64c8'); } });
     const NAMES = PARTS.map((p) => `${p.kind.toUpperCase()} ${p.n}`);
     const ALL_K = PARTS.map((_, k) => k);
     const stageOf = (k: number) => PARTS[k].n;
@@ -3893,7 +3898,7 @@ export class SynthView {
     };
     for (let k = 0; k < PARTS.length; k++) {
       const node = h('div', 'gr-node');
-      node.style.setProperty('--knob-accent', COLS[k]);
+      node.style.setProperty('--knob-accent', COLVAR(k));
       const n = stageOf(k);
       const x = h('button', 'gr-x', '✕');
       x.title = `Take ${NAMES[k]} out of the chain`;
@@ -4175,7 +4180,7 @@ export class SynthView {
       sets[ek] = h('div', `gr-set gr-s${n}`, ehead, edials);
     }
     sets.forEach((el, k) => {
-      el.style.setProperty('--knob-accent', COLS[k]);
+      el.style.setProperty('--knob-accent', COLVAR(k));
       ctl.append(el);
     });
     const edit = h('div', 'gr-edit', graphBox, strip);
@@ -4523,7 +4528,7 @@ export class SynthView {
       nodes.forEach((el, j) => el.classList.toggle('gr-cur', j === k));
       sets.forEach((el, j) => { el.style.display = j === k && inChain ? '' : 'none'; });
       emptyHint.style.display = inChain ? 'none' : '';
-      page.style.setProperty('--knob-accent', COLS[k]);
+      page.style.setProperty('--knob-accent', COLVAR(k));
       drawGraph();
     };
     this.ruinFrame = () => {

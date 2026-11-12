@@ -671,13 +671,17 @@ html, body, .v2-wrap { background: #070708; }
 }
 .v2 .lamp-safe { --knob-accent: #ff2a14; }
 
-/* each box its own colour */
-.v2 .box-osca { --knob-accent: #ea1f1f; }
-.v2 .box-oscb { --knob-accent: #e83911; }
-.v2 .box-amp { --knob-accent: #129b82; }
-.v2 .box-flt, .v2 .box-fenv { --knob-accent: #5f64c8; }
-.v2 .box-sub { --knob-accent: #6c3a9c; }
-.v2 .box-noise { --knob-accent: #c09b6d; }
+/* each box its own colour. THE OSC PAGE'S COLOURS LEAD (owner's call): every other page takes them by name, so one
+   change here moves all of them. Tied: LFO 1-6 = red, orange, green, blue, purple, sand; RUIN: every drive red, every
+   filter blue (the EQ keeps its own); FX: drive red, crush orange, tape sand, chorus green, flanger purple, reverb blue
+   (phaser and EQ their own). Never give those boxes their own hex again: use these names. */
+.v2 { --c-red: #ea1f1f; --c-orange: #e83911; --c-green: #129b82; --c-blue: #5f64c8; --c-purple: #6c3a9c; --c-sand: #c09b6d; --c-phaser: #5f9bff; --knob-body: #232324; }
+.v2 .box-osca { --knob-accent: var(--c-red); }
+.v2 .box-oscb { --knob-accent: var(--c-orange); }
+.v2 .box-amp { --knob-accent: var(--c-green); }
+.v2 .box-flt, .v2 .box-fenv { --knob-accent: var(--c-blue); }
+.v2 .box-sub { --knob-accent: var(--c-purple); }
+.v2 .box-noise { --knob-accent: var(--c-sand); }
 .v2 .box-scope { --knob-accent: #d8f0e6; }
 
 /* header: the scene behind the logo, the preset selector and the tabs */
@@ -928,13 +932,13 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .ob-chips .chip-val { position: relative; top: 0.5px; }
 
 /* ---- FX page: the OSC page's boxes, coloured by family (dirt warm, modulation cool, space deep, EQ neutral). */
-.v2 .box-dist { --knob-accent: #ff2a14; }
-.v2 .box-crush { --knob-accent: #ff6a1a; }
-.v2 .box-tape { --knob-accent: #e8b46a; }
-.v2 .box-chorus { --knob-accent: #3fe3b6; }
-.v2 .box-mfx { --knob-accent: #9a7cff; }
-.v2 .box-phaser { --knob-accent: #5f9bff; }
-.v2 .box-reverb { --knob-accent: #a9dcff; }
+.v2 .box-dist { --knob-accent: var(--c-red); }
+.v2 .box-crush { --knob-accent: var(--c-orange); }
+.v2 .box-tape { --knob-accent: var(--c-sand); }
+.v2 .box-chorus { --knob-accent: var(--c-green); }
+.v2 .box-mfx { --knob-accent: var(--c-purple); } /* the flanger */
+.v2 .box-phaser { --knob-accent: var(--c-phaser); }
+.v2 .box-reverb { --knob-accent: var(--c-blue); }
 .v2 .box-eq { --knob-accent: #d4d4da; }
 .v2 .fx-kinds { display: inline-flex; align-items: center; gap: 6px; }
 .v2 .fx-kind { background: none; border: 0; padding: 0; cursor: pointer; color: #5c5c62; font: inherit; font-size: 11px; letter-spacing: 0.25em; }
@@ -959,12 +963,12 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .sb .ob-corner { top: 0; right: 2px; height: 14px; }
 .v2 .sw-small .fx-kind { font-size: 10px; letter-spacing: 0.14em; }
 .v2 .mod-page2 .ob-head .sel-name { font-size: 10.5px; }
-.v2 .box-lfo1 { --knob-accent: #ff2a14; }
-.v2 .box-lfo2 { --knob-accent: #ff6a1a; }
-.v2 .box-lfo3 { --knob-accent: #3fe3b6; }
-.v2 .box-lfo4 { --knob-accent: #9a7cff; }
-.v2 .box-lfo5 { --knob-accent: #5f9bff; }
-.v2 .box-lfo6 { --knob-accent: #e2c9a6; }
+.v2 .box-lfo1 { --knob-accent: var(--c-red); }
+.v2 .box-lfo2 { --knob-accent: var(--c-orange); }
+.v2 .box-lfo3 { --knob-accent: var(--c-green); }
+.v2 .box-lfo4 { --knob-accent: var(--c-blue); }
+.v2 .box-lfo5 { --knob-accent: var(--c-purple); }
+.v2 .box-lfo6 { --knob-accent: var(--c-sand); }
 .v2 .box-vib { --knob-accent: #ff6fae; }
 .v2 .box-wob { --knob-accent: #a9dcff; }
 .v2 .box-matrix { --knob-accent: #d4d4da; grid-column: 3; grid-row: 1 / 5; display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; }
@@ -982,18 +986,18 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .box-matrix .amt-wrap { gap: 6px; }
 .v2 .box-matrix .amt-val { width: 38px; font-size: 10.5px; color: #cfcfd4; }
 .v2 .box-matrix .mx-row.empty { opacity: 0.4; }
-.v2 .mx-row[data-src="lfo1"] .mx-src .sel-name { color: #ff2a14; }
-.v2 .mx-row[data-src="lfo2"] .mx-src .sel-name { color: #ff6a1a; }
-.v2 .mx-row[data-src="lfo3"] .mx-src .sel-name { color: #3fe3b6; }
-.v2 .mx-row[data-src="lfo4"] .mx-src .sel-name { color: #9a7cff; }
-.v2 .mx-row[data-src="lfo5"] .mx-src .sel-name { color: #5f9bff; }
-.v2 .mx-row[data-src="lfo6"] .mx-src .sel-name { color: #e2c9a6; }
-.v2 .mx-row[data-src="lfo1"] .amt { --knob-accent: #ff2a14; }
-.v2 .mx-row[data-src="lfo2"] .amt { --knob-accent: #ff6a1a; }
-.v2 .mx-row[data-src="lfo3"] .amt { --knob-accent: #3fe3b6; }
-.v2 .mx-row[data-src="lfo4"] .amt { --knob-accent: #9a7cff; }
-.v2 .mx-row[data-src="lfo5"] .amt { --knob-accent: #5f9bff; }
-.v2 .mx-row[data-src="lfo6"] .amt { --knob-accent: #e2c9a6; }
+.v2 .mx-row[data-src="lfo1"] .mx-src .sel-name { color: var(--c-red); }
+.v2 .mx-row[data-src="lfo2"] .mx-src .sel-name { color: var(--c-orange); }
+.v2 .mx-row[data-src="lfo3"] .mx-src .sel-name { color: var(--c-green); }
+.v2 .mx-row[data-src="lfo4"] .mx-src .sel-name { color: var(--c-blue); }
+.v2 .mx-row[data-src="lfo5"] .mx-src .sel-name { color: var(--c-purple); }
+.v2 .mx-row[data-src="lfo6"] .mx-src .sel-name { color: var(--c-sand); }
+.v2 .mx-row[data-src="lfo1"] .amt { --knob-accent: var(--c-red); }
+.v2 .mx-row[data-src="lfo2"] .amt { --knob-accent: var(--c-orange); }
+.v2 .mx-row[data-src="lfo3"] .amt { --knob-accent: var(--c-green); }
+.v2 .mx-row[data-src="lfo4"] .amt { --knob-accent: var(--c-blue); }
+.v2 .mx-row[data-src="lfo5"] .amt { --knob-accent: var(--c-purple); }
+.v2 .mx-row[data-src="lfo6"] .amt { --knob-accent: var(--c-sand); }
 
 /* Touch (replaces VEL): a slider you drag sideways; the tick is the last note's velocity. */
 .v2 .kb-touch { position: relative; display: block; width: 44px; height: 6px; background: rgba(0,0,0,0.6); cursor: ew-resize; touch-action: none; margin-top: 3px; }
@@ -1177,19 +1181,19 @@ html, body, .v2-wrap { background: #070708; }
    source's colour; an on/off lamp in front of every matrix row; All controls and Master on the right. */
 .v2 .ob-head > .direct-out { margin-left: auto; font-size: 9px; letter-spacing: 0.18em; white-space: nowrap; }
 .v2 .ob-dials .ob-routes { margin-left: 0 !important; margin-right: 6px; }
-.v2 .route-a { --knob-accent: #ea1f1f; }
-.v2 .route-b { --knob-accent: #e83911; }
-.v2 .route-s { --knob-accent: #6c3a9c; }
-.v2 .route-n { --knob-accent: #c09b6d; }
+.v2 .route-a { --knob-accent: var(--c-red); }
+.v2 .route-b { --knob-accent: var(--c-orange); }
+.v2 .route-s { --knob-accent: var(--c-purple); }
+.v2 .route-n { --knob-accent: var(--c-sand); }
 .v2 .mx-on { flex: none; background: transparent; border: 0; padding: 0; margin-right: 2px; cursor: pointer; display: flex; }
 .v2 .mx-row.off > :not(.mx-on) { opacity: 0.32; }
 .v2 .v2-bottom .gear { margin-left: auto; }
-.v2 .mx-row[data-src="lfo1"] .mx-on { --knob-accent: #ff2a14; }
-.v2 .mx-row[data-src="lfo2"] .mx-on { --knob-accent: #ff6a1a; }
-.v2 .mx-row[data-src="lfo3"] .mx-on { --knob-accent: #3fe3b6; }
-.v2 .mx-row[data-src="lfo4"] .mx-on { --knob-accent: #9a7cff; }
-.v2 .mx-row[data-src="lfo5"] .mx-on { --knob-accent: #5f9bff; }
-.v2 .mx-row[data-src="lfo6"] .mx-on { --knob-accent: #e2c9a6; }
+.v2 .mx-row[data-src="lfo1"] .mx-on { --knob-accent: var(--c-red); }
+.v2 .mx-row[data-src="lfo2"] .mx-on { --knob-accent: var(--c-orange); }
+.v2 .mx-row[data-src="lfo3"] .mx-on { --knob-accent: var(--c-green); }
+.v2 .mx-row[data-src="lfo4"] .mx-on { --knob-accent: var(--c-blue); }
+.v2 .mx-row[data-src="lfo5"] .mx-on { --knob-accent: var(--c-purple); }
+.v2 .mx-row[data-src="lfo6"] .mx-on { --knob-accent: var(--c-sand); }
 /* The four IN lamps (no label) centred on the dials beside them. */
 .v2 .ob-dials .ob-routes { align-self: flex-start !important; padding-bottom: 0 !important; margin-top: 5.5px; }
 
@@ -1735,7 +1739,7 @@ html, body, .v2-wrap { background: #070708; }
 html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000 !important; background-image: none !important; }
 .v2.v2 .c, .v2.v2 .c.ob, .v2.v2 .pp-col, .v2.v2 .v2-bottom, .v2.v2 .kb-strip, .v2.v2 .kb-side,
 .v2.v2 .grind-page .c.ob, .v2.v2 .grind-page .gr-node, .v2.v2 .grind-page .gr-focus, .v2.v2 .grind-page .gr-master {
-  background: #0c0b0b !important; background-image: none !important; border-color: rgba(255,255,255,.06) !important; box-shadow: none !important; }
+  background: #0a0a0b !important; background-image: none !important; border-color: rgba(255,255,255,.06) !important; box-shadow: none !important; }
 .v2.v2 .ob-print::after { content: none !important; }
 .v2.v2 .pre-menu, .v2.v2 .dd-menu { background: #0b0b0c !important; }
 .v2.v2 .scope-glass { box-shadow: none !important; border-radius: 4px !important; }

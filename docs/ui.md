@@ -4,6 +4,23 @@
 
 **Before redesigning any part of the synth's UI, read `references-ui/RULES.md`** (the rulebook drawn from our own library of 60 synth, plugin, hardware and pro-software UIs in `references-ui/`) and name the references each pitch uses.
 
+**Tied colours (owner's call): the OSC page's colours lead.** They are named once in `src/ui/style.css`
+(`--c-red`, `--c-orange`, `--c-green`, `--c-blue`, `--c-purple`, `--c-sand` on `.v2`) and every other page takes
+them by name, so changing one there moves all of them:
+
+| OSC page | LFO page | RUIN page | FX page |
+|---|---|---|---|
+| OSC A red `--c-red` | LFO 1 | every drive (one red, no tints) | Drive |
+| OSC B orange `--c-orange` | LFO 2 | | Crush |
+| Amp envelope green `--c-green` | LFO 3 | | Chorus |
+| Filter blue `--c-blue` | LFO 4 | every filter (one blue) | Reverb |
+| Sub purple `--c-purple` | LFO 5 | | Flanger |
+| Noise sand `--c-sand` | LFO 6 | | Tape |
+
+Not tied: the RUIN EQs (their own bone tints), the FX EQ, and the FX phaser (`--c-phaser`, its own, being chosen by
+the owner). The routing lights (A / B / S / N) and the mod matrix's LFO rows follow too. Never give a tied box its own
+hex again; use the names. The knobs' caps are `--knob-body`.
+
 **"The logo" (owner's word)** means the triangle icon plus the words RUIN-1 and SYNTHESIZER together, on the synth and on the website (the triangle alone is "the icon"); see `website/DESIGN.md` section 6.
 
 **Texture rule (owner's pick "Quiet"):** texture belongs on the frame (the wooden cheeks and the area round the instrument), never on the working surface. Boxes, displays, knobs, the play bar and the keyboard strip are clean on every tab: no film grain, no dust in the boxes, no corrosion or wear behind the logo (the last block of `src/ui/style.css`).
