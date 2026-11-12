@@ -68,7 +68,7 @@ Visual sheet of the whole palette: ask Claude to render it (the owner keeps a PN
 - **Buy buttons: `#f23005`** (`--buy`), with a glow `rgba(242,48,5,.45)` (hover `.75`). Alarm red stays for the
   other active states.
 - **The synth's modules** (`src/ui/style.css`, "each box its own colour"): OSC A `#f21616`, OSC B `#f23005`,
-  amp envelope `#800ff2`, filter and filter envelope `#363ed9`, sub `#f2163e`, noise `#f29e38`; the routing LEDs
+  amp envelope `#05a688`, filter and filter envelope `#444bdc`, sub `#800ff2`, noise `#f6bf7c`; the routing LEDs
   A / B / S / N follow their module. The wooden cheeks their original brown (measured `#451f16`, no filter).
 
 ---

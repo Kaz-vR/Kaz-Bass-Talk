@@ -674,10 +674,10 @@ html, body, .v2-wrap { background: #070708; }
 /* each box its own colour */
 .v2 .box-osca { --knob-accent: #f21616; }
 .v2 .box-oscb { --knob-accent: #f23005; }
-.v2 .box-amp { --knob-accent: #800ff2; }
-.v2 .box-flt, .v2 .box-fenv { --knob-accent: #363ed9; }
-.v2 .box-sub { --knob-accent: #f2163e; }
-.v2 .box-noise { --knob-accent: #f29e38; }
+.v2 .box-amp { --knob-accent: #05a688; }
+.v2 .box-flt, .v2 .box-fenv { --knob-accent: #444bdc; }
+.v2 .box-sub { --knob-accent: #800ff2; }
+.v2 .box-noise { --knob-accent: #f6bf7c; }
 .v2 .box-scope { --knob-accent: #d8f0e6; }
 
 /* header: the scene behind the logo, the preset selector and the tabs */
@@ -1179,8 +1179,8 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .ob-dials .ob-routes { margin-left: 0 !important; margin-right: 6px; }
 .v2 .route-a { --knob-accent: #f21616; }
 .v2 .route-b { --knob-accent: #f23005; }
-.v2 .route-s { --knob-accent: #f2163e; }
-.v2 .route-n { --knob-accent: #f29e38; }
+.v2 .route-s { --knob-accent: #800ff2; }
+.v2 .route-n { --knob-accent: #f6bf7c; }
 .v2 .mx-on { flex: none; background: transparent; border: 0; padding: 0; margin-right: 2px; cursor: pointer; display: flex; }
 .v2 .mx-row.off > :not(.mx-on) { opacity: 0.32; }
 .v2 .v2-bottom .gear { margin-left: auto; }
