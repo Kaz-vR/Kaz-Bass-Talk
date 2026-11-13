@@ -83,7 +83,7 @@ const setLook = (look, keep = 1) => { for (const [k, ms] of Object.entries(HAZE)
 // ---------- post ----------
 const rtOpts = { type: THREE.HalfFloatType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter };
 const rtScene = new THREE.WebGLRenderTarget(W, H, { ...rtOpts, depthTexture: new THREE.DepthTexture(W, H, THREE.FloatType) });
-const rtDof = new THREE.WebGLRenderTarget(W, H, rtOpts), rtDof2 = new THREE.WebGLRenderTarget(W, H, rtOpts);
+const rtDof = new THREE.WebGLRenderTarget(W, H, rtOpts), rtDof2 = new THREE.WebGLRenderTarget(W, H, rtOpts), rtSpark = new THREE.WebGLRenderTarget(W, H, rtOpts);
 const rtA = new THREE.WebGLRenderTarget(W / 4, H / 4, rtOpts), rtB = new THREE.WebGLRenderTarget(W / 4, H / 4, rtOpts);
 const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2)), oc = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), qs = new THREE.Scene(); qs.add(quad);
 const pass = (mat, target) => { quad.material = mat; r.setRenderTarget(target); r.render(qs, oc); };
@@ -129,7 +129,7 @@ const blur = sh(`varying vec2 vUv; uniform sampler2D t; uniform vec2 d; void mai
   for (int i = -8; i <= 8; i++) { float w = exp(-float(i*i) / 24.); s += texture2D(t, vUv + d * float(i)).rgb * w; ws += w; } gl_FragColor = vec4(s / ws, 1.); }`,
   { t: { value: null }, d: { value: new THREE.Vector2() } });
 const fin = sh(`
-  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke;
+  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp;
   float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time * 37.0) * 43758.5453); }
   float h2(vec2 p){ return fract(sin(dot(p, vec2(41.31, 289.13))) * 43758.5453); }
   float sn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
@@ -205,9 +205,19 @@ const fin = sh(`
       float lo = dot(o, vec3(.2126,.7152,.0722)); o = lo + (o - lo) * 0.8728;
       col = mix(col, o, og);
     }
+    if (fineSp > 0.) {
+      // fine sparks, laid in after the grade in exactly #f25d07: a solid core, and a faint glow of the same colour
+      float I = texture2D(tSpark, vUv).r, G = 0.;
+      for (int k = 0; k < 12; k++) { float an = float(k) * .5236; G += texture2D(tSpark, vUv + vec2(cos(an), sin(an)) * vec2(4.5 / 1920., 4.5 / 1080.)).r + texture2D(tSpark, vUv + vec2(cos(an + .26), sin(an + .26)) * vec2(9. / 1920., 9. / 1080.)).r * .6; }
+      float core = clamp(I * 3., 0., 1.);
+      col += vec3(.949, .365, .027) * clamp(G / 19., 0., 1.) * .55 * (1. - core);   // its glow, the same colour, around the core
+      col = mix(col, vec3(.949, .365, .027), core);                          // the core exactly #f25d07
+    }
+    if (tint > 0.) { float lt = dot(col, vec3(.2126,.7152,.0722)); vec3 T = vec3(.949, .365, .027) / dot(vec3(.949, .365, .027), vec3(.2126,.7152,.0722));
+      col = mix(col, lt * T, tint * smoothstep(.0, .25, lt)); }                  // a wash of #f25d07 over the image
     col += (hash(vUv * 1000.) - .5) * grain;
     gl_FragColor = vec4(col, 1.);
-  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
+  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
 
 // the glow: two rounds of a 17-tap blur in 1-texel steps at quarter size (coarser steps showed as stripes)
 const glowBlur = () => { for (let k = 0; k < 2; k++) {
@@ -265,7 +275,7 @@ const spMat = new THREE.ShaderMaterial({
       float c = clamp(aperture * abs(z - focus) / z, 0., maxR * 1.3); vR = max(1.7, c); vZ = z;
       if (fine > .5) vR = 5.5;                                        // fine: a 1.3 px core inside an 11 px glow                 // fine sparks (owner's paint-over): small sharp specks at any depth
       float fineK = fine > .5 ? 1.15 : 1.;
-      vCol = color * (fine > .5 ? 3.4 : vR < 2.5 ? 3.2 : max(.11, 2.4 / (vR * vR)));      // in focus: a hot pinpoint; out of focus: the same light spread thin
+      vCol = color * (fine > .5 ? .55 : vR < 2.5 ? 3.2 : max(.11, 2.4 / (vR * vR)));      // in focus: a hot pinpoint; out of focus: the same light spread thin
       gl_PointSize = vR * 2. + 2.; gl_Position = projectionMatrix * mv; }`,
   fragmentShader: `uniform sampler2D tDep; uniform vec2 res; uniform float near, far, fine; varying vec3 vCol; varying float vZ, vR;
     void main(){ float d = texture2D(tDep, gl_FragCoord.xy / res).x; float sz = -(near * far) / ((far - near) * d - far);
@@ -308,7 +318,7 @@ const sparksDraw = (focusDist, apert) => {
     const z = -v.set(s.x, s.y, s.z).applyMatrix4(vm).z, blurred = apert * K * Math.abs(z - focusDist) / z > 3;
     if (blurred && spMat.uniforms.fine.value < .5) s.prev = [s.x, s.y, s.z];   // (fine sparks always keep their streak)
     const fineS = spMat.uniforms.fine.value > .5;
-    const f = s.life / s.max, c = s.ash ? ASH : fineS ? (f > .35 ? SPC[0] : SPC[1]) : f > .7 ? SPC[0] : f > .45 ? SPC[1] : f > .18 ? SPC[2] : SPC[3];
+    const f = s.life / s.max, c = s.ash ? ASH : fineS ? [1, 1, 1] : f > .7 ? SPC[0] : f > .45 ? SPC[1] : f > .18 ? SPC[2] : SPC[3];
     // ash glints as it tumbles and fades in and out; sparks fade as they die
     const fade = (s.ash ? Math.min(1, f * 4, (1 - f) * 8) * (.45 + .55 * Math.abs(Math.sin(sparks.t * .09 + s.ph))) : Math.min(1, f * 6)) / SUB * 1.6 * s.b;
     const sh = spMat.uniforms.fine.value > .5 && !s.ash ? .55 : 1;                  // fine sparks: a long shutter, a streak
@@ -317,7 +327,8 @@ const sparksDraw = (focusDist, apert) => {
       C_[k] = c[0] * fade; C_[k + 1] = c[1] * fade; C_[k + 2] = c[2] * fade; k += 3; } }
   spGeo.setDrawRange(0, sparks.list.length * SUB); spGeo.attributes.position.needsUpdate = true; spGeo.attributes.color.needsUpdate = true;
   Object.assign(spMat.uniforms.near, { value: cam.near }); spMat.uniforms.far.value = cam.far; spMat.uniforms.focus.value = focusDist; spMat.uniforms.aperture.value = apert * K;
-  r.setRenderTarget(rtDof); r.autoClear = false; r.render(spScene, cam); r.autoClear = true;
+  if (spMat.uniforms.fine.value > .5 && !sparks.ash) { r.setRenderTarget(rtSpark); r.setClearColor(0x000000, 1); r.clear(); r.render(spScene, cam); }   // their own layer, coloured after the grade
+  else { r.setRenderTarget(rtDof); r.autoClear = false; r.render(spScene, cam); r.autoClear = true; }
 };
 
 const draw = (i, focusDist, apert = 30) => {
@@ -343,6 +354,7 @@ const knobLayer = (() => {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(p.w, p.h), lit(t));
   m.position.copy(P(p.x + p.w / 2, p.y + p.h / 2)).setZ(0.05); m.visible = false; synth.add(m); return m;
 })();
+let pull = 0;
 const SHOTS = {
   // 1: a slow slide along the oscillator row at a steep angle; the focus band holds on the knobs (3 s)
   slide: { frames: 75, run(i) {
@@ -365,7 +377,7 @@ const SHOTS = {
     cam.fov = 24; cam.updateProjectionMatrix();
     look(pos, knob, THREE.MathUtils.degToRad(12));
     const f = ss(Math.min(1, Math.max(0, (t - 0.08) / 0.35)));                 // focus pull over 1.4 s, early in the shot
-    draw(i, lerp(pos.distanceTo(curve), pos.distanceTo(knob), f), 115);
+    draw(i, pull ? lerp(pos.distanceTo(curve), pos.distanceTo(knob), f) : pos.distanceTo(knob), 115);   // fixed focus unless pull=1
   } },
 };
 // ---------- text cards: five plates in the website's siren colours (always fading to pure black), Manrope, typed in ----------
@@ -510,7 +522,7 @@ window.setup = (name) => {
   const o = Object.fromEntries(opt.split(',').filter(Boolean).map((x) => { const [k, v] = x.split('='); return [k, v === undefined ? 1 : Number(v)]; }));
   const real = o.real ?? 0; LIT.real.value = real;
   shot = SHOTS[n]; setLook(look, 1 - real); fin.uniforms.fire.value = o.fire ?? 0;
-  spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.og.value = o.og ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
+  spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks) ? 1 : 0; fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   sparks.on = Math.min(1, o.sparks ?? 0); sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
