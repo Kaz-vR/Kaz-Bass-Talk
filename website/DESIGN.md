@@ -39,7 +39,7 @@ Glows use them with transparency over black (that is the only way they fade).
 | Logo `#d66624` | `--logo`, `--hot` | The logo; small labels (Sound, Inside, Specs); keyboard focus ring |
 | Sand `#c09b6d` | `--sand` | The centre of the header's lamp glow; the newest sparks |
 
-The pixel fire runs black → OSC A → OSC B → logo orange at the hottest; sparks cool sand → logo → OSC B → OSC A.
+The pixel fire is OSC A, then OSC B and the logo orange at the hottest; its cool edges and dying sparks fade by transparency (each heat as bright as the old dark-red ramp), never by darker colours. Sparks cool sand → logo → OSC B → OSC A.
 
 ### Neutrals
 | Hex | Use |
@@ -185,7 +185,7 @@ Restrained (owner picked motions 1 and 3 from the motion pitches):
 - The carousel slides with the same curve.
 - **Pixel embers** (owner's pick of three: Inferno, Embers, Dither): a low, smouldering pixel fire (6px blocks,
   OSC A red, OSC B and logo orange, no yellow) slowly breathing along the bottom of the Buy part, and single-pixel
-  sparks drifting up out of it, cooling (sand, logo orange, OSC B, OSC A) as they rise. The same sparks drift behind
+  sparks drifting up out of it, cooling (sand, logo orange, OSC B, OSC A, then fading into the black) as they rise. The same sparks drift behind
   the Header's content. Plain canvas in `main.js` (`embers()`), 24 frames a second, only while on screen; with
   reduced motion the fire is one still frame and the header has no sparks.
 - Everything is off with `prefers-reduced-motion`.

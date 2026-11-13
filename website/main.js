@@ -136,10 +136,20 @@ const embers = (host, { flames, count }) => {
   host.prepend(cv);
   const g = cv.getContext('2d');
   const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-  // only the synth's own colours (owner's call): black, then OSC A, OSC B and the logo orange at the hottest
-  const STOPS = ['#000000', '#ea1f1f', '#e83911', '#d66624'].map(hex), MAX = 24;
-  const PAL = Array.from({ length: MAX + 1 }, (_, i) => { const t = i / MAX * (STOPS.length - 1), k = Math.min(STOPS.length - 2, Math.floor(t)), f = t - k; return STOPS[k].map((v, j) => Math.round(v + (STOPS[k + 1][j] - v) * f)); });
-  const HOT = hex('#c09b6d'), ORANGE = hex('#d66624'), RED = hex('#e83911'), DEEP = hex('#ea1f1f');   // sparks cool: sand, logo, OSC B, OSC A
+  // Only the synth's own four colours, exactly (owner's call); the dark comes from transparency over the black, never
+  // from darker colours. Each heat level keeps the brightness the fire had with its old dark-red ramp (LOOK): the
+  // coolest cells are OSC A, faint; then OSC A, OSC B and the logo orange at the hottest, full.
+  const LOOK = ['#000000', '#200301', '#5a0703', '#8a0a04', '#c8160b', '#ff2a14', '#ff6a1a'].map(hex), MAX = 24;
+  const lum = (c) => Math.max(...c);
+  const A = hex('#ea1f1f'), B = hex('#e83911'), LOGO = hex('#d66624'), SAND = hex('#c09b6d');
+  const PAL = Array.from({ length: MAX + 1 }, (_, i) => {
+    const t = i / MAX * (LOOK.length - 1), k = Math.min(LOOK.length - 2, Math.floor(t)), f = t - k;
+    const was = lum(LOOK[k].map((v, j) => v + (LOOK[k + 1][j] - v) * f));          // how bright this heat used to be
+    const c = i < MAX * 0.72 ? A : i < MAX * 0.88 ? B : LOGO;                       // which of the four it is
+    return [c, Math.min(1, was / lum(c))];                                          // the colour, and its opacity
+  });
+  // sparks cool sand, logo, OSC B, OSC A, then fade out into the black (as they once faded through dark red)
+  const SPARK = [[SAND, 1], [LOGO, 1], [B, 1], [A, lum(hex('#8a0a04')) / lum(A)]];
   let W = 0, H = 0, heat, img, t = 0, sparks = [];
   const spawn = (s, anywhere) => {
     s.x = Math.random() * W; s.v = 0.25 + Math.random() * 0.5; s.p = Math.random() * 6;
@@ -168,16 +178,16 @@ const embers = (host, { flames, count }) => {
       burn();
       for (let y = 0; y < FH; y++) for (let x = 0; x < W; x++) {
         const v = heat[y * W + x]; if (v < 0.5) continue;
-        const c = PAL[Math.min(MAX, Math.round(v))], i = ((H - FH + y) * W + x) * 4;
-        d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = Math.min(255, v * 40); // the cool edge fades into the glow
+        const [c, a] = PAL[Math.min(MAX, Math.round(v))], i = ((H - FH + y) * W + x) * 4;
+        d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = Math.min(255, v * 40) * a; // the cool edge fades into the glow
       }
     }
     for (const s of sparks) {
       s.y -= s.v; s.x += Math.sin(t * 0.05 + s.p) * 0.35; s.life -= 0.006;
       if (s.y < 0 || s.life <= 0) spawn(s);
       const xi = Math.round(s.x), yi = Math.round(s.y); if (xi < 0 || xi >= W || yi < 0 || yi >= H) continue;
-      const c = s.life > 0.6 ? HOT : s.life > 0.35 ? ORANGE : s.life > 0.12 ? RED : DEEP, i = (yi * W + xi) * 4;
-      d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
+      const [c, a] = SPARK[s.life > 0.6 ? 0 : s.life > 0.35 ? 1 : s.life > 0.12 ? 2 : 3], i = (yi * W + xi) * 4;
+      d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255 * a * (s.life > 0.12 ? 1 : 0.4 + 0.6 * s.life / 0.12);   // the dying ones fade
     }
     g.putImageData(img, 0, 0);
   };
