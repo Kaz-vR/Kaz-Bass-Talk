@@ -202,14 +202,10 @@ const fin = sh(`
     }
     if (fluid > 0.) {
       // simulated smoke: two layers between the lens and the synth (near, soft; mid, sharper), lit faintly warm
-      float a1 = texture2D(tFlA, vUv).r, a2 = texture2D(tFlB, vUv).r;
-      if (fluid > 1.5) { gl_FragColor = vec4(a1, a2, 0., 1.); return; }        // fluid=2: show the raw smoke layers (red near, green mid)
-      // kept out of the sharp middle: only towards the edges and corners (the owner's references); tinted towards #f25d07
-      vec2 cc = (vUv - .5) * vec2(1.6, 1.);
-      float edge = smoothstep(.32, .78, length(cc));
-      vec3 sc = mix(vec3(.4, .39, .38), vec3(.949, .365, .027) * .5, .38);
-      col = mix(col, sc * (.6 + .4 * col.r), clamp(a2 * .9, 0., .32) * edge * fluid);
-      col = mix(col, sc * .8, clamp(a1 * .75, 0., .26) * edge * fluid);
+      float a1 = texture2D(tFlA, vUv).r;
+      if (fluid > 1.5) { gl_FragColor = vec4(a1 * 3., 0., 0., 1.); return; }   // fluid=2: show the raw smoke
+      vec3 sc = mix(vec3(.4, .39, .38), vec3(.949, .365, .027) * .5, .38);         // tinted towards #f25d07
+      col = mix(col, sc * (.65 + .35 * col.r), clamp(a1 * 2.4, 0., .4) * fluid);
     }
     if (og > 0.) {
       // the owner's grade, fitted to their Photoshop of the slide: lift, gain and gamma per channel, then saturation
@@ -285,14 +281,15 @@ const spMat = new THREE.ShaderMaterial({
   vertexShader: `attribute vec3 color; uniform float focus, aperture, maxR, fine; varying vec3 vCol; varying float vZ, vR;
     void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.); float z = -mv.z;
       float c = clamp(aperture * abs(z - focus) / z, 0., maxR * 1.3); vR = max(1.7, c); vZ = z;
-      if (fine > .5) vR = 5.5;                                        // fine: a 1.3 px core inside an 11 px glow                 // fine sparks (owner's paint-over): small sharp specks at any depth
-      float fineK = fine > .5 ? 1.15 : 1.;
-      vCol = color * (fine > .5 ? .55 : vR < 2.5 ? 3.2 : max(.11, 2.4 / (vR * vR)));      // in focus: a hot pinpoint; out of focus: the same light spread thin
+      // fine sparks: in the focus band a 1.3 px core in an 11 px glow; away from it the same light spread over its blur,
+      // exactly as the synth blurs there (same thin-lens formula)
+      if (fine > .5) vR = max(5.5, c * 1.25);
+      vCol = color * (fine > .5 ? .55 * min(1., 30. / (vR * vR)) : vR < 2.5 ? 3.2 : max(.11, 2.4 / (vR * vR)));      // in focus: a hot pinpoint; out of focus: the same light spread thin
       gl_PointSize = vR * 2. + 2.; gl_Position = projectionMatrix * mv; }`,
   fragmentShader: `uniform sampler2D tDep; uniform vec2 res; uniform float near, far, fine; varying vec3 vCol; varying float vZ, vR;
     void main(){ float d = texture2D(tDep, gl_FragCoord.xy / res).x; float sz = -(near * far) / ((far - near) * d - far);
       float r = length(gl_PointCoord * 2. - 1.);
-      float e = fine > .5 ? exp(-r * r * 30.) + .16 * exp(-r * r * 3.)          // fine: hot core and its glow
+      float e = fine > .5 ? (vR < 6.5 ? exp(-r * r * 30.) + .16 * exp(-r * r * 3.) : smoothstep(1., .55, r) * .9)   // sharp streak, or a soft disc          // fine: hot core and its glow
         : vR > 2.5 ? smoothstep(1., .7, r) * (.55 + .3 * smoothstep(.5, .92, r)) : exp(-r * r * 4.);   // bokeh: a disc with a brighter rim
       gl_FragColor = vec4(vCol * e, 1.); }`,
   blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, transparent: true });
@@ -343,38 +340,44 @@ const sparksDraw = (focusDist, apert) => {
   else { r.setRenderTarget(rtDof); r.autoClear = false; r.render(spScene, cam); r.autoClear = true; }
 };
 
-// ---------- simulated smoke (tools/trailer/fluid.js), shown on two sheets fixed in the world in front of the synth ----------
+// ---------- simulated smoke (tools/trailer/fluid.js), in the scene: a stack of thin layers parallel to the synth's face,
+// hovering above it at rising heights and reaching past its edges, so the smoke follows the synth's angle, has depth
+// and parallax, and wraps over and around it. Each layer samples the same simulation a little shifted and scaled, so
+// the stack reads as one volume. The layers write their smoke and its distance; one gather pass then blurs every
+// spot by its own distance with the same thin-lens rule as the synth (sharp in the focus band, soft elsewhere).
 const FL = makeFluid(r);
-const rtFl = [0, 1].map(() => [new THREE.WebGLRenderTarget(W, H, rtOpts), new THREE.WebGLRenderTarget(W, H, rtOpts)]);
-fin.uniforms.tFlA.value = rtFl[0][0].texture; fin.uniforms.tFlB.value = rtFl[1][0].texture;
-const sheetMat = (flip) => new THREE.ShaderMaterial({ uniforms: { dye: { value: null } }, transparent: true, depthTest: false, depthWrite: false,
-  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
-  fragmentShader: `uniform sampler2D dye; varying vec2 vUv; void main(){ vec2 u = vUv; ${flip ? 'u = vec2(1. - u.x * .8 - .1, u.y * .85 + .05);' : ''}
-    float d = texture2D(dye, u).r * 4.; float edge = smoothstep(0., .08, u.x) * smoothstep(1., .9, u.x) * smoothstep(0., .06, u.y) * smoothstep(1., .9, u.y);
-    gl_FragColor = vec4(vec3(smoothstep(.05, .9, 1. - exp(-d * 1.2))) * edge, 1.); }` });   // thin parts drop out: wisps with black between
-const sheets = [sheetMat(false), sheetMat(true)].map((m) => new THREE.Mesh(new THREE.PlaneGeometry(1, 1), m));
-const flScene = new THREE.Scene(); sheets.forEach((m) => flScene.add(m));
-const flu = { on: 0, anchored: false, dist: [.38, .8] };                       // the sheets' distance, as a share of the focus distance
+const rtFl = [0, 1].map(() => new THREE.WebGLRenderTarget(W, H, rtOpts));
+fin.uniforms.tFlA.value = rtFl[1].texture; fin.uniforms.tFlB.value = rtFl[1].texture;
+const NL = 7, LAYER_Z = [14, 34, 60, 92, 130, 175, 230], SW = PW * 1.7, SH = PH * 1.9;
+const layerMat = (k) => new THREE.ShaderMaterial({ uniforms: { dye: { value: null }, k: { value: k } },
+  transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending,
+  vertexShader: `varying vec2 vUv; varying float vZ; void main(){ vUv = uv; vec4 mv = modelViewMatrix * vec4(position, 1.); vZ = -mv.z; gl_Position = projectionMatrix * mv; }`,
+  fragmentShader: `uniform sampler2D dye; uniform float k; varying vec2 vUv; varying float vZ;
+    void main(){ vec2 u = (vUv - .5) * (1. - k * .035) + .5 + vec2(sin(k * 2.1) * .012, -k * .006);   // each layer a little shifted: one volume
+      float d = texture2D(dye, u).r * (k < 1.5 ? .5 : 1.);                                          // thinnest right on the face
+      float edge = smoothstep(0., .07, vUv.x) * smoothstep(1., .93, vUv.x) * smoothstep(0., .06, vUv.y) * smoothstep(1., .94, vUv.y);
+      float a = (1. - exp(-d * 1.1)) * edge * .22;
+      gl_FragColor = vec4(a, a * vZ / 1000., 0., 1.); }` });                                          // smoke, and smoke x distance
+const layers = LAYER_Z.map((z, k) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(SW, SH), layerMat(k)); m.position.set(0, PH * .1, z); return m; });
+const flScene = new THREE.Scene(); layers.forEach((m) => flScene.add(m));
+const smokeDof = sh(`
+  varying vec2 vUv; uniform sampler2D t; uniform float focus, aperture, maxR; uniform vec2 px;
+  float coc(vec2 s){ float z = s.y / max(s.x, 1e-5) * 1000.; return s.x < 1e-4 ? 0. : clamp(aperture * abs(z - focus) / z, 0., maxR); }
+  // scatter-as-gather: every nearby sample whose own blur disc reaches this pixel adds its smoke spread over that disc
+  void main(){ float acc = 0.; const int N = 64; float ga = 2.39996323;
+    float rot = 6.2831853 * fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715))));
+    for (int i = 0; i < N; i++) { float rr = sqrt((float(i) + .5) / float(N)) * maxR, an = float(i) * ga + rot;
+      vec2 s = texture2D(t, vUv + vec2(cos(an), sin(an)) * rr * px).xy; float c = max(coc(s), 1.5);
+      acc += s.x * smoothstep(rr - 1., rr + 1., c) / (c * c); }
+    gl_FragColor = vec4(acc * maxR * maxR / float(N), 0., 0., 1.); }`,
+  { t: { value: rtFl[0].texture }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 30 * K }, px: { value: new THREE.Vector2(1 / W, 1 / H) } });
+const flu = { on: 0 };
 const fluidDraw = (i, focusDist, apert) => {
   FL.to(i);
-  if (!flu.anchored) {                                                          // fixed in the world where the first frame put them
-    const fwd = new THREE.Vector3(); cam.getWorldDirection(fwd);
-    sheets.forEach((m, k) => { const d = focusDist * flu.dist[k]; m.position.copy(cam.position).addScaledVector(fwd, d); m.quaternion.copy(cam.quaternion);
-      const hh = 2 * d * Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) * 1.35; m.scale.set(hh * cam.aspect, hh, 1); });
-    flu.anchored = true;
-  }
-  sheets.forEach((m, k) => {
-    m.material.uniforms.dye.value = FL.texture; sheets.forEach((o, j) => (o.visible = j === k));
-    r.setRenderTarget(rtFl[k][0]); r.setClearColor(0x000000, 1); r.clear(); r.render(flScene, cam);
-    // blur by the sheet's own distance (thin lens, as the depth of field)
-    const z = m.position.distanceTo(cam.position), coc = Math.min(60 * K, apert * K * Math.abs(z - focusDist) / z);
-    const step = Math.max(.3, coc / 2 / 3.5);
-    for (let n = 0; n < 2; n++) {
-      blur.uniforms.t.value = rtFl[k][0].texture; blur.uniforms.d.value.set(step / W, 0); pass(blur, rtFl[k][1]);
-      blur.uniforms.t.value = rtFl[k][1].texture; blur.uniforms.d.value.set(0, step / H); pass(blur, rtFl[k][0]);
-    }
-  });
-  sheets.forEach((o) => (o.visible = true));
+  layers.forEach((m) => (m.material.uniforms.dye.value = FL.texture));
+  r.setRenderTarget(rtFl[0]); r.setClearColor(0x000000, 1); r.clear(); r.render(flScene, cam);
+  smokeDof.uniforms.focus.value = focusDist; smokeDof.uniforms.aperture.value = apert * K;
+  pass(smokeDof, rtFl[1]);
 };
 const draw = (i, focusDist, apert = 30) => {
   r.setRenderTarget(rtScene); r.render(scene, cam);
@@ -572,8 +575,8 @@ window.setup = (name) => {
   sparks.on = Math.min(1, o.sparks ?? 0); sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
-  flu.on = o.fluid ?? 0; fin.uniforms.fluid.value = flu.on; flu.anchored = false;
-  if (flu.on) FL.setup([[.12, .36, .03, 420, 1, .35, 7], [.2, .14, .03, 340, .5, 1, 5.5], [.86, .16, .03, 260, -.7, 1, 4]], { buoy: 4, turb: 3, eps: 7, keepDye: .997 });   // left, low left, low right
+  flu.on = o.fluid ?? 0; fin.uniforms.fluid.value = flu.on;
+  if (flu.on) FL.setup([[.2, .45, .03, 380, .15, 1, 6], [.32, .27, .03, 320, .2, 1, 5], [.68, .27, .03, 300, -.2, 1, 4.5], [.8, .5, .03, 340, -.15, 1, 5]], { buoy: 4, turb: 3, eps: 7, keepDye: .997 });   // from the synth's left edge, lower edge (twice) and right edge, rising over it
   shot.reset?.(); return shot.frames; };
 window.frame = async (i) => { await shot.run(i); r.getContext().finish(); return true; };
 window.ready = true;
