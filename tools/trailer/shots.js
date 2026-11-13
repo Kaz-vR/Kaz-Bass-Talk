@@ -204,9 +204,12 @@ const fin = sh(`
       // simulated smoke: two layers between the lens and the synth (near, soft; mid, sharper), lit faintly warm
       float a1 = texture2D(tFlA, vUv).r, a2 = texture2D(tFlB, vUv).r;
       if (fluid > 1.5) { gl_FragColor = vec4(a1, a2, 0., 1.); return; }        // fluid=2: show the raw smoke layers (red near, green mid)
-      vec3 sc = vec3(.42, .41, .4);
-      col = mix(col, sc * (.6 + .4 * col.r), clamp(a2 * .8, 0., .36) * fluid);
-      col = mix(col, sc * .75, clamp(a1 * .6, 0., .28) * fluid);
+      // kept out of the sharp middle: only towards the edges and corners (the owner's references); tinted towards #f25d07
+      vec2 cc = (vUv - .5) * vec2(1.6, 1.);
+      float edge = smoothstep(.32, .78, length(cc));
+      vec3 sc = mix(vec3(.4, .39, .38), vec3(.949, .365, .027) * .5, .38);
+      col = mix(col, sc * (.6 + .4 * col.r), clamp(a2 * .9, 0., .32) * edge * fluid);
+      col = mix(col, sc * .8, clamp(a1 * .75, 0., .26) * edge * fluid);
     }
     if (og > 0.) {
       // the owner's grade, fitted to their Photoshop of the slide: lift, gain and gamma per channel, then saturation
