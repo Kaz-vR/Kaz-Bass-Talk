@@ -76,12 +76,12 @@ export const makeFluid = (r, { simW = 256, simH = 144, dyeW = 1024, dyeH = 576 }
   const clear = () => { for (const t of [vel.read, vel.write, prs.read, prs.write, dye.read, dye.write, div, crl]) { r.setRenderTarget(t); r.setClearColor(0x000000, 0); r.clear(); } };
   // emitters: [x, y, radius, strength, dirX, dirY, densityRate], positions in 0..1 of the smoke sheet
   // obstacle / spreadRect: [u0, v0, u1, v1] in the sheet, or null
-  const setup = (emitters, { buoy = 6, turb = 40, eps = 14, keepVel = .995, keepDye = .992, obstacle = null, spreadRect = null, spread = 0 } = {}) => {
-    clear(); S.t = -1; S.time = 0; S.emitters = emitters; Object.assign(S, { buoy, turb, eps, keepVel, keepDye });
+  const setup = (emitters, { buoy = 6, turb = 40, eps = 14, keepVel = .995, keepDye = .992, obstacle = null, spreadRect = null, spread = 0, speed = 1 } = {}) => {
+    clear(); S.t = -1; S.time = 0; S.emitters = emitters; Object.assign(S, { buoy, turb, eps, keepVel, keepDye, speed });
     obs.value.set(...(obstacle ?? [-1, -1, -1, -1])); force.uniforms.spr.value.set(...(spreadRect ?? [-1, -1, -1, -1])); force.uniforms.spread.value = spread;
   };
   const step = () => {
-    const dt = 1 / 25; S.t++; S.time += dt;                                    // one step per video frame
+    const dt = (S.t + 1 < S.warm ? 1 : S.speed) / 25; S.t++; S.time += dt;   // one step per video frame: the warm-up at full speed, the shot at S.speed
     S.emitters.forEach((e, k) => {
       // each emitter breathes and wanders a little: no two moments the same
       const w = Math.sin(S.time * (.25 + k * .08) + k * 1.7), w2 = Math.sin(S.time * (.5 + k * .11) + k);
@@ -108,6 +108,6 @@ export const makeFluid = (r, { simW = 256, simH = 144, dyeW = 1024, dyeH = 576 }
     run(advect, dye.write); dye.swap();
   };
   // run the simulation up to video frame i (two steps per frame), with pre-roll so the smoke is already there
-  const to = (i, preroll = 400) => { while (S.t < i + preroll) step(); };   // a long warm-up: the smoke already hangs in the air
+  const to = (i, preroll = 400) => { S.warm = preroll; while (S.t < i + preroll) step(); };   // a long warm-up: the smoke already hangs in the air
   return { setup, to, get texture() { return dye.read.texture; }, _dye: () => dye.read, _vel: () => vel.read };
 };

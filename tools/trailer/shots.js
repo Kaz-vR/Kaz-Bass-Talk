@@ -315,8 +315,8 @@ const spSpawn = (s, anywhere) => { const R = sparks.rnd, f = sparks.focus;
   const u = R(); let dist = f * (u < .6 ? .975 + .04 * R() : u < .85 ? .62 + .3 * R() : .22 + .3 * R());   // 60 % sharp, 25 % soft, 15 % big bokeh
   if (v.z < 0) dist = Math.min(dist, (cam.position.z - 2) / -v.z * (.8 + .18 * R()));       // always in front of the panel (its face is z = 0)
   s.x = cam.position.x + v.x * dist; s.y = cam.position.y + v.y * dist; s.z = cam.position.z + v.z * dist; s.prev = null;
-  const sp = f * (.08 + R() * .2);
-  s.vx = (R() - .3) * sp * .25; s.vy = sp; s.vz = 0; s.ph = R() * 6.28; s.b = .35 + Math.pow(R(), 2) * 1.2; s.max = 1.6 + R() * 2.2;
+  const sp = f * (.04 + R() * .1);                                         // floating embers: half the earlier speed
+  s.vx = (R() - .3) * sp * .25; s.vy = sp; s.vz = 0; s.ph = R() * 6.28; s.b = .35 + Math.pow(R(), 2) * 1.2; s.max = 2.6 + R() * 3;
   s.t0 = .5 + .5 * Math.pow(R(), .7); s.vy *= .6 + .6 * s.t0; s.vx *= .6 + .6 * s.t0;   // how hot it is born: hotter sparks fly faster
   if (!s.ash && spMat.uniforms.fine.value > .5) { s.vx = sp * (.5 + R() * .6) * (R() < .3 ? -1 : 1); }   // fine sparks fly on a diagonal
   if (s.ash) { s.vy = -f * (.025 + R() * .05); s.vx = (R() - .5) * f * .03; s.b = .45 + R() * .7; s.max = 6 + R() * 6; }   // ash: slow, falling, drifting
@@ -328,7 +328,7 @@ const sparksReset = () => {
 const sparksStep = () => { sparks.t++; const dt = 1 / FPS, q = new THREE.Vector3();
   if (!sparks.list.length) sparks.list = [...Array.from({ length: Math.round(NSP * sparks.on) }, () => spSpawn({}, true)), ...Array.from({ length: Math.round(NASH * sparks.ash) }, () => spSpawn({ ash: true }, true))];   // sparks=0.5: half as many
   for (const s of sparks.list) { s.prev = [s.x, s.y, s.z];
-    s.vx += Math.sin(sparks.t * (s.ash ? .04 : .11) + s.ph) * sparks.focus * (s.ash ? .004 : .012); s.x += s.vx * dt; s.y += s.vy * dt; s.z = Math.max(1, s.z + Math.sin(sparks.t * .07 + s.ph * 2) * sparks.focus * .02 * dt); s.life -= dt;   // never behind the panel's face (z = 0)
+    s.vx += Math.sin(sparks.t * (s.ash ? .04 : .07) + s.ph) * sparks.focus * (s.ash ? .004 : .006); s.x += s.vx * dt; s.y += s.vy * dt; s.z = Math.max(1, s.z + Math.sin(sparks.t * .07 + s.ph * 2) * sparks.focus * .02 * dt); s.life -= dt;   // never behind the panel's face (z = 0)
     q.set(s.x, s.y, s.z).project(cam);
     if (s.life <= 0 || q.y > 1.3 || q.y < -1.3 || Math.abs(q.x) > 1.4 || q.z > 1) spSpawn(s); } };
 const sparksDraw = (focusDist, apert) => {
@@ -362,14 +362,14 @@ const FL = makeFluid(r), FL2 = makeFluid(r);                                 // 
 const rtFl = [0, 1].map(() => new THREE.WebGLRenderTarget(W, H, rtOpts));
 fin.uniforms.tFlA.value = rtFl[1].texture; fin.uniforms.tFlB.value = rtFl[1].texture;
 // layers: two behind the synth's face (hidden by it, showing past its edges), five above it; [height, which simulation]
-const LAYER_Z = [[-70, 1], [-28, 1], [16, 1], [48, 0], [92, 0], [145, 0], [210, 0]], SW = PW * 1.7, SH = PH * 1.9;
+const LAYER_Z = [[-70, 1], [-28, 1], [14, 1], [36, 0], [60, 0], [84, 0], [108, 0]]   // kept close to the synth: no smoke racing past the lens, SW = PW * 1.7, SH = PH * 1.9;
 const layerMat = (k) => new THREE.ShaderMaterial({ uniforms: { dye: { value: null }, k: { value: k }, time: { value: 0 } },
   transparent: true, depthTest: true, depthWrite: false, blending: THREE.AdditiveBlending,
   vertexShader: `varying vec2 vUv; varying float vZ; void main(){ vUv = uv; vec4 mv = modelViewMatrix * vec4(position, 1.); vZ = -mv.z; gl_Position = projectionMatrix * mv; }`,
   fragmentShader: `uniform sampler2D dye; uniform float k, time; varying vec2 vUv; varying float vZ;
     void main(){
       // each layer shifted, scaled and drifting at its own speed: parts of the smoke move differently
-      vec2 u = (vUv - .5) * (1. - k * .045) + .5 + vec2(sin(k * 2.1) * .02 + time * (.004 + .003 * sin(k * 1.7)), -k * .008 + time * .002 * cos(k * 2.9));
+      vec2 u = (vUv - .5) * (1. - k * .045) + .5 + vec2(sin(k * 2.1) * .02 + time * (.002 + .0015 * sin(k * 1.7)), -k * .008 + time * .001 * cos(k * 2.9));
       float d = texture2D(dye, u).r * (k > 1.5 && k < 2.5 ? .5 : 1.);                               // thinnest right on the face
       float edge = smoothstep(0., .07, vUv.x) * smoothstep(1., .93, vUv.x) * smoothstep(0., .06, vUv.y) * smoothstep(1., .94, vUv.y);
       float a = (1. - exp(-d * 1.1)) * edge * .22;
@@ -431,12 +431,12 @@ const knobLayer = (() => {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(p.w, p.h), lit(t));
   m.position.copy(P(p.x + p.w / 2, p.y + p.h / 2)).setZ(0.05); m.visible = false; synth.add(m); return m;
 })();
-let pull = 0;
+let pull = 0, stillCam = 0;
 const SHOTS = {
   // 1: a slow slide along the oscillator row at a steep angle; the focus band holds on the knobs (3 s)
   slide: { frames: 75, smokeAt: () => P(235, 256), run(i) {
     knobLayer.visible = false;
-    const t = i / 74;
+    const t = stillCam ? 0 : i / 74;
     const target = P(lerp(215, 255, t), 256); LIT.lightAt.value.copy(P(330, 150));                                 // a slow drift along OSC A's knobs (~3 % of the frame a second)
     const pos = target.clone().add(new THREE.Vector3(-210, -260, 250));
     cam.fov = 26; cam.updateProjectionMatrix();
@@ -446,7 +446,7 @@ const SHOTS = {
   // 2: push in on the filter cutoff while it turns; the focus pulls from the filter curve to the knob (4 s)
   knob: { frames: 100, smokeAt: () => P(meta.patch.cx, meta.patch.cy), async run(i) {
     knobLayer.visible = true;
-    const t = i / 99, k = await loadKnob(i), p = meta.patch;
+    const t = stillCam ? 0 : i / 99, k = await loadKnob(i), p = meta.patch;
     knobLayer.material.uniforms.map.value.image = k; knobLayer.material.uniforms.map.value.needsUpdate = true;
     const knob = P(p.cx, p.cy), curve = P(p.cx - 30, p.cy - 90); LIT.lightAt.value.copy(P(p.cx + 70, p.cy - 60));
     const dolly = lerp(1, 0.86, t);
@@ -599,7 +599,7 @@ window.setup = (name) => {
   const o = Object.fromEntries(opt.split(',').filter(Boolean).map((x) => { const [k, v] = x.split('='); return [k, v === undefined ? 1 : Number(v)]; }));
   const real = o.real ?? 0; LIT.real.value = real; LIT.lightR.value = o.lightr ?? 260;   // lightr=100000: light everywhere (to compare)
   shot = SHOTS[n]; setLook(look, 1 - real); fin.uniforms.fire.value = o.fire ?? 0;
-  spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks) ? 1 : 0; fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
+  spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks) ? 1 : 0; fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   sparks.on = Math.min(1, o.sparks ?? 0); sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
@@ -614,11 +614,11 @@ window.setup = (name) => {
     const px = (u, v) => [Math.min(.95, Math.max(.05, u)), Math.min(.95, Math.max(.05, v))];
     // above the synth: rising from low in the view, fanning out along its face
     FL.setup([[...px(.3, .14), .05, 60, .25, 1, 1.6], [...px(.62, .1), .05, 55, -.1, 1, 1.4], [...px(.85, .3), .045, 50, -.3, 1, 1.3]],
-      { buoy: 1, turb: 1.2, eps: 4, keepDye: .9992, spreadRect: PANEL, spread: 14 });
+      { buoy: 1, turb: 1.2, eps: 4, keepDye: .9996, spreadRect: PANEL, spread: 14, speed: .08 });   // measured: about 2 % of the frame width a second
     // behind it: rising along its edge and spilling round it (the panel is a wall to this smoke)
     const eu = PANEL[0] - .05, tv = PANEL[3] + .04;
     FL2.setup([[...px(eu, .15), .05, 60, .1, 1, 2.2], [...px(eu, .45), .045, 50, .3, 1, 1.6], [...px(.5, Math.min(.9, tv)), .045, 45, .8, .3, 1.3]],
-      { buoy: 1.4, turb: 1.5, eps: 5, keepDye: .999, obstacle: PANEL });
+      { buoy: 1.4, turb: 1.5, eps: 5, keepDye: .9995, obstacle: PANEL, speed: .08 });
   }
 
   shot.reset?.(); return shot.frames; };
