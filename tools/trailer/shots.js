@@ -97,7 +97,7 @@ const blur = sh(`varying vec2 vUv; uniform sampler2D t; uniform vec2 d; void mai
   for (int i = -8; i <= 8; i++) { float w = exp(-float(i*i) / 24.); s += texture2D(t, vUv + d * float(i)).rgb * w; ws += w; } gl_FragColor = vec4(s / ws, 1.); }`,
   { t: { value: null }, d: { value: new THREE.Vector2() } });
 const fin = sh(`
-  varying vec2 vUv; uniform sampler2D t, tGlow; uniform float time, glow, ca, grain, vig, ruin;
+  varying vec2 vUv; uniform sampler2D t, tGlow; uniform float time, glow, ca, grain, vig, ruin, fire;
   float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time * 37.0) * 43758.5453); }
   void main(){
     vec2 c = vUv - .5; float rr = length(c * vec2(1.7778, 1.));
@@ -116,21 +116,90 @@ const fin = sh(`
       // RUIN-1: pure black, neutral shadows (the module colours untouched), highlights bloom warm with a red halation
       col += vec3(1., .32, .1) * dot(g, vec3(.2126,.7152,.0722)) * .55;   // red bleed round bright lines (film halation)
       col = max(col * 1.1 - .006, 0.);                                     // the floor is black, not grey
+      if (fire > 0.) {
+        // firelight: a warm, flickering spill rising from below the frame, highlights pushed to hot orange; black stays black
+        float fl = .86 + .08 * sin(time * 9.1) + .06 * sin(time * 5.3 + 1.7) * sin(time * 13.7);
+        float spill = smoothstep(1.05, -.1, vUv.y) * fl, l2 = dot(col, vec3(.2126,.7152,.0722));
+        col *= mix(vec3(1.), vec3(1.28, .86, .62), fire * (.45 + .55 * spill));
+        col += vec3(1., .3, .06) * fire * spill * (.035 * smoothstep(.0, .08, l2) + .02);
+        col = mix(col, col * vec3(1.08, .8, .55), fire * smoothstep(.45, 1., l2) * .6);
+      }
     }
     col = col / (1. + max(col - .86, 0.) * 1.6);                           // soft knee: nothing clips
     col += (hash(vUv * 1000.) - .5) * grain;
     gl_FragColor = vec4(col, 1.);
-  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 } });
+  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 } });
 
 // the glow: two rounds of a 17-tap blur in 1-texel steps at quarter size (coarser steps showed as stripes)
 const glowBlur = () => { for (let k = 0; k < 2; k++) {
   blur.uniforms.t.value = rtA.texture; blur.uniforms.d.value.set(1 / (W / 4), 0); pass(blur, rtB);
   blur.uniforms.t.value = rtB.texture; blur.uniforms.d.value.set(0, 1 / (H / 4)); pass(blur, rtA); } };
 const cam = new THREE.PerspectiveCamera(24, W / H, 20, 20000);
+
+// ---------- sparks: real 3D particles drifting up through the shot ----------
+// Drawn after the depth of field as discs sized by their own blur (the same thin-lens formula), so sparks near the
+// lens become soft bokeh and sparks in the focus plane stay pinpoint (the website's single-pixel embers). They are
+// always born and kept in front of the panel's face, so nothing needs hiding. Each spark is drawn at 4 moments inside the frame: a little motion blur.
+const NSP = 45, SUB = 4;
+const spGeo = new THREE.BufferGeometry();
+spGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(NSP * SUB * 3), 3));
+spGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(NSP * SUB * 3), 3));
+const spMat = new THREE.ShaderMaterial({
+  uniforms: { tDep: { value: rtScene.depthTexture }, res: { value: new THREE.Vector2(W, H) }, near: { value: 1 }, far: { value: 1 }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 26 * K } },
+  vertexShader: `attribute vec3 color; uniform float focus, aperture, maxR; varying vec3 vCol; varying float vZ, vR;
+    void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.); float z = -mv.z;
+      float c = clamp(aperture * abs(z - focus) / z, 0., maxR * 1.3); vR = max(1.7, c); vZ = z;
+      vCol = color * (vR < 2.5 ? 3.2 : max(.11, 2.4 / (vR * vR)));      // in focus: a hot pinpoint; out of focus: the same light spread thin
+      gl_PointSize = vR * 2. + 2.; gl_Position = projectionMatrix * mv; }`,
+  fragmentShader: `uniform sampler2D tDep; uniform vec2 res; uniform float near, far; varying vec3 vCol; varying float vZ, vR;
+    void main(){ float d = texture2D(tDep, gl_FragCoord.xy / res).x; float sz = -(near * far) / ((far - near) * d - far);
+      float r = length(gl_PointCoord * 2. - 1.);
+      float e = vR > 2.5 ? smoothstep(1., .7, r) * (.55 + .3 * smoothstep(.5, .92, r)) : exp(-r * r * 4.);   // bokeh: a disc with a brighter rim
+      gl_FragColor = vec4(vCol * e, 1.); }`,
+  blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, transparent: true });
+const spScene = new THREE.Scene(), spPts = new THREE.Points(spGeo, spMat); spPts.frustumCulled = false; spScene.add(spPts);   // never culled (its bounds move with every shot)
+const SPC = [[1, .69, .44], [1, .42, .1], [1, .16, .08], [.54, .04, .02]].map((c) => c.map((v) => v * 3.2));  // core, hot, red, deep (×brightness)
+const sparks0 = { on: false, t: 0, list: [], focus: 400, rnd: Math.random };
+// sparks are born inside the camera's view: most near the focus plane (sharp pinpoints), a few close to the lens (bokeh)
+const sparks = Object.assign(sparks0, {});
+const spSpawn = (s, anywhere) => { const R = sparks.rnd, f = sparks.focus;
+  const v = new THREE.Vector3((R() * 2 - 1) * 1.15, anywhere ? R() * 2.3 - 1.15 : -1.15 - R() * .1, .5).unproject(cam).sub(cam.position).normalize();
+  const u = R(); let dist = f * (u < .6 ? .975 + .04 * R() : u < .85 ? .62 + .3 * R() : .22 + .3 * R());   // 60 % sharp, 25 % soft, 15 % big bokeh
+  if (v.z < 0) dist = Math.min(dist, (cam.position.z - 2) / -v.z * (.8 + .18 * R()));       // always in front of the panel (its face is z = 0)
+  s.x = cam.position.x + v.x * dist; s.y = cam.position.y + v.y * dist; s.z = cam.position.z + v.z * dist; s.prev = null;
+  const sp = f * (.08 + R() * .2);
+  s.vx = (R() - .3) * sp * .25; s.vy = sp; s.vz = 0; s.ph = R() * 6.28; s.b = .35 + Math.pow(R(), 2) * 1.2; s.max = 1.6 + R() * 2.2; s.life = anywhere ? R() * s.max : s.max; return s; };
+const sparksReset = () => {
+  let a = 987654; sparks.rnd = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let x = Math.imul(a ^ a >>> 15, 1 | a); x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x; return ((x ^ x >>> 14) >>> 0) / 4294967296; };
+  sparks.t = -1; sparks.list = [];
+};
+const sparksStep = () => { sparks.t++; const dt = 1 / FPS, q = new THREE.Vector3();
+  if (!sparks.list.length) sparks.list = Array.from({ length: NSP }, () => spSpawn({}, true));
+  for (const s of sparks.list) { s.prev = [s.x, s.y, s.z];
+    s.vx += Math.sin(sparks.t * .11 + s.ph) * sparks.focus * .012; s.x += s.vx * dt; s.y += s.vy * dt; s.z = Math.max(1, s.z + Math.sin(sparks.t * .07 + s.ph * 2) * sparks.focus * .02 * dt); s.life -= dt;   // never behind the panel's face (z = 0)
+    q.set(s.x, s.y, s.z).project(cam);
+    if (s.life <= 0 || q.y > 1.3 || Math.abs(q.x) > 1.4 || q.z > 1) spSpawn(s); } };
+const sparksDraw = (focusDist, apert) => {
+  const P_ = spGeo.attributes.position.array, C_ = spGeo.attributes.color.array; let k = 0;
+  const vm = cam.matrixWorldInverse, v = new THREE.Vector3();
+  for (const s of sparks.list) {
+    // a spark that will be a big soft disc gets no motion-blur copies (they showed as a stack of discs)
+    const z = -v.set(s.x, s.y, s.z).applyMatrix4(vm).z, blurred = apert * K * Math.abs(z - focusDist) / z > 3;
+    if (blurred) s.prev = [s.x, s.y, s.z];
+    const f = s.life / s.max, c = f > .7 ? SPC[0] : f > .45 ? SPC[1] : f > .18 ? SPC[2] : SPC[3], fade = Math.min(1, f * 6) / SUB * 1.6 * s.b;
+    for (let j = 0; j < SUB; j++) { const u = j / SUB, pr = s.prev ?? [s.x, s.y, s.z];
+      P_[k] = pr[0] + (s.x - pr[0]) * u; P_[k + 1] = pr[1] + (s.y - pr[1]) * u; P_[k + 2] = pr[2] + (s.z - pr[2]) * u;
+      C_[k] = c[0] * fade; C_[k + 1] = c[1] * fade; C_[k + 2] = c[2] * fade; k += 3; } }
+  spGeo.attributes.position.needsUpdate = true; spGeo.attributes.color.needsUpdate = true;
+  Object.assign(spMat.uniforms.near, { value: cam.near }); spMat.uniforms.far.value = cam.far; spMat.uniforms.focus.value = focusDist; spMat.uniforms.aperture.value = apert * K;
+  r.setRenderTarget(rtDof); r.autoClear = false; r.render(spScene, cam); r.autoClear = true;
+};
+
 const draw = (i, focusDist, apert = 30) => {
   r.setRenderTarget(rtScene); r.render(scene, cam);
   Object.assign(dof.uniforms, {}); dof.uniforms.near.value = cam.near; dof.uniforms.far.value = cam.far; dof.uniforms.focus.value = focusDist; dof.uniforms.aperture.value = apert * K;
   pass(dof, rtDof);
+  if (sparks.on) { sparks.focus = focusDist; while (sparks.t < i + 60) sparksStep(); sparksDraw(focusDist, apert); }     // 60 frames of pre-roll: the air is already full
   pass(bright, rtA);
   glowBlur();
   fin.uniforms.time.value = i / FPS; pass(fin, null);
@@ -308,6 +377,12 @@ SHOTS.card = SHOTS.cardA;
 
 let shot;
 // a shot name may carry a look: 'knob@artistry'; the default is the RUIN-1 look
-window.setup = (name) => { const [n, look = 'ruin'] = name.split('@'); shot = SHOTS[n]; setLook(look); shot.reset?.(); return shot.frames; };
+// options after a colon: 'knob@ruin:sparks,fire=0.6'
+window.setup = (name) => {
+  const [n, rest = 'ruin'] = name.split('@'), [look, opt = ''] = rest.split(':');
+  const o = Object.fromEntries(opt.split(',').filter(Boolean).map((x) => { const [k, v] = x.split('='); return [k, v === undefined ? 1 : Number(v)]; }));
+  shot = SHOTS[n]; setLook(look); fin.uniforms.fire.value = o.fire ?? 0;
+  sparks.on = !!o.sparks; if (sparks.on) sparksReset();
+  shot.reset?.(); return shot.frames; };
 window.frame = async (i) => { await shot.run(i); r.getContext().finish(); return true; };
 window.ready = true;
