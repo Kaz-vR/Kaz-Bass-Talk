@@ -1,4 +1,5 @@
 // Oscilloscope + log-frequency spectrum from an AnalyserNode.
+import { toHex } from './color';
 
 export class Scope {
   private wave: Float32Array<ArrayBuffer>;
@@ -16,8 +17,8 @@ export class Scope {
 
   private draw(): void {
     const css = getComputedStyle(document.documentElement);
-    const accent = css.getPropertyValue('--accent').trim();
-    const accent2 = css.getPropertyValue('--accent-2').trim();
+    const accent = toHex(css.getPropertyValue('--accent').trim());
+    const accent2 = toHex(css.getPropertyValue('--accent-2').trim());
 
     // Waveform (triggered on a rising zero crossing for a stable picture).
     const c = this.scope.getContext('2d')!;

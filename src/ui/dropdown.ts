@@ -3,6 +3,7 @@
  * page's style, the current choice lit in the colour of the box it belongs to. The <select> stays
  * the source of truth (value + change event), so nothing else has to know about the menu.
  */
+import { toHex } from './color';
 
 let open: { menu: HTMLElement; sel: HTMLSelectElement } | null = null;
 
@@ -50,7 +51,7 @@ const visible = (o: HTMLOptionElement) => !o.hidden && o.style.display !== 'none
 
 function show(sel: HTMLSelectElement): void {
   close();
-  const accent = getComputedStyle(sel).getPropertyValue('--knob-accent').trim() || '#ffffff';
+  const accent = toHex(getComputedStyle(sel).getPropertyValue('--knob-accent').trim()) || '#ffffff';
   const menu = document.createElement('div');
   menu.className = 'dd-menu';
   menu.style.setProperty('--dd-accent', accent);

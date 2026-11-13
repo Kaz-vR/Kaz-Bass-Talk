@@ -11,6 +11,7 @@ import { corrosionTexture, frameTexture, keyGrime, lightGrain, logoWear, panelTe
 import logoSvg from '../../design/logo.svg?raw';
 import { GRIND_BEAT_NAMES, grindBeat, grindHz } from '../engine/core/grind';
 import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobPointsAt, wobSmoothRadius, wobSmoothTable, wobTableAt, type WobPoint } from '../engine/core/wobshape';
+import { toHex } from './color';
 
 type OnChange = (id: string, value: ParamValue) => void;
 
@@ -139,7 +140,7 @@ function vignette(_g: CanvasRenderingContext2D, _W: number, _H: number): void {}
 
 /** The colour of the box a display sits in (its --knob-accent). */
 function accentOf(el: Element): string {
-  return (el.isConnected && getComputedStyle(el).getPropertyValue('--knob-accent').trim()) || INK;
+  return (el.isConnected && toHex(getComputedStyle(el).getPropertyValue('--knob-accent').trim())) || INK;
 }
 
 /** Mix a hex colour towards white (t = 0..1). */
@@ -1260,13 +1261,13 @@ export class SynthView {
       const zero = opts.fromMax ? a1 : bipolar ? a0 + (a1 - a0) * toNormalized(p, 0) : a0;
       const av = a0 + (a1 - a0) * n;
       const cs = getComputedStyle(el);
-      const accent = cs.getPropertyValue('--knob-accent').trim() || '#ff8f75';
+      const accent = toHex(cs.getPropertyValue('--knob-accent').trim()) || '#ff8f75';
       const kr = r - 3;
       // Alternative dial looks (picked by the page's --knob-style), else the default below.
       const style = cs.getPropertyValue('--knob-style').trim();
       // A modulation that is on takes the place of the value arc with its own lighter ring.
       const modOn = !!mod && (mod.on?.() ?? true) && Math.abs(this.num(mod.id)) > 1e-4;
-      if (style && style !== 'ring') drawKnobVariant(g, style, { cx, cy, r, n, av, zero, a0, a1, accent, off, noValue: modOn, body: cs.getPropertyValue('--knob-body').trim() });
+      if (style && style !== 'ring') drawKnobVariant(g, style, { cx, cy, r, n, av, zero, a0, a1, accent, off, noValue: modOn, body: toHex(cs.getPropertyValue('--knob-body').trim()) });
       else {
       // shadow under the knob
       g.save();
@@ -3751,8 +3752,8 @@ export class SynthView {
     const COLVAR = (k: number) => (tied(k) ? `var(${tied(k)})` : EQ_COLS[PARTS[k].n - 1]);
     const COLS = new Proxy([] as string[], { get: (_t, key) => {
       const k = Number(key); if (typeof key !== 'string' || !Number.isInteger(k) || !PARTS[k]) return undefined;
-      const v = tied(k) ? getComputedStyle(this.page).getPropertyValue(tied(k)).trim() : '';
-      return v || (PARTS[k].kind === 'drive' ? '#ea1f1f' : PARTS[k].kind === 'eq' ? EQ_COLS[PARTS[k].n - 1] : '#5f64c8'); } });
+      const v = tied(k) ? toHex(getComputedStyle(this.page).getPropertyValue(tied(k)).trim()) : '';
+      return v || (PARTS[k].kind === 'drive' ? '#ff0000' : PARTS[k].kind === 'eq' ? EQ_COLS[PARTS[k].n - 1] : '#5f64c8'); } });
     const NAMES = PARTS.map((p) => `${p.kind.toUpperCase()} ${p.n}`);
     const ALL_K = PARTS.map((_, k) => k);
     const stageOf = (k: number) => PARTS[k].n;

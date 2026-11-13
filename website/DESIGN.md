@@ -29,14 +29,14 @@ All colours are CSS variables at the top of `website/style.css`.
 
 ### The warm colours: exactly the synth's own four (owner's call)
 Every warm colour on the site is **exactly** one of the synth's four warm colours, never a lighter, darker or less
-saturated version and never a new hue: **sand `#c09b6d`, logo orange `#d66624`, OSC B `#e83911`, OSC A `#ea1f1f`**.
+saturated version and never a new hue: **sand `#c09b6d`, logo orange `#f25d07`, OSC B `#f23005`, OSC A `#ff0000`** (the owner's tuner save of 13 Nov).
 Glows use them with transparency over black (that is the only way they fade).
 
 | Hex | Variable | Use |
 |---|---|---|
-| OSC B `#e83911` | `--buy` | Every Buy button (menu, header, Buy part), glow `rgba(232,57,17,.45)` (hover `.75`) |
-| OSC A `#ea1f1f` | `--red`, `--deep` | The play outline, active states, the carousel's active cue, arrow hover; the outer edge of glows |
-| Logo `#d66624` | `--logo`, `--hot` | The logo; small labels (Sound, Inside, Specs); keyboard focus ring |
+| OSC B `#f23005` | `--buy` | Every Buy button (menu, header, Buy part), glow `rgba(242,48,5,.45)` (hover `.75`) |
+| OSC A `#ff0000` | `--red`, `--deep` | The play outline, active states, the carousel's active cue, arrow hover; the outer edge of glows |
+| Logo `#f25d07` | `--logo`, `--hot` | The logo; small labels (Sound, Inside, Specs); keyboard focus ring |
 | Sand `#c09b6d` | `--sand` | (reserved) |
 
 **The fire's three colours (owner's pick):** `#f25d07` (hot orange), `#f23005` (red-orange), `#ff0000` (red). They are
@@ -68,8 +68,8 @@ the same darkness, then `#f23005`, then `#f25d07` at the hottest; sparks cool `#
 Visual sheet of the whole palette: ask Claude to render it (the owner keeps a PNG of it).
 
 ### The synth's colours (owner's paint-over)
-- **Buy buttons: OSC B `#e83911`** (`--buy`, owner's call), see the warm colours above.
-- **The synth's modules** (`src/ui/style.css`, "each box its own colour"): OSC A `#ea1f1f`, OSC B `#e83911`,
+- **Buy buttons: OSC B `#f23005`** (`--buy`, owner's call), see the warm colours above.
+- **The synth's modules** (`src/ui/style.css`, "each box its own colour"): OSC A `#ff0000`, OSC B `#f23005`,
   amp envelope `#129b82`, filter and filter envelope `#5f64c8`, sub `#6c3a9c`, noise `#c09b6d`; the routing LEDs
   A / B / S / N follow their module. These colours lead every page of the synth (see `docs/ui.md`, tied colours). The wooden cheeks a very dark brown `#1c120d` (the owner's own tuning, saved from the colour tuner).
 
