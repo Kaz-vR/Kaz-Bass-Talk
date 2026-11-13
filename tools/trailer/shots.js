@@ -129,9 +129,12 @@ const blur = sh(`varying vec2 vUv; uniform sampler2D t; uniform vec2 d; void mai
   for (int i = -8; i <= 8; i++) { float w = exp(-float(i*i) / 24.); s += texture2D(t, vUv + d * float(i)).rgb * w; ws += w; } gl_FragColor = vec4(s / ws, 1.); }`,
   { t: { value: null }, d: { value: new THREE.Vector2() } });
 const fin = sh(`
-  varying vec2 vUv; uniform sampler2D t, tGlow; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo;
+  varying vec2 vUv; uniform sampler2D t, tGlow; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke;
   float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time * 37.0) * 43758.5453); }
   float h2(vec2 p){ return fract(sin(dot(p, vec2(41.31, 289.13))) * 43758.5453); }
+  float sn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
+    return mix(mix(h2(i), h2(i+vec2(1,0)), f.x), mix(h2(i+vec2(0,1)), h2(i+vec2(1,1)), f.x), f.y); }
+  float sfbm(vec2 p){ float s = 0., m = .5; for (int i = 0; i < 5; i++) { s += sn(p) * m; p = p * 2.02 + vec2(1.3, 7.1); m *= .5; } return s; }
   void main(){
     vec2 c = vUv - .5; float rr = length(c * vec2(1.7778, 1.));
     vec2 off = c * ca * rr * rr;                                           // colour fringes, growing towards the edges
@@ -189,9 +192,24 @@ const fin = sh(`
       float scr = on * smoothstep(.0009, 0., abs(vUv.x - sx - .002 * sin(vUv.y * 30. + fr6)));
       col = mix(col, vec3(.8, .78, .74), scr * .35 * film * smoothstep(0., .2, h2(vec2(floor(vUv.y * 60.), fr6))));
     }
+    if (smoke > 0.) {
+      // smoke: thin grey wisps curling up, thickest at the left edge and low on the right (the owner's paint-over)
+      vec2 sp = vUv * vec2(1.7778, 1.) * 1.35 + vec2(0., -time * .06);
+      vec2 w = vec2(sfbm(sp + vec2(time * .05, 0.)), sfbm(sp * 1.3 + vec2(3.1, 1.7) - vec2(0., time * .04)));
+      float f = sfbm(sp * .9 + 3.4 * w);
+      float rdg = 1. - abs(f * 2. - 1.); float wisp = smoothstep(.86, .995, rdg) * .8 + smoothstep(.55, 1., rdg) * .08;    // a few soft strands and a faint body
+      float where = smoothstep(.36, .02, vUv.x) * smoothstep(.05, .5, vUv.y) + smoothstep(.7, 1., vUv.x) * smoothstep(.3, .0, vUv.y) * .5;
+      col += vec3(.5, .48, .46) * wisp * where * .2 * smoke;
+    }
+    if (og > 0.) {
+      // the owner's grade, fitted to their Photoshop of the slide: lift, gain and gamma per channel, then saturation
+      vec3 o = vec3(0.0245, 0.0129, 0.0066) + vec3(1.2652, 1.2913, 1.3680) * pow(clamp(col, 0., 1.), vec3(1.3340, 1.3419, 1.3694));
+      float lo = dot(o, vec3(.2126,.7152,.0722)); o = lo + (o - lo) * 0.8728;
+      col = mix(col, o, og);
+    }
     col += (hash(vUv * 1000.) - .5) * grain;
     gl_FragColor = vec4(col, 1.);
-  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 } });
+  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, smoke: { value: 0 } });
 
 // the glow: two rounds of a 17-tap blur in 1-texel steps at quarter size (coarser steps showed as stripes)
 const glowBlur = () => { for (let k = 0; k < 2; k++) {
@@ -208,11 +226,13 @@ const spGeo = new THREE.BufferGeometry();
 spGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array((NSP + NASH) * SUB * 3), 3));
 spGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array((NSP + NASH) * SUB * 3), 3));
 const spMat = new THREE.ShaderMaterial({
-  uniforms: { tDep: { value: rtScene.depthTexture }, res: { value: new THREE.Vector2(W, H) }, near: { value: 1 }, far: { value: 1 }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 26 * K } },
-  vertexShader: `attribute vec3 color; uniform float focus, aperture, maxR; varying vec3 vCol; varying float vZ, vR;
+  uniforms: { fine: { value: 0 }, tDep: { value: rtScene.depthTexture }, res: { value: new THREE.Vector2(W, H) }, near: { value: 1 }, far: { value: 1 }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 26 * K } },
+  vertexShader: `attribute vec3 color; uniform float focus, aperture, maxR, fine; varying vec3 vCol; varying float vZ, vR;
     void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.); float z = -mv.z;
       float c = clamp(aperture * abs(z - focus) / z, 0., maxR * 1.3); vR = max(1.7, c); vZ = z;
-      vCol = color * (vR < 2.5 ? 3.2 : max(.11, 2.4 / (vR * vR)));      // in focus: a hot pinpoint; out of focus: the same light spread thin
+      if (fine > .5) vR = clamp(1.2 + c * .06, 1.2, 2.2);                 // fine sparks (owner's paint-over): small sharp specks at any depth
+      float fineK = fine > .5 ? 1.15 : 1.;
+      vCol = color * (fine > .5 ? 1.15 : vR < 2.5 ? 3.2 : max(.11, 2.4 / (vR * vR)));      // in focus: a hot pinpoint; out of focus: the same light spread thin
       gl_PointSize = vR * 2. + 2.; gl_Position = projectionMatrix * mv; }`,
   fragmentShader: `uniform sampler2D tDep; uniform vec2 res; uniform float near, far; varying vec3 vCol; varying float vZ, vR;
     void main(){ float d = texture2D(tDep, gl_FragCoord.xy / res).x; float sz = -(near * far) / ((far - near) * d - far);
@@ -453,6 +473,7 @@ window.setup = (name) => {
   const o = Object.fromEntries(opt.split(',').filter(Boolean).map((x) => { const [k, v] = x.split('='); return [k, v === undefined ? 1 : Number(v)]; }));
   const real = o.real ?? 0; LIT.real.value = real;
   shot = SHOTS[n]; setLook(look, 1 - real); fin.uniforms.fire.value = o.fire ?? 0;
+  spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.og.value = o.og ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   sparks.on = Math.min(1, o.sparks ?? 0); sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
