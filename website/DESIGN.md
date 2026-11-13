@@ -27,16 +27,23 @@ worn, cinematic, alive (LORN, see the root `CLAUDE.md`).
 
 All colours are CSS variables at the top of `website/style.css`.
 
-### The siren (core)
-| Name | Hex | Variable | Use |
-|---|---|---|---|
-| Alarm red | `#ff2a14` | `--red` | (Buy now uses `--buy` `#ff4000`, see below) the play outline, active states, the carousel's active cue |
-| Hot orange | `#ff6a1a` | `--hot` | Small labels (Sound, Inside, Specs), keyboard focus ring, the bright core of every glow |
-| Deep red | `#8a0a04` | `--deep` | The outer edge of glows, where the light falls off into black |
+### The warm colours: only the synth's own (owner's call)
+Every warm colour on the site comes from the synth's four warm colours, in this order on one gradient:
+**sand `#c09b6d` → logo orange `#d66624` → OSC B `#e83911` → OSC A `#ea1f1f`**. A colour may be one of the four, a
+lighter, darker, more or less saturated step of one **at the same hue**, or a colour **between two of them on that
+gradient**. Never a new hue.
 
-The alarm red looks "neon" because it sits at the edge of the sRGB gamut (as saturated as a screen can
-show) and has a glow: `box-shadow: 0 0 24px rgba(255,42,20,.45)` (hover `.75`). Any new accent colour must
-match that: pushed to the gamut edge at its hue, with its own glow.
+| Name | Hex | Variable | From | Use |
+|---|---|---|---|---|
+| Buy orange | `#e83911` | `--buy` | OSC B, exactly | Every Buy button (menu, header, Buy part), glow `rgba(232,57,17,.45)` (hover `.75`) |
+| Red | `#ea1f1f` | `--red` | OSC A | The play outline, active states, the carousel's active cue, arrow hover |
+| Logo orange | `#d66624` | `--logo`, `--hot` | the logo | The logo; small labels (Sound, Inside, Specs); keyboard focus ring |
+| Deep red | `#7f0a0a` | `--deep` | OSC A darkened | The outer edge of glows, where the light falls off into black |
+| Ember core | `#e99f67` | `--core` | between logo and sand, lighter | The hottest centre of a glow (the header's lamp), the newest sparks |
+
+Glows are made of these with transparency (orange core → OSC B / OSC A → deep red → black). The pixel fire runs
+black → OSC A darkened in steps (`#1c0202`, `#4b0606`, `#7f0a0a`, `#bd0f0f`) → OSC A → OSC B → logo orange at the
+hottest; sparks cool ember core → logo orange → OSC A → deep red.
 
 ### Neutrals
 | Hex | Use |
@@ -49,8 +56,8 @@ match that: pushed to the gamut edge at its hue, with its own glow.
 | `#4a4542` | Outlines of secondary buttons and arrows |
 | `#55504c` | Footer (`--dim`) |
 
-### Neon extras (approved, use sparingly, never on Buy, never as large areas)
-"The other alarms": same voltage as the alarm red, at the gamut edge, each with a glow and a deep version.
+### Neon extras (approved earlier, not in use; would need the owner's OK now that the warm colours are the synth's)
+"The other alarms": same voltage as the old alarm red, at the gamut edge, each with a glow and a deep version.
 | Name | Neon | Deep | Character |
 |---|---|---|---|
 | Toxic green | `#17ff4d` | `#0b5e1a` | A radioactive exit sign. Very bright: small labels and status lights only |
@@ -60,13 +67,8 @@ match that: pushed to the gamut edge at its hue, with its own glow.
 
 Visual sheet of the whole palette: ask Claude to render it (the owner keeps a PNG of it).
 
-### Logo colour
-**Logo orange `#d66624`** (`--logo`; owner's pick, painted on a screenshot): the logo files in `design/`
-(`logo.svg`, `logo-tight.svg`) and the synth's own logo use it.
-
-### Buy and the synth's colours (owner's paint-over)
-- **Buy buttons: `#ff3205`** (`--buy`), with a glow `rgba(255,50,5,.45)` (hover `.75`). Alarm red stays for the
-  other active states.
+### The synth's colours (owner's paint-over)
+- **Buy buttons: OSC B `#e83911`** (`--buy`, owner's call), see the warm colours above.
 - **The synth's modules** (`src/ui/style.css`, "each box its own colour"): OSC A `#ea1f1f`, OSC B `#e83911`,
   amp envelope `#129b82`, filter and filter envelope `#5f64c8`, sub `#6c3a9c`, noise `#c09b6d`; the routing LEDs
   A / B / S / N follow their module. These colours lead every page of the synth (see `docs/ui.md`, tied colours). The wooden cheeks a very dark brown `#1c120d` (the owner's own tuning, saved from the colour tuner).
@@ -79,10 +81,10 @@ Glows are layered and complex (the owner likes "the more complex gradient"), nev
 always fade to pure black.
 - **Header:** two beams of a rotating warning light, frozen mid-turn, sweeping from the top right (a
   `conic-gradient` from about 200deg at 82% 18%, blurred 18px, masked to fade out at the bottom), plus a lamp
-  glow (a 220px radial blob, hot orange core to red, at the top right).
+  glow (a 220px radial blob, ember core to OSC A red, at the top right).
 - **Audio demo:** a soft red radial glow behind the video, `rgba(255,60,20,.14)` to `rgba(120,10,4,.08)`
   to transparent.
-- **Buy part:** a glow rising from the bottom centre: hot orange `.32` to alarm red `.22` to deep red `.12`
+- **Buy part:** a glow rising from the bottom centre: logo orange `.32` to OSC B `.22` to deep red `.12`
   to transparent, 1500 x 700px, anchored below the section; plus the pixel embers (see below).
 - **The synth image:** `drop-shadow(0 50px 60px rgba(0,0,0,.95))` plus a faint red glow
   `drop-shadow(0 0 40px rgba(255,40,20,.18))`.
@@ -97,7 +99,7 @@ always fade to pure black.
 - Headings: weight 300, letter-spacing -0.02em. Desktop h2 54px, phone 34px.
 - The RUIN-1 name: weight 300, very wide tracking (0.40em), 64px on desktop; "SYNTHESIZER" under it at
   13px, weight 400, tracking 0.86em, `#a49d97`.
-- Labels (Sound, Inside, Specs): 11-12px, uppercase, tracking 0.3em, hot orange.
+- Labels (Sound, Inside, Specs): 11-12px, uppercase, tracking 0.3em, logo orange.
 - Body: weight 300, 16-19px, line-height 1.6, `--soft`.
 - Spec numbers: weight 200, 78px (phone 48px), with tiny uppercase labels.
 - Buttons: 12px, weight 600, uppercase, tracking 0.22em.
@@ -107,7 +109,7 @@ always fade to pure black.
 ## 5. Shapes and spacing
 
 - **Buttons are square. Never rounded** (owner: rounded doesn't fit the synth). This includes the arrows.
-  - Main: solid alarm red, black text, the red glow. Height 48px, padding 0 28px.
+  - Main: solid OSC B orange (`--buy`), black text, its glow. Height 48px, padding 0 28px.
   - Secondary: 1px `#4a4542` outline, light text. Same size.
   - Small (menu Buy): height 34px.
   - Arrows: 52 x 52px square outline, hover red outline and glow.
@@ -123,7 +125,7 @@ always fade to pure black.
   synth reads low), using two invisible spacers per part (`.sp-a`, `.sp-b`). Measured from the visible pixels at five
   sizes. The Audio Demo is the exception until the video exists: its empty 16:9 box is centred, so the play icon
   looks low; with the video in it, the part is balanced.
-- Focus: 2px hot orange outline, 3px offset.
+- Focus: 2px logo orange outline, 3px offset.
 
 ---
 
@@ -186,7 +188,7 @@ Restrained (owner picked motions 1 and 3 from the motion pitches):
 - The menu shrinks into a black bar on scroll and lights the link of the part you are in.
 - The carousel slides with the same curve.
 - **Pixel embers** (owner's pick of three: Inferno, Embers, Dither): a low, smouldering pixel fire (6px blocks,
-  deep red to alarm red to hot orange, no yellow) slowly breathing along the bottom of the Buy part, and single-pixel
+  deep red to OSC A red, OSC B and logo orange, no yellow) slowly breathing along the bottom of the Buy part, and single-pixel
   sparks drifting up out of it, cooling (pale orange, orange, red, deep red) as they rise. The same sparks drift behind
   the Header's content. Plain canvas in `main.js` (`embers()`), 24 frames a second, only while on screen; with
   reduced motion the fire is one still frame and the header has no sparks.
