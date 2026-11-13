@@ -129,7 +129,7 @@ const blur = sh(`varying vec2 vUv; uniform sampler2D t; uniform vec2 d; void mai
   for (int i = -8; i <= 8; i++) { float w = exp(-float(i*i) / 24.); s += texture2D(t, vUv + d * float(i)).rgb * w; ws += w; } gl_FragColor = vec4(s / ws, 1.); }`,
   { t: { value: null }, d: { value: new THREE.Vector2() } });
 const fin = sh(`
-  varying vec2 vUv; uniform sampler2D t, tGlow; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke;
+  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke;
   float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time * 37.0) * 43758.5453); }
   float h2(vec2 p){ return fract(sin(dot(p, vec2(41.31, 289.13))) * 43758.5453); }
   float sn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
@@ -193,13 +193,11 @@ const fin = sh(`
       col = mix(col, vec3(.8, .78, .74), scr * .35 * film * smoothstep(0., .2, h2(vec2(floor(vUv.y * 60.), fr6))));
     }
     if (smoke > 0.) {
-      // smoke: thin grey wisps curling up, thickest at the left edge and low on the right (the owner's paint-over)
-      vec2 sp = vUv * vec2(1.7778, 1.) * 1.35 + vec2(0., -time * .06);
-      vec2 w = vec2(sfbm(sp + vec2(time * .05, 0.)), sfbm(sp * 1.3 + vec2(3.1, 1.7) - vec2(0., time * .04)));
-      float f = sfbm(sp * .9 + 3.4 * w);
-      float rdg = 1. - abs(f * 2. - 1.); float wisp = smoothstep(.86, .995, rdg) * .8 + smoothstep(.55, 1., rdg) * .08;    // a few soft strands and a faint body
-      float where = smoothstep(.36, .02, vUv.x) * smoothstep(.05, .5, vUv.y) + smoothstep(.7, 1., vUv.x) * smoothstep(.3, .0, vUv.y) * .5;
-      col += vec3(.5, .48, .46) * wisp * where * .2 * smoke;
+      // the owner's own painted smoke (lifted from their Photoshop), drifting up and curling slowly so it lives
+      vec2 q = vUv + vec2(0., -time * .006);
+      vec2 wv = vec2(sn(q * 3. + vec2(time * .25, 0.)) - .5, sn(q * 3. + vec2(5.2, time * .2)) - .5) * .012;
+      float sk = texture2D(tSmokeImg, vec2(q.x, 1. - q.y) + wv).r;
+      col += vec3(.56, .54, .52) * sk * .27 * smoke;
     }
     if (og > 0.) {
       // the owner's grade, fitted to their Photoshop of the slide: lift, gain and gamma per channel, then saturation
@@ -209,19 +207,54 @@ const fin = sh(`
     }
     col += (hash(vUv * 1000.) - .5) * grain;
     gl_FragColor = vec4(col, 1.);
-  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, smoke: { value: 0 } });
+  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
 
 // the glow: two rounds of a 17-tap blur in 1-texel steps at quarter size (coarser steps showed as stripes)
 const glowBlur = () => { for (let k = 0; k < 2; k++) {
   blur.uniforms.t.value = rtA.texture; blur.uniforms.d.value.set(1 / (W / 4), 0); pass(blur, rtB);
   blur.uniforms.t.value = rtB.texture; blur.uniforms.d.value.set(0, 1 / (H / 4)); pass(blur, rtA); } };
 const cam = new THREE.PerspectiveCamera(24, W / H, 20, 20000);
+// ---------- smoke: thousands of tiny particles traced through a slowly turning flow field, each leaving a faint trail;
+// together they make fine, flowing, hair-like fibres (owner's paint-over). Drawn at half size, then softened.
+const SMW = Math.round(W / 2), SMH = Math.round(H / 2);
+const smk = document.createElement('canvas'); smk.width = SMW; smk.height = SMH; const sg = smk.getContext('2d');
+const smTex = new THREE.CanvasTexture(smk); smTex.colorSpace = THREE.NoColorSpace; smTex.minFilter = THREE.LinearFilter; smTex.generateMipmaps = false;
+fin.uniforms.tSmoke.value = smTex;
+{ const st = await new THREE.TextureLoader().loadAsync('/tools/trailer/smoke-owner.png'); st.colorSpace = THREE.NoColorSpace; st.flipY = false; fin.uniforms.tSmokeImg.value = st; }
+const vh = (x, y, z) => { const n = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453; return n - Math.floor(n); };
+const vnoise = (x, y, z) => { const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z), xf = x - xi, yf = y - yi, zf = z - zi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf), w = zf * zf * (3 - 2 * zf);
+  const L = (a, b, t) => a + (b - a) * t, c = (i, j, k) => vh(xi + i, yi + j, zi + k);
+  return L(L(L(c(0,0,0), c(1,0,0), u), L(c(0,1,0), c(1,1,0), u), v), L(L(c(0,0,1), c(1,0,1), u), L(c(0,1,1), c(1,1,1), u), v), w); };
+const pot = (x, y, t) => vnoise(x * 2.2, y * 2.2, t) + .5 * vnoise(x * 4.7 + 3, y * 4.7 + 1, t * 1.3) + .25 * vnoise(x * 9.1 + 7, y * 9.1 + 5, t * 1.7);
+const drawSmoke = (time) => {
+  sg.globalCompositeOperation = 'source-over'; sg.fillStyle = '#000'; sg.fillRect(0, 0, SMW, SMH);
+  sg.globalCompositeOperation = 'lighter'; sg.lineWidth = 0.75;
+  let a = 4242; const rnd = () => { a = (a * 1664525 + 1013904223) >>> 0; return a / 4294967296; };
+  const e = 0.004, t = time * .12;
+  // two narrow sources at the left edge feed one or two ribbons that wander and curl; each trail fades as it goes
+  const SRC = [[.0, .26, .05], [.02, .52, .035]];
+  for (let n = 0; n < 2400; n++) {
+    const [sx, sy, sw] = SRC[n % 5 < 3 ? 0 : 1];
+    let x = sx + rnd() * .03, y = sy + (rnd() + rnd() - 1) * sw * 1.3, op = .006 + rnd() * .012;
+    for (let k = 0; k < 160; k++) {
+      const dpx = (pot(x + e, y, t) - pot(x - e, y, t)) / (2 * e), dpy = (pot(x, y + e, t) - pot(x, y - e, t)) / (2 * e);
+      const nx = x + dpy * .0024 + .0017 + (rnd() - .5) * .0002, ny = y - dpx * .0024 - .0003 + (rnd() - .5) * .0003;   // a little scatter: the fibres fan out
+      sg.strokeStyle = `rgba(140,134,128,${(op * (1 - k / 160)).toFixed(4)})`;
+      sg.beginPath(); sg.moveTo(x * SMW, y * SMH); sg.lineTo(nx * SMW, ny * SMH); sg.stroke();
+      x = nx; y = ny; if (x > .62 || y < -.05 || y > 1.05) break;
+    }
+  }
+  // fade the smoke out towards the right and soften it a touch
+  sg.globalCompositeOperation = 'destination-in'; const gr = sg.createLinearGradient(0, 0, SMW * .62, 0); gr.addColorStop(0, '#fff'); gr.addColorStop(.55, 'rgba(255,255,255,.8)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  sg.fillStyle = gr; sg.fillRect(0, 0, SMW, SMH); sg.globalCompositeOperation = 'source-over';
+  smTex.needsUpdate = true; };
 
 // ---------- sparks: real 3D particles drifting up through the shot ----------
 // Drawn after the depth of field as discs sized by their own blur (the same thin-lens formula), so sparks near the
 // lens become soft bokeh and sparks in the focus plane stay pinpoint (the website's single-pixel embers). They are
 // always born and kept in front of the panel's face, so nothing needs hiding. Each spark is drawn at 4 moments inside the frame: a little motion blur.
-const NSP = 45, NASH = 90, SUB = 4;                                   // sparks, ash flakes
+const NSP = 45, NASH = 90, SUB = 22;                                   // sparks, ash flakes
 const spGeo = new THREE.BufferGeometry();
 spGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array((NSP + NASH) * SUB * 3), 3));
 spGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array((NSP + NASH) * SUB * 3), 3));
@@ -230,14 +263,15 @@ const spMat = new THREE.ShaderMaterial({
   vertexShader: `attribute vec3 color; uniform float focus, aperture, maxR, fine; varying vec3 vCol; varying float vZ, vR;
     void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.); float z = -mv.z;
       float c = clamp(aperture * abs(z - focus) / z, 0., maxR * 1.3); vR = max(1.7, c); vZ = z;
-      if (fine > .5) vR = clamp(1.2 + c * .06, 1.2, 2.2);                 // fine sparks (owner's paint-over): small sharp specks at any depth
+      if (fine > .5) vR = 5.5;                                        // fine: a 1.3 px core inside an 11 px glow                 // fine sparks (owner's paint-over): small sharp specks at any depth
       float fineK = fine > .5 ? 1.15 : 1.;
-      vCol = color * (fine > .5 ? 1.15 : vR < 2.5 ? 3.2 : max(.11, 2.4 / (vR * vR)));      // in focus: a hot pinpoint; out of focus: the same light spread thin
+      vCol = color * (fine > .5 ? 3.4 : vR < 2.5 ? 3.2 : max(.11, 2.4 / (vR * vR)));      // in focus: a hot pinpoint; out of focus: the same light spread thin
       gl_PointSize = vR * 2. + 2.; gl_Position = projectionMatrix * mv; }`,
-  fragmentShader: `uniform sampler2D tDep; uniform vec2 res; uniform float near, far; varying vec3 vCol; varying float vZ, vR;
+  fragmentShader: `uniform sampler2D tDep; uniform vec2 res; uniform float near, far, fine; varying vec3 vCol; varying float vZ, vR;
     void main(){ float d = texture2D(tDep, gl_FragCoord.xy / res).x; float sz = -(near * far) / ((far - near) * d - far);
       float r = length(gl_PointCoord * 2. - 1.);
-      float e = vR > 2.5 ? smoothstep(1., .7, r) * (.55 + .3 * smoothstep(.5, .92, r)) : exp(-r * r * 4.);   // bokeh: a disc with a brighter rim
+      float e = fine > .5 ? exp(-r * r * 30.) + .16 * exp(-r * r * 3.)          // fine: hot core and its glow
+        : vR > 2.5 ? smoothstep(1., .7, r) * (.55 + .3 * smoothstep(.5, .92, r)) : exp(-r * r * 4.);   // bokeh: a disc with a brighter rim
       gl_FragColor = vec4(vCol * e, 1.); }`,
   blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, transparent: true });
 const spScene = new THREE.Scene(), spPts = new THREE.Points(spGeo, spMat); spPts.frustumCulled = false; spScene.add(spPts);   // never culled (its bounds move with every shot)
@@ -253,6 +287,7 @@ const spSpawn = (s, anywhere) => { const R = sparks.rnd, f = sparks.focus;
   s.x = cam.position.x + v.x * dist; s.y = cam.position.y + v.y * dist; s.z = cam.position.z + v.z * dist; s.prev = null;
   const sp = f * (.08 + R() * .2);
   s.vx = (R() - .3) * sp * .25; s.vy = sp; s.vz = 0; s.ph = R() * 6.28; s.b = .35 + Math.pow(R(), 2) * 1.2; s.max = 1.6 + R() * 2.2;
+  if (!s.ash && spMat.uniforms.fine.value > .5) { s.vx = sp * (.5 + R() * .6) * (R() < .3 ? -1 : 1); }   // fine sparks fly on a diagonal
   if (s.ash) { s.vy = -f * (.025 + R() * .05); s.vx = (R() - .5) * f * .03; s.b = .45 + R() * .7; s.max = 6 + R() * 6; }   // ash: slow, falling, drifting
   s.life = anywhere ? R() * s.max : s.max; return s; };
 const sparksReset = () => {
@@ -271,11 +306,13 @@ const sparksDraw = (focusDist, apert) => {
   for (const s of sparks.list) {
     // a spark that will be a big soft disc gets no motion-blur copies (they showed as a stack of discs)
     const z = -v.set(s.x, s.y, s.z).applyMatrix4(vm).z, blurred = apert * K * Math.abs(z - focusDist) / z > 3;
-    if (blurred) s.prev = [s.x, s.y, s.z];
-    const f = s.life / s.max, c = s.ash ? ASH : f > .7 ? SPC[0] : f > .45 ? SPC[1] : f > .18 ? SPC[2] : SPC[3];
+    if (blurred && spMat.uniforms.fine.value < .5) s.prev = [s.x, s.y, s.z];   // (fine sparks always keep their streak)
+    const fineS = spMat.uniforms.fine.value > .5;
+    const f = s.life / s.max, c = s.ash ? ASH : fineS ? (f > .35 ? SPC[0] : SPC[1]) : f > .7 ? SPC[0] : f > .45 ? SPC[1] : f > .18 ? SPC[2] : SPC[3];
     // ash glints as it tumbles and fades in and out; sparks fade as they die
     const fade = (s.ash ? Math.min(1, f * 4, (1 - f) * 8) * (.45 + .55 * Math.abs(Math.sin(sparks.t * .09 + s.ph))) : Math.min(1, f * 6)) / SUB * 1.6 * s.b;
-    for (let j = 0; j < SUB; j++) { const u = j / SUB, pr = s.prev ?? [s.x, s.y, s.z];
+    const sh = spMat.uniforms.fine.value > .5 && !s.ash ? .55 : 1;                  // fine sparks: a long shutter, a streak
+    for (let j = 0; j < SUB; j++) { const u = 1 - (1 - j / SUB) * sh, pr = s.prev ?? [s.x, s.y, s.z];
       P_[k] = pr[0] + (s.x - pr[0]) * u; P_[k + 1] = pr[1] + (s.y - pr[1]) * u; P_[k + 2] = pr[2] + (s.z - pr[2]) * u;
       C_[k] = c[0] * fade; C_[k + 1] = c[1] * fade; C_[k + 2] = c[2] * fade; k += 3; } }
   spGeo.setDrawRange(0, sparks.list.length * SUB); spGeo.attributes.position.needsUpdate = true; spGeo.attributes.color.needsUpdate = true;
