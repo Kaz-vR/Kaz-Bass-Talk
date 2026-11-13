@@ -37,9 +37,13 @@ Glows use them with transparency over black (that is the only way they fade).
 | OSC B `#e83911` | `--buy` | Every Buy button (menu, header, Buy part), glow `rgba(232,57,17,.45)` (hover `.75`) |
 | OSC A `#ea1f1f` | `--red`, `--deep` | The play outline, active states, the carousel's active cue, arrow hover; the outer edge of glows |
 | Logo `#d66624` | `--logo`, `--hot` | The logo; small labels (Sound, Inside, Specs); keyboard focus ring |
-| Sand `#c09b6d` | `--sand` | The centre of the header's lamp glow; the newest sparks |
+| Sand `#c09b6d` | `--sand` | (reserved) |
 
-The pixel fire is OSC A, then OSC B and the logo orange at the hottest; its cool edges and dying sparks fade by transparency (each heat as bright as the old dark-red ramp), never by darker colours. Sparks cool sand → logo → OSC B → OSC A.
+**The fire's three colours (owner's pick):** `#f25d07` (hot orange), `#f23005` (red-orange), `#ff0000` (red). They are
+used for the fire and its light only: the header's two beams and lamp, the Buy part's rising glow, the pixel fire and
+all sparks. The pixel fire is this morning's fire with these colours: its dark reds are `#ff0000` made transparent to
+the same darkness, then `#f23005`, then `#f25d07` at the hottest; sparks cool `#f25d07` → `#f23005` → `#ff0000` →
+`#ff0000` fading into the black.
 
 ### Neutrals
 | Hex | Use |
@@ -77,10 +81,10 @@ Glows are layered and complex (the owner likes "the more complex gradient"), nev
 always fade to pure black.
 - **Header:** two beams of a rotating warning light, frozen mid-turn, sweeping from the top right (a
   `conic-gradient` from about 200deg at 82% 18%, blurred 18px, masked to fade out at the bottom), plus a lamp
-  glow (a 220px radial blob, sand at the centre to OSC A red, at the top right).
+  glow (a 220px radial blob, `#f25d07` at the centre to `#f23005`, at the top right).
 - **Audio demo:** a soft red radial glow behind the video, `rgba(255,60,20,.14)` to `rgba(120,10,4,.08)`
   to transparent.
-- **Buy part:** a glow rising from the bottom centre: logo orange `.32` to OSC B `.22` to deep red `.12`
+- **Buy part:** a glow rising from the bottom centre: `#f25d07` `.32` to `#f23005` `.22` to `#ff0000` `.12`
   to transparent, 1500 x 700px, anchored below the section; plus the pixel embers (see below).
 - **The synth image:** `drop-shadow(0 50px 60px rgba(0,0,0,.95))` plus a faint red glow
   `drop-shadow(0 0 40px rgba(255,40,20,.18))`.
@@ -184,8 +188,8 @@ Restrained (owner picked motions 1 and 3 from the motion pitches):
 - The menu shrinks into a black bar on scroll and lights the link of the part you are in.
 - The carousel slides with the same curve.
 - **Pixel embers** (owner's pick of three: Inferno, Embers, Dither): a low, smouldering pixel fire (6px blocks,
-  OSC A red, OSC B and logo orange, no yellow) slowly breathing along the bottom of the Buy part, and single-pixel
-  sparks drifting up out of it, cooling (sand, logo orange, OSC B, OSC A, then fading into the black) as they rise. The same sparks drift behind
+  in the fire's three colours, no yellow) slowly breathing along the bottom of the Buy part, and single-pixel
+  sparks drifting up out of it, cooling (`#f25d07`, `#f23005`, `#ff0000`, then fading into the black) as they rise. The same sparks drift behind
   the Header's content. Plain canvas in `main.js` (`embers()`), 24 frames a second, only while on screen; with
   reduced motion the fire is one still frame and the header has no sparks.
 - Everything is off with `prefers-reduced-motion`.

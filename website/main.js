@@ -136,20 +136,14 @@ const embers = (host, { flames, count }) => {
   host.prepend(cv);
   const g = cv.getContext('2d');
   const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-  // Only the synth's own four colours, exactly (owner's call); the dark comes from transparency over the black, never
-  // from darker colours. Each heat level keeps the brightness the fire had with its old dark-red ramp (LOOK): the
-  // coolest cells are OSC A, faint; then OSC A, OSC B and the logo orange at the hottest, full.
-  const LOOK = ['#000000', '#200301', '#5a0703', '#8a0a04', '#c8160b', '#ff2a14', '#ff6a1a'].map(hex), MAX = 24;
-  const lum = (c) => Math.max(...c);
-  const A = hex('#ea1f1f'), B = hex('#e83911'), LOGO = hex('#d66624'), SAND = hex('#c09b6d');
-  const PAL = Array.from({ length: MAX + 1 }, (_, i) => {
-    const t = i / MAX * (LOOK.length - 1), k = Math.min(LOOK.length - 2, Math.floor(t)), f = t - k;
-    const was = lum(LOOK[k].map((v, j) => v + (LOOK[k + 1][j] - v) * f));          // how bright this heat used to be
-    const c = i < MAX * 0.72 ? A : i < MAX * 0.88 ? B : LOGO;                       // which of the four it is
-    return [c, Math.min(1, was / lum(c))];                                          // the colour, and its opacity
-  });
-  // sparks cool sand, logo, OSC B, OSC A, then fade out into the black (as they once faded through dark red)
-  const SPARK = [[SAND, 1], [LOGO, 1], [B, 1], [A, lum(hex('#8a0a04')) / lum(A)]];
+  // This morning's fire (owner's call), in the owner's three fire colours: hot orange #f25d07, red-orange #f23005, red
+  // #ff0000. Its old dark reds are #ff0000 made transparent to the same darkness, so it smoulders exactly as before.
+  const RED0 = hex('#ff0000'), ROR = hex('#f23005'), ORG = hex('#f25d07');
+  const STOPS = [[RED0, 0], [RED0, 0x20 / 255], [RED0, 0x5a / 255], [RED0, 0x8a / 255], [RED0, 0xc8 / 255], [ROR, 1], [ORG, 1]], MAX = 24;
+  const PAL = Array.from({ length: MAX + 1 }, (_, i) => { const t = i / MAX * (STOPS.length - 1), k = Math.min(STOPS.length - 2, Math.floor(t)), f = t - k;
+    const [c0, a0] = STOPS[k], [c1, a1] = STOPS[k + 1]; return [c0.map((v, j) => Math.round(v + (c1[j] - v) * f)), a0 + (a1 - a0) * f]; });
+  // sparks cool as before: hot orange, red-orange, red, then red fading into the black
+  const SPARK = [[ORG, 1], [ROR, 1], [RED0, 1], [RED0, 0x8a / 255]];
   let W = 0, H = 0, heat, img, t = 0, sparks = [];
   const spawn = (s, anywhere) => {
     s.x = Math.random() * W; s.v = 0.25 + Math.random() * 0.5; s.p = Math.random() * 6;
@@ -187,7 +181,7 @@ const embers = (host, { flames, count }) => {
       if (s.y < 0 || s.life <= 0) spawn(s);
       const xi = Math.round(s.x), yi = Math.round(s.y); if (xi < 0 || xi >= W || yi < 0 || yi >= H) continue;
       const [c, a] = SPARK[s.life > 0.6 ? 0 : s.life > 0.35 ? 1 : s.life > 0.12 ? 2 : 3], i = (yi * W + xi) * 4;
-      d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255 * a * (s.life > 0.12 ? 1 : 0.4 + 0.6 * s.life / 0.12);   // the dying ones fade
+      d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255 * a;
     }
     g.putImageData(img, 0, 0);
   };
