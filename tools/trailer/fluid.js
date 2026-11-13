@@ -61,8 +61,8 @@ export const makeFluid = (r, { simW = 256, simH = 144, dyeW = 1024, dyeH = 576 }
       vec2 sc = (spr.xy + spr.zw) * .5, sh = (spr.zw - spr.xy) * .5, rel = (vUv - sc) / max(sh, vec2(1e-4));
       float ins = step(abs(rel.x), 1.) * step(abs(rel.y), 1.);
       v += spread * dt * ins * normalize(rel + 1e-4) * smoothstep(0., .6, length(rel));
-      vec2 q = vUv * vec2(aspect, 1.) * 2.5 + vec2(0., -time * .15);
-      v += turb * dt * vec2(n(q + vec2(time * .07, 3.1)) - .5, n(q + vec2(7.3, time * .06)) - .5);
+      vec2 q = vUv * vec2(aspect, 1.) * 2.5 + vec2(0., -time * .04);   // slow turbulence: shapes change over seconds
+      v += turb * dt * vec2(n(q + vec2(time * .02, 3.1)) - .5, n(q + vec2(7.3, time * .017)) - .5);
       gl_FragColor = vec4(v, 0., 1.); }`,
     { vel: { value: null }, dye: { value: null }, dt: { value: 0 }, time: { value: 0 }, buoy: { value: 0 }, turb: { value: 0 },
       em: { value: [0, 1, 2, 3].map(() => new THREE.Vector4()) }, spread: { value: 0 }, spr: { value: new THREE.Vector4(-1, -1, -1, -1) }, dir: { value: [0, 1, 2, 3].map(() => new THREE.Vector2()) }, aspect: { value: simW / simH } });
@@ -81,10 +81,10 @@ export const makeFluid = (r, { simW = 256, simH = 144, dyeW = 1024, dyeH = 576 }
     obs.value.set(...(obstacle ?? [-1, -1, -1, -1])); force.uniforms.spr.value.set(...(spreadRect ?? [-1, -1, -1, -1])); force.uniforms.spread.value = spread;
   };
   const step = () => {
-    const dt = 1 / 50; S.t++; S.time += dt;                                    // two steps per video frame (50 per second)
+    const dt = 1 / 25; S.t++; S.time += dt;                                    // one step per video frame
     S.emitters.forEach((e, k) => {
       // each emitter breathes and wanders a little: no two moments the same
-      const w = Math.sin(S.time * (.7 + k * .23) + k * 1.7), w2 = Math.sin(S.time * (1.9 + k * .31) + k);
+      const w = Math.sin(S.time * (.25 + k * .08) + k * 1.7), w2 = Math.sin(S.time * (.5 + k * .11) + k);
       force.uniforms.em.value[k].set(e[0] + .004 * w, e[1] + .006 * w2, e[2], e[3] * (.9 + .1 * w2));
       const a = Math.atan2(e[5], e[4]) + .22 * Math.sin(S.time * (.35 + k * .13) + k * 2.3);
       force.uniforms.dir.value[k].set(Math.cos(a), Math.sin(a));
@@ -108,6 +108,6 @@ export const makeFluid = (r, { simW = 256, simH = 144, dyeW = 1024, dyeH = 576 }
     run(advect, dye.write); dye.swap();
   };
   // run the simulation up to video frame i (two steps per frame), with pre-roll so the smoke is already there
-  const to = (i, preroll = 150) => { while (S.t < 2 * (i + preroll)) step(); };
+  const to = (i, preroll = 400) => { while (S.t < i + preroll) step(); };   // a long warm-up: the smoke already hangs in the air
   return { setup, to, get texture() { return dye.read.texture; }, _dye: () => dye.read, _vel: () => vel.read };
 };

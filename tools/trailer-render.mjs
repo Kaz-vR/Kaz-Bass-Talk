@@ -22,6 +22,7 @@ const server = createServer(async (q, s) => {
 await mkdir(OUT, { recursive: true });
 const b = await chromium.launch({ ...(exe ? { executablePath: exe } : {}), args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const p = await b.newPage({ viewport: { width: WW, height: HH }, deviceScaleFactor: 1 });
+p.setDefaultTimeout(0);                                                 // the first frame of a shot can take long (simulation warm-up)
 p.on('console', (m) => m.type() === 'error' && console.log('page:', m.text()));
 p.on('pageerror', (e) => console.log('page error:', e.message));
 await p.goto(`http://localhost:4185/tools/trailer/render.html?w=${WW}`);

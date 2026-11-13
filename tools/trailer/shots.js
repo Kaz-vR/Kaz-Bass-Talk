@@ -219,11 +219,18 @@ const fin = sh(`
     }
     if (fineSp > 0.) {
       // fine sparks, laid in after the grade in exactly #f25d07: a solid core, and a faint glow of the same colour
-      float I = texture2D(tSpark, vUv).r, G = 0.;
-      for (int k = 0; k < 12; k++) { float an = float(k) * .5236; G += texture2D(tSpark, vUv + vec2(cos(an), sin(an)) * vec2(4.5 / 1920., 4.5 / 1080.)).r + texture2D(tSpark, vUv + vec2(cos(an + .26), sin(an + .26)) * vec2(9. / 1920., 9. / 1080.)).r * .6; }
-      float core = clamp(I * 3., 0., 1.);
-      col += vec3(.949, .365, .027) * clamp(G / 19., 0., 1.) * .55 * (1. - core);   // its glow, the same colour, around the core
-      col = mix(col, vec3(.949, .365, .027), core);                          // the core exactly #f25d07
+      // colour follows temperature, in the house colours only: hot #f25d07, cooling #f23005, cool #f20000 fading out;
+      // the glow round a spark is one step cooler than its core (as a glowing thing looks through a lens)
+      vec4 sp = texture2D(tSpark, vUv); float I = sp.r, Tc = sp.g / max(sp.r, 1e-4), Gr = 0., Gg = 0.;
+      for (int k = 0; k < 12; k++) { float an = float(k) * .5236;
+        vec4 a1 = texture2D(tSpark, vUv + vec2(cos(an), sin(an)) * vec2(4.5 / 1920., 4.5 / 1080.)), a2 = texture2D(tSpark, vUv + vec2(cos(an + .26), sin(an + .26)) * vec2(9. / 1920., 9. / 1080.));
+        Gr += a1.r + a2.r * .6; Gg += a1.g + a2.g * .6; }
+      float Tg = Gg / max(Gr, 1e-4) - .34;
+      vec3 HOT = vec3(.949, .365, .027), MID = vec3(.949, .188, .02), RED = vec3(.949, 0., 0.);
+      vec3 cc = Tc > .66 ? HOT : Tc > .33 ? MID : RED, gc = Tg > .66 ? HOT : Tg > .33 ? MID : RED;
+      float core = clamp(I * 3., 0., 1.) * (Tc > .33 ? 1. : max(Tc, 0.) / .33);   // the coolest fade into the dark, never darker colours
+      col += gc * clamp(Gr / 19., 0., 1.) * .55 * (1. - core);
+      col = mix(col, cc, core);
     }
     if (tint > 0.) { float lt = dot(col, vec3(.2126,.7152,.0722)); vec3 T = vec3(.949, .365, .027) / dot(vec3(.949, .365, .027), vec3(.2126,.7152,.0722));
       col = mix(col, lt * T, tint * smoothstep(.0, .25, lt)); }                  // a wash of #f25d07 over the image
@@ -310,6 +317,7 @@ const spSpawn = (s, anywhere) => { const R = sparks.rnd, f = sparks.focus;
   s.x = cam.position.x + v.x * dist; s.y = cam.position.y + v.y * dist; s.z = cam.position.z + v.z * dist; s.prev = null;
   const sp = f * (.08 + R() * .2);
   s.vx = (R() - .3) * sp * .25; s.vy = sp; s.vz = 0; s.ph = R() * 6.28; s.b = .35 + Math.pow(R(), 2) * 1.2; s.max = 1.6 + R() * 2.2;
+  s.t0 = .5 + .5 * Math.pow(R(), .7); s.vy *= .6 + .6 * s.t0; s.vx *= .6 + .6 * s.t0;   // how hot it is born: hotter sparks fly faster
   if (!s.ash && spMat.uniforms.fine.value > .5) { s.vx = sp * (.5 + R() * .6) * (R() < .3 ? -1 : 1); }   // fine sparks fly on a diagonal
   if (s.ash) { s.vy = -f * (.025 + R() * .05); s.vx = (R() - .5) * f * .03; s.b = .45 + R() * .7; s.max = 6 + R() * 6; }   // ash: slow, falling, drifting
   s.life = anywhere ? R() * s.max : s.max; return s; };
@@ -331,9 +339,10 @@ const sparksDraw = (focusDist, apert) => {
     const z = -v.set(s.x, s.y, s.z).applyMatrix4(vm).z, blurred = apert * K * Math.abs(z - focusDist) / z > 3;
     if (blurred && spMat.uniforms.fine.value < .5) s.prev = [s.x, s.y, s.z];   // (fine sparks always keep their streak)
     const fineS = spMat.uniforms.fine.value > .5;
-    const f = s.life / s.max, c = s.ash ? ASH : fineS ? [1, 1, 1] : f > .7 ? SPC[0] : f > .45 ? SPC[1] : f > .18 ? SPC[2] : SPC[3];
+    const f = s.life / s.max, T = s.t0 * (.25 + .75 * f), c = s.ash ? ASH : fineS ? [1, T, 0] :   // fine sparks: red = light, green = light x temperature (coloured after the grade)
+       f > .7 ? SPC[0] : f > .45 ? SPC[1] : f > .18 ? SPC[2] : SPC[3];
     // ash glints as it tumbles and fades in and out; sparks fade as they die
-    const fade = (s.ash ? Math.min(1, f * 4, (1 - f) * 8) * (.45 + .55 * Math.abs(Math.sin(sparks.t * .09 + s.ph))) : Math.min(1, f * 6)) / SUB * 1.6 * s.b;
+    const fade = (s.ash ? Math.min(1, f * 4, (1 - f) * 8) * (.45 + .55 * Math.abs(Math.sin(sparks.t * .09 + s.ph))) : Math.min(1, f * 6) * (fineS ? .55 + .45 * T : 1)) / SUB * 1.6 * s.b;   // cooler sparks are dimmer
     const sh = spMat.uniforms.fine.value > .5 && !s.ash ? .55 : 1;                  // fine sparks: a long shutter, a streak
     for (let j = 0; j < SUB; j++) { const u = 1 - (1 - j / SUB) * sh, pr = s.prev ?? [s.x, s.y, s.z];
       P_[k] = pr[0] + (s.x - pr[0]) * u; P_[k + 1] = pr[1] + (s.y - pr[1]) * u; P_[k + 2] = pr[2] + (s.z - pr[2]) * u;
@@ -604,12 +613,12 @@ window.setup = (name) => {
     const PANEL = [U(-PW / 2), Vv(-PH / 2), U(PW / 2), Vv(PH / 2)];
     const px = (u, v) => [Math.min(.95, Math.max(.05, u)), Math.min(.95, Math.max(.05, v))];
     // above the synth: rising from low in the view, fanning out along its face
-    FL.setup([[...px(.3, .14), .035, 340, .25, 1, 5], [...px(.62, .1), .035, 300, -.1, 1, 4.5], [...px(.85, .3), .03, 280, -.3, 1, 4]],
-      { buoy: 4, turb: 3, eps: 7, keepDye: .997, spreadRect: PANEL, spread: 70 });
+    FL.setup([[...px(.3, .14), .05, 60, .25, 1, 1.6], [...px(.62, .1), .05, 55, -.1, 1, 1.4], [...px(.85, .3), .045, 50, -.3, 1, 1.3]],
+      { buoy: 1, turb: 1.2, eps: 4, keepDye: .9992, spreadRect: PANEL, spread: 14 });
     // behind it: rising along its edge and spilling round it (the panel is a wall to this smoke)
     const eu = PANEL[0] - .05, tv = PANEL[3] + .04;
-    FL2.setup([[...px(eu, .15), .035, 320, .1, 1, 7], [...px(eu, .45), .03, 260, .3, 1, 5], [...px(.5, Math.min(.9, tv)), .03, 240, .8, .3, 4]],
-      { buoy: 6, turb: 4, eps: 9, keepDye: .996, obstacle: PANEL });
+    FL2.setup([[...px(eu, .15), .05, 60, .1, 1, 2.2], [...px(eu, .45), .045, 50, .3, 1, 1.6], [...px(.5, Math.min(.9, tv)), .045, 45, .8, .3, 1.3]],
+      { buoy: 1.4, turb: 1.5, eps: 5, keepDye: .999, obstacle: PANEL });
   }
 
   shot.reset?.(); return shot.frames; };
