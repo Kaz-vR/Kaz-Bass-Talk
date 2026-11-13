@@ -27,23 +27,19 @@ worn, cinematic, alive (LORN, see the root `CLAUDE.md`).
 
 All colours are CSS variables at the top of `website/style.css`.
 
-### The warm colours: only the synth's own (owner's call)
-Every warm colour on the site comes from the synth's four warm colours, in this order on one gradient:
-**sand `#c09b6d` → logo orange `#d66624` → OSC B `#e83911` → OSC A `#ea1f1f`**. A colour may be one of the four, a
-lighter, darker, more or less saturated step of one **at the same hue**, or a colour **between two of them on that
-gradient**. Never a new hue.
+### The warm colours: exactly the synth's own four (owner's call)
+Every warm colour on the site is **exactly** one of the synth's four warm colours, never a lighter, darker or less
+saturated version and never a new hue: **sand `#c09b6d`, logo orange `#d66624`, OSC B `#e83911`, OSC A `#ea1f1f`**.
+Glows use them with transparency over black (that is the only way they fade).
 
-| Name | Hex | Variable | From | Use |
-|---|---|---|---|---|
-| Buy orange | `#e83911` | `--buy` | OSC B, exactly | Every Buy button (menu, header, Buy part), glow `rgba(232,57,17,.45)` (hover `.75`) |
-| Red | `#ea1f1f` | `--red` | OSC A | The play outline, active states, the carousel's active cue, arrow hover |
-| Logo orange | `#d66624` | `--logo`, `--hot` | the logo | The logo; small labels (Sound, Inside, Specs); keyboard focus ring |
-| Deep red | `#7f0a0a` | `--deep` | OSC A darkened | The outer edge of glows, where the light falls off into black |
-| Ember core | `#e99f67` | `--core` | between logo and sand, lighter | The hottest centre of a glow (the header's lamp), the newest sparks |
+| Hex | Variable | Use |
+|---|---|---|
+| OSC B `#e83911` | `--buy` | Every Buy button (menu, header, Buy part), glow `rgba(232,57,17,.45)` (hover `.75`) |
+| OSC A `#ea1f1f` | `--red`, `--deep` | The play outline, active states, the carousel's active cue, arrow hover; the outer edge of glows |
+| Logo `#d66624` | `--logo`, `--hot` | The logo; small labels (Sound, Inside, Specs); keyboard focus ring |
+| Sand `#c09b6d` | `--sand` | The centre of the header's lamp glow; the newest sparks |
 
-Glows are made of these with transparency (orange core → OSC B / OSC A → deep red → black). The pixel fire runs
-black → OSC A darkened in steps (`#1c0202`, `#4b0606`, `#7f0a0a`, `#bd0f0f`) → OSC A → OSC B → logo orange at the
-hottest; sparks cool ember core → logo orange → OSC A → deep red.
+The pixel fire runs black → OSC A → OSC B → logo orange at the hottest; sparks cool sand → logo → OSC B → OSC A.
 
 ### Neutrals
 | Hex | Use |
@@ -81,7 +77,7 @@ Glows are layered and complex (the owner likes "the more complex gradient"), nev
 always fade to pure black.
 - **Header:** two beams of a rotating warning light, frozen mid-turn, sweeping from the top right (a
   `conic-gradient` from about 200deg at 82% 18%, blurred 18px, masked to fade out at the bottom), plus a lamp
-  glow (a 220px radial blob, ember core to OSC A red, at the top right).
+  glow (a 220px radial blob, sand at the centre to OSC A red, at the top right).
 - **Audio demo:** a soft red radial glow behind the video, `rgba(255,60,20,.14)` to `rgba(120,10,4,.08)`
   to transparent.
 - **Buy part:** a glow rising from the bottom centre: logo orange `.32` to OSC B `.22` to deep red `.12`
@@ -188,8 +184,8 @@ Restrained (owner picked motions 1 and 3 from the motion pitches):
 - The menu shrinks into a black bar on scroll and lights the link of the part you are in.
 - The carousel slides with the same curve.
 - **Pixel embers** (owner's pick of three: Inferno, Embers, Dither): a low, smouldering pixel fire (6px blocks,
-  deep red to OSC A red, OSC B and logo orange, no yellow) slowly breathing along the bottom of the Buy part, and single-pixel
-  sparks drifting up out of it, cooling (pale orange, orange, red, deep red) as they rise. The same sparks drift behind
+  OSC A red, OSC B and logo orange, no yellow) slowly breathing along the bottom of the Buy part, and single-pixel
+  sparks drifting up out of it, cooling (sand, logo orange, OSC B, OSC A) as they rise. The same sparks drift behind
   the Header's content. Plain canvas in `main.js` (`embers()`), 24 frames a second, only while on screen; with
   reduced motion the fire is one still frame and the header has no sparks.
 - Everything is off with `prefers-reduced-motion`.
@@ -235,6 +231,9 @@ service like UXKIN (owner's call). Use it for every design decision, before rely
   Render pitches on the real site or real assets, desktop and phone, and label each one.
 - Check against references in `references/` and measure (sizes, contrast, alignment) instead of eyeballing.
 - After a change, check desktop (1440), tablet (820) and phone (390): no errors, no sideways scroll.
-- Publish to the website artifact and always give both links (see the root `CLAUDE.md`).
+- Publish to the website artifact and always give both links (see the root `CLAUDE.md`). Rewrite `../design/` to
+  `design/` in **both** `index.html` and `style.css` (the font is loaded from the stylesheet; once it was missed and the
+  site fell back to a system font). The published `tuner.js` loads the owner's saved tuning and forces some colours
+  over the stylesheet: check the live page with that saved tuning loaded before saying a colour change is done.
 - **Never push to GitHub unless the owner says so.** Commit locally.
 - Use the installed design skills (UI review, polish, frontend-design) for reviews and larger changes.

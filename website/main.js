@@ -136,10 +136,10 @@ const embers = (host, { flames, count }) => {
   host.prepend(cv);
   const g = cv.getContext('2d');
   const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-  // the synth's own colours: OSC A's red darkened to black, then OSC A, OSC B and the logo orange at the hottest
-  const STOPS = ['#000000', '#1c0202', '#4b0606', '#7f0a0a', '#bd0f0f', '#ea1f1f', '#e83911', '#d66624'].map(hex), MAX = 24;
+  // only the synth's own colours (owner's call): black, then OSC A, OSC B and the logo orange at the hottest
+  const STOPS = ['#000000', '#ea1f1f', '#e83911', '#d66624'].map(hex), MAX = 24;
   const PAL = Array.from({ length: MAX + 1 }, (_, i) => { const t = i / MAX * (STOPS.length - 1), k = Math.min(STOPS.length - 2, Math.floor(t)), f = t - k; return STOPS[k].map((v, j) => Math.round(v + (STOPS[k + 1][j] - v) * f)); });
-  const HOT = hex('#e99f67'), ORANGE = hex('#d66624'), RED = hex('#ea1f1f'), DEEP = hex('#7f0a0a');   // pale core (logo to sand), logo, OSC A, deep OSC A
+  const HOT = hex('#c09b6d'), ORANGE = hex('#d66624'), RED = hex('#e83911'), DEEP = hex('#ea1f1f');   // sparks cool: sand, logo, OSC B, OSC A
   let W = 0, H = 0, heat, img, t = 0, sparks = [];
   const spawn = (s, anywhere) => {
     s.x = Math.random() * W; s.v = 0.25 + Math.random() * 0.5; s.p = Math.random() * 6;

@@ -4,9 +4,9 @@
 @font-face { font-family: Manrope; font-weight: 200 600; font-display: swap; src: url('../design/fonts/manrope-latin-var.woff2') format('woff2'); }
 :root {
   --ink: #ece8e4; --head: #f3eee8; --soft: #9b958f; --mute: #7a746f; --dim: #55504c;
-  /* every warm colour is one of the synth's four (OSC A, OSC B, the logo, the sand), or a lighter/darker step of one at the
-     same hue, or a colour between two of them on that gradient (owner's call) */
-  --red: #ea1f1f; --buy: #e83911; --logo: #d66624; --hot: #d66624; --deep: #7f0a0a; --core: #e99f67;
+  /* every warm colour is exactly one of the synth's four, nothing lighter, darker or less saturated (owner's call):
+     OSC A #ea1f1f, OSC B #e83911, the logo #d66624, the sand #c09b6d. Glows use them with transparency over black. */
+  --red: #ea1f1f; --buy: #e83911; --logo: #d66624; --hot: #d66624; --deep: #ea1f1f; --sand: #c09b6d;
   --ease: cubic-bezier(.2, .7, .2, 1);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -43,7 +43,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   background: conic-gradient(from 200deg at 82% 18%, transparent 0deg, rgba(234,31,31,0) 8deg, rgba(232,57,17,.30) 18deg, rgba(214,102,36,.16) 26deg, transparent 40deg, transparent 150deg, rgba(234,31,31,.16) 165deg, transparent 185deg);
   filter: blur(18px); -webkit-mask: linear-gradient(180deg, #000 55%, transparent 92%); mask: linear-gradient(180deg, #000 55%, transparent 92%); }
 .hero::after { content: ''; position: absolute; right: 14%; top: 10%; width: 220px; height: 220px; border-radius: 50%; pointer-events: none;
-  background: radial-gradient(circle, rgba(233,159,103,.55), rgba(234,31,31,.25) 40%, transparent 70%); filter: blur(6px); }
+  background: radial-gradient(circle, rgba(192,155,109,.55), rgba(234,31,31,.25) 40%, transparent 70%); filter: blur(6px); }
 .copy, .synth { position: relative; z-index: 2; }
 h1.lockup { display: flex; justify-content: center; align-items: flex-start; gap: 26px; font-weight: 300; }
 .lockup .mark { height: 96px; width: auto; flex: none; }
@@ -68,7 +68,7 @@ h2 { font-weight: 300; font-size: 54px; letter-spacing: -.02em; margin-top: 18px
 
 /* AUDIO DEMO PART: no frame; a red glow behind; the logo is the play button */
 .vid { position: relative; width: 1040px; max-width: 100%; margin: 56px auto 0; aspect-ratio: 16 / 9; display: grid; place-items: center; }
-.vid::before { content: ''; position: absolute; inset: -10% -14%; background: radial-gradient(ellipse at 50% 55%, rgba(232,57,17,.14), rgba(127,10,10,.08) 35%, transparent 62%); pointer-events: none; }
+.vid::before { content: ''; position: absolute; inset: -10% -14%; background: radial-gradient(ellipse at 50% 55%, rgba(232,57,17,.14), rgba(234,31,31,.08) 35%, transparent 62%); pointer-events: none; }
 .vid video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .6s; }
 .vid.playing video { opacity: 1; }
 .vid-play { position: relative; display: grid; justify-items: center; gap: 22px; }
@@ -101,7 +101,7 @@ h2 { font-weight: 300; font-size: 54px; letter-spacing: -.02em; margin-top: 18px
 /* BUY PART: the siren glow rising from the bottom */
 .end { position: relative; overflow: hidden; text-align: center; padding: 230px 48px 330px; scroll-margin-top: 56px; }
 .end::before { content: ''; position: absolute; left: 50%; bottom: -240px; width: 1500px; height: 700px; margin-left: -750px; pointer-events: none;
-  background: radial-gradient(ellipse at 50% 100%, rgba(214,102,36,.32), rgba(234,31,31,.22) 25%, rgba(127,10,10,.12) 50%, transparent 70%); }
+  background: radial-gradient(ellipse at 50% 100%, rgba(214,102,36,.32), rgba(234,31,31,.22) 25%, rgba(234,31,31,.12) 50%, transparent 70%); }
 .end > * { position: relative; z-index: 1; }
 /* the pixel embers (main.js): the fire at the bottom of the Buy part, its sparks in the header; behind the content */
 canvas.embers { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; pointer-events: none; z-index: 0; }
