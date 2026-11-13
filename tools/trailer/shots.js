@@ -11,7 +11,9 @@ const meta = await (await fetch(`${CAP}/meta.json`)).json();
 // raw(): a hex colour passed through untouched (this pipeline outputs its values as they are, like the website's picture)
 const raw = (x) => new THREE.Color().setRGB(...[1, 3, 5].map((i) => parseInt(x.slice(i, i + 2), 16) / 255), THREE.LinearSRGBColorSpace);
 // the website's siren colours (website/DESIGN.md), the only light in RUIN-1's dark
-const SIREN = { red: '#ff2a14', hot: '#ff6a1a', deep: '#8a0a04', core: '#ffb070', head: '#f3eee8' };
+// the house colours (owner's pick): orange #f25d07, red-orange #f23005, red #f20000; light falls off by transparency
+const HOUSE = { orange: '#f25d07', redorange: '#f23005', red: '#f20000' };
+const SIREN = { red: HOUSE.redorange, hot: HOUSE.orange, deep: HOUSE.red, core: HOUSE.orange, head: '#f3eee8' };
 const C = { red: '#ea1f1f', orange: '#e83911', green: '#129b82', blue: '#5f64c8', purple: '#6c3a9c', sand: '#c09b6d', phaser: '#aa418e' };
 const col = (h) => new THREE.Color(h);
 
@@ -58,7 +60,7 @@ const haze = (hex, x, y, z, s, a) => {
 // two looks: 'artistry' (the references' violet haze) and 'ruin' (the siren glow, fading to pure black)
 const HAZE = {
   artistry: [haze(C.purple, -700, -300, -900, 2600, 0.55), haze(C.red, 900, 350, -1100, 2200, 0.35), haze(C.blue, 200, -700, -700, 1600, 0.25)],
-  ruin: [haze(SIREN.deep, -600, -450, -900, 2800, 0.7), haze(SIREN.red, 800, -500, -1100, 2000, 0.32), haze(SIREN.hot, 300, -800, -800, 900, 0.22)],
+  ruin: [haze(SIREN.deep, -600, -450, -900, 2800, 0.4), haze(SIREN.red, 800, -500, -1100, 2000, 0.32), haze(SIREN.hot, 300, -800, -800, 900, 0.22)],
 };
 const setLook = (look) => { for (const [k, ms] of Object.entries(HAZE)) for (const m of ms) m.visible = k === look; fin.uniforms.ruin.value = look === 'ruin' ? 1 : 0; };
 
@@ -114,15 +116,15 @@ const fin = sh(`
       col = .04 + col * 1.08;
     } else {
       // RUIN-1: pure black, neutral shadows (the module colours untouched), highlights bloom warm with a red halation
-      col += vec3(1., .32, .1) * dot(g, vec3(.2126,.7152,.0722)) * .55;   // red bleed round bright lines (film halation)
+      col += vec3(1., .198, .021) * dot(g, vec3(.2126,.7152,.0722)) * .55;   // red bleed round bright lines (film halation), #f23005
       col = max(col * 1.1 - .006, 0.);                                     // the floor is black, not grey
       if (fire > 0.) {
         // firelight: a warm, flickering spill rising from below the frame, highlights pushed to hot orange; black stays black
         float fl = .86 + .08 * sin(time * 9.1) + .06 * sin(time * 5.3 + 1.7) * sin(time * 13.7);
         float spill = smoothstep(1.05, -.1, vUv.y) * fl, l2 = dot(col, vec3(.2126,.7152,.0722));
-        col *= mix(vec3(1.), vec3(1.28, .86, .62), fire * (.45 + .55 * spill));
-        col += vec3(1., .3, .06) * fire * spill * (.035 * smoothstep(.0, .08, l2) + .02);
-        col = mix(col, col * vec3(1.08, .8, .55), fire * smoothstep(.45, 1., l2) * .6);
+        col *= mix(vec3(1.), mix(vec3(1.), vec3(1., .384, .029), .32) * 1.18, fire * (.45 + .55 * spill));   // a warm cast towards #f25d07
+        col += vec3(1., .198, .021) * fire * spill * (.035 * smoothstep(.0, .08, l2) + .02);                   // the spill: #f23005
+        col = mix(col, col * mix(vec3(1.), vec3(1., .384, .029), .4) * 1.08, fire * smoothstep(.45, 1., l2) * .6);   // highlights towards #f25d07
       }
     }
     col = col / (1. + max(col - .86, 0.) * 1.6);                           // soft knee: nothing clips
@@ -158,7 +160,7 @@ const spMat = new THREE.ShaderMaterial({
       gl_FragColor = vec4(vCol * e, 1.); }`,
   blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, transparent: true });
 const spScene = new THREE.Scene(), spPts = new THREE.Points(spGeo, spMat); spPts.frustumCulled = false; spScene.add(spPts);   // never culled (its bounds move with every shot)
-const SPC = [[1, .69, .44], [1, .42, .1], [1, .16, .08], [.54, .04, .02]].map((c) => c.map((v) => v * 3.2));  // core, hot, red, deep (×brightness)
+const SPC = [[.949, .365, .027], [.949, .188, .02], [.949, 0, 0], [.52, 0, 0]].map((c) => c.map((v) => v * 3.2));  // #f25d07, #f23005, #f20000, #f20000 fading (×brightness)
 const sparks0 = { on: false, t: 0, list: [], focus: 400, rnd: Math.random };
 // sparks are born inside the camera's view: most near the focus plane (sharp pinpoints), a few close to the lens (bokeh)
 const sparks = Object.assign(sparks0, {});
