@@ -29,21 +29,21 @@ All colours are CSS variables at the top of `website/style.css`.
 
 ### The warm colours: exactly the synth's own four (owner's call)
 Every warm colour on the site is **exactly** one of the synth's four warm colours, never a lighter, darker or less
-saturated version and never a new hue: **sand `#c09b6d`, logo orange `#f25d07`, OSC B `#f23005`, OSC A `#ff0000`** (the owner's tuner save of 13 Nov).
+saturated version and never a new hue: **sand `#c09b6d`, logo orange `#f25d07`, OSC B `#f23005`, OSC A `#f20000`** (the owner's tuner save of 13 Nov).
 Glows use them with transparency over black (that is the only way they fade).
 
 | Hex | Variable | Use |
 |---|---|---|
 | OSC B `#f23005` | `--buy` | Every Buy button (menu, header, Buy part), glow `rgba(242,48,5,.45)` (hover `.75`) |
-| OSC A `#ff0000` | `--red`, `--deep` | The play outline, active states, the carousel's active cue, arrow hover; the outer edge of glows |
+| OSC A `#f20000` | `--red`, `--deep` | The play outline, active states, the carousel's active cue, arrow hover; the outer edge of glows |
 | Logo `#f25d07` | `--logo`, `--hot` | The logo; small labels (Sound, Inside, Specs); keyboard focus ring |
 | Sand `#c09b6d` | `--sand` | (reserved) |
 
-**The fire's three colours (owner's pick):** `#f25d07` (hot orange), `#f23005` (red-orange), `#ff0000` (red). They are
+**The fire's three colours (owner's pick):** `#f25d07` (hot orange), `#f23005` (red-orange), `#f20000` (red). They are
 used for the fire and its light only: the header's two beams and lamp, the Buy part's rising glow, the pixel fire and
-all sparks. The pixel fire is this morning's fire with these colours: its dark reds are `#ff0000` made transparent to
-the same darkness, then `#f23005`, then `#f25d07` at the hottest; sparks cool `#f25d07` → `#f23005` → `#ff0000` →
-`#ff0000` fading into the black.
+all sparks. The pixel fire is this morning's fire with these colours: its dark reds are `#f20000` made transparent to
+the same darkness, then `#f23005`, then `#f25d07` at the hottest; sparks cool `#f25d07` → `#f23005` → `#f20000` →
+`#f20000` fading into the black.
 
 ### Neutrals
 | Hex | Use |
@@ -69,7 +69,7 @@ Visual sheet of the whole palette: ask Claude to render it (the owner keeps a PN
 
 ### The synth's colours (owner's paint-over)
 - **Buy buttons: OSC B `#f23005`** (`--buy`, owner's call), see the warm colours above.
-- **The synth's modules** (`src/ui/style.css`, "each box its own colour"): OSC A `#ff0000`, OSC B `#f23005`,
+- **The synth's modules** (`src/ui/style.css`, "each box its own colour"): OSC A `#f20000`, OSC B `#f23005`,
   amp envelope `#129b82`, filter and filter envelope `#5f64c8`, sub `#6c3a9c`, noise `#c09b6d`; the routing LEDs
   A / B / S / N follow their module. These colours lead every page of the synth (see `docs/ui.md`, tied colours). The wooden cheeks a very dark brown `#1c120d` (the owner's own tuning, saved from the colour tuner).
 
@@ -84,7 +84,7 @@ always fade to pure black.
   glow (a 220px radial blob, `#f25d07` at the centre to `#f23005`, at the top right).
 - **Audio demo:** a soft red radial glow behind the video, `rgba(255,60,20,.14)` to `rgba(120,10,4,.08)`
   to transparent.
-- **Buy part:** a glow rising from the bottom centre: `#f25d07` `.32` to `#f23005` `.22` to `#ff0000` `.12`
+- **Buy part:** a glow rising from the bottom centre: `#f25d07` `.32` to `#f23005` `.22` to `#f20000` `.12`
   to transparent, 1500 x 700px, anchored below the section; plus the pixel embers (see below).
 - **The synth image:** `drop-shadow(0 50px 60px rgba(0,0,0,.95))` plus a faint red glow
   `drop-shadow(0 0 40px rgba(255,40,20,.18))`.
@@ -189,7 +189,7 @@ Restrained (owner picked motions 1 and 3 from the motion pitches):
 - The carousel slides with the same curve.
 - **Pixel embers** (owner's pick of three: Inferno, Embers, Dither): a low, smouldering pixel fire (6px blocks,
   in the fire's three colours, no yellow) slowly breathing along the bottom of the Buy part, and single-pixel
-  sparks drifting up out of it, cooling (`#f25d07`, `#f23005`, `#ff0000`, then fading into the black) as they rise. The same sparks drift behind
+  sparks drifting up out of it, cooling (`#f25d07`, `#f23005`, `#f20000`, then fading into the black) as they rise. The same sparks drift behind
   the Header's content. Plain canvas in `main.js` (`embers()`), 24 frames a second, only while on screen; with
   reduced motion the fire is one still frame and the header has no sparks.
 - Everything is off with `prefers-reduced-motion`.

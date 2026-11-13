@@ -3753,7 +3753,7 @@ export class SynthView {
     const COLS = new Proxy([] as string[], { get: (_t, key) => {
       const k = Number(key); if (typeof key !== 'string' || !Number.isInteger(k) || !PARTS[k]) return undefined;
       const v = tied(k) ? toHex(getComputedStyle(this.page).getPropertyValue(tied(k)).trim()) : '';
-      return v || (PARTS[k].kind === 'drive' ? '#ff0000' : PARTS[k].kind === 'eq' ? EQ_COLS[PARTS[k].n - 1] : '#5f64c8'); } });
+      return v || (PARTS[k].kind === 'drive' ? '#f20000' : PARTS[k].kind === 'eq' ? EQ_COLS[PARTS[k].n - 1] : '#5f64c8'); } });
     const NAMES = PARTS.map((p) => `${p.kind.toUpperCase()} ${p.n}`);
     const ALL_K = PARTS.map((_, k) => k);
     const stageOf = (k: number) => PARTS[k].n;

@@ -5,10 +5,10 @@
 :root {
   --ink: #ece8e4; --head: #f3eee8; --soft: #9b958f; --mute: #7a746f; --dim: #55504c;
   /* the warm colours are exact, nothing lighter, darker or less saturated (owner's call), the synth's own, from the
-     owner's tuner save: OSC A #ff0000, OSC B #f23005 (also Buy), the logo #f25d07, the sand #c09b6d. The fire (the
+     owner's tuner save: OSC A #f20000, OSC B #f23005 (also Buy), the logo #f25d07, the sand #c09b6d. The fire (the
      header's beams and lamp, the Buy part's glow, the pixel fire and sparks) uses the same three. Glows fade only
      with transparency. */
-  --red: #ff0000; --buy: #f23005; --logo: #f25d07; --hot: #f25d07; --deep: #ff0000; --sand: #c09b6d;
+  --red: #f20000; --buy: #f23005; --logo: #f25d07; --hot: #f25d07; --deep: #f20000; --sand: #c09b6d;
   --ease: cubic-bezier(.2, .7, .2, 1);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,7 +27,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .b2:hover { border-color: var(--ink); }
 .bs { height: 34px; padding: 0 16px; font-size: 11px; }
 .sq { width: 52px; height: 52px; border: 1px solid #4a4542; display: grid; place-items: center; font-size: 22px; flex: none; transition: border-color .3s, box-shadow .3s; }
-.sq:hover { border-color: var(--red); box-shadow: 0 0 14px rgba(255,0,0,.45); }
+.sq:hover { border-color: var(--red); box-shadow: 0 0 14px rgba(242,0,0,.45); }
 
 /* ---------- the menu: on top of the page; shrinks into a black bar once the page scrolls */
 .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 20; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: 68px; padding: 0 48px; transition: height .4s var(--ease), background .4s; }
@@ -57,8 +57,8 @@ h1.lockup { display: flex; justify-content: center; align-items: flex-start; gap
 .meta { margin-top: 40px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #6c6762; }
 .synth { position: relative; perspective: 1600px; width: min(860px, 100%); margin: 0 auto 64px; touch-action: pan-y; }
 /* the synth facing you, tipped back a little (owner's call); the 3D version (hero3d.js) draws over it and turns */
-.synth img { width: 100%; transform: rotateX(3deg); transform-origin: 50% 50%; filter: drop-shadow(0 50px 60px rgba(0,0,0,.95)) drop-shadow(0 0 40px rgba(255,0,0,.18)); }
-.synth .synth3d { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); cursor: grab; filter: drop-shadow(0 50px 60px rgba(0,0,0,.95)) drop-shadow(0 0 40px rgba(255,0,0,.18)); }
+.synth img { width: 100%; transform: rotateX(3deg); transform-origin: 50% 50%; filter: drop-shadow(0 50px 60px rgba(0,0,0,.95)) drop-shadow(0 0 40px rgba(242,0,0,.18)); }
+.synth .synth3d { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); cursor: grab; filter: drop-shadow(0 50px 60px rgba(0,0,0,.95)) drop-shadow(0 0 40px rgba(242,0,0,.18)); }
 .synth .synth3d.grab { cursor: grabbing; }
 .synth.live img { visibility: hidden; }
 .synth.live { aspect-ratio: 2716 / 1500; } /* keeps its height even when the picture is taken out */
@@ -70,7 +70,7 @@ h2 { font-weight: 300; font-size: 54px; letter-spacing: -.02em; margin-top: 18px
 
 /* AUDIO DEMO PART: no frame; a red glow behind; the logo is the play button */
 .vid { position: relative; width: 1040px; max-width: 100%; margin: 56px auto 0; aspect-ratio: 16 / 9; display: grid; place-items: center; }
-.vid::before { content: ''; position: absolute; inset: -10% -14%; background: radial-gradient(ellipse at 50% 55%, rgba(242,48,5,.14), rgba(255,0,0,.08) 35%, transparent 62%); pointer-events: none; }
+.vid::before { content: ''; position: absolute; inset: -10% -14%; background: radial-gradient(ellipse at 50% 55%, rgba(242,48,5,.14), rgba(242,0,0,.08) 35%, transparent 62%); pointer-events: none; }
 .vid video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .6s; }
 .vid.playing video { opacity: 1; }
 .vid-play { position: relative; display: grid; justify-items: center; gap: 22px; }
@@ -103,7 +103,7 @@ h2 { font-weight: 300; font-size: 54px; letter-spacing: -.02em; margin-top: 18px
 /* BUY PART: the siren glow rising from the bottom */
 .end { position: relative; overflow: hidden; text-align: center; padding: 230px 48px 330px; scroll-margin-top: 56px; }
 .end::before { content: ''; position: absolute; left: 50%; bottom: -240px; width: 1500px; height: 700px; margin-left: -750px; pointer-events: none;
-  background: radial-gradient(ellipse at 50% 100%, rgba(242,93,7,.32), rgba(242,48,5,.22) 25%, rgba(255,0,0,.12) 50%, transparent 70%); }
+  background: radial-gradient(ellipse at 50% 100%, rgba(242,93,7,.32), rgba(242,48,5,.22) 25%, rgba(242,0,0,.12) 50%, transparent 70%); }
 .end > * { position: relative; z-index: 1; }
 /* the pixel embers (main.js): the fire at the bottom of the Buy part, its sparks in the header; behind the content */
 canvas.embers { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; pointer-events: none; z-index: 0; }

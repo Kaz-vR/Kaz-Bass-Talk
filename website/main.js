@@ -137,8 +137,8 @@ const embers = (host, { flames, count }) => {
   const g = cv.getContext('2d');
   const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
   // This morning's fire (owner's call), in the owner's three fire colours: hot orange #f25d07, red-orange #f23005, red
-  // #ff0000. Its old dark reds are #ff0000 made transparent to the same darkness, so it smoulders exactly as before.
-  const RED0 = hex('#ff0000'), ROR = hex('#f23005'), ORG = hex('#f25d07');
+  // #f20000. Its old dark reds are #f20000 made transparent to the same darkness, so it smoulders exactly as before.
+  const RED0 = hex('#f20000'), ROR = hex('#f23005'), ORG = hex('#f25d07');
   const STOPS = [[RED0, 0], [RED0, 0x20 / 255], [RED0, 0x5a / 255], [RED0, 0x8a / 255], [RED0, 0xc8 / 255], [ROR, 1], [ORG, 1]], MAX = 24;
   const PAL = Array.from({ length: MAX + 1 }, (_, i) => { const t = i / MAX * (STOPS.length - 1), k = Math.min(STOPS.length - 2, Math.floor(t)), f = t - k;
     const [c0, a0] = STOPS[k], [c1, a1] = STOPS[k + 1]; return [c0.map((v, j) => Math.round(v + (c1[j] - v) * f)), a0 + (a1 - a0) * f]; });
