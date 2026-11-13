@@ -4,6 +4,7 @@
 // Post: depth of field from the depth buffer (thin lens), glow, colour fringes at the edges, vignette, grade, grain.
 // Two looks: 'ruin' (default: pure black, neutral shadows, siren glow, red halation) and 'artistry' (the references').
 import * as THREE from '/website/vendor/three.module.min.js';
+import { makeFluid } from './fluid.js';
 
 const W = Number(new URLSearchParams(location.search).get('w') ?? 1920), H = Math.round(W * 9 / 16), FPS = 25, K = W / 1920;
 const CAP = '/renders/trailer/capture';
@@ -129,7 +130,7 @@ const blur = sh(`varying vec2 vUv; uniform sampler2D t; uniform vec2 d; void mai
   for (int i = -8; i <= 8; i++) { float w = exp(-float(i*i) / 24.); s += texture2D(t, vUv + d * float(i)).rgb * w; ws += w; } gl_FragColor = vec4(s / ws, 1.); }`,
   { t: { value: null }, d: { value: new THREE.Vector2() } });
 const fin = sh(`
-  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp;
+  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid;
   float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time * 37.0) * 43758.5453); }
   float h2(vec2 p){ return fract(sin(dot(p, vec2(41.31, 289.13))) * 43758.5453); }
   float sn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
@@ -199,6 +200,14 @@ const fin = sh(`
       float sk = texture2D(tSmokeImg, vec2(q.x, 1. - q.y) + wv).r;
       col += vec3(.56, .54, .52) * sk * .27 * smoke;
     }
+    if (fluid > 0.) {
+      // simulated smoke: two layers between the lens and the synth (near, soft; mid, sharper), lit faintly warm
+      float a1 = texture2D(tFlA, vUv).r, a2 = texture2D(tFlB, vUv).r;
+      if (fluid > 1.5) { gl_FragColor = vec4(a1, a2, 0., 1.); return; }        // fluid=2: show the raw smoke layers (red near, green mid)
+      vec3 sc = vec3(.42, .41, .4);
+      col = mix(col, sc * (.6 + .4 * col.r), clamp(a2 * .8, 0., .36) * fluid);
+      col = mix(col, sc * .75, clamp(a1 * .6, 0., .28) * fluid);
+    }
     if (og > 0.) {
       // the owner's grade, fitted to their Photoshop of the slide: lift, gain and gamma per channel, then saturation
       vec3 o = vec3(0.0245, 0.0129, 0.0066) + vec3(1.2652, 1.2913, 1.3680) * pow(clamp(col, 0., 1.), vec3(1.3340, 1.3419, 1.3694));
@@ -217,7 +226,7 @@ const fin = sh(`
       col = mix(col, lt * T, tint * smoothstep(.0, .25, lt)); }                  // a wash of #f25d07 over the image
     col += (hash(vUv * 1000.) - .5) * grain;
     gl_FragColor = vec4(col, 1.);
-  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
+  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, fluid: { value: 0 }, tFlA: { value: null }, tFlB: { value: null }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
 
 // the glow: two rounds of a 17-tap blur in 1-texel steps at quarter size (coarser steps showed as stripes)
 const glowBlur = () => { for (let k = 0; k < 2; k++) {
@@ -331,6 +340,39 @@ const sparksDraw = (focusDist, apert) => {
   else { r.setRenderTarget(rtDof); r.autoClear = false; r.render(spScene, cam); r.autoClear = true; }
 };
 
+// ---------- simulated smoke (tools/trailer/fluid.js), shown on two sheets fixed in the world in front of the synth ----------
+const FL = makeFluid(r);
+const rtFl = [0, 1].map(() => [new THREE.WebGLRenderTarget(W, H, rtOpts), new THREE.WebGLRenderTarget(W, H, rtOpts)]);
+fin.uniforms.tFlA.value = rtFl[0][0].texture; fin.uniforms.tFlB.value = rtFl[1][0].texture;
+const sheetMat = (flip) => new THREE.ShaderMaterial({ uniforms: { dye: { value: null } }, transparent: true, depthTest: false, depthWrite: false,
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
+  fragmentShader: `uniform sampler2D dye; varying vec2 vUv; void main(){ vec2 u = vUv; ${flip ? 'u = vec2(1. - u.x * .8 - .1, u.y * .85 + .05);' : ''}
+    float d = texture2D(dye, u).r * 4.; float edge = smoothstep(0., .08, u.x) * smoothstep(1., .9, u.x) * smoothstep(0., .06, u.y) * smoothstep(1., .9, u.y);
+    gl_FragColor = vec4(vec3(smoothstep(.05, .9, 1. - exp(-d * 1.2))) * edge, 1.); }` });   // thin parts drop out: wisps with black between
+const sheets = [sheetMat(false), sheetMat(true)].map((m) => new THREE.Mesh(new THREE.PlaneGeometry(1, 1), m));
+const flScene = new THREE.Scene(); sheets.forEach((m) => flScene.add(m));
+const flu = { on: 0, anchored: false, dist: [.38, .8] };                       // the sheets' distance, as a share of the focus distance
+const fluidDraw = (i, focusDist, apert) => {
+  FL.to(i);
+  if (!flu.anchored) {                                                          // fixed in the world where the first frame put them
+    const fwd = new THREE.Vector3(); cam.getWorldDirection(fwd);
+    sheets.forEach((m, k) => { const d = focusDist * flu.dist[k]; m.position.copy(cam.position).addScaledVector(fwd, d); m.quaternion.copy(cam.quaternion);
+      const hh = 2 * d * Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) * 1.35; m.scale.set(hh * cam.aspect, hh, 1); });
+    flu.anchored = true;
+  }
+  sheets.forEach((m, k) => {
+    m.material.uniforms.dye.value = FL.texture; sheets.forEach((o, j) => (o.visible = j === k));
+    r.setRenderTarget(rtFl[k][0]); r.setClearColor(0x000000, 1); r.clear(); r.render(flScene, cam);
+    // blur by the sheet's own distance (thin lens, as the depth of field)
+    const z = m.position.distanceTo(cam.position), coc = Math.min(60 * K, apert * K * Math.abs(z - focusDist) / z);
+    const step = Math.max(.3, coc / 2 / 3.5);
+    for (let n = 0; n < 2; n++) {
+      blur.uniforms.t.value = rtFl[k][0].texture; blur.uniforms.d.value.set(step / W, 0); pass(blur, rtFl[k][1]);
+      blur.uniforms.t.value = rtFl[k][1].texture; blur.uniforms.d.value.set(0, step / H); pass(blur, rtFl[k][0]);
+    }
+  });
+  sheets.forEach((o) => (o.visible = true));
+};
 const draw = (i, focusDist, apert = 30) => {
   r.setRenderTarget(rtScene); r.render(scene, cam);
   Object.assign(dof.uniforms, {}); dof.uniforms.near.value = cam.near; dof.uniforms.far.value = cam.far; dof.uniforms.focus.value = focusDist; dof.uniforms.aperture.value = apert * K;
@@ -340,6 +382,7 @@ const draw = (i, focusDist, apert = 30) => {
   if (sparks.on || sparks.ash) { sparks.focus = focusDist; while (sparks.t < i + 60) sparksStep(); sparksDraw(focusDist, apert); }     // 60 frames of pre-roll: the air is already full
   pass(bright, rtA);
   glowBlur();
+  if (flu.on) fluidDraw(i, focusDist, apert);
   fin.uniforms.time.value = i / FPS; pass(fin, null);
 };
 
@@ -526,6 +569,8 @@ window.setup = (name) => {
   sparks.on = Math.min(1, o.sparks ?? 0); sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
+  flu.on = o.fluid ?? 0; fin.uniforms.fluid.value = flu.on; flu.anchored = false;
+  if (flu.on) FL.setup([[.12, .36, .03, 420, 1, .35, 7], [.2, .14, .03, 340, .5, 1, 5.5], [.86, .16, .03, 260, -.7, 1, 4]], { buoy: 4, turb: 3, eps: 7, keepDye: .997 });   // left, low left, low right
   shot.reset?.(); return shot.frames; };
 window.frame = async (i) => { await shot.run(i); r.getContext().finish(); return true; };
 window.ready = true;
