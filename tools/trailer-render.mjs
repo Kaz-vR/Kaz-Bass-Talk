@@ -27,15 +27,15 @@ p.on('pageerror', (e) => console.log('page error:', e.message));
 await p.goto(`http://localhost:4185/tools/trailer/render.html?w=${WW}`);
 await p.waitForFunction(() => window.ready, null, { timeout: 120000 });
 for (const name of LIST.split(',')) {
-  const dir = join(OUT, name); await rm(dir, { recursive: true, force: true }); await mkdir(dir, { recursive: true });
+  const dir = join(OUT, name.replace('@', '-')); await rm(dir, { recursive: true, force: true }); await mkdir(dir, { recursive: true });
   const n = await p.evaluate((s) => window.setup(s), name);
   const t0 = Date.now();
-  const idx = process.env.SAMPLE ? [0, Math.floor(n / 2), n - 1] : [...Array(n).keys()];   // SAMPLE=1: three stills only
+  const idx = process.env.PICK ? process.env.PICK.split(',').map((x) => Math.min(n - 1, Number(x))) : process.env.SAMPLE ? [0, Math.floor(n / 2), n - 1] : [...Array(n).keys()];   // SAMPLE=1: three stills; PICK=frames
   for (const i of idx) {
     await p.evaluate((k) => window.frame(k), i);
     await p.screenshot({ path: join(dir, `${String(i).padStart(4, '0')}.png`) });
   }
-  if (process.env.SAMPLE) { console.log(`${name}: sampled ${idx}`); continue; }
+  if (process.env.SAMPLE || process.env.PICK) { console.log(`${name}: sampled ${idx}`); continue; }
   console.log(`${name}: ${n} frames in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', '25', '-i', join(dir, '%04d.png'), '-c:v', 'libx264', '-crf', '14', '-pix_fmt', 'yuv420p', join(OUT, `${name}.mp4`)]);
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', '25', '-i', join(dir, '%04d.png'), '-vf',
