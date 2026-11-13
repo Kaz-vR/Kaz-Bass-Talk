@@ -16,9 +16,11 @@ export const makeFluid = (r, { simW = 256, simH = 144, dyeW = 1024, dyeH = 576 }
   const run = (m, t) => { quad.material = m; r.setRenderTarget(t); r.render(qs, oc); };
   const tx = new THREE.Vector2(1 / simW, 1 / simH);
 
-  const advect = M(`uniform sampler2D vel, src; uniform vec2 tx; uniform float dt, keep;
-    void main(){ vec2 p = vUv - dt * texture2D(vel, vUv).xy * tx; gl_FragColor = keep * texture2D(src, p); }`,
-    { vel: { value: null }, src: { value: null }, tx: { value: tx }, dt: { value: 0 }, keep: { value: 1 } });
+  const obs = { value: new THREE.Vector4(-1, -1, -1, -1) };                  // the solid panel: nothing flows into or through it
+  const advect = M(`uniform sampler2D vel, src; uniform vec2 tx; uniform float dt, keep; uniform vec4 obs; float inObs(vec2 p){ return step(obs.x, p.x) * step(p.x, obs.z) * step(obs.y, p.y) * step(p.y, obs.w); }
+
+    void main(){ vec2 p = vUv - dt * texture2D(vel, vUv).xy * tx; gl_FragColor = keep * texture2D(src, p) * (1. - inObs(vUv)); }`,
+    { vel: { value: null }, src: { value: null }, tx: { value: tx }, dt: { value: 0 }, keep: { value: 1 }, obs });
   const curl = M(`uniform sampler2D vel; uniform vec2 tx;
     void main(){ float L = texture2D(vel, vUv - vec2(tx.x, 0.)).y, R = texture2D(vel, vUv + vec2(tx.x, 0.)).y;
       float B = texture2D(vel, vUv - vec2(0., tx.y)).x, T = texture2D(vel, vUv + vec2(0., tx.y)).x; gl_FragColor = vec4(.5 * (R - L - T + B), 0., 0., 1.); }`,
@@ -33,29 +35,37 @@ export const makeFluid = (r, { simW = 256, simH = 144, dyeW = 1024, dyeH = 576 }
     void main(){ float L = texture2D(vel, vUv - vec2(tx.x, 0.)).x, R = texture2D(vel, vUv + vec2(tx.x, 0.)).x;
       float B = texture2D(vel, vUv - vec2(0., tx.y)).y, T = texture2D(vel, vUv + vec2(0., tx.y)).y; gl_FragColor = vec4(.5 * (R - L + T - B), 0., 0., 1.); }`,
     { vel: { value: null }, tx: { value: tx } });
-  const jacobi = M(`uniform sampler2D prs, dv; uniform vec2 tx;
-    void main(){ float L = texture2D(prs, vUv - vec2(tx.x, 0.)).x, R = texture2D(prs, vUv + vec2(tx.x, 0.)).x;
-      float B = texture2D(prs, vUv - vec2(0., tx.y)).x, T = texture2D(prs, vUv + vec2(0., tx.y)).x;
+  const jacobi = M(`uniform sampler2D prs, dv; uniform vec2 tx; uniform vec4 obs; float inObs(vec2 p){ return step(obs.x, p.x) * step(p.x, obs.z) * step(obs.y, p.y) * step(p.y, obs.w); }
+
+    void main(){ float C = texture2D(prs, vUv).x;
+      // walls: a neighbour inside the panel takes this cell's pressure, so no flow goes into it
+      float L = mix(texture2D(prs, vUv - vec2(tx.x, 0.)).x, C, inObs(vUv - vec2(tx.x, 0.))), R = mix(texture2D(prs, vUv + vec2(tx.x, 0.)).x, C, inObs(vUv + vec2(tx.x, 0.)));
+      float B = mix(texture2D(prs, vUv - vec2(0., tx.y)).x, C, inObs(vUv - vec2(0., tx.y))), T = mix(texture2D(prs, vUv + vec2(0., tx.y)).x, C, inObs(vUv + vec2(0., tx.y)));
       gl_FragColor = vec4((L + R + B + T - texture2D(dv, vUv).x) * .25, 0., 0., 1.); }`,
-    { prs: { value: null }, dv: { value: div.texture }, tx: { value: tx } });
-  const subtract = M(`uniform sampler2D prs, vel; uniform vec2 tx;
+    { prs: { value: null }, dv: { value: div.texture }, tx: { value: tx }, obs });
+  const subtract = M(`uniform sampler2D prs, vel; uniform vec2 tx; uniform vec4 obs; float inObs(vec2 p){ return step(obs.x, p.x) * step(p.x, obs.z) * step(obs.y, p.y) * step(p.y, obs.w); }
+
     void main(){ float L = texture2D(prs, vUv - vec2(tx.x, 0.)).x, R = texture2D(prs, vUv + vec2(tx.x, 0.)).x;
       float B = texture2D(prs, vUv - vec2(0., tx.y)).x, T = texture2D(prs, vUv + vec2(0., tx.y)).x;
-      gl_FragColor = vec4(texture2D(vel, vUv).xy - .5 * vec2(R - L, T - B), 0., 1.); }`,
-    { prs: { value: null }, vel: { value: null }, tx: { value: tx } });
+      gl_FragColor = vec4((texture2D(vel, vUv).xy - .5 * vec2(R - L, T - B)) * (1. - inObs(vUv)), 0., 1.); }`,
+    { prs: { value: null }, vel: { value: null }, tx: { value: tx }, obs });
   const scale = M(`uniform sampler2D src; uniform float k; void main(){ gl_FragColor = k * texture2D(src, vUv); }`, { src: { value: null }, k: { value: .8 } });
   // forces: emitters (velocity + density), buoyancy and a slow large-scale turbulence
-  const force = M(`uniform sampler2D vel, dye; uniform float dt, time, buoy, turb; uniform vec4 em[4]; uniform vec2 dir[4]; uniform float aspect;
+  const force = M(`uniform sampler2D vel, dye; uniform float dt, time, buoy, turb, spread; uniform vec4 spr; uniform vec4 em[4]; uniform vec2 dir[4]; uniform float aspect;
     float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f); return mix(mix(h(i), h(i+vec2(1,0)), f.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), f.x), f.y); }
     void main(){ vec2 v = texture2D(vel, vUv).xy;
       for (int k = 0; k < 4; k++) { vec2 d = (vUv - em[k].xy) * vec2(aspect, 1.); float g = exp(-dot(d, d) / (em[k].z * em[k].z)); v += dir[k] * g * em[k].w * dt; }
       v.y += buoy * texture2D(dye, vUv).x * dt;
+      // over the panel (spr: its rectangle): smoke near the surface is pushed outward along it, as off a table top
+      vec2 sc = (spr.xy + spr.zw) * .5, sh = (spr.zw - spr.xy) * .5, rel = (vUv - sc) / max(sh, vec2(1e-4));
+      float ins = step(abs(rel.x), 1.) * step(abs(rel.y), 1.);
+      v += spread * dt * ins * normalize(rel + 1e-4) * smoothstep(0., .6, length(rel));
       vec2 q = vUv * vec2(aspect, 1.) * 2.5 + vec2(0., -time * .15);
       v += turb * dt * vec2(n(q + vec2(time * .07, 3.1)) - .5, n(q + vec2(7.3, time * .06)) - .5);
       gl_FragColor = vec4(v, 0., 1.); }`,
     { vel: { value: null }, dye: { value: null }, dt: { value: 0 }, time: { value: 0 }, buoy: { value: 0 }, turb: { value: 0 },
-      em: { value: [0, 1, 2, 3].map(() => new THREE.Vector4()) }, dir: { value: [0, 1, 2, 3].map(() => new THREE.Vector2()) }, aspect: { value: simW / simH } });
+      em: { value: [0, 1, 2, 3].map(() => new THREE.Vector4()) }, spread: { value: 0 }, spr: { value: new THREE.Vector4(-1, -1, -1, -1) }, dir: { value: [0, 1, 2, 3].map(() => new THREE.Vector2()) }, aspect: { value: simW / simH } });
   const inject = M(`uniform sampler2D dye; uniform float dt; uniform vec4 em[4]; uniform float rate[4]; uniform float aspect;
     void main(){ float d = texture2D(dye, vUv).x;
       for (int k = 0; k < 4; k++) { vec2 e = (vUv - em[k].xy) * vec2(aspect, 1.); d += rate[k] * exp(-dot(e, e) / (em[k].z * em[k].z * .12)) * dt; }
@@ -65,8 +75,10 @@ export const makeFluid = (r, { simW = 256, simH = 144, dyeW = 1024, dyeH = 576 }
   const S = { t: -1, time: 0, emitters: [] };
   const clear = () => { for (const t of [vel.read, vel.write, prs.read, prs.write, dye.read, dye.write, div, crl]) { r.setRenderTarget(t); r.setClearColor(0x000000, 0); r.clear(); } };
   // emitters: [x, y, radius, strength, dirX, dirY, densityRate], positions in 0..1 of the smoke sheet
-  const setup = (emitters, { buoy = 6, turb = 40, eps = 14, keepVel = .995, keepDye = .992 } = {}) => {
+  // obstacle / spreadRect: [u0, v0, u1, v1] in the sheet, or null
+  const setup = (emitters, { buoy = 6, turb = 40, eps = 14, keepVel = .995, keepDye = .992, obstacle = null, spreadRect = null, spread = 0 } = {}) => {
     clear(); S.t = -1; S.time = 0; S.emitters = emitters; Object.assign(S, { buoy, turb, eps, keepVel, keepDye });
+    obs.value.set(...(obstacle ?? [-1, -1, -1, -1])); force.uniforms.spr.value.set(...(spreadRect ?? [-1, -1, -1, -1])); force.uniforms.spread.value = spread;
   };
   const step = () => {
     const dt = 1 / 50; S.t++; S.time += dt;                                    // two steps per video frame (50 per second)

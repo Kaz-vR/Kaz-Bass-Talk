@@ -130,7 +130,7 @@ const blur = sh(`varying vec2 vUv; uniform sampler2D t; uniform vec2 d; void mai
   for (int i = -8; i <= 8; i++) { float w = exp(-float(i*i) / 24.); s += texture2D(t, vUv + d * float(i)).rgb * w; ws += w; } gl_FragColor = vec4(s / ws, 1.); }`,
   { t: { value: null }, d: { value: new THREE.Vector2() } });
 const fin = sh(`
-  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid;
+  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB, tLight; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid;
   float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time * 37.0) * 43758.5453); }
   float h2(vec2 p){ return fract(sin(dot(p, vec2(41.31, 289.13))) * 43758.5453); }
   float sn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
@@ -204,8 +204,12 @@ const fin = sh(`
       // simulated smoke: two layers between the lens and the synth (near, soft; mid, sharper), lit faintly warm
       float a1 = texture2D(tFlA, vUv).r;
       if (fluid > 1.5) { gl_FragColor = vec4(a1 * 3., 0., 0., 1.); return; }   // fluid=2: show the raw smoke
-      vec3 sc = mix(vec3(.4, .39, .38), vec3(.949, .365, .027) * .5, .38);         // tinted towards #f25d07
-      col = mix(col, sc * (.65 + .35 * col.r), clamp(a1 * 2.4, 0., .4) * fluid);
+      // lit by the scene: smoke glows with the light around it (the UI, the sparks), is nearly invisible in the dark,
+      // and dims what is behind it a little where it is thick; its own faint colour leans to #f25d07
+      vec3 Lt = texture2D(tLight, vUv).rgb;
+      float sa = clamp(a1 * 3.5, 0., 1.);
+      vec3 amb = mix(vec3(.09, .085, .08), vec3(.949, .365, .027) * .1, .4);
+      col = col * (1. - .2 * sa * fluid) + (Lt * 7. + amb) * sa * fluid;
     }
     if (og > 0.) {
       // the owner's grade, fitted to their Photoshop of the slide: lift, gain and gamma per channel, then saturation
@@ -345,21 +349,26 @@ const sparksDraw = (focusDist, apert) => {
 // and parallax, and wraps over and around it. Each layer samples the same simulation a little shifted and scaled, so
 // the stack reads as one volume. The layers write their smoke and its distance; one gather pass then blurs every
 // spot by its own distance with the same thin-lens rule as the synth (sharp in the focus band, soft elsewhere).
-const FL = makeFluid(r);
+const FL = makeFluid(r), FL2 = makeFluid(r);                                 // FL: the smoke above the synth; FL2: low and behind it
 const rtFl = [0, 1].map(() => new THREE.WebGLRenderTarget(W, H, rtOpts));
 fin.uniforms.tFlA.value = rtFl[1].texture; fin.uniforms.tFlB.value = rtFl[1].texture;
-const NL = 7, LAYER_Z = [14, 34, 60, 92, 130, 175, 230], SW = PW * 1.7, SH = PH * 1.9;
-const layerMat = (k) => new THREE.ShaderMaterial({ uniforms: { dye: { value: null }, k: { value: k } },
-  transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending,
+// layers: two behind the synth's face (hidden by it, showing past its edges), five above it; [height, which simulation]
+const LAYER_Z = [[-70, 1], [-28, 1], [16, 1], [48, 0], [92, 0], [145, 0], [210, 0]], SW = PW * 1.7, SH = PH * 1.9;
+const layerMat = (k) => new THREE.ShaderMaterial({ uniforms: { dye: { value: null }, k: { value: k }, time: { value: 0 } },
+  transparent: true, depthTest: true, depthWrite: false, blending: THREE.AdditiveBlending,
   vertexShader: `varying vec2 vUv; varying float vZ; void main(){ vUv = uv; vec4 mv = modelViewMatrix * vec4(position, 1.); vZ = -mv.z; gl_Position = projectionMatrix * mv; }`,
-  fragmentShader: `uniform sampler2D dye; uniform float k; varying vec2 vUv; varying float vZ;
-    void main(){ vec2 u = (vUv - .5) * (1. - k * .035) + .5 + vec2(sin(k * 2.1) * .012, -k * .006);   // each layer a little shifted: one volume
-      float d = texture2D(dye, u).r * (k < 1.5 ? .5 : 1.);                                          // thinnest right on the face
+  fragmentShader: `uniform sampler2D dye; uniform float k, time; varying vec2 vUv; varying float vZ;
+    void main(){
+      // each layer shifted, scaled and drifting at its own speed: parts of the smoke move differently
+      vec2 u = (vUv - .5) * (1. - k * .045) + .5 + vec2(sin(k * 2.1) * .02 + time * (.004 + .003 * sin(k * 1.7)), -k * .008 + time * .002 * cos(k * 2.9));
+      float d = texture2D(dye, u).r * (k > 1.5 && k < 2.5 ? .5 : 1.);                               // thinnest right on the face
       float edge = smoothstep(0., .07, vUv.x) * smoothstep(1., .93, vUv.x) * smoothstep(0., .06, vUv.y) * smoothstep(1., .94, vUv.y);
       float a = (1. - exp(-d * 1.1)) * edge * .22;
       gl_FragColor = vec4(a, a * vZ / 1000., 0., 1.); }` });                                          // smoke, and smoke x distance
-const layers = LAYER_Z.map((z, k) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(SW, SH), layerMat(k)); m.position.set(0, PH * .1, z); return m; });
+const layers = LAYER_Z.map(([z, sim], k) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), layerMat(k)); m.userData.sim = sim; m.userData.z = z; return m; });
 const flScene = new THREE.Scene(); layers.forEach((m) => flScene.add(m));
+// the synth's body, invisible, writing only depth: smoke behind it is hidden, smoke past its edges shows
+{ const occ = new THREE.Mesh(new THREE.BoxGeometry(PW, PH, 48), new THREE.MeshBasicMaterial({ colorWrite: false })); occ.position.set(0, 0, -24); occ.renderOrder = -1; flScene.add(occ); }
 const smokeDof = sh(`
   varying vec2 vUv; uniform sampler2D t; uniform float focus, aperture, maxR; uniform vec2 px;
   float coc(vec2 s){ float z = s.y / max(s.x, 1e-5) * 1000.; return s.x < 1e-4 ? 0. : clamp(aperture * abs(z - focus) / z, 0., maxR); }
@@ -372,12 +381,22 @@ const smokeDof = sh(`
     gl_FragColor = vec4(acc * maxR * maxR / float(N), 0., 0., 1.); }`,
   { t: { value: rtFl[0].texture }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 30 * K }, px: { value: new THREE.Vector2(1 / W, 1 / H) } });
 const flu = { on: 0 };
+// the light the smoke sits in: the scene itself (the UI's glow) and the sparks, spread wide at quarter size
+const rtLight = [0, 1].map(() => new THREE.WebGLRenderTarget(W / 4, H / 4, rtOpts));
+const lightSrc = sh(`varying vec2 vUv; uniform sampler2D t, sp; void main(){ vec3 c = texture2D(t, vUv).rgb; float l = max(c.r, max(c.g, c.b));
+    gl_FragColor = vec4(c * smoothstep(.04, .5, l) + vec3(.949, .365, .027) * texture2D(sp, vUv).r * 2.5, 1.); }`, { t: { value: rtDof.texture }, sp: { value: rtSpark.texture } });
+fin.uniforms.tLight = { value: rtLight[0].texture };
 const fluidDraw = (i, focusDist, apert) => {
-  FL.to(i);
-  layers.forEach((m) => (m.material.uniforms.dye.value = FL.texture));
+  FL.to(i); FL2.to(i);
+  layers.forEach((m) => { const u = m.material.uniforms; u.dye.value = (m.userData.sim ? FL2 : FL).texture; u.time.value = i / FPS; });
   r.setRenderTarget(rtFl[0]); r.setClearColor(0x000000, 1); r.clear(); r.render(flScene, cam);
   smokeDof.uniforms.focus.value = focusDist; smokeDof.uniforms.aperture.value = apert * K;
   pass(smokeDof, rtFl[1]);
+  pass(lightSrc, rtLight[0]);
+  for (let n = 0; n < 4; n++) {
+    blur.uniforms.t.value = rtLight[0].texture; blur.uniforms.d.value.set(2.2 / (W / 4), 0); pass(blur, rtLight[1]);
+    blur.uniforms.t.value = rtLight[1].texture; blur.uniforms.d.value.set(0, 2.2 / (H / 4)); pass(blur, rtLight[0]);
+  }
 };
 const draw = (i, focusDist, apert = 30) => {
   r.setRenderTarget(rtScene); r.render(scene, cam);
@@ -406,7 +425,7 @@ const knobLayer = (() => {
 let pull = 0;
 const SHOTS = {
   // 1: a slow slide along the oscillator row at a steep angle; the focus band holds on the knobs (3 s)
-  slide: { frames: 75, run(i) {
+  slide: { frames: 75, smokeAt: () => P(235, 256), run(i) {
     knobLayer.visible = false;
     const t = i / 74;
     const target = P(lerp(215, 255, t), 256); LIT.lightAt.value.copy(P(330, 150));                                 // a slow drift along OSC A's knobs (~3 % of the frame a second)
@@ -416,7 +435,7 @@ const SHOTS = {
     draw(i, pos.distanceTo(target), 105);
   } },
   // 2: push in on the filter cutoff while it turns; the focus pulls from the filter curve to the knob (4 s)
-  knob: { frames: 100, async run(i) {
+  knob: { frames: 100, smokeAt: () => P(meta.patch.cx, meta.patch.cy), async run(i) {
     knobLayer.visible = true;
     const t = i / 99, k = await loadKnob(i), p = meta.patch;
     knobLayer.material.uniforms.map.value.image = k; knobLayer.material.uniforms.map.value.needsUpdate = true;
@@ -576,7 +595,23 @@ window.setup = (name) => {
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
   flu.on = o.fluid ?? 0; fin.uniforms.fluid.value = flu.on;
-  if (flu.on) FL.setup([[.2, .45, .03, 380, .15, 1, 6], [.32, .27, .03, 320, .2, 1, 5], [.68, .27, .03, 300, -.2, 1, 4.5], [.8, .5, .03, 340, -.15, 1, 5]], { buoy: 4, turb: 3, eps: 7, keepDye: .997 });   // from the synth's left edge, lower edge (twice) and right edge, rising over it
+  if (flu.on) {
+    // the smoke lives where the shot looks: a sheet 900 x 620 units round the shot's target, parallel to the synth
+    const c = (shot.smokeAt ?? (() => new THREE.Vector3(0, 0, 0)))(), SWs = 900, SHs = 620;
+    layers.forEach((m) => { m.position.set(c.x, c.y, m.userData.z); m.scale.set(SWs, SHs, 1); });
+    // the panel's rectangle in that sheet (u, v from 0 to 1; it reaches past the sheet where the synth does)
+    const U = (x) => (x - c.x) / SWs + .5, Vv = (y) => (y - c.y) / SHs + .5;
+    const PANEL = [U(-PW / 2), Vv(-PH / 2), U(PW / 2), Vv(PH / 2)];
+    const px = (u, v) => [Math.min(.95, Math.max(.05, u)), Math.min(.95, Math.max(.05, v))];
+    // above the synth: rising from low in the view, fanning out along its face
+    FL.setup([[...px(.3, .14), .035, 340, .25, 1, 5], [...px(.62, .1), .035, 300, -.1, 1, 4.5], [...px(.85, .3), .03, 280, -.3, 1, 4]],
+      { buoy: 4, turb: 3, eps: 7, keepDye: .997, spreadRect: PANEL, spread: 70 });
+    // behind it: rising along its edge and spilling round it (the panel is a wall to this smoke)
+    const eu = PANEL[0] - .05, tv = PANEL[3] + .04;
+    FL2.setup([[...px(eu, .15), .035, 320, .1, 1, 7], [...px(eu, .45), .03, 260, .3, 1, 5], [...px(.5, Math.min(.9, tv)), .03, 240, .8, .3, 4]],
+      { buoy: 6, turb: 4, eps: 9, keepDye: .996, obstacle: PANEL });
+  }
+
   shot.reset?.(); return shot.frames; };
 window.frame = async (i) => { await shot.run(i); r.getContext().finish(); return true; };
 window.ready = true;
