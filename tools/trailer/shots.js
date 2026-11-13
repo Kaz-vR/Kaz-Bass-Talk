@@ -33,16 +33,32 @@ const loadKnob = async (i) => knobs[i] ??= await new THREE.ImageLoader().loadAsy
 const PW = meta.W, PH = meta.H, S = meta.dsf;                          // css px of the instrument; the capture's scale
 const crop = (x, w) => { const t = tex.clone(); t.repeat.set(w / PW, 1); t.offset.set(x / PW, 0); t.needsUpdate = true; return t; };
 const flat = (o) => new THREE.MeshBasicMaterial({ toneMapped: false, ...o });
+// the synth's face as a lit object (owner's call, away from the references' evenly self-lit screen): one hard light
+// pool falling across the panel, the rest in shadow, and a faint sheen on the glossy face; the UI's own glowing parts
+// (bright, coloured lines and values) keep their light. real = 0 is the old even look, 1 the full lit look.
+const LIT = { real: { value: 0 }, lightAt: { value: new THREE.Vector3() }, lightR: { value: 260 } };
+const lit = (map) => new THREE.ShaderMaterial({ uniforms: { map: { value: map }, ...LIT },
+  vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+  fragmentShader: `uniform sampler2D map; uniform float real, lightR; uniform vec3 lightAt; varying vec2 vUv; varying vec3 vW;
+    void main(){ vec3 c = texture2D(map, vUv).rgb;
+      float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b));
+      float glow = clamp(smoothstep(.45, .75, mx) + smoothstep(.35, .7, mx - mn), 0., 1.);    // what emits light itself
+      vec2 d = (vW.xy - lightAt.xy) / lightR; d.x *= .8;
+      float pool = smoothstep(1.15, .35, length(d));                                       // the light pool, a soft-edged hard light
+      float lightF = .18 + .95 * pool;
+      float sheen = smoothstep(.09, 0., abs(dot(vW.xy - lightAt.xy, normalize(vec2(.8, -.6))) / lightR - .55)) * pool * .05;
+      vec3 litc = c * mix(lightF, 1., glow) + sheen;
+      gl_FragColor = vec4(mix(c, litc, real), 1.); }` });
 const scene = new THREE.Scene();
 scene.background = col('#020203');
 const synth = new THREE.Group(); scene.add(synth);
 {
   const D = 34, bx = meta.woodL[1], bw = meta.woodR[0] - bx, X = (px) => px - PW / 2;
   const edge = flat({ color: col('#0b0b0c') }), back = flat({ color: col('#050505') });
-  const body = new THREE.Mesh(new THREE.BoxGeometry(bw, PH, D), [edge, edge, edge, edge, flat({ map: crop(bx, bw) }), back]);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(bw, PH, D), [edge, edge, edge, edge, lit(crop(bx, bw)), back]);
   body.position.set(X(bx + bw / 2), 0, -D / 2); synth.add(body);
   for (const [x, w] of [meta.woodL, meta.woodR]) {
-    const c = new THREE.Mesh(new THREE.BoxGeometry(w, PH, D * 1.4), flat({ map: crop(x, w) }));
+    const c = new THREE.Mesh(new THREE.BoxGeometry(w, PH, D * 1.4), lit(crop(x, w)));
     c.position.set(X(x + w / 2), 0, -D * 1.4 / 2); synth.add(c);
   }
   // a thin lit rim on the top and bottom edges (light only where something emits it)
@@ -55,19 +71,19 @@ const haze = (hex, x, y, z, s, a) => {
   const gr = g.createRadialGradient(128, 128, 0, 128, 128, 128); gr.addColorStop(0, hex); gr.addColorStop(1, 'rgba(0,0,0,0)');
   g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
   const m = new THREE.Mesh(new THREE.PlaneGeometry(s, s), flat({ map: new THREE.CanvasTexture(c), transparent: true, opacity: a, depthWrite: false, blending: THREE.AdditiveBlending }));
-  m.position.set(x, y, z); scene.add(m); return m;
+  m.position.set(x, y, z); m.userData.a = a; scene.add(m); return m;
 };
 // two looks: 'artistry' (the references' violet haze) and 'ruin' (the siren glow, fading to pure black)
 const HAZE = {
   artistry: [haze(C.purple, -700, -300, -900, 2600, 0.55), haze(C.red, 900, 350, -1100, 2200, 0.35), haze(C.blue, 200, -700, -700, 1600, 0.25)],
   ruin: [haze(SIREN.deep, -600, -450, -900, 2800, 0.4), haze(SIREN.red, 800, -500, -1100, 2000, 0.32), haze(SIREN.hot, 300, -800, -800, 900, 0.22)],
 };
-const setLook = (look) => { for (const [k, ms] of Object.entries(HAZE)) for (const m of ms) m.visible = k === look; fin.uniforms.ruin.value = look === 'ruin' ? 1 : 0; };
+const setLook = (look, keep = 1) => { for (const [k, ms] of Object.entries(HAZE)) for (const m of ms) { m.visible = k === look && keep > 0; m.material.opacity = m.userData.a * keep; } fin.uniforms.ruin.value = look === 'ruin' ? 1 : 0; };
 
 // ---------- post ----------
 const rtOpts = { type: THREE.HalfFloatType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter };
 const rtScene = new THREE.WebGLRenderTarget(W, H, { ...rtOpts, depthTexture: new THREE.DepthTexture(W, H, THREE.FloatType) });
-const rtDof = new THREE.WebGLRenderTarget(W, H, rtOpts);
+const rtDof = new THREE.WebGLRenderTarget(W, H, rtOpts), rtDof2 = new THREE.WebGLRenderTarget(W, H, rtOpts);
 const rtA = new THREE.WebGLRenderTarget(W / 4, H / 4, rtOpts), rtB = new THREE.WebGLRenderTarget(W / 4, H / 4, rtOpts);
 const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2)), oc = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), qs = new THREE.Scene(); qs.add(quad);
 const pass = (mat, target) => { quad.material = mat; r.setRenderTarget(target); r.render(qs, oc); };
@@ -82,9 +98,12 @@ const dof = sh(`
   float cocZ(float z){ return clamp(aperture * abs(z - focus) / z, 0., maxR); }
   void main(){
     float z0 = -viewZ(vUv), c0 = cocZ(z0); vec3 acc = texture2D(tCol, vUv).rgb; float wsum = 1.;
-    const int N = 48; float ga = 2.39996323;
+    // 112 samples on a golden-angle spiral, turned by a different angle for every pixel (fixed patterns showed as
+    // doubled copies of each letter); the leftover grain is smoothed by the next pass
+    const int N = 112; float ga = 2.39996323;
+    float rot = 6.2831853 * fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715))));
     for (int i = 1; i < N; i++) {
-      float rr = sqrt(float(i) / float(N)) * maxR; float a = float(i) * ga;
+      float rr = sqrt((float(i) + .5) / float(N)) * maxR; float a = float(i) * ga + rot;
       vec2 uv = vUv + vec2(cos(a), sin(a)) * rr * px;
       float zs = -viewZ(uv), cs = cocZ(zs);
       // a sample counts if its blur reaches this pixel; one behind us may not blur more than we do
@@ -93,13 +112,24 @@ const dof = sh(`
     }
     gl_FragColor = vec4(acc / wsum, 1.);
   }`, { tCol: { value: rtScene.texture }, tDep: { value: rtScene.depthTexture }, near: { value: 1 }, far: { value: 1 }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 26 * K }, px: { value: new THREE.Vector2(1 / W, 1 / H) } });
+// smoothing after the depth of field: each pixel averages a small ring scaled by its own blur (sharp pixels untouched)
+const dofSmooth = sh(`
+  varying vec2 vUv; uniform sampler2D tCol, tDep; uniform float near, far, focus, aperture, maxR; uniform vec2 px;
+  float viewZ(vec2 uv){ float d = texture2D(tDep, uv).x; return (near * far) / ((far - near) * d - far); }
+  void main(){ float z = -viewZ(vUv), c = clamp(aperture * abs(z - focus) / z, 0., maxR);
+    vec3 s = texture2D(tCol, vUv).rgb; float r = c * .22;
+    if (r > .6) { vec3 a = s * 2.; float w = 2.;
+      for (int i = 0; i < 12; i++) { float an = float(i) * .5235988; a += texture2D(tCol, vUv + vec2(cos(an), sin(an)) * r * px).rgb; w += 1.;
+        a += texture2D(tCol, vUv + vec2(cos(an + .26), sin(an + .26)) * r * .5 * px).rgb; w += 1.; }
+      s = a / w; }
+    gl_FragColor = vec4(s, 1.); }`, { tCol: { value: rtDof2.texture }, tDep: { value: rtScene.depthTexture }, near: { value: 1 }, far: { value: 1 }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 26 * K }, px: { value: new THREE.Vector2(1 / W, 1 / H) } });
 const bright = sh(`varying vec2 vUv; uniform sampler2D t; void main(){ vec3 c = texture2D(t, vUv).rgb; float l = dot(c, vec3(.2126,.7152,.0722));
   gl_FragColor = vec4(c * smoothstep(.35, .9, l), 1.); }`, { t: { value: rtDof.texture } });
 const blur = sh(`varying vec2 vUv; uniform sampler2D t; uniform vec2 d; void main(){ vec3 s = vec3(0.); float ws = 0.;
   for (int i = -8; i <= 8; i++) { float w = exp(-float(i*i) / 24.); s += texture2D(t, vUv + d * float(i)).rgb * w; ws += w; } gl_FragColor = vec4(s / ws, 1.); }`,
   { t: { value: null }, d: { value: new THREE.Vector2() } });
 const fin = sh(`
-  varying vec2 vUv; uniform sampler2D t, tGlow; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare;
+  varying vec2 vUv; uniform sampler2D t, tGlow; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo;
   float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time * 37.0) * 43758.5453); }
   float h2(vec2 p){ return fract(sin(dot(p, vec2(41.31, 289.13))) * 43758.5453); }
   void main(){
@@ -117,7 +147,7 @@ const fin = sh(`
       col = .04 + col * 1.08;
     } else {
       // RUIN-1: pure black, neutral shadows (the module colours untouched), highlights bloom warm with a red halation
-      col += vec3(1., .198, .021) * dot(g, vec3(.2126,.7152,.0722)) * .55;   // red bleed round bright lines (film halation), #f23005
+      col += vec3(1., .198, .021) * dot(g, vec3(.2126,.7152,.0722)) * .55 * halo;   // red bleed round bright lines (film halation), #f23005
       col = max(col * 1.1 - .006, 0.);                                     // the floor is black, not grey
       if (fire > 0.) {
         // firelight: a warm, flickering spill rising from below the frame, highlights pushed to hot orange; black stays black
@@ -161,7 +191,7 @@ const fin = sh(`
     }
     col += (hash(vUv * 1000.) - .5) * grain;
     gl_FragColor = vec4(col, 1.);
-  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 } });
+  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 } });
 
 // the glow: two rounds of a 17-tap blur in 1-texel steps at quarter size (coarser steps showed as stripes)
 const glowBlur = () => { for (let k = 0; k < 2; k++) {
@@ -236,7 +266,9 @@ const sparksDraw = (focusDist, apert) => {
 const draw = (i, focusDist, apert = 30) => {
   r.setRenderTarget(rtScene); r.render(scene, cam);
   Object.assign(dof.uniforms, {}); dof.uniforms.near.value = cam.near; dof.uniforms.far.value = cam.far; dof.uniforms.focus.value = focusDist; dof.uniforms.aperture.value = apert * K;
-  pass(dof, rtDof);
+  pass(dof, rtDof2);
+  for (const k of ['near', 'far', 'focus', 'aperture']) dofSmooth.uniforms[k].value = dof.uniforms[k].value;
+  pass(dofSmooth, rtDof);
   if (sparks.on || sparks.ash) { sparks.focus = focusDist; while (sparks.t < i + 60) sparksStep(); sparksDraw(focusDist, apert); }     // 60 frames of pre-roll: the air is already full
   pass(bright, rtA);
   glowBlur();
@@ -251,7 +283,7 @@ const look = (pos, target, roll) => { cam.position.copy(pos); cam.up.set(Math.si
 // the turning knob's box: its own layer just above the face, so only a small picture changes per frame
 const knobLayer = (() => {
   const p = meta.patch, t = new THREE.Texture(); t.colorSpace = THREE.NoColorSpace; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false;
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(p.w, p.h), flat({ map: t }));
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(p.w, p.h), lit(t));
   m.position.copy(P(p.x + p.w / 2, p.y + p.h / 2)).setZ(0.05); m.visible = false; synth.add(m); return m;
 })();
 const SHOTS = {
@@ -259,7 +291,7 @@ const SHOTS = {
   slide: { frames: 75, run(i) {
     knobLayer.visible = false;
     const t = i / 74;
-    const target = P(lerp(215, 255, t), 256);                                 // a slow drift along OSC A's knobs (~3 % of the frame a second)
+    const target = P(lerp(215, 255, t), 256); LIT.lightAt.value.copy(P(330, 150));                                 // a slow drift along OSC A's knobs (~3 % of the frame a second)
     const pos = target.clone().add(new THREE.Vector3(-210, -260, 250));
     cam.fov = 26; cam.updateProjectionMatrix();
     look(pos, target, THREE.MathUtils.degToRad(4));
@@ -269,8 +301,8 @@ const SHOTS = {
   knob: { frames: 100, async run(i) {
     knobLayer.visible = true;
     const t = i / 99, k = await loadKnob(i), p = meta.patch;
-    knobLayer.material.map.image = k; knobLayer.material.map.needsUpdate = true;
-    const knob = P(p.cx, p.cy), curve = P(p.cx - 30, p.cy - 90);
+    knobLayer.material.uniforms.map.value.image = k; knobLayer.material.uniforms.map.value.needsUpdate = true;
+    const knob = P(p.cx, p.cy), curve = P(p.cx - 30, p.cy - 90); LIT.lightAt.value.copy(P(p.cx + 70, p.cy - 60));
     const dolly = lerp(1, 0.86, t);
     const pos = knob.clone().add(new THREE.Vector3(150, -150, 175).multiplyScalar(dolly));
     cam.fov = 24; cam.updateProjectionMatrix();
@@ -419,10 +451,11 @@ let shot;
 window.setup = (name) => {
   const [n, rest = 'ruin'] = name.split('@'), [look, opt = ''] = rest.split(':');
   const o = Object.fromEntries(opt.split(',').filter(Boolean).map((x) => { const [k, v] = x.split('='); return [k, v === undefined ? 1 : Number(v)]; }));
-  shot = SHOTS[n]; setLook(look); fin.uniforms.fire.value = o.fire ?? 0;
+  const real = o.real ?? 0; LIT.real.value = real;
+  shot = SHOTS[n]; setLook(look, 1 - real); fin.uniforms.fire.value = o.fire ?? 0;
   sparks.on = !!o.sparks; sparks.ash = !!o.ash; if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
-  fin.uniforms.glow.value = o.burn ? 1.6 : 0.9;
+  fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
   shot.reset?.(); return shot.frames; };
 window.frame = async (i) => { await shot.run(i); r.getContext().finish(); return true; };
 window.ready = true;
