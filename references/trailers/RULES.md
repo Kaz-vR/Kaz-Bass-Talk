@@ -1,5 +1,7 @@
 # Trailer rulebook (measured)
 
+*(This file only measures the references. The RUIN-1 trailer itself is specified in `RUIN-1.md`, which builds on this one.)*
+
 The style of four Artistry Audio trailers, written down as numbers so a RUIN-1 trailer can be built to it and
 checked against it. Nothing here is copied into our trailer (no footage, music, branding or copy): we copy the
 **grammar**, not the content.
