@@ -240,7 +240,7 @@ const sparksReset = () => {
   sparks.t = -1; sparks.list = [];
 };
 const sparksStep = () => { sparks.t++; const dt = 1 / FPS, q = new THREE.Vector3();
-  if (!sparks.list.length) sparks.list = [...Array.from({ length: sparks.on ? NSP : 0 }, () => spSpawn({}, true)), ...Array.from({ length: sparks.ash ? NASH : 0 }, () => spSpawn({ ash: true }, true))];
+  if (!sparks.list.length) sparks.list = [...Array.from({ length: Math.round(NSP * sparks.on) }, () => spSpawn({}, true)), ...Array.from({ length: Math.round(NASH * sparks.ash) }, () => spSpawn({ ash: true }, true))];   // sparks=0.5: half as many
   for (const s of sparks.list) { s.prev = [s.x, s.y, s.z];
     s.vx += Math.sin(sparks.t * (s.ash ? .04 : .11) + s.ph) * sparks.focus * (s.ash ? .004 : .012); s.x += s.vx * dt; s.y += s.vy * dt; s.z = Math.max(1, s.z + Math.sin(sparks.t * .07 + s.ph * 2) * sparks.focus * .02 * dt); s.life -= dt;   // never behind the panel's face (z = 0)
     q.set(s.x, s.y, s.z).project(cam);
@@ -453,7 +453,7 @@ window.setup = (name) => {
   const o = Object.fromEntries(opt.split(',').filter(Boolean).map((x) => { const [k, v] = x.split('='); return [k, v === undefined ? 1 : Number(v)]; }));
   const real = o.real ?? 0; LIT.real.value = real;
   shot = SHOTS[n]; setLook(look, 1 - real); fin.uniforms.fire.value = o.fire ?? 0;
-  sparks.on = !!o.sparks; sparks.ash = !!o.ash; if (sparks.on || sparks.ash) sparksReset();
+  sparks.on = Math.min(1, o.sparks ?? 0); sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
   shot.reset?.(); return shot.frames; };
