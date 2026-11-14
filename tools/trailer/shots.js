@@ -130,7 +130,7 @@ const blur = sh(`varying vec2 vUv; uniform sampler2D t; uniform vec2 d; void mai
   for (int i = -8; i <= 8; i++) { float w = exp(-float(i*i) / 24.); s += texture2D(t, vUv + d * float(i)).rgb * w; ws += w; } gl_FragColor = vec4(s / ws, 1.); }`,
   { t: { value: null }, d: { value: new THREE.Vector2() } });
 const fin = sh(`
-  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB, tLight; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid;
+  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB, tLight; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid, clearTxt;
   float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time * 37.0) * 43758.5453); }
   float h2(vec2 p){ return fract(sin(dot(p, vec2(41.31, 289.13))) * 43758.5453); }
   float sn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
@@ -208,6 +208,7 @@ const fin = sh(`
       // and dims what is behind it a little where it is thick; its own faint colour leans to #f25d07
       vec3 Lt = texture2D(tLight, vUv).rgb;
       float sa = clamp(a1 * 3.5, 0., 1.);
+      if (clearTxt > 0.) { vec2 e = (vUv - vec2(.5, .17)) / vec2(.2, .19); sa *= 1. - clearTxt * .88 * smoothstep(1.25, .35, length(e)); }   // dark round the logo and text
       vec3 amb = mix(vec3(.09, .085, .08), vec3(.949, .365, .027) * .1, .4);
       col = col * (1. - .2 * sa * fluid) + (Lt * 7. + amb) * sa * fluid;
     }
@@ -236,7 +237,7 @@ const fin = sh(`
       col = mix(col, lt * T, tint * smoothstep(.0, .25, lt)); }                  // a wash of #f25d07 over the image
     col += (hash(vUv * 1000.) - .5) * grain;
     gl_FragColor = vec4(col, 1.);
-  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, fluid: { value: 0 }, tFlA: { value: null }, tFlB: { value: null }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
+  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, fluid: { value: 0 }, clearTxt: { value: 0 }, tFlA: { value: null }, tFlB: { value: null }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
 
 // the glow: two rounds of a 17-tap blur in 1-texel steps at quarter size (coarser steps showed as stripes)
 const glowBlur = () => { for (let k = 0; k < 2; k++) {
@@ -431,7 +432,7 @@ const drawBeams = (mode, time) => {
   const g = beamCv.getContext('2d'), w = beamCv.width, h = beamCv.height;
   g.globalCompositeOperation = 'source-over'; g.filter = 'none'; g.fillStyle = '#000'; g.fillRect(0, 0, w, h);
   const sway = Math.sin(time * .25) * .035;                                    // the warning light turns very slowly
-  if (mode !== 2) {
+  if (mode === 1 || mode === 4) {
     g.filter = `blur(${Math.round(w * .012)}px)`;
     const cg = g.createConicGradient((200 - 90) * Math.PI / 180 + sway, w * .902, -h * .076);
     const st = [[0, 'rgba(242,48,5,0)'], [8, 'rgba(242,48,5,0)'], [18, 'rgba(242,48,5,.30)'], [26, 'rgba(242,93,7,.16)'], [40, 'rgba(0,0,0,0)'],
@@ -441,9 +442,9 @@ const drawBeams = (mode, time) => {
   }
   // the lamp, top right
   g.filter = `blur(${Math.round(w * .004)}px)`;
-  const lx = w * (1 - .14) - w * .076, ly = h * .1 + h * .135, lr = mode === 2 ? w * .55 : w * .14;
+  const lx = mode === 3 ? w * .5 : w * (1 - .14) - w * .076, ly = mode === 3 ? h * .2 : h * .1 + h * .135, lr = mode === 2 || mode === 3 ? w * .55 : mode === 4 ? w * .38 : w * .14;
   const rg = g.createRadialGradient(lx, ly, 0, lx, ly, lr);
-  rg.addColorStop(0, `rgba(242,93,7,${mode === 2 ? .7 : .55})`); rg.addColorStop(.4, `rgba(242,48,5,${mode === 2 ? .3 : .25})`); rg.addColorStop(1, 'rgba(0,0,0,0)');
+  rg.addColorStop(0, `rgba(242,93,7,${mode >= 2 ? .7 : .55})`); rg.addColorStop(.4, `rgba(242,48,5,${mode >= 2 ? .3 : .25})`); rg.addColorStop(1, 'rgba(0,0,0,0)');
   g.fillStyle = rg; g.fillRect(0, 0, w, h);
   beamTex.needsUpdate = true;
 };
@@ -670,7 +671,7 @@ window.setup = (name) => {
   const [n, rest = 'ruin'] = name.split('@'), [look, opt = ''] = rest.split(':');
   const o = Object.fromEntries(opt.split(',').filter(Boolean).map((x) => { const [k, v] = x.split('='); return [k, v === undefined ? 1 : Number(v)]; }));
   const real = o.real ?? 0; LIT.real.value = real; LIT.lightR.value = o.lightr ?? 260;   // lightr=100000: light everywhere (to compare)
-  synth.visible = true; occ.visible = true; flu.beams = o.beams ?? 0;
+  synth.visible = true; occ.visible = true; flu.beams = o.beams ?? 0; fin.uniforms.clearTxt.value = o.clear ?? 0;
   shot = SHOTS[n]; setLook(look, 1 - real); fin.uniforms.fire.value = o.fire ?? 0;
   spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks) ? 1 : 0; fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   sparks.on = Math.min(1, o.sparks ?? 0); sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
