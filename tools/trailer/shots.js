@@ -377,7 +377,7 @@ const layerMat = (k) => new THREE.ShaderMaterial({ uniforms: { dye: { value: nul
 const layers = LAYER_Z.map(([z, sim], k) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), layerMat(k)); m.userData.sim = sim; m.userData.z = z; return m; });
 const flScene = new THREE.Scene(); layers.forEach((m) => flScene.add(m));
 // the synth's body, invisible, writing only depth: smoke behind it is hidden, smoke past its edges shows
-{ const occ = new THREE.Mesh(new THREE.BoxGeometry(PW, PH, 48), new THREE.MeshBasicMaterial({ colorWrite: false })); occ.position.set(0, 0, -24); occ.renderOrder = -1; flScene.add(occ); }
+const occ = new THREE.Mesh(new THREE.BoxGeometry(PW, PH, 48), new THREE.MeshBasicMaterial({ colorWrite: false })); occ.position.set(0, 0, -24); occ.renderOrder = -1; flScene.add(occ);
 const smokeDof = sh(`
   varying vec2 vUv; uniform sampler2D t; uniform float focus, aperture, maxR; uniform vec2 px;
   float coc(vec2 s){ float z = s.y / max(s.x, 1e-5) * 1000.; return s.x < 1e-4 ? 0. : clamp(aperture * abs(z - focus) / z, 0., maxR); }
@@ -403,6 +403,11 @@ const smokeSetup = (focusDist) => {
   const c = cam.position.clone().addScaledVector(fwd, focusDist), sc = focusDist / 418;
   const SWs = 900 * sc, SHs = 620 * sc;
   layers.forEach((m) => { m.position.set(c.x, c.y, m.userData.z * (m.userData.z > 0 ? sc : 1)); m.scale.set(SWs, SHs, 1); });
+  if (flu.beams) {                                                              // the header: smoke rising from below, drifting across
+    FL.setup([[.18, .08, .06, 60, .3, 1, 1.8], [.45, .06, .06, 55, .05, 1, 1.6], [.72, .08, .06, 55, -.2, 1, 1.6], [.9, .2, .05, 45, -.4, 1, 1.3]], { buoy: 1.2, turb: 1.4, eps: 4, keepDye: .9996, speed: .08 });
+    FL2.setup([[.3, .15, .07, 50, .4, 1, 1.4], [.65, .12, .07, 50, -.3, 1, 1.4], [.08, .4, .05, 40, .8, .4, 1.1]], { buoy: 1, turb: 1.6, eps: 5, keepDye: .9995, speed: .08 });
+    flu.ready = true; return;
+  }
   const U = (x) => (x - c.x) / SWs + .5, Vv = (y) => (y - c.y) / SHs + .5;
   const PANEL = [U(-PW / 2), Vv(-PH / 2), U(PW / 2), Vv(PH / 2)];
   const px = (u, v) => [Math.min(.92, Math.max(.08, u)), Math.min(.92, Math.max(.08, v))];
@@ -419,6 +424,29 @@ const smokeSetup = (focusDist) => {
   } else FL2.setup([[...px(.4, .1), .05, 55, .2, 1, 1.4], [...px(.75, .12), .05, 50, -.2, 1, 1.3]], { buoy: 1.2, turb: 1.4, eps: 5, keepDye: .9995, speed: .08 });
   flu.ready = true;
 };
+const beamCv = document.createElement('canvas'); beamCv.width = W / 4; beamCv.height = H / 4;
+const beamTex = new THREE.CanvasTexture(beamCv); beamTex.colorSpace = THREE.NoColorSpace; beamTex.minFilter = THREE.LinearFilter; beamTex.generateMipmaps = false;
+const copyTex = sh(`varying vec2 vUv; uniform sampler2D t; uniform float k; void main(){ gl_FragColor = vec4(texture2D(t, vUv).rgb * k, 1.); }`, { t: { value: beamTex }, k: { value: 1 } });
+const drawBeams = (mode, time) => {
+  const g = beamCv.getContext('2d'), w = beamCv.width, h = beamCv.height;
+  g.globalCompositeOperation = 'source-over'; g.filter = 'none'; g.fillStyle = '#000'; g.fillRect(0, 0, w, h);
+  const sway = Math.sin(time * .25) * .035;                                    // the warning light turns very slowly
+  if (mode !== 2) {
+    g.filter = `blur(${Math.round(w * .012)}px)`;
+    const cg = g.createConicGradient((200 - 90) * Math.PI / 180 + sway, w * .902, -h * .076);
+    const st = [[0, 'rgba(242,48,5,0)'], [8, 'rgba(242,48,5,0)'], [18, 'rgba(242,48,5,.30)'], [26, 'rgba(242,93,7,.16)'], [40, 'rgba(0,0,0,0)'],
+      [150, 'rgba(0,0,0,0)'], [165, 'rgba(242,48,5,.16)'], [185, 'rgba(0,0,0,0)'], [360, 'rgba(0,0,0,0)']];
+    st.forEach(([d, c]) => cg.addColorStop(d / 360, c));
+    g.fillStyle = cg; g.fillRect(0, 0, w, h);
+  }
+  // the lamp, top right
+  g.filter = `blur(${Math.round(w * .004)}px)`;
+  const lx = w * (1 - .14) - w * .076, ly = h * .1 + h * .135, lr = mode === 2 ? w * .55 : w * .14;
+  const rg = g.createRadialGradient(lx, ly, 0, lx, ly, lr);
+  rg.addColorStop(0, `rgba(242,93,7,${mode === 2 ? .7 : .55})`); rg.addColorStop(.4, `rgba(242,48,5,${mode === 2 ? .3 : .25})`); rg.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = rg; g.fillRect(0, 0, w, h);
+  beamTex.needsUpdate = true;
+};
 const fluidDraw = (i, focusDist, apert) => {
   if (!flu.ready) smokeSetup(focusDist);
   FL.to(i); FL2.to(i);
@@ -426,6 +454,7 @@ const fluidDraw = (i, focusDist, apert) => {
   r.setRenderTarget(rtFl[0]); r.setClearColor(0x000000, 1); r.clear(); r.render(flScene, cam);
   smokeDof.uniforms.focus.value = focusDist; smokeDof.uniforms.aperture.value = apert * K;
   pass(smokeDof, rtFl[1]);
+  if (flu.beams) { drawBeams(flu.beams, i / FPS); copyTex.uniforms.k.value = 3.2; pass(copyTex, rtLight[0]); return; }   // the header's light, not the scene's
   pass(lightSrc, rtLight[0]);
   for (let n = 0; n < 4; n++) {
     blur.uniforms.t.value = rtLight[0].texture; blur.uniforms.d.value.set(2.2 / (W / 4), 0); pass(blur, rtLight[1]);
@@ -458,6 +487,13 @@ const knobLayer = (() => {
 })();
 let pull = 0, stillCam = 0;
 const SHOTS = {
+  // the website header's background: no synth, smoke rising through the header's light (10 s loop material)
+  bg: { frames: 250, run(i) {
+    knobLayer.visible = false; synth.visible = false; occ.visible = false;
+    cam.fov = 30; cam.updateProjectionMatrix();
+    look(new THREE.Vector3(0, 0, 1000), new THREE.Vector3(0, 0, 0), 0);
+    draw(i, 1000, 30);
+  } },
   // 1: a slow slide along the oscillator row at a steep angle; the focus band holds on the knobs (3 s)
   slide: { frames: 75, run(i) {
     knobLayer.visible = false;
@@ -634,6 +670,7 @@ window.setup = (name) => {
   const [n, rest = 'ruin'] = name.split('@'), [look, opt = ''] = rest.split(':');
   const o = Object.fromEntries(opt.split(',').filter(Boolean).map((x) => { const [k, v] = x.split('='); return [k, v === undefined ? 1 : Number(v)]; }));
   const real = o.real ?? 0; LIT.real.value = real; LIT.lightR.value = o.lightr ?? 260;   // lightr=100000: light everywhere (to compare)
+  synth.visible = true; occ.visible = true; flu.beams = o.beams ?? 0;
   shot = SHOTS[n]; setLook(look, 1 - real); fin.uniforms.fire.value = o.fire ?? 0;
   spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks) ? 1 : 0; fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   sparks.on = Math.min(1, o.sparks ?? 0); sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
