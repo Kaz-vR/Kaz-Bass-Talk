@@ -39,11 +39,11 @@
     <i class="sp-a" aria-hidden="true"></i>
     <p class="k">Sound</p>
     <h2>Trailer</h2>
-    <div class="vid">
-      <video preload="none" playsinline>
+    <!-- the trailer shots, always playing in a loop (owner's call): muted, so every browser lets it autoplay -->
+    <div class="vid playing">
+      <video autoplay muted loop playsinline preload="auto" aria-label="RUIN-1 trailer shots">
         <source src="assets/demo.mp4" type="video/mp4">
       </video>
-      <button class="vid-play" aria-label="Play the demo"><img src="../design/logo-tight.svg" alt="" width="109" height="100"><span>▷ &nbsp;Play</span></button>
     </div>
     <i class="sp-b" aria-hidden="true"></i>
   </section>

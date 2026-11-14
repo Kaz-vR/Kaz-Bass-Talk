@@ -152,7 +152,7 @@ Use these names when talking about the site.
      offline" line;
    - the logo is aligned so the icon's top meets the top of the letters of RUIN-1 and its bottom the bottom of the
      letters of SYNTHESIZER (measured from the font in `main.js`, holds at every size).
-2. **Audio Demo** (`#sound`): label "Sound", heading "Trailer" (owner's call; the video is the trailer shots so far, `assets/demo.mp4`), the video with no frame. Until the
+2. **Audio Demo** (`#sound`): label "Sound", heading "Trailer" (owner's call; the video is the trailer shots so far, `assets/demo.mp4`), the video with no frame, always playing in a muted loop (no play button). Until the
    video plays, the glowing logo is the play button with a small "▷ Play" under it (no box around the
    logo). The video file goes in `website/assets/demo.mp4`.
 3. **Features** (`#features`): label "Inside", heading "Every page lights up.", and the **carousel**. It
