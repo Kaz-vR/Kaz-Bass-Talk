@@ -163,3 +163,9 @@ not in git).
 **Known issue (open):** the 1920 render of the knob and envelope shots showed dark crackled holes in the smoke
 (invalid values in the simulation, spread by the smoke blur). Guards against it are committed but **not yet
 verified**: check step 3 shows clean smoke before rendering those shots again.
+
+**Render width changes the smoke:** the same shot is about three times brighter at 960 wide than at 1600 (found
+with the website header loop). Always check and render at the width that will be delivered.
+
+**`hidesp=1`** renders the sparks (so a shot keeps the same random numbers) but leaves them out of the picture: for a
+background that gets live sparks on top (the website header).

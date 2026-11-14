@@ -194,7 +194,7 @@ const embers = (host, { flames, count }) => {
 };
 const buy = document.querySelector('.end'), hero = document.querySelector('.hero');
 if (buy) embers(buy, { flames: true, count: 34 });
-if (hero) embers(hero, { flames: false, count: 26 });
+// (the header's sparks are now the trailer's: sparks.js)
 
 // Buy (the menu link and the buttons) takes you all the way to the bottom, the Buy part with its fire (owner's call).
 document.querySelectorAll('a[href="#buy"]').forEach((a) => a.addEventListener('click', (e) => {

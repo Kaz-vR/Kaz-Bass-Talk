@@ -40,7 +40,7 @@ Glows use them with transparency over black (that is the only way they fade).
 | Sand `#c09b6d` | `--sand` | (reserved) |
 
 **The fire's three colours (owner's pick):** `#f25d07` (hot orange), `#f23005` (red-orange), `#f20000` (red). They are
-used for the fire and its light only: the header's two beams and lamp, the Buy part's rising glow, the pixel fire and
+used for the fire and its light only: the header's smoke light, the Buy part's rising glow, the pixel fire and
 all sparks. The pixel fire is this morning's fire with these colours: its dark reds are `#f20000` made transparent to
 the same darkness, then `#f23005`, then `#f25d07` at the hottest; sparks cool `#f25d07` → `#f23005` → `#f20000` →
 `#f20000` fading into the black.
@@ -79,9 +79,12 @@ Visual sheet of the whole palette: ask Claude to render it (the owner keeps a PN
 
 Glows are layered and complex (the owner likes "the more complex gradient"), never one flat gradient, and
 always fade to pure black.
-- **Header:** two beams of a rotating warning light, frozen mid-turn, sweeping from the top right (a
-  `conic-gradient` from about 200deg at 82% 18%, blurred 18px, masked to fade out at the bottom), plus a lamp
-  glow (a 220px radial blob, `#f25d07` at the centre to `#f23005`, at the top right).
+- **Header** (owner's pick "E", in the trailer's style): smoke lit by a soft warm spotlight from the top right, darker
+  round the logo and text so they stay legible. Rendered with the trailer engine (`bg` shot,
+  `bg@ruin:real=1,og=1,tint=0.22,clear=1,fine=1,fluid=1.5,beams=2,sparks=0.65,hidesp=1` at **1600** wide: the smoke's
+  brightness depends on the render width) as a seamless 8 s loop (frames 25-224, the last 25 crossfaded into the
+  start) in `assets/header-smoke.mp4` (0.6 MB; a muted autoplaying video, since a GIF of it is 17 MB even at 800 wide),
+  poster `header-smoke.jpg`, cover-fitted behind everything (`.hero-bg`).
 - **Audio demo:** a soft red radial glow behind the video, `rgba(255,60,20,.14)` to `rgba(120,10,4,.08)`
   to transparent.
 - **Buy part:** a glow rising from the bottom centre: `#f25d07` `.32` to `#f23005` `.22` to `#f20000` `.12`
@@ -189,9 +192,12 @@ Restrained (owner picked motions 1 and 3 from the motion pitches):
 - The carousel slides with the same curve.
 - **Pixel embers** (owner's pick of three: Inferno, Embers, Dither): a low, smouldering pixel fire (6px blocks,
   in the fire's three colours, no yellow) slowly breathing along the bottom of the Buy part, and single-pixel
-  sparks drifting up out of it, cooling (`#f25d07`, `#f23005`, `#f20000`, then fading into the black) as they rise. The same sparks drift behind
-  the Header's content. Plain canvas in `main.js` (`embers()`), 24 frames a second, only while on screen; with
-  reduced motion the fire is one still frame and the header has no sparks.
+  sparks drifting up out of it, cooling (`#f25d07`, `#f23005`, `#f20000`, then fading into the black) as they rise. Plain canvas in `main.js`
+  (`embers()`), 24 frames a second, only while on screen; with reduced motion the fire is one still frame.
+- **Header sparks** (`sparks.js`): the trailer's sparks, live over the smoke loop: drifting slowly up, each at its own
+  depth (sharp short streaks in the focus band, soft discs nearer the lens), cooling `#f25d07` → `#f23005` →
+  `#f20000` → fading out, the glow one step cooler than the core. 30 frames a second, only while on screen; with
+  reduced motion no sparks and the smoke is its still poster.
 - Everything is off with `prefers-reduced-motion`.
 
 ---
