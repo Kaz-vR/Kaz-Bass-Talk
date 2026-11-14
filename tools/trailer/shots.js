@@ -443,6 +443,17 @@ const SHOTS = {
     look(pos, target, THREE.MathUtils.degToRad(4));
     draw(i, pos.distanceTo(target), 105);
   } },
+  // 3: the amp envelope: a low, grazing slide from the right along its glowing curve, from the tail up towards the
+  // attack peak, the focus held on the curve (3.2 s)
+  env: { frames: 80, smokeAt: () => P(840, 200), run(i) {
+    knobLayer.visible = false;
+    const t = stillCam ? 0 : i / 79;
+    const target = P(lerp(870, 805, t), lerp(200, 178, t)); LIT.lightAt.value.copy(P(760, 120));
+    const pos = target.clone().add(new THREE.Vector3(150, -125, 105));
+    cam.fov = 25; cam.updateProjectionMatrix();
+    look(pos, target, THREE.MathUtils.degToRad(-10));
+    draw(i, pos.distanceTo(target), 105);
+  } },
   // 2: push in on the filter cutoff while it turns; the focus pulls from the filter curve to the knob (4 s)
   knob: { frames: 100, smokeAt: () => P(meta.patch.cx, meta.patch.cy), async run(i) {
     knobLayer.visible = true;
