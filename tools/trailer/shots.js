@@ -370,7 +370,7 @@ const layerMat = (k) => new THREE.ShaderMaterial({ uniforms: { dye: { value: nul
     void main(){
       // each layer shifted, scaled and drifting at its own speed: parts of the smoke move differently
       vec2 u = (vUv - .5) * (1. - k * .045) + .5 + vec2(sin(k * 2.1) * .02 + time * (.002 + .0015 * sin(k * 1.7)), -k * .008 + time * .001 * cos(k * 2.9));
-      float d = texture2D(dye, u).r * (k > 1.5 && k < 2.5 ? .5 : 1.);                               // thinnest right on the face
+      float d = texture2D(dye, u).r * (k > 1.5 && k < 2.5 ? .5 : 1.); d = d == d ? clamp(d, 0., 20.) : 0.;                               // thinnest right on the face
       float edge = smoothstep(.02, .16, vUv.x) * smoothstep(.98, .84, vUv.x) * smoothstep(.02, .14, vUv.y) * smoothstep(.98, .86, vUv.y);
       float a = (1. - exp(-d * 1.1)) * edge * .22;
       gl_FragColor = vec4(a, a * vZ / 1000., 0., 1.); }` });                                          // smoke, and smoke x distance
@@ -385,7 +385,7 @@ const smokeDof = sh(`
   void main(){ float acc = 0.; const int N = 64; float ga = 2.39996323;
     float rot = 6.2831853 * fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715))));
     for (int i = 0; i < N; i++) { float rr = sqrt((float(i) + .5) / float(N)) * maxR, an = float(i) * ga + rot;
-      vec2 s = texture2D(t, vUv + vec2(cos(an), sin(an)) * rr * px).xy; float c = max(coc(s), 1.5);
+      vec2 s = texture2D(t, vUv + vec2(cos(an), sin(an)) * rr * px).xy; if (s.x != s.x || s.y != s.y || s.x < 0.) s = vec2(0.); float c = max(coc(s), 1.5);
       acc += s.x * smoothstep(rr - 1., rr + 1., c) / (c * c); }
     gl_FragColor = vec4(acc * maxR * maxR / float(N), 0., 0., 1.); }`,
   { t: { value: rtFl[0].texture }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 30 * K }, px: { value: new THREE.Vector2(1 / W, 1 / H) } });

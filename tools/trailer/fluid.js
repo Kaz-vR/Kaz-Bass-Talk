@@ -21,7 +21,9 @@ export const makeFluid = (r, { simW = 256, simH = 144, dyeW = 1024, dyeH = 576 }
 
     void main(){ vec2 p = vUv - dt * texture2D(vel, vUv).xy * tx;
       float b = smoothstep(0., .03, vUv.x) * smoothstep(1., .97, vUv.x) * smoothstep(0., .03, vUv.y) * smoothstep(1., .97, vUv.y);   // nothing piles up at the edges
-      gl_FragColor = keep * texture2D(src, p) * (1. - inObs(vUv)) * mix(1., b, step(.5, fade)); }`,
+      vec4 o = keep * texture2D(src, p) * (1. - inObs(vUv)) * mix(1., b, step(.5, fade));
+      if (any(notEqual(o, o)) || any(greaterThan(abs(o), vec4(6e4)))) o = vec4(0.);   // never let a bad value live (it spreads as black holes)
+      gl_FragColor = clamp(o, vec4(-400., -400., -400., 0.), vec4(400., 400., 400., 1.)); }`,
     { vel: { value: null }, src: { value: null }, tx: { value: tx }, dt: { value: 0 }, keep: { value: 1 }, obs, fade: { value: 0 } });
   const curl = M(`uniform sampler2D vel; uniform vec2 tx;
     void main(){ float L = texture2D(vel, vUv - vec2(tx.x, 0.)).y, R = texture2D(vel, vUv + vec2(tx.x, 0.)).y;
@@ -31,7 +33,7 @@ export const makeFluid = (r, { simW = 256, simH = 144, dyeW = 1024, dyeH = 576 }
     void main(){ float L = texture2D(crl, vUv - vec2(tx.x, 0.)).x, R = texture2D(crl, vUv + vec2(tx.x, 0.)).x;
       float B = texture2D(crl, vUv - vec2(0., tx.y)).x, T = texture2D(crl, vUv + vec2(0., tx.y)).x, C = texture2D(crl, vUv).x;
       vec2 f = .5 * vec2(abs(T) - abs(B), abs(R) - abs(L)); f /= length(f) + 1e-4; f *= eps * C * vec2(1., -1.);
-      vec2 v = texture2D(vel, vUv).xy + f * dt; gl_FragColor = vec4(v, 0., 1.); }`,
+      vec2 v = texture2D(vel, vUv).xy + f * dt; if (any(notEqual(v, v))) v = vec2(0.); gl_FragColor = vec4(clamp(v, -400., 400.), 0., 1.); }`,
     { vel: { value: null }, crl: { value: null }, tx: { value: tx }, dt: { value: 0 }, eps: { value: 0 } });
   const diverge = M(`uniform sampler2D vel; uniform vec2 tx;
     void main(){ float L = texture2D(vel, vUv - vec2(tx.x, 0.)).x, R = texture2D(vel, vUv + vec2(tx.x, 0.)).x;
