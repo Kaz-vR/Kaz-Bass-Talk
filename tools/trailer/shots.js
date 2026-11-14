@@ -371,7 +371,7 @@ const layerMat = (k) => new THREE.ShaderMaterial({ uniforms: { dye: { value: nul
       // each layer shifted, scaled and drifting at its own speed: parts of the smoke move differently
       vec2 u = (vUv - .5) * (1. - k * .045) + .5 + vec2(sin(k * 2.1) * .02 + time * (.002 + .0015 * sin(k * 1.7)), -k * .008 + time * .001 * cos(k * 2.9));
       float d = texture2D(dye, u).r * (k > 1.5 && k < 2.5 ? .5 : 1.);                               // thinnest right on the face
-      float edge = smoothstep(0., .07, vUv.x) * smoothstep(1., .93, vUv.x) * smoothstep(0., .06, vUv.y) * smoothstep(1., .94, vUv.y);
+      float edge = smoothstep(.02, .16, vUv.x) * smoothstep(.98, .84, vUv.x) * smoothstep(.02, .14, vUv.y) * smoothstep(.98, .86, vUv.y);
       float a = (1. - exp(-d * 1.1)) * edge * .22;
       gl_FragColor = vec4(a, a * vZ / 1000., 0., 1.); }` });                                          // smoke, and smoke x distance
 const layers = LAYER_Z.map(([z, sim], k) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), layerMat(k)); m.userData.sim = sim; m.userData.z = z; return m; });
@@ -389,13 +389,38 @@ const smokeDof = sh(`
       acc += s.x * smoothstep(rr - 1., rr + 1., c) / (c * c); }
     gl_FragColor = vec4(acc * maxR * maxR / float(N), 0., 0., 1.); }`,
   { t: { value: rtFl[0].texture }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 30 * K }, px: { value: new THREE.Vector2(1 / W, 1 / H) } });
-const flu = { on: 0 };
+const flu = { on: 0, ready: false };
 // the light the smoke sits in: the scene itself (the UI's glow) and the sparks, spread wide at quarter size
 const rtLight = [0, 1].map(() => new THREE.WebGLRenderTarget(W / 4, H / 4, rtOpts));
 const lightSrc = sh(`varying vec2 vUv; uniform sampler2D t, sp; void main(){ vec3 c = texture2D(t, vUv).rgb; float l = max(c.r, max(c.g, c.b));
     gl_FragColor = vec4(c * smoothstep(.04, .5, l) + vec3(.949, .365, .027) * texture2D(sp, vUv).r * 2.5, 1.); }`, { t: { value: rtDof.texture }, sp: { value: rtSpark.texture } });
 fin.uniforms.tLight = { value: rtLight[0].texture };
+// the smoke area for a shot, set on its first frame (the old fixed 900 x 620 sheet only suited the slide shot)
+const smokeSetup = (focusDist) => {
+  // the slide shot (focus 418 units away, a frame 343 units wide) was tuned with a 900 x 620 sheet and layers up to
+  // 108 high: every shot gets the same proportions to its own frame, centred where its camera looks
+  const fwd = new THREE.Vector3(); cam.getWorldDirection(fwd);
+  const c = cam.position.clone().addScaledVector(fwd, focusDist), sc = focusDist / 418;
+  const SWs = 900 * sc, SHs = 620 * sc;
+  layers.forEach((m) => { m.position.set(c.x, c.y, m.userData.z * (m.userData.z > 0 ? sc : 1)); m.scale.set(SWs, SHs, 1); });
+  const U = (x) => (x - c.x) / SWs + .5, Vv = (y) => (y - c.y) / SHs + .5;
+  const PANEL = [U(-PW / 2), Vv(-PH / 2), U(PW / 2), Vv(PH / 2)];
+  const px = (u, v) => [Math.min(.92, Math.max(.08, u)), Math.min(.92, Math.max(.08, v))];
+  // above the synth: rising from low in the view, fanning out along its face
+  FL.setup([[...px(.3, .14), .05, 60, .25, 1, 1.6], [...px(.62, .1), .05, 55, -.1, 1, 1.4], [...px(.85, .3), .045, 50, -.3, 1, 1.3], [...px(.15, .45), .045, 45, .4, 1, 1.2]],
+    { buoy: 1, turb: 1.2, eps: 4, keepDye: .9996, speed: .08 });   // (the surface spread pushed smoke into the area's edges: off)   // measured: about 2 % of the frame width a second
+  // behind the synth: where one of its edges is in or near the view, rising along it and spilling round it (the panel
+  // is a wall to this smoke); otherwise a low, lazy smoke behind the near layers
+  const edge = PANEL[0] > .02 ? PANEL[0] - .05 : PANEL[2] < .98 ? PANEL[2] + .05 : null;
+  if (edge !== null) {
+    const tv = PANEL[3] + .04;
+    FL2.setup([[...px(edge, .15), .05, 60, .1, 1, 2.2], [...px(edge, .45), .045, 50, .3, 1, 1.6], [...px(.5, Math.min(.9, tv)), .045, 45, .8, .3, 1.3]],
+      { buoy: 1.4, turb: 1.5, eps: 5, keepDye: .9995, obstacle: PANEL, speed: .08 });
+  } else FL2.setup([[...px(.4, .1), .05, 55, .2, 1, 1.4], [...px(.75, .12), .05, 50, -.2, 1, 1.3]], { buoy: 1.2, turb: 1.4, eps: 5, keepDye: .9995, speed: .08 });
+  flu.ready = true;
+};
 const fluidDraw = (i, focusDist, apert) => {
+  if (!flu.ready) smokeSetup(focusDist);
   FL.to(i); FL2.to(i);
   layers.forEach((m) => { const u = m.material.uniforms; u.dye.value = (m.userData.sim ? FL2 : FL).texture; u.time.value = i / FPS; });
   r.setRenderTarget(rtFl[0]); r.setClearColor(0x000000, 1); r.clear(); r.render(flScene, cam);
@@ -434,7 +459,7 @@ const knobLayer = (() => {
 let pull = 0, stillCam = 0;
 const SHOTS = {
   // 1: a slow slide along the oscillator row at a steep angle; the focus band holds on the knobs (3 s)
-  slide: { frames: 75, smokeAt: () => P(235, 256), run(i) {
+  slide: { frames: 75, run(i) {
     knobLayer.visible = false;
     const t = stillCam ? 0 : i / 74;
     const target = P(lerp(215, 255, t), 256); LIT.lightAt.value.copy(P(330, 150));                                 // a slow drift along OSC A's knobs (~3 % of the frame a second)
@@ -445,7 +470,7 @@ const SHOTS = {
   } },
   // 3: the amp envelope: a low, grazing slide from the right along its glowing curve, from the tail up towards the
   // attack peak, the focus held on the curve (3.2 s)
-  env: { frames: 80, smokeAt: () => P(840, 200), run(i) {
+  env: { frames: 80, run(i) {
     knobLayer.visible = false;
     const t = stillCam ? 0 : i / 79;
     const target = P(lerp(870, 805, t), lerp(200, 178, t)); LIT.lightAt.value.copy(P(760, 120));
@@ -455,7 +480,7 @@ const SHOTS = {
     draw(i, pos.distanceTo(target), 105);
   } },
   // 2: push in on the filter cutoff while it turns; the focus pulls from the filter curve to the knob (4 s)
-  knob: { frames: 100, smokeAt: () => P(meta.patch.cx, meta.patch.cy), async run(i) {
+  knob: { frames: 100, async run(i) {
     knobLayer.visible = true;
     const t = stillCam ? 0 : i / 99, k = await loadKnob(i), p = meta.patch;
     knobLayer.material.uniforms.map.value.image = k; knobLayer.material.uniforms.map.value.needsUpdate = true;
@@ -614,23 +639,8 @@ window.setup = (name) => {
   sparks.on = Math.min(1, o.sparks ?? 0); sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
-  flu.on = o.fluid ?? 0; fin.uniforms.fluid.value = flu.on;
-  if (flu.on) {
-    // the smoke lives where the shot looks: a sheet 900 x 620 units round the shot's target, parallel to the synth
-    const c = (shot.smokeAt ?? (() => new THREE.Vector3(0, 0, 0)))(), SWs = 900, SHs = 620;
-    layers.forEach((m) => { m.position.set(c.x, c.y, m.userData.z); m.scale.set(SWs, SHs, 1); });
-    // the panel's rectangle in that sheet (u, v from 0 to 1; it reaches past the sheet where the synth does)
-    const U = (x) => (x - c.x) / SWs + .5, Vv = (y) => (y - c.y) / SHs + .5;
-    const PANEL = [U(-PW / 2), Vv(-PH / 2), U(PW / 2), Vv(PH / 2)];
-    const px = (u, v) => [Math.min(.95, Math.max(.05, u)), Math.min(.95, Math.max(.05, v))];
-    // above the synth: rising from low in the view, fanning out along its face
-    FL.setup([[...px(.3, .14), .05, 60, .25, 1, 1.6], [...px(.62, .1), .05, 55, -.1, 1, 1.4], [...px(.85, .3), .045, 50, -.3, 1, 1.3]],
-      { buoy: 1, turb: 1.2, eps: 4, keepDye: .9996, spreadRect: PANEL, spread: 14, speed: .08 });   // measured: about 2 % of the frame width a second
-    // behind it: rising along its edge and spilling round it (the panel is a wall to this smoke)
-    const eu = PANEL[0] - .05, tv = PANEL[3] + .04;
-    FL2.setup([[...px(eu, .15), .05, 60, .1, 1, 2.2], [...px(eu, .45), .045, 50, .3, 1, 1.6], [...px(.5, Math.min(.9, tv)), .045, 45, .8, .3, 1.3]],
-      { buoy: 1.4, turb: 1.5, eps: 5, keepDye: .9995, obstacle: PANEL, speed: .08 });
-  }
+  flu.on = o.fluid ?? 0; fin.uniforms.fluid.value = flu.on; flu.ready = false;
+
 
   shot.reset?.(); return shot.frames; };
 window.frame = async (i) => { await shot.run(i); r.getContext().finish(); return true; };

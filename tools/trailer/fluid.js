@@ -17,10 +17,12 @@ export const makeFluid = (r, { simW = 256, simH = 144, dyeW = 1024, dyeH = 576 }
   const tx = new THREE.Vector2(1 / simW, 1 / simH);
 
   const obs = { value: new THREE.Vector4(-1, -1, -1, -1) };                  // the solid panel: nothing flows into or through it
-  const advect = M(`uniform sampler2D vel, src; uniform vec2 tx; uniform float dt, keep; uniform vec4 obs; float inObs(vec2 p){ return step(obs.x, p.x) * step(p.x, obs.z) * step(obs.y, p.y) * step(p.y, obs.w); }
+  const advect = M(`uniform sampler2D vel, src; uniform vec2 tx; uniform float dt, keep, fade; uniform vec4 obs; float inObs(vec2 p){ return step(obs.x, p.x) * step(p.x, obs.z) * step(obs.y, p.y) * step(p.y, obs.w); }
 
-    void main(){ vec2 p = vUv - dt * texture2D(vel, vUv).xy * tx; gl_FragColor = keep * texture2D(src, p) * (1. - inObs(vUv)); }`,
-    { vel: { value: null }, src: { value: null }, tx: { value: tx }, dt: { value: 0 }, keep: { value: 1 }, obs });
+    void main(){ vec2 p = vUv - dt * texture2D(vel, vUv).xy * tx;
+      float b = smoothstep(0., .03, vUv.x) * smoothstep(1., .97, vUv.x) * smoothstep(0., .03, vUv.y) * smoothstep(1., .97, vUv.y);   // nothing piles up at the edges
+      gl_FragColor = keep * texture2D(src, p) * (1. - inObs(vUv)) * mix(1., b, step(.5, fade)); }`,
+    { vel: { value: null }, src: { value: null }, tx: { value: tx }, dt: { value: 0 }, keep: { value: 1 }, obs, fade: { value: 0 } });
   const curl = M(`uniform sampler2D vel; uniform vec2 tx;
     void main(){ float L = texture2D(vel, vUv - vec2(tx.x, 0.)).y, R = texture2D(vel, vUv + vec2(tx.x, 0.)).y;
       float B = texture2D(vel, vUv - vec2(0., tx.y)).x, T = texture2D(vel, vUv + vec2(0., tx.y)).x; gl_FragColor = vec4(.5 * (R - L - T + B), 0., 0., 1.); }`,
@@ -101,10 +103,10 @@ export const makeFluid = (r, { simW = 256, simH = 144, dyeW = 1024, dyeH = 576 }
     scale.uniforms.src.value = prs.read.texture; scale.uniforms.k.value = .8; run(scale, prs.write); prs.swap();
     for (let k = 0; k < 24; k++) { jacobi.uniforms.prs.value = prs.read.texture; run(jacobi, prs.write); prs.swap(); }
     subtract.uniforms.prs.value = prs.read.texture; subtract.uniforms.vel.value = vel.read.texture; run(subtract, vel.write); vel.swap();
-    advect.uniforms.vel.value = vel.read.texture; advect.uniforms.src.value = vel.read.texture; advect.uniforms.dt.value = dt; advect.uniforms.keep.value = S.keepVel;
+    advect.uniforms.vel.value = vel.read.texture; advect.uniforms.src.value = vel.read.texture; advect.uniforms.dt.value = dt; advect.uniforms.keep.value = S.keepVel; advect.uniforms.fade.value = 0;
     advect.uniforms.tx.value = tx; run(advect, vel.write); vel.swap();
     inject.uniforms.dye.value = dye.read.texture; inject.uniforms.dt.value = dt; run(inject, dye.write); dye.swap();
-    advect.uniforms.vel.value = vel.read.texture; advect.uniforms.src.value = dye.read.texture; advect.uniforms.keep.value = S.keepDye;
+    advect.uniforms.vel.value = vel.read.texture; advect.uniforms.src.value = dye.read.texture; advect.uniforms.keep.value = S.keepDye; advect.uniforms.fade.value = 1;
     run(advect, dye.write); dye.swap();
   };
   // run the simulation up to video frame i (two steps per frame), with pre-roll so the smoke is already there
