@@ -199,7 +199,9 @@ Restrained (owner picked motions 1 and 3 from the motion pitches):
   `#f20000` → fading out, the glow one step cooler than the core. 30 frames a second, only while on screen; with
   reduced motion no sparks and the smoke is its still poster.
 - **Buy sparks** (`sparks.js`, the same engine): the sparks of fire pitch 6, born along the bottom and rising out of the
-  fire (40-110 px a second, a slight diagonal), dying on the way up (2.6-5.6 s); about 40 on a laptop screen.
+  fire as fast as the fire rises (owner's call: the loop's smoke moves about 2 % of its picture's width a second, so
+  0.6-1.4 x that, from the picture's cover-fitted width), a slight diagonal, dying on the way up (6-11 s); about 40
+  on a laptop screen.
 - Everything is off with `prefers-reduced-motion`.
 
 ---
@@ -249,7 +251,9 @@ service like UXKIN (owner's call). Use it for every design decision, before rely
   over the stylesheet: check the live page with that saved tuning loaded before saying a colour change is done.
 - **The tuner** (dev only, only in the published preview, never in `website/`; the ◐ button on the left turns it on):
   balls for colours; on the header a **square** for the smoke's **Curves**, an **orange square** for the sparks' Curves
-  (applied to the sparks as they look over black, their transparency kept), (RGB, Red, Green, Blue and Brightness, which changes the
+  (applied to the sparks as they look over black, their transparency kept), and on the Buy part a **red square** for
+  the fire's Curves (the GIF's frames are decoded with `ImageDecoder` and played under the curves, since scripts only
+  ever see a GIF's first frame) and an **orange square** for its sparks' Curves, (RGB, Red, Green, Blue and Brightness, which changes the
   luminance only and keeps the colour; applied in that order) and a **diamond** for the **Vignette** (amount, size,
   roundness, feather). Both apply to the header smoke loop through a WebGL pass over the video. **Save** stores
   everything in `tuning/current` and adds a timestamped entry to `tuning/history/saves`, listed under Save (click one to

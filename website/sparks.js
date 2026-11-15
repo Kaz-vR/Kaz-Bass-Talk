@@ -1,7 +1,8 @@
 // RUIN-1 website: the trailer's sparks (references/trailers/RUIN-1.md, section 3), live, in two places:
 // - the header: a few embers (as many as in mockup E, the owner's pick) drifting very slowly up through the smoke,
 //   born where they glow;
-// - the Buy part: the sparks of fire pitch 6, rising out of the fire along the bottom and dying on the way up.
+// - the Buy part: the sparks of fire pitch 6, rising out of the fire along the bottom as fast as the fire rises, and
+//   dying on the way up.
 // Each spark sits at its own depth: in the focus band a short sharp streak, nearer the lens a soft disc of the same
 // colour. Colour follows temperature in the house colours only: born at a random heat, #F25D07 hot, cooling to #F23005,
 // then #F20000, then fading out; the glow round a spark is one step cooler than its core. Plain canvas, 30 frames a
@@ -24,7 +25,10 @@ const sparks = (host, o) => {
     s.x = Math.random() * W;
     s.y = o.rise ? (first ? H * (0.35 + 0.65 * Math.random()) : H + 10 * dpr) : Math.random() * H;
     s.t0 = 0.5 + 0.5 * Math.pow(Math.random(), 0.7);                               // how hot it is born; hotter ones rise a little faster
-    s.v = (o.v[0] + Math.random() * o.v[1]) * (0.6 + 0.6 * s.t0) * (1 + s.z * 1.5) * dpr;   // px a second; nearer ones move faster
+    // px a second; nearer ones move faster. o.fire: as fast as the fire behind them rises (the loop's smoke moves about
+    // 2 % of its picture's width a second, and the picture is cover-fitted, so its width on screen sets the speed)
+    const base = o.fire ? o.fire * Math.max(W, H * 16 / 9) / dpr * (0.6 + Math.random() * 0.8) : o.v[0] + Math.random() * o.v[1];
+    s.v = base * (0.6 + 0.6 * s.t0) * (1 + s.z * (o.fire ? 0.5 : 1.5)) * dpr;
     s.vx = o.rise ? (Math.random() - 0.5) * s.v * 0.35 : 0;                        // pitch 6: a slight diagonal
     s.ph = Math.random() * 6.28; s.max = o.life[0] + Math.random() * o.life[1]; s.life = first ? Math.random() * s.max : s.max;
     return s;
@@ -67,5 +71,5 @@ const hero = document.querySelector('.hero');
 if (hero) sparks(hero, { bg: '.hero-bg', count: 16, base: 4, sharp: 0.7, v: [4, 7], life: [7, 8], sway: 2.5, streak: 0.12, rise: false });
 // the Buy part: pitch 6's sparks, rising out of the fire and dying on the way up
 const buy = document.querySelector('.end');
-if (buy) sparks(buy, { bg: '.end-bg', count: 34, base: 6, sharp: 0.62, v: [40, 70], life: [2.6, 3], sway: 6, streak: 0.06, rise: true });
+if (buy) sparks(buy, { bg: '.end-bg', count: 34, base: 6, sharp: 0.62, fire: 0.02, life: [6, 5], sway: 3, streak: 0.12, rise: true });   // as fast as the fire (owner's call)
 }
