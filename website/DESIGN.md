@@ -84,10 +84,7 @@ always fade to pure black.
   `bg@ruin:real=1,og=1,tint=0.22,clear=1,fine=1,fluid=1.5,beams=2,sparks=0.65,hidesp=1` at **1600** wide: the smoke's
   brightness depends on the render width) as a seamless 8 s loop (frames 25-224, the last 25 crossfaded into the
   start) in `assets/header-smoke.mp4` (0.6 MB; a muted autoplaying video, since a GIF of it is 17 MB even at 800 wide),
-  poster `header-smoke.jpg`, cover-fitted behind everything (`.hero-bg`). The owner's tuner save of 15 Nov is applied
-  for good: its RGB curve (one point at 0.253, 0.055: the shadows pulled down) is baked into the video and poster,
-  its vignette (amount -74, size 54, roundness 54, feather 39) is `.hero-vig`, a gradient `main.js` redraws to the
-  header's shape (the same maths as the tuner), over the smoke and under the sparks.
+  poster `header-smoke.jpg`, cover-fitted behind everything (`.hero-bg`).
 - **Audio demo:** a soft red radial glow behind the video, `rgba(255,60,20,.14)` to `rgba(120,10,4,.08)`
   to transparent.
 - **Buy part:** a glow rising from the bottom centre: `#f25d07` `.32` to `#f23005` `.22` to `#f20000` `.12`
@@ -255,7 +252,8 @@ service like UXKIN (owner's call). Use it for every design decision, before rely
   roundness, feather). Both apply to the header smoke loop through a WebGL pass over the video. **Save** stores
   everything in `tuning/current` and adds a timestamped entry to `tuning/history/saves`, listed under Save (click one to
   go back to it, × removes it; the list shows while the pointer is over Save). When the owner says "apply my saved colours", apply the newest save to the site for good
-  (the curves and vignette are baked into `assets/header-smoke.mp4` and its poster), then **delete every document in
+  (the smoke's curves are baked into `assets/header-smoke.mp4` and its poster, the vignette is a gradient layer over
+  the smoke redrawn to the header's shape, as tried on 15 Nov and then undone by the owner), then **delete every document in
   `tuning/history/saves`** and reset the grade in `tuning/current`.
 - **Never push to GitHub unless the owner says so.** Commit locally.
 - Use the installed design skills (UI review, polish, frontend-design) for reviews and larger changes.

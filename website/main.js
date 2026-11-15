@@ -202,19 +202,3 @@ document.querySelectorAll('a[href="#buy"]').forEach((a) => a.addEventListener('c
   scrollTo({ top: document.documentElement.scrollHeight, behavior: still ? 'auto' : 'smooth' });
   history.replaceState(null, '', '#buy');
 }));
-
-// ---- the header's vignette, over the smoke loop and under the sparks (the owner's tuner save of 15 Nov: amount -74,
-// size 54, roundness 54, feather 39). Same maths as the tuner: the shape blends from the frame's own proportions
-// (roundness 0) to a circle (100), so it is redrawn when the header changes shape.
-{
-  const v = document.querySelector('.hero .hero-vig');
-  const VIG = { amount: 0.74, size: 0.54, round: 0.54, feather: 0.39 };
-  const draw = () => {
-    if (!v) return; const r = v.getBoundingClientRect(); if (!r.width || !r.height) return;
-    const k = 1 + (r.width / r.height - 1) * VIG.round, L = Math.hypot(k, 1);
-    const a = VIG.size, b = VIG.size + VIG.feather * (1.15 - VIG.size), stops = [];
-    for (let i = 0; i <= 12; i++) { const t = i / 12, sm = t * t * (3 - 2 * t); stops.push(`rgba(0,0,0,${(VIG.amount * sm).toFixed(4)}) ${((a + (b - a) * t) * 100).toFixed(2)}%`); }
-    v.style.background = `radial-gradient(ellipse ${(L / k * 50).toFixed(3)}% ${(L * 50).toFixed(3)}% at 50% 50%, rgba(0,0,0,0) 0%, ${stops.join(', ')})`;
-  };
-  if (v) { draw(); new ResizeObserver(draw).observe(v); }
-}
