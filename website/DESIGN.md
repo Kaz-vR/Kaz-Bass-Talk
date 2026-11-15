@@ -255,11 +255,14 @@ service like UXKIN (owner's call). Use it for every design decision, before rely
   the fire's Curves (the GIF's frames are decoded with `ImageDecoder` and played under the curves, since scripts only
   ever see a GIF's first frame) and an **orange square** for its sparks' Curves, (RGB, Red, Green, Blue and Brightness, which changes the
   luminance only and keeps the colour; applied in that order) and a **diamond** for the **Vignette** (amount, size,
-  roundness, feather). Both apply to the header smoke loop through a WebGL pass over the video. **Save** stores
-  everything in `tuning/current` and adds a timestamped entry to `tuning/history/saves`, listed under Save (click one to
-  go back to it, × removes it; the list shows while the pointer is over Save). When the owner says "apply my saved colours", apply the newest save to the site for good
-  (the smoke's curves are baked into `assets/header-smoke.mp4` and its poster, the vignette is a gradient layer over
-  the smoke redrawn to the header's shape, as tried on 15 Nov and then undone by the owner), then **delete every document in
-  `tuning/history/saves`** and reset the grade in `tuning/current`.
+  roundness, feather). Both apply to the header smoke loop through a WebGL pass over the video. **Save** asks for a name (it
+  can't save without one), then stores everything in `tuning/current` and adds a named, timestamped entry to
+  `tuning/history/saves`. Hovering Save shows the **last 10 saves** by name and time (click one to go back to it). The
+  last 10 are always kept: each save deletes only the ones older than the latest 10, and nothing else clears them
+  (owner's call; Claude never clears the saves). When the owner says "apply my saved colours", apply the newest save
+  (or the one they name) to the site for good: the smoke's curves baked into `assets/header-smoke.mp4` and its poster,
+  the vignette as a gradient layer over the smoke redrawn to the header's shape (as tried on 15 Nov and then undone by
+  the owner), the Buy fire's curves baked into `assets/buy-fire.gif`, the sparks' curves into `sparks.js`; then reset
+  the grade in `tuning/current` so it isn't applied twice.
 - **Never push to GitHub unless the owner says so.** Commit locally.
 - Use the installed design skills (UI review, polish, frontend-design) for reviews and larger changes.
