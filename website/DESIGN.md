@@ -165,10 +165,10 @@ Use these names when talking about the site.
    must always stay a carousel (owner): the current page big in the middle, its neighbours faded at the
    sides (opacity .28, greyed), a **loop with no ends** (on page 1 the last page is already on the left),
    each page the **same 3D synth as the header** (owner's call; `strip3d.js`: the box with the page's picture on its
-   face, unlit, tipped back 3 degrees, one shared renderer), at the old clips' size and place. Going to the next or
-   previous page gives a small springy swing: the arriving page turns in from the side it comes from (11 degrees)
-   and settles with a slight overshoot, the leaving one turns away a little; the current page follows the mouse a
-   little. Stills for now, taken by `node tools/site-feature-shots.mjs` into `website/assets/shots/pages/` (the owner
+   face, unlit, one shared renderer), at the old clips' size and place, facing you straight on: **no tilt and no
+   mouse following** (owner's call). Going to the next or previous page gives a clear springy swing (owner: "less
+   subtle"): the arriving page turns in from the side it comes from at 32 degrees, swings about 4 degrees past and
+   settles within a second; the leaving one turns away. Stills for now, taken by `node tools/site-feature-shots.mjs` into `website/assets/shots/pages/` (the owner
    wants the displays moving later). Under it, the caption from 2.1: square arrow, the counter "01 / 06" and the title on the left, the
    description on the right, square arrow. Swipe on phones, drag with a mouse, click a side page, arrow
    keys.
@@ -261,10 +261,12 @@ service like UXKIN (owner's call). Use it for every design decision, before rely
   luminance only and keeps the colour; applied in that order) and a **diamond** for the **Vignette** (amount, size,
   roundness, feather). Both apply to the header smoke loop through a WebGL pass over the video. **Save** asks for a name (it
   can't save without one), then stores everything in `tuning/current` and adds a named, timestamped entry to
-  `tuning/history/saves`. Hovering Save shows the **last 10 saves** by name and time (click one to go back to it). The
+  `tuning/history/saves`. Hovering Save shows the **last 10 saves** by name and time. Clicking one makes it the **active save** (marked ●):
+  it goes to `tuning/current`, so the site shows it and it is the one Claude applies (owner's call: never simply the
+  latest; a new save becomes the active one). The
   last 10 are always kept: each save deletes only the ones older than the latest 10, and nothing else clears them
-  (owner's call; Claude never clears the saves). When the owner says "apply my saved colours", apply the newest save
-  (or the one they name) to the site for good: the smoke's curves baked into `assets/header-smoke.mp4` and its poster,
+  (owner's call; Claude never clears the saves). When the owner says "apply my saved colours" (or "push" a save), apply the
+  **active save** (`tuning/current`, its `name` and `saveId`), never simply the newest to the site for good: the smoke's curves baked into `assets/header-smoke.mp4` and its poster,
   the vignette as a gradient layer over the smoke redrawn to the header's shape (as tried on 15 Nov and then undone by
   the owner), the Buy fire's curves baked into `assets/buy-fire.gif`, the sparks' curves into `sparks.js`; then reset
   the grade in `tuning/current` so it isn't applied twice.
