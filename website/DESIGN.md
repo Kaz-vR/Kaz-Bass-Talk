@@ -166,9 +166,9 @@ Use these names when talking about the site.
    sides (opacity .28, greyed), a **loop with no ends** (on page 1 the last page is already on the left),
    each page the **same 3D synth as the header** (owner's call; `strip3d.js`: the box with the page's picture on its
    face, unlit, one shared renderer), at the old clips' size and place, facing you straight on: **no tilt and no
-   mouse following** (owner's call). Going to the next or previous page gives a clear springy swing (owner: "less
-   subtle"): the arriving page turns in from the side it comes from at 32 degrees, swings about 4 degrees past and
-   settles within a second; the leaving one turns away. Stills for now, taken by `node tools/site-feature-shots.mjs` into `website/assets/shots/pages/` (the owner
+   mouse following** (owner's call). Going to the next or previous page gives a small springy swing (owner's pick of
+   the two tried: the first): the arriving page turns in from the side it comes from at 11 degrees, dipped 2 degrees,
+   and settles with a slight overshoot; the leaving one turns away a little. Stills for now, taken by `node tools/site-feature-shots.mjs` into `website/assets/shots/pages/` (the owner
    wants the displays moving later). Under it, the caption from 2.1: square arrow, the counter "01 / 06" and the title on the left, the
    description on the right, square arrow. Swipe on phones, drag with a mouse, click a side page, arrow
    keys.

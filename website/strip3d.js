@@ -1,8 +1,8 @@
 // RUIN-1 website: the features strip's pages as the same 3D synth as the header (hero3d.js, owner's call): a box with
 // the page's picture on its face, unlit (the picture's own colours exactly), facing you straight on (no tilt, and it
 // doesn't follow the mouse: owner's call). One renderer draws every slide into its own canvas. Going to the next or
-// previous page gives the slides a clear, springy swing: the arriving page turns in from the side it comes from,
-// overshoots and settles; the leaving one turns away. The pictures are stills for now (tools/site-feature-shots.mjs);
+// previous page gives the slides a small, springy swing (owner's pick, the first version): the arriving page turns in
+// from the side it comes from, dipped 2 degrees, and settles; the leaving one turns away a little. The pictures are stills for now (tools/site-feature-shots.mjs);
 // the <img> stays as the fallback (no WebGL, reduced motion). three.js is self-hosted in vendor/ (MIT).
 import * as THREE from './vendor/three.module.min.js';
 
@@ -10,7 +10,7 @@ const strip = document.querySelector('.strip');
 const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const PERSP = 1600, TILT = 0;                                   // as the header: the eye 1600 css px away; straight on, no tilt (owner's call)
 const PIC = { W: 1358, H: 750, woodL: [0, 67], woodR: [1291, 67] };   // the picture's layout in css px (shot at 2x)
-const PADW = 1.3, PADH = 1.5;                                    // the canvas is larger than the slide, so a turn is never cut off
+const PADW = 1.22, PADH = 1.4;                                  // the canvas is larger than the slide, so a turn is never cut off
 
 const start = async () => {
   if (!strip || still) return;
@@ -70,7 +70,7 @@ const start = async () => {
   const tick = (ts) => {
     const dt = Math.min(0.05, (ts - last) / 1000 || 0.016); last = ts; let moving = false;
     for (const s of slides) {
-      const p = s.pose, a = s.aim, K = 38, C = 6.5;                              // stiffness and damping: about 25 % overshoot, settled in about a second
+      const p = s.pose, a = s.aim, K = 70, C = 11;                               // stiffness and damping: about 8 % overshoot
       p.vy += ((a.yaw - p.yaw) * K - p.vy * C) * dt; p.yaw += p.vy * dt;
       p.vt += ((a.tilt - p.tilt) * K - p.vt * C) * dt; p.tilt += p.vt * dt;
       const m = Math.abs(a.yaw - p.yaw) > 0.01 || Math.abs(p.vy) > 0.01 || Math.abs(a.tilt - p.tilt) > 0.01 || Math.abs(p.vt) > 0.01;
@@ -82,8 +82,8 @@ const start = async () => {
   // a page change: the arriving page swings in from the side it comes from, the leaving one turns away a little
   strip.addEventListener('slide', (e) => {
     const { from, to, dir } = e.detail;
-    if (slides[to]) { slides[to].pose.yaw = dir * 32; slides[to].pose.tilt = TILT; slides[to].pose.vy = 0; slides[to].pose.vt = 0; }
-    if (slides[from]) { slides[from].pose.vy += -dir * 220; slides[from].aim.yaw = 0; slides[from].aim.tilt = TILT; }
+    if (slides[to]) { slides[to].pose.yaw = dir * 11; slides[to].pose.tilt = TILT + 2; slides[to].pose.vy = 0; }
+    if (slides[from]) { slides[from].pose.vy += -dir * 60; slides[from].aim.yaw = 0; slides[from].aim.tilt = TILT; }
     go();
   });
   new ResizeObserver(size).observe(slides[0].li); size();
