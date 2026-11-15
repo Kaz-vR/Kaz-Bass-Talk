@@ -194,7 +194,8 @@ Restrained (owner picked motions 1 and 3 from the motion pitches):
   in the fire's three colours, no yellow) slowly breathing along the bottom of the Buy part, and single-pixel
   sparks drifting up out of it, cooling (`#f25d07`, `#f23005`, `#f20000`, then fading into the black) as they rise. Plain canvas in `main.js`
   (`embers()`), 24 frames a second, only while on screen; with reduced motion the fire is one still frame.
-- **Header sparks** (`sparks.js`): the trailer's sparks, live over the smoke loop: drifting slowly up, each at its own
+- **Header sparks** (`sparks.js`): the trailer's sparks, live over the smoke loop: few (as many as mockup E, about 20 on a
+  laptop screen), born where they glow and drifting very slowly up (4-11 px a second), each at its own
   depth (sharp short streaks in the focus band, soft discs nearer the lens), cooling `#f25d07` → `#f23005` →
   `#f20000` → fading out, the glow one step cooler than the core. 30 frames a second, only while on screen; with
   reduced motion no sparks and the smoke is its still poster.

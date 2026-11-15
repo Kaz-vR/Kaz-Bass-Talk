@@ -1,5 +1,5 @@
-// RUIN-1 website: the header's sparks, in the trailer's style (references/trailers/RUIN-1.md, section 3): embers
-// drifting slowly up through the smoke, each at its own depth. In the focus band they are short sharp streaks;
+// RUIN-1 website: the header's sparks, in the trailer's style (references/trailers/RUIN-1.md, section 3): a few embers
+// (as many as in mockup E, the owner's pick) drifting very slowly up through the smoke, each at its own depth. In the focus band they are short sharp streaks;
 // nearer the lens they are soft discs of the same colour. Colour follows temperature in the house colours only:
 // born at a random heat, #F25D07 hot, cooling to #F23005, then #F20000, then fading out; the glow round a spark is
 // one step cooler than its core. Plain canvas, 30 frames a second, only while the header is on screen; none with
@@ -18,28 +18,28 @@ if (host && !still) {
   let W = 0, H = 0, dpr = 1, list = [], on = false, last = 0;
   const spawn = (s, anywhere) => {
     s.z = Math.random();                                         // 0 = in the focus band, 1 = close to the lens
-    s.z = s.z < 0.6 ? s.z * 0.15 : s.z;                          // most sparks sharp, some soft
-    s.x = Math.random() * W; s.y = anywhere ? Math.random() * H : H + 20;
+    s.z = s.z < 0.7 ? s.z * 0.15 : s.z;                          // most sparks sharp, a few soft (as in mockup E)
+    s.x = Math.random() * W; s.y = Math.random() * H;              // so slow they are born where they glow, fading in
     s.t0 = 0.5 + 0.5 * Math.pow(Math.random(), 0.7);             // how hot it is born; hotter ones rise a little faster
-    s.v = (12 + Math.random() * 22) * (0.6 + 0.6 * s.t0) * (1 + s.z * 1.5) * dpr;   // px a second; nearer ones move faster
-    s.ph = Math.random() * 6.28; s.max = 3 + Math.random() * 4; s.life = anywhere ? Math.random() * s.max : s.max;
+    s.v = (4 + Math.random() * 7) * (0.6 + 0.6 * s.t0) * (1 + s.z * 1.5) * dpr;     // px a second, very slow (owner's call); nearer ones a little faster
+    s.ph = Math.random() * 6.28; s.max = 7 + Math.random() * 8; s.life = anywhere ? Math.random() * s.max : s.max;
     return s;
   };
   const size = () => {
     const r = host.getBoundingClientRect(); dpr = Math.min(devicePixelRatio || 1, 2);
     W = Math.round(r.width * dpr); H = Math.round(r.height * dpr); cv.width = W; cv.height = H;
-    list = Array.from({ length: Math.round(46 * r.width / 1440) + 10 }, () => spawn({}, true));
+    list = Array.from({ length: Math.round(16 * r.width / 1440) + 4 }, () => spawn({}, true));   // the amount of mockup E
   };
   const draw = (dt) => {
     g.clearRect(0, 0, W, H); g.globalCompositeOperation = 'lighter';
     for (const s of list) {
-      s.life -= dt; s.y -= s.v * dt; s.x += Math.sin(performance.now() / 1000 * 0.9 + s.ph) * 6 * dpr * dt;
+      s.life -= dt; s.y -= s.v * dt; s.x += Math.sin(performance.now() / 1000 * 0.9 + s.ph) * 2.5 * dpr * dt;
       if (s.life <= 0 || s.y < -30) spawn(s);
       const f = s.life / s.max, t = s.t0 * (0.25 + 0.75 * f);
       const fade = Math.min(1, f * 6, (s.max - s.life) * 2) * (t > 0.33 ? 1 : t / 0.33) * (0.55 + 0.45 * t);
       const c = colour(t), gc = cooler(t);
       if (s.z < 0.2) {                                             // sharp: a short streak with a glow one step cooler
-        const len = s.v * 0.05, w = 1.3 * dpr;
+        const len = Math.max(1.5 * dpr, s.v * 0.12), w = 1.3 * dpr;
         g.strokeStyle = `rgba(${gc},${0.22 * fade})`; g.lineWidth = w * 6; g.lineCap = 'round';
         g.beginPath(); g.moveTo(s.x, s.y); g.lineTo(s.x, s.y + len); g.stroke();
         g.strokeStyle = `rgba(${c},${fade})`; g.lineWidth = w;
