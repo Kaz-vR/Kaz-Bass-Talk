@@ -130,7 +130,7 @@ const blur = sh(`varying vec2 vUv; uniform sampler2D t; uniform vec2 d; void mai
   for (int i = -8; i <= 8; i++) { float w = exp(-float(i*i) / 24.); s += texture2D(t, vUv + d * float(i)).rgb * w; ws += w; } gl_FragColor = vec4(s / ws, 1.); }`,
   { t: { value: null }, d: { value: new THREE.Vector2() } });
 const fin = sh(`
-  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB, tLight; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid, clearTxt;
+  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB, tLight; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid, clearTxt, clearY;
   float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time * 37.0) * 43758.5453); }
   float h2(vec2 p){ return fract(sin(dot(p, vec2(41.31, 289.13))) * 43758.5453); }
   float sn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
@@ -203,12 +203,12 @@ const fin = sh(`
     if (fluid > 0.) {
       // simulated smoke: two layers between the lens and the synth (near, soft; mid, sharper), lit faintly warm
       float a1 = texture2D(tFlA, vUv).r;
-      if (fluid > 1.5) { gl_FragColor = vec4(a1 * 3., 0., 0., 1.); return; }   // fluid=2: show the raw smoke
+      if (abs(fluid - 2.) < .001) { gl_FragColor = vec4(a1 * 3., 0., 0., 1.); return; }   // fluid=2 exactly: show the raw smoke (any other amount is the lit smoke)
       // lit by the scene: smoke glows with the light around it (the UI, the sparks), is nearly invisible in the dark,
       // and dims what is behind it a little where it is thick; its own faint colour leans to #f25d07
       vec3 Lt = texture2D(tLight, vUv).rgb;
       float sa = clamp(a1 * 3.5, 0., 1.);
-      if (clearTxt > 0.) { vec2 e = (vUv - vec2(.5, .17)) / vec2(.2, .19); sa *= 1. - clearTxt * .88 * smoothstep(1.25, .35, length(e)); }   // dark round the logo and text
+      if (clearTxt > 0.) { vec2 e = (vUv - vec2(.5, clearY)) / vec2(.2, .19); sa *= 1. - clearTxt * .88 * smoothstep(1.25, .35, length(e)); }   // dark round the logo and text
       vec3 amb = mix(vec3(.09, .085, .08), vec3(.949, .365, .027) * .1, .4);
       col = col * (1. - .2 * sa * fluid) + (Lt * 7. + amb) * sa * fluid;
     }
@@ -237,7 +237,7 @@ const fin = sh(`
       col = mix(col, lt * T, tint * smoothstep(.0, .25, lt)); }                  // a wash of #f25d07 over the image
     col += (hash(vUv * 1000.) - .5) * grain;
     gl_FragColor = vec4(col, 1.);
-  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, fluid: { value: 0 }, clearTxt: { value: 0 }, tFlA: { value: null }, tFlB: { value: null }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
+  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, fluid: { value: 0 }, clearTxt: { value: 0 }, clearY: { value: .17 }, tFlA: { value: null }, tFlB: { value: null }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
 
 // the glow: two rounds of a 17-tap blur in 1-texel steps at quarter size (coarser steps showed as stripes)
 const glowBlur = () => { for (let k = 0; k < 2; k++) {
@@ -404,6 +404,26 @@ const smokeSetup = (focusDist) => {
   const c = cam.position.clone().addScaledVector(fwd, focusDist), sc = focusDist / 418;
   const SWs = 900 * sc, SHs = 620 * sc;
   layers.forEach((m) => { m.position.set(c.x, c.y, m.userData.z * (m.userData.z > 0 ? sc : 1)); m.scale.set(SWs, SHs, 1); });
+  if (flu.bot) {                                                                // the Buy part's fire: from just under the frame's bottom
+    const B = .29, k = flu.bot;
+    if (k === 1) {        // ember haze: a few lazy columns of smoke
+      FL.setup([[.3, B, .05, 45, .2, 1, 1.4], [.48, B - .01, .05, 40, 0, 1, 1.3], [.62, B, .05, 45, -.15, 1, 1.4], [.74, B - .01, .045, 40, -.3, 1, 1.2]], { buoy: 1.1, turb: 1.4, eps: 4, keepDye: .9995, speed: .08 });
+      FL2.setup([[.38, B - .02, .06, 40, .3, 1, 1.2], [.66, B - .02, .06, 40, -.2, 1, 1.2]], { buoy: 1, turb: 1.6, eps: 5, keepDye: .9994, speed: .08 });
+    } else if (k === 2) { // smoulder: a dense low bank that barely rises
+      FL.setup([[.3, B + .01, .07, 25, .4, .5, 1.1], [.45, B, .07, 25, -.2, .5, 1.1], [.58, B + .01, .07, 25, .3, .5, 1.1], [.72, B, .07, 25, -.4, .5, 1.1]], { buoy: .45, turb: 1.8, eps: 5, keepDye: .993, speed: .07 });
+      FL2.setup([[.36, B, .08, 25, .5, .4, .9], [.52, B - .01, .08, 25, 0, .4, .9], [.68, B, .08, 25, -.5, .4, .9]], { buoy: .4, turb: 2, eps: 6, keepDye: .993, speed: .07 });
+    } else if (k === 3) { // rising heat: tongues licking up, short-lived at the top
+      FL.setup([[.3, B, .04, 80, .1, 1, 2.2], [.44, B, .04, 85, -.05, 1, 2.4], [.57, B, .04, 80, .08, 1, 2.2], [.71, B, .04, 80, -.1, 1, 2.2]], { buoy: 2.6, turb: 2.2, eps: 9, keepDye: .9965, speed: .12 });
+      FL2.setup([[.37, B - .01, .05, 70, .2, 1, 1.8], [.51, B - .01, .05, 70, -.1, 1, 1.8], [.64, B - .01, .05, 70, .1, 1, 1.8]], { buoy: 2.2, turb: 2.4, eps: 8, keepDye: .997, speed: .12 });
+    } else if (k === 5) { // flames: rising heat with more fuel and lift
+      FL.setup([[.3, B, .04, 95, .1, 1, 2.6], [.42, B, .04, 100, -.05, 1, 2.8], [.54, B, .04, 100, .08, 1, 2.8], [.66, B, .04, 95, -.1, 1, 2.6]], { buoy: 3, turb: 2.4, eps: 9, keepDye: .996, speed: .13 });
+      FL2.setup([[.36, B - .01, .05, 85, .2, 1, 2.2], [.48, B - .01, .05, 85, -.1, 1, 2.2], [.6, B - .01, .05, 85, .1, 1, 2.2], [.72, B - .01, .05, 80, -.15, 1, 2]], { buoy: 2.6, turb: 2.6, eps: 8, keepDye: .9965, speed: .13 });
+    } else {              // fire wall: the whole bottom burning
+      FL.setup([[.29, B, .05, 110, .05, 1, 2], [.42, B, .05, 115, -.05, 1, 2.2], [.56, B, .05, 115, .05, 1, 2.2], [.7, B, .05, 110, -.05, 1, 2]], { buoy: 3.4, turb: 2.6, eps: 10, keepDye: .992, speed: .14 });
+      FL2.setup([[.35, B - .01, .06, 100, .15, 1, 1.7], [.49, B - .01, .06, 100, -.1, 1, 1.7], [.63, B - .01, .06, 100, .1, 1, 1.7], [.76, B - .01, .05, 90, -.15, 1, 1.5]], { buoy: 3, turb: 2.8, eps: 9, keepDye: .992, speed: .14 });
+    }
+    flu.ready = true; return;
+  }
   if (flu.beams) {                                                              // the header: smoke rising from below, drifting across
     FL.setup([[.18, .08, .06, 60, .3, 1, 1.8], [.45, .06, .06, 55, .05, 1, 1.6], [.72, .08, .06, 55, -.2, 1, 1.6], [.9, .2, .05, 45, -.4, 1, 1.3]], { buoy: 1.2, turb: 1.4, eps: 4, keepDye: .9996, speed: .08 });
     FL2.setup([[.3, .15, .07, 50, .4, 1, 1.4], [.65, .12, .07, 50, -.3, 1, 1.4], [.08, .4, .05, 40, .8, .4, 1.1]], { buoy: 1, turb: 1.6, eps: 5, keepDye: .9995, speed: .08 });
@@ -440,6 +460,15 @@ const drawBeams = (mode, time) => {
     st.forEach(([d, c]) => cg.addColorStop(d / 360, c));
     g.fillStyle = cg; g.fillRect(0, 0, w, h);
   }
+  if (mode >= 5) {
+    g.filter = `blur(${Math.round(w * .01)}px)`;
+    if (mode === 5) { const rg = g.createRadialGradient(w * .5, h * 1.05, 0, w * .5, h * 1.05, w * .55);
+      rg.addColorStop(0, 'rgba(242,93,7,1)'); rg.addColorStop(.35, 'rgba(242,48,5,.66)'); rg.addColorStop(.7, 'rgba(242,0,0,.27)'); rg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = rg; }
+    else { const lg = g.createLinearGradient(0, h, 0, 0);   // (alpha .045 = exactly #f25d07 on the densest smoke)
+      lg.addColorStop(0, 'rgba(242,93,7,1)'); lg.addColorStop(.18, 'rgba(242,48,5,.71)'); lg.addColorStop(.4, 'rgba(242,0,0,.36)'); lg.addColorStop(.6, 'rgba(0,0,0,0)'); g.fillStyle = lg; }
+    g.fillRect(0, 0, w, h); g.filter = 'none';
+    beamTex.needsUpdate = true; return;
+  }
   // the lamp, top right
   g.filter = `blur(${Math.round(w * .004)}px)`;
   const lx = mode === 3 ? w * .5 : w * (1 - .14) - w * .076, ly = mode === 3 ? h * .2 : h * .1 + h * .135, lr = mode === 2 || mode === 3 ? w * .55 : mode === 4 ? w * .38 : w * .14;
@@ -455,7 +484,8 @@ const fluidDraw = (i, focusDist, apert) => {
   r.setRenderTarget(rtFl[0]); r.setClearColor(0x000000, 1); r.clear(); r.render(flScene, cam);
   smokeDof.uniforms.focus.value = focusDist; smokeDof.uniforms.aperture.value = apert * K;
   pass(smokeDof, rtFl[1]);
-  if (flu.beams) { drawBeams(flu.beams, i / FPS); copyTex.uniforms.k.value = 3.2; pass(copyTex, rtLight[0]); return; }   // the header's light, not the scene's
+  if (flu.beams) { drawBeams(flu.beams, i / FPS); copyTex.uniforms.k.value = flu.beams >= 5 ? 3.2 * .045 * (flu.beams === 7 ? 1.2 : 1) : 3.2;
+    pass(copyTex, rtLight[0]); return; }   // the header's light, not the scene's (light from below: drawn at full strength, scaled here; .045 = the densest smoke exactly #f25d07)
   pass(lightSrc, rtLight[0]);
   for (let n = 0; n < 4; n++) {
     blur.uniforms.t.value = rtLight[0].texture; blur.uniforms.d.value.set(2.2 / (W / 4), 0); pass(blur, rtLight[1]);
@@ -671,9 +701,11 @@ window.setup = (name) => {
   const [n, rest = 'ruin'] = name.split('@'), [look, opt = ''] = rest.split(':');
   const o = Object.fromEntries(opt.split(',').filter(Boolean).map((x) => { const [k, v] = x.split('='); return [k, v === undefined ? 1 : Number(v)]; }));
   const real = o.real ?? 0; LIT.real.value = real; LIT.lightR.value = o.lightr ?? 260;   // lightr=100000: light everywhere (to compare)
-  synth.visible = true; occ.visible = true; flu.beams = o.beams ?? 0; fin.uniforms.clearTxt.value = o.clear ?? 0;
+  synth.visible = true; occ.visible = true; flu.beams = o.beams ?? 0; flu.bot = o.bot ?? 0; fin.uniforms.clearTxt.value = o.clear ?? 0; fin.uniforms.clearY.value = o.cleary ?? .17;
   shot = SHOTS[n]; setLook(look, 1 - real); fin.uniforms.fire.value = o.fire ?? 0;
-  spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks && !o.hidesp) ? 1 : 0;   // hidesp=1: the sparks run (they share the random numbers with the smoke, so the smoke stays the same) but are left out of the picture fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
+  spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks && !o.hidesp) ? 1 : 0;   
+  // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
+  fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   sparks.on = Math.min(1, o.sparks ?? 0); sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
