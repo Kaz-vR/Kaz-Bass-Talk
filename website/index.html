@@ -51,19 +51,20 @@
     <i class="sp-b" aria-hidden="true"></i>
   </section>
 
-  <!-- FEATURES PART (from 2.1): every page as a looping clip in a strip with no ends, recorded by tools/site-pages.mjs -->
+  <!-- FEATURES PART (from 2.1): every page as the header's 3D synth (strip3d.js) in a strip with no ends; stills from
+       tools/site-feature-shots.mjs for now (owner's call: they move later) -->
   <section class="part" id="features">
     <i class="sp-a" aria-hidden="true"></i>
     <p class="k">Inside</p>
     <h2>Every page lights up.</h2>
     <div class="strip" aria-roledescription="carousel" aria-label="The pages of RUIN-1">
       <ul class="track">
-        <li class="slide" data-title="Sound source" data-text="Two oscillators with up to seven unison voices, a clean sine sub on its own path and fourteen noise textures, into the filter and its envelope."><video src="assets/pages/osc.mp4" poster="assets/pages/osc.jpg" muted loop playsinline preload="none" aria-label="The OSC page of RUIN-1"></video></li>
-        <li class="slide" data-title="Movement" data-text="Six LFOs with humanize, drift and bloom, through a nine-row matrix. Smooth, random, never the same twice."><video src="assets/pages/lfo.mp4" poster="assets/pages/lfo.jpg" muted loop playsinline preload="none" aria-label="The LFO page of RUIN-1"></video></li>
-        <li class="slide" data-title="Wobble" data-text="Pick a shape or draw your own, locked to your tempo from one bar to 1/32."><video src="assets/pages/wobbler.mp4" poster="assets/pages/wobbler.jpg" muted loop playsinline preload="none" aria-label="The Wobbler page of RUIN-1"></video></li>
-        <li class="slide" data-title="The RUIN chain" data-text="Eight boxes in any order: moving filters, ten drive types and EQs. Drag them around or roll a whole chain."><video src="assets/pages/ruin.mp4" poster="assets/pages/ruin.jpg" muted loop playsinline preload="none" aria-label="The RUIN page of RUIN-1"></video></li>
-        <li class="slide" data-title="Effects" data-text="Drive, crush, tape wow and drift, chorus, flanger, phaser, a dark vintage reverb and a four-band EQ."><video src="assets/pages/fx.mp4" poster="assets/pages/fx.jpg" muted loop playsinline preload="none" aria-label="The FX page of RUIN-1"></video></li>
-        <li class="slide" data-title="Presets" data-text="Hand-built sounds on shelves, each with character sliders. Preview one, then open it on the instrument."><video src="assets/pages/presets.mp4" poster="assets/pages/presets.jpg" muted loop playsinline preload="none" aria-label="The Presets page of RUIN-1"></video></li>
+        <li class="slide" data-title="Sound source" data-text="Two oscillators with up to seven unison voices, a clean sine sub on its own path and fourteen noise textures, into the filter and its envelope."><img src="assets/shots/pages/osc.jpg" alt="The OSC page of RUIN-1" width="2716" height="1500" loading="lazy"></li>
+        <li class="slide" data-title="Movement" data-text="Six LFOs with humanize, drift and bloom, through a nine-row matrix. Smooth, random, never the same twice."><img src="assets/shots/pages/lfo.jpg" alt="The LFO page of RUIN-1" width="2716" height="1500" loading="lazy"></li>
+        <li class="slide" data-title="Wobble" data-text="Pick a shape or draw your own, locked to your tempo from one bar to 1/32."><img src="assets/shots/pages/wobbler.jpg" alt="The Wobbler page of RUIN-1" width="2716" height="1500" loading="lazy"></li>
+        <li class="slide" data-title="The RUIN chain" data-text="Eight boxes in any order: moving filters, ten drive types and EQs. Drag them around or roll a whole chain."><img src="assets/shots/pages/ruin.jpg" alt="The RUIN page of RUIN-1" width="2716" height="1500" loading="lazy"></li>
+        <li class="slide" data-title="Effects" data-text="Drive, crush, tape wow and drift, chorus, flanger, phaser, a dark vintage reverb and a four-band EQ."><img src="assets/shots/pages/fx.jpg" alt="The FX page of RUIN-1" width="2716" height="1500" loading="lazy"></li>
+        <li class="slide" data-title="Presets" data-text="Hand-built sounds on shelves, each with character sliders. Preview one, then open it on the instrument."><img src="assets/shots/pages/presets.jpg" alt="The Presets page of RUIN-1" width="2716" height="1500" loading="lazy"></li>
       </ul>
     </div>
     <div class="cap">
@@ -107,6 +108,7 @@
 
 <script src="main.js"></script>
 <script type="module" src="hero3d.js"></script>
+<script type="module" src="strip3d.js"></script>
 <script src="sparks.js"></script>
 </body>
 </html>

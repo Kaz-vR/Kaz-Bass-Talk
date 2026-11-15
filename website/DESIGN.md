@@ -164,10 +164,14 @@ Use these names when talking about the site.
 3. **Features** (`#features`): label "Inside", heading "Every page lights up.", and the **carousel**. It
    must always stay a carousel (owner): the current page big in the middle, its neighbours faded at the
    sides (opacity .28, greyed), a **loop with no ends** (on page 1 the last page is already on the left),
-   looping silent clips of the whole synth (wooden sides and keyboard included), only the current clip
-   plays. Under it, the caption from 2.1: square arrow, the counter "01 / 06" and the title on the left, the
+   each page the **same 3D synth as the header** (owner's call; `strip3d.js`: the box with the page's picture on its
+   face, unlit, tipped back 3 degrees, one shared renderer), at the old clips' size and place. Going to the next or
+   previous page gives a small springy swing: the arriving page turns in from the side it comes from (11 degrees)
+   and settles with a slight overshoot, the leaving one turns away a little; the current page follows the mouse a
+   little. Stills for now, taken by `node tools/site-feature-shots.mjs` into `website/assets/shots/pages/` (the owner
+   wants the displays moving later). Under it, the caption from 2.1: square arrow, the counter "01 / 06" and the title on the left, the
    description on the right, square arrow. Swipe on phones, drag with a mouse, click a side page, arrow
-   keys. Clips are recorded by `node tools/site-pages.mjs` into `website/assets/pages/`.
+   keys.
 4. **Set up** (`#setup`): label "Specs", heading "Light on the machine.", four large thin numbers (3% CPU
    per voice, 25 MB install size, 0 internet needed, 8 voices), one line about systems and formats.
 5. **Buy part** (`#buy`): the logo, "Your sound. Its ruin.", one red "Buy RUIN-1", over the fire loop and its

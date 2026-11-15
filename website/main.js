@@ -36,7 +36,8 @@ if (strip) {
   const where = (j) => { const c = slides.length; let d = (j - cur) % c; if (d > c / 2) d -= c; if (d < -c / 2) d += c; return d; };
   const was = slides.map(where);
   const show = (i) => {
-    cur = (i + slides.length) % slides.length;
+    const from = cur, to = (i + slides.length) % slides.length, dir = Math.sign(where(to)) || 1;
+    cur = to;
     const step = slides[cur].offsetWidth + (innerWidth < 600 ? 14 : 34);
     slides.forEach((s, j) => {
       const d = where(j);
@@ -45,9 +46,8 @@ if (strip) {
       s.classList.toggle('on', d === 0);
       s.style.transform = `translateX(${d * step}px) scale(${d === 0 ? 1 : 0.94})`;
       was[j] = d;
-      const v = s.querySelector('video');
-      if (d === 0 && !still) { v.preload = 'auto'; v.play().catch(() => {}); } else v.pause();
     });
+    if (from !== to) strip.dispatchEvent(new CustomEvent('slide', { detail: { from, to, dir } }));   // strip3d.js: the swing
     n.textContent = `${String(cur + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}`;
     title.textContent = slides[cur].dataset.title;
     text.textContent = slides[cur].dataset.text;
@@ -73,8 +73,6 @@ if (strip) {
   strip.addEventListener('dragstart', (e) => e.preventDefault());
   strip.tabIndex = 0;
   strip.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') show(cur + 1); if (e.key === 'ArrowLeft') show(cur - 1); });
-  // only the current clip plays, and only while the strip is on screen
-  new IntersectionObserver(([en]) => { const v = slides[cur].querySelector('video'); if (en.isIntersecting && !still) v.play().catch(() => {}); else v.pause(); }).observe(strip);
   addEventListener('resize', () => show(cur));
   show(0);
 }

@@ -86,7 +86,10 @@ h2 { font-weight: 300; font-size: 54px; letter-spacing: -.02em; margin-top: 18px
 .slide.on { opacity: 1; filter: none; cursor: default; }
 .slide.far { opacity: 0; pointer-events: none; }
 .slide.jump { transition: none; }
-.slide video { width: 100%; aspect-ratio: 1600 / 854; object-fit: cover; }
+.slide img { width: 100%; aspect-ratio: 1600 / 854; object-fit: contain; }
+/* the 3D page (strip3d.js): larger than the slide so a turn is never cut off, centred on it; the still steps back once drawn */
+.slide canvas.synth3d { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+.slide.live img { visibility: hidden; }
 .cap { display: grid; grid-template-columns: auto 1fr 1.4fr auto; gap: 36px; align-items: center; max-width: 900px; margin: 44px auto 0; text-align: left; }
 .cap-n { letter-spacing: .24em; }
 .cap-title { font-weight: 300; font-size: 28px; margin-top: 6px; color: var(--head); white-space: nowrap; }
