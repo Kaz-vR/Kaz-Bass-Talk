@@ -245,5 +245,13 @@ service like UXKIN (owner's call). Use it for every design decision, before rely
   `design/` in **both** `index.html` and `style.css` (the font is loaded from the stylesheet; once it was missed and the
   site fell back to a system font). The published `tuner.js` loads the owner's saved tuning and forces some colours
   over the stylesheet: check the live page with that saved tuning loaded before saying a colour change is done.
+- **The tuner** (dev only, only in the published preview, never in `website/`; the ◐ button on the left turns it on):
+  balls for colours; on the header a **square** for **Curves** (RGB, Red, Green, Blue and Brightness, which changes the
+  luminance only and keeps the colour; applied in that order) and a **diamond** for the **Vignette** (amount, size,
+  roundness, feather). Both apply to the header smoke loop through a WebGL pass over the video. **Save** stores
+  everything in `tuning/current` and adds a timestamped entry to `tuning/history/saves`, listed under Save (click one to
+  go back to it, × removes it). When the owner says "apply my saved colours", apply the newest save to the site for good
+  (the curves and vignette are baked into `assets/header-smoke.mp4` and its poster), then **delete every document in
+  `tuning/history/saves`** and reset the grade in `tuning/current`.
 - **Never push to GitHub unless the owner says so.** Commit locally.
 - Use the installed design skills (UI review, polish, frontend-design) for reviews and larger changes.
