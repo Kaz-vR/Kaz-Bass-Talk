@@ -40,10 +40,9 @@ Glows use them with transparency over black (that is the only way they fade).
 | Sand `#c09b6d` | `--sand` | (reserved) |
 
 **The fire's three colours (owner's pick):** `#f25d07` (hot orange), `#f23005` (red-orange), `#f20000` (red). They are
-used for the fire and its light only: the header's smoke light, the Buy part's rising glow, the pixel fire and
-all sparks. The pixel fire is this morning's fire with these colours: its dark reds are `#f20000` made transparent to
-the same darkness, then `#f23005`, then `#f25d07` at the hottest; sparks cool `#f25d07` → `#f23005` → `#f20000` →
-`#f20000` fading into the black.
+used for the fire and its light only: the header's smoke light, the Buy part's fire light and all sparks. The
+brightest point of a rendered fire is exactly `#f25d07` (never clipped to yellow); sparks cool `#f25d07` → `#f23005` →
+`#f20000` → fading into the black.
 
 ### Neutrals
 | Hex | Use |
@@ -87,8 +86,12 @@ always fade to pure black.
   poster `header-smoke.jpg`, cover-fitted behind everything (`.hero-bg`).
 - **Audio demo:** a soft red radial glow behind the video, `rgba(255,60,20,.14)` to `rgba(120,10,4,.08)`
   to transparent.
-- **Buy part:** a glow rising from the bottom centre: `#f25d07` `.32` to `#f23005` `.22` to `#f20000` `.12`
-  to transparent, 1500 x 700px, anchored below the section; plus the pixel embers (see below).
+- **Buy part** (owner's pick of six fire pitches, 3 "Glow from below"): the header's kind of smoke lit by a band of
+  fire light along the bottom, rendered with the trailer engine (`bg@ruin:real=1,clear=1,cleary=0.6,bot=1,beams=6,fluid=1.6`
+  at 1600 wide, frames 20-124, a seamless loop of frames 40-124 with the last 20 crossfaded into 20-39), a dark area
+  behind the content; `assets/buy-fire.gif` (owner's call: a GIF; 800 wide, 10 frames a second, a palette per frame
+  with ordered dithering: a shared palette flattened the dark oranges into a patch that read as olive), cover-fitted
+  behind everything (`.end-bg`), still `buy-fire.jpg` with reduced motion.
 - **The synth image:** `drop-shadow(0 50px 60px rgba(0,0,0,.95))` plus a faint red glow
   `drop-shadow(0 0 40px rgba(255,40,20,.18))`.
 - Every section with a glow has `overflow: hidden`, so glows never cause sideways scrolling.
@@ -167,8 +170,8 @@ Use these names when talking about the site.
    keys. Clips are recorded by `node tools/site-pages.mjs` into `website/assets/pages/`.
 4. **Set up** (`#setup`): label "Specs", heading "Light on the machine.", four large thin numbers (3% CPU
    per voice, 25 MB install size, 0 internet needed, 8 voices), one line about systems and formats.
-5. **Buy part** (`#buy`): the logo, "Your sound. Its ruin.", one red "Buy RUIN-1", the bottom glow, and the
-   **pixel embers** along its bottom edge, right above the footer (owner's pick "Embers" of three fire looks).
+5. **Buy part** (`#buy`): the logo, "Your sound. Its ruin.", one red "Buy RUIN-1", over the fire loop and its
+   rising sparks, right above the footer.
 6. **Footer**: "© 2026 RUIN-1" and the links, small and dim.
 
 ---
@@ -190,15 +193,13 @@ Restrained (owner picked motions 1 and 3 from the motion pitches):
 - Parts ease up into view once as they reach the screen (0.8s, `cubic-bezier(.2,.7,.2,1)`).
 - The menu shrinks into a black bar on scroll and lights the link of the part you are in.
 - The carousel slides with the same curve.
-- **Pixel embers** (owner's pick of three: Inferno, Embers, Dither): a low, smouldering pixel fire (6px blocks,
-  in the fire's three colours, no yellow) slowly breathing along the bottom of the Buy part, and single-pixel
-  sparks drifting up out of it, cooling (`#f25d07`, `#f23005`, `#f20000`, then fading into the black) as they rise. Plain canvas in `main.js`
-  (`embers()`), 24 frames a second, only while on screen; with reduced motion the fire is one still frame.
 - **Header sparks** (`sparks.js`): the trailer's sparks, live over the smoke loop: few (as many as mockup E, about 20 on a
   laptop screen), born where they glow and drifting very slowly up (4-11 px a second), each at its own
   depth (sharp short streaks in the focus band, soft discs nearer the lens), cooling `#f25d07` → `#f23005` →
   `#f20000` → fading out, the glow one step cooler than the core. 30 frames a second, only while on screen; with
   reduced motion no sparks and the smoke is its still poster.
+- **Buy sparks** (`sparks.js`, the same engine): the sparks of fire pitch 6, born along the bottom and rising out of the
+  fire (40-110 px a second, a slight diagonal), dying on the way up (2.6-5.6 s); about 40 on a laptop screen.
 - Everything is off with `prefers-reduced-motion`.
 
 ---
