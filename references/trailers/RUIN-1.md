@@ -167,5 +167,10 @@ verified**: check step 3 shows clean smoke before rendering those shots again.
 **Render width changes the smoke:** the same shot is about three times brighter at 960 wide than at 1600 (found
 with the website header loop). Always check and render at the width that will be delivered.
 
+**Hosting the engine on a page** (the website's live Buy fire, `website/fire.html`): set `window.TRAILER` before
+importing `shots.js`: `cap` (the folder with `meta.json`), `smoke`, `font` (file paths), `noSynth: true` (no synth
+picture to load, for `bg` shots), `live: true` (the canvas fills its page, cover-fitted, and frames never wait on the
+GPU). An import map redirects `/website/vendor/three.module.min.js` when the files live elsewhere.
+
 **`hidesp=1`** renders the sparks (so a shot keeps the same random numbers) but leaves them out of the picture: for a
 background that gets live sparks on top (the website header).

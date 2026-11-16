@@ -92,6 +92,14 @@ always fade to pure black.
   behind the content; `assets/buy-fire.gif` (owner's call: a GIF; 800 wide, 10 frames a second, a palette per frame
   with ordered dithering: a shared palette flattened the dark oranges into a patch that read as olive), cover-fitted
   behind everything (`.end-bg`), still `buy-fire.jpg` with reduced motion.
+  **Live for now** (owner's call, so it is easy to change): `fire.html` runs the trailer engine itself
+  (`tools/trailer/shots.js` and `fluid.js`, the same look string, 1600 wide, 25 frames a second) in an iframe over the
+  GIF, faded in once its first frame is drawn and paused while the Buy part is off screen (`main.js`); the GIF stays
+  as the fallback (no WebGL, reduced motion, while the live fire warms up). It is heavy: the full engine, not a
+  lighter version, so it is a stand-in until the look is final and becomes a loop again. To publish: `fire.html`
+  with its paths rewritten (the import map to `./vendor/`, `cap: 'fire'`, `smoke: 'fire/smoke-owner.png'`, the font
+  to `design/fonts/`, the engine `./fire/shots.js`), and `fire/shots.js`, `fire/fluid.js`, `fire/smoke-owner.png`
+  copied from `tools/trailer/`, `fire/meta.json` from `website/fire/`.
 - **The synth image:** `drop-shadow(0 50px 60px rgba(0,0,0,.95))` plus a faint red glow
   `drop-shadow(0 0 40px rgba(255,40,20,.18))`.
 - Every section with a glow has `overflow: hidden`, so glows never cause sideways scrolling.

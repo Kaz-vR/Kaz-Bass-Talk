@@ -125,6 +125,16 @@ if (!still && 'IntersectionObserver' in window) {
 }
 
 // The fire and sparks: the header and the Buy part have rendered loops (index.html) with live sparks (sparks.js).
+// The Buy part's fire runs live for now (fire.html, owner's call): shown once its first frame is drawn, paused while
+// the Buy part is off screen; with reduced motion it is never started and the GIF's still stays.
+{
+  const bg = document.querySelector('.end-bg'), live = bg?.querySelector('iframe');
+  if (live && still) live.remove();
+  else if (live) {
+    addEventListener('message', (e) => { if (e.source === live.contentWindow && e.data === 'fire-ready') bg.classList.add('live'); });
+    new IntersectionObserver(([en]) => live.contentWindow?.postMessage(en.isIntersecting ? 'fire-play' : 'fire-pause', '*'), { rootMargin: '200px' }).observe(bg);
+  }
+}
 
 // Buy (the menu link and the buttons) takes you all the way to the bottom, the Buy part with its fire (owner's call).
 document.querySelectorAll('a[href="#buy"]').forEach((a) => a.addEventListener('click', (e) => {

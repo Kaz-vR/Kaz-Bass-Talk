@@ -7,7 +7,10 @@ import * as THREE from '/website/vendor/three.module.min.js';
 import { makeFluid } from './fluid.js';
 
 const W = Number(new URLSearchParams(location.search).get('w') ?? 1920), H = Math.round(W * 9 / 16), FPS = 25, K = W / 1920;
-const CAP = '/renders/trailer/capture';
+// a page that hosts the engine (the website's live fire, website/fire.html) can set window.TRAILER: where its files are,
+// live = draw into the page (cover-fitted) instead of a fixed-size frame, noSynth = no synth picture to load (bg shots)
+const CFG = window.TRAILER ?? {};
+const CAP = CFG.cap ?? '/renders/trailer/capture';
 const meta = await (await fetch(`${CAP}/meta.json`)).json();
 // raw(): a hex colour passed through untouched (this pipeline outputs its values as they are, like the website's picture)
 const raw = (x) => new THREE.Color().setRGB(...[1, 3, 5].map((i) => parseInt(x.slice(i, i + 2), 16) / 255), THREE.LinearSRGBColorSpace);
@@ -19,12 +22,12 @@ const C = { red: '#ea1f1f', orange: '#e83911', green: '#129b82', blue: '#5f64c8'
 const col = (h) => new THREE.Color(h);
 
 const r = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true });
-r.setPixelRatio(1); r.setSize(W, H, false); r.domElement.style.cssText = `width:${W}px;height:${H}px`;
+r.setPixelRatio(1); r.setSize(W, H, false); r.domElement.style.cssText = CFG.live ? 'display:block;width:100%;height:100%;object-fit:cover' : `width:${W}px;height:${H}px`;
 r.outputColorSpace = THREE.LinearSRGBColorSpace; r.toneMapping = THREE.NoToneMapping;
 document.body.append(r.domElement);
 
 // ---------- the synth: a slab with the UI on its face, wooden cheeks either side ----------
-const img = await new THREE.ImageLoader().loadAsync(`${CAP}/base.png`);
+const img = CFG.noSynth ? Object.assign(document.createElement('canvas'), { width: 8, height: 8 }) : await new THREE.ImageLoader().loadAsync(`${CAP}/base.png`);
 const face = document.createElement('canvas'); face.width = img.width; face.height = img.height;
 const fg = face.getContext('2d'); fg.drawImage(img, 0, 0);
 const tex = new THREE.CanvasTexture(face);
@@ -250,7 +253,7 @@ const SMW = Math.round(W / 2), SMH = Math.round(H / 2);
 const smk = document.createElement('canvas'); smk.width = SMW; smk.height = SMH; const sg = smk.getContext('2d');
 const smTex = new THREE.CanvasTexture(smk); smTex.colorSpace = THREE.NoColorSpace; smTex.minFilter = THREE.LinearFilter; smTex.generateMipmaps = false;
 fin.uniforms.tSmoke.value = smTex;
-{ const st = await new THREE.TextureLoader().loadAsync('/tools/trailer/smoke-owner.png'); st.colorSpace = THREE.NoColorSpace; st.flipY = false; fin.uniforms.tSmokeImg.value = st; }
+{ const st = await new THREE.TextureLoader().loadAsync(CFG.smoke ?? '/tools/trailer/smoke-owner.png'); st.colorSpace = THREE.NoColorSpace; st.flipY = false; fin.uniforms.tSmokeImg.value = st; }
 const vh = (x, y, z) => { const n = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453; return n - Math.floor(n); };
 const vnoise = (x, y, z) => { const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z), xf = x - xi, yf = y - yi, zf = z - zi;
   const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf), w = zf * zf * (3 - 2 * zf);
@@ -660,7 +663,7 @@ const over = sh(`varying vec2 vUv; uniform sampler2D a, b; uniform float time, s
     vec2 w = vec2(n(vec2(vUv.x * 9., vUv.y * 14. - time * 3.)) - .5, n(vec2(vUv.x * 11. + 5., vUv.y * 9. - time * 2.4)) - .5) * shimmer * (1.2 - vUv.y);
     vec4 t = texture2D(b, vUv + w); gl_FragColor = vec4(texture2D(a, vUv + w * .6).rgb * (1. - t.a) + t.rgb, 1.); }`,
   { a: { value: rtScene.texture }, b: { value: ttex }, time: { value: 0 }, shimmer: { value: 0 } });
-const font = new FontFace('Manrope', 'url(/design/fonts/manrope-latin-var.woff2)', { weight: '200 800' }); await font.load(); document.fonts.add(font);
+const font = new FontFace('Manrope', `url(${CFG.font ?? '/design/fonts/manrope-latin-var.woff2'})`, { weight: '200 800' }); await font.load(); document.fonts.add(font);
 const card = (plate, emb, shimmer = 0) => ({ frames: 80,
   reset() { simReset(emb); },
   run(i) {
@@ -713,5 +716,5 @@ window.setup = (name) => {
 
 
   shot.reset?.(); return shot.frames; };
-window.frame = async (i) => { await shot.run(i); r.getContext().finish(); return true; };
+window.frame = async (i) => { await shot.run(i); if (!CFG.live) r.getContext().finish(); return true; };   // live: never wait on the GPU (it would stall the page's scrolling)
 window.ready = true;

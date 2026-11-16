@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RUIN-1 fire</title>
+<!-- The Buy part's fire, live (owner's call, for now: the trailer engine itself, tools/trailer/shots.js, running the
+     exact look of fire pitch 3 "Glow from below" in real time, so it can be changed easily; it becomes a loop again
+     later). The page shows it in an iframe over the GIF (index.html); it pauses whenever the Buy part is off screen. -->
+<style>html, body { margin: 0; height: 100%; background: #000; overflow: hidden; } canvas { display: block; width: 100% !important; height: 100% !important; object-fit: cover; }</style>
+<script type="importmap">{ "imports": { "/website/vendor/three.module.min.js": "/website/vendor/three.module.min.js" } }</script>
+<script>window.TRAILER = { live: true, noSynth: true, cap: '/website/fire', smoke: '/tools/trailer/smoke-owner.png', font: '/design/fonts/manrope-latin-var.woff2' };</script>
+<script type="module">
+  const LOOK = 'bg@ruin:real=1,clear=1,cleary=0.6,bot=1,beams=6,fluid=1.6';    // fire pitch 3, as rendered for the GIF
+  await import('/tools/trailer/shots.js');
+  window.setup(LOOK);
+  let i = 0, on = true, busy = false, last = 0;
+  const loop = async (ts) => {
+    if (!on) return; requestAnimationFrame(loop);
+    if (busy || ts - last < 1000 / 25 - 2) return;                            // the engine's own 25 frames a second
+    busy = true; last = ts; await window.frame(i++); busy = false;
+    if (i === 1) parent.postMessage('fire-ready', '*');
+  };
+  addEventListener('message', (e) => { if (e.data === 'fire-pause') on = false; if (e.data === 'fire-play' && !on) { on = true; requestAnimationFrame(loop); } });
+  requestAnimationFrame(loop);
+</script>

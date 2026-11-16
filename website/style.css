@@ -107,6 +107,9 @@ h2 { font-weight: 300; font-size: 54px; letter-spacing: -.02em; margin-top: 18px
 .end > * { position: relative; z-index: 1; }
 .end > .end-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
 .end-bg img { width: 100%; height: 100%; max-width: none; object-fit: cover; object-position: 50% 50%; }
+/* the live fire (fire.html) over the GIF, faded in once its first frame is drawn */
+.end-bg iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; opacity: 0; transition: opacity .6s; pointer-events: none; }
+.end-bg.live iframe { opacity: 1; }
 .end > canvas.sparks { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
 .end-mark { height: 52px; width: auto; margin: 0 auto; }
 .end h2 { margin-top: 30px; }
