@@ -17,6 +17,10 @@ Built with `tools/trailer/shots.js` (rendered by `tools/trailer-render.mjs`, the
 
 ## 1. Kept from `RULES.md`
 
+**The structure (order of shots and cards) is the owner's plan in `STRUCTURE.md`**, which replaces the arc below
+(the trailer opens on the synth, not on a logo).
+
+
 - **Arc** (section 1): cold open on the logo, intro, drop on a riser and impact, fast UI montage, short break,
   biggest section, product logo close.
 - **Shot lengths and cutting** (sections 2 and 3): shots in whole beats (1–2 beats in fast parts, 4–8 in the intro),
