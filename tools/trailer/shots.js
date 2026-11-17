@@ -232,12 +232,20 @@ const fin = sh(`
     if (neb > 0.) {
       // nebula smoke (title cards only, neb=1): fractal smoke, warped twice so it curls into fine threads, in a diagonal
       // band (a hot mass at the top, dim wisps below and to the right), lit from above, a darker gap round the text
-      // it moves as one body: the whole smoke drifts slowly up and to the right (about 1 % of the frame a second), and
-      // its shape changes even more slowly, every layer the same way (layers sliding against each other looked like boiling)
-      vec2 q = (vec2(vUv.x * 1.78, vUv.y) - vec2(.016, .009) * time) * 1.7; float tt = time * .012;
-      vec2 w1 = vec2(nfbm(q + vec2(0., tt)), nfbm(q + vec2(5.2, 1.3 + tt)));
-      vec2 w2 = vec2(nfbm(q + 3. * w1 + vec2(1.7, 9.2 + tt)), nfbm(q + 3. * w1 + vec2(8.3, 2.8 + tt)));
-      float d = nfbm(q + 3.2 * w2), th = pow(1. - abs(2. * nfbm(q * 2.3 + 4. * w2 + 7.1) - 1.), 4.), bil = nfbm(q * .55 + 1.6 * w1 + 3.3);
+      // it moves like the header's smoke: carried along a flow (rising, with slow swirls in it), every part at its own
+      // speed but all in one current, so it rolls and curls and stays one body. Two copies carried for 8 s each, half a
+      // cycle apart, crossfaded (the usual flow-map way), so the smoke never stretches out
+      vec2 q0 = vec2(vUv.x * 1.78, vUv.y) * 1.7;
+      float e = .02, ps = nfbm(q0 * .5 + 11.), psx = nfbm((q0 + vec2(e, 0.)) * .5 + 11.), psy = nfbm((q0 + vec2(0., e)) * .5 + 11.);
+      vec2 V = vec2(.01, .045) + vec2(psy - ps, -(psx - ps)) / e * .012;            // a slow rise, and swirls round the smoke's own shapes
+      float P = 6., p1 = fract(time / P), p2 = fract(time / P + .5), wb = abs(1. - 2. * p1);
+      vec2 qa = q0 - V * p1 * P, qb = q0 - V * p2 * P + vec2(3.1, 1.7);
+      float tt = time * .006;
+      vec2 w1 = vec2(nfbm(qa + vec2(0., tt)), nfbm(qa + vec2(5.2, 1.3 + tt))), u1 = vec2(nfbm(qb + vec2(0., tt)), nfbm(qb + vec2(5.2, 1.3 + tt)));
+      vec2 w2 = vec2(nfbm(qa + 3. * w1 + vec2(1.7, 9.2)), nfbm(qa + 3. * w1 + vec2(8.3, 2.8))), u2 = vec2(nfbm(qb + 3. * u1 + vec2(1.7, 9.2)), nfbm(qb + 3. * u1 + vec2(8.3, 2.8)));
+      float d = mix(nfbm(qa + 3.2 * w2), nfbm(qb + 3.2 * u2), wb);
+      float th = mix(pow(1. - abs(2. * nfbm(qa * 2.3 + 4. * w2 + 7.1) - 1.), 4.), pow(1. - abs(2. * nfbm(qb * 2.3 + 4. * u2 + 7.1) - 1.), 4.), wb);
+      float bil = mix(nfbm(qa * .55 + 1.6 * w1 + 3.3), nfbm(qb * .55 + 1.6 * u1 + 3.3), wb);
       vec2 a = vec2(.40, 1.05), b = vec2(.62, -.05), ab = b - a; float h = clamp(dot(vUv - a, ab) / dot(ab, ab), 0., 1.);
       vec2 dv = (vUv - a - ab * h) * vec2(1.78, 1.); float band = exp(-dot(dv, dv) / .13) + .55 * exp(-pow(length((vUv - vec2(.9, .55)) * vec2(1.78, 1.)), 2.) / .05);
       float dens = (smoothstep(.3, .85, d) * (.55 + .9 * smoothstep(.35, .75, bil)) + th * .3) * band;   // soft billows, then threads on them
