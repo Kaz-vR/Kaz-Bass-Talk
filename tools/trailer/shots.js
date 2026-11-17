@@ -140,7 +140,7 @@ const blur = sh(`varying vec2 vUv; uniform sampler2D t; uniform vec2 d; void mai
   for (int i = -8; i <= 8; i++) { float w = exp(-float(i*i) / 24.); s += texture2D(t, vUv + d * float(i)).rgb * w; ws += w; } gl_FragColor = vec4(s / ws, 1.); }`,
   { t: { value: null }, d: { value: new THREE.Vector2() } });
 const fin = sh(`
-  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB, tLight; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid, clearTxt, clearY;
+  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB, tLight; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid, clearTxt, clearY, subjOn; uniform vec2 subj;
   float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time * 37.0) * 43758.5453); }
   float h2(vec2 p){ return fract(sin(dot(p, vec2(41.31, 289.13))) * 43758.5453); }
   float sn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
@@ -219,6 +219,9 @@ const fin = sh(`
       // and dims what is behind it a little where it is thick; its own faint colour leans to #f25d07
       vec3 Lt = texture2D(tLight, vUv).rgb;
       float sa = clamp(a1 * 3.5, 0., 1.);
+      // the smoke never covers the subject (trailer shots): it thins to almost nothing in a soft oval round the spot in
+      // focus, a little larger than the sharp area, and stays as it was elsewhere
+      if (subjOn > 0.) { vec2 e = (vUv - subj) * vec2(1920., 1080.) / 300.; sa *= 1. - .92 * smoothstep(1.3, .45, length(e)); }
       if (clearTxt > 0.) { vec2 e = (vUv - vec2(.5, clearY)) / vec2(.2, .19); sa *= 1. - clearTxt * .88 * smoothstep(1.25, .35, length(e)); }   // dark round the logo and text
       vec3 amb = mix(vec3(.09, .085, .08), vec3(.949, .365, .027) * .1, .4);
       col = col * (1. - .2 * sa * fluid) + (Lt * 7. + amb) * sa * fluid;
@@ -248,7 +251,7 @@ const fin = sh(`
       col = mix(col, lt * T, tint * smoothstep(.0, .25, lt)); }                  // a wash of #f25d07 over the image
     col += (hash(vUv * 1000.) - .5) * grain;
     gl_FragColor = vec4(col, 1.);
-  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, fluid: { value: 0 }, clearTxt: { value: 0 }, clearY: { value: .17 }, tFlA: { value: null }, tFlB: { value: null }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
+  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, fluid: { value: 0 }, clearTxt: { value: 0 }, clearY: { value: .17 }, subjOn: { value: 0 }, subj: { value: new THREE.Vector2(.5, .5) }, tFlA: { value: null }, tFlB: { value: null }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
 
 // the glow: two rounds of a 17-tap blur in 1-texel steps at quarter size (coarser steps showed as stripes)
 const glowBlur = () => { for (let k = 0; k < 2; k++) {
@@ -604,6 +607,8 @@ const draw = (i, focusDist, apert = 30) => {
   pass(bright, rtA);
   glowBlur();
   if (flu.on) fluidDraw(i, focusDist, apert);
+  { const fw = new THREE.Vector3(); cam.getWorldDirection(fw); const q = cam.position.clone().addScaledVector(fw, focusDist).project(cam);   // the spot in focus, on screen
+    fin.uniforms.subj.value.set(q.x * .5 + .5, q.y * .5 + .5); }
   fin.uniforms.time.value = i / FPS; pass(fin, null);
 };
 
@@ -808,7 +813,7 @@ window.setup = (name) => {
   spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks && !o.hidesp) ? 1 : 0;   
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
-  sparks.world = n !== 'bg'; flow.on = false; smokeDof.uniforms.fill.value = n !== 'bg' ? 1 : 0;   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
+  sparks.world = n !== 'bg'; flow.on = false; smokeDof.uniforms.fill.value = n !== 'bg' ? 1 : 0; fin.uniforms.subjOn.value = n !== 'bg' ? 1 : 0;   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
   sparks.on = Math.min(1, o.sparks ?? 0); sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);

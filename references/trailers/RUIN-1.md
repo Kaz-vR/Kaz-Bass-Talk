@@ -77,6 +77,9 @@ the owner wants them back.
     low/behind) and each layer drifting at its own speed, so parts move differently.
   - **Reacts to the synth:** for the smoke behind it, the panel is a solid wall (it spills round the edges).
   - **Focus like the synth:** every spot blurred by its own distance.
+  - **Never over the subject** (owner's rule): round the spot in focus the smoke thins to almost nothing, in a soft
+    oval a little larger than the sharp area (300 px at 1920), and stays as it was elsewhere. Automatic in every
+    trailer shot (not the website's `bg` shots).
   - **Sized per shot:** set on the shot's first frame from its camera: centred where it looks, 900 x 620 units and
     layers up to 108 high, scaled by its focus distance against the slide shot's 418.
   - The owner may still add real smoke footage in the edit, on top of or instead of this.
@@ -112,6 +115,7 @@ Export: GIF for review, MP4 for the edit; on request a sparks-only layer on tran
 - [ ] Black stays black (the darkest 1 % at most 8/255)
 - [ ] Cards in Manrope, accent word in a house colour
 - [ ] Every shot rendered from the current synth (recapture after colour changes)
+- [ ] The smoke never covers the subject (the spot in focus stays clear)
 - [ ] No black holes or crackle in the smoke (look at a full-resolution frame before any long render)
 - [ ] Smoke ambient: about 1–3 % of the frame width a second; sparks drift, never shoot
 
