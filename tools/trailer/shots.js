@@ -140,12 +140,15 @@ const blur = sh(`varying vec2 vUv; uniform sampler2D t; uniform vec2 d; void mai
   for (int i = -8; i <= 8; i++) { float w = exp(-float(i*i) / 24.); s += texture2D(t, vUv + d * float(i)).rgb * w; ws += w; } gl_FragColor = vec4(s / ws, 1.); }`,
   { t: { value: null }, d: { value: new THREE.Vector2() } });
 const fin = sh(`
-  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB, tLight; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid, clearTxt, clearY, subjOn, lim; uniform vec2 subj, subjR;
+  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB, tLight; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid, clearTxt, clearY, subjOn, lim, neb; uniform vec2 subj, subjR;
   float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time * 37.0) * 43758.5453); }
   float h2(vec2 p){ return fract(sin(dot(p, vec2(41.31, 289.13))) * 43758.5453); }
   float sn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
     return mix(mix(h2(i), h2(i+vec2(1,0)), f.x), mix(h2(i+vec2(0,1)), h2(i+vec2(1,1)), f.x), f.y); }
   float sfbm(vec2 p){ float s = 0., m = .5; for (int i = 0; i < 5; i++) { s += sn(p) * m; p = p * 2.02 + vec2(1.3, 7.1); m *= .5; } return s; }
+  float nh(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float nn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); return mix(mix(nh(i), nh(i + vec2(1, 0)), f.x), mix(nh(i + vec2(0, 1)), nh(i + vec2(1, 1)), f.x), f.y); }
+  float nfbm(vec2 p){ float s = 0., a = .5; for (int k = 0; k < 6; k++) { s += a * nn(p); p = p * 2.03 + vec2(1.7, 9.2); a *= .5; } return s; }
   void main(){
     vec2 c = vUv - .5; float rr = length(c * vec2(1.7778, 1.));
     vec2 off = c * ca * rr * rr;                                           // colour fringes, growing towards the edges
@@ -226,6 +229,20 @@ const fin = sh(`
       vec3 amb = mix(vec3(.09, .085, .08), vec3(.949, .365, .027) * .1, .4);
       col = col * (1. - .2 * sa * fluid) + (Lt * 7. + amb) * sa * fluid;
     }
+    if (neb > 0.) {
+      // nebula smoke (title cards only, neb=1): fractal smoke, warped twice so it curls into fine threads, in a diagonal
+      // band (a hot mass at the top, dim wisps below and to the right), lit from above, a darker gap round the text
+      vec2 q = vec2(vUv.x * 1.78, vUv.y) * 1.7; float tt = time * .035;
+      vec2 w1 = vec2(nfbm(q + vec2(0., tt)), nfbm(q + vec2(5.2, 1.3) - tt));
+      vec2 w2 = vec2(nfbm(q + 3. * w1 + vec2(1.7, 9.2) + tt * .6), nfbm(q + 3. * w1 + vec2(8.3, 2.8) - tt * .4));
+      float d = nfbm(q + 3.2 * w2), th = pow(1. - abs(2. * nfbm(q * 2.3 + 4. * w2 + 7.1) - 1.), 4.), bil = nfbm(q * .55 + 1.6 * w1 + 3.3);
+      vec2 a = vec2(.40, 1.05), b = vec2(.62, -.05), ab = b - a; float h = clamp(dot(vUv - a, ab) / dot(ab, ab), 0., 1.);
+      vec2 dv = (vUv - a - ab * h) * vec2(1.78, 1.); float band = exp(-dot(dv, dv) / .13) + .55 * exp(-pow(length((vUv - vec2(.9, .55)) * vec2(1.78, 1.)), 2.) / .05);
+      float dens = (smoothstep(.3, .85, d) * (.55 + .9 * smoothstep(.35, .75, bil)) + th * .3) * band;   // soft billows, then threads on them
+      float L = 2.3 * mix(.3, 1.25, smoothstep(.25, .95, vUv.y)) * (1. - .8 * smoothstep(1.1, .35, length((vUv - vec2(.5, .5)) / vec2(.42, .1))));
+      float v = dens * L * neb;
+      col += v * mix(vec3(.949, 0., 0.), vec3(.949, .365, .027), smoothstep(.15, .7, v)) * .9;
+    }
     if (og > 0.) {
       // the owner's grade, fitted to their Photoshop of the slide: lift, gain and gamma per channel, then saturation
       vec3 o = vec3(0.0245, 0.0129, 0.0066) + vec3(1.2652, 1.2913, 1.3680) * pow(clamp(col, 0., 1.), vec3(1.3340, 1.3419, 1.3694));
@@ -257,7 +274,7 @@ const fin = sh(`
     }
     col += (hash(vUv * 1000.) - .5) * grain;
     gl_FragColor = vec4(col, 1.);
-  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, fluid: { value: 0 }, clearTxt: { value: 0 }, clearY: { value: .17 }, subjOn: { value: 0 }, lim: { value: 0 }, subj: { value: new THREE.Vector2(.5, .5) }, subjR: { value: new THREE.Vector2(300, 300) }, tFlA: { value: null }, tFlB: { value: null }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
+  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, fluid: { value: 0 }, clearTxt: { value: 0 }, clearY: { value: .17 }, subjOn: { value: 0 }, lim: { value: 0 }, neb: { value: 0 }, subj: { value: new THREE.Vector2(.5, .5) }, subjR: { value: new THREE.Vector2(300, 300) }, tFlA: { value: null }, tFlB: { value: null }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
 
 // the glow: two rounds of a 17-tap blur in 1-texel steps at quarter size (coarser steps showed as stripes)
 const glowBlur = () => { for (let k = 0; k < 2; k++) {
@@ -470,7 +487,10 @@ const sparksDraw = (focusDist, apert) => {
 // and parallax, and wraps over and around it. Each layer samples the same simulation a little shifted and scaled, so
 // the stack reads as one volume. The layers write their smoke and its distance; one gather pass then blurs every
 // spot by its own distance with the same thin-lens rule as the synth (sharp in the focus band, soft elsewhere).
-const FL = makeFluid(r), FL2 = makeFluid(r);                                 // FL: the smoke above the synth; FL2: low and behind it
+const FL = makeFluid(r), FL2 = makeFluid(r);
+// the title cards' nebula smoke (ink=2): a finer simulation, made only when asked for (the UI shots and the website keep theirs)
+let FLH = null; const hiFl = () => FLH ??= [makeFluid(r, { simW: 512, simH: 288, dyeW: 2048, dyeH: 1152 }), makeFluid(r, { simW: 512, simH: 288, dyeW: 2048, dyeH: 1152 })];
+const flA = () => flu.ink === 2 ? hiFl()[0] : FL, flB = () => flu.ink === 2 ? hiFl()[1] : FL2;                                 // FL: the smoke above the synth; FL2: low and behind it
 const rtFl = [0, 1].map(() => new THREE.WebGLRenderTarget(W, H, rtOpts));
 fin.uniforms.tFlA.value = rtFl[1].texture; fin.uniforms.tFlB.value = rtFl[1].texture;
 // layers: two behind the synth's face (hidden by it, showing past its edges), five above it; [height, which simulation]
@@ -551,6 +571,13 @@ const smokeSetup = (focusDist) => {
     }
     flu.ready = true; return;
   }
+  if (flu.ink === 2) {                                                          // nebula smoke (title cards): a diagonal band across the frame, a hot mass at the top,
+    layers.forEach((m) => m.scale.set(1.1 * focusDist, .62 * focusDist, 1));   // dim wisps below and to the right, fine threads everywhere, a darker gap for the text
+    flA().setup([[.42, .86, .07, 40, .3, -.4, 3.2], [.58, .74, .06, 35, .6, -.2, 2.4], [.5, .2, .07, 35, .4, .3, 1.8], [.82, .45, .05, 30, -.3, .4, 1.2]],
+      { buoy: .15, turb: 4.5, eps: 22, keepDye: .9997, speed: .08 });
+    flB().setup([[.3, .62, .07, 35, .5, -.1, 1.4], [.66, .3, .07, 35, -.4, .2, 1.4], [.9, .7, .05, 25, -.5, -.2, 1]], { buoy: .1, turb: 5, eps: 24, keepDye: .9997, speed: .08 });
+    flu.ready = true; return;
+  }
   if (flu.ink) {                                                                // ink in water: dense dye curling hard, sharp marbled edges
     layers.forEach((m) => m.scale.set(1.1 * focusDist, .62 * focusDist, 1));                    // the sheet just over the frame, so the dye's detail stays sharp
     FL.setup([[.25, .2, .07, 70, .5, .6, 3], [.55, .15, .07, 65, -.3, .7, 3], [.8, .35, .06, 60, -.6, .4, 2.6], [.4, .55, .06, 50, .7, -.2, 2.4]], { buoy: .5, turb: 3.5, eps: 16, keepDye: .9998, speed: .08 });
@@ -612,13 +639,13 @@ const drawBeams = (mode, time) => {
 };
 const fluidDraw = (i, focusDist, apert) => {
   if (!flu.ready) smokeSetup(focusDist);
-  FL.to(i); FL2.to(i);
+  flA().to(i); flB().to(i);
   if (sparks.world && sparks.on && !flu.beams && !flu.bot) {                    // the smoke's currents, for the sparks
     flowCopy.uniforms.t.value = FL._vel().texture; pass(flowCopy, rtFlow); r.readRenderTargetPixels(rtFlow, 0, 0, 64, 36, flow.data);
     const L0 = layers[3]; flow.c.copy(L0.position); flow.w = L0.scale.x; flow.h = L0.scale.y; flow.on = true;
     flow.k = .08 * 4;                                                               // sim speed in the shot, then amplified so the swirl reads
   }
-  layers.forEach((m) => { const u = m.material.uniforms; u.dye.value = (m.userData.sim ? FL2 : FL).texture; u.time.value = i / FPS; });
+  layers.forEach((m) => { const u = m.material.uniforms; u.dye.value = (m.userData.sim ? flB() : flA()).texture; u.time.value = i / FPS; });
   r.setRenderTarget(rtFl[0]); r.setClearColor(0x000000, 1); r.clear(); r.render(flScene, cam);
   smokeDof.uniforms.focus.value = focusDist; smokeDof.uniforms.aperture.value = apert * K;
   pass(smokeDof, rtFl[1]); fin.uniforms.tFlA.value = flu.on === 3 ? rtFl[0].texture : rtFl[1].texture;   // fluid=3: the smoke before its focus blur (red) and its distance (green)
@@ -880,7 +907,7 @@ window.setup = (name) => {
   spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks && !o.hidesp) ? 1 : 0;   
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
-  titleTxt = o.txt ?? 1; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; const bgLike = n === 'bg' || n === 'title';
+  titleTxt = o.txt ?? 1; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; const bgLike = n === 'bg' || n === 'title';
   sparks.world = !bgLike; flow.on = false; smokeDof.uniforms.fill.value = n === 'bg' ? 0 : 1; fin.uniforms.subjOn.value = bgLike ? 0 : 1;   // (title cards: smoke without holes, no clear oval)   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
   sparks.on = Math.min(25, o.sparks ?? 0); sparks.trail = o.trail ?? 0; flu.ink = o.ink ?? 0; titleAp = o.ap ?? 30;
   spMat.uniforms.maxR.value = (o.bokeh ?? 26) * K; spMat.uniforms.bgain.value = o.bgain ?? 1;   // trail=N: light streams N frames long; ink=1: ink-in-water smoke; ap/bokeh: aperture and the biggest spark disc sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
