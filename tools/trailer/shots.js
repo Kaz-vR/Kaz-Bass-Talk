@@ -140,7 +140,7 @@ const blur = sh(`varying vec2 vUv; uniform sampler2D t; uniform vec2 d; void mai
   for (int i = -8; i <= 8; i++) { float w = exp(-float(i*i) / 24.); s += texture2D(t, vUv + d * float(i)).rgb * w; ws += w; } gl_FragColor = vec4(s / ws, 1.); }`,
   { t: { value: null }, d: { value: new THREE.Vector2() } });
 const fin = sh(`
-  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB, tLight; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid, clearTxt, clearY, subjOn; uniform vec2 subj, subjR;
+  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB, tLight; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid, clearTxt, clearY, subjOn, lim; uniform vec2 subj, subjR;
   float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time * 37.0) * 43758.5453); }
   float h2(vec2 p){ return fract(sin(dot(p, vec2(41.31, 289.13))) * 43758.5453); }
   float sn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
@@ -249,9 +249,15 @@ const fin = sh(`
     }
     if (tint > 0.) { float lt = dot(col, vec3(.2126,.7152,.0722)); vec3 T = vec3(.949, .365, .027) / dot(vec3(.949, .365, .027), vec3(.2126,.7152,.0722));
       col = mix(col, lt * T, tint * smoothstep(.0, .25, lt)); }                  // a wash of #f25d07 over the image
+    if (lim > 0.) {
+      // the yellow guard (title cards): nothing brighter or yellower than #f25d07; bright light keeps its hue instead
+      // of clipping towards yellow
+      col = max(col, 0.); float m = max(col.r, max(col.g, col.b)); col *= min(1., .949 / max(m, 1e-4));
+      col.g = min(col.g, col.r * .385); col.b = min(col.b, col.r * .03);
+    }
     col += (hash(vUv * 1000.) - .5) * grain;
     gl_FragColor = vec4(col, 1.);
-  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, fluid: { value: 0 }, clearTxt: { value: 0 }, clearY: { value: .17 }, subjOn: { value: 0 }, subj: { value: new THREE.Vector2(.5, .5) }, subjR: { value: new THREE.Vector2(300, 300) }, tFlA: { value: null }, tFlB: { value: null }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
+  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, fluid: { value: 0 }, clearTxt: { value: 0 }, clearY: { value: .17 }, subjOn: { value: 0 }, lim: { value: 0 }, subj: { value: new THREE.Vector2(.5, .5) }, subjR: { value: new THREE.Vector2(300, 300) }, tFlA: { value: null }, tFlB: { value: null }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
 
 // the glow: two rounds of a 17-tap blur in 1-texel steps at quarter size (coarser steps showed as stripes)
 const glowBlur = () => { for (let k = 0; k < 2; k++) {
@@ -524,7 +530,7 @@ const smokeSetup = (focusDist) => {
     }
     flu.ready = true; return;
   }
-  if (flu.beams) {                                                              // the header: smoke rising from below, drifting across
+  if (flu.beams || flu.title) {                                                 // the header (and the title cards): smoke rising from below, drifting across
     FL.setup([[.18, .08, .06, 60, .3, 1, 1.8], [.45, .06, .06, 55, .05, 1, 1.6], [.72, .08, .06, 55, -.2, 1, 1.6], [.9, .2, .05, 45, -.4, 1, 1.3]], { buoy: 1.2, turb: 1.4, eps: 4, keepDye: .9996, speed: .08 });
     FL2.setup([[.3, .15, .07, 50, .4, 1, 1.4], [.65, .12, .07, 50, -.3, 1, 1.4], [.08, .4, .05, 40, .8, .4, 1.1]], { buoy: 1, turb: 1.6, eps: 5, keepDye: .9995, speed: .08 });
     flu.ready = true; return;
@@ -609,8 +615,9 @@ const draw = (i, focusDist, apert = 30) => {
   if (flu.on) fluidDraw(i, focusDist, apert);
   { const fw = new THREE.Vector3(); cam.getWorldDirection(fw); const q = cam.position.clone().addScaledVector(fw, focusDist).project(cam);   // the spot in focus, on screen
     fin.uniforms.subj.value.set(q.x * .5 + .5, q.y * .5 + .5); }
-  fin.uniforms.time.value = i / FPS; pass(fin, null);
+  fin.uniforms.time.value = i / FPS; pass(fin, finOut);
 };
+let finOut = null;                                                               // the title cards grade into rtOut, then lay their text over it
 
 // ---------- shots ----------
 const P = (px, py) => new THREE.Vector3(px - PW / 2, PH / 2 - py, 0);          // a point on the UI, from its css px
@@ -796,6 +803,37 @@ const card = (plate, emb, shimmer = 0) => ({ frames: 80,
     glowBlur();
     fin.uniforms.time.value = i / FPS; pass(fin, null);
   } });
+// title cards in our own engine (owner's call): no synth, the trailer's smoke, sparks and light; the text laid in after
+// the grade so its colours stay exact: Manrope, warm white #f3eee8, the accent word in #f25d07 with a faint glow of its
+// own colour. txt=1..5 picks the card (references/trailers/STRUCTURE.md); the look comes from the shot's options
+const TITLES = {
+  1: [[['THE SOUNDS OF ', 0], ['DYSTOPIA', 1]]],
+  2: [[['IT DRIFTS. IT ', 0], ['BREATHES.', 1]]],
+  3: [[['CRUSH', 1], [' THE SIGNAL', 0]]],
+  4: [[['WITH ', 0], ['250+', 1], [' SOUNDS', 0]], [['READY TO PLAY', 0]]],
+  5: [[['BUILT FOR ', 0], ['RUIN', 1]]],
+};
+const rtOut = new THREE.WebGLRenderTarget(W, H, rtOpts);
+const comp = sh(`varying vec2 vUv; uniform sampler2D a, b; void main(){ vec4 t = texture2D(b, vUv); gl_FragColor = vec4(texture2D(a, vUv).rgb * (1. - t.a) + t.rgb, 1.); }`,
+  { a: { value: rtOut.texture }, b: { value: ttex } });
+let titleTxt = 1;
+SHOTS.title = { frames: 250, run(i) {
+  knobLayer.visible = false; synth.visible = false; occ.visible = false;
+  cam.fov = 30; cam.updateProjectionMatrix(); look(new THREE.Vector3(0, 0, 1000), new THREE.Vector3(0, 0, 0), 0);
+  finOut = rtOut; draw(i, 1000, 30); finOut = null;
+  tg.clearRect(0, 0, W, H);
+  const cap = H * 0.055, sizePx = cap / 0.72, tr = sizePx * 0.16, lines = TITLES[titleTxt] ?? TITLES[1];
+  tg.font = `500 ${sizePx}px Manrope`; tg.textBaseline = 'alphabetic'; tg.letterSpacing = `${tr}px`;
+  const lh = cap * 1.75, y0 = H * 0.5 + cap / 2 - (lines.length - 1) * lh / 2;
+  lines.forEach((segs, n) => {
+    const ws = segs.map(([t]) => tg.measureText(t).width), tot = ws.reduce((a, b) => a + b, 0) - tr;
+    let x = W / 2 - tot / 2; const y = y0 + n * lh;
+    segs.forEach(([t, acc], k) => { const fill = acc ? HOUSE.orange : SIREN.head;
+      tg.fillStyle = fill; if (acc) { tg.globalAlpha = .35; tg.shadowColor = fill; tg.shadowBlur = cap * .6; tg.fillText(t, x, y); }
+      tg.globalAlpha = 1; tg.shadowBlur = 0; tg.fillText(t, x, y); x += ws[k]; });
+  });
+  ttex.needsUpdate = true; pass(comp, null);
+} };
 SHOTS.cardA = card(PLATES.A, { count: 60 });
 SHOTS.cardB = card(PLATES.B, {});
 SHOTS.cardC = card(PLATES.C, {});
@@ -815,7 +853,8 @@ window.setup = (name) => {
   spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks && !o.hidesp) ? 1 : 0;   
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
-  sparks.world = n !== 'bg'; flow.on = false; smokeDof.uniforms.fill.value = n !== 'bg' ? 1 : 0; fin.uniforms.subjOn.value = n !== 'bg' ? 1 : 0;   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
+  titleTxt = o.txt ?? 1; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; const bgLike = n === 'bg' || n === 'title';
+  sparks.world = !bgLike; flow.on = false; smokeDof.uniforms.fill.value = n === 'bg' ? 0 : 1; fin.uniforms.subjOn.value = bgLike ? 0 : 1;   // (title cards: smoke without holes, no clear oval)   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
   sparks.on = Math.min(1, o.sparks ?? 0); sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
