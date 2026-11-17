@@ -232,9 +232,11 @@ const fin = sh(`
     if (neb > 0.) {
       // nebula smoke (title cards only, neb=1): fractal smoke, warped twice so it curls into fine threads, in a diagonal
       // band (a hot mass at the top, dim wisps below and to the right), lit from above, a darker gap round the text
-      vec2 q = vec2(vUv.x * 1.78, vUv.y) * 1.7; float tt = time * .035;
-      vec2 w1 = vec2(nfbm(q + vec2(0., tt)), nfbm(q + vec2(5.2, 1.3) - tt));
-      vec2 w2 = vec2(nfbm(q + 3. * w1 + vec2(1.7, 9.2) + tt * .6), nfbm(q + 3. * w1 + vec2(8.3, 2.8) - tt * .4));
+      // it moves as one body: the whole smoke drifts slowly up and to the right (about 1 % of the frame a second), and
+      // its shape changes even more slowly, every layer the same way (layers sliding against each other looked like boiling)
+      vec2 q = (vec2(vUv.x * 1.78, vUv.y) - vec2(.016, .009) * time) * 1.7; float tt = time * .012;
+      vec2 w1 = vec2(nfbm(q + vec2(0., tt)), nfbm(q + vec2(5.2, 1.3 + tt)));
+      vec2 w2 = vec2(nfbm(q + 3. * w1 + vec2(1.7, 9.2 + tt)), nfbm(q + 3. * w1 + vec2(8.3, 2.8 + tt)));
       float d = nfbm(q + 3.2 * w2), th = pow(1. - abs(2. * nfbm(q * 2.3 + 4. * w2 + 7.1) - 1.), 4.), bil = nfbm(q * .55 + 1.6 * w1 + 3.3);
       vec2 a = vec2(.40, 1.05), b = vec2(.62, -.05), ab = b - a; float h = clamp(dot(vUv - a, ab) / dot(ab, ab), 0., 1.);
       vec2 dv = (vUv - a - ab * h) * vec2(1.78, 1.); float band = exp(-dot(dv, dv) / .13) + .55 * exp(-pow(length((vUv - vec2(.9, .55)) * vec2(1.78, 1.)), 2.) / .05);
@@ -436,7 +438,7 @@ const sparksStep = () => { sparks.t++; const dt = 1 / FPS, q = new THREE.Vector3
     return; }
   if (!sparks.list.length) sparks.list = [...Array.from({ length: Math.round(NSP * sparks.on) }, () => spSpawn({}, true)), ...Array.from({ length: Math.round(NASH * sparks.ash) }, () => spSpawn({ ash: true }, true))];   // sparks=0.5: half as many
   for (const s of sparks.list) { s.prev = [s.x, s.y, s.z];
-    s.vx += Math.sin(sparks.t * (s.ash ? .04 : .07) + s.ph) * sparks.focus * (s.ash ? .004 : .006); s.x += s.vx * dt; s.y += s.vy * dt; s.z = Math.max(1, s.z + Math.sin(sparks.t * .07 + s.ph * 2) * sparks.focus * .02 * dt); s.life -= dt;   // never behind the panel's face (z = 0)
+    s.vx += Math.sin(sparks.t * (s.ash ? .04 : .07) + s.ph) * sparks.focus * (s.ash ? .004 : .006); s.x += s.vx * dt * sparks.spd; s.y += s.vy * dt * sparks.spd;   // spd: slower sparks (title cards) s.z = Math.max(1, s.z + Math.sin(sparks.t * .07 + s.ph * 2) * sparks.focus * .02 * dt); s.life -= dt;   // never behind the panel's face (z = 0)
     q.set(s.x, s.y, s.z).project(cam);
     if (s.life <= 0 || q.y > 1.3 || q.y < -1.3 || Math.abs(q.x) > 1.4 || q.z > 1) spSpawn(s); } };
 const sparksDraw = (focusDist, apert) => {
@@ -909,7 +911,7 @@ window.setup = (name) => {
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   titleTxt = o.txt ?? 1; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; const bgLike = n === 'bg' || n === 'title';
   sparks.world = !bgLike; flow.on = false; smokeDof.uniforms.fill.value = n === 'bg' ? 0 : 1; fin.uniforms.subjOn.value = bgLike ? 0 : 1;   // (title cards: smoke without holes, no clear oval)   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
-  sparks.on = Math.min(25, o.sparks ?? 0); sparks.trail = o.trail ?? 0; flu.ink = o.ink ?? 0; titleAp = o.ap ?? 30;
+  sparks.on = Math.min(25, o.sparks ?? 0); sparks.trail = o.trail ?? 0; sparks.spd = o.spd ?? 1; flu.ink = o.ink ?? 0; titleAp = o.ap ?? 30;
   spMat.uniforms.maxR.value = (o.bokeh ?? 26) * K; spMat.uniforms.bgain.value = o.bgain ?? 1;   // trail=N: light streams N frames long; ink=1: ink-in-water smoke; ap/bokeh: aperture and the biggest spark disc sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
