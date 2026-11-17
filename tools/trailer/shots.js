@@ -309,8 +309,8 @@ const spGeo = new THREE.BufferGeometry();
 spGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array((NSPW + NCH + NASH) * SUB * 3), 3));
 spGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array((NSPW + NCH + NASH) * SUB * 3), 3));
 const spMat = new THREE.ShaderMaterial({
-  uniforms: { world: { value: 0 }, szk: { value: 5.5 }, fine: { value: 0 }, tDep: { value: rtScene.depthTexture }, res: { value: new THREE.Vector2(W, H) }, near: { value: 1 }, far: { value: 1 }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 26 * K } },
-  vertexShader: `attribute vec3 color; uniform float focus, aperture, maxR, fine, world, szk; varying vec3 vCol; varying float vZ, vR, vS;
+  uniforms: { bgain: { value: 1 }, world: { value: 0 }, szk: { value: 5.5 }, fine: { value: 0 }, tDep: { value: rtScene.depthTexture }, res: { value: new THREE.Vector2(W, H) }, near: { value: 1 }, far: { value: 1 }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 26 * K } },
+  vertexShader: `attribute vec3 color; uniform float focus, aperture, maxR, fine, world, szk, bgain; varying vec3 vCol; varying float vZ, vR, vS;
     void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.); float z = -mv.z;
       float c = clamp(aperture * abs(z - focus) / z, 0., maxR * 1.3); vR = max(1.7, c); vZ = z;
       // fine sparks: in the focus band a 1.3 px core in an 11 px glow; away from it the same light spread over its blur,
@@ -318,7 +318,7 @@ const spMat = new THREE.ShaderMaterial({
       // world=1 (trailer shots): a spark has a real size, so it is bigger the closer it is (5.5 px at the slide shot's 418)
       vS = world > .5 ? szk / z : 5.5;
       if (fine > .5) vR = max(vS, c * 1.25);
-      vCol = color * (fine > .5 ? (world > .5 ? .85 : .55) * min(1., (world > .5 ? vS * vS : 30.) / (vR * vR)) : vR < 2.5 ? 3.2 : max(.11, 2.4 / (vR * vR)));      // in focus: a hot pinpoint; out of focus: the same light spread thin
+      vCol = bgain * color * (fine > .5 ? (world > .5 ? .85 : .55) * min(1., (world > .5 ? vS * vS : 30.) / (vR * vR)) : vR < 2.5 ? 3.2 : max(.11, 2.4 / (vR * vR)));      // in focus: a hot pinpoint; out of focus: the same light spread thin
       gl_PointSize = vR * 2. + 2.; gl_Position = projectionMatrix * mv; }`,
   fragmentShader: `uniform sampler2D tDep; uniform vec2 res; uniform float near, far, fine, world; varying vec3 vCol; varying float vZ, vR, vS;
     void main(){ float d = texture2D(tDep, gl_FragCoord.xy / res).x; float sz = -(near * far) / ((far - near) * d - far);
@@ -552,6 +552,7 @@ const smokeSetup = (focusDist) => {
     flu.ready = true; return;
   }
   if (flu.ink) {                                                                // ink in water: dense dye curling hard, sharp marbled edges
+    layers.forEach((m) => m.scale.set(1.1 * focusDist, .62 * focusDist, 1));                    // the sheet just over the frame, so the dye's detail stays sharp
     FL.setup([[.25, .2, .07, 70, .5, .6, 3], [.55, .15, .07, 65, -.3, .7, 3], [.8, .35, .06, 60, -.6, .4, 2.6], [.4, .55, .06, 50, .7, -.2, 2.4]], { buoy: .5, turb: 3.5, eps: 16, keepDye: .9998, speed: .08 });
     FL2.setup([[.3, .4, .08, 60, .6, .3, 2.4], [.7, .6, .08, 55, -.5, -.2, 2.4], [.5, .25, .07, 50, 0, .8, 2]], { buoy: .4, turb: 3.8, eps: 16, keepDye: .9998, speed: .08 });
     flu.ready = true; return;
@@ -882,7 +883,7 @@ window.setup = (name) => {
   titleTxt = o.txt ?? 1; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; const bgLike = n === 'bg' || n === 'title';
   sparks.world = !bgLike; flow.on = false; smokeDof.uniforms.fill.value = n === 'bg' ? 0 : 1; fin.uniforms.subjOn.value = bgLike ? 0 : 1;   // (title cards: smoke without holes, no clear oval)   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
   sparks.on = Math.min(25, o.sparks ?? 0); sparks.trail = o.trail ?? 0; flu.ink = o.ink ?? 0; titleAp = o.ap ?? 30;
-  spMat.uniforms.maxR.value = (o.bokeh ?? 26) * K;   // trail=N: light streams N frames long; ink=1: ink-in-water smoke; ap/bokeh: aperture and the biggest spark disc sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
+  spMat.uniforms.maxR.value = (o.bokeh ?? 26) * K; spMat.uniforms.bgain.value = o.bgain ?? 1;   // trail=N: light streams N frames long; ink=1: ink-in-water smoke; ap/bokeh: aperture and the biggest spark disc sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
   flu.on = o.fluid ?? 0; fin.uniforms.fluid.value = flu.on; flu.ready = false;
