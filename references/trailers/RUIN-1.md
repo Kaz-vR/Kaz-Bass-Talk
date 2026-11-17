@@ -56,8 +56,12 @@ the owner wants them back.
 - **The owner's grade:** lift, gain and gamma per channel plus saturation, fitted to the owner's Photoshop of the
   slide shot (`tools/trailer/grade-owner.json`), then a wash of `#F25D07` (22 %) that keeps luminance and leaves black
   black.
-- **Sparks:** real 3D particles drifting up through the shot like floating embers (half the speed of thrown sparks,
-  a gentle sideways sway), short streaks from motion blur, in front of the synth. **Colour follows temperature**, in
+- **Sparks:** real 3D particles living in one fixed volume round the synth (denser near its face, some behind its
+  plane past the edges, hidden by the synth), with real speeds and sizes: tuned so the slide shot (418 units away)
+  looks as before, so a close shot sees fewer, bigger, faster sparks, as a lens would. A spark reaching the face
+  glances off it, slowed, and cools fast; one meeting the body's edge bounces off and dies; sparks close to the
+  face light a small warm patch on it. (The website's `bg` shots keep the old view-filling sparks.) They drift up through the shot like floating embers (half the speed of thrown sparks,
+  a gentle sideways sway), short streaks from motion blur. **Colour follows temperature**, in
   the house colours only (never blends, never darker shades): each spark is born at a random heat (hotter ones fly a
   little faster and are brighter) and cools over its life, `#F25D07` hot, then `#F23005`, then `#F20000`, then fades
   out by transparency. The glow round a spark is one step cooler than its core. **Focus like the synth:** sharp
@@ -160,9 +164,11 @@ shots back to back with ffmpeg's concat. For a review GIF render at 960 and scal
 **5. Deliver** the GIF or MP4 and say in a line what the shot is. Commit the shot (not the renders: `renders/` is
 not in git).
 
-**Known issue (open):** the 1920 render of the knob and envelope shots showed dark crackled holes in the smoke
-(invalid values in the simulation, spread by the smoke blur). Guards against it are committed but **not yet
-verified**: check step 3 shows clean smoke before rendering those shots again.
+**Fixed: the dark cracks in the smoke.** They were not invalid values: the smoke's focus blur sampled a spiral that
+left a gap round each pixel, so smoke nearly in focus (a blur smaller than the gap) got no samples and turned black
+along the line where the smoke crosses the focus distance; the gap grows with the render width, so it showed at 1920.
+Trailer shots now fill that gap with a dense inner spiral (`fill`, off for the website's `bg` shots, which keep their
+look). `fluid=3` shows the smoke before its blur (red) and its distance (green), for checking.
 
 **Render width changes the smoke:** the same shot is about three times brighter at 960 wide than at 1600 (found
 with the website header loop). Always check and render at the width that will be delivered.

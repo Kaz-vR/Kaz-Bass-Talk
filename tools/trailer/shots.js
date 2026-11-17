@@ -40,10 +40,11 @@ const flat = (o) => new THREE.MeshBasicMaterial({ toneMapped: false, ...o });
 // the synth's face as a lit object (owner's call, away from the references' evenly self-lit screen): one hard light
 // pool falling across the panel, the rest in shadow, and a faint sheen on the glossy face; the UI's own glowing parts
 // (bright, coloured lines and values) keep their light. real = 0 is the old even look, 1 the full lit look.
-const LIT = { real: { value: 0 }, lightAt: { value: new THREE.Vector3() }, lightR: { value: 260 } };
+const LIT = { real: { value: 0 }, lightAt: { value: new THREE.Vector3() }, lightR: { value: 260 },
+  spL: { value: Array.from({ length: 8 }, () => new THREE.Vector4()) } };          // sparks close to the face: x, y, height, brightness
 const lit = (map) => new THREE.ShaderMaterial({ uniforms: { map: { value: map }, ...LIT },
   vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-  fragmentShader: `uniform sampler2D map; uniform float real, lightR; uniform vec3 lightAt; varying vec2 vUv; varying vec3 vW;
+  fragmentShader: `uniform sampler2D map; uniform float real, lightR; uniform vec3 lightAt; uniform vec4 spL[8]; varying vec2 vUv; varying vec3 vW;
     void main(){ vec3 c = texture2D(map, vUv).rgb;
       float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b));
       float glow = clamp(smoothstep(.45, .75, mx) + smoothstep(.35, .7, mx - mn), 0., 1.);    // what emits light itself
@@ -52,6 +53,12 @@ const lit = (map) => new THREE.ShaderMaterial({ uniforms: { map: { value: map },
       float lightF = .18 + .95 * pool;
       float sheen = smoothstep(.09, 0., abs(dot(vW.xy - lightAt.xy, normalize(vec2(.8, -.6))) / lightR - .55)) * pool * .05;
       vec3 litc = c * mix(lightF, 1., glow) + sheen;
+      // a spark passing close to the face lights a small warm patch under it (wider and fainter the higher it is),
+      // on the glossy face also a faint sheen of its own colour
+      float sl = 0.;
+      for (int k = 0; k < 8; k++) { vec4 q = spL[k]; float rad = 4. + q.z * 1.6; vec2 dd = vW.xy - q.xy;
+        sl += q.w * exp(-dot(dd, dd) / (rad * rad)) / (1. + q.z * q.z / 40.); }
+      litc += (c * 2.2 + .045) * vec3(.949, .365, .027) * sl;
       gl_FragColor = vec4(mix(c, litc, real), 1.); }` });
 const scene = new THREE.Scene();
 scene.background = col('#020203');
@@ -206,6 +213,7 @@ const fin = sh(`
     if (fluid > 0.) {
       // simulated smoke: two layers between the lens and the synth (near, soft; mid, sharper), lit faintly warm
       float a1 = texture2D(tFlA, vUv).r;
+      if (abs(fluid - 3.) < .001) { vec4 q = texture2D(tFlA, vUv); gl_FragColor = vec4(q.r * 3., q.g / max(q.r, 1e-5) * .5, 0., 1.); return; }
       if (abs(fluid - 2.) < .001) { gl_FragColor = vec4(a1 * 3., 0., 0., 1.); return; }   // fluid=2 exactly: show the raw smoke (any other amount is the lit smoke)
       // lit by the scene: smoke glows with the light around it (the UI, the sparks), is nearly invisible in the dark,
       // and dims what is behind it a little where it is thick; its own faint colour leans to #f25d07
@@ -287,24 +295,27 @@ const drawSmoke = (time) => {
 // Drawn after the depth of field as discs sized by their own blur (the same thin-lens formula), so sparks near the
 // lens become soft bokeh and sparks in the focus plane stay pinpoint (the website's single-pixel embers). They are
 // always born and kept in front of the panel's face, so nothing needs hiding. Each spark is drawn at 4 moments inside the frame: a little motion blur.
-const NSP = 45, NASH = 90, SUB = 22;                                   // sparks, ash flakes
+const NSP = 45, NASH = 90, SUB = 22, NSPW = 1110;                      // sparks, ash flakes, sparks in the world volume (sparks=0.65: 720)
 const spGeo = new THREE.BufferGeometry();
-spGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array((NSP + NASH) * SUB * 3), 3));
-spGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array((NSP + NASH) * SUB * 3), 3));
+spGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array((NSPW + NASH) * SUB * 3), 3));
+spGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array((NSPW + NASH) * SUB * 3), 3));
 const spMat = new THREE.ShaderMaterial({
-  uniforms: { fine: { value: 0 }, tDep: { value: rtScene.depthTexture }, res: { value: new THREE.Vector2(W, H) }, near: { value: 1 }, far: { value: 1 }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 26 * K } },
-  vertexShader: `attribute vec3 color; uniform float focus, aperture, maxR, fine; varying vec3 vCol; varying float vZ, vR;
+  uniforms: { world: { value: 0 }, szk: { value: 5.5 }, fine: { value: 0 }, tDep: { value: rtScene.depthTexture }, res: { value: new THREE.Vector2(W, H) }, near: { value: 1 }, far: { value: 1 }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 26 * K } },
+  vertexShader: `attribute vec3 color; uniform float focus, aperture, maxR, fine, world, szk; varying vec3 vCol; varying float vZ, vR, vS;
     void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.); float z = -mv.z;
       float c = clamp(aperture * abs(z - focus) / z, 0., maxR * 1.3); vR = max(1.7, c); vZ = z;
       // fine sparks: in the focus band a 1.3 px core in an 11 px glow; away from it the same light spread over its blur,
       // exactly as the synth blurs there (same thin-lens formula)
-      if (fine > .5) vR = max(5.5, c * 1.25);
-      vCol = color * (fine > .5 ? .55 * min(1., 30. / (vR * vR)) : vR < 2.5 ? 3.2 : max(.11, 2.4 / (vR * vR)));      // in focus: a hot pinpoint; out of focus: the same light spread thin
+      // world=1 (trailer shots): a spark has a real size, so it is bigger the closer it is (5.5 px at the slide shot's 418)
+      vS = world > .5 ? szk / z : 5.5;
+      if (fine > .5) vR = max(vS, c * 1.25);
+      vCol = color * (fine > .5 ? .55 * min(1., (world > .5 ? vS * vS : 30.) / (vR * vR)) : vR < 2.5 ? 3.2 : max(.11, 2.4 / (vR * vR)));      // in focus: a hot pinpoint; out of focus: the same light spread thin
       gl_PointSize = vR * 2. + 2.; gl_Position = projectionMatrix * mv; }`,
-  fragmentShader: `uniform sampler2D tDep; uniform vec2 res; uniform float near, far, fine; varying vec3 vCol; varying float vZ, vR;
+  fragmentShader: `uniform sampler2D tDep; uniform vec2 res; uniform float near, far, fine, world; varying vec3 vCol; varying float vZ, vR, vS;
     void main(){ float d = texture2D(tDep, gl_FragCoord.xy / res).x; float sz = -(near * far) / ((far - near) * d - far);
+      if (world > .5 && vZ > sz + 3.) discard;                                            // hidden behind the synth
       float r = length(gl_PointCoord * 2. - 1.);
-      float e = fine > .5 ? (vR < 6.5 ? exp(-r * r * 30.) + .16 * exp(-r * r * 3.) : smoothstep(1., .55, r) * .9)   // sharp streak, or a soft disc          // fine: hot core and its glow
+      float e = fine > .5 ? (vR < vS * 1.18 ? exp(-r * r * 30.) + .16 * exp(-r * r * 3.) : smoothstep(1., .55, r) * .9)   // sharp streak, or a soft disc          // fine: hot core and its glow
         : vR > 2.5 ? smoothstep(1., .7, r) * (.55 + .3 * smoothstep(.5, .92, r)) : exp(-r * r * 4.);   // bokeh: a disc with a brighter rim
       gl_FragColor = vec4(vCol * e, 1.); }`,
   blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, transparent: true });
@@ -325,11 +336,39 @@ const spSpawn = (s, anywhere) => { const R = sparks.rnd, f = sparks.focus;
   if (!s.ash && spMat.uniforms.fine.value > .5) { s.vx = sp * (.5 + R() * .6) * (R() < .3 ? -1 : 1); }   // fine sparks fly on a diagonal
   if (s.ash) { s.vy = -f * (.025 + R() * .05); s.vx = (R() - .5) * f * .03; s.b = .45 + R() * .7; s.max = 6 + R() * 6; }   // ash: slow, falling, drifting
   s.life = anywhere ? R() * s.max : s.max; return s; };
+// world=1 (every trailer shot): the sparks live in one fixed volume round the synth instead of in the camera's view,
+// with real speeds and sizes (tuned so the slide shot, 418 units away, looks as before), so a close shot sees fewer,
+// bigger, faster sparks, as a lens would. Denser near the face; some behind its plane, past its edges (hidden by the
+// synth). A spark that reaches the face glances off it, slowed, and cools fast; one that meets the body's edge from
+// beside or below bounces off it and dies.
+const REF = 418, SPB = { x0: -PW / 2 - 250, x1: PW / 2 + 250, y0: -PH / 2 - 300, y1: PH / 2 + 300, zb: -120, z1: 420 };
+const inPanel = (x, y) => Math.abs(x) < PW / 2 && Math.abs(y) < PH / 2;
+const spSpawnW = (s, anywhere) => { const R = sparks.rnd, B = SPB;
+  s.x = lerp(B.x0, B.x1, R()); s.y = lerp(B.y0, B.y1, R());
+  if (R() < .15) { s.z = B.zb * R(); if (inPanel(s.x, s.y)) s.z = -s.z; }
+  else s.z = -130 * Math.log(1 - R() * (1 - Math.exp(-B.z1 / 130)));            // denser close to the face
+  s.prev = null; const sp = REF * (.04 + R() * .1);
+  s.vy = sp; s.vz = (R() - .62) * REF * .035; s.ph = R() * 6.28; s.b = .35 + Math.pow(R(), 2) * 1.2; s.max = 2.6 + R() * 3;
+  s.t0 = .5 + .5 * Math.pow(R(), .7); s.vy *= .6 + .6 * s.t0;
+  s.vx = sp * (.5 + R() * .6) * (R() < .3 ? -1 : 1);   // on a diagonal, as before
+  s.life = anywhere ? R() * s.max : s.max; s.born = anywhere ? 1 : 0; return s; };
+const sparksStepW = (s, dt) => {
+  s.vx += Math.sin(sparks.t * .07 + s.ph) * REF * .006; s.born = Math.min(1, s.born + dt / .3);
+  const was = inPanel(s.x, s.y);
+  s.x += s.vx * dt; s.y += s.vy * dt; s.z += (s.vz + Math.sin(sparks.t * .07 + s.ph * 2) * REF * .02) * dt; s.life -= dt;
+  if (inPanel(s.x, s.y)) {
+    if (s.z < .8 && was && s.z > -6) { s.z = .8; s.vz = Math.abs(s.vz) * .35 + 3; s.vx *= .7; s.vy *= .55; s.life = Math.min(s.life, .25 * s.max); }   // glances off the face
+    else if (s.z < 0) { s.x = s.prev[0]; s.y = s.prev[1]; s.vy *= -.25; s.vx *= -.4; s.life = Math.min(s.life, .5); }                                   // the body's edge
+  }
+  const B = SPB; if (s.life <= 0 || s.y > B.y1 || s.x < B.x0 || s.x > B.x1 || s.z > B.z1 + 60 || s.z < B.zb - 30) spSpawnW(s); };
 const sparksReset = () => {
   let a = 987654; sparks.rnd = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let x = Math.imul(a ^ a >>> 15, 1 | a); x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x; return ((x ^ x >>> 14) >>> 0) / 4294967296; };
   sparks.t = -1; sparks.list = [];
 };
 const sparksStep = () => { sparks.t++; const dt = 1 / FPS, q = new THREE.Vector3();
+  if (sparks.world) {
+    if (!sparks.list.length) sparks.list = Array.from({ length: Math.round(NSPW * sparks.on) }, () => spSpawnW({}, true));
+    for (const s of sparks.list) { s.prev = [s.x, s.y, s.z]; sparksStepW(s, dt); } return; }
   if (!sparks.list.length) sparks.list = [...Array.from({ length: Math.round(NSP * sparks.on) }, () => spSpawn({}, true)), ...Array.from({ length: Math.round(NASH * sparks.ash) }, () => spSpawn({ ash: true }, true))];   // sparks=0.5: half as many
   for (const s of sparks.list) { s.prev = [s.x, s.y, s.z];
     s.vx += Math.sin(sparks.t * (s.ash ? .04 : .07) + s.ph) * sparks.focus * (s.ash ? .004 : .006); s.x += s.vx * dt; s.y += s.vy * dt; s.z = Math.max(1, s.z + Math.sin(sparks.t * .07 + s.ph * 2) * sparks.focus * .02 * dt); s.life -= dt;   // never behind the panel's face (z = 0)
@@ -346,11 +385,16 @@ const sparksDraw = (focusDist, apert) => {
     const f = s.life / s.max, T = s.t0 * (.25 + .75 * f), c = s.ash ? ASH : fineS ? [1, T, 0] :   // fine sparks: red = light, green = light x temperature (coloured after the grade)
        f > .7 ? SPC[0] : f > .45 ? SPC[1] : f > .18 ? SPC[2] : SPC[3];
     // ash glints as it tumbles and fades in and out; sparks fade as they die
-    const fade = (s.ash ? Math.min(1, f * 4, (1 - f) * 8) * (.45 + .55 * Math.abs(Math.sin(sparks.t * .09 + s.ph))) : Math.min(1, f * 6) * (fineS ? .55 + .45 * T : 1)) / SUB * 1.6 * s.b;   // cooler sparks are dimmer
+    const fade = (s.ash ? Math.min(1, f * 4, (1 - f) * 8) * (.45 + .55 * Math.abs(Math.sin(sparks.t * .09 + s.ph))) : Math.min(1, f * 6) * (fineS ? .55 + .45 * T : 1)) / SUB * 1.6 * s.b * (sparks.world ? s.born : 1);   // cooler sparks are dimmer
     const sh = spMat.uniforms.fine.value > .5 && !s.ash ? .55 : 1;                  // fine sparks: a long shutter, a streak
     for (let j = 0; j < SUB; j++) { const u = 1 - (1 - j / SUB) * sh, pr = s.prev ?? [s.x, s.y, s.z];
       P_[k] = pr[0] + (s.x - pr[0]) * u; P_[k + 1] = pr[1] + (s.y - pr[1]) * u; P_[k + 2] = pr[2] + (s.z - pr[2]) * u;
       C_[k] = c[0] * fade; C_[k + 1] = c[1] * fade; C_[k + 2] = c[2] * fade; k += 3; } }
+  // the sparks closest to the face light it
+  const L = LIT.spL.value; L.forEach((l) => l.set(0, 0, 0, 0));
+  if (sparks.world) sparks.list.filter((s) => s.z > 0 && s.z < 40 && inPanel(s.x, s.y)).sort((a, b) => a.z - b.z).slice(0, 8)
+    .forEach((s, n) => { const f = s.life / s.max; L[n].set(s.x, s.y, s.z, .5 * s.b * Math.min(1, f * 6) * s.born * (.55 + .45 * s.t0 * (.25 + .75 * f))); });
+  spMat.uniforms.world.value = sparks.world ? 1 : 0; spMat.uniforms.szk.value = 5.5 * K * REF * Math.tan(13 * Math.PI / 180) / Math.tan(cam.fov * Math.PI / 360);
   spGeo.setDrawRange(0, sparks.list.length * SUB); spGeo.attributes.position.needsUpdate = true; spGeo.attributes.color.needsUpdate = true;
   Object.assign(spMat.uniforms.near, { value: cam.near }); spMat.uniforms.far.value = cam.far; spMat.uniforms.focus.value = focusDist; spMat.uniforms.aperture.value = apert * K;
   if (spMat.uniforms.fine.value > .5 && !sparks.ash) { r.setRenderTarget(rtSpark); r.setClearColor(0x000000, 1); r.clear(); r.render(spScene, cam); }   // their own layer, coloured after the grade
@@ -383,16 +427,29 @@ const flScene = new THREE.Scene(); layers.forEach((m) => flScene.add(m));
 // the synth's body, invisible, writing only depth: smoke behind it is hidden, smoke past its edges shows
 const occ = new THREE.Mesh(new THREE.BoxGeometry(PW, PH, 48), new THREE.MeshBasicMaterial({ colorWrite: false })); occ.position.set(0, 0, -24); occ.renderOrder = -1; flScene.add(occ);
 const smokeDof = sh(`
-  varying vec2 vUv; uniform sampler2D t; uniform float focus, aperture, maxR; uniform vec2 px;
+  varying vec2 vUv; uniform sampler2D t; uniform float focus, aperture, maxR, fill; uniform vec2 px;
   float coc(vec2 s){ float z = s.y / max(s.x, 1e-5) * 1000.; return s.x < 1e-4 ? 0. : clamp(aperture * abs(z - focus) / z, 0., maxR); }
   // scatter-as-gather: every nearby sample whose own blur disc reaches this pixel adds its smoke spread over that disc
   void main(){ float acc = 0.; const int N = 64; float ga = 2.39996323;
     float rot = 6.2831853 * fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715))));
+    if (fill < .5) {
     for (int i = 0; i < N; i++) { float rr = sqrt((float(i) + .5) / float(N)) * maxR, an = float(i) * ga + rot;
       vec2 s = texture2D(t, vUv + vec2(cos(an), sin(an)) * rr * px).xy; if (s.x != s.x || s.y != s.y || s.x < 0.) s = vec2(0.); float c = max(coc(s), 1.5);
       acc += s.x * smoothstep(rr - 1., rr + 1., c) / (c * c); }
-    gl_FragColor = vec4(acc * maxR * maxR / float(N), 0., 0., 1.); }`,
-  { t: { value: rtFl[0].texture }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 30 * K }, px: { value: new THREE.Vector2(1 / W, 1 / H) } });
+    gl_FragColor = vec4(acc * maxR * maxR / float(N), 0., 0., 1.); return; }
+    // fill=1 (trailer shots): the spiral above leaves a gap round the pixel (radius R0); smoke nearly in focus has a
+    // blur smaller than that gap and got no samples at all: the black cracks along the line where the smoke crosses
+    // the focus distance. So the outer spiral covers R0..maxR only, and a dense inner spiral covers 0..R0; every
+    // sample weighs the area it stands for
+    float R0 = maxR * .2, A = (maxR * maxR - R0 * R0) / float(N), acc2 = 0.; const int NI = 24;
+    for (int i = 0; i < N; i++) { float rr = sqrt(R0 * R0 + (float(i) + .5) / float(N) * (maxR * maxR - R0 * R0)), an = float(i) * ga + rot;
+      vec2 s = texture2D(t, vUv + vec2(cos(an), sin(an)) * rr * px).xy; if (s.x != s.x || s.y != s.y || s.x < 0.) s = vec2(0.); float c = max(coc(s), 1.5);
+      acc2 += s.x * smoothstep(rr - 1., rr + 1., c) / (c * c) * A; }
+    for (int i = 0; i < NI; i++) { float rr = sqrt((float(i) + .5) / float(NI)) * R0, an = float(i) * ga + rot * 1.7;
+      vec2 s = texture2D(t, vUv + vec2(cos(an), sin(an)) * rr * px).xy; if (s.x != s.x || s.y != s.y || s.x < 0.) s = vec2(0.); float c = max(coc(s), 1.5);
+      acc2 += s.x * smoothstep(rr - 1., rr + 1., c) / (c * c) * R0 * R0 / float(NI); }
+    gl_FragColor = vec4(acc2, 0., 0., 1.); }`,
+  { fill: { value: 0 }, t: { value: rtFl[0].texture }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 30 * K }, px: { value: new THREE.Vector2(1 / W, 1 / H) } });
 const flu = { on: 0, ready: false };
 // the light the smoke sits in: the scene itself (the UI's glow) and the sparks, spread wide at quarter size
 const rtLight = [0, 1].map(() => new THREE.WebGLRenderTarget(W / 4, H / 4, rtOpts));
@@ -486,7 +543,7 @@ const fluidDraw = (i, focusDist, apert) => {
   layers.forEach((m) => { const u = m.material.uniforms; u.dye.value = (m.userData.sim ? FL2 : FL).texture; u.time.value = i / FPS; });
   r.setRenderTarget(rtFl[0]); r.setClearColor(0x000000, 1); r.clear(); r.render(flScene, cam);
   smokeDof.uniforms.focus.value = focusDist; smokeDof.uniforms.aperture.value = apert * K;
-  pass(smokeDof, rtFl[1]);
+  pass(smokeDof, rtFl[1]); fin.uniforms.tFlA.value = flu.on === 3 ? rtFl[0].texture : rtFl[1].texture;   // fluid=3: the smoke before its focus blur (red) and its distance (green)
   if (flu.beams) { drawBeams(flu.beams, i / FPS); copyTex.uniforms.k.value = flu.beams >= 5 ? 3.2 * .045 * (flu.beams === 7 ? 1.2 : 1) : 3.2;
     pass(copyTex, rtLight[0]); return; }   // the header's light, not the scene's (light from below: drawn at full strength, scaled here; .045 = the densest smoke exactly #f25d07)
   pass(lightSrc, rtLight[0]);
@@ -709,6 +766,7 @@ window.setup = (name) => {
   spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks && !o.hidesp) ? 1 : 0;   
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
+  sparks.world = n !== 'bg'; smokeDof.uniforms.fill.value = n !== 'bg' ? 1 : 0;   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
   sparks.on = Math.min(1, o.sparks ?? 0); sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
