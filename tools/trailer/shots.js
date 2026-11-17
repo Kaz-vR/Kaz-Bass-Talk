@@ -328,13 +328,21 @@ const spMat = new THREE.ShaderMaterial({
         : vR > 2.5 ? smoothstep(1., .7, r) * (.55 + .3 * smoothstep(.5, .92, r)) : exp(-r * r * 4.);   // bokeh: a disc with a brighter rim
       gl_FragColor = vec4(vCol * e, 1.); }`,
   blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, transparent: true });
-const spScene = new THREE.Scene(), spPts = new THREE.Points(spGeo, spMat); spPts.frustumCulled = false; spScene.add(spPts);   // never culled (its bounds move with every shot)
+const NTR = 1200 * 60 * 2, trGeo = new THREE.BufferGeometry();          // light streams: each spark's path as fine lines
+trGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(NTR * 3), 3)); trGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(NTR * 3), 3));
+const trLines = new THREE.LineSegments(trGeo, new THREE.LineBasicMaterial({ vertexColors: true, blending: THREE.AdditiveBlending, transparent: true, depthTest: false, depthWrite: false }));
+trLines.frustumCulled = false; trLines.visible = false;
+const spScene = new THREE.Scene(), spPts = new THREE.Points(spGeo, spMat); spScene.add(trLines); spPts.frustumCulled = false; spScene.add(spPts);   // never culled (its bounds move with every shot)
 const SPC = [[.949, .365, .027], [.949, .188, .02], [.949, 0, 0], [.52, 0, 0]].map((c) => c.map((v) => v * 3.2));  // #f25d07, #f23005, #f20000, #f20000 fading (×brightness)
 const ASH = [.62, .6, .57];                                                         // grey-white flakes, lit, not glowing
 const sparks0 = { on: false, ash: false, t: 0, list: [], focus: 400, rnd: Math.random };
 // sparks are born inside the camera's view: most near the focus plane (sharp pinpoints), a few close to the lens (bokeh)
 const sparks = Object.assign(sparks0, {});
 const spSpawn = (s, anywhere) => { const R = sparks.rnd, f = sparks.focus;
+  if (sparks.trail) {                                                              // light streams: born at the left, at about the focus distance
+    const v = new THREE.Vector3(anywhere ? R() * 2.4 - 1.2 : -1.2, R() * 2.4 - 1.2, .5).unproject(cam).sub(cam.position).normalize(), d = f * (.85 + .3 * R());
+    Object.assign(s, { x: cam.position.x + v.x * d, y: cam.position.y + v.y * d, z: cam.position.z + v.z * d, prev: null, hist: [], sp: f * (.12 + .08 * R()),
+      ph: R() * .8, b: .5 + R() * .9, max: 99, life: 99, t0: .7 + .3 * R(), vx: 0, vy: 0 }); return s; }
   const v = new THREE.Vector3((R() * 2 - 1) * 1.15, anywhere ? R() * 2.3 - 1.15 : s.ash ? 1.15 + R() * .1 : -1.15 - R() * .1, .5).unproject(cam).sub(cam.position).normalize();
   const u = R(); let dist = f * (u < .6 ? .975 + .04 * R() : u < .85 ? .62 + .3 * R() : .22 + .3 * R());   // 60 % sharp, 25 % soft, 15 % big bokeh
   if (v.z < 0) dist = Math.min(dist, (cam.position.z - 2) / -v.z * (.8 + .18 * R()));       // always in front of the panel (its face is z = 0)
@@ -402,6 +410,13 @@ const sparksStep = () => { sparks.t++; const dt = 1 / FPS, q = new THREE.Vector3
     if (!sparks.list.length) sparks.list = [...Array.from({ length: Math.round(NSPW * sparks.on) }, () => spSpawnW({}, true)),
       ...Array.from({ length: NCH }, () => ({ kind: 2, life: 0, max: 1, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, b: 0, t0: 1, born: 1, flare: 0, ph: 0, fr: 20 }))];
     for (const s of sparks.list) { s.prev = [s.x, s.y, s.z]; sparksStepW(s, dt); } return; }
+  if (sparks.trail) {
+    if (!sparks.list.length) sparks.list = Array.from({ length: Math.round(NSP * sparks.on) }, () => spSpawn({}, true));
+    for (const s of sparks.list) { s.prev = [s.x, s.y, s.z]; const f = sparks.focus;
+      s.vx = s.sp; s.vy = s.sp * .5 * Math.sin(s.x / f * 2.6 + s.ph + sparks.t * .012);  // one swept current: the strands run together in waves
+      s.x += s.vx * dt; s.y += s.vy * dt; s.hist.push([s.x, s.y, s.z]); if (s.hist.length > sparks.trail) s.hist.shift();
+      q.set(s.x, s.y, s.z).project(cam); if (q.x > 1.25 || Math.abs(q.y) > 1.4) spSpawn(s); }
+    return; }
   if (!sparks.list.length) sparks.list = [...Array.from({ length: Math.round(NSP * sparks.on) }, () => spSpawn({}, true)), ...Array.from({ length: Math.round(NASH * sparks.ash) }, () => spSpawn({ ash: true }, true))];   // sparks=0.5: half as many
   for (const s of sparks.list) { s.prev = [s.x, s.y, s.z];
     s.vx += Math.sin(sparks.t * (s.ash ? .04 : .07) + s.ph) * sparks.focus * (s.ash ? .004 : .006); s.x += s.vx * dt; s.y += s.vy * dt; s.z = Math.max(1, s.z + Math.sin(sparks.t * .07 + s.ph * 2) * sparks.focus * .02 * dt); s.life -= dt;   // never behind the panel's face (z = 0)
@@ -438,6 +453,12 @@ const sparksDraw = (focusDist, apert) => {
   if (sparks.world) sparks.list.filter((s) => s.life > 0 && s.z > 0 && s.z < 40 && inPanel(s.x, s.y)).sort((a, b) => a.z - b.z).slice(0, 8)
     .forEach((s, n) => { const f = s.life / s.max; L[n].set(s.x, s.y, s.z, .5 * s.b * Math.min(1, f * 6) * s.born * (.55 + .45 * s.t0 * (.25 + .75 * f))); });
   spMat.uniforms.world.value = sparks.world ? 1 : 0; spMat.uniforms.szk.value = 5.5 * K * REF * Math.tan(13 * Math.PI / 180) / Math.tan(cam.fov * Math.PI / 360);
+  trLines.visible = !!sparks.trail;
+  if (sparks.trail) { const TP = trGeo.attributes.position.array, TC = trGeo.attributes.color.array; let m = 0;
+    for (const s of sparks.list) { const h = s.hist, n = h.length;
+      for (let j = 1; j < n && m < NTR * 3 - 6; j++) { const u = j / (n - 1), L = .5 * s.b * (.15 + .85 * u) * Math.min(1, n / 8), T = s.t0 * (.3 + .7 * u);   // head hot, tail cool
+        for (const [p, uu] of [[h[j - 1], u], [h[j], u]]) { TP[m] = p[0]; TP[m + 1] = p[1]; TP[m + 2] = p[2]; TC[m] = L; TC[m + 1] = L * T; TC[m + 2] = 0; m += 3; } } }
+    trGeo.setDrawRange(0, m / 3); trGeo.attributes.position.needsUpdate = true; trGeo.attributes.color.needsUpdate = true; }
   spGeo.setDrawRange(0, sparks.list.length * SUB); spGeo.attributes.position.needsUpdate = true; spGeo.attributes.color.needsUpdate = true;
   Object.assign(spMat.uniforms.near, { value: cam.near }); spMat.uniforms.far.value = cam.far; spMat.uniforms.focus.value = focusDist; spMat.uniforms.aperture.value = apert * K;
   if (spMat.uniforms.fine.value > .5 && !sparks.ash) { r.setRenderTarget(rtSpark); r.setClearColor(0x000000, 1); r.clear(); r.render(spScene, cam); }   // their own layer, coloured after the grade
@@ -528,6 +549,11 @@ const smokeSetup = (focusDist) => {
       FL.setup([[.29, B, .05, 110, .05, 1, 2], [.42, B, .05, 115, -.05, 1, 2.2], [.56, B, .05, 115, .05, 1, 2.2], [.7, B, .05, 110, -.05, 1, 2]], { buoy: 3.4, turb: 2.6, eps: 10, keepDye: .992, speed: .14 });
       FL2.setup([[.35, B - .01, .06, 100, .15, 1, 1.7], [.49, B - .01, .06, 100, -.1, 1, 1.7], [.63, B - .01, .06, 100, .1, 1, 1.7], [.76, B - .01, .05, 90, -.15, 1, 1.5]], { buoy: 3, turb: 2.8, eps: 9, keepDye: .992, speed: .14 });
     }
+    flu.ready = true; return;
+  }
+  if (flu.ink) {                                                                // ink in water: dense dye curling hard, sharp marbled edges
+    FL.setup([[.25, .2, .07, 70, .5, .6, 3], [.55, .15, .07, 65, -.3, .7, 3], [.8, .35, .06, 60, -.6, .4, 2.6], [.4, .55, .06, 50, .7, -.2, 2.4]], { buoy: .5, turb: 3.5, eps: 16, keepDye: .9998, speed: .08 });
+    FL2.setup([[.3, .4, .08, 60, .6, .3, 2.4], [.7, .6, .08, 55, -.5, -.2, 2.4], [.5, .25, .07, 50, 0, .8, 2]], { buoy: .4, turb: 3.8, eps: 16, keepDye: .9998, speed: .08 });
     flu.ready = true; return;
   }
   if (flu.beams || flu.title) {                                                 // the header (and the title cards): smoke rising from below, drifting across
@@ -816,11 +842,11 @@ const TITLES = {
 const rtOut = new THREE.WebGLRenderTarget(W, H, rtOpts);
 const comp = sh(`varying vec2 vUv; uniform sampler2D a, b; void main(){ vec4 t = texture2D(b, vUv); gl_FragColor = vec4(texture2D(a, vUv).rgb * (1. - t.a) + t.rgb, 1.); }`,
   { a: { value: rtOut.texture }, b: { value: ttex } });
-let titleTxt = 1;
+let titleTxt = 1, titleAp = 30;
 SHOTS.title = { frames: 250, run(i) {
   knobLayer.visible = false; synth.visible = false; occ.visible = false;
   cam.fov = 30; cam.updateProjectionMatrix(); look(new THREE.Vector3(0, 0, 1000), new THREE.Vector3(0, 0, 0), 0);
-  finOut = rtOut; draw(i, 1000, 30); finOut = null;
+  finOut = rtOut; draw(i, 1000, titleAp); finOut = null;
   tg.clearRect(0, 0, W, H);
   const cap = H * 0.055, sizePx = cap / 0.72, tr = sizePx * 0.16, lines = TITLES[titleTxt] ?? TITLES[1];
   tg.font = `500 ${sizePx}px Manrope`; tg.textBaseline = 'alphabetic'; tg.letterSpacing = `${tr}px`;
@@ -855,7 +881,8 @@ window.setup = (name) => {
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   titleTxt = o.txt ?? 1; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; const bgLike = n === 'bg' || n === 'title';
   sparks.world = !bgLike; flow.on = false; smokeDof.uniforms.fill.value = n === 'bg' ? 0 : 1; fin.uniforms.subjOn.value = bgLike ? 0 : 1;   // (title cards: smoke without holes, no clear oval)   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
-  sparks.on = Math.min(1, o.sparks ?? 0); sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
+  sparks.on = Math.min(25, o.sparks ?? 0); sparks.trail = o.trail ?? 0; flu.ink = o.ink ?? 0; titleAp = o.ap ?? 30;
+  spMat.uniforms.maxR.value = (o.bokeh ?? 26) * K;   // trail=N: light streams N frames long; ink=1: ink-in-water smoke; ap/bokeh: aperture and the biggest spark disc sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
   flu.on = o.fluid ?? 0; fin.uniforms.fluid.value = flu.on; flu.ready = false;
