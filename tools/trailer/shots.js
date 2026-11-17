@@ -295,10 +295,10 @@ const drawSmoke = (time) => {
 // Drawn after the depth of field as discs sized by their own blur (the same thin-lens formula), so sparks near the
 // lens become soft bokeh and sparks in the focus plane stay pinpoint (the website's single-pixel embers). They are
 // always born and kept in front of the panel's face, so nothing needs hiding. Each spark is drawn at 4 moments inside the frame: a little motion blur.
-const NSP = 45, NASH = 90, SUB = 22, NSPW = 1110;                      // sparks, ash flakes, sparks in the world volume (sparks=0.65: 720)
+const NSP = 45, NASH = 90, SUB = 22, NSPW = 1110, NCH = 160;   // (+ NCH: the small sparks a crackling spark splits into)                      // sparks, ash flakes, sparks in the world volume (sparks=0.65: 720)
 const spGeo = new THREE.BufferGeometry();
-spGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array((NSPW + NASH) * SUB * 3), 3));
-spGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array((NSPW + NASH) * SUB * 3), 3));
+spGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array((NSPW + NCH + NASH) * SUB * 3), 3));
+spGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array((NSPW + NCH + NASH) * SUB * 3), 3));
 const spMat = new THREE.ShaderMaterial({
   uniforms: { world: { value: 0 }, szk: { value: 5.5 }, fine: { value: 0 }, tDep: { value: rtScene.depthTexture }, res: { value: new THREE.Vector2(W, H) }, near: { value: 1 }, far: { value: 1 }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 26 * K } },
   vertexShader: `attribute vec3 color; uniform float focus, aperture, maxR, fine, world, szk; varying vec3 vCol; varying float vZ, vR, vS;
@@ -309,13 +309,13 @@ const spMat = new THREE.ShaderMaterial({
       // world=1 (trailer shots): a spark has a real size, so it is bigger the closer it is (5.5 px at the slide shot's 418)
       vS = world > .5 ? szk / z : 5.5;
       if (fine > .5) vR = max(vS, c * 1.25);
-      vCol = color * (fine > .5 ? .55 * min(1., (world > .5 ? vS * vS : 30.) / (vR * vR)) : vR < 2.5 ? 3.2 : max(.11, 2.4 / (vR * vR)));      // in focus: a hot pinpoint; out of focus: the same light spread thin
+      vCol = color * (fine > .5 ? (world > .5 ? .85 : .55) * min(1., (world > .5 ? vS * vS : 30.) / (vR * vR)) : vR < 2.5 ? 3.2 : max(.11, 2.4 / (vR * vR)));      // in focus: a hot pinpoint; out of focus: the same light spread thin
       gl_PointSize = vR * 2. + 2.; gl_Position = projectionMatrix * mv; }`,
   fragmentShader: `uniform sampler2D tDep; uniform vec2 res; uniform float near, far, fine, world; varying vec3 vCol; varying float vZ, vR, vS;
     void main(){ float d = texture2D(tDep, gl_FragCoord.xy / res).x; float sz = -(near * far) / ((far - near) * d - far);
       if (world > .5 && vZ > sz + 3.) discard;                                            // hidden behind the synth
       float r = length(gl_PointCoord * 2. - 1.);
-      float e = fine > .5 ? (vR < vS * 1.18 ? exp(-r * r * 30.) + .16 * exp(-r * r * 3.) : smoothstep(1., .55, r) * .9)   // sharp streak, or a soft disc          // fine: hot core and its glow
+      float e = fine > .5 ? (vR < vS * 1.18 ? (world > .5 ? exp(-r * r * 42.) + .2 * exp(-r * r * 4.) : exp(-r * r * 30.) + .16 * exp(-r * r * 3.)) : smoothstep(1., .55, r) * .9)   // sharp streak, or a soft disc          // fine: hot core and its glow
         : vR > 2.5 ? smoothstep(1., .7, r) * (.55 + .3 * smoothstep(.5, .92, r)) : exp(-r * r * 4.);   // bokeh: a disc with a brighter rim
       gl_FragColor = vec4(vCol * e, 1.); }`,
   blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, transparent: true });
@@ -351,23 +351,47 @@ const spSpawnW = (s, anywhere) => { const R = sparks.rnd, B = SPB;
   s.vy = sp; s.vz = (R() - .62) * REF * .035; s.ph = R() * 6.28; s.b = .35 + Math.pow(R(), 2) * 1.2; s.max = 2.6 + R() * 3;
   s.t0 = .5 + .5 * Math.pow(R(), .7); s.vy *= .6 + .6 * s.t0;
   s.vx = sp * (.5 + R() * .6) * (R() < .3 ? -1 : 1);   // on a diagonal, as before
+  s.kind = 0; s.flare = 0; s.fr = 16 + R() * 14;                                   // flicker rate (Hz)
+  if (R() < .12) {                                                                   // a real spark: thrown fast on a slight arc, a long streak, short-lived
+    const a = (R() - .5) * 1.8, v = REF * (.45 + R() * .5); s.kind = 1;
+    s.vx = Math.sin(a) * v; s.vy = Math.cos(a) * v; s.vz = (R() - .6) * v * .3; s.max = .6 + R() * 1; s.t0 = .85 + R() * .15; s.b = .8 + R() * .8; }
   s.life = anywhere ? R() * s.max : s.max; s.born = anywhere ? 1 : 0; return s; };
+// crackle: a hot spark now and then splits into two or three small ones with a short flare
+const spSplit = (s) => { const R = sparks.rnd; let n = 2 + (R() < .4 ? 1 : 0); s.flare = 1;
+  for (const c of sparks.list) { if (c.kind !== 2 || c.life > 0) continue;
+    const a = R() * 6.28, b = (R() - .3) * 2, v = REF * (.25 + R() * .35);
+    Object.assign(c, { x: s.x, y: s.y, z: Math.max(1, s.z), prev: null, vx: s.vx * .5 + Math.cos(a) * v, vy: s.vy * .5 + Math.abs(Math.sin(a)) * v * .8, vz: b * v * .3,
+      max: .25 + R() * .45, t0: 1, b: s.b * .65, born: 1, flare: 0, ph: R() * 6.28, fr: 22 + R() * 14 }); c.life = c.max;
+    if (--n === 0) break; } };
+// the smoke's own currents, read back from its simulation once a frame (above the synth): sparks are carried by them
+const flow = { on: false, data: new Float32Array(64 * 36 * 4), c: new THREE.Vector3(), w: 1, h: 1, k: 0 };
+const flowAt = (x, y) => { const u = (x - flow.c.x) / flow.w + .5, v = (y - flow.c.y) / flow.h + .5;
+  if (u < 0 || u > 1 || v < 0 || v > 1) return [0, 0];
+  const i = (Math.min(35, Math.floor(v * 36)) * 64 + Math.min(63, Math.floor(u * 64))) * 4; return [flow.data[i] * flow.k * flow.w, flow.data[i + 1] * flow.k * flow.h]; };
 const sparksStepW = (s, dt) => {
-  s.vx += Math.sin(sparks.t * .07 + s.ph) * REF * .006; s.born = Math.min(1, s.born + dt / .3);
+  if (s.kind === 2 && s.life <= 0) return;                                           // an unused crackle spark
+  if (s.kind === 1) { const d = Math.exp(-dt * 1.1); s.vx *= d; s.vz *= d; s.vy = s.vy * d + REF * .06 * dt; }   // drag, and the heat still lifts it
+  else if (s.kind === 2) { const d = Math.exp(-dt * 2); s.vx *= d; s.vy *= d; s.vz *= d; }
+  else s.vx += Math.sin(sparks.t * .07 + s.ph) * REF * .006;
+  s.born = Math.min(1, s.born + dt / .3); s.flare = Math.max(0, s.flare - dt / .12);
+  if (flow.on) { const [fx, fy] = flowAt(s.x, s.y); s.x += fx * dt; s.y += fy * dt; }
+  if (s.kind === 0 && s.t0 > .7 && sparks.rnd() < .06 * dt) spSplit(s);
   const was = inPanel(s.x, s.y);
   s.x += s.vx * dt; s.y += s.vy * dt; s.z += (s.vz + Math.sin(sparks.t * .07 + s.ph * 2) * REF * .02) * dt; s.life -= dt;
   if (inPanel(s.x, s.y)) {
     if (s.z < .8 && was && s.z > -6) { s.z = .8; s.vz = Math.abs(s.vz) * .35 + 3; s.vx *= .7; s.vy *= .55; s.life = Math.min(s.life, .25 * s.max); }   // glances off the face
     else if (s.z < 0) { s.x = s.prev[0]; s.y = s.prev[1]; s.vy *= -.25; s.vx *= -.4; s.life = Math.min(s.life, .5); }                                   // the body's edge
   }
-  const B = SPB; if (s.life <= 0 || s.y > B.y1 || s.x < B.x0 || s.x > B.x1 || s.z > B.z1 + 60 || s.z < B.zb - 30) spSpawnW(s); };
+  const B = SPB; if (s.kind === 2) { if (s.life <= 0 || s.y > B.y1) s.life = 0; return; }
+  if (s.life <= 0 || s.y > B.y1 || s.x < B.x0 || s.x > B.x1 || s.z > B.z1 + 60 || s.z < B.zb - 30) spSpawnW(s); };
 const sparksReset = () => {
   let a = 987654; sparks.rnd = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let x = Math.imul(a ^ a >>> 15, 1 | a); x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x; return ((x ^ x >>> 14) >>> 0) / 4294967296; };
   sparks.t = -1; sparks.list = [];
 };
 const sparksStep = () => { sparks.t++; const dt = 1 / FPS, q = new THREE.Vector3();
   if (sparks.world) {
-    if (!sparks.list.length) sparks.list = Array.from({ length: Math.round(NSPW * sparks.on) }, () => spSpawnW({}, true));
+    if (!sparks.list.length) sparks.list = [...Array.from({ length: Math.round(NSPW * sparks.on) }, () => spSpawnW({}, true)),
+      ...Array.from({ length: NCH }, () => ({ kind: 2, life: 0, max: 1, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, b: 0, t0: 1, born: 1, flare: 0, ph: 0, fr: 20 }))];
     for (const s of sparks.list) { s.prev = [s.x, s.y, s.z]; sparksStepW(s, dt); } return; }
   if (!sparks.list.length) sparks.list = [...Array.from({ length: Math.round(NSP * sparks.on) }, () => spSpawn({}, true)), ...Array.from({ length: Math.round(NASH * sparks.ash) }, () => spSpawn({ ash: true }, true))];   // sparks=0.5: half as many
   for (const s of sparks.list) { s.prev = [s.x, s.y, s.z];
@@ -386,13 +410,23 @@ const sparksDraw = (focusDist, apert) => {
        f > .7 ? SPC[0] : f > .45 ? SPC[1] : f > .18 ? SPC[2] : SPC[3];
     // ash glints as it tumbles and fades in and out; sparks fade as they die
     const fade = (s.ash ? Math.min(1, f * 4, (1 - f) * 8) * (.45 + .55 * Math.abs(Math.sin(sparks.t * .09 + s.ph))) : Math.min(1, f * 6) * (fineS ? .55 + .45 * T : 1)) / SUB * 1.6 * s.b * (sparks.world ? s.born : 1);   // cooler sparks are dimmer
-    const sh = spMat.uniforms.fine.value > .5 && !s.ash ? .55 : 1;                  // fine sparks: a long shutter, a streak
+    const sh = spMat.uniforms.fine.value > .5 && !s.ash ? (sparks.world ? [.55, 1, .8][s.kind] : .55) : 1;   // fine sparks: a long shutter, a streak (real sparks the longest)
+    const W_ = sparks.world && fineS && s.life > 0;
     for (let j = 0; j < SUB; j++) { const u = 1 - (1 - j / SUB) * sh, pr = s.prev ?? [s.x, s.y, s.z];
       P_[k] = pr[0] + (s.x - pr[0]) * u; P_[k + 1] = pr[1] + (s.y - pr[1]) * u; P_[k + 2] = pr[2] + (s.z - pr[2]) * u;
-      C_[k] = c[0] * fade; C_[k + 1] = c[1] * fade; C_[k + 2] = c[2] * fade; k += 3; } }
+      if (W_) {
+        // a spark, not a particle: the head hot, the tail cooler; it flickers fast as it burns (beads along a streak);
+        // a short flare when it crackles
+        const h = j / (SUB - 1), tt = (sparks.t - 1 + h * sh) / FPS;
+        const fl = .35 + .65 * (.5 + .5 * Math.sin(tt * s.fr * 6.283 + s.ph * 5)) * (.6 + .4 * Math.sin(tt * s.fr * 3.9 + s.ph * 11));
+        const L_ = fade * (.4 + .6 * h) * fl * (1 + 2 * s.flare);
+        C_[k] = L_; C_[k + 1] = L_ * T * (.5 + .5 * h); C_[k + 2] = 0;
+      } else if (sparks.world && s.life <= 0) { C_[k] = C_[k + 1] = C_[k + 2] = 0; }
+      else { C_[k] = c[0] * fade; C_[k + 1] = c[1] * fade; C_[k + 2] = c[2] * fade; }
+      k += 3; } }
   // the sparks closest to the face light it
   const L = LIT.spL.value; L.forEach((l) => l.set(0, 0, 0, 0));
-  if (sparks.world) sparks.list.filter((s) => s.z > 0 && s.z < 40 && inPanel(s.x, s.y)).sort((a, b) => a.z - b.z).slice(0, 8)
+  if (sparks.world) sparks.list.filter((s) => s.life > 0 && s.z > 0 && s.z < 40 && inPanel(s.x, s.y)).sort((a, b) => a.z - b.z).slice(0, 8)
     .forEach((s, n) => { const f = s.life / s.max; L[n].set(s.x, s.y, s.z, .5 * s.b * Math.min(1, f * 6) * s.born * (.55 + .45 * s.t0 * (.25 + .75 * f))); });
   spMat.uniforms.world.value = sparks.world ? 1 : 0; spMat.uniforms.szk.value = 5.5 * K * REF * Math.tan(13 * Math.PI / 180) / Math.tan(cam.fov * Math.PI / 360);
   spGeo.setDrawRange(0, sparks.list.length * SUB); spGeo.attributes.position.needsUpdate = true; spGeo.attributes.color.needsUpdate = true;
@@ -451,6 +485,9 @@ const smokeDof = sh(`
     gl_FragColor = vec4(acc2, 0., 0., 1.); }`,
   { fill: { value: 0 }, t: { value: rtFl[0].texture }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 30 * K }, px: { value: new THREE.Vector2(1 / W, 1 / H) } });
 const flu = { on: 0, ready: false };
+// the smoke's velocity, shrunk to 64 x 36 and read back (cells a sim second -> share of the sheet a second)
+const rtFlow = new THREE.WebGLRenderTarget(64, 36, { type: THREE.FloatType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false });
+const flowCopy = sh(`varying vec2 vUv; uniform sampler2D t; void main(){ vec2 v = texture2D(t, vUv).xy; v = v == v ? clamp(v, -400., 400.) : vec2(0.); gl_FragColor = vec4(v / vec2(256., 144.), 0., 1.); }`, { t: { value: null } });
 // the light the smoke sits in: the scene itself (the UI's glow) and the sparks, spread wide at quarter size
 const rtLight = [0, 1].map(() => new THREE.WebGLRenderTarget(W / 4, H / 4, rtOpts));
 const lightSrc = sh(`varying vec2 vUv; uniform sampler2D t, sp; void main(){ vec3 c = texture2D(t, vUv).rgb; float l = max(c.r, max(c.g, c.b));
@@ -540,6 +577,11 @@ const drawBeams = (mode, time) => {
 const fluidDraw = (i, focusDist, apert) => {
   if (!flu.ready) smokeSetup(focusDist);
   FL.to(i); FL2.to(i);
+  if (sparks.world && sparks.on && !flu.beams && !flu.bot) {                    // the smoke's currents, for the sparks
+    flowCopy.uniforms.t.value = FL._vel().texture; pass(flowCopy, rtFlow); r.readRenderTargetPixels(rtFlow, 0, 0, 64, 36, flow.data);
+    const L0 = layers[3]; flow.c.copy(L0.position); flow.w = L0.scale.x; flow.h = L0.scale.y; flow.on = true;
+    flow.k = .08 * 4;                                                               // sim speed in the shot, then amplified so the swirl reads
+  }
   layers.forEach((m) => { const u = m.material.uniforms; u.dye.value = (m.userData.sim ? FL2 : FL).texture; u.time.value = i / FPS; });
   r.setRenderTarget(rtFl[0]); r.setClearColor(0x000000, 1); r.clear(); r.render(flScene, cam);
   smokeDof.uniforms.focus.value = focusDist; smokeDof.uniforms.aperture.value = apert * K;
@@ -766,7 +808,7 @@ window.setup = (name) => {
   spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks && !o.hidesp) ? 1 : 0;   
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
-  sparks.world = n !== 'bg'; smokeDof.uniforms.fill.value = n !== 'bg' ? 1 : 0;   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
+  sparks.world = n !== 'bg'; flow.on = false; smokeDof.uniforms.fill.value = n !== 'bg' ? 1 : 0;   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
   sparks.on = Math.min(1, o.sparks ?? 0); sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
