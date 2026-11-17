@@ -140,7 +140,7 @@ const blur = sh(`varying vec2 vUv; uniform sampler2D t; uniform vec2 d; void mai
   for (int i = -8; i <= 8; i++) { float w = exp(-float(i*i) / 24.); s += texture2D(t, vUv + d * float(i)).rgb * w; ws += w; } gl_FragColor = vec4(s / ws, 1.); }`,
   { t: { value: null }, d: { value: new THREE.Vector2() } });
 const fin = sh(`
-  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB, tLight; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid, clearTxt, clearY, subjOn; uniform vec2 subj;
+  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB, tLight; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid, clearTxt, clearY, subjOn; uniform vec2 subj, subjR;
   float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time * 37.0) * 43758.5453); }
   float h2(vec2 p){ return fract(sin(dot(p, vec2(41.31, 289.13))) * 43758.5453); }
   float sn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
@@ -221,7 +221,7 @@ const fin = sh(`
       float sa = clamp(a1 * 3.5, 0., 1.);
       // the smoke never covers the subject (trailer shots): it thins to almost nothing in a soft oval round the spot in
       // focus, a little larger than the sharp area, and stays as it was elsewhere
-      if (subjOn > 0.) { vec2 e = (vUv - subj) * vec2(1920., 1080.) / 300.; sa *= 1. - .92 * smoothstep(1.3, .45, length(e)); }
+      if (subjOn > 0.) { vec2 e = (vUv - subj) * vec2(1920., 1080.) / subjR; sa *= 1. - .92 * smoothstep(1.3, .45, length(e)); }
       if (clearTxt > 0.) { vec2 e = (vUv - vec2(.5, clearY)) / vec2(.2, .19); sa *= 1. - clearTxt * .88 * smoothstep(1.25, .35, length(e)); }   // dark round the logo and text
       vec3 amb = mix(vec3(.09, .085, .08), vec3(.949, .365, .027) * .1, .4);
       col = col * (1. - .2 * sa * fluid) + (Lt * 7. + amb) * sa * fluid;
@@ -251,7 +251,7 @@ const fin = sh(`
       col = mix(col, lt * T, tint * smoothstep(.0, .25, lt)); }                  // a wash of #f25d07 over the image
     col += (hash(vUv * 1000.) - .5) * grain;
     gl_FragColor = vec4(col, 1.);
-  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, fluid: { value: 0 }, clearTxt: { value: 0 }, clearY: { value: .17 }, subjOn: { value: 0 }, subj: { value: new THREE.Vector2(.5, .5) }, tFlA: { value: null }, tFlB: { value: null }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
+  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, fluid: { value: 0 }, clearTxt: { value: 0 }, clearY: { value: .17 }, subjOn: { value: 0 }, subj: { value: new THREE.Vector2(.5, .5) }, subjR: { value: new THREE.Vector2(300, 300) }, tFlA: { value: null }, tFlB: { value: null }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
 
 // the glow: two rounds of a 17-tap blur in 1-texel steps at quarter size (coarser steps showed as stripes)
 const glowBlur = () => { for (let k = 0; k < 2; k++) {
@@ -642,16 +642,18 @@ const SHOTS = {
     look(pos, target, THREE.MathUtils.degToRad(4));
     draw(i, pos.distanceTo(target), 105);
   } },
-  // 3: the amp envelope: a low, grazing slide from the right along its glowing curve, from the tail up towards the
-  // attack peak, the focus held on the curve (3.2 s)
+  // 3: the amp envelope: the whole curve is the subject. The camera looks up at it from straight below, so the line
+  // runs across the frame inside the sharp band (all of it in focus, what is above and below it soft), and slides
+  // slowly along it; the smoke keeps clear of a wide band along the line (3.2 s)
   env: { frames: 80, run(i) {
     knobLayer.visible = false;
     const t = stillCam ? 0 : i / 79;
-    const target = P(lerp(870, 805, t), lerp(200, 178, t)); LIT.lightAt.value.copy(P(760, 120));
-    const pos = target.clone().add(new THREE.Vector3(150, -125, 105));
+    const target = P(lerp(835, 790, t), 182); LIT.lightAt.value.copy(P(800, 120));
+    const pos = target.clone().add(new THREE.Vector3(0, -180, 290));
     cam.fov = 25; cam.updateProjectionMatrix();
-    look(pos, target, THREE.MathUtils.degToRad(-10));
-    draw(i, pos.distanceTo(target), 105);
+    look(pos, target, THREE.MathUtils.degToRad(-6));
+    fin.uniforms.subjR.value.set(760, 230);
+    draw(i, pos.distanceTo(target), 80);
   } },
   // 2: push in on the filter cutoff while it turns; the focus pulls from the filter curve to the knob (4 s)
   knob: { frames: 100, async run(i) {
@@ -820,6 +822,6 @@ window.setup = (name) => {
   flu.on = o.fluid ?? 0; fin.uniforms.fluid.value = flu.on; flu.ready = false;
 
 
-  shot.reset?.(); return shot.frames; };
+  fin.uniforms.subjR.value.set(300, 300); shot.reset?.(); return shot.frames; };
 window.frame = async (i) => { await shot.run(i); if (!CFG.live) r.getContext().finish(); return true; };   // live: never wait on the GPU (it would stall the page's scrolling)
 window.ready = true;
