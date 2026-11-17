@@ -880,9 +880,64 @@ const TITLES = {
 const rtOut = new THREE.WebGLRenderTarget(W, H, rtOpts);
 const comp = sh(`varying vec2 vUv; uniform sampler2D a, b; void main(){ vec4 t = texture2D(b, vUv); gl_FragColor = vec4(texture2D(a, vUv).rgb * (1. - t.a) + t.rgb, 1.); }`,
   { a: { value: rtOut.texture }, b: { value: ttex } });
-let titleTxt = 1, titleAp = 30;
+let titleTxt = 1, titleAp = 30, titleCity = false;
+// ---------- the city (title cards, city=1): brutalist megastructures in a warm haze, behind the smoke and sparks ----------
+// Simple stacked concrete blocks, placed to the owner's picture: a tall stacked complex on the right, lower blocks and a
+// thin tower on the left, bridges between them, a faint tower far off in the middle. Fog by distance (the far ones fade
+// into the haze layer by layer), the haze itself #f25d07 at a few percent over black, brightest in a band behind the
+// middle, and a few window lights in the house colours. Fixed camera.
+const city = (() => {
+  const g = new THREE.Group(); g.visible = false; scene.add(g);
+  const HZ = `vec3 haze(float sy){ float g = .42 + .58 * exp(-pow((sy - .45) / .38, 2.)); return (vec3(.11, .105, .1) + vec3(.949, .365, .027) * .1) * g; }   /* grey fog with the orange light in it */`;
+  const U = { res: { value: new THREE.Vector2(W, H) }, fogK: { value: 1 } };
+  const conc = new THREE.ShaderMaterial({ uniforms: U,
+    vertexShader: `varying vec3 vW, vN; void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`,
+    fragmentShader: `uniform vec2 res; uniform float fogK; varying vec3 vW, vN; ${HZ}
+      float h1(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      void main(){
+        vec2 p = abs(vN.z) > .5 ? vW.xy : abs(vN.x) > .5 ? vW.zy : vW.xz;
+        float floors = step(.9, fract(p.y / 34.)), cols = step(.95, fract(p.x / 61.)), grain = h1(floor(p / 5.)) * .5 + h1(floor(p / 23.)) * .5;
+        vec3 c = vec3(.11, .098, .088) * (.7 + .6 * grain) * (1. - .45 * floors - .25 * cols);           // dark worn concrete, panel joints
+        c *= .6 + .45 * max(vN.y, 0.) + .4 * max(-vN.x, 0.) + .45 * max(vN.z, 0.) * (.6 + .4 * smoothstep(-700., 400., vW.y));                   // faint light from the haze above and the left
+        float dist = length(vW - cameraPosition), low = smoothstep(-200., -1400., vW.y);
+        float f = 1. - exp(-(dist - 1400.) * .00042 * fogK) * (1. - .45 * low);                      // fog by distance, thicker low down
+        gl_FragColor = vec4(mix(c, haze(gl_FragCoord.y / res.y), clamp(f, 0., 1.)), 1.); }` });
+  const B = (x0, x1, y0, y1, z, d = 220) => { const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, d), conc); m.position.set((x0 + x1) / 2, (y0 + y1) / 2, z); g.add(m); return m; };
+  const wins = [];
+  // a brutalist block: the mass, concrete ledges every few floors, thin fins up its face, and a few lit windows
+  const lit = (x0, x1, y0, y1, z, d = 220, n = 6) => { B(x0, x1, y0, y1, z, d);
+    for (let y = Math.max(y0, -900) + 70; y < y1 - 20; y += 105 + ((x0 * 7 + y) % 3) * 20) B(x0 - 9, x1 + 9, y, y + 9, z + 6, d + 14);
+    if (x1 - x0 < 200) for (let x = x0 + 14; x < x1 - 8; x += 26) B(x, x + 5, Math.max(y0, -900), y1 - 15, z + d / 2 + 3, 6); const R = (k) => fract1(Math.sin(k * 91.7 + x0 * .37 + y1 * .11) * 4375.85);
+    for (let k = 0; k < n; k++) wins.push([x0 + 12 + R(k) * (x1 - x0 - 24), Math.round((y0 + 30 + R(k + 50) * Math.min(1500, y1 - y0 - 60)) / 34) * 34 + 10, z + d / 2 + 1, R(k + 99)]); };
+  const fract1 = (v) => v - Math.floor(v);
+  // the right complex (about 2500 away): a tall twin slab, a stacked block jutting left with ledges, a wide base, a bridge off to the right
+  lit(760, 880, -1800, 560, -1500, 260, 8); lit(690, 770, -1800, 470, -1460, 240, 5); lit(880, 960, -1800, 330, -1520, 240, 4);
+  lit(470, 900, 160, 330, -1380, 300, 7); B(450, 900, 120, 150, -1370, 320); B(500, 880, 240, 255, -1220, 20);
+  lit(380, 1010, -1800, 90, -1420, 320, 9); B(300, 400, -1800, -40, -1400, 240); B(1000, 1700, -90, -50, -1500, 60); B(1080, 1500, -1800, 40, -1700, 260);
+  // a walkway from the right complex back towards the middle
+  B(-200, 400, -170, -140, -2300, 50);
+  // the left complex (about 3500 away): low blocks, a thin tower, a bridge
+  lit(-1400, -820, -2200, -60, -2500, 300, 8); B(-1180, -1110, -2200, 330, -2600, 80); lit(-1290, -1000, -2200, 40, -2450, 260, 4);
+  lit(-1750, -1420, -2200, -210, -2400, 300, 5); B(-820, 100, -230, -195, -2650, 50);
+  // far off: a faint tower in the middle and a ridge of blocks
+  B(-60, 90, -3000, 320, -4500, 200); B(1500, 2300, -3000, 120, -4600, 300);
+  // the haze behind everything
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(24000, 14000), new THREE.ShaderMaterial({ uniforms: U, depthWrite: true,
+    vertexShader: `void main(){ gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
+    fragmentShader: `uniform vec2 res; ${HZ} void main(){ gl_FragColor = vec4(haze(gl_FragCoord.y / res.y), 1.); }` }));
+  back.position.z = -9000; g.add(back);
+  // window lights: tiny points in the house colours, dimmed by the same fog
+  const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute(wins.flatMap((w) => w.slice(0, 3)), 3));
+  wg.setAttribute('heat', new THREE.Float32BufferAttribute(wins.map((w) => w[3]), 1));
+  g.add(new THREE.Points(wg, new THREE.ShaderMaterial({ uniforms: { time: { value: 0 }, K: { value: K } }, transparent: true, depthWrite: false,
+    vertexShader: `attribute float heat; uniform float time, K; varying vec3 vC; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.); float d = -mv.z;
+      float f = exp(-(d - 1400.) * .00042), fl = .85 + .15 * sin(time * (2. + heat * 5.) + heat * 40.);
+      vC = (heat > .55 ? vec3(.949, .365, .027) : vec3(.949, .188, .02)) * f * fl * 2.4; gl_PointSize = 3.4 * K; gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `varying vec3 vC; void main(){ float r = length(gl_PointCoord * 2. - 1.); gl_FragColor = vec4(vC * smoothstep(1., .3, r), 1.); }` })));
+  return g;
+})();
 SHOTS.title = { frames: 250, run(i) {
-  knobLayer.visible = false; synth.visible = false; occ.visible = false;
+  knobLayer.visible = false; synth.visible = false; occ.visible = false; city.visible = titleCity;
   cam.fov = 30; cam.updateProjectionMatrix(); look(new THREE.Vector3(0, 0, 1000), new THREE.Vector3(0, 0, 0), 0);
   finOut = rtOut; draw(i, 1000, titleAp); finOut = null;
   tg.clearRect(0, 0, W, H);
@@ -917,7 +972,7 @@ window.setup = (name) => {
   spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks && !o.hidesp) ? 1 : 0;   
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
-  titleTxt = o.txt ?? 1; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; const bgLike = n === 'bg' || n === 'title';
+  titleTxt = o.txt ?? 1; titleCity = !!o.city; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; const bgLike = n === 'bg' || n === 'title';
   sparks.world = !bgLike; flow.on = false; smokeDof.uniforms.fill.value = n === 'bg' ? 0 : 1; fin.uniforms.subjOn.value = bgLike ? 0 : 1;   // (title cards: smoke without holes, no clear oval)   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
   sparks.on = Math.min(25, o.sparks ?? 0); sparks.trail = o.trail ?? 0; sparks.spd = o.spd ?? 1; flu.ink = o.ink ?? 0; titleAp = o.ap ?? 30;
   spMat.uniforms.maxR.value = (o.bokeh ?? 26) * K; spMat.uniforms.bgain.value = o.bgain ?? 1;   // trail=N: light streams N frames long; ink=1: ink-in-water smoke; ap/bokeh: aperture and the biggest spark disc sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
