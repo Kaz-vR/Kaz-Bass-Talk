@@ -668,12 +668,25 @@ const fluidDraw = (i, focusDist, apert) => {
     blur.uniforms.t.value = rtLight[1].texture; blur.uniforms.d.value.set(0, 2.2 / (H / 4)); pass(blur, rtLight[0]);
   }
 };
+// light shafts through the smog (the title cards' city): the haze seen past the buildings, smeared towards a light behind
+// the hero (the classic radial blur, masked by the depth), added back as light; the buildings block it, so it streams
+// through the gaps between them
+const rays = { on: false,
+  mat: sh(`varying vec2 vUv; uniform sampler2D t, tDep; uniform vec2 L; uniform float near, far, k;
+    float vz(vec2 uv){ float d = texture2D(tDep, uv).x; return -(near * far) / ((far - near) * d - far); }
+    void main(){ vec3 c = texture2D(t, vUv).rgb; vec2 dv = (L - vUv) / 64.; vec2 uv = vUv; float acc = 0., w = 1.;
+      for (int i = 0; i < 64; i++) { uv += dv; float open = smoothstep(7000., 13000., vz(uv)); acc += open * w * (.6 + .4 * texture2D(t, uv).r * 6.); w *= .965; }
+      float fall = exp(-length((vUv - L) * vec2(1.78, 1.)) * 1.6);
+      gl_FragColor = vec4(c + vec3(.95, .62, .38) * acc / 64. * k * fall, 1.); }`,
+    { t: { value: rtDof.texture }, tDep: { value: rtScene.depthTexture }, L: { value: new THREE.Vector2(.74, .6) }, near: { value: 1 }, far: { value: 1 }, k: { value: .25 } }),
+  copy: sh(`varying vec2 vUv; uniform sampler2D t; void main(){ gl_FragColor = texture2D(t, vUv); }`, { t: { value: rtDof2.texture } }) };
 const draw = (i, focusDist, apert = 30) => {
   r.setRenderTarget(rtScene); r.render(scene, cam);
   Object.assign(dof.uniforms, {}); dof.uniforms.near.value = cam.near; dof.uniforms.far.value = cam.far; dof.uniforms.focus.value = focusDist; dof.uniforms.aperture.value = apert * K;
   pass(dof, rtDof2);
   for (const k of ['near', 'far', 'focus', 'aperture']) dofSmooth.uniforms[k].value = dof.uniforms[k].value;
   pass(dofSmooth, rtDof);
+  if (rays.on) { rays.mat.uniforms.near.value = cam.near; rays.mat.uniforms.far.value = cam.far; pass(rays.mat, rtDof2); pass(rays.copy, rtDof); }   // light shafts (title city)
   if (sparks.on || sparks.ash) { sparks.focus = focusDist; while (sparks.t < i + 60) sparksStep(); sparksDraw(focusDist, apert); }     // 60 frames of pre-roll: the air is already full
   pass(bright, rtA);
   glowBlur();
@@ -881,7 +894,7 @@ const TITLES = {
 const rtOut = new THREE.WebGLRenderTarget(W, H, rtOpts);
 const comp = sh(`varying vec2 vUv; uniform sampler2D a, b; void main(){ vec4 t = texture2D(b, vUv); gl_FragColor = vec4(texture2D(a, vUv).rgb * (1. - t.a) + t.rgb, 1.); }`,
   { a: { value: rtOut.texture }, b: { value: ttex } });
-let titleTxt = 1, titleAp = 30, titleCity = false;
+let titleTxt = 1, titleAp = 30, titleCity = false, titleRays = 0;
 // ---------- the city (title cards, city=1): a street of brutalist megastructures in a warm haze, rebuilt from the
 // owner's picture. The camera stands low in the street looking down it. On the right the hero complex, seen from its
 // corner (its long face receding to the left, its side to the right): three tall slabs at stepped heights, a dark
@@ -915,6 +928,8 @@ const city = (() => {
         vec3 L = normalize(vec3(-.5, .45, .75));                                          // warm light from high left
         float key = max(dot(vN, L), 0.), amb = .45 + .18 * max(vN.y, 0.) + .15 * max(vN.z, 0.);
         vec3 c = alb * (amb * vec3(.9, .82, .74) + key * 1.3 * vec3(1., .8, .62));
+        vec3 V = normalize(cameraPosition - vW);                                          // rim: edges and tops catch the glow from behind
+        c += vec3(.95, .6, .35) * .09 * pow(1. - max(dot(vN, V), 0.), 4.) * (.4 + .6 * max(vN.y, 0.)) + vec3(.9, .6, .38) * .05 * max(vN.y, 0.);
         gl_FragColor = vec4(mix(c, haze(gl_FragCoord.xy / res), fogf(vW)), 1.); }` });
   const glowM = (hex, k) => { const c = new THREE.Color(hex); return new THREE.ShaderMaterial({ uniforms: U,
     vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
@@ -969,17 +984,47 @@ const city = (() => {
   const F2 = frame(-2600, -2100, 20); F2.B(0, 0, -400, 1500, 300, 0, DARK);
   // faint towers far down the street
   for (let k = 0; k < 7; k++) { const F = frame(-2500 + R() * 5300, -(8000 + R() * 6000), -30 + R() * 60); F.B(0, 0, -400, 300 + R() * 400, 600 + R() * 1100, 0, DARK); }
+  // two bands of distant city for scale: many towers, a few tiny lights, fading into the smog
+  for (let k = 0; k < 22; k++) { const F = frame(-5200 + R() * 10400, -(9500 + R() * 2500), -40 + R() * 80); const w = 200 + R() * 500, h = 500 + R() * 1400;
+    F.B(0, 0, -400, w, h, 0, DARK); if (R() < .5) F.B(w * .2, h, -300, w * .6, h + 100 + R() * 300, -100, DARK); F.row(10, w - 30, 200 + R() * (h - 300), 0, 2 + (R() * 4 | 0), 8, 14); }
+  for (let k = 0; k < 30; k++) { const F = frame(-8000 + R() * 16000, -(13000 + R() * 3500), -40 + R() * 80); const w = 300 + R() * 700, h = 700 + R() * 2200;
+    F.B(0, 0, -500, w, h, 0, DARK); F.row(10, w - 30, 300 + R() * (h - 400), 0, 2 + (R() * 3 | 0), 10, 18); }
+  // the smog in layers: haze sheets at many depths between the buildings, each a drifting bank of dust (thicker low
+  // down, patchy), hidden by what stands in front of it and veiling what is behind it. This is where the depth comes from.
+  const sheetU = { res: U.res, time: { value: 0 } };
+  [1700, 2400, 3200, 4100, 5000, 6200, 7600, 9000, 10800, 12800, 15000, 17200].forEach((d, k) => {
+    const hh = d * Math.tan(THREE.MathUtils.degToRad(15)) * 1.25, ww = hh * 16 / 9 * 1.2;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(ww * 2, hh * 2), new THREE.ShaderMaterial({ uniforms: { ...sheetU, k: { value: k } },
+      transparent: true, depthWrite: false, depthTest: true,
+      vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+      fragmentShader: `uniform vec2 res; uniform float time, k; varying vec3 vW; ${HZ}
+        float h1(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); return mix(mix(h1(i), h1(i + vec2(1, 0)), f.x), mix(h1(i + vec2(0, 1)), h1(i + vec2(1, 1)), f.x), f.y); }
+        float fb(vec2 p){ float s = 0., a = .5; for (int j = 0; j < 6; j++) { s += a * vn(p); p = p * 2.03 + vec2(1.7, 9.2); a *= .5; } return s; }
+        void main(){
+          float sc = ${d.toFixed(1)} * .0009;
+          vec2 p = vW.xy / (900. * sc) + vec2(k * 7.31 + time * .018 * (1. + k * .07), k * 3.7);           // drifting slowly, each bank its own way
+          vec2 wv = vec2(fb(p * .6 + 3.), fb(p * .6 + 8.)) - .5;
+          float n = fb(p + wv * 1.6), banks = smoothstep(.36, .8, n);
+          float low = mix(1.7, .35, smoothstep(-650., ${(d * .18).toFixed(1)}, vW.y));                    // thicker low down, thinning upwards
+          float a = clamp(banks * low * .2, 0., .5);
+          vec2 s = gl_FragCoord.xy / res;
+          float lit = exp(-pow(length((s - vec2(.74, .6)) * vec2(1.78, 1.)) / .45, 2.));          // the smog lit by the light behind the hero
+          gl_FragColor = vec4(haze(s) * (1.1 + .5 * n) * (1. + 1.4 * lit), a); }` }));
+    m.position.set(0, 0, 1000 - d); m.renderOrder = 10 + 12 - k; g.add(m); });
   // the haze behind everything
   const back = new THREE.Mesh(new THREE.PlaneGeometry(60000, 30000), new THREE.ShaderMaterial({ uniforms: U,
     vertexShader: `void main(){ gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
     fragmentShader: `uniform vec2 res; ${HZ} void main(){ gl_FragColor = vec4(haze(gl_FragCoord.xy / res), 1.); }` }));
-  back.position.z = -18000; g.add(back);
+  back.position.z = -18800; g.add(back);
+  g.userData.sheetU = sheetU;
   return g;
 })();
 SHOTS.title = { frames: 250, run(i) {
   knobLayer.visible = false; synth.visible = false; occ.visible = false; city.visible = titleCity;
   cam.fov = 30; cam.updateProjectionMatrix(); look(new THREE.Vector3(0, 0, 1000), new THREE.Vector3(0, 0, 0), 0);
-  finOut = rtOut; draw(i, 1000, titleAp); finOut = null;
+  city.userData.sheetU.time.value = i / FPS; rays.on = titleCity && titleRays > 0; rays.mat.uniforms.k.value = titleRays;
+  finOut = rtOut; draw(i, 1000, titleAp); finOut = null; rays.on = false;
   tg.clearRect(0, 0, W, H);
   const cap = H * 0.055, sizePx = cap / 0.72, tr = sizePx * 0.16, lines = TITLES[titleTxt] ?? TITLES[1];
   tg.font = `500 ${sizePx}px Manrope`; tg.textBaseline = 'alphabetic'; tg.letterSpacing = `${tr}px`;
@@ -1012,12 +1057,13 @@ window.setup = (name) => {
   spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks && !o.hidesp) ? 1 : 0;   
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
-  titleTxt = o.txt ?? 1; titleCity = !!o.city; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; fin.uniforms.samb.value = flu.title ? (o.samb ?? 0) : 0; const bgLike = n === 'bg' || n === 'title';
+  titleTxt = o.txt ?? 1; titleCity = !!o.city; titleRays = o.rays ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; fin.uniforms.samb.value = flu.title ? (o.samb ?? 0) : 0; const bgLike = n === 'bg' || n === 'title';
   sparks.world = !bgLike; flow.on = false; smokeDof.uniforms.fill.value = n === 'bg' ? 0 : 1; fin.uniforms.subjOn.value = bgLike ? 0 : 1;   // (title cards: smoke without holes, no clear oval)   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
   sparks.on = Math.min(25, o.sparks ?? 0); sparks.trail = o.trail ?? 0; sparks.spd = o.spd ?? 1; flu.ink = o.ink ?? 0; titleAp = o.ap ?? 30;
   spMat.uniforms.maxR.value = (o.bokeh ?? 26) * K; spMat.uniforms.bgain.value = o.bgain ?? 1;   // trail=N: light streams N frames long; ink=1: ink-in-water smoke; ap/bokeh: aperture and the biggest spark disc sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
+  if (n === 'title' && o.city && o.halo) fin.uniforms.glow.value = o.halo;   // halo: the city's lights glow into the smog
   flu.on = o.fluid ?? 0; fin.uniforms.fluid.value = flu.on; flu.ready = false;
 
 
