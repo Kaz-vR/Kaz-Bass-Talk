@@ -280,7 +280,8 @@ const fin = sh(`
       // the yellow guard (title cards): nothing brighter or yellower than #f25d07; bright light keeps its hue instead
       // of clipping towards yellow
       col = max(col, 0.); float m = max(col.r, max(col.g, col.b)); col *= min(1., .949 / max(m, 1e-4));
-      col.g = min(col.g, col.r * .385); col.b = min(col.b, col.r * .03);
+      float sat = 1. - col.b / max(col.r, 1e-4);                                   // only saturated warm colours: greys and browns keep their hue
+      col.g = min(col.g, col.r * mix(1., .385, smoothstep(.6, .95, sat)));
     }
     col += (hash(vUv * 1000.) - .5) * grain;
     gl_FragColor = vec4(col, 1.);
@@ -880,7 +881,7 @@ const TITLES = {
 const rtOut = new THREE.WebGLRenderTarget(W, H, rtOpts);
 const comp = sh(`varying vec2 vUv; uniform sampler2D a, b; void main(){ vec4 t = texture2D(b, vUv); gl_FragColor = vec4(texture2D(a, vUv).rgb * (1. - t.a) + t.rgb, 1.); }`,
   { a: { value: rtOut.texture }, b: { value: ttex } });
-let titleTxt = 1, titleAp = 30, titleCity = false, titleFog = .5, titleTone = .5, titleTilt = 0;
+let titleTxt = 1, titleAp = 30, titleCity = false, titleFog = .5, titleTone = .5, titleTilt = 0, titleHaze = 1, titlePool = 0;
 // ---------- the city (title cards, city=1): brutalist megastructures in a warm haze, behind the smoke and sparks ----------
 // Simple stacked concrete blocks, placed to the owner's picture: a tall stacked complex on the right, lower blocks and a
 // thin tower on the left, bridges between them, a faint tower far off in the middle. Fog by distance (the far ones fade
@@ -888,17 +889,26 @@ let titleTxt = 1, titleAp = 30, titleCity = false, titleFog = .5, titleTone = .5
 // middle, and a few window lights in the house colours. Fixed camera.
 const city = (() => {
   const g = new THREE.Group(); g.visible = false; scene.add(g);
-  const HZ = `vec3 haze(float sy){ float g = .42 + .58 * exp(-pow((sy - .45) / .38, 2.)); return (vec3(.11, .105, .1) + vec3(.949, .365, .027) * .1) * g; }   /* grey fog with the orange light in it */`;
-  const U = { res: { value: new THREE.Vector2(W, H) }, fogK: { value: 1 }, tone: { value: 1 } };
+  const HZ = `uniform float hazeK; vec3 haze0(float sy); vec3 haze(float sy){ return hazeK * haze0(sy); } vec3 haze0(float sy){ float g = .42 + .58 * exp(-pow((sy - .45) / .38, 2.)); return (vec3(.11, .105, .1) + vec3(.949, .365, .027) * .1) * g; }   /* grey fog with the orange light in it */`;
+  const U = { res: { value: new THREE.Vector2(W, H) }, fogK: { value: 1 }, tone: { value: 1 }, hazeK: { value: 1 }, poolK: { value: 0 }, poolP: { value: new THREE.Vector3(500, 900, -3600) } };
   const conc = new THREE.ShaderMaterial({ uniforms: U,
     vertexShader: `varying vec3 vW, vN; void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`,
-    fragmentShader: `uniform vec2 res; uniform float fogK, tone; varying vec3 vW, vN; ${HZ}
+    fragmentShader: `uniform vec2 res; uniform float fogK, tone, poolK; uniform vec3 poolP; varying vec3 vW, vN; ${HZ}
       float h1(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
       void main(){
         vec2 p = abs(vN.z) > .5 ? vW.xy : abs(vN.x) > .5 ? vW.zy : vW.xz;
         float floors = step(.9, fract(p.y / 34.)), cols = step(.95, fract(p.x / 61.)), grain = h1(floor(p / 5.)) * .5 + h1(floor(p / 23.)) * .5;
+        if (poolK > 0.) {                                                                 // the pillars: smooth weathering, not a pixel mosaic
+          vec2 q = p / 7.; vec2 i = floor(q), f = fract(q); f = f * f * (3. - 2. * f);
+          float n1 = mix(mix(h1(i), h1(i + vec2(1, 0)), f.x), mix(h1(i + vec2(0, 1)), h1(i + vec2(1, 1)), f.x), f.y);
+          q = vec2(p.x / 26., p.y / 140.); i = floor(q); f = fract(q); f = f * f * (3. - 2. * f);
+          float n2 = mix(mix(h1(i), h1(i + vec2(1, 0)), f.x), mix(h1(i + vec2(0, 1)), h1(i + vec2(1, 1)), f.x), f.y);
+          grain = n1 * .35 + n2 * .65; }
         vec3 c = tone * vec3(.11, .098, .088) * (.7 + .6 * grain) * (1. - .45 * floors - .25 * cols);           // dark worn concrete, panel joints
         c *= .6 + .45 * max(vN.y, 0.) + .4 * max(-vN.x, 0.) + .45 * max(vN.z, 0.) * (.6 + .4 * smoothstep(-700., 400., vW.y));                   // faint light from the haze above and the left
+        // a warm light pool (the pillars, as the synth is lit in the UI shots): a few faces near it catch the light, the rest falls into black
+        vec3 lv = poolP - vW; float ld = length(lv);
+        c += tone * vec3(.11, .098, .088) * (.7 + .6 * grain) * vec3(.949, .365, .027) * poolK * max(dot(vN, lv / ld), 0.) / (1. + pow(ld / 1300., 2.));
         float dist = length(vW - cameraPosition), low = smoothstep(-200., -1400., vW.y);
         float f = 1. - exp(-(dist - 1400.) * .00042 * fogK) * (1. - .45 * low);                      // fog by distance, thicker low down
         gl_FragColor = vec4(mix(c, haze(gl_FragCoord.y / res.y), clamp(f, 0., 1.)), 1.); }` });
@@ -927,7 +937,7 @@ const city = (() => {
   // like it all over the shot, rising out of the foggy depths and vanishing upwards, rows of them deep into the haze
   { let sd = 7; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
     B(-60, 90, -6000, 12000, -4500, 200, pil);                                                        // the middle one, all the way up
-    for (let z = -1700; z > -13800; z -= 1450 + R() * 300) {
+    for (let z = -3300; z > -13800; z -= 1450 + R() * 300) {
       const half = (1000 - z) * .5 + 600;
       for (let x = -half + R() * 900; x < half; x += 1100 + R() * 700) {
         if (Math.abs(x) < 400 && z < -3800 && z > -5200) continue;                                     // keep the middle one alone in its row
@@ -950,7 +960,7 @@ const city = (() => {
   return g;
 })();
 SHOTS.title = { frames: 250, run(i) {
-  knobLayer.visible = false; synth.visible = false; occ.visible = false; city.visible = titleCity; city.userData.bld.visible = titleCity === 1; city.userData.pil.visible = titleCity === 2; city.userData.U.fogK.value = titleCity === 2 ? titleFog : 1; city.userData.U.tone.value = titleCity === 2 ? titleTone : 1;
+  knobLayer.visible = false; synth.visible = false; occ.visible = false; city.visible = titleCity; city.userData.bld.visible = titleCity === 1; city.userData.pil.visible = titleCity === 2; city.userData.U.fogK.value = titleCity === 2 ? titleFog : 1; city.userData.U.tone.value = titleCity === 2 ? titleTone : 1; city.userData.U.hazeK.value = titleCity === 2 ? titleHaze : 1; city.userData.U.poolK.value = titleCity === 2 ? titlePool : 0;
   cam.fov = 30; cam.updateProjectionMatrix(); look(new THREE.Vector3(0, 0, 1000), new THREE.Vector3(0, 1000 * Math.tan(THREE.MathUtils.degToRad(titleTilt)), 0), 0);   // tilt: looking up a little
   finOut = rtOut; draw(i, 1000, titleAp); finOut = null;
   tg.clearRect(0, 0, W, H);
@@ -985,7 +995,7 @@ window.setup = (name) => {
   spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks && !o.hidesp) ? 1 : 0;   
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
-  titleTxt = o.txt ?? 1; titleCity = o.city ?? 0; titleFog = o.pfog ?? .5; titleTone = o.ptone ?? .5; titleTilt = o.tilt ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; const bgLike = n === 'bg' || n === 'title';
+  titleTxt = o.txt ?? 1; titleCity = o.city ?? 0; titleFog = o.pfog ?? .5; titleTone = o.ptone ?? .5; titleTilt = o.tilt ?? 0; titleHaze = o.hazek ?? .4; titlePool = o.pool ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; const bgLike = n === 'bg' || n === 'title';
   sparks.world = !bgLike; flow.on = false; smokeDof.uniforms.fill.value = n === 'bg' ? 0 : 1; fin.uniforms.subjOn.value = bgLike ? 0 : 1;   // (title cards: smoke without holes, no clear oval)   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
   sparks.on = Math.min(25, o.sparks ?? 0); sparks.trail = o.trail ?? 0; sparks.spd = o.spd ?? 1; flu.ink = o.ink ?? 0; titleAp = o.ap ?? 30;
   spMat.uniforms.maxR.value = (o.bokeh ?? 26) * K; spMat.uniforms.bgain.value = o.bgain ?? 1;   // trail=N: light streams N frames long; ink=1: ink-in-water smoke; ap/bokeh: aperture and the biggest spark disc sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
