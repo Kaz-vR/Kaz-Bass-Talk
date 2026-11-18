@@ -1036,7 +1036,7 @@ const HALL = (() => {
           float seg = step(.35, vn(vec2(vW.y / 900. + h1(cell * 1.7 + side) * 50., side + cell.x * 3.))) * step(vW.y, top);
           float head = 1. + 1.5 * exp(-max(top - vW.y, 0.) / 30.);                                                                  // the growing tip a little hotter
           float fl = .85 + .15 * sin(time * (3. + 4. * h1(cell + 9.)) + h1(cell) * 30.);
-          float core = smoothstep(1.6, .4, w), halo = exp(-w / 9.) * .12 + exp(-w / 40.) * .025;                         // (a subtle glow, owner's call)
+          float core = smoothstep(1.6, .4, w), halo = exp(-w / 9.) * .35 + exp(-w / 40.) * .08;
           c += vec3(.949, .188, .02) * seg * fl * seam * (halo + core * 1.6) + vec3(.949, .365, .027) * seg * fl * seam * core * .8 * head;
         }
       }
@@ -1108,9 +1108,9 @@ const planSeams = () => {
       const [x, z] = at(0);
       hallCam(0); const front = scr(x, 0, z)[2] || scr(x, 3000, z)[2];
       if (!front) { y0s.push(-99999); vs.push(0); continue; }
-      const yBot = yAt(x, z, H + 40 * K), yTop = yAt(x, z, -40 * K), y0 = yBot - R() * 500, T = 1.6 + R() * 3;
-      let vv = (yTop - yBot) / T;
-      if (box) { let lim = Infinity;
+      const yBot = yAt(x, z, H + 40 * K), yTop = yAt(x, z, -40 * K), T = 9 + R() * 9, st = R();   // slow, ambient: 9-18 s to climb the frame
+      let vv = (yTop - yBot) / T, lim = Infinity;
+      if (box) {
         for (const fr of frames) for (const o of [-40, 0, 40]) { hallCam(fr); const [x, z] = at(o);
           const ya = yAt(x, z, box[3]), yb = yAt(x, z, box[2]), xa = scr(x, ya, z)[0], xb = scr(x, yb, z)[0];
           if (Math.max(xa, xb) < box[0] || Math.min(xa, xb) > box[1]) continue;     // its line passes beside the title
@@ -1118,7 +1118,11 @@ const planSeams = () => {
           if (xa < box[0] || xa > box[1]) { const edge = xa < box[0] ? box[0] : box[1]; let lo = ya, hi = yb;   // it enters through a side
             for (let k = 0; k < 30; k++) { const m = (lo + hi) / 2, xm = scr(x, m, z)[0]; if ((xm - edge) * (xa - edge) > 0) lo = m; else hi = m; } hit = hi; }
           lim = Math.min(lim, hit); }
-        if (y0 + vv * Tend > lim - 20) vv = Math.max(0, (lim - 20 - y0) / Tend); }       // slower, so it never gets there
+      }
+      // every line already in the frame when the shot opens (its tip somewhere in the lower part), and always moving;
+      // one heading for the title starts low enough and climbs slow enough to end the shot short of it
+      const end = Math.min(lim - 20, yTop), y0 = yBot + (end - yBot) * (.12 + .38 * st);
+      if (y0 + vv * Tend > lim - 20) vv = .9 * (lim - 20 - y0) / Tend;
       y0s.push(y0); vs.push(vv); }
     const n = P.geo.attributes.position.count;
     for (const [a, val] of [['sY0', y0s], ['sV', vs]]) { const arr = P.geo.attributes[a].array; for (let k = 0; k < n; k++) arr.set(val, k * 4); P.geo.attributes[a].needsUpdate = true; } } };

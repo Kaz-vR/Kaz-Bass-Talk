@@ -213,11 +213,11 @@ and the 3D sparks). `hall=1` (a light pool) and `hall=3` (a fire deep in the hal
 hall@ruin:real=1,og=1,tint=0.22,fine=1,sparks=1.5,fluid=0.2,hall=2,txt=5,tglow=0.5
 ```
 
-**The seams fill up** (owner's call): each starts below the frame and climbs at its own speed, its tip a little
-hotter, while the title is already there. **A seam never reaches the title:** a box round the words (their glow plus
+**The seams fill up** (owner's call): slowly, an ambient movement (9-18 s to climb the frame), every line already in
+the frame when the shot opens and never stopping, its tip a little hotter, while the title is already there. **A seam never reaches the title:** a box round the words (their glow plus
 room for a soft line's blur) is kept clear; a seam whose line would reach it at any moment of the shot (the camera
-moves) climbs just slow enough to end the shot short of it (`planSeams`); the others climb normally. The glow round
-the seams and the words is subtle (owner's call; `tglow=0.5`).
+moves) climbs just slow enough to end the shot short of it (`planSeams`); the others climb normally. The words' glow is
+subtle (owner's call; `tglow=0.5`); the seams keep their glow.
 
 **Before that (owner's pick, 18 Nov):** a dark hall of giant concrete pillars rising out of foggy depths and
 vanishing upwards, look 5's smoke lit only by the sparks in front, glowing sparks and glowing words, a dark background.
