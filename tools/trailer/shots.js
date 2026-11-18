@@ -140,7 +140,7 @@ const blur = sh(`varying vec2 vUv; uniform sampler2D t; uniform vec2 d; void mai
   for (int i = -8; i <= 8; i++) { float w = exp(-float(i*i) / 24.); s += texture2D(t, vUv + d * float(i)).rgb * w; ws += w; } gl_FragColor = vec4(s / ws, 1.); }`,
   { t: { value: null }, d: { value: new THREE.Vector2() } });
 const fin = sh(`
-  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB, tLight; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid, clearTxt, clearY, subjOn, lim, neb; uniform vec2 subj, subjR;
+  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB, tLight; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid, clearTxt, clearY, subjOn, lim, neb, sglow; uniform vec2 subj, subjR;
   float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time * 37.0) * 43758.5453); }
   float h2(vec2 p){ return fract(sin(dot(p, vec2(41.31, 289.13))) * 43758.5453); }
   float sn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
@@ -271,7 +271,7 @@ const fin = sh(`
       vec3 HOT = vec3(.949, .365, .027), MID = vec3(.949, .188, .02), RED = vec3(.949, 0., 0.);
       vec3 cc = Tc > .66 ? HOT : Tc > .33 ? MID : RED, gc = Tg > .66 ? HOT : Tg > .33 ? MID : RED;
       float core = clamp(I * 3., 0., 1.) * (Tc > .33 ? 1. : max(Tc, 0.) / .33);   // the coolest fade into the dark, never darker colours
-      col += gc * clamp(Gr / 19., 0., 1.) * .55 * (1. - core);
+      col += gc * clamp(Gr / 19. * sglow, 0., 1.) * .55 * sglow * (1. - core);   // sglow: the glow round each spark (title cards)
       col = mix(col, cc, core);
     }
     if (tint > 0.) { float lt = dot(col, vec3(.2126,.7152,.0722)); vec3 T = vec3(.949, .365, .027) / dot(vec3(.949, .365, .027), vec3(.2126,.7152,.0722));
@@ -285,7 +285,7 @@ const fin = sh(`
     }
     col += (hash(vUv * 1000.) - .5) * grain;
     gl_FragColor = vec4(col, 1.);
-  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, fluid: { value: 0 }, clearTxt: { value: 0 }, clearY: { value: .17 }, subjOn: { value: 0 }, lim: { value: 0 }, neb: { value: 0 }, subj: { value: new THREE.Vector2(.5, .5) }, subjR: { value: new THREE.Vector2(300, 300) }, tFlA: { value: null }, tFlB: { value: null }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
+  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, fluid: { value: 0 }, clearTxt: { value: 0 }, clearY: { value: .17 }, subjOn: { value: 0 }, lim: { value: 0 }, neb: { value: 0 }, sglow: { value: 1 }, subj: { value: new THREE.Vector2(.5, .5) }, subjR: { value: new THREE.Vector2(300, 300) }, tFlA: { value: null }, tFlB: { value: null }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
 
 // the glow: two rounds of a 17-tap blur in 1-texel steps at quarter size (coarser steps showed as stripes)
 const glowBlur = () => { for (let k = 0; k < 2; k++) {
@@ -881,7 +881,7 @@ const TITLES = {
 const rtOut = new THREE.WebGLRenderTarget(W, H, rtOpts);
 const comp = sh(`varying vec2 vUv; uniform sampler2D a, b; void main(){ vec4 t = texture2D(b, vUv); gl_FragColor = vec4(texture2D(a, vUv).rgb * (1. - t.a) + t.rgb, 1.); }`,
   { a: { value: rtOut.texture }, b: { value: ttex } });
-let titleTxt = 1, titleAp = 30, titleCity = false, titleFog = .5, titleTone = .5, titleTilt = 0, titleHaze = 1, titlePool = 0;
+let titleTxt = 1, titleAp = 30, titleCity = false, titleFog = .5, titleTone = .5, titleTilt = 0, titleHaze = 1, titlePool = 0, titleNear = 7000, titleMid = 7600, titleTGlow = 0;
 // ---------- the city (title cards, city=1): brutalist megastructures in a warm haze, behind the smoke and sparks ----------
 // Simple stacked concrete blocks, placed to the owner's picture: a tall stacked complex on the right, lower blocks and a
 // thin tower on the left, bridges between them, a faint tower far off in the middle. Fog by distance (the far ones fade
@@ -935,15 +935,17 @@ const city = (() => {
   B(-60, 90, -3000, 320, -4500, 200); B(1500, 2300, -3000, 120, -4600, 300);
   // the hall of pillars (city=2, the owner's idea): the city's middle tower, now running all the way up, and pillars
   // like it all over the shot, rising out of the foggy depths and vanishing upwards, rows of them deep into the haze
-  { let sd = 7; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
-    B(-80, 110, -6000, 12000, -6600, 260, pil);                                                        // the middle one, all the way up
-    for (let z = -6000; z > -13800; z -= 1300 + R() * 300) {
+  // built for a given distance of the nearest row and of the middle one (pnear / pmid; rebuilt when they change)
+  const buildPillars = (near, mid) => { pil.clear(); let sd = 7; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    B(-80, 110, -6000, 12000, 1000 - mid, 260, pil);                                                  // the middle one, all the way up
+    for (let z = 1000 - near; z > -13800; z -= 1300 + R() * 300) {
       const half = (1000 - z) * .5 + 600;
       for (let x = -half + R() * 900; x < half; x += 1100 + R() * 700) {
-        if (Math.abs(x) < 500 && z < -5900 && z > -7300) continue;   // (the middle one, at 7600)                                     // keep the middle one alone in its row
+        if (Math.abs(x) < 500 && Math.abs(z - (1000 - mid)) < 700) continue;                           // keep the middle one alone in its row
         if (R() < .28) continue;
         const w = 140 + R() * 130, d = w * (.8 + R() * .5);
-        B(x, x + w, -6000, 12000, z, d, pil).rotation.y = R() * Math.PI / 2; } } }   // each turned its own way: one face lit, one in shadow
+        B(x, x + w, -6000, 12000, z, d, pil).rotation.y = R() * Math.PI / 2; } } };                   // each turned its own way
+  pil.userData.build = buildPillars; pil.userData.key = '';
   // the haze behind everything
   const back = new THREE.Mesh(new THREE.PlaneGeometry(50000, 30000), new THREE.ShaderMaterial({ uniforms: U, depthWrite: true,
     vertexShader: `void main(){ gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
@@ -960,7 +962,8 @@ const city = (() => {
   return g;
 })();
 SHOTS.title = { frames: 250, run(i) {
-  knobLayer.visible = false; synth.visible = false; occ.visible = false; city.visible = titleCity; city.userData.bld.visible = titleCity === 1; city.userData.pil.visible = titleCity === 2; city.userData.U.fogK.value = titleCity === 2 ? titleFog : 1; city.userData.U.tone.value = titleCity === 2 ? titleTone : 1; city.userData.U.hazeK.value = titleCity === 2 ? titleHaze : 1; city.userData.U.poolK.value = titleCity === 2 ? titlePool : 0;
+  knobLayer.visible = false; synth.visible = false; occ.visible = false; city.visible = titleCity; city.userData.bld.visible = titleCity === 1; city.userData.pil.visible = titleCity === 2;
+  if (titleCity === 2 && city.userData.pil.userData.key !== titleNear + '/' + titleMid) { city.userData.pil.userData.build(titleNear, titleMid); city.userData.pil.userData.key = titleNear + '/' + titleMid; } city.userData.U.fogK.value = titleCity === 2 ? titleFog : 1; city.userData.U.tone.value = titleCity === 2 ? titleTone : 1; city.userData.U.hazeK.value = titleCity === 2 ? titleHaze : 1; city.userData.U.poolK.value = titleCity === 2 ? titlePool : 0;
   cam.fov = 30; cam.updateProjectionMatrix(); look(new THREE.Vector3(0, 0, 1000), new THREE.Vector3(0, 1000 * Math.tan(THREE.MathUtils.degToRad(titleTilt)), 0), 0);   // tilt: looking up a little
   finOut = rtOut; draw(i, 1000, titleAp); finOut = null;
   tg.clearRect(0, 0, W, H);
@@ -972,6 +975,8 @@ SHOTS.title = { frames: 250, run(i) {
     let x = W / 2 - tot / 2; const y = y0 + n * lh;
     segs.forEach(([t, acc], k) => { const fill = acc ? HOUSE.orange : SIREN.head;
       tg.fillStyle = fill; if (acc) { tg.globalAlpha = .35; tg.shadowColor = fill; tg.shadowBlur = cap * .6; tg.fillText(t, x, y); }
+      if (titleTGlow) for (const [bl, al] of [[cap * .25, .5], [cap * .9, .35], [cap * 2, .22]]) {                 // tglow: the words glow
+        tg.globalAlpha = Math.min(1, al * titleTGlow * (acc ? 1.4 : 1)); tg.shadowColor = fill; tg.shadowBlur = bl; tg.fillText(t, x, y); }
       tg.globalAlpha = 1; tg.shadowBlur = 0; tg.fillText(t, x, y); x += ws[k]; });
   });
   ttex.needsUpdate = true; pass(comp, null);
@@ -995,7 +1000,7 @@ window.setup = (name) => {
   spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks && !o.hidesp) ? 1 : 0;   
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
-  titleTxt = o.txt ?? 1; titleCity = o.city ?? 0; titleFog = o.pfog ?? .5; titleTone = o.ptone ?? .5; titleTilt = o.tilt ?? 0; titleHaze = o.hazek ?? .4; titlePool = o.pool ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; const bgLike = n === 'bg' || n === 'title';
+  titleTxt = o.txt ?? 1; titleCity = o.city ?? 0; titleFog = o.pfog ?? .5; titleTone = o.ptone ?? .5; titleTilt = o.tilt ?? 0; titleNear = o.pnear ?? 7000; titleMid = o.pmid ?? 7600; titleTGlow = o.tglow ?? 0; titleHaze = o.hazek ?? .4; titlePool = o.pool ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; fin.uniforms.sglow.value = flu.title ? (o.sglow ?? 1) : 1; const bgLike = n === 'bg' || n === 'title';
   sparks.world = !bgLike; flow.on = false; smokeDof.uniforms.fill.value = n === 'bg' ? 0 : 1; fin.uniforms.subjOn.value = bgLike ? 0 : 1;   // (title cards: smoke without holes, no clear oval)   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
   sparks.on = Math.min(25, o.sparks ?? 0); sparks.trail = o.trail ?? 0; sparks.spd = o.spd ?? 1; flu.ink = o.ink ?? 0; titleAp = o.ap ?? 30;
   spMat.uniforms.maxR.value = (o.bokeh ?? 26) * K; spMat.uniforms.bgain.value = o.bgain ?? 1;   // trail=N: light streams N frames long; ink=1: ink-in-water smoke; ap/bokeh: aperture and the biggest spark disc sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
