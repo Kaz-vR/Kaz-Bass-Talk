@@ -1134,7 +1134,44 @@ const hallCam = (i) => {
   cam.fov = 34; cam.updateProjectionMatrix(); look(pos, target, THREE.MathUtils.degToRad(6)); cam.updateMatrixWorld(); return { pos, target }; };
 // the title's box on screen (px, y down): the words, their glow and room for the blur of a soft line (owner's rule:
 // a seam never reaches it)
+// ---------- the logo (owner's call: just the logo, as on the website): the icon, RUIN-1 and SYNTHESIZER under it ----------
+// The website's lockup (website/style.css .lockup, main.js): RUIN-1 in Manrope 300 with 0.4 em tracking, SYNTHESIZER in
+// Manrope 400, #a49d97, spaced so its ink is exactly as wide as RUIN-1's; the icon's top meets the top of RUIN-1's
+// letters and its bottom the bottom of SYNTHESIZER's. s = 1 is the website's desktop size (RUIN-1 at 64 px).
+const ICON = [new Path2D('M26 4 L49 46 H3 Z'), new Path2D('M27 14 L19 30 H25 L20 42 L32 25 H26 L31 14 Z')];   // design/logo-tight.svg
+const drawLockup = (g, cx, cy, s, glow = 0, only = false) => {
+  const fb = 64 * s, fi = 13 * s;
+  g.font = `300 ${fb}px Manrope`; g.letterSpacing = `${fb * .4}px`; const mb = g.measureText('RUIN-1');
+  const capH = mb.actualBoundingBoxAscent, wb = mb.actualBoundingBoxRight + mb.actualBoundingBoxLeft;   // (the ink)
+  g.font = `400 ${fi}px Manrope`; g.letterSpacing = '0px'; const m0 = g.measureText('SYNTHESIZER');
+  const sp = (wb - (m0.actualBoundingBoxRight + m0.actualBoundingBoxLeft)) / 10;
+  const hI = capH + (18 + 13 * .78) * s, iW = hI * 49.4 / 45.4, gap = 26 * s, tot = iW + gap + wb;
+  const x0 = cx - tot / 2, top = cy - hI / 2, yb = top + capH, y2 = top + hI, xt = x0 + iW + gap;
+  if (only) return [x0, x0 + tot, top, y2];
+  const paint = () => {
+    g.save(); g.translate(x0, top); g.scale(hI / 45.4, hI / 45.4); g.translate(-1.3, -2.3);
+    g.strokeStyle = HOUSE.orange; g.lineWidth = 3.4; g.lineJoin = 'round'; g.stroke(ICON[0]); g.fillStyle = HOUSE.orange; g.fill(ICON[1]); g.restore();
+    g.font = `300 ${fb}px Manrope`; g.letterSpacing = `${fb * .4}px`; g.fillStyle = SIREN.head; g.fillText('RUIN-1', xt + mb.actualBoundingBoxLeft, yb);
+    g.font = `400 ${fi}px Manrope`; g.letterSpacing = `${sp}px`; g.fillStyle = '#a49d97'; g.fillText('SYNTHESIZER', xt + m0.actualBoundingBoxLeft, y2); };
+  g.textBaseline = 'alphabetic';
+  if (glow) for (const [bl, al] of [[capH * .25, .5], [capH * .9, .35], [capH * 2, .22]]) { g.save(); g.globalAlpha = Math.min(1, al * glow); g.shadowColor = HOUSE.orange; g.shadowBlur = bl; paint(); g.restore(); }
+  paint(); return [x0, x0 + tot, top, y2]; };
+const LOGO_S = () => .069 * H / (64 * .72);                                       // RUIN-1's cap height 6.9 % of the frame (the references' logo card)
+const layLogo = () => { tg.clearRect(0, 0, W, H); drawLockup(tg, W / 2, H / 2, LOGO_S(), titleTGlow); ttex.needsUpdate = true; pass(comp, null); };
+// the logo as an object in the scene (logo=2..4): the lockup on a plane, glowing on its own (it lights the smoke), in
+// the fog, sharp only where it crosses the focus band
+const LOGO3D = (() => {
+  const c = document.createElement('canvas'), g = c.getContext('2d'), b = drawLockup(g, 0, 0, 1, 0, true), s = 1800 / (b[1] - b[0]);
+  c.width = 2048; c.height = Math.ceil((b[3] - b[2]) * s + 248); drawLockup(g, c.width / 2, c.height / 2, s, .5);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.NoColorSpace; t.anisotropy = 8;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000 * c.height / c.width), new THREE.ShaderMaterial({ uniforms: { map: { value: t }, sig: { value: .5 / 2200 } }, transparent: true, depthWrite: true,
+    vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+    fragmentShader: `uniform sampler2D map; uniform float sig; varying vec2 vUv; varying vec3 vW;
+      void main(){ vec4 t = texture2D(map, vUv); if (t.a < .03) discard; gl_FragColor = vec4(t.rgb * exp(-sig * length(vW - cameraPosition)), t.a); }` }));
+  m.visible = false; scene.add(m); return m; })();
+let logoKind = 0, noPil = 0;
 const titleBox = () => {
+  if (logoKind === 1) { const b = drawLockup(tg, W / 2, H / 2, LOGO_S(), 0, true), px = 60 * K, py = 55 * K; return [b[0] - px, b[1] + px, b[2] - py, b[3] + py]; }
   const cap = H * 0.055, sizePx = cap / 0.72, tr = sizePx * 0.16, lines = TITLES[titleTxt] ?? TITLES[1];
   tg.font = `500 ${sizePx}px Manrope`; tg.letterSpacing = `${tr}px`;
   const lh = cap * 1.75, y0 = H * 0.5 + cap / 2 - (lines.length - 1) * lh / 2;
@@ -1222,15 +1259,20 @@ const AIR = (() => {
   return { g, lines };
 })();
 SHOTS.hall = { frames: 75, run(i) {
-  knobLayer.visible = false; synth.visible = false; occ.visible = false; city.visible = false; HALL.g.visible = true; HALL.occ.visible = true;
+  knobLayer.visible = false; synth.visible = false; occ.visible = false; city.visible = false; HALL.g.visible = !noPil; HALL.occ.visible = !noPil;   // nopil=1: no pillars
   const D = HALL_DIRS[hallDir] ?? HALL_DIRS[1], U = HALL.U, hw = HALL.HW;
   D.L.forEach(([p, c, r, k], n) => { U.Lp.value[n].set(...p); const q = raw(c); U.Lc.value[n].set(q.r * k, q.g * k, q.b * k); U.Lr.value[n] = r; });
   U.hazeC.value.set(.09, .085, .08).multiplyScalar(D.haze / .01); U.scat.value = D.scat; U.seam.value = D.seam; U.crack.value = D.crack ?? 0; U.rim.value = D.rim ?? 0; U.bed.value = D.bed ?? 0; comp.uniforms.shim.value = D.shim ?? 0; comp.uniforms.time.value = i / FPS; U.time.value = i / FPS;
   const { pos, target } = hallCam(i);
-  if (HALL.plan !== hallDir + '/' + titleTxt) { planSeams(); HALL.plan = hallDir + '/' + titleTxt; hallCam(i); }
+  if (HALL.plan !== hallDir + '/' + titleTxt + '/' + logoKind) { planSeams(); HALL.plan = hallDir + '/' + titleTxt + '/' + logoKind; hallCam(i); }
+  // the logo in the scene: 2 at the subject, facing the camera; 3 the same turned 35 degrees (the sharp band crosses
+  // it); 4 floating in the aisle in front of the subject pillar
+  LOGO3D.visible = logoKind >= 2; let focus = pos.distanceTo(target);
+  if (logoKind >= 2) { const at = logoKind === 4 ? target.clone().add(pos.clone().sub(target).normalize().multiplyScalar(450)) : target.clone();
+    LOGO3D.position.copy(at); LOGO3D.lookAt(cam.position); if (logoKind === 3) LOGO3D.rotateY(.6); LOGO3D.scale.setScalar(logoKind === 4 ? .8 : 1); focus = pos.distanceTo(at); }
   AIR.g.visible = hallDir === 5; for (const L of AIR.lines) for (const m of L.meshes) m.rotation.y = Math.atan2(cam.position.x - L.x, cam.position.z - L.z);   // facing the camera
-  finOut = rtOut; draw(i, pos.distanceTo(target), 105); finOut = null;
-  if (titleTxt) layTitle(); else { tg.clearRect(0, 0, W, H); ttex.needsUpdate = true; pass(comp, null); }   // txt=0: no words
+  finOut = rtOut; draw(i, focus, 105); finOut = null;
+  if (logoKind === 1) layLogo(); else if (titleTxt && !logoKind) layTitle(); else { tg.clearRect(0, 0, W, H); ttex.needsUpdate = true; pass(comp, null); }   // txt=0: no words
 } };
 SHOTS.cardA = card(PLATES.A, { count: 60 });
 SHOTS.cardB = card(PLATES.B, {});
@@ -1265,6 +1307,8 @@ window.setup = (name) => {
   flu.on = o.fluid ?? 0; fin.uniforms.fluid.value = flu.on; flu.ready = false;
 
 
-  fin.uniforms.subjR.value.set(300, 300); shot.reset?.(); return shot.frames; };
+  fin.uniforms.subjR.value.set(300, 300);
+  logoKind = isHall ? o.logo ?? 0 : 0; noPil = o.nopil ?? 0; LOGO3D.visible = false; if (logoKind) fin.uniforms.subjR.value.set(700, 230);   // (the smoke keeps clear of the logo)
+  shot.reset?.(); return shot.frames; };
 window.frame = async (i) => { await shot.run(i); if (!CFG.live) r.getContext().finish(); return true; };   // live: never wait on the GPU (it would stall the page's scrolling)
 window.ready = true;
