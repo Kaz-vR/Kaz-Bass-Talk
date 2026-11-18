@@ -70,7 +70,11 @@ the owner wants them back.
   little faster and are brighter) and cools over its life, `#F25D07` hot, then `#F23005`, then `#F20000`, then fades
   out by transparency. The glow round a spark is one step cooler than its core. **Focus like the synth:** sharp
   streaks in the focus band, soft discs of the same colour elsewhere (same thin-lens rule). Drawn after the grade so
-  the colours stay exact (`#F25D07` measures `#F35E08`).
+  the colours stay exact (`#F25D07` measures `#F35E08`). **They read as sparks, not dust** (owner's call): each
+  flickers fast as it burns (beads along its streak), its streak runs from a hot head to a cooler tail, a bright
+  small core; about 1 in 8 is a real spark thrown fast on a slight arc with a long streak; now and then a hot one
+  crackles (splits into 2-3 small ones with a short flare); and all are carried by the smoke's own currents
+  (read back from the simulation each frame).
 - **Smoke (rendered by us):** a GPU smoke simulation (`tools/trailer/fluid.js`) shown as a stack of seven thin layers
   parallel to the synth's face (two behind it, hidden by the synth and showing past its edges; five above it, the
   highest at 108 units for the slide shot's distance), so it follows the synth's angle, has depth and parallax.
@@ -142,7 +146,9 @@ capture's colours are the current ones (`src/ui/style.css`, `--c-red` etc.).
 
 **2. Write the shot** in `SHOTS` in `tools/trailer/shots.js`, like the three there (`slide`, `knob`, `env`):
 - **What:** one control, value or display is the subject (`target`, in the instrument's css px through `P(x, y)`;
-  find the spot in `base.png`).
+  find the spot in `base.png`). A display can be the subject as a whole: the amp envelope shot looks up at the
+  whole envelope line from straight below so all of it sits in the sharp band (owner's call), with the smoke's clear
+  area shaped as a wide band along it (`fin.uniforms.subjR`). The smoke never covers the subject (automatic).
 - **Move:** a slow slide or push, constant speed, over the whole shot: the target moves 40–90 css px (slide) or the
   camera comes 10–15 % closer (push); no roll changes during the shot.
 - **Angle:** the camera offset from the target is low and to one side, about 150–260 units sideways and below and
@@ -167,7 +173,9 @@ frame), colours per the checklist. Fix and re-check before going on.
 
 **4. Render:** `node tools/trailer-render.mjs <out> "<shot>@<the look>" 1920` (about 4–5 s a frame), then the MP4:
 `ffmpeg -framerate 25 -i <frames>/%04d.png -c:v libx264 -preset slow -crf 14 -pix_fmt yuv420p <name>.mp4`; several
-shots back to back with ffmpeg's concat. For a review GIF render at 960 and scale to 720.
+shots back to back with ffmpeg's concat. **Review GIFs:** render at 1920 (never smaller: the smoke changes with the
+render width) and scale the GIF to 960; 2 s (50 frames, `PICK=0,...,49`) is enough to judge, about 5 min a shot. The
+owner reviews **GIFs and PNGs only, never MP4s**.
 
 **5. Deliver** the GIF or MP4 and say in a line what the shot is. Commit the shot (not the renders: `renders/` is
 not in git).
@@ -188,3 +196,45 @@ GPU). An import map redirects `/website/vendor/three.module.min.js` when the fil
 
 **`hidesp=1`** renders the sparks (so a shot keeps the same random numbers) but leaves them out of the picture: for a
 background that gets live sparks on top (the website header).
+
+## 7. Title cards (in progress)
+
+Cards are made in our own engine only (owner's call: no footage, no Blender, no AI images), never with the synth
+visible: the `title` shot in `shots.js` (no synth; text laid in after the grade so its colours stay exact; `txt=1..5`
+picks the card from `STRUCTURE.md`). **Render each look in its own run** (several looks in one `trailer-render.mjs`
+call broke the sparks: a known, unfixed bug).
+
+**The current direction (owner's pick, 18 Nov):** a dark hall of giant concrete pillars rising out of foggy depths and
+vanishing upwards, look 5's smoke lit only by the sparks in front, glowing sparks and glowing words, a dark background.
+Built after the owner's own Photoshop edit of the first pillar render. The current settings:
+
+```
+title@ruin:real=1,og=1,tint=0.22,fine=1,txt=5,city=2,pnear=2700,pmid=5500,tilt=9,hazek=0.6,ptone=0.4,fluid=2.2,sparks=1.5,ap=16,sglow=3,tglow=1.6
+```
+
+| Option | What it does |
+|---|---|
+| `city=1` / `city=2` | the first engine city (the owner's "city6" look) / the hall of pillars |
+| `pnear`, `pmid` | distance of the nearest pillar row and of the lone middle pillar (the owner first found them too close at 2700 in a lit version, then chose that layout again darker; 7000 = far back, veiled) |
+| `tilt` | the camera looks up this many degrees (the pillars converge upwards) |
+| `hazek`, `ptone`, `pfog` | the haze's brightness, the pillars' darkness, the fog's thickness |
+| `pool` | a warm light pool on a few pillars (the UI shots' way of lighting; used in one version, not in the current one) |
+| `sglow`, `tglow` | the glow round each spark; the words' glow (white halo, stronger on the accent word) |
+| `fluid`, `sparks`, `ap` | look 5's spark-lit smoke amount; spark density; aperture (big soft spark discs near the lens) |
+
+Still open: the warm glow the owner painted low on the left (a big spark lighting the smoke) is weaker than in the
+edit; text typing-in and motion; the other four cards.
+
+**Tried and set aside** (the code stays as options; the history is in git): nebula noise smoke (`neb=1`), ink, light
+streams, macro bokeh looks; a brutalist city in Blender (the weak point was the modelling, not the renderer; Blender
+is gone from the repo); a street city rebuilt from the owner's reference picture, with haze sheets, light shafts and a
+volumetric fog pass (commits 3453e25 to 919245a). The owner found these worse than the first city and the pillars.
+
+**Lessons from the title cards:**
+- Judge how a shot *reads*, not only the numbers: moving the pillars back while lighting them strongly made them read
+  closer.
+- Matching a reference: look at it properly first (angles, shapes, values), lay renders over it, measure colours
+  (g/r, b/r) and brightness percentiles.
+- The yellow guard must only act on saturated warm colours (an early version turned every grey orange); a tilted
+  camera can push the backdrop past the far clip (keep the backdrop within it).
+- Never put a `//` comment in the middle of a line of code: it swallowed code again (in `setup`).
