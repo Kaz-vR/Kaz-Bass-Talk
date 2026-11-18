@@ -338,8 +338,8 @@ const spGeo = new THREE.BufferGeometry();
 spGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array((NSPW * 4 + NCH + NASH) * SUB * 3), 3));
 spGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array((NSPW * 4 + NCH + NASH) * SUB * 3), 3));
 const spMat = new THREE.ShaderMaterial({
-  uniforms: { bgain: { value: 1 }, world: { value: 0 }, szk: { value: 5.5 }, fine: { value: 0 }, tDep: { value: rtScene.depthTexture }, res: { value: new THREE.Vector2(W, H) }, near: { value: 1 }, far: { value: 1 }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 26 * K } },
-  vertexShader: `attribute vec3 color; uniform float focus, aperture, maxR, fine, world, szk, bgain; varying vec3 vCol; varying float vZ, vR, vS;
+  uniforms: { fogSig: { value: 0 }, bgain: { value: 1 }, world: { value: 0 }, szk: { value: 5.5 }, fine: { value: 0 }, tDep: { value: rtScene.depthTexture }, res: { value: new THREE.Vector2(W, H) }, near: { value: 1 }, far: { value: 1 }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 26 * K } },
+  vertexShader: `attribute vec3 color; uniform float focus, aperture, maxR, fine, world, szk, bgain, fogSig; varying vec3 vCol; varying float vZ, vR, vS;
     void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.); float z = -mv.z;
       float c = clamp(aperture * abs(z - focus) / z, 0., maxR * 1.3); vR = max(1.7, c); vZ = z;
       // fine sparks: in the focus band a 1.3 px core in an 11 px glow; away from it the same light spread over its blur,
@@ -348,6 +348,7 @@ const spMat = new THREE.ShaderMaterial({
       vS = world > .5 ? szk / z : 5.5;
       if (fine > .5) vR = max(vS, c * 1.25);
       vCol = bgain * color * (fine > .5 ? (world > .5 ? .85 : .55) * min(1., (world > .5 ? vS * vS : 30.) / (vR * vR)) : vR < 2.5 ? 3.2 : max(.11, 2.4 / (vR * vR)));      // in focus: a hot pinpoint; out of focus: the same light spread thin
+      vCol *= exp(-fogSig * z);                                                   // in the hall's fog like everything else in it
       gl_PointSize = vR * 2. + 2.; gl_Position = projectionMatrix * mv; }`,
   fragmentShader: `uniform sampler2D tDep; uniform vec2 res; uniform float near, far, fine, world; varying vec3 vCol; varying float vZ, vR, vS;
     void main(){ float d = texture2D(tDep, gl_FragCoord.xy / res).x; float sz = -(near * far) / ((far - near) * d - far);
@@ -392,7 +393,7 @@ const REF = 418, SPB0 = { x0: -PW / 2 - 250, x1: PW / 2 + 250, y0: -PH / 2 - 300
 const inPanel = (x, y) => !SPB.free && Math.abs(x) < PW / 2 && Math.abs(y) < PH / 2;
 const spSpawnW = (s, anywhere) => { const R = sparks.rnd, B = SPB;
   s.x = lerp(B.x0, B.x1, R()); s.y = lerp(B.y0, B.y1, R());
-  if (B.free) s.z = lerp(B.zb, B.z1, R());
+  if (B.free) { const u = R(); s.z = u < .7 ? lerp(-500, 500, R()) : u < .9 ? lerp(500, B.z1, R()) : lerp(B.zb, -500, R()); }   // the hall: most round the subject's depth, a few near the lens, a few deep in the haze
   else if (R() < .15) { s.z = B.zb * R(); if (inPanel(s.x, s.y)) s.z = -s.z; }
   else s.z = -130 * Math.log(1 - R() * (1 - Math.exp(-B.z1 / 130)));            // denser close to the face
   s.prev = null; const sp = REF * (.04 + R() * .1);
@@ -1251,7 +1252,7 @@ window.setup = (name) => {
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   titleTxt = o.txt ?? 1; titleCity = o.city ?? 0; titleFog = o.pfog ?? .5; titleTone = o.ptone ?? .5; titleTilt = o.tilt ?? 0; titleNear = o.pnear ?? 7000; titleMid = o.pmid ?? 7600; titleTGlow = o.tglow ?? 0; titleHaze = o.hazek ?? .4; titlePool = o.pool ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; fin.uniforms.sglow.value = flu.title ? (o.sglow ?? 1) : 1; const bgLike = n === 'bg' || n === 'title';
-  const isHall = n === 'hall'; hallDir = o.hall ?? 1; comp.uniforms.shim.value = 0; fin.uniforms.spc.value = o.spc ?? 0; HALL.g.visible = isHall; AIR.g.visible = false; HALL.occ.visible = isHall; flu.hall = isHall;
+  const isHall = n === 'hall'; hallDir = o.hall ?? 1; comp.uniforms.shim.value = 0; fin.uniforms.spc.value = o.spc ?? 0; spMat.uniforms.fogSig.value = isHall ? .3 / 2200 : 0; HALL.g.visible = isHall; AIR.g.visible = false; HALL.occ.visible = isHall; flu.hall = isHall;
   Object.assign(SPB, isHall ? { x0: -1300, x1: 1100, y0: hallDir === 9 ? -1100 : -900, y1: hallDir === 9 ? 0 : 1500, zb: -1600, z1: 1900, free: true } : SPB0);   // (hall=9: sparks rise from the smoke bed)
   if (isHall) { fin.uniforms.lim.value = 1; fin.uniforms.sglow.value = o.sglow ?? 1; }
   sparks.world = !bgLike; flow.on = false; smokeDof.uniforms.fill.value = n === 'bg' ? 0 : 1; fin.uniforms.subjOn.value = bgLike ? 0 : 1;   // (title cards: smoke without holes, no clear oval)   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
