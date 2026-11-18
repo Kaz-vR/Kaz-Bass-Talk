@@ -1094,6 +1094,7 @@ const HALL_DIRS = {
   1: { L: [[[-500, 900, 500], '#f25d07', 520, 1.6], [[700, 300, -3200], '#f20000', 900, .5], [[-2200, -900, -5200], '#f23005', 900, .35]], haze: .007, scat: .35, seam: 0 },
   2: { L: [[[900, 400, -2600], '#f20000', 700, .35], [[-1600, -600, -4400], '#f23005', 700, .3], [[0, 0, 99999], '#000000', 1, 0]], haze: .005, scat: .5, seam: 1 },
   4: { L: [[[900, 400, -2600], '#f20000', 700, .35], [[-1600, -600, -4400], '#f23005', 700, .3], [[0, 0, 99999], '#000000', 1, 0]], haze: .005, scat: .5, seam: 0, crack: 1 },
+  5: { L: [[[900, 400, -2600], '#f20000', 700, .35], [[-1600, -600, -4400], '#f23005', 700, .3], [[0, 0, 99999], '#000000', 1, 0]], haze: .005, scat: .5, seam: 0 },
   3: { L: [[[260, 700, -2900], '#f25d07', 650, 2.2], [[-1300, -500, -4800], '#f20000', 900, .9], [[-60, 700, 380], '#f23005', 160, .25]], haze: .004, scat: .9, seam: 0 },
 };
 // the camera stands low in an aisle between two rows of pillars, looking down it and up a little at the subject
@@ -1122,32 +1123,73 @@ const planSeams = () => {
   const yAt = (x, z, py, lo = -9000, hi = 30000) => { while (!scr(x, lo, z)[2] && lo < hi) lo += 500;
     if (scr(x, lo, z)[1] < py) return lo; if (scr(x, hi, z)[1] > py) return hi;
     for (let k = 0; k < 40; k++) { const m = (lo + hi) / 2; if (scr(x, m, z)[1] > py) lo = m; else hi = m; } return (lo + hi) / 2; };
+  // one line's plan, for a line standing at at(o) (o: the places it may sit): its starting height and its speed
+  const planLine = (at, offs) => {
+    const [x, z] = at(0);
+    hallCam(0); const front = scr(x, 0, z)[2] || scr(x, 3000, z)[2];
+    if (!front) return [-99999, 0];
+    const yBot = yAt(x, z, H + 40 * K), yTop = yAt(x, z, -40 * K), T = 9 + R() * 9, st = R();   // slow, ambient: 9-18 s to climb the frame
+    let vv = (yTop - yBot) / T, lim = Infinity;
+    if (box) {
+      for (const fr of frames) for (const o of offs) { hallCam(fr); const [x, z] = at(o);
+        const ya = yAt(x, z, box[3]), yb = yAt(x, z, box[2]), xa = scr(x, ya, z)[0], xb = scr(x, yb, z)[0];
+        if (Math.max(xa, xb) < box[0] || Math.min(xa, xb) > box[1]) continue;     // its line passes beside the title
+        let hit = ya;
+        if (xa < box[0] || xa > box[1]) { const edge = xa < box[0] ? box[0] : box[1]; let lo = ya, hi = yb;   // it enters through a side
+          for (let k = 0; k < 30; k++) { const m = (lo + hi) / 2, xm = scr(x, m, z)[0]; if ((xm - edge) * (xa - edge) > 0) lo = m; else hi = m; } hit = hi; }
+        lim = Math.min(lim, hit); }
+    }
+    // every line already in the frame when the shot opens (its tip somewhere in the lower part), and always moving;
+    // one heading for the title starts low enough and climbs slow enough to end the shot short of it
+    const end = Math.min(lim - 20, yTop), y0 = yBot + (end - yBot) * (.12 + .38 * st);
+    if (y0 + vv * Tend > lim - 20) vv = .9 * (lim - 20 - y0) / Tend;
+    return [y0, vv]; };
+  if (hallDir === 5) {                                                            // the lines between the pillars
+    for (const L of AIR.lines) { const [y0, vv] = planLine(() => [L.x, L.z], [0]);
+      for (const m of L.meshes) { const g = m.geometry, n = g.attributes.position.count;
+        g.attributes.lY0.array.fill(y0); g.attributes.lV.array.fill(vv); g.attributes.lY0.needsUpdate = g.attributes.lV.needsUpdate = true; } }
+    return; }
   for (const P of HALL.pils) {
     const y0s = [], vs = [];
     for (let f = 0; f < 4; f++) {
       // (the shader places the seam within 40 of the face's middle: the plan holds for all three of these lines)
       const at = (o) => f < 2 ? [P.x + o, P.z + (f === 0 ? hw : -hw)] : [P.x + (f === 2 ? hw : -hw), P.z + o];
-      const [x, z] = at(0);
-      hallCam(0); const front = scr(x, 0, z)[2] || scr(x, 3000, z)[2];
-      if (!front) { y0s.push(-99999); vs.push(0); continue; }
-      const yBot = yAt(x, z, H + 40 * K), yTop = yAt(x, z, -40 * K), T = 9 + R() * 9, st = R();   // slow, ambient: 9-18 s to climb the frame
-      let vv = (yTop - yBot) / T, lim = Infinity;
-      if (box) {
-        for (const fr of frames) for (const o of [-40, 0, 40]) { hallCam(fr); const [x, z] = at(o);
-          const ya = yAt(x, z, box[3]), yb = yAt(x, z, box[2]), xa = scr(x, ya, z)[0], xb = scr(x, yb, z)[0];
-          if (Math.max(xa, xb) < box[0] || Math.min(xa, xb) > box[1]) continue;     // its line passes beside the title
-          let hit = ya;
-          if (xa < box[0] || xa > box[1]) { const edge = xa < box[0] ? box[0] : box[1]; let lo = ya, hi = yb;   // it enters through a side
-            for (let k = 0; k < 30; k++) { const m = (lo + hi) / 2, xm = scr(x, m, z)[0]; if ((xm - edge) * (xa - edge) > 0) lo = m; else hi = m; } hit = hi; }
-          lim = Math.min(lim, hit); }
-      }
-      // every line already in the frame when the shot opens (its tip somewhere in the lower part), and always moving;
-      // one heading for the title starts low enough and climbs slow enough to end the shot short of it
-      const end = Math.min(lim - 20, yTop), y0 = yBot + (end - yBot) * (.12 + .38 * st);
-      if (y0 + vv * Tend > lim - 20) vv = .9 * (lim - 20 - y0) / Tend;
-      y0s.push(y0); vs.push(vv); }
+      const [y0, vv] = planLine(at, [-40, 0, 40]); y0s.push(y0); vs.push(vv); }
     const n = P.geo.attributes.position.count;
     for (const [a, val] of [['sY0', y0s], ['sV', vs]]) { const arr = P.geo.attributes[a].array; for (let k = 0; k < n; k++) arr.set(val, k * 4); P.geo.attributes[a].needsUpdate = true; } } };
+// the lines between the pillars (hall=5, owner's idea): the seams' light lines, free-standing in the air between the
+// pillars, each a thread of light running up and down out of the frame; a narrow core that is in the depth buffer
+// (so it blurs by its own distance) and a wide glow beside it, both turned to face the camera, dimmed by the fog
+const AIR = (() => {
+  const g = new THREE.Group(); g.visible = false; scene.add(g);
+  const FS = `uniform float time, sig, wid, isCore; varying vec3 vW; varying vec2 vUv; varying float vY0, vV, vId;
+    float h1(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); return mix(mix(h1(i), h1(i + vec2(1, 0)), f.x), mix(h1(i + vec2(0, 1)), h1(i + vec2(1, 1)), f.x), f.y); }
+    void main(){
+      float w = abs(vUv.x - .5) * wid, top = vY0 + vV * time;
+      float seg = step(.35, vn(vec2(vW.y / 900. + h1(vec2(vId, 1.)) * 50., vId))) * step(vW.y, top);
+      float head = 1. + 1.5 * exp(-max(top - vW.y, 0.) / 30.);
+      float fl = .85 + .15 * sin(time * (3. + 4. * h1(vec2(vId, 9.))) + h1(vec2(vId, 4.)) * 30.);
+      float core = smoothstep(1.6, .4, w), halo = exp(-w / 9.) * .35 + exp(-w / 40.) * .08;
+      vec3 c = isCore > .5 ? vec3(.949, .188, .02) * core * 1.6 + vec3(.949, .365, .027) * core * .8 * head : vec3(.949, .188, .02) * halo * (1. - core);
+      gl_FragColor = vec4(c * seg * fl * exp(-sig * length(vW - cameraPosition)), 1.); }`;
+  const VS = `attribute float lY0, lV, lId; varying vec3 vW; varying vec2 vUv; varying float vY0, vV, vId;
+    void main(){ vUv = uv; vY0 = lY0; vV = lV; vId = lId; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`;
+  const U = { time: HALL.U.time, sig: HALL.U.sig };
+  const coreM = new THREE.ShaderMaterial({ uniforms: { ...U, wid: { value: 4 }, isCore: { value: 1 } }, vertexShader: VS, fragmentShader: FS, blending: THREE.AdditiveBlending, transparent: true, depthWrite: true });
+  const haloM = new THREE.ShaderMaterial({ uniforms: { ...U, wid: { value: 300 }, isCore: { value: 0 } }, vertexShader: VS, fragmentShader: FS, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });
+  const S = HALL.S, lines = []; let sd = 23, id = 0; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  for (let i = -9; i <= 8; i++) for (let j = -16; j <= 3; j++) for (let e = 0; e < 3; e++) {                  // up to three in each gap
+    const x = (i + .5) * S + (R() - .5) * 420, z = (j + .5) * S + (R() - .5) * 420; if (R() < .3) continue;
+    const u = Math.max(0, Math.min(1, ((x + 260) * 190 + (z - 2100) * -2030) / (190 * 190 + 2030 * 2030)));
+    if (Math.hypot(x + 260, z - 2100) < 1100 || Math.hypot(x + 260 - 190 * u, z - 2100 + 2030 * u) < 160) continue;   // clear of the camera and its view of the subject
+    if (HALL.pils.some((p) => Math.abs(p.x - x) < HALL.HW + 40 && Math.abs(p.z - z) < HALL.HW + 40)) continue;     // never inside a pillar
+    const meshes = [[coreM, 4], [haloM, 300]].map(([m, wd]) => { const geo = new THREE.PlaneGeometry(1, 1), n = geo.attributes.position.count;
+      for (const [a, v] of [['lY0', -99999], ['lV', 0], ['lId', id]]) geo.setAttribute(a, new THREE.Float32BufferAttribute(new Array(n).fill(v), 1));
+      const me = new THREE.Mesh(geo, m); me.scale.set(wd, 40000, 1); me.position.set(x, 0, z); me.frustumCulled = false; g.add(me); return me; });
+    lines.push({ x, z, meshes }); id++; }
+  return { g, lines };
+})();
 SHOTS.hall = { frames: 75, run(i) {
   knobLayer.visible = false; synth.visible = false; occ.visible = false; city.visible = false; HALL.g.visible = true; HALL.occ.visible = true;
   const D = HALL_DIRS[hallDir] ?? HALL_DIRS[1], U = HALL.U, hw = HALL.HW;
@@ -1155,6 +1197,7 @@ SHOTS.hall = { frames: 75, run(i) {
   U.hazeC.value.set(.09, .085, .08).multiplyScalar(D.haze / .01); U.scat.value = D.scat; U.seam.value = D.seam; U.crack.value = D.crack ?? 0; U.time.value = i / FPS;
   const { pos, target } = hallCam(i);
   if (HALL.plan !== hallDir + '/' + titleTxt) { planSeams(); HALL.plan = hallDir + '/' + titleTxt; hallCam(i); }
+  AIR.g.visible = hallDir === 5; for (const L of AIR.lines) for (const m of L.meshes) m.rotation.y = Math.atan2(cam.position.x - L.x, cam.position.z - L.z);   // facing the camera
   finOut = rtOut; draw(i, pos.distanceTo(target), 105); finOut = null;
   if (titleTxt) layTitle(); else { tg.clearRect(0, 0, W, H); ttex.needsUpdate = true; pass(comp, null); }   // txt=0: no words
 } };
@@ -1178,7 +1221,7 @@ window.setup = (name) => {
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   titleTxt = o.txt ?? 1; titleCity = o.city ?? 0; titleFog = o.pfog ?? .5; titleTone = o.ptone ?? .5; titleTilt = o.tilt ?? 0; titleNear = o.pnear ?? 7000; titleMid = o.pmid ?? 7600; titleTGlow = o.tglow ?? 0; titleHaze = o.hazek ?? .4; titlePool = o.pool ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; fin.uniforms.sglow.value = flu.title ? (o.sglow ?? 1) : 1; const bgLike = n === 'bg' || n === 'title';
-  const isHall = n === 'hall'; hallDir = o.hall ?? 1; HALL.g.visible = isHall; HALL.occ.visible = isHall; flu.hall = isHall;
+  const isHall = n === 'hall'; hallDir = o.hall ?? 1; HALL.g.visible = isHall; AIR.g.visible = false; HALL.occ.visible = isHall; flu.hall = isHall;
   Object.assign(SPB, isHall ? { x0: -1300, x1: 1100, y0: -900, y1: 1500, zb: -1600, z1: 1900, free: true } : SPB0);
   if (isHall) { fin.uniforms.lim.value = 1; fin.uniforms.sglow.value = o.sglow ?? 1; }
   sparks.world = !bgLike; flow.on = false; smokeDof.uniforms.fill.value = n === 'bg' ? 0 : 1; fin.uniforms.subjOn.value = bgLike ? 0 : 1;   // (title cards: smoke without holes, no clear oval)   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
