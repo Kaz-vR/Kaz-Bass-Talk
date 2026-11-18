@@ -880,7 +880,7 @@ const TITLES = {
 const rtOut = new THREE.WebGLRenderTarget(W, H, rtOpts);
 const comp = sh(`varying vec2 vUv; uniform sampler2D a, b; void main(){ vec4 t = texture2D(b, vUv); gl_FragColor = vec4(texture2D(a, vUv).rgb * (1. - t.a) + t.rgb, 1.); }`,
   { a: { value: rtOut.texture }, b: { value: ttex } });
-let titleTxt = 1, titleAp = 30, titleCity = false;
+let titleTxt = 1, titleAp = 30, titleCity = false, titleFog = .5, titleTone = .5, titleTilt = 0;
 // ---------- the city (title cards, city=1): brutalist megastructures in a warm haze, behind the smoke and sparks ----------
 // Simple stacked concrete blocks, placed to the owner's picture: a tall stacked complex on the right, lower blocks and a
 // thin tower on the left, bridges between them, a faint tower far off in the middle. Fog by distance (the far ones fade
@@ -889,20 +889,22 @@ let titleTxt = 1, titleAp = 30, titleCity = false;
 const city = (() => {
   const g = new THREE.Group(); g.visible = false; scene.add(g);
   const HZ = `vec3 haze(float sy){ float g = .42 + .58 * exp(-pow((sy - .45) / .38, 2.)); return (vec3(.11, .105, .1) + vec3(.949, .365, .027) * .1) * g; }   /* grey fog with the orange light in it */`;
-  const U = { res: { value: new THREE.Vector2(W, H) }, fogK: { value: 1 } };
+  const U = { res: { value: new THREE.Vector2(W, H) }, fogK: { value: 1 }, tone: { value: 1 } };
   const conc = new THREE.ShaderMaterial({ uniforms: U,
     vertexShader: `varying vec3 vW, vN; void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`,
-    fragmentShader: `uniform vec2 res; uniform float fogK; varying vec3 vW, vN; ${HZ}
+    fragmentShader: `uniform vec2 res; uniform float fogK, tone; varying vec3 vW, vN; ${HZ}
       float h1(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
       void main(){
         vec2 p = abs(vN.z) > .5 ? vW.xy : abs(vN.x) > .5 ? vW.zy : vW.xz;
         float floors = step(.9, fract(p.y / 34.)), cols = step(.95, fract(p.x / 61.)), grain = h1(floor(p / 5.)) * .5 + h1(floor(p / 23.)) * .5;
-        vec3 c = vec3(.11, .098, .088) * (.7 + .6 * grain) * (1. - .45 * floors - .25 * cols);           // dark worn concrete, panel joints
+        vec3 c = tone * vec3(.11, .098, .088) * (.7 + .6 * grain) * (1. - .45 * floors - .25 * cols);           // dark worn concrete, panel joints
         c *= .6 + .45 * max(vN.y, 0.) + .4 * max(-vN.x, 0.) + .45 * max(vN.z, 0.) * (.6 + .4 * smoothstep(-700., 400., vW.y));                   // faint light from the haze above and the left
         float dist = length(vW - cameraPosition), low = smoothstep(-200., -1400., vW.y);
         float f = 1. - exp(-(dist - 1400.) * .00042 * fogK) * (1. - .45 * low);                      // fog by distance, thicker low down
         gl_FragColor = vec4(mix(c, haze(gl_FragCoord.y / res.y), clamp(f, 0., 1.)), 1.); }` });
-  const B = (x0, x1, y0, y1, z, d = 220) => { const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, d), conc); m.position.set((x0 + x1) / 2, (y0 + y1) / 2, z); g.add(m); return m; };
+  // city=1: the buildings; city=2: the hall of pillars (the same concrete, fog and haze)
+  const bld = new THREE.Group(), pil = new THREE.Group(); g.add(bld, pil); g.userData = { bld, pil, U };
+  const B = (x0, x1, y0, y1, z, d = 220, to = bld) => { const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, d), conc); m.position.set((x0 + x1) / 2, (y0 + y1) / 2, z); to.add(m); return m; };
   const wins = [];
   // a brutalist block: the mass, concrete ledges every few floors, thin fins up its face, and a few lit windows
   const lit = (x0, x1, y0, y1, z, d = 220, n = 6) => { B(x0, x1, y0, y1, z, d);
@@ -921,15 +923,26 @@ const city = (() => {
   lit(-1750, -1420, -2200, -210, -2400, 300, 5); B(-820, 100, -230, -195, -2650, 50);
   // far off: a faint tower in the middle and a ridge of blocks
   B(-60, 90, -3000, 320, -4500, 200); B(1500, 2300, -3000, 120, -4600, 300);
+  // the hall of pillars (city=2, the owner's idea): the city's middle tower, now running all the way up, and pillars
+  // like it all over the shot, rising out of the foggy depths and vanishing upwards, rows of them deep into the haze
+  { let sd = 7; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    B(-60, 90, -6000, 12000, -4500, 200, pil);                                                        // the middle one, all the way up
+    for (let z = -1700; z > -13800; z -= 1450 + R() * 300) {
+      const half = (1000 - z) * .5 + 600;
+      for (let x = -half + R() * 900; x < half; x += 1100 + R() * 700) {
+        if (Math.abs(x) < 400 && z < -3800 && z > -5200) continue;                                     // keep the middle one alone in its row
+        if (R() < .28) continue;
+        const w = 140 + R() * 130, d = w * (.8 + R() * .5);
+        B(x, x + w, -6000, 12000, z, d, pil).rotation.y = R() * Math.PI / 2; } } }   // each turned its own way: one face lit, one in shadow
   // the haze behind everything
-  const back = new THREE.Mesh(new THREE.PlaneGeometry(24000, 14000), new THREE.ShaderMaterial({ uniforms: U, depthWrite: true,
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(50000, 30000), new THREE.ShaderMaterial({ uniforms: U, depthWrite: true,
     vertexShader: `void main(){ gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
     fragmentShader: `uniform vec2 res; ${HZ} void main(){ gl_FragColor = vec4(haze(gl_FragCoord.y / res.y), 1.); }` }));
-  back.position.z = -9000; g.add(back);
+  back.position.z = -14500; g.add(back);   // (within the far limit even with the camera tilted up)
   // window lights: tiny points in the house colours, dimmed by the same fog
   const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute(wins.flatMap((w) => w.slice(0, 3)), 3));
   wg.setAttribute('heat', new THREE.Float32BufferAttribute(wins.map((w) => w[3]), 1));
-  g.add(new THREE.Points(wg, new THREE.ShaderMaterial({ uniforms: { time: { value: 0 }, K: { value: K } }, transparent: true, depthWrite: false,
+  bld.add(new THREE.Points(wg, new THREE.ShaderMaterial({ uniforms: { time: { value: 0 }, K: { value: K } }, transparent: true, depthWrite: false,
     vertexShader: `attribute float heat; uniform float time, K; varying vec3 vC; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.); float d = -mv.z;
       float f = exp(-(d - 1400.) * .00042), fl = .85 + .15 * sin(time * (2. + heat * 5.) + heat * 40.);
       vC = (heat > .55 ? vec3(.949, .365, .027) : vec3(.949, .188, .02)) * f * fl * 2.4; gl_PointSize = 3.4 * K; gl_Position = projectionMatrix * mv; }`,
@@ -937,8 +950,8 @@ const city = (() => {
   return g;
 })();
 SHOTS.title = { frames: 250, run(i) {
-  knobLayer.visible = false; synth.visible = false; occ.visible = false; city.visible = titleCity;
-  cam.fov = 30; cam.updateProjectionMatrix(); look(new THREE.Vector3(0, 0, 1000), new THREE.Vector3(0, 0, 0), 0);
+  knobLayer.visible = false; synth.visible = false; occ.visible = false; city.visible = titleCity; city.userData.bld.visible = titleCity === 1; city.userData.pil.visible = titleCity === 2; city.userData.U.fogK.value = titleCity === 2 ? titleFog : 1; city.userData.U.tone.value = titleCity === 2 ? titleTone : 1;
+  cam.fov = 30; cam.updateProjectionMatrix(); look(new THREE.Vector3(0, 0, 1000), new THREE.Vector3(0, 1000 * Math.tan(THREE.MathUtils.degToRad(titleTilt)), 0), 0);   // tilt: looking up a little
   finOut = rtOut; draw(i, 1000, titleAp); finOut = null;
   tg.clearRect(0, 0, W, H);
   const cap = H * 0.055, sizePx = cap / 0.72, tr = sizePx * 0.16, lines = TITLES[titleTxt] ?? TITLES[1];
@@ -972,7 +985,7 @@ window.setup = (name) => {
   spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks && !o.hidesp) ? 1 : 0;   
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
-  titleTxt = o.txt ?? 1; titleCity = !!o.city; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; const bgLike = n === 'bg' || n === 'title';
+  titleTxt = o.txt ?? 1; titleCity = o.city ?? 0; titleFog = o.pfog ?? .5; titleTone = o.ptone ?? .5; titleTilt = o.tilt ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; const bgLike = n === 'bg' || n === 'title';
   sparks.world = !bgLike; flow.on = false; smokeDof.uniforms.fill.value = n === 'bg' ? 0 : 1; fin.uniforms.subjOn.value = bgLike ? 0 : 1;   // (title cards: smoke without holes, no clear oval)   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
   sparks.on = Math.min(25, o.sparks ?? 0); sparks.trail = o.trail ?? 0; sparks.spd = o.spd ?? 1; flu.ink = o.ink ?? 0; titleAp = o.ap ?? 30;
   spMat.uniforms.maxR.value = (o.bokeh ?? 26) * K; spMat.uniforms.bgain.value = o.bgain ?? 1;   // trail=N: light streams N frames long; ink=1: ink-in-water smoke; ap/bokeh: aperture and the biggest spark disc sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
