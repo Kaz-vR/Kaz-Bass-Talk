@@ -680,6 +680,45 @@ const rays = { on: false,
       gl_FragColor = vec4(c + vec3(.95, .62, .38) * acc / 64. * k * fall, 1.); }`,
     { t: { value: rtDof.texture }, tDep: { value: rtScene.depthTexture }, L: { value: new THREE.Vector2(.74, .6) }, near: { value: 1 }, far: { value: 1 }, k: { value: .25 } }),
   copy: sh(`varying vec2 vUv; uniform sampler2D t; void main(){ gl_FragColor = texture2D(t, vUv); }`, { t: { value: rtDof2.texture } }) };
+// volumetric smog (the title cards' city, vfog=density): for every pixel, a walk along its ray from the camera to whatever
+// it hits (from the depth), through a 3D cloud of smog (drifting 3D noise, thicker low down), adding up how much smog
+// lies in between and how much light it catches: a faint ambient, the light of the sparks near the camera (the smoke's
+// light, spread), and optionally a glow far down the street. So the smog really sits between and round the buildings.
+// Worked out at half size (it is soft), then laid over the picture.
+const rtFog = new THREE.WebGLRenderTarget(W / 2, H / 2, rtOpts);
+const vfog = { on: false,
+  mat: sh(`varying vec2 vUv; uniform sampler2D tDep, tLt; uniform mat4 iP, cM; uniform vec3 cP; uniform float near, far, time, dens, amb, spk, glw;
+    float vz(vec2 uv){ float d = texture2D(tDep, uv).x; return -(near * far) / ((far - near) * d - far); }
+    float h3(vec3 p){ return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+    float n3(vec3 p){ vec3 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+      return mix(mix(mix(h3(i), h3(i + vec3(1, 0, 0)), f.x), mix(h3(i + vec3(0, 1, 0)), h3(i + vec3(1, 1, 0)), f.x), f.y),
+                 mix(mix(h3(i + vec3(0, 0, 1)), h3(i + vec3(1, 0, 1)), f.x), mix(h3(i + vec3(0, 1, 1)), h3(i + vec3(1, 1, 1)), f.x), f.y), f.z); }
+    float fb3(vec3 p){ return .55 * n3(p) + .3 * n3(p * 2.13 + 3.1) + .15 * n3(p * 4.37 + 7.7); }
+    void main(){
+      vec4 v = iP * vec4(vUv * 2. - 1., 1., 1.); vec3 dv = normalize(v.xyz / v.w), dir = normalize((cM * vec4(dv, 0.)).xyz);
+      float dist = min(vz(vUv) / max(-dv.z, 1e-3), 19000.);
+      float jit = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715))));
+      const int N = 36; float T = 1.; vec3 L = vec3(0.); float tPrev = 0.;
+      vec3 sp = texture2D(tLt, vUv).rgb;                                            // the sparks' light where this ray passes
+      for (int i = 1; i <= N; i++) {
+        float u = (float(i) - jit) / float(N), t = dist * u * u, ds = t - tPrev; tPrev = t;
+        vec3 p = cP + dir * t;
+        vec3 q = p / 1700. + vec3(time * .012, time * .004, time * .007);
+        float n = fb3(q + .6 * vec3(fb3(q * .5 + 5.), 0., fb3(q * .5 + 9.)));
+        float rho = dens * smoothstep(.32, .78, n) * (.25 + 1.75 * exp(-max(p.y + 650., 0.) / 700.));   // patchy banks, thicker low down
+        float a = 1. - exp(-rho * ds);
+        vec3 inl = vec3(.06, .048, .038) * amb + sp * spk * exp(-t / 1800.) + vec3(.95, .55, .3) * glw * exp(-pow(length(vUv - vec2(.62, .52)) / .35, 2.)) * smoothstep(3000., 12000., t);
+        L += T * a * inl; T *= 1. - a;
+      }
+      gl_FragColor = vec4(L, T); }`,
+    { tDep: { value: rtScene.depthTexture }, tLt: { value: null }, iP: { value: new THREE.Matrix4() }, cM: { value: new THREE.Matrix4() }, cP: { value: new THREE.Vector3() },
+      near: { value: 1 }, far: { value: 1 }, time: { value: 0 }, dens: { value: .0002 }, amb: { value: 1 }, spk: { value: 1 }, glw: { value: 0 } }),
+  comp: sh(`varying vec2 vUv; uniform sampler2D t, f; void main(){ vec4 fg = texture2D(f, vUv); gl_FragColor = vec4(texture2D(t, vUv).rgb * fg.a + fg.rgb, 1.); }`,
+    { t: { value: rtDof.texture }, f: { value: rtFog.texture } }) };
+const vfogDraw = (i) => { const u = vfog.mat.uniforms;
+  u.iP.value.copy(cam.projectionMatrixInverse); u.cM.value.copy(cam.matrixWorld); u.cP.value.copy(cam.position); u.near.value = cam.near; u.far.value = cam.far; u.time.value = i / FPS;
+  u.tLt.value = rtLight[0].texture;
+  pass(vfog.mat, rtFog); pass(vfog.comp, rtDof2); pass(rays.copy, rtDof); };
 const draw = (i, focusDist, apert = 30) => {
   r.setRenderTarget(rtScene); r.render(scene, cam);
   Object.assign(dof.uniforms, {}); dof.uniforms.near.value = cam.near; dof.uniforms.far.value = cam.far; dof.uniforms.focus.value = focusDist; dof.uniforms.aperture.value = apert * K;
@@ -691,6 +730,7 @@ const draw = (i, focusDist, apert = 30) => {
   pass(bright, rtA);
   glowBlur();
   if (flu.on) fluidDraw(i, focusDist, apert);
+  if (vfog.on) vfogDraw(i);
   { const fw = new THREE.Vector3(); cam.getWorldDirection(fw); const q = cam.position.clone().addScaledVector(fw, focusDist).project(cam);   // the spot in focus, on screen
     fin.uniforms.subj.value.set(q.x * .5 + .5, q.y * .5 + .5); }
   fin.uniforms.time.value = i / FPS; pass(fin, finOut);
@@ -905,12 +945,12 @@ let titleTxt = 1, titleAp = 30, titleCity = false, titleRays = 0;
 // down), the haze dark above and glowing behind the middle. Fixed camera. Sizes in metres x 10 (engine units).
 const city = (() => {
   const g = new THREE.Group(); g.visible = false; scene.add(g);
-  const HZ = `vec3 haze(vec2 s){ float b = exp(-pow((s.y - .5) / .26, 2.)) * (.6 + .4 * smoothstep(.15, .85, s.x));
+  const HZ = `uniform float hazeK, fogOn, cityL; vec3 haze(vec2 s){ float b = exp(-pow((s.y - .5) / .26, 2.)) * (.6 + .4 * smoothstep(.15, .85, s.x));
       float g = exp(-pow(length((s - vec2(.72, .62)) * vec2(1.6, 1.)) / .22, 2.));            /* a glow behind the hero's top */
-      return vec3(.1, .086, .074) * (.22 + 1.3 * b + .9 * g); }`;
+      return hazeK * vec3(.1, .086, .074) * (.22 + 1.3 * b + .9 * g); }`;
   const FOG = `float fogf(vec3 w){ float d = length(w - cameraPosition), low = 1. + 1.6 * smoothstep(-150., -650., w.y);
       return 1. - exp(-max(d - 1500., 0.) * .000085 * low); }`;
-  const U = { res: { value: new THREE.Vector2(W, H) } };
+  const U = { res: { value: new THREE.Vector2(W, H) }, hazeK: { value: 1 }, fogOn: { value: 1 }, cityL: { value: 1 } };   // (vfog: the volumetric fog takes over the fog; cityL: how much light the city gets)
   const conc = (tone, panel = 70) => new THREE.ShaderMaterial({ uniforms: U,
     vertexShader: `varying vec3 vW, vN, vL, vLN; void main(){ vL = position; vLN = normal; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz;
       vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`,
@@ -930,10 +970,10 @@ const city = (() => {
         vec3 c = alb * (amb * vec3(.9, .82, .74) + key * 1.3 * vec3(1., .8, .62));
         vec3 V = normalize(cameraPosition - vW);                                          // rim: edges and tops catch the glow from behind
         c += vec3(.95, .6, .35) * .09 * pow(1. - max(dot(vN, V), 0.), 4.) * (.4 + .6 * max(vN.y, 0.)) + vec3(.9, .6, .38) * .05 * max(vN.y, 0.);
-        gl_FragColor = vec4(mix(c, haze(gl_FragCoord.xy / res), fogf(vW)), 1.); }` });
+        gl_FragColor = vec4(mix(c * cityL, haze(gl_FragCoord.xy / res), fogf(vW) * fogOn), 1.); }` });
   const glowM = (hex, k) => { const c = new THREE.Color(hex); return new THREE.ShaderMaterial({ uniforms: U,
     vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-    fragmentShader: `uniform vec2 res; varying vec3 vW; ${HZ} ${FOG} void main(){ gl_FragColor = vec4(mix(vec3(${c.r}, ${c.g}, ${c.b}) * ${k.toFixed(2)}, haze(gl_FragCoord.xy / res), fogf(vW)), 1.); }` }); };
+    fragmentShader: `uniform vec2 res; varying vec3 vW; ${HZ} ${FOG} void main(){ gl_FragColor = vec4(mix(vec3(${c.r}, ${c.g}, ${c.b}) * ${k.toFixed(2)}, haze(gl_FragCoord.xy / res), fogf(vW) * fogOn), 1.); }` }); };
   const CONC = conc(1), DARK = conc(.55), SLOT = conc(.18), WIN = [glowM('#f25d07', .8), glowM('#f23005', .7)];
   let seed = 11; const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   // a complex's own frame: x along its long face, y up, z out of the face (towards the street); position on the ground
@@ -991,7 +1031,7 @@ const city = (() => {
     F.B(0, 0, -500, w, h, 0, DARK); F.row(10, w - 30, 300 + R() * (h - 400), 0, 2 + (R() * 3 | 0), 10, 18); }
   // the smog in layers: haze sheets at many depths between the buildings, each a drifting bank of dust (thicker low
   // down, patchy), hidden by what stands in front of it and veiling what is behind it. This is where the depth comes from.
-  const sheetU = { res: U.res, time: { value: 0 } };
+  const sheetU = { res: U.res, time: { value: 0 }, hazeK: U.hazeK, fogOn: U.fogOn, cityL: U.cityL }, sheets = [];
   [1700, 2400, 3200, 4100, 5000, 6200, 7600, 9000, 10800, 12800, 15000, 17200].forEach((d, k) => {
     const hh = d * Math.tan(THREE.MathUtils.degToRad(15)) * 1.25, ww = hh * 16 / 9 * 1.2;
     const m = new THREE.Mesh(new THREE.PlaneGeometry(ww * 2, hh * 2), new THREE.ShaderMaterial({ uniforms: { ...sheetU, k: { value: k } },
@@ -1011,13 +1051,13 @@ const city = (() => {
           vec2 s = gl_FragCoord.xy / res;
           float lit = exp(-pow(length((s - vec2(.74, .6)) * vec2(1.78, 1.)) / .45, 2.));          // the smog lit by the light behind the hero
           gl_FragColor = vec4(haze(s) * (1.1 + .5 * n) * (1. + 1.4 * lit), a); }` }));
-    m.position.set(0, 0, 1000 - d); m.renderOrder = 10 + 12 - k; g.add(m); });
+    m.position.set(0, 0, 1000 - d); m.renderOrder = 10 + 12 - k; g.add(m); sheets.push(m); });
   // the haze behind everything
   const back = new THREE.Mesh(new THREE.PlaneGeometry(60000, 30000), new THREE.ShaderMaterial({ uniforms: U,
     vertexShader: `void main(){ gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
     fragmentShader: `uniform vec2 res; ${HZ} void main(){ gl_FragColor = vec4(haze(gl_FragCoord.xy / res), 1.); }` }));
   back.position.z = -18800; g.add(back);
-  g.userData.sheetU = sheetU;
+  Object.assign(g.userData, { sheetU, sheets, U });
   return g;
 })();
 SHOTS.title = { frames: 250, run(i) {
@@ -1057,7 +1097,11 @@ window.setup = (name) => {
   spMat.uniforms.fine.value = o.fine ?? 0; fin.uniforms.fineSp.value = (o.fine && o.sparks && !o.hidesp) ? 1 : 0;   
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
-  titleTxt = o.txt ?? 1; titleCity = !!o.city; titleRays = o.rays ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; fin.uniforms.samb.value = flu.title ? (o.samb ?? 0) : 0; const bgLike = n === 'bg' || n === 'title';
+  titleTxt = o.txt ?? 1; titleCity = !!o.city; titleRays = o.rays ?? 0;
+  vfog.on = !!(o.city && o.vfog); Object.assign(vfog.mat.uniforms, {}); vfog.mat.uniforms.dens.value = (o.vfog ?? 0) * .0001; vfog.mat.uniforms.amb.value = o.famb ?? 1; vfog.mat.uniforms.spk.value = o.fspk ?? 1; vfog.mat.uniforms.glw.value = o.fglow ?? 0;
+  city.userData.U.fogOn.value = vfog.on ? 0 : 1; city.userData.U.hazeK.value = o.hazek ?? 1; city.userData.U.cityL.value = o.cityl ?? 1;
+  city.userData.sheets.forEach((m) => { m.visible = !vfog.on; });   // vfog=N: real volumetric smog instead of the haze sheets
+  city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; fin.uniforms.samb.value = flu.title ? (o.samb ?? 0) : 0; const bgLike = n === 'bg' || n === 'title';
   sparks.world = !bgLike; flow.on = false; smokeDof.uniforms.fill.value = n === 'bg' ? 0 : 1; fin.uniforms.subjOn.value = bgLike ? 0 : 1;   // (title cards: smoke without holes, no clear oval)   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
   sparks.on = Math.min(25, o.sparks ?? 0); sparks.trail = o.trail ?? 0; sparks.spd = o.spd ?? 1; flu.ink = o.ink ?? 0; titleAp = o.ap ?? 30;
   spMat.uniforms.maxR.value = (o.bokeh ?? 26) * K; spMat.uniforms.bgain.value = o.bgain ?? 1;   // trail=N: light streams N frames long; ink=1: ink-in-water smoke; ap/bokeh: aperture and the biggest spark disc sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
