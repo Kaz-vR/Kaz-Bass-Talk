@@ -204,7 +204,16 @@ visible: the `title` shot in `shots.js` (no synth; text laid in after the grade 
 picks the card from `STRUCTURE.md`). **Render each look in its own run** (several looks in one `trailer-render.mjs`
 call broke the sparks: a known, unfixed bug).
 
-**The current direction (owner's pick, 18 Nov):** a dark hall of giant concrete pillars rising out of foggy depths and
+**The current direction (owner's pick, 18 Nov, later the same day): the hall of glowing seams.** The `hall` shot
+(`hall=2`): square concrete pillars in a loose grid, no floor or roof, lost in a dark fog, each with a thin red light
+line set into its faces, made exactly like the slide shot (low camera looking up, fixed focus, aperture 105, the smoke
+and the 3D sparks). `hall=1` (a light pool) and `hall=3` (a fire deep in the hall) were the other two options. Card 5:
+
+```
+hall@ruin:real=1,og=1,tint=0.22,fine=1,sparks=1.5,fluid=0.2,hall=2,txt=5,tglow=1.6
+```
+
+**Before that (owner's pick, 18 Nov):** a dark hall of giant concrete pillars rising out of foggy depths and
 vanishing upwards, look 5's smoke lit only by the sparks in front, glowing sparks and glowing words, a dark background.
 Built after the owner's own Photoshop edit of the first pillar render. The current settings:
 

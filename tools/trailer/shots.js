@@ -974,11 +974,8 @@ const city = (() => {
     fragmentShader: `varying vec3 vC; void main(){ float r = length(gl_PointCoord * 2. - 1.); gl_FragColor = vec4(vC * smoothstep(1., .3, r), 1.); }` })));
   return g;
 })();
-SHOTS.title = { frames: 250, run(i) {
-  knobLayer.visible = false; synth.visible = false; occ.visible = false; city.visible = titleCity; city.userData.bld.visible = titleCity === 1; city.userData.pil.visible = titleCity === 2;
-  if (titleCity === 2 && city.userData.pil.userData.key !== titleNear + '/' + titleMid) { city.userData.pil.userData.build(titleNear, titleMid); city.userData.pil.userData.key = titleNear + '/' + titleMid; } city.userData.U.fogK.value = titleCity === 2 ? titleFog : 1; city.userData.U.tone.value = titleCity === 2 ? titleTone : 1; city.userData.U.hazeK.value = titleCity === 2 ? titleHaze : 1; city.userData.U.poolK.value = titleCity === 2 ? titlePool : 0;
-  cam.fov = 30; cam.updateProjectionMatrix(); look(new THREE.Vector3(0, 0, 1000), new THREE.Vector3(0, 1000 * Math.tan(THREE.MathUtils.degToRad(titleTilt)), 0), 0);   // tilt: looking up a little
-  finOut = rtOut; draw(i, 1000, titleAp); finOut = null;
+// the card's words over the graded picture (rtOut): Manrope, centred, the accent word in #f25d07
+const layTitle = () => {
   tg.clearRect(0, 0, W, H);
   const cap = H * 0.055, sizePx = cap / 0.72, tr = sizePx * 0.16, lines = TITLES[titleTxt] ?? TITLES[1];
   tg.font = `500 ${sizePx}px Manrope`; tg.textBaseline = 'alphabetic'; tg.letterSpacing = `${tr}px`;
@@ -992,7 +989,13 @@ SHOTS.title = { frames: 250, run(i) {
         tg.globalAlpha = Math.min(1, al * titleTGlow * (acc ? 1.4 : 1)); tg.shadowColor = fill; tg.shadowBlur = bl; tg.fillText(t, x, y); }
       tg.globalAlpha = 1; tg.shadowBlur = 0; tg.fillText(t, x, y); x += ws[k]; });
   });
-  ttex.needsUpdate = true; pass(comp, null);
+  ttex.needsUpdate = true; pass(comp, null); };
+SHOTS.title = { frames: 250, run(i) {
+  knobLayer.visible = false; synth.visible = false; occ.visible = false; city.visible = titleCity; city.userData.bld.visible = titleCity === 1; city.userData.pil.visible = titleCity === 2;
+  if (titleCity === 2 && city.userData.pil.userData.key !== titleNear + '/' + titleMid) { city.userData.pil.userData.build(titleNear, titleMid); city.userData.pil.userData.key = titleNear + '/' + titleMid; } city.userData.U.fogK.value = titleCity === 2 ? titleFog : 1; city.userData.U.tone.value = titleCity === 2 ? titleTone : 1; city.userData.U.hazeK.value = titleCity === 2 ? titleHaze : 1; city.userData.U.poolK.value = titleCity === 2 ? titlePool : 0;
+  cam.fov = 30; cam.updateProjectionMatrix(); look(new THREE.Vector3(0, 0, 1000), new THREE.Vector3(0, 1000 * Math.tan(THREE.MathUtils.degToRad(titleTilt)), 0), 0);   // tilt: looking up a little
+  finOut = rtOut; draw(i, 1000, titleAp); finOut = null;
+  layTitle();
 } };
 // ---------- the hall of pillars (title cards, owner's brief 18 Nov): square concrete pillars in a regular grid, no
 // floor, no roof, running up and down out of the frame, lost in haze. Made like the slide shot: the same camera
@@ -1077,7 +1080,8 @@ SHOTS.hall = { frames: 75, run(i) {
   const pos = new THREE.Vector3(lerp(-300, -220, t), -350, 2100);
   cam.fov = 34; cam.updateProjectionMatrix();
   look(pos, target, THREE.MathUtils.degToRad(6));
-  draw(i, pos.distanceTo(target), 105);
+  finOut = rtOut; draw(i, pos.distanceTo(target), 105); finOut = null;
+  if (titleTxt) layTitle(); else { tg.clearRect(0, 0, W, H); ttex.needsUpdate = true; pass(comp, null); }   // txt=0: no words
 } };
 SHOTS.cardA = card(PLATES.A, { count: 60 });
 SHOTS.cardB = card(PLATES.B, {});
