@@ -36,6 +36,12 @@ try {
   const l = await p.locator('.wood-l').boundingBox(), r = await p.locator('.wood-r').boundingBox();
   const clip = { x: Math.floor(l.x), y: Math.floor(l.y), width: Math.ceil(r.x + r.width - l.x), height: Math.ceil(l.height) };
   await p.screenshot({ path: `${OUT}/base.png`, clip });
+  if (KNOB === '-') {                                            // '-': the page only, no turning knob (e.g. for the rough cut)
+    await p.keyboard.up('a');
+    writeFileSync(`${OUT}/meta.json`, JSON.stringify({ sound: SOUND, tab: TAB, knob: null, dsf: DSF, W: clip.width, H: clip.height,
+      woodL: [0, Math.round(l.width)], woodR: [Math.round(r.x - clip.x), Math.round(r.width)], patch: { x: 0, y: 0, w: 10, h: 10, cx: 5, cy: 5 }, frames: 0 }, null, 1));
+    await b.close(); console.log('captured', clip.width, 'x', clip.height, 'css px at', DSF, 'x (page only)'); process.exit(0);
+  }
   // the knob: its patch (dial, label and value) relative to the instrument, in css px
   const k = p.locator('.k').filter({ has: p.locator('.k-label', { hasText: new RegExp(`^${KNOB}$`) }) }).first();
   // the patch is the knob's whole box, so its display (e.g. the filter curve) moves with the knob
