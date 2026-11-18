@@ -1009,7 +1009,7 @@ const HALL = (() => {
   const S = 600, HW = 70;                                                         // grid spacing, half the pillar width
   const U = { Lp: { value: [0, 1, 2].map(() => new THREE.Vector3()) }, Lc: { value: [0, 1, 2].map(() => new THREE.Vector3()) }, Lr: { value: [1, 1, 1] },
     sig: { value: 1 / 2200 }, scat: { value: 1 }, hazeC: { value: new THREE.Vector3() }, seam: { value: 0 }, time: { value: 0 }, sky: { value: 0 }, tone: { value: 1 } };
-  const FS = `uniform vec3 Lp[3], Lc[3], hazeC; uniform float Lr[3], sig, scat, seam, time, sky, tone; varying vec3 vW, vN; varying vec2 vC;
+  const FS = `uniform vec3 Lp[3], Lc[3], hazeC; uniform float Lr[3], sig, scat, seam, time, sky, tone; varying vec3 vW, vN; varying vec2 vC; varying vec4 vOff, vY0, vV;
     float h1(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); return mix(mix(h1(i), h1(i + vec2(1, 0)), f.x), mix(h1(i + vec2(0, 1)), h1(i + vec2(1, 1)), f.x), f.y); }
     void main(){
@@ -1030,11 +1030,14 @@ const HALL = (() => {
           c += Lc[k] * pow(max(dot(reflect(-l, N), -rd), 0.), 18.) * fall * .25 * (.5 + grain); }                         // a faint sheen
         if (seam > 0.) {
           // glowing seams: a thin light line set into each face near one corner, broken into lengths, each pillar its own
-          float off = (h1(cell + side) - .5) * 80., w = abs(u - off);
-          float seg = step(.35, vn(vec2(vW.y / 900. + h1(cell * 1.7 + side) * 50., side + cell.x * 3.)));
+          // they fill up from below, each at its own speed (planned in planSeams so none ever reaches the title)
+          vec4 fm = N.z > .5 ? vec4(1, 0, 0, 0) : N.z < -.5 ? vec4(0, 1, 0, 0) : N.x > .5 ? vec4(0, 0, 1, 0) : vec4(0, 0, 0, 1);
+          float off = (h1(cell + side) - .5) * 80., w = abs(u - off), top = dot(vY0, fm) + dot(vV, fm) * time;   // (where it sits: as the owner picked it)
+          float seg = step(.35, vn(vec2(vW.y / 900. + h1(cell * 1.7 + side) * 50., side + cell.x * 3.))) * step(vW.y, top);
+          float head = 1. + 1.5 * exp(-max(top - vW.y, 0.) / 30.);                                                                  // the growing tip a little hotter
           float fl = .85 + .15 * sin(time * (3. + 4. * h1(cell + 9.)) + h1(cell) * 30.);
-          float core = smoothstep(1.6, .4, w), halo = exp(-w / 9.) * .35 + exp(-w / 40.) * .08;
-          c += vec3(.949, .188, .02) * seg * fl * seam * (halo + core * 1.6) + vec3(.949, .365, .027) * seg * fl * seam * core * .8;
+          float core = smoothstep(1.6, .4, w), halo = exp(-w / 9.) * .12 + exp(-w / 40.) * .025;                         // (a subtle glow, owner's call)
+          c += vec3(.949, .188, .02) * seg * fl * seam * (halo + core * 1.6) + vec3(.949, .365, .027) * seg * fl * seam * core * .8 * head;
         }
       }
       // the fog: dims with distance, and glows round each light (the light scattered along the ray)
@@ -1043,23 +1046,26 @@ const HALL = (() => {
       for (int k = 0; k < 3; k++) { vec3 q = ro - Lp[k]; float b = dot(q, rd), hh = sqrt(max(dot(q, q) - b * b, 1.));
         air += Lc[k] * scat * sig * Lr[k] * Lr[k] * (atan((t + b) / hh) - atan(b / hh)) / hh * exp(-sig * max(length(q) - Lr[k], 0.) * .5); }
       gl_FragColor = vec4(c * T + air, 1.); }`;
-  const VS = `attribute vec2 ctr; varying vec3 vW, vN; varying vec2 vC; void main(){ vC = ctr; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`;
+  const VS = `attribute vec2 ctr; attribute vec4 sOff, sY0, sV; varying vec3 vW, vN; varying vec2 vC; varying vec4 vOff, vY0, vV; void main(){ vC = ctr; vOff = sOff; vY0 = sY0; vV = sV; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`;
   const mat = new THREE.ShaderMaterial({ uniforms: U, vertexShader: VS, fragmentShader: FS });
-  const skyMat = new THREE.ShaderMaterial({ uniforms: { ...U, sky: { value: 1 } }, vertexShader: VS.replace('vC = ctr;', 'vC = vec2(0.);'), fragmentShader: FS, side: THREE.BackSide, depthWrite: false });
+  const skyMat = new THREE.ShaderMaterial({ uniforms: { ...U, sky: { value: 1 } }, vertexShader: VS.replace('vC = ctr;', 'vC = vec2(0.);').replace('vOff = sOff; vY0 = sY0; vV = sV;', ''), fragmentShader: FS, side: THREE.BackSide, depthWrite: false });
   // a loose grid: each pillar pushed off its place a little, some missing, none close to the camera's path, and the
   // subject (cell 0, 0) exactly at the origin; each pillar knows its centre (seams, weathering)
-  const occ = new THREE.Group(), oMat = new THREE.MeshBasicMaterial({ colorWrite: false }); let sd = 11; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  const pils = [], occ = new THREE.Group(), oMat = new THREE.MeshBasicMaterial({ colorWrite: false }); let sd = 11; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
   for (let i = -9; i <= 9; i++) for (let j = -16; j <= 4; j++) {
     const x = i * S + (i || j ? (R() - .5) * 340 : 0), z = j * S + (i || j ? (R() - .5) * 340 : 0), skip = R() < .2 && (i || j);
     const u = Math.max(0, Math.min(1, ((x + 260) * 190 + (z - 2100) * -2030) / (190 * 190 + 2030 * 2030)));   // (along the camera's line to the subject)
     if (skip || Math.hypot(x + 260, z - 2100) < 750 || (u > 0 && u < .93 && Math.hypot(x + 260 - 190 * u, z - 2100 + 2030 * u) < 300)) continue;   // nothing between the camera and the subject
     const geo = new THREE.BoxGeometry(HW * 2, 40000, HW * 2), n = geo.attributes.position.count;
     geo.setAttribute('ctr', new THREE.Float32BufferAttribute(Array.from({ length: n }, () => [x, z]).flat(), 2));
+    const off = [0, 0, 0, 0];
+    for (const [a, v] of [['sOff', off], ['sY0', [0, 0, 0, 0]], ['sV', [0, 0, 0, 0]]]) geo.setAttribute(a, new THREE.Float32BufferAttribute(Array.from({ length: n }, () => v).flat(), 4));
+    pils.push({ x, z, off, geo });
     const m = new THREE.Mesh(geo, mat); m.position.set(x, 0, z); g.add(m);
     const o = new THREE.Mesh(geo, oMat); o.position.copy(m.position); occ.add(o); }
   const sky = new THREE.Mesh(new THREE.SphereGeometry(15000, 32, 16), skyMat); sky.renderOrder = -2; g.add(sky);
   occ.visible = false; flScene.add(occ);                                         // the pillars hide the smoke behind them
-  return { g, U, occ, sky, HW, S };
+  return { g, U, occ, sky, HW, S, pils, plan: '' };
 })();
 let hallDir = 1;
 // the three directions: lights [position, colour, reach], haze, seams
@@ -1068,18 +1074,61 @@ const HALL_DIRS = {
   2: { L: [[[900, 400, -2600], '#f20000', 700, .35], [[-1600, -600, -4400], '#f23005', 700, .3], [[0, 0, 99999], '#000000', 1, 0]], haze: .005, scat: .5, seam: 1 },
   3: { L: [[[260, 700, -2900], '#f25d07', 650, 2.2], [[-1300, -500, -4800], '#f20000', 900, .9], [[-60, 700, 380], '#f23005', 160, .25]], haze: .004, scat: .9, seam: 0 },
 };
+// the camera stands low in an aisle between two rows of pillars, looking down it and up a little at the subject
+// pillar's front left corner (the nearer pillars on that side soft in front of it, the far ones lost in the haze)
+const hallCam = (i) => {
+  const t = stillCam ? 0 : i / 74, target = new THREE.Vector3(-HALL.HW, 300, HALL.HW), pos = new THREE.Vector3(lerp(-300, -220, t), -350, 2100);
+  cam.fov = 34; cam.updateProjectionMatrix(); look(pos, target, THREE.MathUtils.degToRad(6)); cam.updateMatrixWorld(); return { pos, target }; };
+// the title's box on screen (px, y down): the words, their glow and room for the blur of a soft line (owner's rule:
+// a seam never reaches it)
+const titleBox = () => {
+  const cap = H * 0.055, sizePx = cap / 0.72, tr = sizePx * 0.16, lines = TITLES[titleTxt] ?? TITLES[1];
+  tg.font = `500 ${sizePx}px Manrope`; tg.letterSpacing = `${tr}px`;
+  const lh = cap * 1.75, y0 = H * 0.5 + cap / 2 - (lines.length - 1) * lh / 2;
+  const w = Math.max(...lines.map((segs) => segs.reduce((a, [t]) => a + tg.measureText(t).width, 0) - tr));
+  const px = 60 * K, py = 55 * K;
+  return [W / 2 - w / 2 - px, W / 2 + w / 2 + px, y0 - cap - py, y0 + (lines.length - 1) * lh + py]; };
+// plans every seam's fill: it starts below the frame and climbs at its own speed; a seam whose line would reach the
+// title's box (at any moment of the shot, the camera moving) climbs just slow enough to end the shot short of it
+const planSeams = () => {
+  const box = titleTxt ? titleBox() : null, v = new THREE.Vector3(), N = SHOTS.hall.frames, Tend = (N - 1) / FPS, hw = HALL.HW;
+  let sd = 5; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  const frames = [...Array.from({ length: Math.ceil(N / 4) }, (_, k) => k * 4), N - 1];
+  const scr = (x, y, z) => { v.set(x, y, z); const fz = v.clone().applyMatrix4(cam.matrixWorldInverse).z; v.project(cam);
+    return [(v.x * .5 + .5) * W, (1 - (v.y * .5 + .5)) * H, fz < -30]; };
+  // the world height where the line's screen point reaches screen row py (screen y falls as world y rises)
+  const yAt = (x, z, py, lo = -9000, hi = 30000) => { while (!scr(x, lo, z)[2] && lo < hi) lo += 500;
+    if (scr(x, lo, z)[1] < py) return lo; if (scr(x, hi, z)[1] > py) return hi;
+    for (let k = 0; k < 40; k++) { const m = (lo + hi) / 2; if (scr(x, m, z)[1] > py) lo = m; else hi = m; } return (lo + hi) / 2; };
+  for (const P of HALL.pils) {
+    const y0s = [], vs = [];
+    for (let f = 0; f < 4; f++) {
+      // (the shader places the seam within 40 of the face's middle: the plan holds for all three of these lines)
+      const at = (o) => f < 2 ? [P.x + o, P.z + (f === 0 ? hw : -hw)] : [P.x + (f === 2 ? hw : -hw), P.z + o];
+      const [x, z] = at(0);
+      hallCam(0); const front = scr(x, 0, z)[2] || scr(x, 3000, z)[2];
+      if (!front) { y0s.push(-99999); vs.push(0); continue; }
+      const yBot = yAt(x, z, H + 40 * K), yTop = yAt(x, z, -40 * K), y0 = yBot - R() * 500, T = 1.6 + R() * 3;
+      let vv = (yTop - yBot) / T;
+      if (box) { let lim = Infinity;
+        for (const fr of frames) for (const o of [-40, 0, 40]) { hallCam(fr); const [x, z] = at(o);
+          const ya = yAt(x, z, box[3]), yb = yAt(x, z, box[2]), xa = scr(x, ya, z)[0], xb = scr(x, yb, z)[0];
+          if (Math.max(xa, xb) < box[0] || Math.min(xa, xb) > box[1]) continue;     // its line passes beside the title
+          let hit = ya;
+          if (xa < box[0] || xa > box[1]) { const edge = xa < box[0] ? box[0] : box[1]; let lo = ya, hi = yb;   // it enters through a side
+            for (let k = 0; k < 30; k++) { const m = (lo + hi) / 2, xm = scr(x, m, z)[0]; if ((xm - edge) * (xa - edge) > 0) lo = m; else hi = m; } hit = hi; }
+          lim = Math.min(lim, hit); }
+        if (y0 + vv * Tend > lim - 20) vv = Math.max(0, (lim - 20 - y0) / Tend); }       // slower, so it never gets there
+      y0s.push(y0); vs.push(vv); }
+    const n = P.geo.attributes.position.count;
+    for (const [a, val] of [['sY0', y0s], ['sV', vs]]) { const arr = P.geo.attributes[a].array; for (let k = 0; k < n; k++) arr.set(val, k * 4); P.geo.attributes[a].needsUpdate = true; } } };
 SHOTS.hall = { frames: 75, run(i) {
   knobLayer.visible = false; synth.visible = false; occ.visible = false; city.visible = false; HALL.g.visible = true; HALL.occ.visible = true;
   const D = HALL_DIRS[hallDir] ?? HALL_DIRS[1], U = HALL.U, hw = HALL.HW;
   D.L.forEach(([p, c, r, k], n) => { U.Lp.value[n].set(...p); const q = raw(c); U.Lc.value[n].set(q.r * k, q.g * k, q.b * k); U.Lr.value[n] = r; });
   U.hazeC.value.set(.09, .085, .08).multiplyScalar(D.haze / .01); U.scat.value = D.scat; U.seam.value = D.seam; U.time.value = i / FPS;
-  const t = stillCam ? 0 : i / 74;
-  // the camera stands low in an aisle between two rows of pillars, looking down it and up a little at the subject
-  // pillar's front left corner (the nearer pillars on that side soft in front of it, the far ones lost in the haze)
-  const target = new THREE.Vector3(-hw, 300, hw);
-  const pos = new THREE.Vector3(lerp(-300, -220, t), -350, 2100);
-  cam.fov = 34; cam.updateProjectionMatrix();
-  look(pos, target, THREE.MathUtils.degToRad(6));
+  const { pos, target } = hallCam(i);
+  if (HALL.plan !== hallDir + '/' + titleTxt) { planSeams(); HALL.plan = hallDir + '/' + titleTxt; hallCam(i); }
   finOut = rtOut; draw(i, pos.distanceTo(target), 105); finOut = null;
   if (titleTxt) layTitle(); else { tg.clearRect(0, 0, W, H); ttex.needsUpdate = true; pass(comp, null); }   // txt=0: no words
 } };
