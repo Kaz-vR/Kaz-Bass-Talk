@@ -1171,23 +1171,24 @@ const AIR = (() => {
       float head = 1. + 1.5 * exp(-max(top - vW.y, 0.) / 30.);
       float fl = .85 + .15 * sin(time * (3. + 4. * h1(vec2(vId, 9.))) + h1(vec2(vId, 4.)) * 30.);
       float core = smoothstep(1.6, .4, w), halo = exp(-w / 9.) * .35 + exp(-w / 40.) * .08;
-      vec3 c = isCore > .5 ? vec3(.949, .188, .02) * core * 1.6 + vec3(.949, .365, .027) * core * .8 * head : vec3(.949, .188, .02) * halo * (1. - core);
+      vec3 c = vec3(.949, .188, .02) * (halo + core * 1.6) + vec3(.949, .365, .027) * core * .8 * head;          // exactly the seams' light
       gl_FragColor = vec4(c * seg * fl * exp(-sig * length(vW - cameraPosition)), 1.); }`;
   const VS = `attribute float lY0, lV, lId; varying vec3 vW; varying vec2 vUv; varying float vY0, vV, vId;
     void main(){ vUv = uv; vY0 = lY0; vV = lV; vId = lId; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`;
   const U = { time: HALL.U.time, sig: HALL.U.sig };
-  const coreM = new THREE.ShaderMaterial({ uniforms: { ...U, wid: { value: 4 }, isCore: { value: 1 } }, vertexShader: VS, fragmentShader: FS, blending: THREE.AdditiveBlending, transparent: true, depthWrite: true });
-  const haloM = new THREE.ShaderMaterial({ uniforms: { ...U, wid: { value: 300 }, isCore: { value: 0 } }, vertexShader: VS, fragmentShader: FS, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });
-  const S = HALL.S, lines = []; let sd = 23, id = 0; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
-  for (let i = -9; i <= 8; i++) for (let j = -16; j <= 3; j++) for (let e = 0; e < 3; e++) {                  // up to three in each gap
-    const x = (i + .5) * S + (R() - .5) * 420, z = (j + .5) * S + (R() - .5) * 420; if (R() < .3) continue;
-    const u = Math.max(0, Math.min(1, ((x + 260) * 190 + (z - 2100) * -2030) / (190 * 190 + 2030 * 2030)));
-    if (Math.hypot(x + 260, z - 2100) < 1100 || Math.hypot(x + 260 - 190 * u, z - 2100 + 2030 * u) < 160) continue;   // clear of the camera and its view of the subject
-    if (HALL.pils.some((p) => Math.abs(p.x - x) < HALL.HW + 40 && Math.abs(p.z - z) < HALL.HW + 40)) continue;     // never inside a pillar
-    const meshes = [[coreM, 4], [haloM, 300]].map(([m, wd]) => { const geo = new THREE.PlaneGeometry(1, 1), n = geo.attributes.position.count;
-      for (const [a, v] of [['lY0', -99999], ['lV', 0], ['lId', id]]) geo.setAttribute(a, new THREE.Float32BufferAttribute(new Array(n).fill(v), 1));
-      const me = new THREE.Mesh(geo, m); me.scale.set(wd, 40000, 1); me.position.set(x, 0, z); me.frustumCulled = false; g.add(me); return me; });
-    lines.push({ x, z, meshes }); id++; }
+  const lineM = new THREE.ShaderMaterial({ uniforms: { ...U, wid: { value: 60 }, isCore: { value: 1 } }, vertexShader: VS, fragmentShader: FS, blending: THREE.AdditiveBlending, transparent: true, depthWrite: true });
+  // the seams themselves, moved: every seam on a pillar face the camera sees, lifted off the face into the gap beside it
+  // (owner's call: the same lines, only placed between the pillars)
+  const lines = []; let sd = 23, id = 0; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647, hw = HALL.HW;
+  for (const P of HALL.pils) for (const [nx, nz] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+    const o = (R() - .5) * 80, d = hw + 150 + R() * 80, x = P.x + nx * d + nz * o, z = P.z + nz * d + nx * o;
+    if ((-260 - P.x) * nx + (2100 - P.z) * nz <= 0) continue;                                                    // a face turned away
+    if (Math.hypot(x + 260, z - 2100) < 500) continue;
+    if (HALL.pils.some((q) => Math.abs(q.x - x) < hw + 30 && Math.abs(q.z - z) < hw + 30)) continue;             // never inside a pillar
+    const geo = new THREE.PlaneGeometry(1, 1), n = geo.attributes.position.count;
+    for (const [a, v] of [['lY0', -99999], ['lV', 0], ['lId', id]]) geo.setAttribute(a, new THREE.Float32BufferAttribute(new Array(n).fill(v), 1));
+    const me = new THREE.Mesh(geo, lineM); me.scale.set(60, 40000, 1); me.position.set(x, 0, z); me.frustumCulled = false; g.add(me);
+    lines.push({ x, z, meshes: [me] }); id++; }
   return { g, lines };
 })();
 SHOTS.hall = { frames: 75, run(i) {
