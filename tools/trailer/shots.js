@@ -386,11 +386,13 @@ const spSpawn = (s, anywhere) => { const R = sparks.rnd, f = sparks.focus;
 // bigger, faster sparks, as a lens would. Denser near the face; some behind its plane, past its edges (hidden by the
 // synth). A spark that reaches the face glances off it, slowed, and cools fast; one that meets the body's edge from
 // beside or below bounces off it and dies.
-const REF = 418, SPB = { x0: -PW / 2 - 250, x1: PW / 2 + 250, y0: -PH / 2 - 300, y1: PH / 2 + 300, zb: -120, z1: 420 };
-const inPanel = (x, y) => Math.abs(x) < PW / 2 && Math.abs(y) < PH / 2;
+const REF = 418, SPB0 = { x0: -PW / 2 - 250, x1: PW / 2 + 250, y0: -PH / 2 - 300, y1: PH / 2 + 300, zb: -120, z1: 420, free: false }, SPB = { ...SPB0 };
+// free (the hall of pillars): no synth, the sparks fill the box evenly in depth and meet no panel
+const inPanel = (x, y) => !SPB.free && Math.abs(x) < PW / 2 && Math.abs(y) < PH / 2;
 const spSpawnW = (s, anywhere) => { const R = sparks.rnd, B = SPB;
   s.x = lerp(B.x0, B.x1, R()); s.y = lerp(B.y0, B.y1, R());
-  if (R() < .15) { s.z = B.zb * R(); if (inPanel(s.x, s.y)) s.z = -s.z; }
+  if (B.free) s.z = lerp(B.zb, B.z1, R());
+  else if (R() < .15) { s.z = B.zb * R(); if (inPanel(s.x, s.y)) s.z = -s.z; }
   else s.z = -130 * Math.log(1 - R() * (1 - Math.exp(-B.z1 / 130)));            // denser close to the face
   s.prev = null; const sp = REF * (.04 + R() * .1);
   s.vy = sp; s.vz = (R() - .62) * REF * .035; s.ph = R() * 6.28; s.b = .35 + Math.pow(R(), 2) * 1.2; s.max = 2.6 + R() * 3;
@@ -505,7 +507,10 @@ const flA = () => flu.ink === 2 ? hiFl()[0] : FL, flB = () => flu.ink === 2 ? hi
 const rtFl = [0, 1].map(() => new THREE.WebGLRenderTarget(W, H, rtOpts));
 fin.uniforms.tFlA.value = rtFl[1].texture; fin.uniforms.tFlB.value = rtFl[1].texture;
 // layers: two behind the synth's face (hidden by it, showing past its edges), five above it; [height, which simulation]
-const LAYER_Z = [[-70, 1], [-28, 1], [14, 1], [36, 0], [60, 0], [84, 0], [108, 0]]   // kept close to the synth: no smoke racing past the lens, SW = PW * 1.7, SH = PH * 1.9;
+// (kept close to the synth: no smoke racing past the lens)
+const LAYER_Z = [[-70, 1], [-28, 1], [14, 1], [36, 0], [60, 0], [84, 0], [108, 0]];
+// the hall of pillars: the same seven sheets spread through the hall's depth, from far behind the subject to near the lens
+const HALL_LZ = [-1700, -1000, -450, -140, 60, 150, 220];
 const layerMat = (k) => new THREE.ShaderMaterial({ uniforms: { dye: { value: null }, k: { value: k }, time: { value: 0 } },
   transparent: true, depthTest: true, depthWrite: false, blending: THREE.AdditiveBlending,
   vertexShader: `varying vec2 vUv; varying float vZ; void main(){ vUv = uv; vec4 mv = modelViewMatrix * vec4(position, 1.); vZ = -mv.z; gl_Position = projectionMatrix * mv; }`,
@@ -593,6 +598,14 @@ const smokeSetup = (focusDist) => {
     layers.forEach((m) => m.scale.set(1.1 * focusDist, .62 * focusDist, 1));                    // the sheet just over the frame, so the dye's detail stays sharp
     FL.setup([[.25, .2, .07, 70, .5, .6, 3], [.55, .15, .07, 65, -.3, .7, 3], [.8, .35, .06, 60, -.6, .4, 2.6], [.4, .55, .06, 50, .7, -.2, 2.4]], { buoy: .5, turb: 3.5, eps: 16, keepDye: .9998, speed: .08 });
     FL2.setup([[.3, .4, .08, 60, .6, .3, 2.4], [.7, .6, .08, 55, -.5, -.2, 2.4], [.5, .25, .07, 50, 0, .8, 2]], { buoy: .4, turb: 3.8, eps: 16, keepDye: .9998, speed: .08 });
+    flu.ready = true; return;
+  }
+  if (flu.hall) {                                                               // the hall of pillars: sheets spread deep through the hall, each facing
+    // the camera's way along z, centred where the view's middle crosses it and sized to cover the view at its distance
+    HALL_LZ.forEach((dz, k) => { const m = layers[k], z = c.z + dz, t = (z - cam.position.z) / fwd.z, p = cam.position.clone().addScaledVector(fwd, t), s = Math.max(.25, t / 418);
+      m.position.copy(p); m.scale.set(900 * s, 700 * s, 1); });
+    FL.setup([[.18, .08, .06, 60, .3, 1, 1.8], [.45, .06, .06, 55, .05, 1, 1.6], [.72, .08, .06, 55, -.2, 1, 1.6], [.9, .2, .05, 45, -.4, 1, 1.3]], { buoy: 1.2, turb: 1.4, eps: 4, keepDye: .9996, speed: .08 });
+    FL2.setup([[.3, .15, .07, 50, .4, 1, 1.4], [.65, .12, .07, 50, -.3, 1, 1.4], [.08, .4, .05, 40, .8, .4, 1.1]], { buoy: 1, turb: 1.6, eps: 5, keepDye: .9995, speed: .08 });
     flu.ready = true; return;
   }
   if (flu.beams || flu.title) {                                                 // the header (and the title cards): smoke rising from below, drifting across
@@ -981,6 +994,91 @@ SHOTS.title = { frames: 250, run(i) {
   });
   ttex.needsUpdate = true; pass(comp, null);
 } };
+// ---------- the hall of pillars (title cards, owner's brief 18 Nov): square concrete pillars in a regular grid, no
+// floor, no roof, running up and down out of the frame, lost in haze. Made like the slide shot: the same camera
+// (low, to one side, looking up, a slow slide), lens, depth of field, smoke and sparks; the pillars are lit as the
+// synth is (light with a source, the rest falls into black). The haze is a real fog: it dims with distance and glows
+// round each light (the light scattered along every view ray, in closed form). hall=1..3 picks the direction:
+// 1 a light pool on the subject pillar (the synth's light), 2 glowing seams in the pillars (the UI's glowing lines),
+// 3 a fire deep in the hall, the pillars as silhouettes against its glowing haze
+const HALL = (() => {
+  const g = new THREE.Group(); g.visible = false; scene.add(g);
+  const S = 600, HW = 70;                                                         // grid spacing, half the pillar width
+  const U = { Lp: { value: [0, 1, 2].map(() => new THREE.Vector3()) }, Lc: { value: [0, 1, 2].map(() => new THREE.Vector3()) }, Lr: { value: [1, 1, 1] },
+    sig: { value: 1 / 2200 }, scat: { value: 1 }, hazeC: { value: new THREE.Vector3() }, seam: { value: 0 }, time: { value: 0 }, sky: { value: 0 }, tone: { value: 1 } };
+  const FS = `uniform vec3 Lp[3], Lc[3], hazeC; uniform float Lr[3], sig, scat, seam, time, sky, tone; varying vec3 vW, vN; varying vec2 vC;
+    float h1(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); return mix(mix(h1(i), h1(i + vec2(1, 0)), f.x), mix(h1(i + vec2(0, 1)), h1(i + vec2(1, 1)), f.x), f.y); }
+    void main(){
+      vec3 ro = cameraPosition, rd = normalize(vW - ro); float t = sky > .5 ? 14000. : length(vW - ro);
+      vec3 c = vec3(0.);
+      if (sky < .5) {
+        vec3 N = normalize(vN); vec2 ctr = vC, cell = floor(vC / 97.);
+        float u = abs(N.z) > .5 ? vW.x - ctr.x : vW.z - ctr.y, side = abs(N.z) > .5 ? sign(N.z) : 2. + sign(N.x);   // across the face; which face
+        vec2 p = vec2(u, vW.y);
+        float grain = vn(p / 7.) * .35 + vn(vec2(p.x / 26., p.y / 140.) + cell * 3.1) * .65;
+        float joint = smoothstep(2.2, .6, abs(mod(vW.y + h1(cell) * 400., 240.) - 120.) - 118.);                       // formwork joints
+        float stain = vn(vec2(p.x / 40. + side * 7., p.y / 600.)) ;                                                        // long rain stains
+        vec3 alb = tone * vec3(.11, .098, .088) * (.7 + .6 * grain) * (1. - .35 * joint) * (.75 + .4 * stain);
+        c = alb * (.03 + .05 * max(N.y, 0.));                                                                            // all but black
+        for (int k = 0; k < 3; k++) { vec3 lv = Lp[k] - vW; float d = length(lv); vec3 l = lv / d;
+          float fall = 1. / (1. + d * d / (Lr[k] * Lr[k]));
+          c += alb * Lc[k] * max(dot(N, l), 0.) * fall * 9.;
+          c += Lc[k] * pow(max(dot(reflect(-l, N), -rd), 0.), 18.) * fall * .25 * (.5 + grain); }                         // a faint sheen
+        if (seam > 0.) {
+          // glowing seams: a thin light line set into each face near one corner, broken into lengths, each pillar its own
+          float off = (h1(cell + side) - .5) * 80., w = abs(u - off);
+          float seg = step(.35, vn(vec2(vW.y / 900. + h1(cell * 1.7 + side) * 50., side + cell.x * 3.)));
+          float fl = .85 + .15 * sin(time * (3. + 4. * h1(cell + 9.)) + h1(cell) * 30.);
+          float core = smoothstep(1.6, .4, w), halo = exp(-w / 9.) * .35 + exp(-w / 40.) * .08;
+          c += vec3(.949, .188, .02) * seg * fl * seam * (halo + core * 1.6) + vec3(.949, .365, .027) * seg * fl * seam * core * .8;
+        }
+      }
+      // the fog: dims with distance, and glows round each light (the light scattered along the ray)
+      float T = exp(-sig * t);
+      vec3 air = hazeC * (1. - T) * (1. + .6 * smoothstep(.3, -.4, rd.y));
+      for (int k = 0; k < 3; k++) { vec3 q = ro - Lp[k]; float b = dot(q, rd), hh = sqrt(max(dot(q, q) - b * b, 1.));
+        air += Lc[k] * scat * sig * Lr[k] * Lr[k] * (atan((t + b) / hh) - atan(b / hh)) / hh * exp(-sig * max(length(q) - Lr[k], 0.) * .5); }
+      gl_FragColor = vec4(c * T + air, 1.); }`;
+  const VS = `attribute vec2 ctr; varying vec3 vW, vN; varying vec2 vC; void main(){ vC = ctr; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`;
+  const mat = new THREE.ShaderMaterial({ uniforms: U, vertexShader: VS, fragmentShader: FS });
+  const skyMat = new THREE.ShaderMaterial({ uniforms: { ...U, sky: { value: 1 } }, vertexShader: VS.replace('vC = ctr;', 'vC = vec2(0.);'), fragmentShader: FS, side: THREE.BackSide, depthWrite: false });
+  // a loose grid: each pillar pushed off its place a little, some missing, none close to the camera's path, and the
+  // subject (cell 0, 0) exactly at the origin; each pillar knows its centre (seams, weathering)
+  const occ = new THREE.Group(), oMat = new THREE.MeshBasicMaterial({ colorWrite: false }); let sd = 11; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  for (let i = -9; i <= 9; i++) for (let j = -16; j <= 4; j++) {
+    const x = i * S + (i || j ? (R() - .5) * 340 : 0), z = j * S + (i || j ? (R() - .5) * 340 : 0), skip = R() < .2 && (i || j);
+    const u = Math.max(0, Math.min(1, ((x + 260) * 190 + (z - 2100) * -2030) / (190 * 190 + 2030 * 2030)));   // (along the camera's line to the subject)
+    if (skip || Math.hypot(x + 260, z - 2100) < 750 || (u > 0 && u < .93 && Math.hypot(x + 260 - 190 * u, z - 2100 + 2030 * u) < 300)) continue;   // nothing between the camera and the subject
+    const geo = new THREE.BoxGeometry(HW * 2, 40000, HW * 2), n = geo.attributes.position.count;
+    geo.setAttribute('ctr', new THREE.Float32BufferAttribute(Array.from({ length: n }, () => [x, z]).flat(), 2));
+    const m = new THREE.Mesh(geo, mat); m.position.set(x, 0, z); g.add(m);
+    const o = new THREE.Mesh(geo, oMat); o.position.copy(m.position); occ.add(o); }
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(15000, 32, 16), skyMat); sky.renderOrder = -2; g.add(sky);
+  occ.visible = false; flScene.add(occ);                                         // the pillars hide the smoke behind them
+  return { g, U, occ, sky, HW, S };
+})();
+let hallDir = 1;
+// the three directions: lights [position, colour, reach], haze, seams
+const HALL_DIRS = {
+  1: { L: [[[-500, 900, 500], '#f25d07', 520, 1.6], [[700, 300, -3200], '#f20000', 900, .5], [[-2200, -900, -5200], '#f23005', 900, .35]], haze: .007, scat: .35, seam: 0 },
+  2: { L: [[[900, 400, -2600], '#f20000', 700, .35], [[-1600, -600, -4400], '#f23005', 700, .3], [[0, 0, 99999], '#000000', 1, 0]], haze: .005, scat: .5, seam: 1 },
+  3: { L: [[[260, 700, -2900], '#f25d07', 650, 2.2], [[-1300, -500, -4800], '#f20000', 900, .9], [[-60, 700, 380], '#f23005', 160, .25]], haze: .004, scat: .9, seam: 0 },
+};
+SHOTS.hall = { frames: 75, run(i) {
+  knobLayer.visible = false; synth.visible = false; occ.visible = false; city.visible = false; HALL.g.visible = true; HALL.occ.visible = true;
+  const D = HALL_DIRS[hallDir] ?? HALL_DIRS[1], U = HALL.U, hw = HALL.HW;
+  D.L.forEach(([p, c, r, k], n) => { U.Lp.value[n].set(...p); const q = raw(c); U.Lc.value[n].set(q.r * k, q.g * k, q.b * k); U.Lr.value[n] = r; });
+  U.hazeC.value.set(.09, .085, .08).multiplyScalar(D.haze / .01); U.scat.value = D.scat; U.seam.value = D.seam; U.time.value = i / FPS;
+  const t = stillCam ? 0 : i / 74;
+  // the camera stands low in an aisle between two rows of pillars, looking down it and up a little at the subject
+  // pillar's front left corner (the nearer pillars on that side soft in front of it, the far ones lost in the haze)
+  const target = new THREE.Vector3(-hw, 300, hw);
+  const pos = new THREE.Vector3(lerp(-300, -220, t), -350, 2100);
+  cam.fov = 34; cam.updateProjectionMatrix();
+  look(pos, target, THREE.MathUtils.degToRad(6));
+  draw(i, pos.distanceTo(target), 105);
+} };
 SHOTS.cardA = card(PLATES.A, { count: 60 });
 SHOTS.cardB = card(PLATES.B, {});
 SHOTS.cardC = card(PLATES.C, {});
@@ -1001,9 +1099,13 @@ window.setup = (name) => {
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   titleTxt = o.txt ?? 1; titleCity = o.city ?? 0; titleFog = o.pfog ?? .5; titleTone = o.ptone ?? .5; titleTilt = o.tilt ?? 0; titleNear = o.pnear ?? 7000; titleMid = o.pmid ?? 7600; titleTGlow = o.tglow ?? 0; titleHaze = o.hazek ?? .4; titlePool = o.pool ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; fin.uniforms.sglow.value = flu.title ? (o.sglow ?? 1) : 1; const bgLike = n === 'bg' || n === 'title';
+  const isHall = n === 'hall'; hallDir = o.hall ?? 1; HALL.g.visible = isHall; HALL.occ.visible = isHall; flu.hall = isHall;
+  Object.assign(SPB, isHall ? { x0: -1300, x1: 1100, y0: -900, y1: 1500, zb: -1600, z1: 1900, free: true } : SPB0);
+  if (isHall) { fin.uniforms.lim.value = 1; fin.uniforms.sglow.value = o.sglow ?? 1; }
   sparks.world = !bgLike; flow.on = false; smokeDof.uniforms.fill.value = n === 'bg' ? 0 : 1; fin.uniforms.subjOn.value = bgLike ? 0 : 1;   // (title cards: smoke without holes, no clear oval)   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
   sparks.on = Math.min(25, o.sparks ?? 0); sparks.trail = o.trail ?? 0; sparks.spd = o.spd ?? 1; flu.ink = o.ink ?? 0; titleAp = o.ap ?? 30;
-  spMat.uniforms.maxR.value = (o.bokeh ?? 26) * K; spMat.uniforms.bgain.value = o.bgain ?? 1;   // trail=N: light streams N frames long; ink=1: ink-in-water smoke; ap/bokeh: aperture and the biggest spark disc sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
+  spMat.uniforms.maxR.value = (o.bokeh ?? 26) * K; spMat.uniforms.bgain.value = o.bgain ?? 1;   // trail=N: light streams N frames long; ink=1: ink-in-water smoke; ap/bokeh: aperture and the biggest spark disc
+  sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
   flu.on = o.fluid ?? 0; fin.uniforms.fluid.value = flu.on; flu.ready = false;
