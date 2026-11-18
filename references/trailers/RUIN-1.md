@@ -253,3 +253,25 @@ volumetric fog pass (commits 3453e25 to 919245a). The owner found these worse th
 - The yellow guard must only act on saturated warm colours (an early version turned every grey orange); a tilted
   camera can push the backdrop past the far clip (keep the backdrop within it).
 - Never put a `//` comment in the middle of a line of code: it swallowed code again (in `setup`).
+
+## 8. The whole trailer: timeline, ROUGH and FINAL
+
+The edit lives in **`tools/trailer/timeline.json`**: every shot or card in order (`STRUCTURE.md`), its length in beats,
+its options, its fades through black and its part of the music. Timing from `RULES.md` at a placeholder 90 BPM (10
+frames a beat at 15 fps) until the owner's track exists: intro shots 6-7 beats, fast parts 1-2, cards about a third,
+the drop at 31 %, the break at 60 %, the logo 4.7 s plus a 4 s tail; 60.0 s in all.
+
+Two modes read the same timeline, shots, moves and text (`node tools/trailer-cut.mjs rough|final`):
+- **ROUGH** (`rough=1`): the previs, to judge pacing, cuts, framing, moves and text timing. 640 x 360, 15 fps, the
+  scene drawn flat and unlit (the synth's captured screen as its one picture, the pillars a flat grey per face), no
+  smoke, sparks, depth of field, fog, glow or grade. The whole minute renders in about 40 s, as an MP4.
+- **FINAL**: the full look per shot (`looks` in the timeline), 1920 x 1080, 25 fps (hours).
+Every shot runs on its own 25 fps clock, so it moves the same in both modes. Cards type in a letter every two frames
+(`typ=1`); the logo fades in. Pages other than OSC are their own captures (`renders/trailer/cap-<PAGE>`, made with
+`trailer-capture.mjs ... <PAGE> - 1`; RUIN on Destroyed Reese, which has a chain); their shots are blocked in
+(`UISHOTS` in `shots.js`, the slide shot's recipe).
+
+**The guide track** (`npx tsx tools/trailer-music.ts`): a sketch for timing played on RUIN-1's own presets through
+the engine, offline (no samples), in D minor at the timeline's tempo, its sections on the timeline's parts: a soft pad
+and pluck intro, a riser under card 1 to an impact on the drop, a dark bass groove, a short drop-out, the biggest part
+with a lead, a final hit on the logo. Written to `renders/trailer/track.wav`; the cut picks it up.

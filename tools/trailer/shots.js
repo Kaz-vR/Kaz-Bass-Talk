@@ -35,7 +35,13 @@ tex.colorSpace = THREE.NoColorSpace; tex.anisotropy = r.capabilities.getMaxAniso
 const knobs = [];
 const loadKnob = async (i) => knobs[i] ??= await new THREE.ImageLoader().loadAsync(`${CAP}/knob/${String(i).padStart(3, '0')}.png`);
 const PW = meta.W, PH = meta.H, S = meta.dsf;                          // css px of the instrument; the capture's scale
-const crop = (x, w) => { const t = tex.clone(); t.repeat.set(w / PW, 1); t.offset.set(x / PW, 0); t.needsUpdate = true; return t; };
+const CROPS = [], crop = (x, w) => { const t = tex.clone(); t.repeat.set(w / PW, 1); t.offset.set(x / PW, 0); t.needsUpdate = true; CROPS.push(t); return t; };
+// the synth's pages: OSC is the main capture (CAP); every other page its own capture of the same instrument
+// (node tools/trailer-capture.mjs renders/trailer/cap-<PAGE> <sound> <PAGE> - 1), swapped onto the face when a shot needs it
+const PAGE_IMG = { OSC: img }; let pageNow = 'OSC';
+const usePage = async (pg = 'OSC') => { if (pg === pageNow || CFG.noSynth) return;
+  PAGE_IMG[pg] ??= await new THREE.ImageLoader().loadAsync(`${CFG.capRoot ?? '/renders/trailer'}/cap-${pg}/base.png`);
+  fg.clearRect(0, 0, face.width, face.height); fg.drawImage(PAGE_IMG[pg], 0, 0); tex.needsUpdate = true; CROPS.forEach((t) => { t.needsUpdate = true; }); pageNow = pg; };
 const flat = (o) => new THREE.MeshBasicMaterial({ toneMapped: false, ...o });
 // the synth's face as a lit object (owner's call, away from the references' evenly self-lit screen): one hard light
 // pool falling across the panel, the rest in shadow, and a faint sheen on the glossy face; the UI's own glowing parts
@@ -683,7 +689,10 @@ const fluidDraw = (i, focusDist, apert) => {
     blur.uniforms.t.value = rtLight[1].texture; blur.uniforms.d.value.set(0, 2.2 / (H / 4)); pass(blur, rtLight[0]);
   }
 };
+// rough=1 (the previs): the scene as it is, flat and unlit, nothing after it (no depth of field, smoke, sparks, glow or grade)
+let ROUGH = 0;
 const draw = (i, focusDist, apert = 30) => {
+  if (ROUGH) { r.setRenderTarget(finOut); r.setClearColor(0x000000, 1); r.render(scene, cam); return; }
   r.setRenderTarget(rtScene); r.render(scene, cam);
   Object.assign(dof.uniforms, {}); dof.uniforms.near.value = cam.near; dof.uniforms.far.value = cam.far; dof.uniforms.focus.value = focusDist; dof.uniforms.aperture.value = apert * K;
   pass(dof, rtDof2);
@@ -720,8 +729,8 @@ const SHOTS = {
     draw(i, 1000, 30);
   } },
   // 1: a slow slide along the oscillator row at a steep angle; the focus band holds on the knobs (3 s)
-  slide: { frames: 75, run(i) {
-    knobLayer.visible = false;
+  slide: { frames: 75, async run(i) {
+    knobLayer.visible = false; await usePage('OSC');
     const t = stillCam ? 0 : i / 74;
     const target = P(lerp(215, 255, t), 256); LIT.lightAt.value.copy(P(330, 150));                                 // a slow drift along OSC A's knobs (~3 % of the frame a second)
     const pos = target.clone().add(new THREE.Vector3(-210, -260, 250));
@@ -732,8 +741,8 @@ const SHOTS = {
   // 3: the amp envelope: the whole curve is the subject. The camera looks up at it from straight below, so the line
   // runs across the frame inside the sharp band (all of it in focus, what is above and below it soft), and slides
   // slowly along it; the smoke keeps clear of a wide band along the line (3.2 s)
-  env: { frames: 80, run(i) {
-    knobLayer.visible = false;
+  env: { frames: 80, async run(i) {
+    knobLayer.visible = false; await usePage('OSC');
     const t = stillCam ? 0 : i / 79;
     const target = P(lerp(835, 790, t), 182); LIT.lightAt.value.copy(P(800, 120));
     const pos = target.clone().add(new THREE.Vector3(0, -180, 290));
@@ -744,8 +753,8 @@ const SHOTS = {
   } },
   // 2: push in on the filter cutoff while it turns; the focus pulls from the filter curve to the knob (4 s)
   knob: { frames: 100, async run(i) {
-    knobLayer.visible = true;
-    const t = stillCam ? 0 : i / 99, k = await loadKnob(i), p = meta.patch;
+    knobLayer.visible = true; await usePage('OSC');
+    const t = stillCam ? 0 : i / 99, k = await loadKnob(Math.max(0, Math.min(meta.frames - 1, Math.round(i)))), p = meta.patch;
     knobLayer.material.uniforms.map.value.image = k; knobLayer.material.uniforms.map.value.needsUpdate = true;
     const knob = P(p.cx, p.cy), curve = P(p.cx - 30, p.cy - 90); LIT.lightAt.value.copy(P(p.cx + 70, p.cy - 60));
     const dolly = lerp(1, 0.86, t);
@@ -756,6 +765,34 @@ const SHOTS = {
     draw(i, pull ? lerp(pos.distanceTo(curve), pos.distanceTo(knob), f) : pos.distanceTo(knob), 115);   // fixed focus unless pull=1
   } },
 };
+// the rest of the synth's shots (the rough cut blocks them in; the same definitions render the final): the slide shot's
+// recipe (RUIN-1.md section 6) on any page. [page, target start (css px), its move over 3 s (css px), camera offset
+// (units), roll (deg), fov, light (css px)]
+const UISHOTS = {
+  osc_b:   ['OSC', [520, 256], [-45, 0], [190, -250, 245], -5, 26, [600, 150]],      // OSC B's knobs
+  osc_wave:['OSC', [230, 150], [50, 0], [-190, -210, 235], 8, 26, [300, 110]],       // OSC A's saw
+  filter:  ['OSC', [1120, 180], [-40, 0], [200, -200, 230], -7, 25, [1080, 120]],    // the filter curve
+  lfo_line:['LFO', [150, 135], [80, 0], [-200, -230, 240], 5, 26, [250, 100]],       // LFO 1 on HUMANIZE
+  lfo_knob:['LFO', [235, 183], [40, -5], [170, -170, 190], -9, 24, [280, 140]],      // its RATE and FADE
+  lfo_mtx: ['LFO', [760, 150], [80, 0], [220, -200, 250], -7, 26, [820, 120]],       // the matrix: LFO 1 to the cutoff
+  tape:    ['FX', [780, 175], [70, 0], [-180, -240, 250], 6, 26, [840, 140]],        // the TAPE wow and flutter
+  tape_kn: ['FX', [790, 255], [40, 0], [160, -170, 190], -8, 24, [820, 220]],        // WOW and DRIFT
+  ruin_d2: ['RUIN', [600, 150], [-50, 0], [-190, -230, 240], 7, 26, [600, 110]],     // the chain: drive 2
+  ruin_f1: ['RUIN', [300, 380], [70, 0], [210, -220, 250], -6, 26, [340, 330]],      // the big filter curve
+  ruin_cmb:['RUIN', [750, 150], [50, 0], [-200, -210, 230], 9, 25, [760, 110]],      // filter 3, comb
+  ruin_d4: ['RUIN', [1200, 150], [-50, 0], [200, -240, 245], -5, 26, [1190, 110]],   // drive 4, soft clip
+  ruin_ott:['RUIN', [940, 485], [50, 0], [-170, -190, 210], 6, 24, [950, 440]],      // OTT and MIX
+  ruin_d1: ['RUIN', [300, 150], [40, 0], [180, -200, 220], -10, 25, [310, 110]],     // drive 1, tape
+  pr_list: ['PRESETS', [440, 300], [40, 40], [-200, -240, 250], 5, 26, [480, 260]],   // the list of dark basses
+  pr_wave: ['PRESETS', [1080, 160], [60, 0], [200, -220, 240], -6, 26, [1120, 130]], // the preview's waveform
+  pr_shelf:['PRESETS', [150, 150], [0, 50], [-210, -210, 240], 7, 26, [170, 180]],   // the shelves
+};
+for (const [k, [pg, [tx, ty], [mx, my], [ox, oy, oz], roll, fov, [lx, ly]]] of Object.entries(UISHOTS)) SHOTS[k] = { frames: 75, async run(i) {
+  knobLayer.visible = false; await usePage(pg);
+  const t = stillCam ? 0 : i / 74, target = P(tx + mx * t, ty + my * t); LIT.lightAt.value.copy(P(lx, ly));
+  const pos = target.clone().add(new THREE.Vector3(ox, oy, oz));
+  cam.fov = fov; cam.updateProjectionMatrix(); look(pos, target, THREE.MathUtils.degToRad(roll));
+  draw(i, pos.distanceTo(target), 105); } };
 // ---------- text cards: five plates in the website's siren colours (always fading to pure black), Manrope, typed in ----------
 // A siren glow rising from below, with pixel sparks · B ink in deep red with a hot core · C black film: dust, scratches,
 // a red light leak · D the website's pixel fire, taller, with sparks · E real flames, heat shimmer and sparks
@@ -983,15 +1020,17 @@ const city = (() => {
   return g;
 })();
 // the card's words over the graded picture (rtOut): Manrope, centred, the accent word in #f25d07
+// typ=1: the words typed in, a letter every two frames (25 fps), from the shot's 6th frame (RULES.md section 7)
+let titleTyp = 0, curI = 0, typedLeft = 0;
 const layTitle = () => {
-  tg.clearRect(0, 0, W, H);
+  tg.clearRect(0, 0, W, H); typedLeft = titleTyp ? Math.max(0, Math.floor((curI - 6) / 2)) : 1e9;
   const cap = H * 0.055, sizePx = cap / 0.72, tr = sizePx * 0.16, lines = TITLES[titleTxt] ?? TITLES[1];
   tg.font = `500 ${sizePx}px Manrope`; tg.textBaseline = 'alphabetic'; tg.letterSpacing = `${tr}px`;
   const lh = cap * 1.75, y0 = H * 0.5 + cap / 2 - (lines.length - 1) * lh / 2;
   lines.forEach((segs, n) => {
     const ws = segs.map(([t]) => tg.measureText(t).width), tot = ws.reduce((a, b) => a + b, 0) - tr;
     let x = W / 2 - tot / 2; const y = y0 + n * lh;
-    segs.forEach(([t, acc], k) => { const fill = acc ? HOUSE.orange : SIREN.head;
+    segs.forEach(([t0, acc], k) => { const fill = acc ? HOUSE.orange : SIREN.head, t = t0.slice(0, Math.max(0, typedLeft)); typedLeft -= t0.length;
       tg.fillStyle = fill; if (acc) { tg.globalAlpha = .35; tg.shadowColor = fill; tg.shadowBlur = cap * .6; tg.fillText(t, x, y); }
       if (titleTGlow) for (const [bl, al] of [[cap * .25, .5], [cap * .9, .35], [cap * 2, .22]]) {                 // tglow: the words glow
         tg.globalAlpha = Math.min(1, al * titleTGlow * (acc ? 1.4 : 1)); tg.shadowColor = fill; tg.shadowBlur = bl; tg.fillText(t, x, y); }
@@ -1110,7 +1149,10 @@ const HALL = (() => {
     const o = new THREE.Mesh(geo, oMat); o.position.copy(m.position); occ.add(o); }
   const sky = new THREE.Mesh(new THREE.SphereGeometry(15000, 32, 16), skyMat); sky.renderOrder = -2; g.add(sky);
   occ.visible = false; flScene.add(occ);                                         // the pillars hide the smoke behind them
-  return { g, U, occ, sky, HW, S, pils, plan: '' };
+  // the rough cut's pillars: flat colour per face, no light, no fog
+  const rough = new THREE.ShaderMaterial({ vertexShader: `varying vec3 vN; void main(){ vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
+    fragmentShader: `varying vec3 vN; void main(){ vec3 n = abs(vN); gl_FragColor = vec4(vec3(.11, .1, .095) * (n.z > .5 ? 1. : .62), 1.); }` });
+  return { g, U, occ, sky, HW, S, pils, plan: '', mat, rough };
 })();
 let hallDir = 1;
 // the three directions: lights [position, colour, reach], haze, seams
@@ -1154,10 +1196,10 @@ const drawLockup = (g, cx, cy, s, glow = 0, only = false) => {
     g.font = `300 ${fb}px Manrope`; g.letterSpacing = `${fb * .4}px`; g.fillStyle = SIREN.head; g.fillText('RUIN-1', xt + mb.actualBoundingBoxLeft, yb);
     g.font = `400 ${fi}px Manrope`; g.letterSpacing = `${sp}px`; g.fillStyle = '#a49d97'; g.fillText('SYNTHESIZER', xt + m0.actualBoundingBoxLeft, y2); };
   g.textBaseline = 'alphabetic';
-  if (glow) for (const [bl, al] of [[capH * .25, .5], [capH * .9, .35], [capH * 2, .22]]) { g.save(); g.globalAlpha = Math.min(1, al * glow); g.shadowColor = HOUSE.orange; g.shadowBlur = bl; paint(); g.restore(); }
+  const a0 = g.globalAlpha; if (glow) for (const [bl, al] of [[capH * .25, .5], [capH * .9, .35], [capH * 2, .22]]) { g.save(); g.globalAlpha = Math.min(1, al * glow) * a0; g.shadowColor = HOUSE.orange; g.shadowBlur = bl; paint(); g.restore(); }
   paint(); return [x0, x0 + tot, top, y2]; };
 const LOGO_S = () => .069 * H / (64 * .72);                                       // RUIN-1's cap height 6.9 % of the frame (the references' logo card)
-const layLogo = () => { tg.clearRect(0, 0, W, H); drawLockup(tg, W / 2, H / 2, LOGO_S(), titleTGlow); ttex.needsUpdate = true; pass(comp, null); };
+const layLogo = () => { tg.clearRect(0, 0, W, H); tg.globalAlpha = titleTyp ? Math.min(1, Math.max(0, (curI - 4) / 16)) : 1; drawLockup(tg, W / 2, H / 2, LOGO_S(), titleTGlow); tg.globalAlpha = 1; ttex.needsUpdate = true; pass(comp, null); };
 // the logo as an object in the scene (logo=2..4): the lockup on a plane, glowing on its own (it lights the smoke), in
 // the fog, sharp only where it crosses the focus band
 const LOGO3D = (() => {
@@ -1263,8 +1305,11 @@ SHOTS.hall = { frames: 75, run(i) {
   const D = HALL_DIRS[hallDir] ?? HALL_DIRS[1], U = HALL.U, hw = HALL.HW;
   D.L.forEach(([p, c, r, k], n) => { U.Lp.value[n].set(...p); const q = raw(c); U.Lc.value[n].set(q.r * k, q.g * k, q.b * k); U.Lr.value[n] = r; });
   U.hazeC.value.set(.09, .085, .08).multiplyScalar(D.haze / .01); U.scat.value = D.scat; U.seam.value = D.seam; U.crack.value = D.crack ?? 0; U.rim.value = D.rim ?? 0; U.bed.value = D.bed ?? 0; comp.uniforms.shim.value = D.shim ?? 0; comp.uniforms.time.value = i / FPS; U.time.value = i / FPS;
-  const { pos, target } = hallCam(i);
-  if (HALL.plan !== hallDir + '/' + titleTxt + '/' + logoKind) { planSeams(); HALL.plan = hallDir + '/' + titleTxt + '/' + logoKind; hallCam(i); }
+  const { pos, target } = hallCam(i); curI = i;
+  // rough: the pillars flat and unlit (each face its own grey), no fog, no sky; the seams' plan only when there are seams
+  const rp = ROUGH ? HALL.rough : HALL.mat; HALL.g.children.forEach((m) => { if (m !== HALL.sky && m.material !== rp && (m.material === HALL.mat || m.material === HALL.rough)) m.material = rp; });
+  HALL.sky.visible = !ROUGH; if (ROUGH) comp.uniforms.shim.value = 0;
+  if (HALL.plan !== hallDir + '/' + titleTxt + '/' + logoKind && (!ROUGH || D.seam || hallDir === 5)) { planSeams(); HALL.plan = hallDir + '/' + titleTxt + '/' + logoKind; hallCam(i); }
   // the logo in the scene: 2 at the subject, facing the camera; 3 the same turned 35 degrees (the sharp band crosses
   // it); 4 floating in the aisle in front of the subject pillar
   LOGO3D.visible = logoKind >= 2; let focus = pos.distanceTo(target);
@@ -1294,6 +1339,7 @@ window.setup = (name) => {
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   titleTxt = o.txt ?? 1; titleCity = o.city ?? 0; titleFog = o.pfog ?? .5; titleTone = o.ptone ?? .5; titleTilt = o.tilt ?? 0; titleNear = o.pnear ?? 7000; titleMid = o.pmid ?? 7600; titleTGlow = o.tglow ?? 0; titleHaze = o.hazek ?? .4; titlePool = o.pool ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; fin.uniforms.sglow.value = flu.title ? (o.sglow ?? 1) : 1; const bgLike = n === 'bg' || n === 'title';
+  ROUGH = o.rough ?? 0; titleTyp = o.typ ?? 0; r.domElement.style.opacity = 1;
   const isHall = n === 'hall'; hallDir = o.hall ?? 1; comp.uniforms.shim.value = 0; fin.uniforms.spc.value = o.spc ?? 0; spMat.uniforms.fogSig.value = isHall ? .3 / 2200 : 0; HALL.g.visible = isHall; AIR.g.visible = false; HALL.occ.visible = isHall; flu.hall = isHall;
   Object.assign(SPB, isHall ? { x0: -1300, x1: 1100, y0: hallDir === 9 ? -1100 : -900, y1: hallDir === 9 ? 0 : 1500, zb: -1600, z1: 1900, free: true } : SPB0);   // (hall=9: sparks rise from the smoke bed)
   if (isHall) { fin.uniforms.lim.value = 1; fin.uniforms.sglow.value = o.sglow ?? 1; }
@@ -1305,10 +1351,12 @@ window.setup = (name) => {
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
   fin.uniforms.glow.value = (o.burn ? 1.6 : 0.9) * (1 - real); fin.uniforms.halo.value = 1 - real; fin.uniforms.ca.value = 0.006 * (1 - real);
   flu.on = o.fluid ?? 0; fin.uniforms.fluid.value = flu.on; flu.ready = false;
+  if (ROUGH) { flu.on = 0; fin.uniforms.fluid.value = 0; sparks.on = 0; sparks.ash = 0; setLook(look, 0); }   // the rough cut: none of the expensive parts
 
 
   fin.uniforms.subjR.value.set(300, 300);
   logoKind = isHall ? o.logo ?? 0 : 0; noPil = o.nopil ?? 0; LOGO3D.visible = false; if (logoKind) fin.uniforms.subjR.value.set(700, 230);   // (the smoke keeps clear of the logo)
   shot.reset?.(); return shot.frames; };
+window.setFade = (v) => { r.domElement.style.opacity = String(Math.max(0, Math.min(1, v))); };   // fades through black (the page is black)
 window.frame = async (i) => { await shot.run(i); if (!CFG.live) r.getContext().finish(); return true; };   // live: never wait on the GPU (it would stall the page's scrolling)
 window.ready = true;

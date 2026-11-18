@@ -1,0 +1,37 @@
+{
+  "about": "DEV ONLY. The trailer's edit, shared by both modes (tools/trailer-cut.mjs: rough = the fast previs, final = the full render). Order and cards: references/trailers/STRUCTURE.md. Timing from references/trailers/RULES.md (shots in whole beats, 4-8 in the intro, 1-2 in the fast parts; cards about a third; a break about 60 %; the logo 3-5 s and a tail). bpm is a placeholder until the owner's track exists (90: 10 frames a beat at 15 fps). fadeIn / fadeOut: beats through black. part: the music's section (tools/trailer-music.ts).",
+  "bpm": 90,
+  "looks": {
+    "ui": "real=1,og=1,tint=0.22,fine=1,sparks=0.65,fluid=1,fire=0.5",
+    "card": "real=1,og=1,tint=0.22,fine=1,sparks=1.8,spsz=2.2,fluid=0.2,tglow=0.5"
+  },
+  "shots": [
+    { "shot": "black", "beats": 1, "part": "intro" },
+    { "shot": "slide", "beats": 7, "look": "ui", "fadeIn": 1.5, "part": "intro" },
+    { "shot": "osc_wave", "beats": 7, "look": "ui", "part": "intro" },
+    { "shot": "env", "beats": 6, "look": "ui", "fadeOut": 1, "part": "intro" },
+    { "shot": "hall", "opts": "hall=10,txt=1,typ=1", "beats": 7, "look": "card", "fadeIn": 0.75, "part": "riser", "card": "THE SOUNDS OF DYSTOPIA" },
+    { "shot": "knob", "beats": 2, "look": "ui", "part": "main" },
+    { "shot": "osc_b", "beats": 2, "look": "ui", "part": "main" },
+    { "shot": "filter", "beats": 2, "look": "ui", "part": "main" },
+    { "shot": "slide", "beats": 2, "look": "ui", "part": "main" },
+    { "shot": "hall", "opts": "hall=10,txt=2,typ=1", "beats": 5, "look": "card", "part": "main", "card": "IT DRIFTS. IT BREATHES." },
+    { "shot": "lfo_line", "beats": 2, "look": "ui", "part": "main" },
+    { "shot": "lfo_knob", "beats": 2, "look": "ui", "part": "main" },
+    { "shot": "tape", "beats": 2, "look": "ui", "part": "main" },
+    { "shot": "tape_kn", "beats": 2, "look": "ui", "part": "main" },
+    { "shot": "hall", "opts": "hall=10,txt=3,typ=1", "beats": 5, "look": "card", "part": "break", "card": "CRUSH THE SIGNAL" },
+    { "shot": "ruin_d2", "beats": 1, "look": "ui", "part": "peak" },
+    { "shot": "ruin_f1", "beats": 1, "look": "ui", "part": "peak" },
+    { "shot": "ruin_cmb", "beats": 1, "look": "ui", "part": "peak" },
+    { "shot": "ruin_d4", "beats": 1, "look": "ui", "part": "peak" },
+    { "shot": "ruin_ott", "beats": 1, "look": "ui", "part": "peak" },
+    { "shot": "ruin_d1", "beats": 1, "look": "ui", "part": "peak" },
+    { "shot": "hall", "opts": "hall=10,txt=4,typ=1", "beats": 5, "look": "card", "part": "peak", "card": "WITH 250+ SOUNDS / READY TO PLAY" },
+    { "shot": "pr_list", "beats": 2, "look": "ui", "part": "peak" },
+    { "shot": "pr_wave", "beats": 2, "look": "ui", "part": "peak" },
+    { "shot": "pr_shelf", "beats": 2, "look": "ui", "fadeOut": 0.5, "part": "peak" },
+    { "shot": "hall", "opts": "hall=10,txt=5,typ=1", "beats": 6, "look": "card", "fadeIn": 0.5, "fadeOut": 1, "part": "outro", "card": "BUILT FOR RUIN" },
+    { "shot": "hall", "opts": "hall=10,logo=1,typ=1", "beats": 13, "look": "card", "fadeIn": 0.5, "fadeOut": 6, "part": "logo", "card": "RUIN-1 SYNTHESIZER" }
+  ]
+}
