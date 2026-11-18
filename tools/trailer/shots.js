@@ -140,7 +140,7 @@ const blur = sh(`varying vec2 vUv; uniform sampler2D t; uniform vec2 d; void mai
   for (int i = -8; i <= 8; i++) { float w = exp(-float(i*i) / 24.); s += texture2D(t, vUv + d * float(i)).rgb * w; ws += w; } gl_FragColor = vec4(s / ws, 1.); }`,
   { t: { value: null }, d: { value: new THREE.Vector2() } });
 const fin = sh(`
-  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB, tLight; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid, clearTxt, clearY, subjOn, lim, neb, sglow; uniform vec2 subj, subjR;
+  varying vec2 vUv; uniform sampler2D t, tGlow, tSmoke, tSmokeImg, tSpark, tFlA, tFlB, tLight; uniform float time, glow, ca, grain, vig, ruin, fire, dark, burn, film, flare, halo, og, smoke, tint, fineSp, fluid, clearTxt, clearY, subjOn, lim, neb, sglow, spc; uniform vec2 subj, subjR;
   float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time * 37.0) * 43758.5453); }
   float h2(vec2 p){ return fract(sin(dot(p, vec2(41.31, 289.13))) * 43758.5453); }
   float sn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
@@ -270,6 +270,7 @@ const fin = sh(`
       float Tg = Gg / max(Gr, 1e-4) - .34;
       vec3 HOT = vec3(.949, .365, .027), MID = vec3(.949, .188, .02), RED = vec3(.949, 0., 0.);
       vec3 cc = Tc > .66 ? HOT : Tc > .33 ? MID : RED, gc = Tg > .66 ? HOT : Tg > .33 ? MID : RED;
+      if (spc > .5) { cc = MID; gc = MID; Tc = 1.; }                                 // spc=1: every spark in #f23005, the seams' colour
       float core = clamp(I * 3., 0., 1.) * (Tc > .33 ? 1. : max(Tc, 0.) / .33);   // the coolest fade into the dark, never darker colours
       col += gc * clamp(Gr / 19. * sglow, 0., 1.) * .55 * sglow * (1. - core);   // sglow: the glow round each spark (title cards)
       col = mix(col, cc, core);
@@ -285,7 +286,7 @@ const fin = sh(`
     }
     col += (hash(vUv * 1000.) - .5) * grain;
     gl_FragColor = vec4(col, 1.);
-  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, fluid: { value: 0 }, clearTxt: { value: 0 }, clearY: { value: .17 }, subjOn: { value: 0 }, lim: { value: 0 }, neb: { value: 0 }, sglow: { value: 1 }, subj: { value: new THREE.Vector2(.5, .5) }, subjR: { value: new THREE.Vector2(300, 300) }, tFlA: { value: null }, tFlB: { value: null }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
+  }`, { t: { value: rtDof.texture }, tGlow: { value: rtA.texture }, time: { value: 0 }, glow: { value: 0.9 }, ca: { value: 0.006 }, grain: { value: 0.012 }, vig: { value: 0.55 }, ruin: { value: 1 }, fire: { value: 0 }, dark: { value: 0 }, burn: { value: 0 }, film: { value: 0 }, flare: { value: 0 }, halo: { value: 1 }, og: { value: 0 }, tint: { value: 0 }, fineSp: { value: 0 }, fluid: { value: 0 }, clearTxt: { value: 0 }, clearY: { value: .17 }, subjOn: { value: 0 }, lim: { value: 0 }, neb: { value: 0 }, sglow: { value: 1 }, spc: { value: 0 }, subj: { value: new THREE.Vector2(.5, .5) }, subjR: { value: new THREE.Vector2(300, 300) }, tFlA: { value: null }, tFlB: { value: null }, tSpark: { value: rtSpark.texture }, smoke: { value: 0 }, tSmoke: { value: null }, tSmokeImg: { value: null } });
 
 // the glow: two rounds of a 17-tap blur in 1-texel steps at quarter size (coarser steps showed as stripes)
 const glowBlur = () => { for (let k = 0; k < 2; k++) {
@@ -334,8 +335,8 @@ const drawSmoke = (time) => {
 // always born and kept in front of the panel's face, so nothing needs hiding. Each spark is drawn at 4 moments inside the frame: a little motion blur.
 const NSP = 45, NASH = 90, SUB = 22, NSPW = 1110, NCH = 160;   // (+ NCH: the small sparks a crackling spark splits into)                      // sparks, ash flakes, sparks in the world volume (sparks=0.65: 720)
 const spGeo = new THREE.BufferGeometry();
-spGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array((NSPW + NCH + NASH) * SUB * 3), 3));
-spGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array((NSPW + NCH + NASH) * SUB * 3), 3));
+spGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array((NSPW * 4 + NCH + NASH) * SUB * 3), 3));
+spGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array((NSPW * 4 + NCH + NASH) * SUB * 3), 3));
 const spMat = new THREE.ShaderMaterial({
   uniforms: { bgain: { value: 1 }, world: { value: 0 }, szk: { value: 5.5 }, fine: { value: 0 }, tDep: { value: rtScene.depthTexture }, res: { value: new THREE.Vector2(W, H) }, near: { value: 1 }, far: { value: 1 }, focus: { value: 500 }, aperture: { value: 30 }, maxR: { value: 26 * K } },
   vertexShader: `attribute vec3 color; uniform float focus, aperture, maxR, fine, world, szk, bgain; varying vec3 vCol; varying float vZ, vR, vS;
@@ -482,7 +483,7 @@ const sparksDraw = (focusDist, apert) => {
   const L = LIT.spL.value; L.forEach((l) => l.set(0, 0, 0, 0));
   if (sparks.world) sparks.list.filter((s) => s.life > 0 && s.z > 0 && s.z < 40 && inPanel(s.x, s.y)).sort((a, b) => a.z - b.z).slice(0, 8)
     .forEach((s, n) => { const f = s.life / s.max; L[n].set(s.x, s.y, s.z, .5 * s.b * Math.min(1, f * 6) * s.born * (.55 + .45 * s.t0 * (.25 + .75 * f))); });
-  spMat.uniforms.world.value = sparks.world ? 1 : 0; spMat.uniforms.szk.value = 5.5 * K * REF * Math.tan(13 * Math.PI / 180) / Math.tan(cam.fov * Math.PI / 360);
+  spMat.uniforms.world.value = sparks.world ? 1 : 0; spMat.uniforms.szk.value = sparks.sz * 5.5 * K * REF * Math.tan(13 * Math.PI / 180) / Math.tan(cam.fov * Math.PI / 360);
   trLines.visible = !!sparks.trail;
   if (sparks.trail) { const TP = trGeo.attributes.position.array, TC = trGeo.attributes.color.array; let m = 0;
     for (const s of sparks.list) { const h = s.hist, n = h.length;
@@ -1121,6 +1122,7 @@ const HALL_DIRS = {
   7: { L: [[[900, 400, -2600], '#f20000', 700, .25], [[-1600, -600, -4400], '#f23005', 700, .2], [[0, 0, 99999], '#000000', 1, 0]], haze: .004, scat: .5, seam: 0, rim: 3 },
   8: { L: [[[-100, -1700, -300], '#f25d07', 800, 2.2], [[900, -1500, -2600], '#f23005', 800, 1.2], [[-1600, -600, -4400], '#f20000', 700, .4]], haze: .005, scat: .6, seam: 0, shim: .006 },
   9: { L: [[[150, -700, -700], '#f25d07', 650, 1.2], [[900, 400, -2600], '#f20000', 700, .3], [[-1600, -600, -4400], '#f23005', 700, .3]], haze: .005, scat: .5, seam: 0, bed: 1 },
+  10: { L: [[[900, 400, -2600], '#f20000', 700, .35], [[-1600, -600, -4400], '#f23005', 700, .3], [[0, 0, 99999], '#000000', 1, 0]], haze: .005, scat: .5, seam: 0, shim: .006 },   // the seams' hall without its lines, with heat haze
   3: { L: [[[260, 700, -2900], '#f25d07', 650, 2.2], [[-1300, -500, -4800], '#f20000', 900, .9], [[-60, 700, 380], '#f23005', 160, .25]], haze: .004, scat: .9, seam: 0 },
 };
 // the camera stands low in an aisle between two rows of pillars, looking down it and up a little at the subject
@@ -1249,11 +1251,12 @@ window.setup = (name) => {
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   titleTxt = o.txt ?? 1; titleCity = o.city ?? 0; titleFog = o.pfog ?? .5; titleTone = o.ptone ?? .5; titleTilt = o.tilt ?? 0; titleNear = o.pnear ?? 7000; titleMid = o.pmid ?? 7600; titleTGlow = o.tglow ?? 0; titleHaze = o.hazek ?? .4; titlePool = o.pool ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; fin.uniforms.sglow.value = flu.title ? (o.sglow ?? 1) : 1; const bgLike = n === 'bg' || n === 'title';
-  const isHall = n === 'hall'; hallDir = o.hall ?? 1; comp.uniforms.shim.value = 0; HALL.g.visible = isHall; AIR.g.visible = false; HALL.occ.visible = isHall; flu.hall = isHall;
+  const isHall = n === 'hall'; hallDir = o.hall ?? 1; comp.uniforms.shim.value = 0; fin.uniforms.spc.value = o.spc ?? 0; HALL.g.visible = isHall; AIR.g.visible = false; HALL.occ.visible = isHall; flu.hall = isHall;
   Object.assign(SPB, isHall ? { x0: -1300, x1: 1100, y0: hallDir === 9 ? -1100 : -900, y1: hallDir === 9 ? 0 : 1500, zb: -1600, z1: 1900, free: true } : SPB0);   // (hall=9: sparks rise from the smoke bed)
   if (isHall) { fin.uniforms.lim.value = 1; fin.uniforms.sglow.value = o.sglow ?? 1; }
   sparks.world = !bgLike; flow.on = false; smokeDof.uniforms.fill.value = n === 'bg' ? 0 : 1; fin.uniforms.subjOn.value = bgLike ? 0 : 1;   // (title cards: smoke without holes, no clear oval)   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
-  sparks.on = Math.min(25, o.sparks ?? 0); sparks.trail = o.trail ?? 0; sparks.spd = o.spd ?? 1; flu.ink = o.ink ?? 0; titleAp = o.ap ?? 30;
+  sparks.on = Math.min(25, o.sparks ?? 0); sparks.sz = o.spsz ?? 1;   // spsz: bigger sparks (a far subject, the hall)
+  if (n !== 'bg' && n !== 'title') sparks.on = Math.min(4, sparks.on); sparks.trail = o.trail ?? 0; sparks.spd = o.spd ?? 1; flu.ink = o.ink ?? 0; titleAp = o.ap ?? 30;
   spMat.uniforms.maxR.value = (o.bokeh ?? 26) * K; spMat.uniforms.bgain.value = o.bgain ?? 1;   // trail=N: light streams N frames long; ink=1: ink-in-water smoke; ap/bokeh: aperture and the biggest spark disc
   sparks.ash = Math.min(1, o.ash ?? 0); if (sparks.on || sparks.ash) sparksReset();
   for (const k of ['dark', 'burn', 'film', 'flare']) fin.uniforms[k].value = o[k] ?? 0;
