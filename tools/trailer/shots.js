@@ -1008,9 +1008,17 @@ const HALL = (() => {
   const g = new THREE.Group(); g.visible = false; scene.add(g);
   const S = 600, HW = 70;                                                         // grid spacing, half the pillar width
   const U = { Lp: { value: [0, 1, 2].map(() => new THREE.Vector3()) }, Lc: { value: [0, 1, 2].map(() => new THREE.Vector3()) }, Lr: { value: [1, 1, 1] },
-    sig: { value: 1 / 2200 }, scat: { value: 1 }, hazeC: { value: new THREE.Vector3() }, seam: { value: 0 }, time: { value: 0 }, sky: { value: 0 }, tone: { value: 1 } };
-  const FS = `uniform vec3 Lp[3], Lc[3], hazeC; uniform float Lr[3], sig, scat, seam, time, sky, tone; varying vec3 vW, vN; varying vec2 vC; varying vec4 vOff, vY0, vV;
+    sig: { value: 1 / 2200 }, scat: { value: 1 }, hazeC: { value: new THREE.Vector3() }, seam: { value: 0 }, crack: { value: 0 }, time: { value: 0 }, sky: { value: 0 }, tone: { value: 1 } };
+  const FS = `uniform vec3 Lp[3], Lc[3], hazeC; uniform float Lr[3], sig, scat, seam, crack, time, sky, tone; varying vec3 vW, vN; varying vec2 vC; varying vec4 vOff, vY0, vV;
     float h1(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    // distance to the nearest border of a Voronoi cell (the two-pass way): a network of jagged cracks
+    vec2 h2v(vec2 p){ return vec2(h1(p), h1(p + 17.3)); }
+    float vEdge(vec2 x){ vec2 n = floor(x), f = fract(x), mr, mg; float md = 8.;
+      for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) { vec2 g = vec2(i, j), r = g + h2v(n + g) - f; float d = dot(r, r); if (d < md) { md = d; mr = r; mg = g; } }
+      md = 8.;
+      for (int j = -2; j <= 2; j++) for (int i = -2; i <= 2; i++) { vec2 g = mg + vec2(i, j), r = g + h2v(n + g) - f;
+        if (dot(mr - r, mr - r) > .00001) md = min(md, dot(.5 * (mr + r), normalize(r - mr))); }
+      return md; }
     float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); return mix(mix(h1(i), h1(i + vec2(1, 0)), f.x), mix(h1(i + vec2(0, 1)), h1(i + vec2(1, 1)), f.x), f.y); }
     void main(){
       vec3 ro = cameraPosition, rd = normalize(vW - ro); float t = sky > .5 ? 14000. : length(vW - ro);
@@ -1028,6 +1036,19 @@ const HALL = (() => {
           float fall = 1. / (1. + d * d / (Lr[k] * Lr[k]));
           c += alb * Lc[k] * max(dot(N, l), 0.) * fall * 9.;
           c += Lc[k] * pow(max(dot(reflect(-l, N), -rd), 0.), 18.) * fall * .25 * (.5 + grain); }                         // a faint sheen
+        if (crack > 0.) {
+          // glowing cracks (hall=4): the concrete broken open in patches up the pillar, something hot inside; jagged,
+          // branching, mostly running up and down; a dark lip either side, the light in the house colours
+          vec2 q = vec2(u + side * 53., vW.y) + cell * 31.;
+          q += (vec2(vn(q / 23.), vn(q / 23. + 7.7)) - .5) * 16. + (vec2(vn(q / 6.), vn(q / 6. + 3.1)) - .5) * 3.;   // jagged
+          float d = vEdge(q / vec2(34., 70.)) * 34.;                                                                       // (units)
+          float pch = smoothstep(.5, .72, vn(vec2(q.x / 120., q.y / 650.) + side * 5.3));
+          float edgeF = smoothstep(${HW}. - 2., ${HW}. - 30., abs(u)) ;                                                   // (a little more at the corners)
+          float m = pch * (.75 + .25 * (1. - edgeF)), br = .8 + .2 * sin(time * .7 + h1(cell + side) * 30.);
+          c *= 1. - .6 * m * smoothstep(5., 1.5, d);                                                                       // the broken lip
+          float core = smoothstep(1.3, .3, d), halo = exp(-d / 6.) * .3 + exp(-d / 26.) * .07;
+          c += (vec3(.949, .188, .02) * (halo + core * 1.3) + vec3(.949, .365, .027) * core * .9) * m * br * crack;
+        }
         if (seam > 0.) {
           // glowing seams: a thin light line set into each face near one corner, broken into lengths, each pillar its own
           // they fill up from below, each at its own speed (planned in planSeams so none ever reaches the title)
@@ -1072,6 +1093,7 @@ let hallDir = 1;
 const HALL_DIRS = {
   1: { L: [[[-500, 900, 500], '#f25d07', 520, 1.6], [[700, 300, -3200], '#f20000', 900, .5], [[-2200, -900, -5200], '#f23005', 900, .35]], haze: .007, scat: .35, seam: 0 },
   2: { L: [[[900, 400, -2600], '#f20000', 700, .35], [[-1600, -600, -4400], '#f23005', 700, .3], [[0, 0, 99999], '#000000', 1, 0]], haze: .005, scat: .5, seam: 1 },
+  4: { L: [[[900, 400, -2600], '#f20000', 700, .35], [[-1600, -600, -4400], '#f23005', 700, .3], [[0, 0, 99999], '#000000', 1, 0]], haze: .005, scat: .5, seam: 0, crack: 1 },
   3: { L: [[[260, 700, -2900], '#f25d07', 650, 2.2], [[-1300, -500, -4800], '#f20000', 900, .9], [[-60, 700, 380], '#f23005', 160, .25]], haze: .004, scat: .9, seam: 0 },
 };
 // the camera stands low in an aisle between two rows of pillars, looking down it and up a little at the subject
@@ -1130,7 +1152,7 @@ SHOTS.hall = { frames: 75, run(i) {
   knobLayer.visible = false; synth.visible = false; occ.visible = false; city.visible = false; HALL.g.visible = true; HALL.occ.visible = true;
   const D = HALL_DIRS[hallDir] ?? HALL_DIRS[1], U = HALL.U, hw = HALL.HW;
   D.L.forEach(([p, c, r, k], n) => { U.Lp.value[n].set(...p); const q = raw(c); U.Lc.value[n].set(q.r * k, q.g * k, q.b * k); U.Lr.value[n] = r; });
-  U.hazeC.value.set(.09, .085, .08).multiplyScalar(D.haze / .01); U.scat.value = D.scat; U.seam.value = D.seam; U.time.value = i / FPS;
+  U.hazeC.value.set(.09, .085, .08).multiplyScalar(D.haze / .01); U.scat.value = D.scat; U.seam.value = D.seam; U.crack.value = D.crack ?? 0; U.time.value = i / FPS;
   const { pos, target } = hallCam(i);
   if (HALL.plan !== hallDir + '/' + titleTxt) { planSeams(); HALL.plan = hallDir + '/' + titleTxt; hallCam(i); }
   finOut = rtOut; draw(i, pos.distanceTo(target), 105); finOut = null;
