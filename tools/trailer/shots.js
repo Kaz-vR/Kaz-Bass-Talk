@@ -890,7 +890,7 @@ let titleTxt = 1, titleAp = 30, titleCity = false, titleFog = .5, titleTone = .5
 const city = (() => {
   const g = new THREE.Group(); g.visible = false; scene.add(g);
   const HZ = `uniform float hazeK; vec3 haze0(float sy); vec3 haze(float sy){ return hazeK * haze0(sy); } vec3 haze0(float sy){ float g = .42 + .58 * exp(-pow((sy - .45) / .38, 2.)); return (vec3(.11, .105, .1) + vec3(.949, .365, .027) * .1) * g; }   /* grey fog with the orange light in it */`;
-  const U = { res: { value: new THREE.Vector2(W, H) }, fogK: { value: 1 }, tone: { value: 1 }, hazeK: { value: 1 }, poolK: { value: 0 }, poolP: { value: new THREE.Vector3(500, 900, -3600) } };
+  const U = { res: { value: new THREE.Vector2(W, H) }, fogK: { value: 1 }, tone: { value: 1 }, hazeK: { value: 1 }, poolK: { value: 0 }, poolP: { value: new THREE.Vector3(300, 900, -6800) } };
   const conc = new THREE.ShaderMaterial({ uniforms: U,
     vertexShader: `varying vec3 vW, vN; void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`,
     fragmentShader: `uniform vec2 res; uniform float fogK, tone, poolK; uniform vec3 poolP; varying vec3 vW, vN; ${HZ}
@@ -936,11 +936,11 @@ const city = (() => {
   // the hall of pillars (city=2, the owner's idea): the city's middle tower, now running all the way up, and pillars
   // like it all over the shot, rising out of the foggy depths and vanishing upwards, rows of them deep into the haze
   { let sd = 7; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
-    B(-60, 90, -6000, 12000, -4500, 200, pil);                                                        // the middle one, all the way up
-    for (let z = -3300; z > -13800; z -= 1450 + R() * 300) {
+    B(-80, 110, -6000, 12000, -6600, 260, pil);                                                        // the middle one, all the way up
+    for (let z = -6000; z > -13800; z -= 1300 + R() * 300) {
       const half = (1000 - z) * .5 + 600;
       for (let x = -half + R() * 900; x < half; x += 1100 + R() * 700) {
-        if (Math.abs(x) < 400 && z < -3800 && z > -5200) continue;                                     // keep the middle one alone in its row
+        if (Math.abs(x) < 500 && z < -5900 && z > -7300) continue;   // (the middle one, at 7600)                                     // keep the middle one alone in its row
         if (R() < .28) continue;
         const w = 140 + R() * 130, d = w * (.8 + R() * .5);
         B(x, x + w, -6000, 12000, z, d, pil).rotation.y = R() * Math.PI / 2; } } }   // each turned its own way: one face lit, one in shadow
