@@ -16,9 +16,9 @@ const TL = JSON.parse(readFileSync(join(ROOT, 'tools/trailer/timeline.json'), 'u
 const BPM: number = TL.bpm, SR = 48000;
 const total = TL.shots.reduce((a: number, s: { beats: number }) => a + s.beats, 0);
 // where each part starts (beats)
-const at: Record<string, number> = {}; let b = 0;
+const at: Record<string, number> = {}; let b = 0;   // (parts: hook slam hush intro riser riser2 main fill ruin sounds create break logo)
 for (const s of TL.shots) { at[s.part] ??= b; b += s.beats; }
-const P = { intro: at.intro, riser: at.riser, main: at.main, brk: at.break, peak: at.peak, outro: at.outro, logo: at.logo, end: total };
+const P = { ...at, break_: at.break };                                                                  // where each part starts (beats)
 const lib = new Map(loadLibrary().map((e) => [e.json.meta.name as string, e.json]));
 
 type Track = { preset: string; gain: number; notes: LoopNote[] };
@@ -31,33 +31,44 @@ const range = (a: number, z: number, step: number) => { const r: number[] = []; 
 const CH = [[50, 53, 57], [46, 50, 53], [43, 46, 50], [45, 48, 52]], ROOTS = [26, 22, 19, 21];
 const chordAt = (beat: number) => CH[Math.floor(beat / 4) % 4], rootAt = (beat: number) => ROOTS[Math.floor(beat / 4) % 4];
 const pad = (a: number, z: number, vel: number) => range(a, z, 4).flatMap((x) => chordAt(x - a).map((k) => n(x, Math.min(4, z - x) + .05, k, vel)));
-
-// intro: a dark pad and a sparse plucked motif
-add('Cold Breath', .22, pad(P.intro, P.main, .5));
-add('Blackwater', .2, range(P.intro + 2, P.riser, 2).map((x, i) => n(x, .5, [62, 65, 69, 67, 65, 62, 60, 57][i % 8] , .55)));
-// the riser under card 1 (a swelling noise and rising pad), then the impact on the drop
-add('White Sweep', .45, [n(P.riser, P.main - P.riser, 50, .9)]);
-add('Tower Swell', .25, [n(P.riser, P.main - P.riser, 38, .8), n(P.riser, P.main - P.riser, 45, .7)]);
-const hit = (beat: number) => { add('Crushed 808', .9, [n(beat, 3, 26, 1)]); add('Hammer Stab', .45, [n(beat, 1.5, 38, 1)]); };
-hit(P.main);
-// the full parts: a dark bass in eighths, a kick on the beat, a noise backbeat, the pad
-const groove = (a: number, z: number, big: boolean) => {
-  add('Classic Reese', .55, range(a, z, .5).map((x) => n(x, .45, rootAt(x - a) + 12, (x % 1 ? .6 : .85))));
+// a hit on a cut: the low thump and a stab (big: the heavy bass too)
+const hit = (beat: number, big = false) => { add('Crushed 808', .9, [n(beat, 3, 26, 1)]); add('Hammer Stab', .45, [n(beat, 1.5, 38, 1)]);
+  if (big) add('Destroyed Reese', .5, [n(beat, 1.5, 26, 1)]); };
+// the groove: bass in eighths, kick on the beat, a noise backbeat, ticking hats; heavy = the RUIN part
+const groove = (a: number, z: number, o: { bass?: string; heavy?: boolean; light?: boolean } = {}) => {
+  add(o.bass ?? 'Classic Reese', o.heavy ? .6 : .5, range(a, z, .5).map((x) => n(x, .45, rootAt(x - a) + 12, (x % 1 ? .6 : .85))));
   add('Velvet Thump', .8, range(a, z, 1).map((x) => n(x, .3, 26, .95)));
-  add('Snare Swing', .4, range(a + 1, z, 2).map((x) => n(x, .25, 50, .9)));
-  add('Static Line', .18, range(a, z, .25).map((x, i) => n(x, .1, 74, i % 2 ? .4 : .7)));
-  add(big ? 'Doom Horns' : 'Cold Breath', big ? .4 : .35, pad(a, z, .6));
-  if (big) add('Chainsaw Lead', .28, range(a, z, 2).map((x, i) => n(x, 1.5, [74, 77, 76, 72][i % 4], .7)));
+  if (!o.light) add('Snare Swing', .4, range(a + 1, z, 2).map((x) => n(x, .25, 50, .9)));
+  add('Static Line', o.light ? .12 : .18, range(a, z, .25).map((x, i) => n(x, .1, 74, i % 2 ? .4 : .7)));
+  if (o.heavy) { add('Screaming FM / Neuro Bass', .3, range(a + .75, z, 2).map((x) => n(x, .6, rootAt(x - a) + 24, .9)));
+    add('Doom Horns', .35, pad(a, z, .7)); add('Chainsaw Lead', .26, range(a, z, 2).map((x, i) => n(x, 1.5, [74, 77, 76, 72][i % 4], .75))); }
 };
-groove(P.main, P.brk, false);
-// the break: the pad alone, filtered down, then 1.5 beats of near-silence before the biggest part
-add('Sunken', .45, pad(P.brk, P.peak - 1.5, .5));
-hit(P.peak); groove(P.peak, P.outro, true);
-// the outro under BUILT FOR RUIN: bass drone and pad thinning out
-add('The Drone / Sub-Rumble Bass', .5, [n(P.outro, P.logo - P.outro, 26, .8)]);
-add('Cold Breath', .45, pad(P.outro, P.logo, .55));
-// the logo: a final hit, and its tail rings out
-hit(P.logo);
+// a short phrase per shot, each on another preset (the presets and Create parts: the sound changes with every cut)
+const phrases = (a: number, list: string[]) => list.forEach((pr, i) => add(pr, .32, [0, .5, 1, 1.5].map((d, k) => n(a + i * 2 + d, .45, [62, 65, 69, 67][k], .75))));
+
+// the hook: silence, one slam on the cut, silence again (gated below)
+hit(P.slam, true);
+// the intro: a dark pad, a sparse plucked motif, kept soft (the drop must be a big step up)
+add('Cold Breath', .55, pad(P.intro, P.main, .5));
+add('Blackwater', .5, range(P.intro + 1, P.riser2, 2).map((x, i) => n(x, .5, [62, 65, 69, 67, 65, 62, 60, 57][i % 8], .55)));
+// the riser under the last intro shot and card 1, then the impact on the drop
+add('White Sweep', .45, [n(P.riser, P.main - P.riser, 50, .9)]);
+add('Tower Swell', .25, [n(P.riser2, P.main - P.riser2, 38, .8), n(P.riser2, P.main - P.riser2, 45, .7)]);
+add('Snare Swing', .3, [...range(P.riser2 + 1, P.main - 2, .5), ...range(P.main - 2, P.main, .25)].map((x, i, arr) => n(x, .15, 50, .4 + .5 * i / arr.length)));
+hit(P.main, true); groove(P.main, P.fill);
+// card 2: a hit, the groove held back to kick and bass, then the heaviest part on the RUIN page
+hit(P.fill); groove(P.fill, P.ruin, { light: true });
+hit(P.ruin, true); groove(P.ruin, P.sounds, { bass: 'Destroyed Reese', heavy: true });
+// card 3 and the presets: lighter, a different preset on every cut
+hit(P.sounds); groove(P.sounds, P.create, { light: true }); phrases(P.sounds + 4, ['Neon Snap', 'Glass Bell Lead', 'Burnt Rhodes', 'Ringing Wire']);
+// card 4 and Create: the same, new rolls
+hit(P.create); groove(P.create, P.break_, { light: true }); phrases(P.create + 4, ['Static Heaven', 'Warp Line', 'Fold Lung']);
+// card 5: the drop-out, a low pad and a swelling noise, then one beat of silence before the logo
+add('Sunken', .45, pad(P.break_, P.logo - 1, .5));
+add('White Sweep', .4, [n(P.break_ + 2, P.logo - 1 - (P.break_ + 2), 50, .9)]);
+// the logo: the biggest hit, its chord ringing out
+hit(P.logo, true);
+add('Doom Horns', .4, CH[0].map((k) => n(P.logo, 3, k, .9)));
 add('Cathedral Rot', .5, [n(P.logo, 8, 50, .8), n(P.logo, 8, 53, .7), n(P.logo, 8, 57, .7), n(P.logo, 8, 38, .8)]);
 
 // render every track through the engine over the whole length (one long, non-repeating loop), then mix
@@ -68,9 +79,9 @@ for (const t of tracks) {
   for (let i = 0; i < len; i++) { L[i] += r.left[i] * t.gain; R[i] += r.right[i] * t.gain; }
   console.log(`${t.preset.padEnd(28)} ${t.notes.length} notes`);
 }
-// the drop-out: near-silence for 1.5 beats right before the biggest part
-const s0 = Math.round((P.peak - 1.5) * 60 / BPM * SR), s1 = Math.round(P.peak * 60 / BPM * SR);
-for (let i = s0; i < s1; i++) { const g = .06; L[i] *= g; R[i] *= g; }
+// silences (hard, as cuts to black are): before the slam, after it, and the beat before the logo
+const B = (beat: number) => Math.round(beat * 60 / BPM * SR);
+for (const [a0, a1] of [[0, P.slam], [P.hush, P.intro], [P.logo - 1, P.logo]]) for (let i = B(a0); i < B(a1); i++) { L[i] = 0; R[i] = 0; }
 // level: peak at -1 dBFS, a gentle fade over the last 3 s
 let pk = 0; for (let i = 0; i < len; i++) pk = Math.max(pk, Math.abs(L[i]), Math.abs(R[i]));
 const k = .89 / (pk || 1), f0 = len - 3 * SR;

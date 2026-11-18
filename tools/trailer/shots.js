@@ -786,6 +786,10 @@ const UISHOTS = {
   pr_list: ['PRESETS', [440, 300], [40, 40], [-200, -240, 250], 5, 26, [480, 260]],   // the list of dark basses
   pr_wave: ['PRESETS', [1080, 160], [60, 0], [200, -220, 240], -6, 26, [1120, 130]], // the preview's waveform
   pr_shelf:['PRESETS', [150, 150], [0, 50], [-210, -210, 240], 7, 26, [170, 180]],   // the shelves
+  pr_name: ['PRESETS', [1050, 240], [50, 0], [-190, -220, 230], 6, 25, [1060, 200]],  // the preview: name and description
+  cr_roll: ['CREATE', [440, 142], [40, 0], [-180, -200, 220], 7, 24, [460, 110]],     // the Randomizer: ROLL and WEIRDNESS
+  cr_list: ['CREATE', [440, 250], [30, 40], [200, -230, 240], -6, 26, [460, 220]],    // the rolled sounds
+  cr_prev: ['CREATE', [1120, 170], [-60, 0], [-200, -220, 240], 5, 26, [1100, 140]],  // a roll's preview
 };
 for (const [k, [pg, [tx, ty], [mx, my], [ox, oy, oz], roll, fov, [lx, ly]]] of Object.entries(UISHOTS)) SHOTS[k] = { frames: 75, async run(i) {
   knobLayer.visible = false; await usePage(pg);
@@ -924,11 +928,18 @@ const card = (plate, emb, shimmer = 0) => ({ frames: 80,
 // the grade so its colours stay exact: Manrope, warm white #f3eee8, the accent word in #f25d07 with a faint glow of its
 // own colour. txt=1..5 picks the card (references/trailers/STRUCTURE.md); the look comes from the shot's options
 const TITLES = {
-  1: [[['THE SOUNDS OF ', 0], ['DYSTOPIA', 1]]],
-  2: [[['IT DRIFTS. IT ', 0], ['BREATHES.', 1]]],
-  3: [[['CRUSH', 1], [' THE SIGNAL', 0]]],
-  4: [[['WITH ', 0], ['250+', 1], [' SOUNDS', 0]], [['READY TO PLAY', 0]]],
-  5: [[['BUILT FOR ', 0], ['RUIN', 1]]],
+  // the owner's cards (19 Nov), STRUCTURE.md
+  1: [[['EVERYTHING YOU HEAR', 0]], [['IS ', 0], ['RUIN-1', 1]]],
+  2: [[['DISTORTION AS', 0]], [['AN ', 0], ['INSTRUMENT.', 1]]],
+  3: [[['250+ SOUNDS.', 1]], [['READY TO PLAY.', 0]]],
+  4: [[['NEW SOUNDS', 0]], [['IN ONE CLICK.', 1]]],
+  5: [[['ARE YOU ', 0], ['READY?', 1]]],
+  // the earlier cards (17 Nov)
+  11: [[['THE SOUNDS OF ', 0], ['DYSTOPIA', 1]]],
+  12: [[['IT DRIFTS. IT ', 0], ['BREATHES.', 1]]],
+  13: [[['CRUSH', 1], [' THE SIGNAL', 0]]],
+  14: [[['WITH ', 0], ['250+', 1], [' SOUNDS', 0]], [['READY TO PLAY', 0]]],
+  15: [[['BUILT FOR ', 0], ['RUIN', 1]]],
 };
 const rtOut = new THREE.WebGLRenderTarget(W, H, rtOpts);
 // (shim: heat shimmer, the picture under the words bent by rising hot air, strongest low in the frame; hall=8)
@@ -1023,7 +1034,7 @@ const city = (() => {
 // typ=1: the words typed in, a letter every two frames (25 fps), from the shot's 6th frame (RULES.md section 7)
 let titleTyp = 0, curI = 0, typedLeft = 0;
 const layTitle = () => {
-  tg.clearRect(0, 0, W, H); typedLeft = titleTyp ? Math.max(0, Math.floor((curI - 6) / 2)) : 1e9;
+  tg.clearRect(0, 0, W, H); typedLeft = titleTyp ? Math.max(0, Math.floor((curI - 6) / 2 * titleTyp)) : 1e9;   // (typ=2: twice as fast, for long lines on short cards)
   const cap = H * 0.055, sizePx = cap / 0.72, tr = sizePx * 0.16, lines = TITLES[titleTxt] ?? TITLES[1];
   tg.font = `500 ${sizePx}px Manrope`; tg.textBaseline = 'alphabetic'; tg.letterSpacing = `${tr}px`;
   const lh = cap * 1.75, y0 = H * 0.5 + cap / 2 - (lines.length - 1) * lh / 2;

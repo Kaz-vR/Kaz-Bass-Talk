@@ -200,7 +200,7 @@ background that gets live sparks on top (the website header).
 ## 7. Title cards (in progress)
 
 Cards are made in our own engine only (owner's call: no footage, no Blender, no AI images), never with the synth
-visible: the `title` shot in `shots.js` (no synth; text laid in after the grade so its colours stay exact; `txt=1..5`
+visible: the `title` shot in `shots.js` (no synth; text laid in after the grade so its colours stay exact; `txt=1..5` (the cards of 19 Nov; 11..15 the earlier ones)
 picks the card from `STRUCTURE.md`). **Render each look in its own run** (several looks in one `trailer-render.mjs`
 call broke the sparks: a known, unfixed bug).
 
@@ -210,7 +210,7 @@ line set into its faces, made exactly like the slide shot (low camera looking up
 and the 3D sparks). `hall=1` (a light pool) and `hall=3` (a fire deep in the hall) were the other two options. Card 5:
 
 ```
-hall@ruin:real=1,og=1,tint=0.22,fine=1,sparks=1.5,fluid=0.2,hall=2,txt=5,tglow=0.5
+hall@ruin:real=1,og=1,tint=0.22,fine=1,sparks=1.5,fluid=0.2,hall=2,txt=15,tglow=0.5
 ```
 
 **The seams fill up** (owner's call): slowly, an ambient movement (9-18 s to climb the frame), every line already in
@@ -224,7 +224,7 @@ vanishing upwards, look 5's smoke lit only by the sparks in front, glowing spark
 Built after the owner's own Photoshop edit of the first pillar render. The current settings:
 
 ```
-title@ruin:real=1,og=1,tint=0.22,fine=1,txt=5,city=2,pnear=2700,pmid=5500,tilt=9,hazek=0.6,ptone=0.4,fluid=2.2,sparks=1.5,ap=16,sglow=3,tglow=1.6
+title@ruin:real=1,og=1,tint=0.22,fine=1,txt=15,city=2,pnear=2700,pmid=5500,tilt=9,hazek=0.6,ptone=0.4,fluid=2.2,sparks=1.5,ap=16,sglow=3,tglow=1.6
 ```
 
 | Option | What it does |
@@ -256,22 +256,33 @@ volumetric fog pass (commits 3453e25 to 919245a). The owner found these worse th
 
 ## 8. The whole trailer: timeline, ROUGH and FINAL
 
-The edit lives in **`tools/trailer/timeline.json`**: every shot or card in order (`STRUCTURE.md`), its length in beats,
-its options, its fades through black and its part of the music. Timing from `RULES.md` at a placeholder 90 BPM (10
-frames a beat at 15 fps) until the owner's track exists: intro shots 6-7 beats, fast parts 1-2, cards about a third,
-the drop at 31 %, the break at 60 %, the logo 4.7 s plus a 4 s tail; 60.0 s in all.
+The edit lives in **`tools/trailer/timeline.json`**: every shot or card in order, its length in beats, its options, its
+fades through black and its part of the music. **The current cut (19 Nov, the owner's new cards, `STRUCTURE.md`),
+60.0 s at 90 BPM** (the references' felt tempo: Scorpio 89, Monolith 80.7 half-time, Origin X 72 half-time, Staccato
+99; 10 frames a beat at 15 fps):
+- **a cold-open hook** (0-2.7 s): black, one slam on a RUIN-page shot, black again, in silence around it;
+- **the intro** (4-beat shots: OSC A's saw, LFO 1 on Humanize, the tape, the filter), soft, with a riser under the last
+  shot and card 1, EVERYTHING YOU HEAR IS RUIN-1; **the drop** on its last frame (27 %);
+- **the groove** (2-beat shots on the OSC, LFO and FX pages), card 2 DISTORTION AS AN INSTRUMENT on a hit, then **the
+  heaviest part on the RUIN page** (1-2-beat shots, 45-55 %);
+- card 3 250+ SOUNDS. READY TO PLAY. and the presets, card 4 NEW SOUNDS IN ONE CLICK. and Create (the Randomizer):
+  lighter, **a different preset on every cut**;
+- card 5 ARE YOU READY? over **the drop-out** (a low pad, a swell, one beat of silence), then **the logo on the
+  biggest hit** (the end card), its chord ringing out, 4 s to black.
+Cards type in at a letter every two frames, twice as fast on long lines in short cards (`typ=2`), so every line is
+readable for over a second.
 
 Two modes read the same timeline, shots, moves and text (`node tools/trailer-cut.mjs rough|final`):
 - **ROUGH** (`rough=1`): the previs, to judge pacing, cuts, framing, moves and text timing. 640 x 360, 15 fps, the
   scene drawn flat and unlit (the synth's captured screen as its one picture, the pillars a flat grey per face), no
-  smoke, sparks, depth of field, fog, glow or grade. The whole minute renders in about 40 s, as an MP4.
+  smoke, sparks, depth of field, fog, glow or grade. The whole minute renders in about 45 s, as an MP4 (with the guide
+  track when it exists).
 - **FINAL**: the full look per shot (`looks` in the timeline), 1920 x 1080, 25 fps (hours).
-Every shot runs on its own 25 fps clock, so it moves the same in both modes. Cards type in a letter every two frames
-(`typ=1`); the logo fades in. Pages other than OSC are their own captures (`renders/trailer/cap-<PAGE>`, made with
-`trailer-capture.mjs ... <PAGE> - 1`; RUIN on Destroyed Reese, which has a chain); their shots are blocked in
-(`UISHOTS` in `shots.js`, the slide shot's recipe).
+Every shot runs on its own 25 fps clock, so it moves the same in both modes. Pages other than OSC are their own
+captures (`renders/trailer/cap-<PAGE>`, `trailer-capture.mjs ... <PAGE> - 1`; RUIN on Destroyed Reese, which has a
+chain; CREATE is the Presets page with the Randomizer open and five rolls, `SHELF=Randomizer ROLLS=5`); their shots are
+blocked in (`UISHOTS` in `shots.js`, the slide shot's recipe).
 
-**The guide track** (`npx tsx tools/trailer-music.ts`): a sketch for timing played on RUIN-1's own presets through
-the engine, offline (no samples), in D minor at the timeline's tempo, its sections on the timeline's parts: a soft pad
-and pluck intro, a riser under card 1 to an impact on the drop, a dark bass groove, a short drop-out, the biggest part
-with a lead, a final hit on the logo. Written to `renders/trailer/track.wav`; the cut picks it up.
+**The guide track** (`npx tsx tools/trailer-music.ts`, about 10 min): a sketch for timing played on RUIN-1's own
+presets through the engine, offline (no samples, so card 1 is true), in D minor at the timeline's tempo, its sections on
+the timeline's parts and its hits on the cuts. Written to `renders/trailer/track.wav`; the cut picks it up.

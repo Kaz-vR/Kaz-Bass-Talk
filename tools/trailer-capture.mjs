@@ -31,6 +31,11 @@ try {
   await p.waitForTimeout(300);
   await p.locator('.v2-top-right').getByText(TAB, { exact: true }).click();
   await p.waitForTimeout(500);
+  if (process.env.SHELF) {                                       // SHELF=Randomizer ROLLS=n: that shelf open, n new rolls made, the first one playing
+    await p.locator('.preset-page').getByText(process.env.SHELF, { exact: true }).first().click(); await p.waitForTimeout(400);
+    for (let i = 0; i < Number(process.env.ROLLS ?? 0); i++) { await p.locator('.pp-roll').click(); await p.waitForFunction(() => !document.querySelector('.pp-roll')?.disabled, null, { timeout: 60000 }); }
+    await p.waitForTimeout(300);
+  }
   await p.keyboard.down('a');                                   // a held note: envelopes, LFOs and scopes are alive
   await p.waitForTimeout(1500);
   const l = await p.locator('.wood-l').boundingBox(), r = await p.locator('.wood-r').boundingBox();
