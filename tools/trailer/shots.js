@@ -892,8 +892,14 @@ const TITLES = {
   5: [[['BUILT FOR ', 0], ['RUIN', 1]]],
 };
 const rtOut = new THREE.WebGLRenderTarget(W, H, rtOpts);
-const comp = sh(`varying vec2 vUv; uniform sampler2D a, b; void main(){ vec4 t = texture2D(b, vUv); gl_FragColor = vec4(texture2D(a, vUv).rgb * (1. - t.a) + t.rgb, 1.); }`,
-  { a: { value: rtOut.texture }, b: { value: ttex } });
+// (shim: heat shimmer, the picture under the words bent by rising hot air, strongest low in the frame; hall=8)
+const comp = sh(`varying vec2 vUv; uniform sampler2D a, b; uniform float shim, time;
+  float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f); return mix(mix(h(i), h(i+vec2(1,0)), f.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), f.x), f.y); }
+  void main(){ vec4 t = texture2D(b, vUv);
+    vec2 w = vec2(n(vec2(vUv.x * 14., vUv.y * 22. - time * 2.2)) - .5, n(vec2(vUv.x * 9. + 5., vUv.y * 16. - time * 1.7)) - .5) * shim * (1.25 - vUv.y);
+    gl_FragColor = vec4(texture2D(a, vUv + w).rgb * (1. - t.a) + t.rgb, 1.); }`,
+  { a: { value: rtOut.texture }, b: { value: ttex }, shim: { value: 0 }, time: { value: 0 } });
 let titleTxt = 1, titleAp = 30, titleCity = false, titleFog = .5, titleTone = .5, titleTilt = 0, titleHaze = 1, titlePool = 0, titleNear = 7000, titleMid = 7600, titleTGlow = 0;
 // ---------- the city (title cards, city=1): brutalist megastructures in a warm haze, behind the smoke and sparks ----------
 // Simple stacked concrete blocks, placed to the owner's picture: a tall stacked complex on the right, lower blocks and a
@@ -1008,8 +1014,8 @@ const HALL = (() => {
   const g = new THREE.Group(); g.visible = false; scene.add(g);
   const S = 600, HW = 70;                                                         // grid spacing, half the pillar width
   const U = { Lp: { value: [0, 1, 2].map(() => new THREE.Vector3()) }, Lc: { value: [0, 1, 2].map(() => new THREE.Vector3()) }, Lr: { value: [1, 1, 1] },
-    sig: { value: 1 / 2200 }, scat: { value: 1 }, hazeC: { value: new THREE.Vector3() }, seam: { value: 0 }, crack: { value: 0 }, time: { value: 0 }, sky: { value: 0 }, tone: { value: 1 } };
-  const FS = `uniform vec3 Lp[3], Lc[3], hazeC; uniform float Lr[3], sig, scat, seam, crack, time, sky, tone; varying vec3 vW, vN; varying vec2 vC; varying vec4 vOff, vY0, vV;
+    sig: { value: 1 / 2200 }, scat: { value: 1 }, hazeC: { value: new THREE.Vector3() }, seam: { value: 0 }, crack: { value: 0 }, rim: { value: 0 }, rimDir: { value: new THREE.Vector3(.75, .45, .5).normalize() }, bed: { value: 0 }, time: { value: 0 }, sky: { value: 0 }, tone: { value: 1 } };
+  const FS = `uniform vec3 Lp[3], Lc[3], hazeC; uniform float Lr[3], sig, scat, seam, crack, rim, bed, time, sky, tone; uniform vec3 rimDir; varying vec3 vW, vN; varying vec2 vC; varying vec4 vOff, vY0, vV;
     float h1(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     // distance to the nearest border of a Voronoi cell (the two-pass way): a network of jagged cracks
     vec2 h2v(vec2 p){ return vec2(h1(p), h1(p + 17.3)); }
@@ -1036,6 +1042,13 @@ const HALL = (() => {
           float fall = 1. / (1. + d * d / (Lr[k] * Lr[k]));
           c += alb * Lc[k] * max(dot(N, l), 0.) * fall * 9.;
           c += Lc[k] * pow(max(dot(reflect(-l, N), -rd), 0.), 18.) * fall * .25 * (.5 + grain); }                         // a faint sheen
+        if (rim > 0.) {
+          // the pillars' edges catch a light that is never seen (hall=7): a thin warm line along the corners of the faces
+          // turned to it, brighter higher up, the faces themselves barely lit
+          float lf = max(dot(N, rimDir), 0.), corner = smoothstep(${HW}. - 7., ${HW}. - .6, abs(u));
+          float up = smoothstep(-900., 1600., vW.y);
+          c += alb * vec3(.949, .365, .027) * lf * .5 * up * rim + (vec3(.949, .188, .02) * .55 + vec3(.949, .365, .027) * corner * .6) * corner * lf * (.25 + .75 * up) * rim * (.7 + .6 * grain);
+        }
         if (crack > 0.) {
           // glowing cracks (hall=4): the concrete broken open in patches up the pillar, something hot inside; jagged,
           // branching, mostly running up and down; a dark lip either side, the light in the house colours
@@ -1066,6 +1079,15 @@ const HALL = (() => {
       vec3 air = hazeC * (1. - T) * (1. + .6 * smoothstep(.3, -.4, rd.y));
       for (int k = 0; k < 3; k++) { vec3 q = ro - Lp[k]; float b = dot(q, rd), hh = sqrt(max(dot(q, q) - b * b, 1.));
         air += Lc[k] * scat * sig * Lr[k] * Lr[k] * (atan((t + b) / hh) - atan(b / hh)) / hh * exp(-sig * max(length(q) - Lr[k], 0.) * .5); }
+      if (bed > 0.) {
+        // a bed of smoke low between the pillars (hall=9), glowing from the embers in it: brightest at its floor, thinning
+        // upwards, in slow clumps; summed along the view ray
+        float tm = min(t, 7000.), ds = tm / 10.; vec3 acc = vec3(0.); float tr = 1.;
+        for (int k = 0; k < 10; k++) { float sd = (float(k) + .5) * ds; vec3 pp = ro + rd * sd;
+          float den = exp(-max(pp.y + 700., 0.) / 170.) * (.55 + .9 * vn(pp.xz / 520. + vec2(time * .05, 0.)) * vn(pp.xz / 190. - vec2(0., time * .04)));
+          float a = 1. - exp(-den * ds * .0012 * bed); vec3 lc = mix(vec3(.949, 0., 0.), vec3(.949, .188, .02), smoothstep(-650., -1000., pp.y));
+          acc += tr * a * lc * .5 * exp(-sig * sd * .6); tr *= 1. - a; }
+        c *= tr; air = air * tr + acc; }
       gl_FragColor = vec4(c * T + air, 1.); }`;
   const VS = `attribute vec2 ctr; attribute vec4 sOff, sY0, sV; varying vec3 vW, vN; varying vec2 vC; varying vec4 vOff, vY0, vV; void main(){ vC = ctr; vOff = sOff; vY0 = sY0; vV = sV; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`;
   const mat = new THREE.ShaderMaterial({ uniforms: U, vertexShader: VS, fragmentShader: FS });
@@ -1095,12 +1117,17 @@ const HALL_DIRS = {
   2: { L: [[[900, 400, -2600], '#f20000', 700, .35], [[-1600, -600, -4400], '#f23005', 700, .3], [[0, 0, 99999], '#000000', 1, 0]], haze: .005, scat: .5, seam: 1 },
   4: { L: [[[900, 400, -2600], '#f20000', 700, .35], [[-1600, -600, -4400], '#f23005', 700, .3], [[0, 0, 99999], '#000000', 1, 0]], haze: .005, scat: .5, seam: 0, crack: 1 },
   5: { L: [[[900, 400, -2600], '#f20000', 700, .35], [[-1600, -600, -4400], '#f23005', 700, .3], [[0, 0, 99999], '#000000', 1, 0]], haze: .005, scat: .5, seam: 0 },
+  6: { L: [[[300, 650, -4200], '#f25d07', 900, 1.6], [[-1500, -400, -6000], '#f23005', 900, .6], [[0, 0, 99999], '#000000', 1, 0]], haze: .006, scat: .8, seam: 0 },
+  7: { L: [[[900, 400, -2600], '#f20000', 700, .25], [[-1600, -600, -4400], '#f23005', 700, .2], [[0, 0, 99999], '#000000', 1, 0]], haze: .004, scat: .5, seam: 0, rim: 3 },
+  8: { L: [[[-100, -1700, -300], '#f25d07', 800, 2.2], [[900, -1500, -2600], '#f23005', 800, 1.2], [[-1600, -600, -4400], '#f20000', 700, .4]], haze: .005, scat: .6, seam: 0, shim: .006 },
+  9: { L: [[[150, -700, -700], '#f25d07', 650, 1.2], [[900, 400, -2600], '#f20000', 700, .3], [[-1600, -600, -4400], '#f23005', 700, .3]], haze: .005, scat: .5, seam: 0, bed: 1 },
   3: { L: [[[260, 700, -2900], '#f25d07', 650, 2.2], [[-1300, -500, -4800], '#f20000', 900, .9], [[-60, 700, 380], '#f23005', 160, .25]], haze: .004, scat: .9, seam: 0 },
 };
 // the camera stands low in an aisle between two rows of pillars, looking down it and up a little at the subject
 // pillar's front left corner (the nearer pillars on that side soft in front of it, the far ones lost in the haze)
 const hallCam = (i) => {
-  const t = stillCam ? 0 : i / 74, target = new THREE.Vector3(-HALL.HW, 300, HALL.HW), pos = new THREE.Vector3(lerp(-300, -220, t), -350, 2100);
+  const t = stillCam ? 0 : i / 74, target = new THREE.Vector3(-HALL.HW, hallDir === 9 ? -250 : 300, HALL.HW),   // (hall=9 looks level, down onto the smoke bed)
+    pos = new THREE.Vector3(lerp(-300, -220, t), -350, 2100);
   cam.fov = 34; cam.updateProjectionMatrix(); look(pos, target, THREE.MathUtils.degToRad(6)); cam.updateMatrixWorld(); return { pos, target }; };
 // the title's box on screen (px, y down): the words, their glow and room for the blur of a soft line (owner's rule:
 // a seam never reaches it)
@@ -1195,7 +1222,7 @@ SHOTS.hall = { frames: 75, run(i) {
   knobLayer.visible = false; synth.visible = false; occ.visible = false; city.visible = false; HALL.g.visible = true; HALL.occ.visible = true;
   const D = HALL_DIRS[hallDir] ?? HALL_DIRS[1], U = HALL.U, hw = HALL.HW;
   D.L.forEach(([p, c, r, k], n) => { U.Lp.value[n].set(...p); const q = raw(c); U.Lc.value[n].set(q.r * k, q.g * k, q.b * k); U.Lr.value[n] = r; });
-  U.hazeC.value.set(.09, .085, .08).multiplyScalar(D.haze / .01); U.scat.value = D.scat; U.seam.value = D.seam; U.crack.value = D.crack ?? 0; U.time.value = i / FPS;
+  U.hazeC.value.set(.09, .085, .08).multiplyScalar(D.haze / .01); U.scat.value = D.scat; U.seam.value = D.seam; U.crack.value = D.crack ?? 0; U.rim.value = D.rim ?? 0; U.bed.value = D.bed ?? 0; comp.uniforms.shim.value = D.shim ?? 0; comp.uniforms.time.value = i / FPS; U.time.value = i / FPS;
   const { pos, target } = hallCam(i);
   if (HALL.plan !== hallDir + '/' + titleTxt) { planSeams(); HALL.plan = hallDir + '/' + titleTxt; hallCam(i); }
   AIR.g.visible = hallDir === 5; for (const L of AIR.lines) for (const m of L.meshes) m.rotation.y = Math.atan2(cam.position.x - L.x, cam.position.z - L.z);   // facing the camera
@@ -1222,8 +1249,8 @@ window.setup = (name) => {
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   titleTxt = o.txt ?? 1; titleCity = o.city ?? 0; titleFog = o.pfog ?? .5; titleTone = o.ptone ?? .5; titleTilt = o.tilt ?? 0; titleNear = o.pnear ?? 7000; titleMid = o.pmid ?? 7600; titleTGlow = o.tglow ?? 0; titleHaze = o.hazek ?? .4; titlePool = o.pool ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; fin.uniforms.sglow.value = flu.title ? (o.sglow ?? 1) : 1; const bgLike = n === 'bg' || n === 'title';
-  const isHall = n === 'hall'; hallDir = o.hall ?? 1; HALL.g.visible = isHall; AIR.g.visible = false; HALL.occ.visible = isHall; flu.hall = isHall;
-  Object.assign(SPB, isHall ? { x0: -1300, x1: 1100, y0: -900, y1: 1500, zb: -1600, z1: 1900, free: true } : SPB0);
+  const isHall = n === 'hall'; hallDir = o.hall ?? 1; comp.uniforms.shim.value = 0; HALL.g.visible = isHall; AIR.g.visible = false; HALL.occ.visible = isHall; flu.hall = isHall;
+  Object.assign(SPB, isHall ? { x0: -1300, x1: 1100, y0: hallDir === 9 ? -1100 : -900, y1: hallDir === 9 ? 0 : 1500, zb: -1600, z1: 1900, free: true } : SPB0);   // (hall=9: sparks rise from the smoke bed)
   if (isHall) { fin.uniforms.lim.value = 1; fin.uniforms.sglow.value = o.sglow ?? 1; }
   sparks.world = !bgLike; flow.on = false; smokeDof.uniforms.fill.value = n === 'bg' ? 0 : 1; fin.uniforms.subjOn.value = bgLike ? 0 : 1;   // (title cards: smoke without holes, no clear oval)   // trailer shots: sparks in the world, smoke blur without holes (the website's bg keeps its look)
   sparks.on = Math.min(25, o.sparks ?? 0); sparks.trail = o.trail ?? 0; sparks.spd = o.spd ?? 1; flu.ink = o.ink ?? 0; titleAp = o.ap ?? 30;
