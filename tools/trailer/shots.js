@@ -48,10 +48,12 @@ const flat = (o) => new THREE.MeshBasicMaterial({ toneMapped: false, ...o });
 // (bright, coloured lines and values) keep their light. real = 0 is the old even look, 1 the full lit look.
 const LIT = { keysDim: { value: 1 }, real: { value: 0 }, lightAt: { value: new THREE.Vector3() }, lightR: { value: 260 },
   spL: { value: Array.from({ length: 8 }, () => new THREE.Vector4()) } };          // sparks close to the face: x, y, height, brightness
-const lit = (map) => new THREE.ShaderMaterial({ uniforms: { map: { value: map }, ...LIT },
+// (the crop's repeat / offset applied here: a ShaderMaterial ignores a texture's own transform, so every piece showed the
+// whole picture squeezed in: the full UI squashed onto the wooden cheeks, and the face 10 % too narrow)
+const lit = (map) => new THREE.ShaderMaterial({ uniforms: { map: { value: map }, rep: { value: map.repeat.x }, off: { value: map.offset.x }, ...LIT },
   vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-  fragmentShader: `uniform sampler2D map; uniform float real, lightR, keysDim; uniform vec3 lightAt; uniform vec4 spL[8]; varying vec2 vUv; varying vec3 vW;
-    void main(){ vec3 c = texture2D(map, vUv).rgb;
+  fragmentShader: `uniform sampler2D map; uniform float real, lightR, keysDim, rep, off; uniform vec3 lightAt; uniform vec4 spL[8]; varying vec2 vUv; varying vec3 vW;
+    void main(){ vec3 c = texture2D(map, vec2(off + vUv.x * rep, vUv.y)).rgb;
       float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b));
       float glow = clamp(smoothstep(.45, .75, mx) + smoothstep(.35, .7, mx - mn), 0., 1.);    // what emits light itself
       vec2 d = (vW.xy - lightAt.xy) / lightR; d.x *= .8;

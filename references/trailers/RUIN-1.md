@@ -186,6 +186,11 @@ along the line where the smoke crosses the focus distance; the gap grows with th
 Trailer shots now fill that gap with a dense inner spiral (`fill`, off for the website's `bg` shots, which keep their
 look). `fluid=3` shows the smoke before its blur (red) and its distance (green), for checking.
 
+**Fixed: the UI squashed onto the cheeks** (owner, 20 Nov). The synth's pieces used a shader that ignored each crop's
+repeat and offset, so every piece showed the whole picture squeezed in: the full UI on the wooden cheeks (visible in
+wides) and the face about 10 % too narrow. The crop is now applied in the shader (`lit()`), so the panel shows at its
+true proportions; shots made before that frame a few percent differently.
+
 **Render width changes the smoke:** the same shot is about three times brighter at 960 wide than at 1600 (found
 with the website header loop). Always check and render at the width that will be delivered.
 
