@@ -46,11 +46,11 @@ const flat = (o) => new THREE.MeshBasicMaterial({ toneMapped: false, ...o });
 // the synth's face as a lit object (owner's call, away from the references' evenly self-lit screen): one hard light
 // pool falling across the panel, the rest in shadow, and a faint sheen on the glossy face; the UI's own glowing parts
 // (bright, coloured lines and values) keep their light. real = 0 is the old even look, 1 the full lit look.
-const LIT = { real: { value: 0 }, lightAt: { value: new THREE.Vector3() }, lightR: { value: 260 },
+const LIT = { keysDim: { value: 1 }, real: { value: 0 }, lightAt: { value: new THREE.Vector3() }, lightR: { value: 260 },
   spL: { value: Array.from({ length: 8 }, () => new THREE.Vector4()) } };          // sparks close to the face: x, y, height, brightness
 const lit = (map) => new THREE.ShaderMaterial({ uniforms: { map: { value: map }, ...LIT },
   vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-  fragmentShader: `uniform sampler2D map; uniform float real, lightR; uniform vec3 lightAt; uniform vec4 spL[8]; varying vec2 vUv; varying vec3 vW;
+  fragmentShader: `uniform sampler2D map; uniform float real, lightR, keysDim; uniform vec3 lightAt; uniform vec4 spL[8]; varying vec2 vUv; varying vec3 vW;
     void main(){ vec3 c = texture2D(map, vUv).rgb;
       float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b));
       float glow = clamp(smoothstep(.45, .75, mx) + smoothstep(.35, .7, mx - mn), 0., 1.);    // what emits light itself
@@ -65,6 +65,7 @@ const lit = (map) => new THREE.ShaderMaterial({ uniforms: { map: { value: map },
       for (int k = 0; k < 8; k++) { vec4 q = spL[k]; float rad = 4. + q.z * 1.6; vec2 dd = vW.xy - q.xy;
         sl += q.w * exp(-dot(dd, dd) / (rad * rad)) / (1. + q.z * q.z / 40.); }
       litc += (c * 2.2 + .045) * vec3(.949, .365, .027) * sl;
+      litc *= mix(1., keysDim, step(vUv.y, .205));                                         // keysdim: the keys (the bottom fifth) darker, for wides
       gl_FragColor = vec4(mix(c, litc, real), 1.); }` });
 const scene = new THREE.Scene();
 scene.background = col('#020203');
@@ -814,7 +815,8 @@ for (const [k, [pg, [tx, ty], [mx, my], [ox, oy, oz], roll, fov, [lx, ly]]] of O
   const t = stillCam ? 0 : i / 74, target = P(tx + mx * t, ty + my * t); LIT.lightAt.value.copy(P(lx, ly));
   const pos = target.clone().add(new THREE.Vector3(ox, oy, oz));
   cam.fov = fov; cam.updateProjectionMatrix(); look(pos, target, THREE.MathUtils.degToRad(roll));
-  draw(i, pos.distanceTo(target), 105); } };
+  draw(i, pos.distanceTo(target), uiAp); } };
+let uiAp = 105;   // uiap: the UISHOTS' aperture (smaller = more of the panel sharp)
 // ---------- text cards: five plates in the website's siren colours (always fading to pure black), Manrope, typed in ----------
 // A siren glow rising from below, with pixel sparks · B ink in deep red with a hot core · C black film: dust, scratches,
 // a red light leak · D the website's pixel fire, taller, with sparks · E real flames, heat shimmer and sparks
@@ -1376,7 +1378,7 @@ window.setup = (name) => {
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   titleTxt = o.txt ?? 1; titleCity = o.city ?? 0; titleFog = o.pfog ?? .5; titleTone = o.ptone ?? .5; titleTilt = o.tilt ?? 0; titleNear = o.pnear ?? 7000; titleMid = o.pmid ?? 7600; titleTGlow = o.tglow ?? 0; titleHaze = o.hazek ?? .4; titlePool = o.pool ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; fin.uniforms.sglow.value = flu.title ? (o.sglow ?? 1) : 1; const bgLike = n === 'bg' || n === 'title';
-  ROUGH = o.rough ?? 0; titleTyp = o.typ ?? 0; hallCamN = o.hcam ?? 1; r.domElement.style.opacity = 1;
+  ROUGH = o.rough ?? 0; uiAp = o.uiap ?? 105; LIT.keysDim.value = o.keysdim ?? 1; titleTyp = o.typ ?? 0; hallCamN = o.hcam ?? 1; r.domElement.style.opacity = 1;
   const isHall = n === 'hall'; hallDir = o.hall ?? 1; comp.uniforms.shim.value = 0; fin.uniforms.spc.value = o.spc ?? 0; spMat.uniforms.fogSig.value = isHall ? .3 / 2200 : 0; HALL.g.visible = isHall; AIR.g.visible = false; HALL.occ.visible = isHall; flu.hall = isHall;
   Object.assign(SPB, isHall ? { x0: -1300, x1: 1100, y0: hallDir === 9 ? -1100 : -900, y1: hallDir === 9 ? 0 : 1500, zb: -1600, z1: 1900, free: true } : SPB0);   // (hall=9: sparks rise from the smoke bed)
   if (isHall) { fin.uniforms.lim.value = 1; fin.uniforms.sglow.value = o.sglow ?? 1; }
