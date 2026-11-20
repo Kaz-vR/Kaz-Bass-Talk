@@ -800,6 +800,11 @@ const UISHOTS = {
   scope:     ['OSC', [830, 420], [-50, 0], [200, -230, 240], -6, 26, [830, 380]],    // the scope, the sound you hear
   sub_wave:  ['OSC', [225, 405], [50, 0], [-190, -220, 230], 6, 26, [240, 380]],     // the sub's sine
   wide:      ['OSC', [679, 380], [-60, 0], [-420, -900, 1450], 5, 26, [679, 300]],   // the whole instrument: the reveal
+  // the reveal, done the references' way (20 Nov): close with a wider lens, a steep tilt, the panel running off the
+  // frame's edges, dense parts in frame, the keys out of it (the camera above or beside, not below)
+  wide_a:    ['OSC', [700, 300], [-50, 0], [-460, 420, 520], 18, 40, [700, 280]],   // from above left, looking down across the rows
+  wide_b:    ['OSC', [560, 280], [60, 0], [640, -140, 430], -22, 38, [560, 260]],   // from the right, grazing: the rows recede to the left
+  wide_c:    ['OSC', [680, 260], [-40, 20], [-380, 300, 460], 27, 36, [680, 240]],  // from above left, rolled like Monolith (27 degrees)
   ruin_wide: ['RUIN', [679, 300], [60, 0], [380, -760, 1150], -5, 26, [679, 250]],   // the whole RUIN page
   pr_list2:  ['PRESETS', [720, 300], [0, 90], [210, -230, 240], -7, 26, [720, 260]], // the list, the other column, fast
   pr_shelf2: ['PRESETS', [150, 300], [0, -80], [180, -200, 220], -6, 25, [160, 260]],// the shelves, fast
