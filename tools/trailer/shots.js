@@ -1413,6 +1413,43 @@ const REV2 = (() => {
   return { g, glow, cover, wipe, cards, sp, geo, seeds, HC };
 })();
 let rev2N = 1;
+// round 3 (owner, 20 Nov: "light comes round", six variations): rv3=1 right to left · 2 top down · 3 bottom up · 4 from
+// the centre out (two edges) · 5 diagonal, slower, a wide soft edge · 6 on the beat, column by column in four steps,
+// the fire pulsing each step. A wipe is a big black plane, dark on one side of a soft edge; it travels along its angle
+const WIPES = [0, 1].map(() => { const m = new THREE.Mesh(new THREE.PlaneGeometry(PW * 4, PW * 3), flat({ map: REV2.wipe.material.map, transparent: true, depthWrite: false })); m.position.z = .7; m.visible = false; REV2.g.add(m); return m; });
+let rev3N = 1;
+SHOTS.rev3 = { frames: 100, async run(i) {
+  knobLayer.visible = false; await usePage('OSC'); REV2.g.visible = true; const R2 = REV2, tt = i / FPS;
+  const target = P(679, 375 - 15 * Math.min(1, i / 90)), pos = target.clone().add(new THREE.Vector3(0, -470, 1760));
+  R2.cards.forEach((m) => { m.visible = false; }); R2.cover.visible = false; R2.wipe.visible = false; WIPES.forEach((w) => { w.visible = false; });
+  // the reveal's progress k (0 dark .. 1 lit); 6: four steps on the beats (a beat = 16.7 frames)
+  let k = Math.min(1, Math.max(0, (i - 25) / (rev3N === 5 ? 72 : 60)));
+  if (rev3N === 6) { const st = [25, 42, 59, 76].reduce((a, b) => a + Math.min(1, Math.max(0, (i - b) / 6)), 0); k = st / 4; }
+  const ease = rev3N === 6 ? k : ss(k);
+  const wipe = (w, ang, ext) => { const d = new THREE.Vector2(Math.cos(ang), Math.sin(ang)), s_ = lerp(-ext, ext, ease);
+    w.visible = true; w.rotation.z = ang; w.position.set(d.x * s_, d.y * s_, .7); w.scale.set(rev3N === 5 ? 1.6 : 1, 1, 1); return d.multiplyScalar(s_); };
+  let edge = new THREE.Vector2();
+  if (rev3N === 1) edge = wipe(WIPES[0], Math.PI, PW * .7);
+  if (rev3N === 2) edge = wipe(WIPES[0], -Math.PI / 2, PH * .85);
+  if (rev3N === 3) edge = wipe(WIPES[0], Math.PI / 2, PH * .85);
+  if (rev3N === 4) { const e = PW * .02 + ease * PW * .7; [[0, e], [Math.PI, e]].forEach(([a, sx], n) => { const w = WIPES[n]; w.visible = true; w.rotation.z = a; w.position.set(Math.cos(a) * (sx - PW * .2) * -1 * -1, 0, .7); });
+    WIPES[0].position.x = -PW * .2 + e - PW * .0; WIPES[1].position.x = PW * .2 - e; WIPES[0].rotation.z = Math.PI; WIPES[1].rotation.z = 0; }
+  if (rev3N === 5) edge = wipe(WIPES[0], -Math.PI / 4 + Math.PI, PW * .9);
+  if (rev3N === 6) edge = wipe(WIPES[0], 0, PW * .62);
+  // the fire behind: travelling with the edge (4: at the middle, growing), dimming as the panel takes the light; 6 pulses
+  R2.glow.visible = true; let gs = 2600, go = .85 * (1 - .45 * ease);
+  if (rev3N === 4) { R2.glow.position.set(0, -60, -260); gs = 1600 + 1400 * ease; }
+  else R2.glow.position.set(edge.x * 1.2, -60 + edge.y * 1.2, -260);
+  if (rev3N === 6) go *= 1 + .6 * [25, 42, 59, 76].reduce((a, b) => a + (i >= b ? Math.exp(-(i - b) / 5) : 0), 0);
+  R2.glow.scale.set(gs, gs * .7, 1); R2.glow.material.opacity = Math.min(1, go);
+  // embers drifting past
+  const P_ = R2.geo.attributes.position.array, C_ = R2.geo.attributes.color.array;
+  R2.seeds.forEach((q, n) => { const life = 3 + q.e * 3, age = (tt + q.h * life) % life, b = Math.min(1, age * 2, (life - age) * 1.5) * .6;
+    P_[n * 3] = (q.a - .5) * 1700 + 40 * Math.sin(tt * .7 + q.h * 9); P_[n * 3 + 1] = -500 + age * (60 + q.b * 90); P_[n * 3 + 2] = (q.c - .3) * 500;
+    const c = R2.HC[Math.min(2, Math.floor(q.h * 3))]; C_[n * 3] = c[0] * b * 1.6; C_[n * 3 + 1] = c[1] * b * 1.6; C_[n * 3 + 2] = c[2] * b * 1.6; });
+  R2.geo.attributes.position.needsUpdate = true; R2.geo.attributes.color.needsUpdate = true;
+  cam.fov = 26; cam.updateProjectionMatrix(); look(pos, target, 0);
+  draw(i, pos.distanceTo(target), uiAp); } };
 SHOTS.rev2 = { frames: 100, async run(i) {
   knobLayer.visible = false; await usePage('OSC'); REV2.g.visible = true;
   const H = 40, tt = i / FPS, aft = Math.max(0, (i - H) / FPS), hit = i >= H, R2 = REV2;
@@ -1474,7 +1511,7 @@ window.setup = (name) => {
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   titleTxt = o.txt ?? 1; titleCity = o.city ?? 0; titleFog = o.pfog ?? .5; titleTone = o.ptone ?? .5; titleTilt = o.tilt ?? 0; titleNear = o.pnear ?? 7000; titleMid = o.pmid ?? 7600; titleTGlow = o.tglow ?? 0; titleHaze = o.hazek ?? .4; titlePool = o.pool ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; fin.uniforms.sglow.value = flu.title ? (o.sglow ?? 1) : 1; const bgLike = n === 'bg' || n === 'title';
-  rev2N = o.rv2 ?? 1; REV2.g.visible = false;
+  rev2N = o.rv2 ?? 1; rev3N = o.rv3 ?? 1; REV2.g.visible = false;
   revN = o.rv ?? 1; synth.position.set(0, 0, 0); synth.rotation.set(0, 0, 0); POWER.forEach((m) => { m.visible = false; });
   ROUGH = o.rough ?? 0; uiAp = o.uiap ?? 105; LIT.keysDim.value = o.keysdim ?? 1; titleTyp = o.typ ?? 0; hallCamN = o.hcam ?? 1; r.domElement.style.opacity = 1;
   const isHall = n === 'hall'; hallDir = o.hall ?? 1; comp.uniforms.shim.value = 0; fin.uniforms.spc.value = o.spc ?? 0; spMat.uniforms.fogSig.value = isHall ? .3 / 2200 : 0; HALL.g.visible = isHall; AIR.g.visible = false; HALL.occ.visible = isHall; flu.hall = isHall;

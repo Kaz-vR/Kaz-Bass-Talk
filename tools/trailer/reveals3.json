@@ -1,0 +1,81 @@
+{
+ "about": "DEV ONLY. Reveal round 3: six variations of 'light comes round' (rough).",
+ "bpm": 90,
+ "looks": {
+  "ui": "real=1,og=1,tint=0.22,fine=1,sparks=0.65,fluid=1.6,fire=0.5,lightr=1400,uiap=35,keysdim=0.35,subjr=560"
+ },
+ "shots": [
+  {
+   "shot": "rev3",
+   "opts": "rv3=1",
+   "beats": 6,
+   "look": "ui",
+   "part": "rv1"
+  },
+  {
+   "shot": "black",
+   "beats": 1,
+   "part": "gap"
+  },
+  {
+   "shot": "rev3",
+   "opts": "rv3=2",
+   "beats": 6,
+   "look": "ui",
+   "part": "rv2"
+  },
+  {
+   "shot": "black",
+   "beats": 1,
+   "part": "gap"
+  },
+  {
+   "shot": "rev3",
+   "opts": "rv3=3",
+   "beats": 6,
+   "look": "ui",
+   "part": "rv3"
+  },
+  {
+   "shot": "black",
+   "beats": 1,
+   "part": "gap"
+  },
+  {
+   "shot": "rev3",
+   "opts": "rv3=4",
+   "beats": 6,
+   "look": "ui",
+   "part": "rv4"
+  },
+  {
+   "shot": "black",
+   "beats": 1,
+   "part": "gap"
+  },
+  {
+   "shot": "rev3",
+   "opts": "rv3=5",
+   "beats": 6,
+   "look": "ui",
+   "part": "rv5"
+  },
+  {
+   "shot": "black",
+   "beats": 1,
+   "part": "gap"
+  },
+  {
+   "shot": "rev3",
+   "opts": "rv3=6",
+   "beats": 6,
+   "look": "ui",
+   "part": "rv6"
+  },
+  {
+   "shot": "black",
+   "beats": 1,
+   "part": "gap"
+  }
+ ]
+}
