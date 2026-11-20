@@ -1388,6 +1388,72 @@ SHOTS.rev = { frames: 100, async run(i) {
   if (revN === 7) { const s_ = i / FPS; synth.rotation.set(-.06 + .05 * Math.sin(s_ * .9), .07 * Math.sin(s_ * .6 + 1), .015 * Math.sin(s_ * .7)); synth.position.y = 18 * Math.sin(s_ * 1.1); }
   cam.fov = 26; cam.updateProjectionMatrix(); look(pos, target, 0);
   draw(i, pos.distanceTo(target), uiAp); } };
+// ---------- reveal round 2 (owner, 20 Nov: "smoke blown away" and "silhouette against fire", three each): rv2=1..6
+// 1 shockwave (the smoke blasts outward from the middle, sparks thrown) · 2 gust (swept off sideways) · 3 curtain lift
+// (rising, revealing from the bottom up) · 4 silhouette, the front light fading up on the hit · 5 the light coming
+// round from behind, lighting the panel left to right · 6 the fire flares on the hit, sparks burst and the panel
+// ignites. The hit at frame 40. Flat stand-ins for the rough cut: soft smoke cards, a glow card, plain sparks.
+const REV2 = (() => {
+  const g = new THREE.Group(); g.visible = false; scene.add(g);
+  const cv = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.NoColorSpace; return t; };
+  let a = 99; const R = () => (a = (a * 16807) % 2147483647) / 2147483647;
+  const puff = cv(256, 256, (c, w) => { for (let k = 0; k < 70; k++) { const x = 128 + (R() - .5) * 150, y = 128 + (R() - .5) * 150, r = 20 + R() * 60, gr = c.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, `rgba(255,255,255,${.12 + R() * .12})`); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, w); } });
+  const glowT = cv(256, 256, (c, w) => { const gr = c.createRadialGradient(128, 128, 0, 128, 128, 128); gr.addColorStop(0, 'rgba(242,93,7,1)'); gr.addColorStop(.35, 'rgba(242,48,5,.75)'); gr.addColorStop(.7, 'rgba(242,0,0,.3)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, w); });
+  const wipeT = cv(512, 4, (c, w, h) => { const gr = c.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(.45, 'rgba(0,0,0,0)'); gr.addColorStop(.55, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,1)'); c.fillStyle = gr; c.fillRect(0, 0, w, h); });
+  const glow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), flat({ map: glowT, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); glow.position.z = -260; g.add(glow);
+  const cover = new THREE.Mesh(new THREE.PlaneGeometry(PW + 6, PH + 6), flat({ color: 0x000000, transparent: true })); cover.position.z = .6; g.add(cover);
+  const wipe = new THREE.Mesh(new THREE.PlaneGeometry(PW * 3, PH + 6), flat({ map: wipeT, transparent: true, depthWrite: false })); wipe.position.z = .7; g.add(wipe);
+  const cards = Array.from({ length: 22 }, () => { const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), flat({ map: puff, transparent: true, depthWrite: false, color: new THREE.Color().setRGB(.45 + R() * .2, .12 + R() * .08, .06 + R() * .04) }));
+    m.userData = { x: (R() - .5) * 1500, y: (R() - .5) * 800, z: 30 + R() * 330, s: 500 + R() * 600, r: R() * 6.28, ph: R() }; g.add(m); return m; });
+  const N = 420, geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 3), 3)); geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(N * 3), 3));
+  const sp = new THREE.Points(geo, new THREE.PointsMaterial({ size: 3.2 * K, sizeAttenuation: false, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); sp.frustumCulled = false; g.add(sp);
+  const seeds = Array.from({ length: N }, () => ({ a: R(), b: R(), c: R(), d: R(), e: R(), h: R() }));
+  const HC = [[.949, .365, .027], [.949, .188, .02], [.949, 0, 0]];
+  return { g, glow, cover, wipe, cards, sp, geo, seeds, HC };
+})();
+let rev2N = 1;
+SHOTS.rev2 = { frames: 100, async run(i) {
+  knobLayer.visible = false; await usePage('OSC'); REV2.g.visible = true;
+  const H = 40, tt = i / FPS, aft = Math.max(0, (i - H) / FPS), hit = i >= H, R2 = REV2;
+  const target = P(679, 375 - 15 * Math.min(1, i / 90)), pos = target.clone().add(new THREE.Vector3(0, -470, 1760));
+  // smoke (1-3): the cards over the synth, then away
+  const smoke = rev2N <= 3;
+  R2.cards.forEach((m) => { const u = m.userData; m.visible = smoke; if (!smoke) return;
+    let x = u.x * .6, y = u.y * .6, z = u.z, op = .4, sc = u.s;
+    if (rev2N === 1 && hit) { const k = 1 - Math.exp(-aft * 3.2); x = u.x * (.6 + 2.6 * k); y = u.y * (.6 + 2.6 * k); op = .4 * (1 - k); sc = u.s * (1 + .6 * k); }
+    if (rev2N === 2 && hit) { const k = Math.max(0, aft * 1.6 - (u.x + 750) / 1500 * .5); x = u.x * .6 + 2600 * k * k; op = .4 * Math.max(0, 1 - k * .9); }
+    if (rev2N === 3) { const k = Math.max(0, hit ? aft * .75 - (u.y + 400) / 800 * -.0 : 0); y = u.y * .6 + 1400 * k * k + 60 * (k > 0 ? (u.y + 400) / 800 : 0); op = .4 * Math.max(0, 1 - k * 1.1); }
+    m.position.set(x + 30 * Math.sin(tt * .5 + u.r), y + 20 * Math.cos(tt * .4 + u.r), z); m.scale.set(sc, sc, 1); m.rotation.z = u.r + tt * .05 * (u.ph - .5); m.material.opacity = op; });
+  // the face: hidden in smoke (1-3), a silhouette (4-6)
+  let cov = 0; R2.wipe.visible = false;
+  if (rev2N === 1) cov = hit ? .55 * Math.exp(-aft * 3) : .55;
+  if (rev2N === 2) cov = hit ? .55 * Math.max(0, 1 - aft * 1.2) : .55;
+  if (rev2N === 3) cov = hit ? .55 * Math.max(0, 1 - aft * .8) : .55;
+  if (rev2N === 4) cov = hit ? Math.max(0, 1 - aft / .7) : 1;
+  if (rev2N === 5) { cov = 0; R2.wipe.visible = true; R2.wipe.position.x = lerp(-PW * .7, PW * .7, Math.min(1, Math.max(0, (i - 25) / 60))); }   // (the dark retreats to the right)
+  if (rev2N === 6) cov = hit ? Math.max(0, 1 - aft / .12) : 1;
+  R2.cover.material.opacity = cov; R2.cover.visible = cov > .001;
+  // the fire behind (4-6): a glow larger than the synth, so its edges are rimmed in red; 5 moves round, 6 flares
+  R2.glow.visible = rev2N >= 4; let gs = 2600, gx = 0, gy = -60, go = .85;
+  if (rev2N === 5) { const k = Math.min(1, Math.max(0, (i - 20) / 60)); gx = lerp(-200, 1500, k); go = .85 * (1 - .5 * k); }
+  if (rev2N === 6 && hit) { const f = Math.exp(-aft * 2.2); gs = 2600 * (1 + .5 * f); go = .85 + .15 * f; }
+  R2.glow.position.set(gx, gy, -260); R2.glow.scale.set(gs, gs * .7, 1); R2.glow.material.opacity = go;
+  // sparks: drifting (always), plus a burst on the hit (1: radial, 2: streaming sideways, 3 and 6: upward)
+  const P_ = R2.geo.attributes.position.array, C_ = R2.geo.attributes.color.array;
+  R2.seeds.forEach((q, k) => { let x, y, z, b; const burst = k < 260;
+    if (!burst || !hit || rev2N === 4 || rev2N === 5) { const life = 3 + q.e * 3, age = (tt + q.h * life) % life;          // drifting embers
+      x = (q.a - .5) * 1700 + 40 * Math.sin(tt * .7 + q.h * 9); y = -500 + age * (60 + q.b * 90); z = (q.c - .3) * 500; b = Math.min(1, age * 2, (life - age) * 1.5) * .6;
+      if (burst && !(rev2N >= 4 && rev2N <= 5)) b *= hit ? 0 : .5; }
+    else { const age = aft * (1 + q.e), ang = q.a * 6.283, sp_ = 500 + q.b * 1600;
+      if (rev2N === 1) { x = Math.cos(ang) * sp_ * age; y = Math.sin(ang) * sp_ * age * .7 - 300 * age * age; z = 80 + q.c * 200; }
+      else if (rev2N === 2) { x = -700 + sp_ * 1.4 * age; y = (q.c - .5) * 800 + Math.sin(ang) * 120 * age; z = 60 + q.d * 260; }
+      else { x = (q.a - .5) * 1500; y = -420 + sp_ * .8 * age - 200 * age * age; z = 60 + q.c * 260; }
+      b = Math.max(0, 1 - age / (1.1 + q.d)); }
+    P_[k * 3] = x; P_[k * 3 + 1] = y; P_[k * 3 + 2] = z; const c = R2.HC[Math.min(2, Math.floor(q.h * 3))]; C_[k * 3] = c[0] * b * 1.6; C_[k * 3 + 1] = c[1] * b * 1.6; C_[k * 3 + 2] = c[2] * b * 1.6; });
+  R2.geo.attributes.position.needsUpdate = true; R2.geo.attributes.color.needsUpdate = true;
+  cam.fov = 26; cam.updateProjectionMatrix(); look(pos, target, 0);
+  draw(i, pos.distanceTo(target), uiAp); } };
 SHOTS.cardA = card(PLATES.A, { count: 60 });
 SHOTS.cardB = card(PLATES.B, {});
 SHOTS.cardC = card(PLATES.C, {});
@@ -1408,6 +1474,7 @@ window.setup = (name) => {
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   titleTxt = o.txt ?? 1; titleCity = o.city ?? 0; titleFog = o.pfog ?? .5; titleTone = o.ptone ?? .5; titleTilt = o.tilt ?? 0; titleNear = o.pnear ?? 7000; titleMid = o.pmid ?? 7600; titleTGlow = o.tglow ?? 0; titleHaze = o.hazek ?? .4; titlePool = o.pool ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; fin.uniforms.sglow.value = flu.title ? (o.sglow ?? 1) : 1; const bgLike = n === 'bg' || n === 'title';
+  rev2N = o.rv2 ?? 1; REV2.g.visible = false;
   revN = o.rv ?? 1; synth.position.set(0, 0, 0); synth.rotation.set(0, 0, 0); POWER.forEach((m) => { m.visible = false; });
   ROUGH = o.rough ?? 0; uiAp = o.uiap ?? 105; LIT.keysDim.value = o.keysdim ?? 1; titleTyp = o.typ ?? 0; hallCamN = o.hcam ?? 1; r.domElement.style.opacity = 1;
   const isHall = n === 'hall'; hallDir = o.hall ?? 1; comp.uniforms.shim.value = 0; fin.uniforms.spc.value = o.spc ?? 0; spMat.uniforms.fogSig.value = isHall ? .3 / 2200 : 0; HALL.g.visible = isHall; AIR.g.visible = false; HALL.occ.visible = isHall; flu.hall = isHall;
