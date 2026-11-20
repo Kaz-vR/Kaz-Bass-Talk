@@ -14,7 +14,7 @@ import { existsSync, readFileSync } from 'node:fs';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? 'playwright');
 const [MODE = 'rough', OUT = `renders/trailer/cut-${MODE}`] = process.argv.slice(2);
-const TL = JSON.parse(readFileSync('tools/trailer/timeline.json', 'utf8'));
+const TL = JSON.parse(readFileSync(process.env.TL ?? 'tools/trailer/timeline.json', 'utf8'));   // TL=<file>: another timeline (e.g. a set of options)
 const rough = MODE === 'rough', FPS = rough ? 15 : 25, WW = rough ? 640 : 1920, HH = WW * 9 / 16, beat = 60 / TL.bpm;
 const exe = process.env.CHROMIUM ?? (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.json': 'application/json', '.woff2': 'font/woff2' };
@@ -47,6 +47,6 @@ for (const e of TL.shots) {
 }
 await b.close(); server.close();
 const track = join(OUT, '..', 'track.wav'), mp4 = join(OUT, 'cut.mp4');
-execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', join(dir, '%05d.jpg'), ...(existsSync(track) ? ['-i', track, '-c:a', 'aac', '-b:a', '160k', '-shortest'] : []),
+execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', join(dir, '%05d.jpg'), ...(existsSync(track) && !process.env.NOAUDIO ? ['-i', track, '-c:a', 'aac', '-b:a', '160k', '-shortest'] : []),
   '-c:v', 'libx264', '-preset', rough ? 'veryfast' : 'slow', '-crf', rough ? '24' : '14', '-pix_fmt', 'yuv420p', mp4]);
 console.log(`${n} frames, ${tAt.toFixed(2)} s, rendered in ${((Date.now() - t0) / 1000).toFixed(0)} s -> ${mp4}`);

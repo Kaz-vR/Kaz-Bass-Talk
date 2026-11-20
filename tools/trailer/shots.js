@@ -1363,6 +1363,31 @@ SHOTS.hall = { frames: 75, run(i) {
   finOut = rtOut; draw(i, focus, 105); finOut = null;
   if (logoKind === 1) layLogo(); else if (titleTxt && !logoKind) layTitle(); else { tg.clearRect(0, 0, W, H); ttex.needsUpdate = true; pass(comp, null); }   // txt=0: no words
 } };
+// ---------- the synth's reveal, the synth itself moving (owner, 20 Nov): seven options on the front-on framing (front_a)
+// rv=1 rises out of the dark · 2 tilts up like a lid opening · 3 turns to face you, overshooting a little · 4 a band of
+// light sweeps across it · 5 powers on, its displays lighting one by one · 6 the camera pulls back from the logo ·
+// 7 floats, drifting and bobbing slowly
+let revN = 1;
+const easeOut = (x) => 1 - Math.pow(1 - x, 3), easeBack = (x) => { const c = 1.6; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+// the power-on: a dark cover over each of the page's eight boxes, lifting in turn
+const POWER = [[80, 85, 375, 305], [380, 85, 677, 305], [682, 85, 978, 305], [985, 85, 1278, 305], [80, 313, 375, 535], [380, 313, 677, 535], [682, 313, 978, 535], [985, 313, 1278, 535]]
+  .map(([x0, y0, x1, y1]) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, y1 - y0), flat({ color: 0x050505, transparent: true, opacity: .93 }));
+    m.position.copy(P((x0 + x1) / 2, (y0 + y1) / 2)).setZ(.3); m.visible = false; synth.add(m); return m; });
+const POWER_ORDER = [0, 1, 2, 3, 4, 5, 7, 6];                                    // the scope last
+SHOTS.rev = { frames: 100, async run(i) {
+  knobLayer.visible = false; await usePage('OSC');
+  const t = Math.min(1, i / 90); synth.position.set(0, 0, 0); synth.rotation.set(0, 0, 0); POWER.forEach((m) => { m.visible = false; });
+  let target = P(679, 375 - 15 * t), pos = target.clone().add(new THREE.Vector3(0, -470, 1760));
+  LIT.real.value = 0;
+  if (revN === 1) synth.position.y = lerp(-950, 0, easeOut(t));
+  if (revN === 2) synth.rotation.x = lerp(-1.45, 0, easeOut(t));
+  if (revN === 3) synth.rotation.y = lerp(.5, 0, easeBack(Math.min(1, t * 1.1)));
+  if (revN === 4) { LIT.real.value = 1; LIT.lightR.value = 330; LIT.lightAt.value.copy(P(lerp(-250, 1600, t), 330)); }   // (the pool, swept: the panel otherwise dark)
+  if (revN === 5) POWER_ORDER.forEach((k, n) => { const on = Math.min(1, Math.max(0, (i - 12 - n * 9) / 5)); POWER[k].visible = on < 1; POWER[k].material.opacity = .93 * (1 - on); });
+  if (revN === 6) { const e = ss(t), logo = P(160, 45); target = new THREE.Vector3().lerpVectors(logo, P(679, 375), e); pos = target.clone().add(new THREE.Vector3(0, lerp(-60, -470, e), lerp(170, 1760, e))); }
+  if (revN === 7) { const s_ = i / FPS; synth.rotation.set(-.06 + .05 * Math.sin(s_ * .9), .07 * Math.sin(s_ * .6 + 1), .015 * Math.sin(s_ * .7)); synth.position.y = 18 * Math.sin(s_ * 1.1); }
+  cam.fov = 26; cam.updateProjectionMatrix(); look(pos, target, 0);
+  draw(i, pos.distanceTo(target), uiAp); } };
 SHOTS.cardA = card(PLATES.A, { count: 60 });
 SHOTS.cardB = card(PLATES.B, {});
 SHOTS.cardC = card(PLATES.C, {});
@@ -1383,6 +1408,7 @@ window.setup = (name) => {
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   titleTxt = o.txt ?? 1; titleCity = o.city ?? 0; titleFog = o.pfog ?? .5; titleTone = o.ptone ?? .5; titleTilt = o.tilt ?? 0; titleNear = o.pnear ?? 7000; titleMid = o.pmid ?? 7600; titleTGlow = o.tglow ?? 0; titleHaze = o.hazek ?? .4; titlePool = o.pool ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; fin.uniforms.sglow.value = flu.title ? (o.sglow ?? 1) : 1; const bgLike = n === 'bg' || n === 'title';
+  revN = o.rv ?? 1; synth.position.set(0, 0, 0); synth.rotation.set(0, 0, 0); POWER.forEach((m) => { m.visible = false; });
   ROUGH = o.rough ?? 0; uiAp = o.uiap ?? 105; LIT.keysDim.value = o.keysdim ?? 1; titleTyp = o.typ ?? 0; hallCamN = o.hcam ?? 1; r.domElement.style.opacity = 1;
   const isHall = n === 'hall'; hallDir = o.hall ?? 1; comp.uniforms.shim.value = 0; fin.uniforms.spc.value = o.spc ?? 0; spMat.uniforms.fogSig.value = isHall ? .3 / 2200 : 0; HALL.g.visible = isHall; AIR.g.visible = false; HALL.occ.visible = isHall; flu.hall = isHall;
   Object.assign(SPB, isHall ? { x0: -1300, x1: 1100, y0: hallDir === 9 ? -1100 : -900, y1: hallDir === 9 ? 0 : 1500, zb: -1600, z1: 1900, free: true } : SPB0);   // (hall=9: sparks rise from the smoke bed)
