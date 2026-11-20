@@ -257,20 +257,23 @@ volumetric fog pass (commits 3453e25 to 919245a). The owner found these worse th
 ## 8. The whole trailer: timeline, ROUGH and FINAL
 
 The edit lives in **`tools/trailer/timeline.json`**: every shot or card in order, its length in beats, its options, its
-fades through black and its part of the music. **The current cut (19 Nov, the owner's new cards, `STRUCTURE.md`),
-60.0 s at 90 BPM** (the references' felt tempo: Scorpio 89, Monolith 80.7 half-time, Origin X 72 half-time, Staccato
-99; 10 frames a beat at 15 fps):
-- **a cold-open hook** (0-2.7 s): black, one slam on a RUIN-page shot, black again, in silence around it;
-- **the intro** (4-beat shots: OSC A's saw, LFO 1 on Humanize, the tape, the filter), soft, with a riser under the last
-  shot and card 1, EVERYTHING YOU HEAR IS RUIN-1; **the drop** on its last frame (27 %);
-- **the groove** (2-beat shots on the OSC, LFO and FX pages), card 2 DISTORTION AS AN INSTRUMENT on a hit, then **the
-  heaviest part on the RUIN page** (1-2-beat shots, 45-55 %);
-- card 3 250+ SOUNDS. READY TO PLAY. and the presets, card 4 NEW SOUNDS IN ONE CLICK. and Create (the Randomizer):
-  lighter, **a different preset on every cut**;
-- card 5 ARE YOU READY? over **the drop-out** (a low pad, a swell, one beat of silence), then **the logo on the
-  biggest hit** (the end card), its chord ringing out, 4 s to black.
-Cards type in at a letter every two frames, twice as fast on long lines in short cards (`typ=2`), so every line is
-readable for over a second.
+fades through black and its part of the music. **The current cut (v3, 20 Nov): the story plan**, on the owner's cards
+(`STRUCTURE.md`, card 2 now BUILD A SOUND. / THEN RUIN IT.), 60.0 s at 90 BPM (the references' felt tempo):
+1. **The mystery** (0.7-8.7 s): fragments in the dark, very close (the scope, a peak of the saw, the DETUNE dial's
+   edge, the keys); the music a heartbeat, air and a few cold metallic notes.
+2. **EVERYTHING YOU HEAR IS RUIN-1**: the heartbeat speeds up under a riser.
+3. **The proof** (12-20 s): every shot is the sound you hear (the saw riff, the envelope's swell, the LFO's wobble,
+   the scope's pluck), then **the wide reveal** of the whole instrument with everything together.
+4. **BUILD A SOUND. / THEN RUIN IT.**: one bass riff introduced alone, clean.
+5. **The transformation** (22.7-32 s): the riff clean (the sub, the filter), then a match cut to the whole RUIN page
+   and the same riff **ruined** (Destroyed Reese, Grinder, neuro stabs, horns, full drums), cut every beat: the peak.
+6-7. **250+ SOUNDS. READY TO PLAY.** and **abundance**: a new preset on every one-beat cut.
+8-9. **NEW SOUNDS IN ONE CLICK.** and **cause and effect**: every ROLL a dice click and a new sound out of it,
+   closer and faster each time, a snare roll rising.
+10. **ARE YOU READY?**: the held breath, the quietest moment, a slow push in (`hcam=4`), one beat of silence.
+11. **The logo**: a braam (horns, tubas, warhorn and the ruined bass on F) on the biggest hit, ringing out.
+The cards use different cameras in the hall (`hcam=1..5`) so they don't repeat one shot. Cards type in at a letter
+every two frames, faster on long lines in short cards (`typ=2`).
 
 Two modes read the same timeline, shots, moves and text (`node tools/trailer-cut.mjs rough|final`):
 - **ROUGH** (`rough=1`): the previs, to judge pacing, cuts, framing, moves and text timing. 640 x 360, 15 fps, the
@@ -284,5 +287,5 @@ chain; CREATE is the Presets page with the Randomizer open and five rolls, `SHEL
 blocked in (`UISHOTS` in `shots.js`, the slide shot's recipe).
 
 **The guide track** (`npx tsx tools/trailer-music.ts`, about 10 min): a sketch for timing played on RUIN-1's own
-presets through the engine, offline (no samples, so card 1 is true), in D minor at the timeline's tempo, its sections on
+presets through the engine, offline (no samples, so card 1 is true), in F minor at the timeline's tempo, its sections on
 the timeline's parts and its hits on the cuts. Written to `renders/trailer/track.wav`; the cut picks it up.

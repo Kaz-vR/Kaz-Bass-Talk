@@ -790,6 +790,19 @@ const UISHOTS = {
   cr_roll: ['CREATE', [440, 142], [40, 0], [-180, -200, 220], 7, 24, [460, 110]],     // the Randomizer: ROLL and WEIRDNESS
   cr_list: ['CREATE', [440, 250], [30, 40], [200, -230, 240], -6, 26, [460, 220]],    // the rolled sounds
   cr_prev: ['CREATE', [1120, 170], [-60, 0], [-200, -220, 240], 5, 26, [1100, 140]],  // a roll's preview
+  cr_roll2:['CREATE', [440, 142], [25, 0], [-120, -140, 150], 9, 24, [450, 110]],      // ROLL again, closer
+  cr_roll3:['CREATE', [430, 142], [15, 0], [90, -100, 110], -8, 24, [440, 110]],       // and again, closest
+  // the trailer of 20 Nov (the story plan): fragments in the dark first, the wide reveal later
+  frag_scope:['OSC', [830, 420], [30, 0], [-90, -110, 120], 5, 24, [830, 380]],      // the scope, very close
+  frag_wave: ['OSC', [175, 155], [25, 0], [-80, -100, 110], 7, 24, [190, 120]],      // OSC A's saw, a peak
+  frag_knob: ['OSC', [145, 255], [15, -5], [100, -90, 100], -8, 24, [150, 230]],     // the DETUNE dial's edge
+  frag_keys: ['OSC', [560, 655], [60, 0], [-120, -160, 150], 6, 24, [600, 620]],     // the keys
+  scope:     ['OSC', [830, 420], [-50, 0], [200, -230, 240], -6, 26, [830, 380]],    // the scope, the sound you hear
+  sub_wave:  ['OSC', [225, 405], [50, 0], [-190, -220, 230], 6, 26, [240, 380]],     // the sub's sine
+  wide:      ['OSC', [679, 380], [-60, 0], [-420, -900, 1450], 5, 26, [679, 300]],   // the whole instrument: the reveal
+  ruin_wide: ['RUIN', [679, 300], [60, 0], [380, -760, 1150], -5, 26, [679, 250]],   // the whole RUIN page
+  pr_list2:  ['PRESETS', [720, 300], [0, 90], [210, -230, 240], -7, 26, [720, 260]], // the list, the other column, fast
+  pr_shelf2: ['PRESETS', [150, 300], [0, -80], [180, -200, 220], -6, 25, [160, 260]],// the shelves, fast
 };
 for (const [k, [pg, [tx, ty], [mx, my], [ox, oy, oz], roll, fov, [lx, ly]]] of Object.entries(UISHOTS)) SHOTS[k] = { frames: 75, async run(i) {
   knobLayer.visible = false; await usePage(pg);
@@ -930,7 +943,7 @@ const card = (plate, emb, shimmer = 0) => ({ frames: 80,
 const TITLES = {
   // the owner's cards (19 Nov), STRUCTURE.md
   1: [[['EVERYTHING YOU HEAR', 0]], [['IS ', 0], ['RUIN-1', 1]]],
-  2: [[['DISTORTION AS', 0]], [['AN ', 0], ['INSTRUMENT.', 1]]],
+  2: [[['BUILD A SOUND.', 0]], [['THEN ', 0], ['RUIN IT.', 1]]],
   3: [[['250+ SOUNDS.', 1]], [['READY TO PLAY.', 0]]],
   4: [[['NEW SOUNDS', 0]], [['IN ONE CLICK.', 1]]],
   5: [[['ARE YOU ', 0], ['READY?', 1]]],
@@ -1181,10 +1194,18 @@ const HALL_DIRS = {
 };
 // the camera stands low in an aisle between two rows of pillars, looking down it and up a little at the subject
 // pillar's front left corner (the nearer pillars on that side soft in front of it, the far ones lost in the haze)
+// hcam=2..5: other cameras in the same aisle (so the cards don't repeat one shot): 2 more level, rolled the other
+// way; 3 low, looking steeply up; 4 a slow push in along the line to the subject (the held breath); 5 the slide the
+// other way, for the logo
+let hallCamN = 1;
 const hallCam = (i) => {
-  const t = stillCam ? 0 : i / 74, target = new THREE.Vector3(-HALL.HW, hallDir === 9 ? -250 : 300, HALL.HW),   // (hall=9 looks level, down onto the smoke bed)
-    pos = new THREE.Vector3(lerp(-300, -220, t), -350, 2100);
-  cam.fov = 34; cam.updateProjectionMatrix(); look(pos, target, THREE.MathUtils.degToRad(6)); cam.updateMatrixWorld(); return { pos, target }; };
+  const t = stillCam ? 0 : i / 74, target = new THREE.Vector3(-HALL.HW, hallDir === 9 ? -250 : 300, HALL.HW);   // (hall=9 looks level, down onto the smoke bed)
+  let pos = new THREE.Vector3(lerp(-300, -220, t), -350, 2100), roll = 6;
+  if (hallCamN === 2) { target.y = 520; pos.set(lerp(-230, -310, t), 60, 2100); roll = -5; }
+  if (hallCamN === 3) { target.y = 1100; pos.set(lerp(-290, -240, t), -900, 2050); roll = 9; }
+  if (hallCamN === 4) { const p0 = new THREE.Vector3(-260, -350, 2100); pos = p0.lerp(target, Math.min(.5, .06 * t)); roll = 0; }
+  if (hallCamN === 5) { pos.set(lerp(-220, -300, t), -350, 2100); roll = -4; }
+  cam.fov = 34; cam.updateProjectionMatrix(); look(pos, target, THREE.MathUtils.degToRad(roll)); cam.updateMatrixWorld(); return { pos, target }; };
 // the title's box on screen (px, y down): the words, their glow and room for the blur of a soft line (owner's rule:
 // a seam never reaches it)
 // ---------- the logo (owner's call: just the logo, as on the website): the icon, RUIN-1 and SYNTHESIZER under it ----------
@@ -1350,7 +1371,7 @@ window.setup = (name) => {
   // (hidesp=1: the sparks run, they share the random numbers with the smoke so the smoke stays the same, but are left out of the picture)
   fin.uniforms.og.value = o.og ?? 0; fin.uniforms.tint.value = o.tint ?? 0; pull = o.pull ?? 0; stillCam = o.still ?? 0; fin.uniforms.smoke.value = o.smoke ?? 0;
   titleTxt = o.txt ?? 1; titleCity = o.city ?? 0; titleFog = o.pfog ?? .5; titleTone = o.ptone ?? .5; titleTilt = o.tilt ?? 0; titleNear = o.pnear ?? 7000; titleMid = o.pmid ?? 7600; titleTGlow = o.tglow ?? 0; titleHaze = o.hazek ?? .4; titlePool = o.pool ?? 0; city.visible = false; flu.title = n === 'title'; fin.uniforms.lim.value = flu.title ? 1 : 0; fin.uniforms.neb.value = flu.title ? (o.neb ?? 0) : 0; fin.uniforms.sglow.value = flu.title ? (o.sglow ?? 1) : 1; const bgLike = n === 'bg' || n === 'title';
-  ROUGH = o.rough ?? 0; titleTyp = o.typ ?? 0; r.domElement.style.opacity = 1;
+  ROUGH = o.rough ?? 0; titleTyp = o.typ ?? 0; hallCamN = o.hcam ?? 1; r.domElement.style.opacity = 1;
   const isHall = n === 'hall'; hallDir = o.hall ?? 1; comp.uniforms.shim.value = 0; fin.uniforms.spc.value = o.spc ?? 0; spMat.uniforms.fogSig.value = isHall ? .3 / 2200 : 0; HALL.g.visible = isHall; AIR.g.visible = false; HALL.occ.visible = isHall; flu.hall = isHall;
   Object.assign(SPB, isHall ? { x0: -1300, x1: 1100, y0: hallDir === 9 ? -1100 : -900, y1: hallDir === 9 ? 0 : 1500, zb: -1600, z1: 1900, free: true } : SPB0);   // (hall=9: sparks rise from the smoke bed)
   if (isHall) { fin.uniforms.lim.value = 1; fin.uniforms.sglow.value = o.sglow ?? 1; }

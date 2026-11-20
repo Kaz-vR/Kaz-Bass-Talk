@@ -1,5 +1,5 @@
 {
- "about": "DEV ONLY. The trailer's edit, shared by both modes (tools/trailer-cut.mjs: rough = the fast previs, final = the full render). Order and cards: references/trailers/STRUCTURE.md (19 Nov), with a cold-open hook in front. Timing after references/trailers/RULES.md: 90 BPM, the references' felt tempo (Scorpio 89, Monolith 161 = 80.7 half-time, Origin X 143.5 = 72 half-time, Staccato 99), 10 frames a beat at 15 fps; shots in whole beats (4 in the intro, 1-2 in the fast parts), cuts on the hits. fadeIn / fadeOut: beats through black. part: the music's section (tools/trailer-music.ts).",
+ "about": "DEV ONLY. The trailer's edit, shared by both modes (tools/trailer-cut.mjs: rough = the fast previs, final = the full render). Order and cards: references/trailers/STRUCTURE.md (20 Nov) and the story plan (RUIN-1.md section 8). Timing after references/trailers/RULES.md: 90 BPM, the references' felt tempo (Scorpio 89, Monolith 161 = 80.7 half-time, Origin X 143.5 = 72 half-time, Staccato 99), 10 frames a beat at 15 fps; shots in whole beats (4 in the intro, 1-2 in the fast parts), cuts on the hits. fadeIn / fadeOut: beats through black. part: the music's section (tools/trailer-music.ts).",
  "bpm": 90,
  "looks": {
   "ui": "real=1,og=1,tint=0.22,fine=1,sparks=0.65,fluid=1,fire=0.5",
@@ -12,167 +12,192 @@
    "part": "hook"
   },
   {
-   "shot": "ruin_d2",
-   "beats": 2,
+   "shot": "frag_scope",
+   "beats": 3,
    "look": "ui",
-   "part": "slam"
+   "part": "mystery",
+   "fadeIn": 1.5
   },
   {
-   "shot": "black",
-   "beats": 1,
-   "part": "hush"
+   "shot": "frag_wave",
+   "beats": 3,
+   "look": "ui",
+   "part": "mystery"
   },
   {
-   "shot": "osc_wave",
-   "beats": 4,
+   "shot": "frag_knob",
+   "beats": 3,
    "look": "ui",
-   "part": "intro",
-   "fadeIn": 1
+   "part": "mystery"
   },
   {
-   "shot": "lfo_line",
-   "beats": 4,
+   "shot": "frag_keys",
+   "beats": 3,
    "look": "ui",
-   "part": "intro"
-  },
-  {
-   "shot": "tape",
-   "beats": 4,
-   "look": "ui",
-   "part": "intro"
-  },
-  {
-   "shot": "filter",
-   "beats": 4,
-   "look": "ui",
-   "part": "riser"
+   "part": "mystery"
   },
   {
    "shot": "hall",
-   "opts": "hall=10,txt=1,typ=1.5",
+   "opts": "hall=10,txt=1,typ=1.5,hcam=1",
    "beats": 5,
    "look": "card",
-   "part": "riser2",
+   "part": "card1",
    "card": "EVERYTHING YOU HEAR IS RUIN-1"
   },
   {
-   "shot": "knob",
+   "shot": "osc_wave",
    "beats": 2,
    "look": "ui",
-   "part": "main"
-  },
-  {
-   "shot": "osc_b",
-   "beats": 2,
-   "look": "ui",
-   "part": "main"
-  },
-  {
-   "shot": "slide",
-   "beats": 2,
-   "look": "ui",
-   "part": "main"
-  },
-  {
-   "shot": "lfo_knob",
-   "beats": 2,
-   "look": "ui",
-   "part": "main"
-  },
-  {
-   "shot": "tape_kn",
-   "beats": 2,
-   "look": "ui",
-   "part": "main"
+   "part": "proof"
   },
   {
    "shot": "env",
    "beats": 2,
    "look": "ui",
-   "part": "main"
+   "part": "proof2"
+  },
+  {
+   "shot": "lfo_line",
+   "beats": 2,
+   "look": "ui",
+   "part": "proof3"
+  },
+  {
+   "shot": "scope",
+   "beats": 2,
+   "look": "ui",
+   "part": "proof4"
+  },
+  {
+   "shot": "wide",
+   "beats": 4,
+   "look": "ui",
+   "part": "reveal"
   },
   {
    "shot": "hall",
-   "opts": "hall=10,txt=2,typ=2",
+   "opts": "hall=10,txt=2,typ=2,hcam=2",
    "beats": 4,
    "look": "card",
-   "part": "fill",
-   "card": "DISTORTION AS AN INSTRUMENT."
+   "part": "card2",
+   "card": "BUILD A SOUND. / THEN RUIN IT."
+  },
+  {
+   "shot": "sub_wave",
+   "beats": 2,
+   "look": "ui",
+   "part": "clean"
+  },
+  {
+   "shot": "filter",
+   "beats": 2,
+   "look": "ui",
+   "part": "clean"
+  },
+  {
+   "shot": "ruin_wide",
+   "beats": 2,
+   "look": "ui",
+   "part": "ruined"
   },
   {
    "shot": "ruin_d1",
-   "beats": 2,
+   "beats": 1,
    "look": "ui",
-   "part": "ruin"
+   "part": "ruined"
   },
   {
    "shot": "ruin_cmb",
    "beats": 1,
    "look": "ui",
-   "part": "ruin"
+   "part": "ruined"
   },
   {
    "shot": "ruin_d4",
    "beats": 1,
    "look": "ui",
-   "part": "ruin"
+   "part": "ruined"
   },
   {
    "shot": "ruin_ott",
    "beats": 1,
    "look": "ui",
-   "part": "ruin"
+   "part": "ruined"
   },
   {
    "shot": "ruin_f1",
    "beats": 1,
    "look": "ui",
-   "part": "ruin"
+   "part": "ruined"
   },
   {
    "shot": "ruin_d2",
-   "beats": 2,
+   "beats": 1,
    "look": "ui",
-   "part": "ruin"
+   "part": "ruined"
+  },
+  {
+   "shot": "ruin_d1",
+   "beats": 1,
+   "look": "ui",
+   "part": "ruined"
+  },
+  {
+   "shot": "ruin_cmb",
+   "beats": 1,
+   "look": "ui",
+   "part": "ruined"
   },
   {
    "shot": "hall",
-   "opts": "hall=10,txt=3,typ=2",
+   "opts": "hall=10,txt=3,typ=2,hcam=3",
    "beats": 4,
    "look": "card",
-   "part": "sounds",
+   "part": "card3",
    "card": "250+ SOUNDS. READY TO PLAY."
   },
   {
-   "shot": "pr_list",
-   "beats": 2,
+   "shot": "pr_shelf",
+   "beats": 1,
    "look": "ui",
-   "part": "sounds"
+   "part": "many"
+  },
+  {
+   "shot": "pr_list",
+   "beats": 1,
+   "look": "ui",
+   "part": "many"
   },
   {
    "shot": "pr_wave",
-   "beats": 2,
+   "beats": 1,
    "look": "ui",
-   "part": "sounds"
+   "part": "many"
   },
   {
    "shot": "pr_name",
-   "beats": 2,
+   "beats": 1,
    "look": "ui",
-   "part": "sounds"
+   "part": "many"
   },
   {
-   "shot": "pr_shelf",
-   "beats": 2,
+   "shot": "pr_list2",
+   "beats": 1,
    "look": "ui",
-   "part": "sounds"
+   "part": "many"
+  },
+  {
+   "shot": "pr_shelf2",
+   "beats": 1,
+   "look": "ui",
+   "part": "many"
   },
   {
    "shot": "hall",
-   "opts": "hall=10,txt=4,typ=2",
+   "opts": "hall=10,txt=4,typ=2,hcam=1",
    "beats": 4,
    "look": "card",
-   "part": "create",
+   "part": "card4",
    "card": "NEW SOUNDS IN ONE CLICK."
   },
   {
@@ -182,29 +207,41 @@
    "part": "create"
   },
   {
-   "shot": "cr_list",
-   "beats": 2,
+   "shot": "cr_prev",
+   "beats": 1,
    "look": "ui",
    "part": "create"
   },
   {
-   "shot": "cr_prev",
-   "beats": 2,
+   "shot": "cr_roll2",
+   "beats": 1,
+   "look": "ui",
+   "part": "create"
+  },
+  {
+   "shot": "cr_list",
+   "beats": 1,
+   "look": "ui",
+   "part": "create"
+  },
+  {
+   "shot": "cr_roll3",
+   "beats": 1,
    "look": "ui",
    "part": "create"
   },
   {
    "shot": "hall",
-   "opts": "hall=10,txt=5,typ=1",
-   "beats": 5,
+   "opts": "hall=10,txt=5,typ=1,hcam=4",
+   "beats": 6,
    "look": "card",
-   "part": "break",
+   "part": "ready",
    "card": "ARE YOU READY?"
   },
   {
    "shot": "hall",
-   "opts": "hall=10,logo=1,typ=1",
-   "beats": 14,
+   "opts": "hall=10,logo=1,typ=1,hcam=5",
+   "beats": 16,
    "look": "card",
    "fadeOut": 6,
    "part": "logo",
