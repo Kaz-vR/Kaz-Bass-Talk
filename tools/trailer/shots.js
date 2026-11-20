@@ -803,6 +803,9 @@ const UISHOTS = {
   scope:     ['OSC', [830, 420], [-50, 0], [200, -230, 240], -6, 26, [830, 380]],    // the scope, the sound you hear
   sub_wave:  ['OSC', [225, 405], [50, 0], [-190, -220, 230], 6, 26, [240, 380]],     // the sub's sine
   wide:      ['OSC', [679, 380], [-60, 0], [-420, -900, 1450], 5, 26, [679, 300]],   // the whole instrument: the reveal
+  // front on (owner, 20 Nov): no sideways angle, no roll, the panel tipped back (the camera below its middle, looking up)
+  front_a:   ['OSC', [679, 375], [0, 15], [0, -470, 1760], 0, 26, [679, 300]],     // tipped back about 15 degrees
+  front_b:   ['OSC', [679, 375], [0, 15], [0, -1040, 1490], 0, 26, [679, 300]],    // tipped back about 35 degrees
   // the reveal, done the references' way (20 Nov): close with a wider lens, a steep tilt, the panel running off the
   // frame's edges, dense parts in frame, the keys out of it (the camera above or beside, not below)
   wide_a:    ['OSC', [700, 300], [-50, 0], [-460, 420, 520], 18, 40, [700, 280]],   // from above left, looking down across the rows
