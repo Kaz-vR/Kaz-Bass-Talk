@@ -1394,6 +1394,7 @@ window.setup = (name) => {
 
 
   fin.uniforms.subjR.value.set(300, 300);
+  if (o.subjr) fin.uniforms.subjR.value.set(o.subjr, o.subjr * .5);   // subjr: a larger clear area round the subject (wides: the smoke frames the panel, thick at the edges)
   logoKind = isHall ? o.logo ?? 0 : 0; noPil = o.nopil ?? 0; LOGO3D.visible = false; if (logoKind) fin.uniforms.subjR.value.set(700, 230);   // (the smoke keeps clear of the logo)
   shot.reset?.(); return shot.frames; };
 window.setFade = (v) => { r.domElement.style.opacity = String(Math.max(0, Math.min(1, v))); };   // fades through black (the page is black)
