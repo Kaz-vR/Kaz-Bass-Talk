@@ -803,6 +803,21 @@ const UISHOTS = {
   scope:     ['OSC', [830, 420], [-50, 0], [200, -230, 240], -6, 26, [830, 380]],    // the scope, the sound you hear
   sub_wave:  ['OSC', [225, 405], [50, 0], [-190, -220, 230], 6, 26, [240, 380]],     // the sub's sine
   wide:      ['OSC', [679, 380], [-60, 0], [-420, -900, 1450], 5, 26, [679, 300]],   // the whole instrument: the reveal
+  // rough cut v4 (owner, 21 Nov): whole boxes as the subject, medium shots in the slide shot's way
+  b_osca:    ['OSC', [228, 195], [-25, 0], [-300, -360, 450], 6, 26, [240, 150]],     // the OSC A box
+  b_sub:     ['OSC', [228, 424], [25, 0], [285, -345, 450], -5, 26, [240, 380]],      // the Sub box
+  b_filt:    ['OSC', [1131, 310], [0, -30], [230, -320, 540], -7, 26, [1131, 250]],   // Filter and Filter envelope
+  b_oscb:    ['OSC', [528, 195], [30, 0], [315, -360, 450], -6, 26, [540, 150]],      // the OSC B box
+  b_noise:   ['OSC', [528, 424], [-25, 0], [-300, -345, 450], 6, 26, [540, 380]],     // the Noise box
+  b_lfos:    ['LFO', [378, 310], [-40, 0], [-270, -430, 720], 6, 26, [378, 250]],     // all six LFOs
+  b_mtx:     ['LFO', [980, 310], [40, 0], [300, -430, 720], -6, 26, [980, 250]],      // the whole mod matrix
+  b_ruinbig: ['RUIN', [378, 300], [-30, 0], [-270, -440, 720], 6, 26, [378, 250]],    // the big filter box and the four boxes above it
+  b_ruinrow: ['RUIN', [150, 150], [1060, 0], [-170, -230, 300], 5, 26, [600, 110]],   // left to right along all eight boxes
+  b_drvcr:   ['FX', [378, 195], [-30, 0], [-240, -310, 460], 6, 26, [378, 150]],      // the Drive and Crush boxes
+  b_tape:    ['FX', [830, 195], [30, 0], [315, -375, 465], -6, 26, [830, 150]],       // the Tape box
+  b_lists:   ['PRESETS', [680, 310], [0, 40], [-270, -430, 720], 6, 26, [680, 250]],  // the preset lists
+  b_shelves: ['PRESETS', [228, 310], [0, -30], [210, -390, 600], -6, 26, [228, 250]], // the shelves
+  b_preview: ['PRESETS', [1130, 310], [0, 30], [-220, -390, 600], 6, 26, [1130, 250]],// the preview
   // front on (owner, 20 Nov): no sideways angle, no roll, the panel tipped back (the camera below its middle, looking up)
   front_a:   ['OSC', [679, 375], [0, 15], [0, -470, 1760], 0, 26, [679, 300]],     // tipped back about 15 degrees
   front_b:   ['OSC', [679, 375], [0, 15], [0, -1040, 1490], 0, 26, [679, 300]],    // tipped back about 35 degrees

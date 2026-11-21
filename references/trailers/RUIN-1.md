@@ -262,7 +262,15 @@ volumetric fog pass (commits 3453e25 to 919245a). The owner found these worse th
 ## 8. The whole trailer: timeline, ROUGH and FINAL
 
 The edit lives in **`tools/trailer/timeline.json`**: every shot or card in order, its length in beats, its options, its
-fades through black and its part of the music. **The current cut (v3, 20 Nov): the story plan**, on the owner's cards
+fades through black and its part of the music. **The current cut (v4, 21 Nov): the owner's shot list, 47.3 s**:
+OSC A, Sub, Filter + Filter envelope → EVERYTHING YOU HEAR IS RUIN-1 → OSC B, Noise, all six LFOs, the mod matrix →
+BUILD A SOUND. / THEN RUIN IT. → the RUIN page's big filter box with the four boxes above it, a slide along all eight
+chain boxes, Drive + Crush, Tape → 250+ SOUNDS. READY TO PLAY. → the preset lists, the shelves, the preview → ARE YOU
+READY? → the logo (`b_*` in `UISHOTS`: whole boxes as the subject). The track is new, in E minor: a breathing pad and a
+glassy motif, a riser into the drop on card 1, the groove, one riff clean under card 2 and ruined on the RUIN page
+(the peak), a preset per cut, a drop-out under card 5, a braam on the logo.
+
+**The cut before (v3, 20 Nov): the story plan**, on the owner's cards
 (`STRUCTURE.md`, card 2 now BUILD A SOUND. / THEN RUIN IT.), 60.0 s at 90 BPM (the references' felt tempo):
 1. **The mystery** (0.7-8.7 s): fragments in the dark, very close (the scope, a peak of the saw, the DETUNE dial's
    edge, the keys); the music a heartbeat, air and a few cold metallic notes.

@@ -27,68 +27,48 @@ const add = (preset: string, gain: number, notes: LoopNote[]) => { if (!lib.has(
 const n = (start: number, dur: number, note: number, vel = .8): LoopNote => ({ start, dur, note, vel });
 const range = (a: number, z: number, step: number) => { const r: number[] = []; for (let x = a; x < z - 1e-6; x += step) r.push(x); return r; };
 
-// F minor (the trailer of 20 Nov: everything new): Fm, Db, Bb minor, C (the dominant: tension), a chord a bar
-const CH = [[53, 56, 60], [49, 53, 56], [46, 49, 53], [48, 52, 55]], ROOTS = [41, 37, 34, 36];
+// v4 (21 Nov): E minor (three of the four references): Em, C, Am, B (the dominant: tension), a chord a bar
+const CH = [[52, 55, 59], [48, 52, 55], [45, 48, 52], [47, 51, 54]], ROOTS = [40, 36, 33, 35];
 const chordAt = (beat: number) => CH[Math.floor(beat / 4) % 4], rootAt = (beat: number) => ROOTS[Math.floor(beat / 4) % 4];
-const pad = (a: number, z: number, vel: number, lo = 0) => range(a, z, 4).flatMap((x) => chordAt(x - a).map((k) => n(x, Math.min(4, z - x) + .05, k + lo, vel)));
-// THE RIFF: one bass line, heard clean first and then ruined (the story of card 2), eighths over a bar
-const RIFF = [41, 41, 44, 41, 48, 41, 39, 37];
-const riff = (a: number, z: number, oct = 0, vel = .85) => range(a, z, .5).map((x, k) => n(x, .42, RIFF[k % 8] + oct, k % 2 ? vel * .75 : vel));
-// a hit on a cut; big: with the heavy bass
-const hit = (beat: number, big = false) => { add('Crushed 808', .9, [n(beat, 3, 29, 1)]); add('Hammer Stab', .4, [n(beat, 1.5, 41, 1)]);
-  if (big) add('Destroyed Reese', .5, [n(beat, 1.5, 29, 1)]); };
-// the heartbeat: lub-dub every two beats (the dark parts)
-const heart = (a: number, z: number, step = 2, vel = .7) => add('Velvet Thump', .7, range(a, z, step).flatMap((x) => [n(x, .2, 29, vel), n(x + .35, .2, 29, vel * .6)]));
-// drums: kick, a noise snare on 2 and 4, ticking hats; heavy: kick on every beat and the sixteenths busier
+const pad = (a: number, z: number, vel: number) => range(a, z, 4).flatMap((x) => chordAt(x - a).map((k) => n(x, Math.min(4, z - x) + .05, k, vel)));
+// the riff: one bass line, clean under card 2, ruined after it; sixteenths and eighths, a bar long
+const RIFF: [number, number][] = [[0, 40], [.5, 40], [.75, 43], [1, 40], [1.5, 47], [2, 40], [2.5, 38], [3, 40], [3.25, 43], [3.5, 45]];
+const riff = (a: number, z: number, oct = 0, vel = .85) => range(a, z, 4).flatMap((x) => RIFF.map(([d, k], q) => n(x + d, .3, k + oct, q % 2 ? vel * .8 : vel))).filter((e) => e.start < z);
+const hit = (beat: number, big = false) => { add('Crushed 808', .9, [n(beat, 3, 28, 1)]); add('Hammer Stab', .4, [n(beat, 1.5, 40, 1)]);
+  if (big) add('Destroyed Reese', .5, [n(beat, 1.5, 28, 1)]); };
 const drums = (a: number, z: number, o: { heavy?: boolean; light?: boolean } = {}) => {
-  add('Velvet Thump', .85, range(a, z, o.light ? 2 : 1).map((x) => n(x, .3, 29, .95)));
-  if (!o.light) add('Snare Swing', .42, range(a + 1, z, 2).map((x) => n(x, .25, 53, .9)));
-  add('Static Line', o.heavy ? .2 : .13, range(a, z, o.heavy ? .25 : .5).map((x, i) => n(x, .1, 77, i % 2 ? .4 : .7)));
+  add('Velvet Thump', .85, range(a, z, o.light ? 2 : 1).map((x) => n(x, .3, 28, .95)));
+  if (!o.light) add('Snare Swing', .42, range(a + 1, z, 2).map((x) => n(x, .25, 52, .9)));
+  add('Static Line', o.heavy ? .2 : .13, range(a, z, o.heavy ? .25 : .5).map((x, q) => n(x, .1, 76, q % 2 ? .4 : .7)));
 };
 
-// 1 the mystery: near-dark; a heartbeat, a breath of air, a few cold metallic notes far apart
-heart(P.mystery, P.card1);
-add('Air Fall', .3, [n(P.mystery, P.card1 - P.mystery, 53, .6)]);
-add('Glass Tine', .28, [[P.mystery + 1.5, 72], [P.mystery + 5, 68], [P.mystery + 8.5, 75], [P.mystery + 11, 72]].map(([x, k]) => n(x, 1.5, k, .5)));
-// 2 card 1: the heartbeat speeds up, a riser, the low pad swelling
-heart(P.card1, P.card1 + 3, 1, .8); heart(P.card1 + 3, P.proof, .5, .9);
-add('White Sweep', .45, [n(P.card1, P.proof - P.card1, 53, .9)]);
-add('Tower Swell', .3, [n(P.card1, P.proof - P.card1, 41, .8), n(P.card1, P.proof - P.card1, 48, .7)]);
-// 3 the proof: every shot is the sound you hear (the saw, the swell, the wobble, the scope's pluck), then all together
-hit(P.proof); drums(P.proof, P.reveal, { light: true });   // (a pulse under the proof: the drop must be a step up)
-add('Rust Saw', .65, range(P.proof, P.proof2, .5).map((x, k) => n(x, .4, [65, 65, 68, 72][k % 4], .8)));
-add('Tidal Fog', .8, CH[0].map((k) => n(P.proof2, 2.2, k, .8)));
-add('Iron Wobble', .75, [n(P.proof3, 2, 41, .9)]);
-add('Neon Snap', .65, range(P.proof4, P.reveal, .25).map((x, k) => n(x, .2, [65, 68, 72, 77][k % 4], .75)));
-hit(P.reveal); drums(P.reveal, P.card2, { light: true }); add('Tidal Fog', .4, pad(P.reveal, P.card2, .6));
-add('Neon Snap', .3, range(P.reveal, P.card2, .5).map((x, k) => n(x, .3, [65, 68, 72, 77][k % 4], .6)));
-// 4 card 2 (BUILD A SOUND. THEN RUIN IT.): the riff introduced alone, clean, on a round bass
-add('Round Pulse', .6, riff(P.card2, P.clean));
-// 5 the transformation: the riff clean with light drums, then the match cut: the same riff ruined
-add('Round Pulse', .6, riff(P.clean, P.ruined)); drums(P.clean, P.ruined, { light: true });
-hit(P.ruined, true);
-add('Destroyed Reese', .55, riff(P.ruined, P.card3)); add('Grinder', .35, riff(P.ruined, P.card3, 12, .7));
-add('Screaming FM / Neuro Bass', .3, range(P.ruined + .75, P.card3, 1).map((x) => n(x, .4, rootAt(x - P.ruined) + 24, .9)));
-add('Doom Horns', .35, pad(P.ruined, P.card3, .7)); drums(P.ruined, P.card3, { heavy: true });
-// 6-7 card 3 and abundance: a hit, then a new preset on every one-beat cut, playing the riff's opening
-hit(P.card3); add('The Drone / Sub-Rumble Bass', .45, [n(P.card3, P.many - P.card3, 29, .8)]); drums(P.card3, P.card4, { light: true });
-['Glass Bell Lead', 'Burnt Rhodes', 'Ringing Wire', 'Velvet Neon', 'Chainsaw Lead', 'Bone'].forEach((pr, i) =>
-  add(pr, .32, [0, .5].map((d, k) => n(P.many + i + d, .45, [65, 68][k], .8))));
-add('Classic Reese', .4, riff(P.many, P.card4, 0, .7));
-// 8-9 card 4 and Create: a hit; every ROLL a dice click and a new sound out of it, faster each time, a snare roll rising
-hit(P.card4); drums(P.card4, P.create, { light: true }); add('Tidal Fog', .35, pad(P.card4, P.create, .55));
-const rolls: [number, string][] = [[P.create, 'Static Heaven'], [P.create + 2, 'Warp Line'], [P.create + 3, 'Fold Lung'], [P.create + 4, 'Space Squiggle'], [P.create + 5, 'Random Bleeps']];
-add('Tick-Tock Pluck', .45, rolls.map(([x]) => n(x, .15, 84, 1)));
-rolls.forEach(([x, pr], i) => add(pr, .34, [n(x + .1, i ? .9 : 1.9, [65, 68, 72, 70, 77][i], .85)]));
-add('Snare Swing', .32, [...range(P.create, P.create + 4, .5), ...range(P.create + 4, P.ready, .25)].map((x, i, arr) => n(x, .15, 53, .35 + .55 * i / arr.length)));
-add('Classic Reese', .4, riff(P.create, P.ready, 0, .7));
-// 10 ARE YOU READY?: everything stops; the heartbeat again, a deep drone, a swell, then one beat of silence
-add('Velvet Thump', .35, range(P.ready, P.logo - 1, 2).flatMap((x) => [n(x, .2, 29, .6), n(x + .35, .2, 29, .4)])); add('The Drone / Sub-Rumble Bass', .22, [n(P.ready, P.logo - 1 - P.ready, 29, .8)]);
-add('White Sweep', .3, [n(P.ready + 3, P.logo - 1 - (P.ready + 3), 53, .9)]);
-// 11 the logo: a braam (horns, tubas, warhorn and the ruined bass on F, held) on the biggest hit, ringing out
+// 1 the boxes, one by one: a breathing pad, a hiss of air, a slow glassy motif; a low pulse joins under the filter
+add('Breathing Walls', .32, pad(P.intro + 1, P.card1, .55));
+add('Sunk Hiss', .25, [n(P.intro + 1, P.card1 - P.intro - 1, 52, .6)]);
+add('Glass Harp', .24, [[1.5, 64], [3.5, 67], [5.5, 71], [7.5, 69], [9.5, 67], [11.5, 64]].map(([d, k]) => n(P.intro + d, 1.4, k, .6)));
+add('Velvet Thump', .45, range(P.intro + 9, P.card1, 1).map((x) => n(x, .2, 28, .7)));
+// 2 card 1: a riser, the pulse doubling, the drop on its last frame
+add('White Sweep', .45, [n(P.card1, P.main - P.card1, 52, .9)]); add('Rift', .3, [n(P.card1, P.main - P.card1, 40, .8), n(P.card1, P.main - P.card1, 47, .7)]);
+add('Velvet Thump', .5, [...range(P.card1, P.card1 + 3, .5), ...range(P.card1 + 3, P.main, .25)].map((x, q, arr) => n(x, .15, 28, .5 + .45 * q / arr.length)));
+// 3 OSC B, noise, the LFOs, the matrix: the groove, the bass on the root, the pad moving
+hit(P.main, true); drums(P.main, P.card2, { heavy: true }); add('Cold Iron', 1.1, range(P.main, P.card2, .5).map((x) => n(x, .42, rootAt(x - P.main), x % 1 ? .6 : .85)));
+add('Breathing Walls', .5, pad(P.main, P.card2, .6)); add('Neon Snap', .3, range(P.main, P.card2, .5).map((x, q) => n(x, .3, [64, 67, 71, 76][q % 4], .7)));
+// 4 BUILD A SOUND. / THEN RUIN IT.: the riff alone, clean, on a soft bass
+add('Felt Floor', .65, riff(P.card2, P.ruined));
+// 5 the RUIN page and the FX: the same riff ruined, full drums, horns: the peak
+hit(P.ruined, true); add('Rebar', .5, riff(P.ruined, P.card3)); add('Grinder', .32, riff(P.ruined, P.card3, 12, .7));
+add('Chrome Teeth', .28, range(P.ruined + .75, P.card3, 1).map((x) => n(x, .4, rootAt(x - P.ruined) + 24, .9)));
+add('Warhorn', .32, pad(P.ruined, P.card3, .7)); drums(P.ruined, P.card3, { heavy: true });
+// 6-7 250+ SOUNDS and the presets: a hit, a lighter groove, a different preset on every cut
+hit(P.card3); drums(P.card3, P.ready, { light: true }); add('Cold Iron', .9, range(P.card3, P.ready, 1).map((x) => n(x, .8, rootAt(x - P.card3), .75)));
+['Hollow Euphoria', 'Glass Throat', 'Moth Keys'].forEach((pr, q) => add(pr, .65, [0, .5, 1, 1.5].map((d, k) => n(P.many + q * 2 + d, .45, [64, 67, 71, 69][k], .8))));
+// 10 ARE YOU READY?: everything stops; a low dark pad and a swell, then one beat of silence
+add('Cathedral Rot', .3, [n(P.ready, P.logo - 1 - P.ready, 40, .7), n(P.ready, P.logo - 1 - P.ready, 47, .6)]);
+add('White Sweep', .3, [n(P.ready + 2, P.logo - 1 - (P.ready + 2), 52, .9)]);
+// 11 the logo: a braam on the biggest hit (horns, tubas, a rotting fanfare and the ruined bass on E), ringing out
 hit(P.logo, true);
-for (const [pr, g] of [['Doom Horns', .45], ['Low Tubas', .45], ['Warhorn', .35]] as [string, number][]) add(pr, g, [n(P.logo, 6, 41, 1), n(P.logo, 6, 48, .9), n(P.logo, 6, 53, .8)]);
-add('Destroyed Reese', .45, [n(P.logo, 4, 29, 1)]);
+for (const [pr, g] of [['Doom Horns', .45], ['Low Tubas', .45], ['Rotting Fanfare', .3]] as [string, number][]) add(pr, g, [n(P.logo, 6, 40, 1), n(P.logo, 6, 47, .9), n(P.logo, 6, 52, .8)]);
+add('Destroyed Reese', .45, [n(P.logo, 4, 28, 1)]);
 add('Cathedral Rot', .5, CH[0].map((k) => n(P.logo, 10, k, .75)));
 
 // render every track through the engine over the whole length (one long, non-repeating loop), then mix
@@ -101,7 +81,7 @@ for (const t of tracks) {
 }
 // silences (hard, as cuts to black are): the opening beat and the beat before the logo
 const B = (beat: number) => Math.round(beat * 60 / BPM * SR);
-for (const [a0, a1] of [[0, P.mystery], [P.logo - 1, P.logo]]) for (let i = B(a0); i < B(a1); i++) { L[i] = 0; R[i] = 0; }
+for (const [a0, a1] of [[0, P.intro + 1], [P.logo - 1, P.logo]]) for (let i = B(a0); i < B(a1); i++) { L[i] = 0; R[i] = 0; }
 // level: peak at -1 dBFS, a gentle fade over the last 3 s
 let pk = 0; for (let i = 0; i < len; i++) pk = Math.max(pk, Math.abs(L[i]), Math.abs(R[i]));
 const k = .89 / (pk || 1), f0 = len - 3 * SR;
