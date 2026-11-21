@@ -1488,7 +1488,7 @@ SHOTS.rev2 = { frames: 100, async run(i) {
       else { x = (q.a - .5) * 1500; y = -420 + sp_ * .8 * age - 200 * age * age; z = 60 + q.c * 260; }
       b = Math.max(0, 1 - age / (1.1 + q.d)); }
     P_[k * 3] = x; P_[k * 3 + 1] = y; P_[k * 3 + 2] = z; const c = R2.HC[Math.min(2, Math.floor(q.h * 3))]; C_[k * 3] = c[0] * b * 1.6; C_[k * 3 + 1] = c[1] * b * 1.6; C_[k * 3 + 2] = c[2] * b * 1.6; });
-  R2.geo.attributes.position.needsUpdate = true; R2.geo.attributes.color.needsUpdate = true;
+  R2.geo.attributes.position.needsUpdate = true; R2.geo.attributes.color.needsUpdate = true; R2.sp.visible = !!ROUGH;   // (the full look: the real 3D sparks instead of the dots)
   cam.fov = 26; cam.updateProjectionMatrix(); look(pos, target, 0);
   draw(i, pos.distanceTo(target), uiAp); } };
 SHOTS.cardA = card(PLATES.A, { count: 60 });
