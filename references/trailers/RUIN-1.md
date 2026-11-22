@@ -302,3 +302,45 @@ blocked in (`UISHOTS` in `shots.js`, the slide shot's recipe).
 **The guide track** (`npx tsx tools/trailer-music.ts`, about 10 min): a sketch for timing played on RUIN-1's own
 presets through the engine, offline (no samples, so card 1 is true), in F minor at the timeline's tempo, its sections on
 the timeline's parts and its hits on the cuts. Written to `renders/trailer/track.wav`; the cut picks it up.
+
+## 9. Where we are (handoff, 22 Nov)
+
+**Read first:** this file (sections 6-8), `STRUCTURE.md`, `RULES.md`, `website/DESIGN.md`, root `CLAUDE.md`.
+
+**State**
+- **The edit:** rough cut **v4** (`tools/trailer/timeline.json`, 47.3 s, 90 BPM) on the owner's shot list (section 8).
+  Render: `node tools/trailer-cut.mjs rough` (about 35 s, 640 x 360, 15 fps, MP4) after the guide track
+  `npx tsx tools/trailer-music.ts` (about 10 min, `renders/trailer/track.wav`; v4 = E minor). Save each cut under its
+  own name (`cut-v4.mp4` ...): a new render overwrites `cut.mp4` (v1 and v2 were lost that way).
+- **Cards:** `STRUCTURE.md` (19 Nov) with card 2 now **BUILD A SOUND. / THEN RUIN IT.** v4 leaves out card 4 (NEW SOUNDS
+  IN ONE CLICK) and its Create shots (owner's list). Card plates: the pillar hall `hall=10` (no seams, heat haze,
+  sparks), cameras `hcam=1..5`, words typed in (`typ`), text glow `tglow=0.5`. Logo: the website lockup, `logo=1`.
+- **UI shots in the full look:** `fire=0.5,real=1,og=1,sparks=0.65,fine=1,tint=0.22,fluid=1` (slide, knob, env
+  re-rendered 21 Nov after the crop fix). **Wides** look best with
+  `real=1,og=1,tint=0.22,fine=1,sparks=0.65,fluid=1.6,fire=0.5,lightr=1400,uiap=35,keysdim=0.35,subjr=560` (owner:
+  light over the whole panel, deeper sharp area, darker keys good; the smoke and orange wash must stay).
+- **Open: the synth's reveal.** Rounds tried (rough): `rev` (rise, tilt, turn, sweep, power-on, pull back, float:
+  all rejected), `rev2` (smoke blown away x3, silhouette against fire x3: the owner liked **fire B, "light comes
+  round"**), `rev3` (six variations of B). B in the full look (front-on wide) looked bad next to the slide and knob
+  shots: front-on kills the depth of field, the camera is too far for the sparks and smoke, the wipe and fire card are
+  2D tricks, no subject. **Proposed, not built:** do "light comes round" in the slide shot's own language: a close,
+  steep, low camera sliding along the panel while the real light pool travels ahead of it, revealing knobs and
+  displays out of the dark; the whole synth never seen at once. Front-on framings exist (`front_a`, `front_b`).
+- **Set aside:** Blender (`tools/trailer/blender_wide.py`; owner: drop it), the wide shots `wide_a/b/c`, the hall
+  looks other than 2 and 10 (`hall=1,3..9`), the seams' fill.
+
+**The owner's rules for the trailer** (keep): no push without "push"; both links on two lines in every answer;
+options as PNGs or GIFs first, he picks (rough cuts as MP4 are fine); short answers; "thoughts?" / "discuss first"
+means talk, don't build; exact house colours (`#F25D07`, `#F23005`, `#F20000`), nothing clips to yellow; don't
+re-render the carousel or trailer clips unless asked; only our own engine (no footage, no AI images); never rebuild
+something just to resend it; check and render at 1920 for the full look.
+
+**Lessons:** never put a `//` comment in the middle of a line (it swallowed code three times: `setup`'s
+`sparksReset`, `LAYER_Z`, a `rev2` brace); a ShaderMaterial ignores a texture's repeat/offset (the crop fix); judge how
+a shot reads, not the numbers; the engine's look depends on a close, steep camera (wides and front-on fight it).
+
+**Renders are not in git:** recapture the pages first (section 6):
+`node tools/trailer-capture.mjs renders/trailer/capture Cavern OSC Cutoff 100`, then with `NOBUILD=1`:
+`... renders/trailer/cap-LFO Cavern LFO - 1`, `cap-FX Cavern FX`, `cap-RUIN "Destroyed Reese" RUIN`,
+`cap-PRESETS Cavern PRESETS`, and `SHELF=Randomizer ROLLS=5 ... renders/trailer/cap-CREATE Cavern PRESETS - 1`.
+Needs `npm ci` first.
