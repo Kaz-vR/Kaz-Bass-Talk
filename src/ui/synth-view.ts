@@ -4211,11 +4211,9 @@ export class SynthView {
     };
     const eqBq = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
     // ---- BELLS: four bells, each a dot (Freq / Gain) and a range ball (Freq / its range), each moving in its zone
-    const BELL_LANE = typeof location !== 'undefined' && location.search.includes('bells=lane');
-    const bellRangeY = (oct: number, H: number, mini: boolean) => BELL_LANE
-      ? H - (mini ? 3 : 18) - (oct / 10) * (mini ? 0.16 * H : 28)
-      : H - (mini ? 4 : 26) - (oct / 10) * (H - (mini ? 8 : 60));
-    const bellRangeOf = (y: number, H: number) => BELL_LANE ? ((H - 18 - y) / 28) * 10 : ((H - 26 - y) / (H - 60)) * 10;
+    // the range balls share the whole graph with the dots, as the other filters' ball (owner's pick, layout A)
+    const bellRangeY = (oct: number, H: number, mini: boolean) => H - (mini ? 4 : 26) - (oct / 10) * (H - (mini ? 8 : 60));
+    const bellRangeOf = (y: number, H: number) => ((H - 26 - y) / (H - 60)) * 10;
     const bellZone = (n: number, b: number) => ruinZone(this.num(`grind${n}.bell${b + 1}_freq`) * this.ruinKey(), this.num(`grind${n}.bell${b + 1}_range`));
     /** Where each bell is: the engine's live positions while a note sounds, its Freq at rest. */
     const bellsNow = (n: number): { fc: number[]; live: boolean } => {
@@ -4233,10 +4231,6 @@ export class SynthView {
       [freqX(this.num(`grind${n}.bell${b + 1}_freq`) * this.ruinKey(), W), bellRangeY(this.num(`grind${n}.bell${b + 1}_range`), H, mini)];
     const paintBells = (gg: CanvasRenderingContext2D, GW: number, GH: number, n: number, col: string, mini: boolean, fY: (m: number) => number, bm: number) => {
       const now = bellsNow(n), sel = this.ruinBellSel[n - 1];
-      if (BELL_LANE && !mini) {
-        gg.fillStyle = 'rgba(0,0,0,0.35)';
-        gg.fillRect(0, GH - 52, GW, 38);
-      }
       // each bell's zone, quietly, the selected one a little brighter
       for (let b = 0; b < 4; b++) {
         const [zlo, zhi] = bellZone(n, b), x0 = freqX(zlo, GW), x1 = freqX(zhi, GW), hot = b === sel && !mini;
