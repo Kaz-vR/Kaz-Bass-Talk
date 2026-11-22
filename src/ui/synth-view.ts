@@ -9,7 +9,7 @@ import { formatValue } from './params-panel';
 import { DRIVE_FAMILIES, RUIN_RECIPES, recipeParams, stageParams, type RuinStage } from './ruin-recipes';
 import { corrosionTexture, frameTexture, keyGrime, lightGrain, logoWear, panelTexture, woodTexture } from './texture';
 import logoSvg from '../../design/logo.svg?raw';
-import { GRIND_BEAT_NAMES, grindBeat, grindHz } from '../engine/core/grind';
+import { GRIND_BEAT_NAMES, grindBeat, grindHz, unpackBells } from '../engine/core/grind';
 import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobPointsAt, wobSmoothRadius, wobSmoothTable, wobTableAt, type WobPoint } from '../engine/core/wobshape';
 import { toHex } from './color';
 
@@ -902,6 +902,8 @@ export class SynthView {
   private readonly grindLiveRes = [0, 0, 0, 0, 0, 0, 0, 0];
   /** Each RUIN EQ's selected band (0-3). */
   private readonly ruinEqSel = [1, 1, 1, 1, 1, 1, 1, 1];
+  /** BELLS: the selected bell per filter (its Freq / Gain / Q on the dials). */
+  private readonly ruinBellSel = [0, 0, 0, 0, 0, 0, 0, 0];
   private readonly grindLiveDraws: (() => void)[] = [];
   /** The RUIN page: the selected box (0 filter 1, 1 drive 1 … 7 drive 4) and the engine's taps right now. */
   private ruinSel = 0;
@@ -3276,7 +3278,7 @@ export class SynthView {
 
   /** RUIN's filter types as the title's menu: CUT / BOOST, each with a picture of its curve. */
   private filterTypeSelector(id: string): HTMLElement {
-    const el = this.selector(id, { groups: [['CUT', ['notch', 'comb', 'phaser']], ['BOOST', ['peak', 'band']]], only: true });
+    const el = this.selector(id, { groups: [['CUT', ['notch', 'comb', 'phaser']], ['BOOST', ['peak', 'band']], ['EQ', ['bells']]], only: true });
     for (const o of el.querySelectorAll('option')) o.dataset.icon = filterIconPath(o.value);
     return el;
   }
@@ -3984,7 +3986,7 @@ export class SynthView {
     // after a drop the numbers read 1, 2, 3 … left to right again, per kind (owner's call): each part's
     // settings move with it to its new number, so the chain sounds exactly as it was dropped
     const KIND_KEYS: Record<(typeof KINDS)[number], string[]> = {
-      filter: ['filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'filter_level'],
+      filter: ['filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'filter_level', ...[1, 2, 3, 4].flatMap((b) => ['freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`))],
       drive: ['drive_type', 'drive', 'mix', 'drive_level', 'drive_freq', 'drive_width', 'drive_tone', 'drive_dyn'],
       eq: ['eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`))],
     };
@@ -4121,6 +4123,7 @@ export class SynthView {
     ctl.append(emptyHint);
     const sets: HTMLElement[] = [];
     const eqBandViews: (() => void)[] = [];
+    const bellViews: (() => void)[] = [];
 
     // per box: its own controls (a filter: type, MOVES, Freq / Res / H Range / V Range / Rate and its clock, the die
     // and lock; a drive: type, Drive / Tone / Dry/Wet / Bias / OTT)
@@ -4160,7 +4163,20 @@ export class SynthView {
       const fk = n - 1, dk = 8 + n - 1, ek = 16 + n - 1;
       const fhead = h('div', 'ob-head gr-row-head', partPower(fk), h('span', 'c-title', `FILTER ${n}`), this.filterTypeSelector(`${pre}.filter`), h('span', 'gr-icons', dice, lock));
       // Freq and H Range are the ball on the graph (owner's call): only Res, Depth and Rate are dials
-      const fdials = h('div', 'ob-dials gr-fdials', md(`${pre}.width`, 'Width', { fmt: pct }), md(`${pre}.depth`, 'Depth', { fmt: pct }),
+      // BELLS (owner's call): Width and Depth make way for the selected bell's Freq / Gain / Q, as Ableton's EQ
+      const wd = h('span', 'eq-set', md(`${pre}.width`, 'Width', { fmt: pct }), md(`${pre}.depth`, 'Depth', { fmt: pct }));
+      const bellSets = [1, 2, 3, 4].map((b) => {
+        const bp = `${pre}.bell${b}`;
+        return h('span', 'eq-set', md(`${bp}_freq`, `${b} Freq`), md(`${bp}_gain`, 'Gain'), md(`${bp}_q`, 'Q'));
+      });
+      const showBell = () => {
+        const bells = this.get(`${pre}.filter`) === 'bells';
+        wd.style.display = bells ? 'none' : '';
+        bellSets.forEach((el, j) => { el.style.display = bells && j === this.ruinBellSel[n - 1] ? '' : 'none'; });
+      };
+      bellViews[n - 1] = showBell;
+      this.watch([`${pre}.filter`], showBell);
+      const fdials = h('div', 'ob-dials gr-fdials', wd, ...bellSets,
         md(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.clock`, 'grind.oneshot'] }), sync);
       const dhead = h('div', 'ob-head gr-row-head', partPower(dk), h('span', 'c-title', `DRIVE ${n}`), this.driveTypeSelector(`${pre}.drive_type`));
       const ddials = h('div', 'ob-dials gr-ddials', md(`${pre}.drive`, 'Drive', { fmt: pct }), md(`${pre}.drive_tone`, 'Tone', { fmt: pct }), md(`${pre}.mix`, 'Dry/Wet', { fmt: pct }));
@@ -4194,6 +4210,113 @@ export class SynthView {
       return [freqX(this.num(`${bp}_freq`), W), eqPass(n, b) ? fY(1) : fY(Math.pow(10, (this.num(`${bp}_gain`) * this.num(`grind${n}.eq_scale`)) / 20))];
     };
     const eqBq = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
+    // ---- BELLS: four bells, each a dot (Freq / Gain) and a range ball (Freq / its range), each moving in its zone
+    const BELL_LANE = typeof location !== 'undefined' && location.search.includes('bells=lane');
+    const bellRangeY = (oct: number, H: number, mini: boolean) => BELL_LANE
+      ? H - (mini ? 3 : 18) - (oct / 10) * (mini ? 0.16 * H : 28)
+      : H - (mini ? 4 : 26) - (oct / 10) * (H - (mini ? 8 : 60));
+    const bellRangeOf = (y: number, H: number) => BELL_LANE ? ((H - 18 - y) / 28) * 10 : ((H - 26 - y) / (H - 60)) * 10;
+    const bellZone = (n: number, b: number) => ruinZone(this.num(`grind${n}.bell${b + 1}_freq`) * this.ruinKey(), this.num(`grind${n}.bell${b + 1}_range`));
+    /** Where each bell is: the engine's live positions while a note sounds, its Freq at rest. */
+    const bellsNow = (n: number): { fc: number[]; live: boolean } => {
+      const live = this.noteSounding() ? this.grindLive[n - 1] : 0;
+      const fc = [0, 1, 2, 3].map((b) => this.num(`grind${n}.bell${b + 1}_freq`) * this.ruinKey());
+      if (!(live > 0)) return { fc, live: false };
+      const pos = [0, ...unpackBells(this.grindLiveRes[n - 1])];
+      const [l0, h0] = bellZone(n, 0);
+      pos[0] = h0 > l0 * 1.0001 ? Math.log(live / l0) / Math.log(h0 / l0) : 0.5;
+      return { fc: pos.map((p, b) => { const [lo, hi] = bellZone(n, b); return lo * Math.pow(hi / lo, Math.max(0, Math.min(1, p))); }), live: true };
+    };
+    const bellDot = (n: number, b: number, W: number, fY: (m: number) => number): [number, number] =>
+      [freqX(this.num(`grind${n}.bell${b + 1}_freq`) * this.ruinKey(), W), fY(Math.pow(10, this.num(`grind${n}.bell${b + 1}_gain`) / 20))];
+    const bellRing = (n: number, b: number, W: number, H: number, mini: boolean): [number, number] =>
+      [freqX(this.num(`grind${n}.bell${b + 1}_freq`) * this.ruinKey(), W), bellRangeY(this.num(`grind${n}.bell${b + 1}_range`), H, mini)];
+    const paintBells = (gg: CanvasRenderingContext2D, GW: number, GH: number, n: number, col: string, mini: boolean, fY: (m: number) => number, bm: number) => {
+      const now = bellsNow(n), sel = this.ruinBellSel[n - 1];
+      if (BELL_LANE && !mini) {
+        gg.fillStyle = 'rgba(0,0,0,0.35)';
+        gg.fillRect(0, GH - 52, GW, 38);
+      }
+      // each bell's zone, quietly, the selected one a little brighter
+      for (let b = 0; b < 4; b++) {
+        const [zlo, zhi] = bellZone(n, b), x0 = freqX(zlo, GW), x1 = freqX(zhi, GW), hot = b === sel && !mini;
+        gg.fillStyle = hexA(col, hot ? 0.08 : 0.035);
+        gg.fillRect(x0, 0, Math.max(1, x1 - x0), GH - bm);
+        gg.fillStyle = hexA(col, hot ? 0.6 : 0.25);
+        gg.fillRect(x0, 0, Math.max(1, x1 - x0), 2);
+        const ry = bellRing(n, b, GW, GH, mini)[1];
+        gg.save();
+        gg.strokeStyle = hexA(col, hot ? 0.45 : 0.2);
+        gg.setLineDash([2, 3]);
+        gg.beginPath();
+        gg.moveTo(x0, ry);
+        gg.lineTo(x1, ry);
+        gg.stroke();
+        gg.restore();
+      }
+      // 0 dB and the curve: the four bells where they are now
+      gg.save();
+      gg.strokeStyle = 'rgba(255,255,255,0.12)';
+      gg.setLineDash([1, 4]);
+      gg.beginPath();
+      gg.moveTo(0, fY(1));
+      gg.lineTo(GW, fY(1));
+      gg.stroke();
+      gg.restore();
+      const bs = [0, 1, 2, 3].map((b) => ({ fc: now.fc[b], A: Math.pow(10, this.num(`grind${n}.bell${b + 1}_gain`) / 20), k: 1 / this.num(`grind${n}.bell${b + 1}_q`) }));
+      gg.strokeStyle = 'rgba(255,255,255,0.9)';
+      gg.lineWidth = 1.4;
+      gg.beginPath();
+      for (let x = 0; x <= GW; x += 2) {
+        const f = 20 * Math.pow(1000, x / GW), y = fY(bs.reduce((a, q) => a * bellMag(q.A, q.k, f / q.fc), 1));
+        x ? gg.lineTo(x, y) : gg.moveTo(x, y);
+      }
+      gg.stroke();
+      for (let b = 0; b < 4; b++) {
+        const hot = b === sel && !mini, [rx, ry] = bellRing(n, b, GW, GH, mini), [dx, dy] = bellDot(n, b, GW, fY);
+        // the range ball: a ring, as the other filters' ball (sideways = Freq, up / down = how far it moves)
+        gg.save();
+        gg.strokeStyle = col;
+        gg.globalAlpha = hot || mini ? 1 : 0.6;
+        gg.lineWidth = mini ? 1.2 : 2;
+        gg.shadowColor = col;
+        gg.shadowBlur = hot ? 8 : 4;
+        gg.fillStyle = '#0d0d0f';
+        gg.beginPath();
+        gg.arc(rx, ry, mini ? 2.5 : hot ? 6 : 5, 0, 2 * Math.PI);
+        gg.fill();
+        gg.stroke();
+        gg.restore();
+        // the live dot on the ball's row: where the bell is right now
+        if (now.live) {
+          gg.save();
+          gg.fillStyle = '#fff';
+          gg.shadowColor = col;
+          gg.shadowBlur = 10;
+          gg.beginPath();
+          gg.arc(freqX(now.fc[b], GW), ry, mini ? 1.6 : 2.6, 0, 2 * Math.PI);
+          gg.fill();
+          gg.restore();
+        }
+        // the bell's dot (Freq / Gain), numbered as the EQ's
+        gg.save();
+        gg.shadowColor = col;
+        gg.shadowBlur = hot ? 12 : 6;
+        gg.fillStyle = hot ? '#fff' : col;
+        gg.beginPath();
+        gg.arc(dx, dy, mini ? 2.5 : hot ? 6 : 5, 0, 2 * Math.PI);
+        gg.fill();
+        gg.shadowBlur = 0;
+        if (!mini) {
+          gg.fillStyle = '#111';
+          gg.font = '600 8px "Space Grotesk", sans-serif';
+          gg.textAlign = 'center';
+          gg.textBaseline = 'middle';
+          gg.fillText(String(b + 1), dx, dy + 0.5);
+        }
+        gg.restore();
+      }
+    };
     // ---- drawing the focus
     // the focus graph, drawn big below the chain and small in each box (mini: no words, smaller balls)
     const paint = (gg: CanvasRenderingContext2D, GW: number, GH: number, k: number, mini: boolean) => {
@@ -4277,7 +4400,9 @@ export class SynthView {
         !mini && gg.fillText('Play a note: the sound before (dotted) and after this step shows here.', 16, GH / 2 + 40);
       }
       // the stage's filter on top, live
-      if (kindOf(k) === 'filter' && stageOn(n) && this.get(`grind${n}.filter_on`)) {
+      if (kindOf(k) === 'filter' && stageOn(n) && this.get(`grind${n}.filter_on`) && this.get(`grind${n}.filter`) === 'bells') {
+        paintBells(gg, GW, GH, n, col, mini, fY, bm);
+      } else if (kindOf(k) === 'filter' && stageOn(n) && this.get(`grind${n}.filter_on`)) {
         // while a note sounds the engine's real filter; at rest it sits at the ball (owner's call)
         const st = this.grindStage(n), live = this.noteSounding() ? this.grindLive[n - 1] : 0;
         const fc = live > 0 ? live : st.freq * this.ruinKey(), res = live > 0 ? this.grindLiveRes[n - 1] : st.res;
@@ -4453,7 +4578,19 @@ export class SynthView {
     };
     paintThumb = (g, w, hh, k) => paint(g, w, hh, k, true);
     // dragging on the graph: the drive's ring (where / how wide) or the filter's ball (Freq / H Range), anywhere on it
-    let dragging: 'band' | 'filter' | 'eq' | null = null;
+    let dragging: 'band' | 'filter' | 'eq' | 'bell' | 'bellRange' | null = null;
+    const isBells = (k: number) => kindOf(k) === 'filter' && this.get(`grind${stageOf(k)}.filter`) === 'bells';
+    /** The bell dot or range ball under the pointer: [bell, 'bell' | 'bellRange'], or null. */
+    const nearBell = (n: number, x: number, y: number): [number, 'bell' | 'bellRange'] | null => {
+      let best: [number, 'bell' | 'bellRange'] | null = null, bd = 16;
+      for (let b = 0; b < 4; b++) {
+        const [dx, dy] = bellDot(n, b, GW, gfY), [rx, ry] = bellRing(n, b, GW, GH, false);
+        const d1 = Math.hypot(x - dx, y - dy), d2 = Math.hypot(x - rx, y - ry);
+        if (d1 < bd) { bd = d1; best = [b, 'bell']; }
+        if (d2 < bd) { bd = d2; best = [b, 'bellRange']; }
+      }
+      return best;
+    };
     const gfY = (mag: number) => eqDbY(GH, 20 * Math.log10(Math.max(mag, 1e-4)));
     const nearBall = (n: number, x: number, y: number) => {
       let best = -1, bd = 16;
@@ -4471,7 +4608,12 @@ export class SynthView {
       if (!dragging) return;
       const n = stageOf(this.ruinSel), pre = `grind${n}`;
       const [x, y] = at(e), f = 20 * Math.pow(1000, Math.max(0, Math.min(1, x / GW)));
-      if (dragging === 'eq') {
+      if (dragging === 'bell' || dragging === 'bellRange') {
+        const bp = `${pre}.bell${this.ruinBellSel[n - 1] + 1}`;
+        this.set(`${bp}_freq`, Math.round(Math.max(20, Math.min(20000, f / this.ruinKey()))));
+        if (dragging === 'bell') this.set(`${bp}_gain`, Math.round(Math.max(-18, Math.min(18, (GH * 0.42 - y) / (GH / 62))) * 10) / 10);
+        else this.set(`${bp}_range`, Math.round(Math.max(0, Math.min(10, bellRangeOf(y, GH))) * 10) / 10);
+      } else if (dragging === 'eq') {
         const bp = `${pre}.eq_b${this.ruinEqSel[n - 1] + 1}`, sc = this.num(`${pre}.eq_scale`);
         this.set(`${bp}_freq`, Math.round(Math.max(20, Math.min(20000, f))));
         const db = Math.max(-18, Math.min(18, (GH * 0.42 - y) / (GH / 62)));
@@ -4486,7 +4628,15 @@ export class SynthView {
     };
     gcv.addEventListener('pointerdown', (e) => {
       const k = this.ruinSel, n = stageOf(k);
-      if (isEq(k)) {
+      if (isBells(k)) {
+        const [x, y] = at(e), hit = this.get(`grind${n}.filter_on`) ? nearBell(n, x, y) : null;
+        dragging = hit ? hit[1] : null;
+        if (hit) {
+          this.ruinBellSel[n - 1] = hit[0];
+          bellViews[n - 1]?.();
+          drawGraph();
+        }
+      } else if (isEq(k)) {
         const [x, y] = at(e), b = this.get(`grind${n}.eq_on`) ? nearBall(n, x, y) : -1;
         dragging = b >= 0 ? 'eq' : null;
         if (b >= 0) {
@@ -4502,15 +4652,20 @@ export class SynthView {
     gcv.addEventListener('pointermove', (e) => { if (gcv.hasPointerCapture(e.pointerId)) drag(e); });
     gcv.addEventListener('pointerup', () => { dragging = null; });
     gcv.addEventListener('wheel', (e) => {
-      if (!isEq(this.ruinSel)) return;
+      if (!isEq(this.ruinSel) && !isBells(this.ruinSel)) return;
       e.preventDefault();
-      const n = stageOf(this.ruinSel), id = `grind${n}.eq_b${this.ruinEqSel[n - 1] + 1}_q`, p = getParam(id)!;
+      const n = stageOf(this.ruinSel);
+      const id = isBells(this.ruinSel) ? `grind${n}.bell${this.ruinBellSel[n - 1] + 1}_q` : `grind${n}.eq_b${this.ruinEqSel[n - 1] + 1}_q`, p = getParam(id)!;
       const q = this.num(id) * Math.pow(1.12, -Math.sign(e.deltaY) * (e.shiftKey ? 0.25 : 1));
       this.set(id, Math.round(Math.max(p.min!, Math.min(p.max!, q)) * 100) / 100);
     }, { passive: false });
     gcv.addEventListener('dblclick', (e) => {
       const n = stageOf(this.ruinSel);
-      if (isEq(this.ruinSel)) {
+      if (isBells(this.ruinSel)) {
+        // double-click: a dot goes flat (0 dB), a range ball stands still
+        const [x, y] = at(e), hit = nearBell(n, x, y);
+        if (hit) this.set(`grind${n}.bell${hit[0] + 1}_${hit[1] === 'bell' ? 'gain' : 'range'}`, 0);
+      } else if (isEq(this.ruinSel)) {
         const [x, y] = at(e), b = nearBall(n, x, y);
         if (b < 0) return;
         const id = `grind${n}.eq_b${b + 1}_type`, opts = getParam(id)!.options!;
@@ -5137,7 +5292,8 @@ export class SynthView {
 
 /** A GRIND stage's parameters (grind<n>.*), in the order a roll snapshot keeps them. */
 const GRIND_KEYS = ['on', 'filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'drive_type', 'drive', 'mix', 'filter_on', 'drive_on', 'filter_level', 'drive_level',
-  'drive_freq', 'drive_width', 'drive_tone', 'eq_on', 'eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`))];
+  'drive_freq', 'drive_width', 'drive_tone', 'eq_on', 'eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`)),
+  ...[1, 2, 3, 4].flatMap((b) => ['freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`))];
 type GrindView = { filter: string; freq: number; range: number; res: number; depth?: number };
 type Cx = [number, number];
 const cmul = (a: Cx, b: Cx): Cx => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]];
@@ -5145,6 +5301,12 @@ const cdiv = (a: Cx, b: Cx): Cx => { const d = b[0] * b[0] + b[1] * b[1]; return
 const cabs = (a: Cx): number => Math.hypot(a[0], a[1]);
 /** A state-variable band-pass (s / (s² + ks + 1)) at w = f / fc. */
 const svfBp = (w: number, k: number): Cx => cdiv([0, w], [1 - w * w, k * w]);
+
+/** |H| of one BELLS bell (as the engine plays it: 1 + (A - 1) · k · band-pass) at w = f / fc. */
+function bellMag(A: number, k: number, w: number): number {
+  const bp = svfBp(w, k);
+  return cabs([1 + (A - 1) * k * bp[0], (A - 1) * k * bp[1]]);
+}
 
 /** |H| of a GRIND stage's filter (as the engine plays it) at f, with its centre at fc. */
 function grindMag(st: GrindView, fc: number, f: number): number {
