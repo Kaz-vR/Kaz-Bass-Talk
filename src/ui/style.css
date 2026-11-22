@@ -1500,6 +1500,12 @@ html, body, .v2-wrap { background: #070708; }
 /* the EQ: the selected ball's Freq / Gain / Q, then Scale */
 .v2 .eq-set { display: contents; }
 .v2 .eq-graph { cursor: pointer; touch-action: none; }
+/* BELLS: the selected band's type in a box on the left of its dials (owner's call) */
+.v2 .gr-bell-type { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  min-width: 96px; height: 54px; padding: 0 10px; margin-right: 8px; align-self: center;
+  border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.28); }
+.v2 .gr-bell-type-n { font-family: 'LT Inter', Inter, sans-serif; font-size: 9px; letter-spacing: 0.22em; color: #7a7a80; }
+.v2 .gr-bell-type .sel-name { color: var(--knob-accent, #e8e8ea); }
 .v2 .gr-weird { width: 80px !important; }
 .v2 .gr-lamps { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin-left: auto; }
 .v2 .gr-lamps .led { height: 16px !important; font-size: 8.5px !important; }

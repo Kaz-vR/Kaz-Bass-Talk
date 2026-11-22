@@ -15,6 +15,9 @@ constexpr int GRIND_SLOTS = 8;  // the RUIN page's eight boxes (grind.slot1..8)
 constexpr int GF_NOTCH = 0, GF_PEAK = 1, GF_BAND = 2, GF_COMB = 3, GF_PHASER = 4, GF_BELLS = 5;
 /** BELLS: the filter as an EQ, four moving bells (see grind.ts). */
 constexpr int GRIND_BELLS = 4;
+/** A bell's type (EQ Eight's eight, see grind.ts). */
+constexpr int BT_LC48 = 0, BT_LC12 = 1, BT_LS = 2, BT_BELL = 3, BT_NOTCH = 4, BT_HS = 5, BT_HC12 = 6, BT_HC48 = 7;
+constexpr double BW8_Q[4] = {0.5098, 0.6013, 0.9, 2.5629};
 inline double packBells(double m1, double m2, double m3) {
   return jsRound(255 * m1) + 256 * jsRound(255 * m2) + 65536 * jsRound(255 * m3);
 }
@@ -209,8 +212,10 @@ struct GrindStage {
   double gain = 1, inEnv = 0, outEnv = 0, mix = 1;
   Svf svf[2];
   // BELLS: per bell its filter (per channel), stepped coefficient, 1/Q, gain - 1; bells 2-4's own wander; positions
-  Svf bSvf[2 * GRIND_BELLS];
-  double bG[GRIND_BELLS] = {0.05, 0.05, 0.05, 0.05}, bGStep[GRIND_BELLS] = {}, bK[GRIND_BELLS] = {1, 1, 1, 1}, bA[GRIND_BELLS] = {};
+  Svf bSvf[2 * GRIND_BELLS * 4];
+  int bT[GRIND_BELLS] = {BT_BELL, BT_BELL, BT_BELL, BT_BELL};
+  double bK4[4 * GRIND_BELLS] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, bC[4 * GRIND_BELLS] = {};
+  double bG[GRIND_BELLS] = {0.05, 0.05, 0.05, 0.05}, bGStep[GRIND_BELLS] = {}, bK[GRIND_BELLS] = {1, 1, 1, 1};
   double bFrom[GRIND_BELLS] = {0, 0.2, 0.8, 0.45}, bTo[GRIND_BELLS] = {0, 0.7, 0.3, 0.95}, bPos[GRIND_BELLS] = {0, 0.33, 0.66, 0.15}, bSpd[GRIND_BELLS] = {1, 0.8, 1.25, 0.95};
   double bM[GRIND_BELLS] = {};
   double ap[10] = {};
@@ -419,12 +424,21 @@ struct GrindStage {
       }
       case GF_BELLS: {
         double v = x;
-        const int o = ch * GRIND_BELLS;
         for (int b = 0; b < GRIND_BELLS; b++) {
-          Svf& f = bSvf[o + b];
-          const double kk = bK[b];
-          f.process(v, bG[b], kk);
-          v += bA[b] * kk * f.bp;
+          const int o = (ch * GRIND_BELLS + b) * 4, t = bT[b];
+          const double gb = bG[b];
+          if (t == BT_LC48 || t == BT_HC48) {
+            for (int j = 0; j < 4; j++) {
+              Svf& f = bSvf[o + j];
+              f.process(v, gb, bK4[4 * b + j]);
+              v = t == BT_LC48 ? f.hp : f.lp;
+            }
+          } else {
+            Svf& f = bSvf[o];
+            const int q = 4 * b;
+            f.process(v, gb, bK[b]);
+            v = bC[q] * v + bC[q + 1] * f.bp + bC[q + 2] * f.lp + bC[q + 3] * f.hp;
+          }
         }
         return v;
       }
@@ -640,9 +654,27 @@ class Grind {
           const double pos = 0.5 * (mb + 1);
           const double bfc = std::fmin(std::pow(2.0, blo + (bhi - blo) * pos), fs * 0.45);
           s.bM[b] = pos;
-          s.bGStep[b] = (std::tan((PI * bfc) / fsOs) - s.bG[b]) / n;
-          s.bK[b] = 1 / cur[bp.q];
-          s.bA[b] = std::pow(10.0, cur[bp.gain] / 20) - 1;
+          const int t = (int)cur[bp.type];
+          const double q = cur[bp.q], k = 1 / q, A = std::pow(10.0, cur[bp.gain] / 40);
+          double* c = s.bC;
+          const int o = 4 * b;
+          if (t != s.bT[b]) {
+            s.bT[b] = t;
+            for (int j = 0; j < 8; j++) s.bSvf[((j / 4) * GRIND_BELLS + b) * 4 + (j % 4)].reset();
+          }
+          const double gw = std::tan((PI * bfc) / fsOs) * (t == BT_LS ? 1 / std::sqrt(A) : t == BT_HS ? std::sqrt(A) : 1.0);
+          s.bGStep[b] = (gw - s.bG[b]) / n;
+          s.bK[b] = k;
+          c[o] = c[o + 1] = c[o + 2] = c[o + 3] = 0;
+          switch (t) {
+            case BT_LC12: c[o + 3] = 1; break;
+            case BT_HC12: c[o + 2] = 1; break;
+            case BT_NOTCH: c[o + 2] = 1; c[o + 3] = 1; break;
+            case BT_LS: c[o] = 1; c[o + 1] = k * (A - 1); c[o + 2] = A * A - 1; break;
+            case BT_HS: c[o] = A * A; c[o + 1] = k * (1 - A) * A; c[o + 2] = 1 - A * A; break;
+            case BT_BELL: c[o] = 1; c[o + 1] = (A * A - 1) * k; break;
+            default: for (int j = 0; j < 4; j++) s.bK4[o + j] = 1 / (BW8_Q[j] * (j == 3 ? q / 0.7071 : 1.0));
+          }
           if (b == 0) s.fcNow = bfc;
         }
         s.resNow = packBells(s.bM[1], s.bM[2], s.bM[3]);

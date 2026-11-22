@@ -139,7 +139,7 @@ struct ParamIndex {
   struct Lfo { int shape, rate, sync, retrig, fade; };
   struct Slot { int src, dst, amt, on; };
   struct Eq { int type, freq, gain, q; };
-  struct Bell { int freq, gain, q, range; };
+  struct Bell { int type, freq, gain, q, range; };
   struct GrindStage { int on, filter, freq, range, rate, clock, width, depth, dtype, drive, mix, filterOn, driveOn, dFreq, dWidth, dTone, dDyn, fLevel, dLevel, eqOn, eqLevel, eqScale; Eq eq[4]; Bell bells[4]; };
   int legato, glide, octave, velocity, analog;
   Osc osc[2];
@@ -253,7 +253,7 @@ struct ParamIndex {
         const std::string e = g + "eq_b" + std::to_string(b + 1) + "_";
         grind[n].eq[b] = {ix(e + "type"), ix(e + "freq"), ix(e + "gain"), ix(e + "q")};
         const std::string bl = g + "bell" + std::to_string(b + 1) + "_";
-        grind[n].bells[b] = {ix(bl + "freq"), ix(bl + "gain"), ix(bl + "q"), ix(bl + "range")};
+        grind[n].bells[b] = {ix(bl + "type"), ix(bl + "freq"), ix(bl + "gain"), ix(bl + "q"), ix(bl + "range")};
       }
     }
   }

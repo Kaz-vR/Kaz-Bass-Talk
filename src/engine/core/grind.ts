@@ -22,6 +22,13 @@ export const GF_NOTCH = 0, GF_PEAK = 1, GF_BAND = 2, GF_COMB = 3, GF_PHASER = 4,
  * its own path (HZ / SYNC: a quarter cycle apart; RANDOM: each wanders on its own), so they never move in lockstep.
  */
 export const GRIND_BELLS = 4;
+/**
+ * A bell's type (grind<n>.bell<b>_type, owner's call: EQ Eight's eight): low cut 48 / 12 dB, low shelf, bell, notch,
+ * high shelf, high cut 12 / 48 dB. One SVF per bell, its output mixed (c0·x + c1·bp + c2·lp + c3·hp, the shelves after
+ * Simper), four in a row for the 48 dB cuts (Butterworth, the last section's Q times the bell's Q / 0.71).
+ */
+export const BT_LC48 = 0, BT_LC12 = 1, BT_LS = 2, BT_BELL = 3, BT_NOTCH = 4, BT_HS = 5, BT_HC12 = 6, BT_HC48 = 7;
+const BW8_Q = [0.5098, 0.6013, 0.9, 2.5629];
 /** Where the page reads the bells' positions: the live value carries bell 1's Hz, the second packs bells 2-4. */
 export const packBells = (m1: number, m2: number, m3: number): number =>
   Math.round(255 * m1) + 256 * Math.round(255 * m2) + 65536 * Math.round(255 * m3);
@@ -172,11 +179,14 @@ class Stage {
   /** DEPTH (owner's call): how much of the filter is heard, 0 = a straight line (no effect), 1 = all of it. */
   depth = 1;
   /** BELLS: per bell its filter (per channel), coefficient (stepped per sample), 1/Q and gain - 1. */
-  readonly bSvf = Array.from({ length: 2 * GRIND_BELLS }, () => new Svf());
+  readonly bSvf = Array.from({ length: 2 * GRIND_BELLS * 4 }, () => new Svf());
+  /** Per bell: its type, its four sections' 1/Q (the 48 dB cuts) and its output mix c0..c3. */
+  readonly bT = new Int8Array(GRIND_BELLS).fill(BT_BELL);
+  readonly bK4 = new Float64Array(4 * GRIND_BELLS).fill(1);
+  readonly bC = new Float64Array(4 * GRIND_BELLS);
   readonly bG = new Float64Array(GRIND_BELLS).fill(0.05);
   readonly bGStep = new Float64Array(GRIND_BELLS);
   readonly bK = new Float64Array(GRIND_BELLS).fill(1);
-  readonly bA = new Float64Array(GRIND_BELLS);
   /** Bells 2-4's own wander (bell 1 uses the stage's), and where each bell sits in its range (0..1, for the page). */
   readonly bFrom = Float64Array.from([0, 0.2, 0.8, 0.45]);
   readonly bTo = Float64Array.from([0, 0.7, 0.3, 0.95]);
@@ -458,13 +468,21 @@ class Stage {
         return f.bp * this.k; // its centre at 0 dB
       }
       case GF_BELLS: {
-        // four bells in a row, each x + (gain - 1) · k · band-pass: exactly its gain at its centre, 0 dB away from it
+        // four bands in a row; a bell is x + (gain - 1) · k · band-pass: exactly its gain at its centre, 0 dB away
         let v = x;
-        const o = ch * GRIND_BELLS;
         for (let b = 0; b < GRIND_BELLS; b++) {
-          const f = this.bSvf[o + b], k = this.bK[b];
-          f.process(v, this.bG[b], k);
-          v += this.bA[b] * k * f.bp;
+          const o = (ch * GRIND_BELLS + b) * 4, t = this.bT[b], g = this.bG[b];
+          if (t === BT_LC48 || t === BT_HC48) {
+            for (let j = 0; j < 4; j++) {
+              const f = this.bSvf[o + j];
+              f.process(v, g, this.bK4[4 * b + j]);
+              v = t === BT_LC48 ? f.hp : f.lp;
+            }
+          } else {
+            const f = this.bSvf[o], c = this.bC, q = 4 * b;
+            f.process(v, g, this.bK[b]);
+            v = c[q] * v + c[q + 1] * f.bp + c[q + 2] * f.lp + c[q + 3] * f.hp;
+          }
         }
         return v;
       }
@@ -722,9 +740,25 @@ export class Grind {
           const pos = 0.5 * (mb + 1);
           const bfc = Math.min(Math.pow(2, blo + (bhi - blo) * pos), fs * 0.45);
           s.bM[b] = pos;
-          s.bGStep[b] = (Math.tan((Math.PI * bfc) / fsOs) - s.bG[b]) / n;
-          s.bK[b] = 1 / cur[bp.q];
-          s.bA[b] = Math.pow(10, cur[bp.gain] / 20) - 1;
+          const t = cur[bp.type], q = cur[bp.q], k = 1 / q, A = Math.pow(10, cur[bp.gain] / 40), c = s.bC, o = 4 * b;
+          if (t !== s.bT[b]) {
+            s.bT[b] = t;
+            for (let j = 0; j < 8; j++) s.bSvf[(Math.floor(j / 4) * GRIND_BELLS + b) * 4 + (j % 4)].reset();
+          }
+          // the shelves' corner moves with the gain (Simper's shelves), so the gain's middle sits at Freq
+          const gw = Math.tan((Math.PI * bfc) / fsOs) * (t === BT_LS ? 1 / Math.sqrt(A) : t === BT_HS ? Math.sqrt(A) : 1);
+          s.bGStep[b] = (gw - s.bG[b]) / n;
+          s.bK[b] = k;
+          c[o] = c[o + 1] = c[o + 2] = c[o + 3] = 0;
+          switch (t) {
+            case BT_LC12: c[o + 3] = 1; break;
+            case BT_HC12: c[o + 2] = 1; break;
+            case BT_NOTCH: c[o + 2] = 1; c[o + 3] = 1; break;
+            case BT_LS: c[o] = 1; c[o + 1] = k * (A - 1); c[o + 2] = A * A - 1; break;
+            case BT_HS: c[o] = A * A; c[o + 1] = k * (1 - A) * A; c[o + 2] = 1 - A * A; break;
+            case BT_BELL: c[o] = 1; c[o + 1] = (A * A - 1) * k; break;
+            default: for (let j = 0; j < 4; j++) s.bK4[o + j] = 1 / (BW8_Q[j] * (j === 3 ? q / 0.7071 : 1));
+          }
           if (b === 0) s.fcNow = bfc;
         }
         s.resNow = packBells(s.bM[1], s.bM[2], s.bM[3]);

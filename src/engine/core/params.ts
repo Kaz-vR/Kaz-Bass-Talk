@@ -224,7 +224,7 @@ export const P = {
     filterOn: ix(`grind${n}.filter_on`), driveOn: ix(`grind${n}.drive_on`), fLevel: ix(`grind${n}.filter_level`), dLevel: ix(`grind${n}.drive_level`),
     eqOn: ix(`grind${n}.eq_on`), eqLevel: ix(`grind${n}.eq_level`), eqScale: ix(`grind${n}.eq_scale`),
     eq: [1, 2, 3, 4].map((b) => ({ type: ix(`grind${n}.eq_b${b}_type`), freq: ix(`grind${n}.eq_b${b}_freq`), gain: ix(`grind${n}.eq_b${b}_gain`), q: ix(`grind${n}.eq_b${b}_q`) })),
-    bells: [1, 2, 3, 4].map((b) => ({ freq: ix(`grind${n}.bell${b}_freq`), gain: ix(`grind${n}.bell${b}_gain`), q: ix(`grind${n}.bell${b}_q`), range: ix(`grind${n}.bell${b}_range`) })),
+    bells: [1, 2, 3, 4].map((b) => ({ type: ix(`grind${n}.bell${b}_type`), freq: ix(`grind${n}.bell${b}_freq`), gain: ix(`grind${n}.bell${b}_gain`), q: ix(`grind${n}.bell${b}_q`), range: ix(`grind${n}.bell${b}_range`) })),
     dFreq: ix(`grind${n}.drive_freq`), dWidth: ix(`grind${n}.drive_width`), dTone: ix(`grind${n}.drive_tone`), dDyn: ix(`grind${n}.drive_dyn`),
   })),
 };
