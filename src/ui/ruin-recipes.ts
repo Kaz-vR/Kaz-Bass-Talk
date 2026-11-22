@@ -4,7 +4,7 @@
 // Each recipe's Output is set so the chain plays about as loud as it does switched off (tools/level-ruin.ts).
 
 export interface RuinStage {
-  filter: 'notch' | 'peak' | 'band' | 'comb' | 'phaser' | null; // null = only the drive
+  filter: 'notch' | 'peak' | 'band' | 'comb' | 'phaser' | 'bells' | null; // null = only the drive
   freq: number; // Hz
   width: number; // 0..1, the filter's width (narrow … wide)
   depth?: number; // 0..1, how deep the filter goes (absent = all the way)

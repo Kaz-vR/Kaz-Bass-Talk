@@ -12,7 +12,12 @@ namespace lt {
 
 constexpr int GRIND_STAGES = 8;
 constexpr int GRIND_SLOTS = 8;  // the RUIN page's eight boxes (grind.slot1..8)
-constexpr int GF_NOTCH = 0, GF_PEAK = 1, GF_BAND = 2, GF_COMB = 3, GF_PHASER = 4;
+constexpr int GF_NOTCH = 0, GF_PEAK = 1, GF_BAND = 2, GF_COMB = 3, GF_PHASER = 4, GF_BELLS = 5;
+/** BELLS: the filter as an EQ, four moving bells (see grind.ts). */
+constexpr int GRIND_BELLS = 4;
+inline double packBells(double m1, double m2, double m3) {
+  return jsRound(255 * m1) + 256 * jsRound(255 * m2) + 65536 * jsRound(255 * m3);
+}
 constexpr int GC_HZ = 0, GC_SYNC = 1, GC_RANDOM = 2;
 constexpr double GRIND_BEATS[6] = {4, 2, 1, 0.5, 0.25, 0.125};
 inline double grindRandomSpeed(Rng& rng) { return std::pow(2.0, 1.5 * rng.next()); }
@@ -203,6 +208,11 @@ struct GrindStage {
   bool driveOn = false, filterOn = true;
   double gain = 1, inEnv = 0, outEnv = 0, mix = 1;
   Svf svf[2];
+  // BELLS: per bell its filter (per channel), stepped coefficient, 1/Q, gain - 1; bells 2-4's own wander; positions
+  Svf bSvf[2 * GRIND_BELLS];
+  double bG[GRIND_BELLS] = {0.05, 0.05, 0.05, 0.05}, bGStep[GRIND_BELLS] = {}, bK[GRIND_BELLS] = {1, 1, 1, 1}, bA[GRIND_BELLS] = {};
+  double bFrom[GRIND_BELLS] = {0, 0.2, 0.8, 0.45}, bTo[GRIND_BELLS] = {0, 0.7, 0.3, 0.95}, bPos[GRIND_BELLS] = {0, 0.33, 0.66, 0.15}, bSpd[GRIND_BELLS] = {1, 0.8, 1.25, 0.95};
+  double bM[GRIND_BELLS] = {};
   double ap[10] = {};
   std::array<float, GRIND_COMB_LEN> comb[2] = {};
   double adaaU[2] = {}, adaaF[2] = {};
@@ -407,6 +417,17 @@ struct GrindStage {
         f.process(x, gg, k);
         return f.bp * k;
       }
+      case GF_BELLS: {
+        double v = x;
+        const int o = ch * GRIND_BELLS;
+        for (int b = 0; b < GRIND_BELLS; b++) {
+          Svf& f = bSvf[o + b];
+          const double kk = bK[b];
+          f.process(v, bG[b], kk);
+          v += bA[b] * kk * f.bp;
+        }
+        return v;
+      }
       case GF_COMB: {
         auto& buf = comb[ch];
         double rp = pos - delay;
@@ -498,6 +519,7 @@ class Grind {
   void reset() {
     for (auto& s : stages) {
       for (auto& f : s.svf) f.reset();
+      for (auto& f : s.bSvf) f.reset();
       for (double& a : s.ap) a = 0;
       s.comb[0].fill(0);
       s.comb[1].fill(0);
@@ -585,10 +607,48 @@ class Grind {
       if (ftype != s.ftype) {
         s.ftype = ftype;
         for (auto& f : s.svf) f.reset();
+        for (auto& f : s.bSvf) f.reset();
         for (double& a : s.ap) a = 0;
       }
+      if (ftype == GF_BELLS) {
+        // each bell in its own range, on the box's Rate and clock, its own path
+        for (int b = 0; b < GRIND_BELLS; b++) {
+          const auto& bp = gp.bells[b];
+          double mb = m;
+          if (b > 0 && !oneShot) {
+            if (clock == GC_RANDOM) {
+              s.bPos[b] += hz * s.bSpd[b] * dt;
+              if (s.bPos[b] >= 1) {
+                s.bPos[b] -= std::floor(s.bPos[b]);
+                s.bFrom[b] = s.bTo[b];
+                s.bTo[b] = rng.next();
+                s.bSpd[b] = grindRandomSpeed(rng);
+              }
+              mb = s.bFrom[b] + (s.bTo[b] - s.bFrom[b]) * (0.5 - 0.5 * std::cos(PI * s.bPos[b]));
+            } else if (clock == GC_SYNC) {
+              const double p = beatPos / GRIND_BEATS[grindBeat(rate)] + 0.25 * b;
+              mb = std::cos(TWO_PI * (p - std::floor(p)));
+            } else {
+              mb = std::cos(TWO_PI * (s.phase + 0.25 * b));
+            }
+          }
+          const double bc = std::log2(std::fmax(cur[bp.freq] * key, 1.0)), bh = 0.5 * cur[bp.range];
+          double blo = bc - bh, bhi = bc + bh;
+          if (bhi - blo >= gzHi - gzLo) { blo = gzLo; bhi = gzHi; }
+          else if (blo < gzLo) { bhi += gzLo - blo; blo = gzLo; }
+          else if (bhi > gzHi) { blo -= bhi - gzHi; bhi = gzHi; }
+          const double pos = 0.5 * (mb + 1);
+          const double bfc = std::fmin(std::pow(2.0, blo + (bhi - blo) * pos), fs * 0.45);
+          s.bM[b] = pos;
+          s.bGStep[b] = (std::tan((PI * bfc) / fsOs) - s.bG[b]) / n;
+          s.bK[b] = 1 / cur[bp.q];
+          s.bA[b] = std::pow(10.0, cur[bp.gain] / 20) - 1;
+          if (b == 0) s.fcNow = bfc;
+        }
+        s.resNow = packBells(s.bM[1], s.bM[2], s.bM[3]);
+      }
       const double res = 1 - cur[gp.width];
-      s.depth = cur[gp.depth];
+      s.depth = ftype == GF_BELLS ? 1 : cur[gp.depth];
       s.fLvT = std::pow(10.0, cur[gp.fLevel] / 20);
       s.dLvT = std::pow(10.0, cur[gp.dLevel] / 20);
       s.eqLvT = std::pow(10.0, cur[gp.eqLevel] / 20);
@@ -611,7 +671,7 @@ class Grind {
           }
         }
       }
-      s.resNow = res;
+      if (ftype != GF_BELLS) s.resNow = res;
       const double gT = std::tan((PI * fc) / fsOs);
       s.gStep = (gT - s.g) / n;
       switch (ftype) {
@@ -664,6 +724,8 @@ class Grind {
       if (!s.on) continue;
       s.g += s.gStep;
       if (s.ftype == GF_COMB) s.delay += s.delayStep;
+      else if (s.ftype == GF_BELLS)
+        for (int b = 0; b < GRIND_BELLS; b++) s.bG[b] += s.bGStep[b];
     }
     // the eight boxes in their order: each holds filter n, drive n or nothing
     for (int k = 0; k < GRIND_SLOTS; k++) {

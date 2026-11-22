@@ -15,7 +15,20 @@ export const GRIND_STAGES = 8;
 /** The RUIN page's eight boxes: each holds one of the eight filters, drives or EQs, or nothing (grind.slot1..8). */
 export const GRIND_SLOTS = 8;
 /** grind<n>.filter option order. */
-export const GF_NOTCH = 0, GF_PEAK = 1, GF_BAND = 2, GF_COMB = 3, GF_PHASER = 4;
+export const GF_NOTCH = 0, GF_PEAK = 1, GF_BAND = 2, GF_COMB = 3, GF_PHASER = 4, GF_BELLS = 5;
+/**
+ * BELLS (owner's call): the filter as an EQ, four bells (EQ Eight's bell: everything away from it stays at 0 dB),
+ * each with its own Freq, Gain and Q and its own range to move in. The box's Rate and clock move all four, each on
+ * its own path (HZ / SYNC: a quarter cycle apart; RANDOM: each wanders on its own), so they never move in lockstep.
+ */
+export const GRIND_BELLS = 4;
+/** Where the page reads the bells' positions: the live value carries bell 1's Hz, the second packs bells 2-4. */
+export const packBells = (m1: number, m2: number, m3: number): number =>
+  Math.round(255 * m1) + 256 * Math.round(255 * m2) + 65536 * Math.round(255 * m3);
+export const unpackBells = (v: number): [number, number, number] => {
+  const x = Math.max(0, Math.round(v));
+  return [(x & 255) / 255, ((x >> 8) & 255) / 255, ((x >> 16) & 255) / 255];
+};
 /** grind<n>.clock option order. */
 export const GC_HZ = 0, GC_SYNC = 1, GC_RANDOM = 2;
 /** A random speed for the RANDOM clock: ×0.35 … ×2.8 of Rate. */
@@ -158,6 +171,18 @@ class Stage {
   spd = 1;
   /** DEPTH (owner's call): how much of the filter is heard, 0 = a straight line (no effect), 1 = all of it. */
   depth = 1;
+  /** BELLS: per bell its filter (per channel), coefficient (stepped per sample), 1/Q and gain - 1. */
+  readonly bSvf = Array.from({ length: 2 * GRIND_BELLS }, () => new Svf());
+  readonly bG = new Float64Array(GRIND_BELLS).fill(0.05);
+  readonly bGStep = new Float64Array(GRIND_BELLS);
+  readonly bK = new Float64Array(GRIND_BELLS).fill(1);
+  readonly bA = new Float64Array(GRIND_BELLS);
+  /** Bells 2-4's own wander (bell 1 uses the stage's), and where each bell sits in its range (0..1, for the page). */
+  readonly bFrom = Float64Array.from([0, 0.2, 0.8, 0.45]);
+  readonly bTo = Float64Array.from([0, 0.7, 0.3, 0.95]);
+  readonly bPos = Float64Array.from([0, 0.33, 0.66, 0.15]);
+  readonly bSpd = Float64Array.from([1, 0.8, 1.25, 0.95]);
+  readonly bM = new Float64Array(GRIND_BELLS);
   /** Each box's level (owner's call): the handle on its meter; target and smoothed gain, filter and drive. */
   fLvT = 1;
   fLv = 1;
@@ -432,6 +457,17 @@ class Stage {
         f.process(x, g, this.k);
         return f.bp * this.k; // its centre at 0 dB
       }
+      case GF_BELLS: {
+        // four bells in a row, each x + (gain - 1) · k · band-pass: exactly its gain at its centre, 0 dB away from it
+        let v = x;
+        const o = ch * GRIND_BELLS;
+        for (let b = 0; b < GRIND_BELLS; b++) {
+          const f = this.bSvf[o + b], k = this.bK[b];
+          f.process(v, this.bG[b], k);
+          v += this.bA[b] * k * f.bp;
+        }
+        return v;
+      }
       case GF_COMB: {
         const buf = this.comb[ch];
         let rp = pos - this.delay;
@@ -555,6 +591,7 @@ export class Grind {
   reset(): void {
     for (const s of this.stages) {
       for (const f of s.svf) f.reset();
+      for (const f of s.bSvf) f.reset();
       s.ap.fill(0);
       s.comb[0].fill(0);
       s.comb[1].fill(0);
@@ -652,11 +689,50 @@ export class Grind {
       if (ftype !== s.ftype) {
         s.ftype = ftype;
         for (const f of s.svf) f.reset();
-          s.ap.fill(0);
+        for (const f of s.bSvf) f.reset();
+        s.ap.fill(0);
+      }
+      if (ftype === GF_BELLS) {
+        // each bell moves in its own range (its Freq × KEY ± half its range), on the box's Rate and clock, its own path
+        for (let b = 0; b < GRIND_BELLS; b++) {
+          const bp = gp.bells[b];
+          let mb = m;
+          if (b > 0 && !oneShot) {
+            if (clock === GC_RANDOM) {
+              s.bPos[b] += hz * s.bSpd[b] * dt;
+              if (s.bPos[b] >= 1) {
+                s.bPos[b] -= Math.floor(s.bPos[b]);
+                s.bFrom[b] = s.bTo[b];
+                s.bTo[b] = rng.next();
+                s.bSpd[b] = randomSpeed(rng);
+              }
+              mb = s.bFrom[b] + (s.bTo[b] - s.bFrom[b]) * (0.5 - 0.5 * Math.cos(Math.PI * s.bPos[b]));
+            } else if (clock === GC_SYNC) {
+              const p = beatPos / GRIND_BEATS[grindBeat(rate)] + 0.25 * b;
+              mb = Math.cos(TWO_PI * (p - Math.floor(p)));
+            } else {
+              mb = Math.cos(TWO_PI * (s.phase + 0.25 * b));
+            }
+          }
+          const bc = Math.log2(Math.max(cur[bp.freq] * key, 1)), bh = 0.5 * cur[bp.range];
+          let blo = bc - bh, bhi = bc + bh;
+          if (bhi - blo >= GZ_HI - GZ_LO) { blo = GZ_LO; bhi = GZ_HI; }
+          else if (blo < GZ_LO) { bhi += GZ_LO - blo; blo = GZ_LO; }
+          else if (bhi > GZ_HI) { blo -= bhi - GZ_HI; bhi = GZ_HI; }
+          const pos = 0.5 * (mb + 1);
+          const bfc = Math.min(Math.pow(2, blo + (bhi - blo) * pos), fs * 0.45);
+          s.bM[b] = pos;
+          s.bGStep[b] = (Math.tan((Math.PI * bfc) / fsOs) - s.bG[b]) / n;
+          s.bK[b] = 1 / cur[bp.q];
+          s.bA[b] = Math.pow(10, cur[bp.gain] / 20) - 1;
+          if (b === 0) s.fcNow = bfc;
+        }
+        s.resNow = packBells(s.bM[1], s.bM[2], s.bM[3]);
       }
       // WIDTH (owner's call, was Res, turned round: up = wider); it no longer moves (no vertical movement)
       const res = 1 - cur[gp.width];
-      s.depth = cur[gp.depth];
+      // BELLS has no Depth (its four gains are it)
+      s.depth = ftype === GF_BELLS ? 1 : cur[gp.depth];
       s.fLvT = Math.pow(10, cur[gp.fLevel] / 20);
       s.dLvT = Math.pow(10, cur[gp.dLevel] / 20);
       s.eqLvT = Math.pow(10, cur[gp.eqLevel] / 20);
@@ -679,7 +755,7 @@ export class Grind {
           }
         }
       }
-      s.resNow = res;
+      if (ftype !== GF_BELLS) s.resNow = res;
       const gT = Math.tan((Math.PI * fc) / fsOs);
       s.gStep = (gT - s.g) / n;
       switch (ftype) {
@@ -756,6 +832,7 @@ export class Grind {
       if (s.on) {
         s.g += s.gStep;
         if (s.ftype === GF_COMB) s.delay += s.delayStep;
+        else if (s.ftype === GF_BELLS) for (let b = 0; b < GRIND_BELLS; b++) s.bG[b] += s.bGStep[b];
       }
     }
     // the eight boxes in their order (owner's call: free order): each holds filter n, drive n or nothing
