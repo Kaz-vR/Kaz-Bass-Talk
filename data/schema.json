@@ -3731,6 +3731,14 @@
       "describes": "How deep the filter goes: how deep the notch cuts, how tall the peak stands, how much a band, comb or phaser takes away. 0 = a straight line, no effect."
     },
     {
+      "id": "grind1.bell_link",
+      "label": "Grind 1 bells link",
+      "type": "bool",
+      "default": false,
+      "group": "grind1",
+      "describes": "Bells: LINK moves all four bands on one path, so they rise and fall together (a vowel's formants, a chord of peaks); off, each band moves on its own."
+    },
+    {
       "id": "grind1.bell1_type",
       "label": "Grind 1 bell 1 type",
       "type": "enum",
@@ -4382,6 +4390,14 @@
       "unit": "",
       "group": "grind2",
       "describes": "How deep the filter goes: how deep the notch cuts, how tall the peak stands, how much a band, comb or phaser takes away. 0 = a straight line, no effect."
+    },
+    {
+      "id": "grind2.bell_link",
+      "label": "Grind 2 bells link",
+      "type": "bool",
+      "default": false,
+      "group": "grind2",
+      "describes": "Bells: LINK moves all four bands on one path, so they rise and fall together (a vowel's formants, a chord of peaks); off, each band moves on its own."
     },
     {
       "id": "grind2.bell1_type",
@@ -5037,6 +5053,14 @@
       "describes": "How deep the filter goes: how deep the notch cuts, how tall the peak stands, how much a band, comb or phaser takes away. 0 = a straight line, no effect."
     },
     {
+      "id": "grind3.bell_link",
+      "label": "Grind 3 bells link",
+      "type": "bool",
+      "default": false,
+      "group": "grind3",
+      "describes": "Bells: LINK moves all four bands on one path, so they rise and fall together (a vowel's formants, a chord of peaks); off, each band moves on its own."
+    },
+    {
       "id": "grind3.bell1_type",
       "label": "Grind 3 bell 1 type",
       "type": "enum",
@@ -5688,6 +5712,14 @@
       "unit": "",
       "group": "grind4",
       "describes": "How deep the filter goes: how deep the notch cuts, how tall the peak stands, how much a band, comb or phaser takes away. 0 = a straight line, no effect."
+    },
+    {
+      "id": "grind4.bell_link",
+      "label": "Grind 4 bells link",
+      "type": "bool",
+      "default": false,
+      "group": "grind4",
+      "describes": "Bells: LINK moves all four bands on one path, so they rise and fall together (a vowel's formants, a chord of peaks); off, each band moves on its own."
     },
     {
       "id": "grind4.bell1_type",
@@ -7798,6 +7830,14 @@
       "describes": "How deep the filter goes: how deep the notch cuts, how tall the peak stands, how much a band, comb or phaser takes away. 0 = a straight line, no effect."
     },
     {
+      "id": "grind5.bell_link",
+      "label": "Grind 5 bells link",
+      "type": "bool",
+      "default": false,
+      "group": "grind5",
+      "describes": "Bells: LINK moves all four bands on one path, so they rise and fall together (a vowel's formants, a chord of peaks); off, each band moves on its own."
+    },
+    {
       "id": "grind5.bell1_type",
       "label": "Grind 5 bell 1 type",
       "type": "enum",
@@ -8513,6 +8553,14 @@
       "unit": "",
       "group": "grind6",
       "describes": "How deep the filter goes: how deep the notch cuts, how tall the peak stands, how much a band, comb or phaser takes away. 0 = a straight line, no effect."
+    },
+    {
+      "id": "grind6.bell_link",
+      "label": "Grind 6 bells link",
+      "type": "bool",
+      "default": false,
+      "group": "grind6",
+      "describes": "Bells: LINK moves all four bands on one path, so they rise and fall together (a vowel's formants, a chord of peaks); off, each band moves on its own."
     },
     {
       "id": "grind6.bell1_type",
@@ -9232,6 +9280,14 @@
       "describes": "How deep the filter goes: how deep the notch cuts, how tall the peak stands, how much a band, comb or phaser takes away. 0 = a straight line, no effect."
     },
     {
+      "id": "grind7.bell_link",
+      "label": "Grind 7 bells link",
+      "type": "bool",
+      "default": false,
+      "group": "grind7",
+      "describes": "Bells: LINK moves all four bands on one path, so they rise and fall together (a vowel's formants, a chord of peaks); off, each band moves on its own."
+    },
+    {
       "id": "grind7.bell1_type",
       "label": "Grind 7 bell 1 type",
       "type": "enum",
@@ -9947,6 +10003,14 @@
       "unit": "",
       "group": "grind8",
       "describes": "How deep the filter goes: how deep the notch cuts, how tall the peak stands, how much a band, comb or phaser takes away. 0 = a straight line, no effect."
+    },
+    {
+      "id": "grind8.bell_link",
+      "label": "Grind 8 bells link",
+      "type": "bool",
+      "default": false,
+      "group": "grind8",
+      "describes": "Bells: LINK moves all four bands on one path, so they rise and fall together (a vowel's formants, a chord of peaks); off, each band moves on its own."
     },
     {
       "id": "grind8.bell1_type",

@@ -711,11 +711,13 @@ export class Grind {
         s.ap.fill(0);
       }
       if (ftype === GF_BELLS) {
+        const link = cur[gp.bellLink] > 0.5;
         // each bell moves in its own range (its Freq × KEY ± half its range), on the box's Rate and clock, its own path
         for (let b = 0; b < GRIND_BELLS; b++) {
           const bp = gp.bells[b];
           let mb = m;
-          if (b > 0 && !oneShot) {
+          // LINK (owner's call): all four on one path (bell 1's), so a vowel's formants move together
+          if (b > 0 && !oneShot && !link) {
             if (clock === GC_RANDOM) {
               s.bPos[b] += hz * s.bSpd[b] * dt;
               if (s.bPos[b] >= 1) {

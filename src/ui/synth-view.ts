@@ -10,6 +10,7 @@ import { DRIVE_FAMILIES, RUIN_RECIPES, recipeParams, stageParams, type RuinStage
 import { corrosionTexture, frameTexture, keyGrime, lightGrain, logoWear, panelTexture, woodTexture } from './texture';
 import logoSvg from '../../design/logo.svg?raw';
 import { GRIND_BEAT_NAMES, grindBeat, grindHz, unpackBells } from '../engine/core/grind';
+import { BELL_ARCHETYPES, type BellArchetype, rollBells } from './bells-roll';
 import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobPointsAt, wobSmoothRadius, wobSmoothTable, wobTableAt, type WobPoint } from '../engine/core/wobshape';
 import { toHex } from './color';
 
@@ -906,6 +907,10 @@ export class SynthView {
   /** GRIND: which stages ROLL / VARY leave alone, how wild a roll is, the last rolls (newest first). */
   private readonly grindLocks = [false, false, false, false, false, false, false, false];
   private grindWeird = 0.3;
+  /** Every WEIRD slider on the RUIN page (the RUIN box's and each filter's: one value), redrawn together. */
+  private readonly weirdViews: (() => void)[] = [];
+  /** Each filter's archetype for its dice (BELLS). */
+  private readonly grindArch: BellArchetype[] = Array(8).fill('any');
   /** The recipe the last ROLL started from (shown on the ROLL button). */
   private grindRecipe = '';
   /** How many stages ROLL uses: 0 = random (AUTO), 1-4. */
@@ -3812,10 +3817,11 @@ export class SynthView {
     const fill = h('div', 'glide-fill');
     const weird = h('div', 'glide-track gr-weird', fill);
     const showWeird = () => { fill.style.width = `${this.grindWeird * 100}%`; };
+    this.weirdViews.push(showWeird);
     const fromX = (x: number) => {
       const r = weird.getBoundingClientRect();
       this.grindWeird = Math.round(Math.max(0, Math.min(1, (x - r.left) / r.width)) * 100) / 100;
-      showWeird();
+      for (const f of this.weirdViews) f();
     };
     weird.addEventListener('pointerdown', (e) => { weird.setPointerCapture(e.pointerId); fromX(e.clientX); });
     weird.addEventListener('pointermove', (e) => { if (weird.hasPointerCapture(e.pointerId)) fromX(e.clientX); });
@@ -3908,6 +3914,8 @@ export class SynthView {
       const n = stageOf(k);
       this.set(SLOT_IDS[s], PART_VALUE[k]);
       this.set(`grind${n}.${kind}_on`, true);
+      // a new filter lands on BELLS, the main one (owner's call)
+      if (kind === 'filter') this.set(`grind${n}.filter`, 'bells');
       this.set(`grind${n}.on`, true);
       if (!this.get('grind.on')) this.set('grind.on', true);
       this.ruinSelect(k);
@@ -3999,7 +4007,7 @@ export class SynthView {
     // after a drop the numbers read 1, 2, 3 … left to right again, per kind (owner's call): each part's
     // settings move with it to its new number, so the chain sounds exactly as it was dropped
     const KIND_KEYS: Record<(typeof KINDS)[number], string[]> = {
-      filter: ['filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'filter_level', ...[1, 2, 3, 4].flatMap((b) => ['freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`))],
+      filter: ['filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'filter_level', 'bell_link', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`))],
       drive: ['drive_type', 'drive', 'mix', 'drive_level', 'drive_freq', 'drive_width', 'drive_tone', 'drive_dyn'],
       eq: ['eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`))],
     };
@@ -4144,8 +4152,37 @@ export class SynthView {
       const pre = `grind${n}`;
       const dice = h('button', 'gr-ic gr-dice');
       dice.innerHTML = DICE_SVG;
-      dice.title = `Roll stage ${n}: a new filter, movement and drive`;
-      dice.onclick = () => this.grindRoll([n]);
+      dice.title = `Roll filter ${n} only: on BELLS a new set of bands and movement from the archetype on its left`;
+      dice.onclick = () => this.filterRoll(n);
+      // left of the dice (owner's call): the archetype the dice rolls from, WEIRD and LINK (BELLS only, but WEIRD)
+      const arch = h('select', 'sel-name gr-arch') as HTMLSelectElement;
+      for (const a of BELL_ARCHETYPES) arch.append(new Option(a.toUpperCase(), a));
+      arch.value = this.grindArch[n - 1];
+      arch.onchange = () => { this.grindArch[n - 1] = arch.value as BellArchetype; };
+      arch.title = 'What the dice rolls: ANY picks one each time (the yoi sweep and the talker most often).';
+      const wFill = h('div', 'glide-fill');
+      const wTrack = h('div', 'glide-track gr-weird gr-fweird', wFill);
+      const wShow = () => { wFill.style.width = `${this.grindWeird * 100}%`; };
+      this.weirdViews.push(wShow);
+      wShow();
+      const wFrom = (x: number) => {
+        const r = wTrack.getBoundingClientRect();
+        this.grindWeird = Math.round(Math.max(0, Math.min(1, (x - r.left) / r.width)) * 100) / 100;
+        for (const f of this.weirdViews) f();
+      };
+      wTrack.addEventListener('pointerdown', (e) => { wTrack.setPointerCapture(e.pointerId); wFrom(e.clientX); });
+      wTrack.addEventListener('pointermove', (e) => { if (wTrack.hasPointerCapture(e.pointerId)) wFrom(e.clientX); });
+      wTrack.title = 'Weirdness of the dice (the same as RUIN\'s WEIRD): low stays near the archetype, high goes further.';
+      const wBox = h('span', 'gr-fweird-box', h('span', 'gr-fweird-n', 'WEIRD'), wTrack);
+      const link = h('button', 'fx-kind gr-link', 'LINK');
+      link.title = 'LINK: all four bands move on one path, together (a vowel talking); off, each moves on its own.';
+      link.onclick = () => this.set(`${pre}.bell_link`, !this.get(`${pre}.bell_link`));
+      this.watch([`${pre}.bell_link`, `${pre}.filter`], () => {
+        link.classList.toggle('on', !!this.get(`${pre}.bell_link`));
+        const bells = this.get(`${pre}.filter`) === 'bells';
+        link.style.display = bells ? '' : 'none';
+        arch.style.display = bells ? '' : 'none';
+      });
       const lock = h('button', 'gr-ic gr-lock');
       const drawLock = () => {
         const on = this.grindLocks[n - 1];
@@ -4174,7 +4211,7 @@ export class SynthView {
       this.watch([`${pre}.clock`], () => clocks.forEach((b, j) => b.classList.toggle('on', ['hz', 'sync', 'random'][j] === this.get(`${pre}.clock`))));
       sync.title = getParam(`${pre}.clock`)!.describes;
       const fk = n - 1, dk = 8 + n - 1, ek = 16 + n - 1;
-      const fhead = h('div', 'ob-head gr-row-head', partPower(fk), h('span', 'c-title', `FILTER ${n}`), this.filterTypeSelector(`${pre}.filter`), h('span', 'gr-icons', dice, lock));
+      const fhead = h('div', 'ob-head gr-row-head', partPower(fk), h('span', 'c-title', `FILTER ${n}`), this.filterTypeSelector(`${pre}.filter`), h('span', 'gr-icons', arch, wBox, link, dice, lock));
       // Freq and H Range are the ball on the graph (owner's call): only Res, Depth and Rate are dials
       // BELLS (owner's call): Width and Depth make way for the selected bell's Freq / Gain / Q, as Ableton's EQ
       const wd = h('span', 'eq-set', md(`${pre}.width`, 'Width', { fmt: pct }), md(`${pre}.depth`, 'Depth', { fmt: pct }));
@@ -4737,6 +4774,37 @@ export class SynthView {
   private grindStage(n: number, from?: Record<string, ParamValue>): GrindView {
     const v = (k: string) => (from ? from[`grind${n}.${k}`] : this.get(`grind${n}.${k}`));
     return { filter: String(v('filter')), freq: Number(v('freq')), range: Number(v('range')), res: 1 - Number(v('width')), depth: Number(v('depth')) };
+  }
+
+  /**
+   * A filter box's own dice (owner's call): only that filter changes. BELLS rolls its four bands, LINK, Rate and clock
+   * from the box's archetype (bells-roll.ts); another type keeps its type and gets a new place, width, depth and movement.
+   */
+  private filterRoll(n: number): void {
+    const pre = `grind${n}`, w = this.grindWeird, rnd = Math.random;
+    if (this.get(`${pre}.filter`) === 'bells') {
+      const r = rollBells(this.grindArch[n - 1], w);
+      r.bands.forEach((b, i) => {
+        const bp = `${pre}.bell${i + 1}`;
+        this.set(`${bp}_type`, b.type);
+        this.set(`${bp}_freq`, b.freq);
+        this.set(`${bp}_gain`, b.gain);
+        this.set(`${bp}_q`, b.q);
+        this.set(`${bp}_range`, b.range);
+      });
+      this.set(`${pre}.bell_link`, r.link);
+      this.set(`${pre}.rate`, r.rate);
+      this.set(`${pre}.clock`, r.clock);
+      return;
+    }
+    const round = (v: number, d = 100) => Math.round(v * d) / d;
+    this.set(`${pre}.freq`, Math.round(300 * Math.pow(10, rnd())));
+    this.set(`${pre}.width`, round(0.2 + 0.6 * rnd()));
+    this.set(`${pre}.depth`, round(0.6 + 0.4 * rnd()));
+    this.set(`${pre}.range`, round(1 + 3 * rnd(), 10));
+    const sync = rnd() < 0.55;
+    this.set(`${pre}.clock`, sync ? 'sync' : 'random');
+    this.set(`${pre}.rate`, sync ? [0.4, 0.6, 0.8][Math.floor(rnd() * 3)] : round(0.3 + 0.4 * rnd() + 0.2 * w));
   }
 
   /** Roll GRIND stages: low weirdness keeps to the classic neuro moves, high goes anywhere. The chain switches on. */
@@ -5306,7 +5374,7 @@ export class SynthView {
 /** A GRIND stage's parameters (grind<n>.*), in the order a roll snapshot keeps them. */
 const GRIND_KEYS = ['on', 'filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'drive_type', 'drive', 'mix', 'filter_on', 'drive_on', 'filter_level', 'drive_level',
   'drive_freq', 'drive_width', 'drive_tone', 'eq_on', 'eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`)),
-  ...[1, 2, 3, 4].flatMap((b) => ['freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`))];
+  'bell_link', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`))];
 type GrindView = { filter: string; freq: number; range: number; res: number; depth?: number };
 type Cx = [number, number];
 const cmul = (a: Cx, b: Cx): Cx => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]];

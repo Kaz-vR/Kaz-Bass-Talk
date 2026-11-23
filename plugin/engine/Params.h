@@ -140,7 +140,7 @@ struct ParamIndex {
   struct Slot { int src, dst, amt, on; };
   struct Eq { int type, freq, gain, q; };
   struct Bell { int type, freq, gain, q, range; };
-  struct GrindStage { int on, filter, freq, range, rate, clock, width, depth, dtype, drive, mix, filterOn, driveOn, dFreq, dWidth, dTone, dDyn, fLevel, dLevel, eqOn, eqLevel, eqScale; Eq eq[4]; Bell bells[4]; };
+  struct GrindStage { int on, filter, freq, range, rate, clock, width, depth, dtype, drive, mix, filterOn, driveOn, dFreq, dWidth, dTone, dDyn, fLevel, dLevel, eqOn, eqLevel, eqScale; Eq eq[4]; Bell bells[4]; int bellLink; };
   int legato, glide, octave, velocity, analog;
   Osc osc[2];
   int strTone, strDecay, accent, ampBend[3], modBend[3], chorusMode;
@@ -253,6 +253,7 @@ struct ParamIndex {
         const std::string e = g + "eq_b" + std::to_string(b + 1) + "_";
         grind[n].eq[b] = {ix(e + "type"), ix(e + "freq"), ix(e + "gain"), ix(e + "q")};
         const std::string bl = g + "bell" + std::to_string(b + 1) + "_";
+        grind[n].bellLink = ix(g + "bell_link");
         grind[n].bells[b] = {ix(bl + "type"), ix(bl + "freq"), ix(bl + "gain"), ix(bl + "q"), ix(bl + "range")};
       }
     }
