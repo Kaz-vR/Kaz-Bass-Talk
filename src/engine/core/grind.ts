@@ -23,33 +23,6 @@ export const GF_NOTCH = 0, GF_PEAK = 1, GF_BAND = 2, GF_COMB = 3, GF_PHASER = 4,
  */
 export const GRIND_BELLS = 4;
 /**
- * RUIN's MOTION (owner's call, neuro's way): two rhythmic lanes for the whole chain (grind.m1_* / m2_*), each a shape
- * (grind.m<l>_shape in MOTION_SHAPES order), a synced length (1 bar … 1/32), restarted at every note or locked to the
- * bar, and 16 points for steps and draw. Every box can follow one lane: a filter's place in its range (FOLLOW), a
- * drive's amount (FOLLOW), so one movement moves the tone and the grit together. A filter's own HZ / SYNC movement
- * takes the first five shapes too (grind<n>.shape).
- */
-export const MOTION_SHAPES = ['sine', 'ramp up', 'ramp down', 'rise', 'fall', 'steps', 'draw'] as const;
-export const MOTION_POINTS = 16;
-/** A motion shape's value (0..1) at x (0..1 of its cycle); 'sine' starts at the top (as the filters always did). */
-export function motionShape(shape: number, x: number, pts?: ArrayLike<number>): number {
-  switch (shape) {
-    case 1: return x;
-    case 2: return 1 - x;
-    case 3: return x < 0.1 ? x / 0.1 : Math.pow(1 - (x - 0.1) / 0.9, 1.5); // fast up, slow down
-    case 4: return x < 0.9 ? Math.pow(x / 0.9, 1.5) : (1 - x) / 0.1; // slow up, fast down
-    case 5: return pts ? pts[Math.min(MOTION_POINTS - 1, Math.floor(x * MOTION_POINTS))] : 0.5;
-    case 6: {
-      if (!pts) return 0.5;
-      const t = x * MOTION_POINTS, i = Math.min(MOTION_POINTS - 1, Math.floor(t)), f = t - i;
-      return pts[i] + (pts[(i + 1) % MOTION_POINTS] - pts[i]) * f;
-    }
-    default: return 0.5 + 0.5 * Math.cos(TWO_PI * x);
-  }
-}
-/** The motion lanes' smoothing (s): steps and ramps jump, the drive and filter follow them in about 3 ms. */
-const MOTION_SMOOTH = 0.003;
-/**
  * A bell's type (grind<n>.bell<b>_type, owner's call: EQ Eight's eight): low cut 48 / 12 dB, low shelf, bell, notch,
  * high shelf, high cut 12 / 48 dB. One SVF per bell, its output mixed (c0·x + c1·bp + c2·lp + c3·hp, the shelves after
  * Simper), four in a row for the 48 dB cuts (Butterworth, the last section's Q times the bell's Q / 0.71).
@@ -205,8 +178,6 @@ class Stage {
   spd = 1;
   /** DEPTH (owner's call): how much of the filter is heard, 0 = a straight line (no effect), 1 = all of it. */
   depth = 1;
-  /** The drive's gain stepped per sample while it follows a motion lane (0 = set per block, as before). */
-  gainStep = 0;
   /** BELLS: per bell its filter (per channel), coefficient (stepped per sample), 1/Q and gain - 1. */
   readonly bSvf = Array.from({ length: 2 * GRIND_BELLS * 4 }, () => new Svf());
   /** Per bell: its type, its four sections' 1/Q (the 48 dB cuts) and its output mix c0..c3. */
@@ -626,14 +597,8 @@ export class Grind {
     }
   }
 
-  /** MOTION: each lane's phase (restarted at every note when it retriggers) and its smoothed value (0..1). */
-  private readonly mPh = new Float64Array(2);
-  readonly mv = Float64Array.from([0.5, 0.5]);
-  private readonly mPts = [new Float64Array(MOTION_POINTS), new Float64Array(MOTION_POINTS)];
-
   /** A new note: movement that follows the note starts again. */
   noteOn(rng?: Rng): void {
-    this.mPh[0] = this.mPh[1] = 0;
     for (const s of this.stages) {
       s.phase = 0;
       if (rng) s.spd = randomSpeed(rng);
@@ -692,21 +657,6 @@ export class Grind {
     // ONE SHOT's way: down = from the top to the bottom (right to left), up = from the bottom to the top
     const shotDir = cur[P.grindOneShotUp] > 0.5 ? -1 : 1;
     for (let k = 0; k < GRIND_SLOTS; k++) this.slots[k] = cur[P.grindSlot[k]];
-    // MOTION: the two lanes, synced, restarted at every note (or locked to the bar)
-    for (let l = 0; l < 2; l++) {
-      const ml = P.grindMotion[l], beats = GRIND_BEATS[grindBeat(cur[ml.rate])], pts = this.mPts[l];
-      for (let j = 0; j < MOTION_POINTS; j++) pts[j] = cur[ml.pts[j]];
-      let x: number;
-      if (cur[ml.retrig] > 0.5) {
-        this.mPh[l] += (dt * bps) / beats;
-        if (this.mPh[l] >= 1) this.mPh[l] -= Math.floor(this.mPh[l]);
-        x = this.mPh[l];
-      } else {
-        const p = beatPos / beats;
-        x = p - Math.floor(p);
-      }
-      this.mv[l] += (motionShape(cur[ml.shape], x, pts) - this.mv[l]) * Math.min(1, dt / MOTION_SMOOTH);
-    }
     for (let i = 0; i < GRIND_STAGES; i++) {
       const s = this.stages[i], gp = P.grind[i];
       s.on = cur[gp.on] > 0.5;
@@ -737,17 +687,13 @@ export class Grind {
         m = s.wFrom + (s.wTo - s.wFrom) * (0.5 - 0.5 * Math.cos(Math.PI * s.wPos));
       } else if (clock === GC_SYNC) {
         const p = beatPos / GRIND_BEATS[grindBeat(rate)];
-        m = 2 * motionShape(cur[gp.shape], p - Math.floor(p)) - 1;
+        m = Math.cos(TWO_PI * (p - Math.floor(p)));
       } else {
         // an even swing at exactly Rate (only RANDOM varies its speed)
         s.phase += hz * dt;
         if (s.phase >= 1) s.phase -= Math.floor(s.phase);
-        m = 2 * motionShape(cur[gp.shape], s.phase) - 1; // from the top at every note (sine)
+        m = Math.cos(TWO_PI * s.phase); // from the top at every note
       }
-      // FOLLOW: the filter's place in its range crossfades from its own movement to a motion lane's (-: upside down)
-      const fa = cur[gp.fFollow], fv = this.mv[cur[gp.fSrc] > 0.5 ? 1 : 0];
-      const follow = (pos: number) => (fa === 0 ? pos : pos * (1 - Math.abs(fa)) + Math.abs(fa) * (fa > 0 ? fv : 1 - fv));
-      if (fa !== 0) m = 2 * follow(0.5 * (m + 1)) - 1;
       // where it moves: Freq (times KEY) ± half the H Range, in octaves, slid inside 20 Hz-20 kHz so the zone keeps
       // its width at the edges; at the top of the range (10 octaves) the zone is the whole spectrum (owner's call)
       const c = Math.log2(Math.max(cur[gp.freq] * key, 1)), h = 0.5 * cur[gp.range];
@@ -783,12 +729,10 @@ export class Grind {
               mb = s.bFrom[b] + (s.bTo[b] - s.bFrom[b]) * (0.5 - 0.5 * Math.cos(Math.PI * s.bPos[b]));
             } else if (clock === GC_SYNC) {
               const p = beatPos / GRIND_BEATS[grindBeat(rate)] + 0.25 * b;
-              mb = 2 * motionShape(cur[gp.shape], p - Math.floor(p)) - 1;
+              mb = Math.cos(TWO_PI * (p - Math.floor(p)));
             } else {
-              const p = s.phase + 0.25 * b;
-              mb = 2 * motionShape(cur[gp.shape], p - Math.floor(p)) - 1;
+              mb = Math.cos(TWO_PI * (s.phase + 0.25 * b));
             }
-            if (fa !== 0) mb = 2 * follow(0.5 * (mb + 1)) - 1;
           }
           const bc = Math.log2(Math.max(cur[bp.freq] * key, 1)), bh = 0.5 * cur[bp.range];
           let blo = bc - bh, bhi = bc + bh;
@@ -867,15 +811,7 @@ export class Grind {
       s.driveOn = drive > 0.001 && cur[gp.driveOn] > 0.5;
       s.filterOn = cur[gp.filterOn] > 0.5;
       s.mix = cur[gp.mix];
-      // FOLLOW: the drive's amount moves with a motion lane (+ up, - down), stepped per sample so it never clicks
-      const da = cur[gp.dFollow];
-      if (da === 0) {
-        s.gain = grindGain(drive);
-        s.gainStep = 0;
-      } else {
-        const dv = this.mv[cur[gp.dSrc] > 0.5 ? 1 : 0];
-        s.gainStep = (grindGain(Math.max(0, Math.min(1, drive + da * dv))) - s.gain) / n;
-      }
+      s.gain = grindGain(drive);
       // the band in front of the drive (Overdrive's X-Y): centre and width in octaves; 9 octaves = the whole sound
       s.setBand(cur[gp.dFreq], cur[gp.dWidth], fs, fsOs);
       const tone = cur[gp.dTone];
@@ -933,7 +869,6 @@ export class Grind {
         s.g += s.gStep;
         if (s.ftype === GF_COMB) s.delay += s.delayStep;
         else if (s.ftype === GF_BELLS) for (let b = 0; b < GRIND_BELLS; b++) s.bG[b] += s.bGStep[b];
-        s.gain += s.gainStep;
       }
     }
     // the eight boxes in their order (owner's call: free order): each holds filter n, drive n or nothing

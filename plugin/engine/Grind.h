@@ -15,26 +15,6 @@ constexpr int GRIND_SLOTS = 8;  // the RUIN page's eight boxes (grind.slot1..8)
 constexpr int GF_NOTCH = 0, GF_PEAK = 1, GF_BAND = 2, GF_COMB = 3, GF_PHASER = 4, GF_BELLS = 5;
 /** BELLS: the filter as an EQ, four moving bells (see grind.ts). */
 constexpr int GRIND_BELLS = 4;
-/** RUIN's MOTION lanes and the filters' movement shapes (see grind.ts motionShape). */
-constexpr int MOTION_POINTS = 16;
-constexpr double MOTION_SMOOTH = 0.003;
-inline double motionShape(int shape, double x, const double* pts) {
-  switch (shape) {
-    case 1: return x;
-    case 2: return 1 - x;
-    case 3: return x < 0.1 ? x / 0.1 : std::pow(1 - (x - 0.1) / 0.9, 1.5);
-    case 4: return x < 0.9 ? std::pow(x / 0.9, 1.5) : (1 - x) / 0.1;
-    case 5: return pts ? pts[std::min(MOTION_POINTS - 1, (int)std::floor(x * MOTION_POINTS))] : 0.5;
-    case 6: {
-      if (!pts) return 0.5;
-      const double t = x * MOTION_POINTS;
-      const int i = std::min(MOTION_POINTS - 1, (int)std::floor(t));
-      const double f = t - i;
-      return pts[i] + (pts[(i + 1) % MOTION_POINTS] - pts[i]) * f;
-    }
-    default: return 0.5 + 0.5 * std::cos(2 * 3.14159265358979323846 * x);
-  }
-}
 /** A bell's type (EQ Eight's eight, see grind.ts). */
 constexpr int BT_LC48 = 0, BT_LC12 = 1, BT_LS = 2, BT_BELL = 3, BT_NOTCH = 4, BT_HS = 5, BT_HC12 = 6, BT_HC48 = 7;
 constexpr double BW8_Q[4] = {0.5098, 0.6013, 0.9, 2.5629};
@@ -229,7 +209,7 @@ struct GrindStage {
   double fcNow = -1, resNow = 0;
   double g = 0.05, gStep = 0, k = 1, peak = 0, delay = 100, delayStep = 0, fb = 0;
   bool driveOn = false, filterOn = true;
-  double gain = 1, gainStep = 0, inEnv = 0, outEnv = 0, mix = 1;
+  double gain = 1, inEnv = 0, outEnv = 0, mix = 1;
   Svf svf[2];
   // BELLS: per bell its filter (per channel), stepped coefficient, 1/Q, gain - 1; bells 2-4's own wander; positions
   Svf bSvf[2 * GRIND_BELLS * 4];
@@ -543,9 +523,7 @@ class Grind {
     }
   }
 
-  double mPh[2] = {}, mv[2] = {0.5, 0.5}, mPts[2][MOTION_POINTS] = {};
   void noteOn(Rng* rng) {
-    mPh[0] = mPh[1] = 0;
     for (auto& s : stages) {
       s.phase = 0;
       if (rng) s.spd = grindRandomSpeed(*rng);
@@ -596,21 +574,6 @@ class Grind {
     const bool oneShot = cur[P.grindOneShot] > 0.5;
     const double shotDir = cur[P.grindOneShotUp] > 0.5 ? -1.0 : 1.0; // down = top to bottom, up = bottom to top
     for (int k = 0; k < GRIND_SLOTS; k++) slots[k] = (int)cur[P.grindSlot[k]];
-    for (int l = 0; l < 2; l++) {
-      const auto& ml = P.grindMotion[l];
-      const double beats = GRIND_BEATS[grindBeat(cur[ml.rate])];
-      for (int j = 0; j < MOTION_POINTS; j++) mPts[l][j] = cur[ml.pts[j]];
-      double x;
-      if (cur[ml.retrig] > 0.5) {
-        mPh[l] += (dt * bps) / beats;
-        if (mPh[l] >= 1) mPh[l] -= std::floor(mPh[l]);
-        x = mPh[l];
-      } else {
-        const double p = beatPos / beats;
-        x = p - std::floor(p);
-      }
-      mv[l] += (motionShape((int)cur[ml.shape], x, mPts[l]) - mv[l]) * std::fmin(1.0, dt / MOTION_SMOOTH);
-    }
     for (int i = 0; i < GRIND_STAGES; i++) {
       GrindStage& s = stages[i];
       const auto& gp = P.grind[i];
@@ -639,16 +602,12 @@ class Grind {
         m = s.wFrom + (s.wTo - s.wFrom) * (0.5 - 0.5 * std::cos(PI * s.wPos));
       } else if (clock == GC_SYNC) {
         const double p = beatPos / GRIND_BEATS[grindBeat(rate)];
-        m = 2 * motionShape((int)cur[gp.shape], p - std::floor(p), nullptr) - 1;
+        m = std::cos(TWO_PI * (p - std::floor(p)));
       } else {
         s.phase += hz * dt; // an even swing at exactly Rate
         if (s.phase >= 1) s.phase -= std::floor(s.phase);
-        m = 2 * motionShape((int)cur[gp.shape], s.phase, nullptr) - 1;
+        m = std::cos(TWO_PI * s.phase);
       }
-      // FOLLOW: the place in the range crossfades from its own movement to a motion lane's (-: upside down)
-      const double fa = cur[gp.fFollow], fv = mv[cur[gp.fSrc] > 0.5 ? 1 : 0];
-      auto follow = [&](double pos) { return fa == 0 ? pos : pos * (1 - std::fabs(fa)) + std::fabs(fa) * (fa > 0 ? fv : 1 - fv); };
-      if (fa != 0) m = 2 * follow(0.5 * (m + 1)) - 1;
       // where it moves: Freq (times KEY) ± half the H Range, slid inside 20 Hz-20 kHz; the top of the range = the whole spectrum
       const double gzLo = std::log2(20.0), gzHi = std::log2(20000.0);
       const double c = std::log2(std::fmax(cur[gp.freq] * key, 1.0)), h = 0.5 * cur[gp.range];
@@ -683,12 +642,10 @@ class Grind {
               mb = s.bFrom[b] + (s.bTo[b] - s.bFrom[b]) * (0.5 - 0.5 * std::cos(PI * s.bPos[b]));
             } else if (clock == GC_SYNC) {
               const double p = beatPos / GRIND_BEATS[grindBeat(rate)] + 0.25 * b;
-              mb = 2 * motionShape((int)cur[gp.shape], p - std::floor(p), nullptr) - 1;
+              mb = std::cos(TWO_PI * (p - std::floor(p)));
             } else {
-              const double p = s.phase + 0.25 * b;
-              mb = 2 * motionShape((int)cur[gp.shape], p - std::floor(p), nullptr) - 1;
+              mb = std::cos(TWO_PI * (s.phase + 0.25 * b));
             }
-            if (fa != 0) mb = 2 * follow(0.5 * (mb + 1)) - 1;
           }
           const double bc = std::log2(std::fmax(cur[bp.freq] * key, 1.0)), bh = 0.5 * cur[bp.range];
           double blo = bc - bh, bhi = bc + bh;
@@ -766,14 +723,7 @@ class Grind {
       s.driveOn = drive > 0.001 && cur[gp.driveOn] > 0.5;
       s.filterOn = cur[gp.filterOn] > 0.5;
       s.mix = cur[gp.mix];
-      const double da = cur[gp.dFollow];
-      if (da == 0) {
-        s.gain = grindGain(drive);
-        s.gainStep = 0;
-      } else {
-        const double dv = mv[cur[gp.dSrc] > 0.5 ? 1 : 0];
-        s.gainStep = (grindGain(std::fmax(0.0, std::fmin(1.0, drive + da * dv))) - s.gain) / n;
-      }
+      s.gain = grindGain(drive);
       {
         s.setBand(cur[gp.dFreq], cur[gp.dWidth], fs, fsOs);
         const double tone = cur[gp.dTone];
@@ -809,7 +759,6 @@ class Grind {
       if (s.ftype == GF_COMB) s.delay += s.delayStep;
       else if (s.ftype == GF_BELLS)
         for (int b = 0; b < GRIND_BELLS; b++) s.bG[b] += s.bGStep[b];
-      s.gain += s.gainStep;
     }
     // the eight boxes in their order: each holds filter n, drive n or nothing
     for (int k = 0; k < GRIND_SLOTS; k++) {

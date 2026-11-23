@@ -140,7 +140,7 @@ struct ParamIndex {
   struct Slot { int src, dst, amt, on; };
   struct Eq { int type, freq, gain, q; };
   struct Bell { int type, freq, gain, q, range; };
-  struct GrindStage { int on, filter, freq, range, rate, clock, width, depth, dtype, drive, mix, filterOn, driveOn, dFreq, dWidth, dTone, dDyn, fLevel, dLevel, eqOn, eqLevel, eqScale; Eq eq[4]; Bell bells[4]; int bellLink, shape, fFollow, fSrc, dFollow, dSrc; };
+  struct GrindStage { int on, filter, freq, range, rate, clock, width, depth, dtype, drive, mix, filterOn, driveOn, dFreq, dWidth, dTone, dDyn, fLevel, dLevel, eqOn, eqLevel, eqScale; Eq eq[4]; Bell bells[4]; int bellLink; };
   int legato, glide, octave, velocity, analog;
   Osc osc[2];
   int strTone, strDecay, accent, ampBend[3], modBend[3], chorusMode;
@@ -165,8 +165,6 @@ struct ParamIndex {
   int eqScale, outGain, poly;
   int grindOn, grindMix, grindLowcut, grindKey, grindOneShot, grindOneShotUp, grindNoiseThru, grindOtt, grindOut;
   int grindSlot[8];
-  struct Motion { int shape, rate, retrig, pts[16]; };
-  Motion grindMotion[2];
   GrindStage grind[8];
 
   ParamIndex() {
@@ -247,13 +245,6 @@ struct ParamIndex {
     grindOn = ix("grind.on"); grindMix = ix("grind.mix"); grindLowcut = ix("grind.lowcut"); grindKey = ix("grind.key");
     grindOneShot = ix("grind.oneshot"); grindOneShotUp = ix("grind.oneshot_dir"); grindNoiseThru = ix("grind.noise_thru"); grindOtt = ix("grind.ott"); grindOut = ix("grind.output");
     for (int k = 0; k < 8; k++) grindSlot[k] = ix("grind.slot" + std::to_string(k + 1));
-    for (int l = 0; l < 2; l++) {
-      const std::string m = "grind.m" + std::to_string(l + 1) + "_";
-      grindMotion[l].shape = ix(m + "shape");
-      grindMotion[l].rate = ix(m + "rate");
-      grindMotion[l].retrig = ix(m + "retrig");
-      for (int j = 0; j < 16; j++) grindMotion[l].pts[j] = ix(m + "p" + std::to_string(j + 1));
-    }
     for (int n = 0; n < 8; n++) {
       const std::string g = "grind" + std::to_string(n + 1) + ".";
       grind[n] = {ix(g + "on"), ix(g + "filter"), ix(g + "freq"), ix(g + "range"), ix(g + "rate"), ix(g + "clock"),
@@ -263,11 +254,6 @@ struct ParamIndex {
         grind[n].eq[b] = {ix(e + "type"), ix(e + "freq"), ix(e + "gain"), ix(e + "q")};
         const std::string bl = g + "bell" + std::to_string(b + 1) + "_";
         grind[n].bellLink = ix(g + "bell_link");
-        grind[n].shape = ix(g + "shape");
-        grind[n].fFollow = ix(g + "filter_follow");
-        grind[n].fSrc = ix(g + "filter_src");
-        grind[n].dFollow = ix(g + "drive_follow");
-        grind[n].dSrc = ix(g + "drive_src");
         grind[n].bells[b] = {ix(bl + "type"), ix(bl + "freq"), ix(bl + "gain"), ix(bl + "q"), ix(bl + "range")};
       }
     }
