@@ -9,7 +9,7 @@ import { formatValue } from './params-panel';
 import { DRIVE_FAMILIES, RUIN_RECIPES, recipeParams, stageParams, type RuinStage } from './ruin-recipes';
 import { corrosionTexture, frameTexture, keyGrime, lightGrain, logoWear, panelTexture, woodTexture } from './texture';
 import logoSvg from '../../design/logo.svg?raw';
-import { GRIND_BEAT_NAMES, grindBeat, grindHz, unpackBells } from '../engine/core/grind';
+import { GRIND_BEAT_NAMES, MOTION_POINTS, MOTION_SHAPES, grindBeat, grindHz, motionShape, unpackBells } from '../engine/core/grind';
 import { BELL_ARCHETYPES, type BellArchetype, rollBells } from './bells-roll';
 import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobPointsAt, wobSmoothRadius, wobSmoothTable, wobTableAt, type WobPoint } from '../engine/core/wobshape';
 import { toHex } from './color';
@@ -1513,6 +1513,20 @@ export class SynthView {
       for (const o of sel.options) o.text = name(o.value);
       sel.value = String(this.get(id));
     });
+    return el;
+  }
+
+  /** An enum as plain text with ‹ › either side (no box): click the arrows or the name to step. */
+  private textStepper(id: string, cls = ''): HTMLElement {
+    const p = getParam(id)!, opts = p.options!;
+    const name = h('span', 'ts-name'), prev = h('button', 'gr-mstep', '‹'), next = h('button', 'gr-mstep', '›');
+    const step = (d: number) => this.set(id, opts[(opts.indexOf(String(this.get(id))) + d + opts.length) % opts.length]);
+    prev.onclick = () => step(-1);
+    next.onclick = () => step(1);
+    name.onclick = () => step(1);
+    const el = h('span', `tstep ${cls}`, prev, name, next);
+    el.title = `${p.label}: ${p.describes}`;
+    this.watch([id], () => { name.textContent = String(this.get(id)).toUpperCase(); });
     return el;
   }
 
@@ -3859,8 +3873,56 @@ export class SynthView {
       recipeName.title = `${rc.name}: ${rc.idea}`;
     };
     chains.classList.add('sel-name');
+    // MOTION (owner's call, neuro's way): two rhythmic lanes every box can follow (its FOLLOW dial), so one movement
+    // moves the filters and the drives together; steps and draw take the 16 points you drag on the lane
+    const motionLane = (l: number) => {
+      const pre = `grind.m${l}`, MW = 196, MH = 40;
+      const [cv, g] = canvas(MW, MH, 'disp gr-mlane-cv');
+      const editable = () => ['steps', 'draw'].includes(String(this.get(`${pre}_shape`)));
+      const draw = () => {
+        paper(g, MW, MH);
+        const sh = MOTION_SHAPES.indexOf(String(this.get(`${pre}_shape`)) as (typeof MOTION_SHAPES)[number]);
+        const pts = Array.from({ length: MOTION_POINTS }, (_, j) => this.num(`${pre}_p${j + 1}`));
+        const y = (v: number) => MH - 4 - v * (MH - 8);
+        if (editable()) {
+          g.fillStyle = 'rgba(242,48,5,0.16)';
+          for (let j = 0; j < MOTION_POINTS; j++) g.fillRect((j / MOTION_POINTS) * MW + 1, y(pts[j]), MW / MOTION_POINTS - 2, MH - 4 - y(pts[j]));
+        }
+        g.strokeStyle = '#f23005';
+        g.lineWidth = 1.6;
+        g.shadowColor = '#f23005';
+        g.shadowBlur = 6;
+        g.beginPath();
+        for (let x = 0; x <= MW; x++) {
+          const v = motionShape(sh, Math.min(0.9999, x / MW), pts);
+          x ? g.lineTo(x, y(v)) : g.moveTo(x, y(v));
+        }
+        g.stroke();
+        g.shadowBlur = 0;
+      };
+      const setPt = (e: PointerEvent) => {
+        if (!editable()) return;
+        const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, yy = (e.clientY - r.top) / r.height;
+        const j = Math.max(0, Math.min(MOTION_POINTS - 1, Math.floor(x * MOTION_POINTS)));
+        this.set(`${pre}_p${j + 1}`, Math.round(Math.max(0, Math.min(1, (1 - yy) * MH / (MH - 8) - 4 / (MH - 8))) * 100) / 100);
+      };
+      cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); setPt(e); });
+      cv.addEventListener('pointermove', (e) => { if (cv.hasPointerCapture(e.pointerId)) setPt(e); });
+      cv.title = 'Motion: the shape every box with FOLLOW moves to. On steps and draw, drag on it to set its 16 points.';
+      const prev = h('button', 'gr-mstep', '‹'), next = h('button', 'gr-mstep', '›'), rl = h('span', 'gr-mrate-v');
+      const rateAt = (d: number) => this.set(`${pre}_rate`, Math.max(0, Math.min(1, Math.round(this.num(`${pre}_rate`) * 5 + d) / 5)));
+      prev.onclick = () => rateAt(-1);
+      next.onclick = () => rateAt(1);
+      this.watch([`${pre}_shape`, `${pre}_rate`, ...Array.from({ length: MOTION_POINTS }, (_, j) => `${pre}_p${j + 1}`)], () => {
+        rl.textContent = GRIND_BEAT_NAMES[grindBeat(this.num(`${pre}_rate`))];
+        draw();
+      });
+      const head = h('div', 'gr-mlane-head', h('span', 'gr-mlane-n', `M${l}`), this.selector(`${pre}_shape`), h('span', 'gr-mrate', prev, rl, next), this.toggle(`${pre}_retrig`, 'RETRIG', 'small'));
+      return h('div', 'gr-mlane', head, cv);
+    };
+    const motion = h('div', 'gr-motion', motionLane(1), motionLane(2));
     strip.append(h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'RUIN'), h('div', 'sel gr-chains-sel', chains), rocker),
-      h('div', 'gr-m-body', h('div', 'gr-m-row', roll, count), h('div', 'gr-m-row', h('span', 'gr-sub', 'WEIRD'), weird, recipeName), lamps),
+      h('div', 'gr-m-body', h('div', 'gr-m-row', roll, count), h('div', 'gr-m-row', h('span', 'gr-sub', 'WEIRD'), weird, recipeName), lamps, motion),
       h('div', 'ob-dials gr-knobs', ott, lowcut, mix, out));
 
     // ---- the chain: eight boxes in free order (owner's call); each holds one of the four filters or drives, or nothing
@@ -4007,8 +4069,8 @@ export class SynthView {
     // after a drop the numbers read 1, 2, 3 … left to right again, per kind (owner's call): each part's
     // settings move with it to its new number, so the chain sounds exactly as it was dropped
     const KIND_KEYS: Record<(typeof KINDS)[number], string[]> = {
-      filter: ['filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'filter_level', 'bell_link', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`))],
-      drive: ['drive_type', 'drive', 'mix', 'drive_level', 'drive_freq', 'drive_width', 'drive_tone', 'drive_dyn'],
+      filter: ['filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'filter_level', 'shape', 'filter_follow', 'filter_src', 'bell_link', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`))],
+      drive: ['drive_type', 'drive', 'mix', 'drive_level', 'drive_freq', 'drive_width', 'drive_tone', 'drive_dyn', 'drive_follow', 'drive_src'],
       eq: ['eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`))],
     };
     const renumber = () => {
@@ -4144,6 +4206,22 @@ export class SynthView {
     ctl.append(emptyHint);
     const sets: HTMLElement[] = [];
     const eqBandViews: (() => void)[] = [];
+    /** FOLLOW (owner's call): how much a filter's place or a drive's amount follows a RUIN motion lane, and which. */
+    const followDial = (part: string): HTMLElement[] => {
+      // its label names the lane it follows: click it to switch M1 / M2
+      const k = md(`${part}_follow`, 'Follow', { fmt: (v) => (Math.abs(v) < 0.005 ? 'off' : `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`) });
+      const label = k.querySelector('.k-label') as HTMLElement | null;
+      if (label) {
+        label.classList.add('gr-follow-l');
+        label.title = 'Which RUIN motion lane it follows: click for the other';
+        label.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.set(`${part}_src`, this.get(`${part}_src`) === 'm2' ? 'm1' : 'm2');
+        });
+        this.watch([`${part}_src`], () => { label.textContent = `Follow ${String(this.get(`${part}_src`)).toUpperCase()}`; });
+      }
+      return [k];
+    };
     const bellViews: (() => void)[] = [];
 
     // per box: its own controls (a filter: type, MOVES, Freq / Res / H Range / V Range / Rate and its clock, the die
@@ -4231,10 +4309,14 @@ export class SynthView {
       };
       bellViews[n - 1] = showBell;
       this.watch([`${pre}.filter`], showBell);
+      // the movement's shape on HZ / SYNC (owner's call: neuro moves in ramps and jumps, not only swings)
+      const shapeSel = this.textStepper(`${pre}.shape`, 'gr-fshape');
+      shapeSel.title = getParam(`${pre}.shape`)!.describes;
+      this.watch([`${pre}.clock`], () => { shapeSel.style.opacity = this.get(`${pre}.clock`) === 'random' ? '0.35' : ''; });
       const fdials = h('div', 'ob-dials gr-fdials', wd, ...bellSets,
-        md(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.clock`, 'grind.oneshot'] }), sync);
+        md(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.clock`, 'grind.oneshot'] }), h('span', 'gr-clockcol', sync, shapeSel), ...followDial(`${pre}.filter`));
       const dhead = h('div', 'ob-head gr-row-head', partPower(dk), h('span', 'c-title', `DRIVE ${n}`), this.driveTypeSelector(`${pre}.drive_type`));
-      const ddials = h('div', 'ob-dials gr-ddials', md(`${pre}.drive`, 'Drive', { fmt: pct }), md(`${pre}.drive_tone`, 'Tone', { fmt: pct }), md(`${pre}.mix`, 'Dry/Wet', { fmt: pct }));
+      const ddials = h('div', 'ob-dials gr-ddials', md(`${pre}.drive`, 'Drive', { fmt: pct }), md(`${pre}.drive_tone`, 'Tone', { fmt: pct }), md(`${pre}.mix`, 'Dry/Wet', { fmt: pct }), ...followDial(`${pre}.drive`));
       sets[fk] = h('div', `gr-set gr-s${n}`, fhead, fdials);
       sets[dk] = h('div', `gr-set gr-s${n}`, dhead, ddials);
       // the EQ: the FX page's EQ (owner's call): Freq / Gain / Q of the selected ball, then Scale
@@ -4795,6 +4877,7 @@ export class SynthView {
       this.set(`${pre}.bell_link`, r.link);
       this.set(`${pre}.rate`, r.rate);
       this.set(`${pre}.clock`, r.clock);
+      this.set(`${pre}.shape`, r.shape);
       return;
     }
     const round = (v: number, d = 100) => Math.round(v * d) / d;
@@ -4804,6 +4887,7 @@ export class SynthView {
     this.set(`${pre}.range`, round(1 + 3 * rnd(), 10));
     const sync = rnd() < 0.55;
     this.set(`${pre}.clock`, sync ? 'sync' : 'random');
+    this.set(`${pre}.shape`, ['sine', 'ramp down', 'ramp down', 'rise', 'ramp up', 'fall'][Math.floor(rnd() * 6)]);
     this.set(`${pre}.rate`, sync ? [0.4, 0.6, 0.8][Math.floor(rnd() * 3)] : round(0.3 + 0.4 * rnd() + 0.2 * w));
   }
 
@@ -4844,8 +4928,30 @@ export class SynthView {
         type: pick(ALL_TYPES), drive: round(0.15 + 0.8 * rnd()), tone: round(0.3 + 0.7 * rnd()), mix: round(0.4 + 0.6 * rnd()),
       };
     };
+    // MOTION (owner's call: the fix for "only the filters move"): the stage's drive and filter follow RUIN's lanes,
+    // so the grit and the tone move together in rhythm, as neuro is made
+    const motionFollow = (n: number) => {
+      const pre = `grind${n}`;
+      const sign = rnd() < 0.8 ? 1 : -1;
+      this.set(`${pre}.drive_follow`, rnd() < 0.65 ? round(sign * (0.25 + 0.5 * rnd())) : 0);
+      this.set(`${pre}.drive_src`, rnd() < 0.7 ? 'm1' : 'm2');
+      this.set(`${pre}.filter_follow`, rnd() < 0.45 ? round((rnd() < 0.85 ? 1 : -1) * (0.5 + 0.5 * rnd())) : 0);
+      this.set(`${pre}.filter_src`, rnd() < 0.7 ? 'm1' : 'm2');
+      this.set(`${pre}.shape`, pick(['sine', 'ramp down', 'ramp down', 'rise', 'ramp up', 'fall']));
+    };
+    const rollMotion = () => {
+      this.set('grind.m1_shape', pick(['ramp down', 'ramp down', 'rise', 'fall', 'steps', 'ramp up']));
+      this.set('grind.m1_rate', pick([0.6, 0.6, 0.8, 0.4]));
+      this.set('grind.m1_retrig', rnd() < 0.85);
+      this.set('grind.m2_shape', pick(['steps', 'steps', 'draw', 'sine']));
+      this.set('grind.m2_rate', pick([0, 0.2, 0.2, 0.4]));
+      this.set('grind.m2_retrig', rnd() < 0.5);
+      // the steps: a rhythm of highs and lows, never a flat line
+      for (const l of [1, 2]) for (let j = 1; j <= 16; j++) this.set(`grind.m${l}_p${j}`, round(rnd() < 0.5 ? 0.6 + 0.4 * rnd() : 0.3 * rnd()));
+    };
     const put = (n: number, st: RuinStage) => {
       for (const [k, v] of Object.entries(stageParams(`grind${n}`, st))) this.set(k, v);
+      motionFollow(n);
     };
     if (!counted) {
       // a stage's own die: one stage from any recipe, nudged
@@ -4867,6 +4973,7 @@ export class SynthView {
       if (i < chain.length) put(n, chain[i]);
       else this.set(`grind${n}.on`, false);
     });
+    rollMotion();
     const r = recipe;
     this.set('grind.ott', round(wild ? rnd() * 0.8 : nudge(r.ott, 0.08, 0, 1)));
     this.set('grind.lowcut', Math.round(wild ? 60 + 240 * rnd() : clampv(r.lowcut * Math.pow(2, (rnd() * 2 - 1) * 0.5 * w), 40, 400)));
@@ -5373,7 +5480,7 @@ export class SynthView {
 
 /** A GRIND stage's parameters (grind<n>.*), in the order a roll snapshot keeps them. */
 const GRIND_KEYS = ['on', 'filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'drive_type', 'drive', 'mix', 'filter_on', 'drive_on', 'filter_level', 'drive_level',
-  'drive_freq', 'drive_width', 'drive_tone', 'eq_on', 'eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`)),
+  'drive_freq', 'drive_width', 'drive_tone', 'eq_on', 'eq_level', 'eq_scale', 'shape', 'filter_follow', 'filter_src', 'drive_follow', 'drive_src', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`)),
   'bell_link', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`))];
 type GrindView = { filter: string; freq: number; range: number; res: number; depth?: number };
 type Cx = [number, number];

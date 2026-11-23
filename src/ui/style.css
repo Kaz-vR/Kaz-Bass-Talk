@@ -1473,6 +1473,25 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-fweird { width: 54px !important; }
 .v2 .gr-link { font-size: 9.5px !important; letter-spacing: 0.18em !important; padding: 0 4px; }
 .v2 .gr-link:not(.on) { color: #5c5c62 !important; }
+/* RUIN's MOTION lanes (owner's call): two rhythms the boxes follow */
+.v2 .gr-motion { display: flex; gap: 14px; justify-content: center; margin-top: 6px; }
+.v2 .gr-mlane { display: flex; flex-direction: column; gap: 4px; }
+.v2 .gr-mlane-head { display: flex; align-items: center; gap: 8px; font-size: 10px; }
+.v2 .gr-mlane-head .sel-name { font-size: 10px; letter-spacing: 0.12em; }
+.v2 .gr-mlane-n { font-family: 'LT Inter', Inter, sans-serif; font-size: 10px; letter-spacing: 0.2em; color: #f23005; }
+.v2 .gr-mrate { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+.v2 .gr-mrate-v { min-width: 34px; text-align: center; font-size: 10px; letter-spacing: 0.1em; color: #d8d8dc; }
+.v2 .gr-mstep { background: transparent; border: 0; color: #7c7c82; cursor: pointer; padding: 0 3px; }
+.v2 .gr-mstep:hover { color: #d8d8dc; }
+.v2 .gr-mlane-cv { cursor: crosshair; touch-action: none; }
+.v2 .gr-clockcol { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.v2 .gr-bell-type .sel { width: 100%; height: 26px; }
+.v2 .gr-bell-type .sel-name { padding-left: 8px; padding-right: 18px; font-size: 10.5px; }
+.v2 .gr-bell-type-n { text-align: center; }
+.v2 .tstep { display: flex; align-items: center; gap: 1px; }
+.v2 .tstep .ts-name { cursor: pointer; font-size: 9.5px; letter-spacing: 0.12em; color: #d8d8dc; white-space: nowrap; }
+.v2 .gr-fshape { margin-left: -6px; }
+.v2 .gr-follow-l { cursor: pointer; text-decoration: underline dotted rgba(255,255,255,0.3); text-underline-offset: 3px; }
 .v2 .gr-sub { font-size: 9px; letter-spacing: 0.22em; color: #6e6e74; text-transform: uppercase; white-space: nowrap; }
 .v2 .gr-drive-row { display: flex; align-items: center; gap: 10px; height: 22px; margin-top: 8px; flex: none; }
 .v2 .gr-drive-row .sel-btn { display: none; }
@@ -1508,8 +1527,8 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .eq-set { display: contents; }
 .v2 .eq-graph { cursor: pointer; touch-action: none; }
 /* BELLS: the selected band's type in a box on the left of its dials (owner's call) */
-.v2 .gr-bell-type { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
-  min-width: 96px; height: 54px; padding: 0 10px; margin-right: 8px; align-self: center;
+.v2 .gr-bell-type { display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 5px;
+  width: 118px; box-sizing: border-box; height: 54px; padding: 0 10px; margin-right: 8px; align-self: center;
   border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.28); }
 .v2 .gr-bell-type-n { font-family: 'LT Inter', Inter, sans-serif; font-size: 9px; letter-spacing: 0.22em; color: #7a7a80; }
 .v2 .gr-bell-type .sel-name { color: var(--knob-accent, #e8e8ea); }

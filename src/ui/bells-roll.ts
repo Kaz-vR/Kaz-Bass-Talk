@@ -6,7 +6,7 @@ export const BELL_ARCHETYPES = ['any', 'yoi sweep', 'talker', 'screamer', 'hollo
 export type BellArchetype = (typeof BELL_ARCHETYPES)[number];
 
 type Band = { type: string; freq: number; gain: number; q: number; range: number };
-export type BellsRoll = { bands: Band[]; link: boolean; rate: number; clock: 'hz' | 'sync' | 'random' };
+export type BellsRoll = { bands: Band[]; link: boolean; rate: number; clock: 'hz' | 'sync' | 'random'; shape: string };
 
 /** How often ANY picks each archetype: the two classics most. */
 const WEIGHTS: [BellArchetype, number][] = [['yoi sweep', 30], ['talker', 25], ['screamer', 20], ['hollow snarl', 15], ['metal', 10]];
@@ -31,7 +31,7 @@ export function rollBells(arch: BellArchetype, weird: number, rnd: () => number 
   const darkTop = (): Band => ({ type: 'high cut 12', freq: logBetween(6000, 9000), gain: 0, q: 0.71, range: 0 });
   const syncOr = (pRandom: number, synced: number[], free: [number, number]): Pick<BellsRoll, 'rate' | 'clock'> =>
     chance(pRandom) ? { clock: 'random', rate: between(...free) } : { clock: 'sync', rate: pick(synced) };
-  let r: BellsRoll;
+  let r: Omit<BellsRoll, 'shape'> & { shape?: string };
   switch (arch) {
     case 'yoi sweep': {
       // one deep, narrow notch sweeping wide (the mover), maybe a second higher up, a small lift, the dark top
@@ -121,7 +121,13 @@ export function rollBells(arch: BellArchetype, weird: number, rnd: () => number 
   }
   if (w > 0.85 && chance(0.3)) r.link = !r.link;
   if (w > 0.7 && chance(0.25)) r.clock = r.clock === 'random' ? 'sync' : 'random';
-  return enforce(r);
+  // the movement's shape on SYNC / HZ (neuro moves in ramps and jumps): per archetype, WEIRD opens it up
+  const SHAPES: Record<string, string[]> = {
+    'yoi sweep': ['ramp down', 'ramp down', 'rise', 'ramp up'], talker: ['sine', 'rise', 'fall'], screamer: ['ramp up', 'rise', 'ramp down'],
+    'hollow snarl': ['sine'], metal: ['ramp down', 'fall', 'rise'],
+  };
+  r.shape = w > 0.85 ? pick(['sine', 'ramp up', 'ramp down', 'rise', 'fall']) : pick(SHAPES[arch] ?? ['sine']);
+  return enforce(r as BellsRoll);
 }
 
 /**
