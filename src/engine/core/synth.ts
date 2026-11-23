@@ -177,6 +177,12 @@ export class Synth {
   /** GRIND's OTT, after the amp envelopes (on the voices and the noise bed, before the effects). */
   private readonly ott = new Ott();
   /**
+   * RUIN's OTT stack (grind.ott_stack, owner's call: OTT on OTT, as producers stack it): copies 2-10 after the first,
+   * each level-matched to what goes into it, so more copies are denser and flatter, not louder.
+   */
+  private readonly ottStack = Array.from({ length: 9 }, () => new Ott(undefined, undefined, true));
+  private ottCount = 1;
+  /**
    * The RUIN page's taps (display only, nothing on the audio thread reads them): the signal (L + R) / 2 at
    * 0 the chain's input, 1-2 the input again (where SAT and PRE OTT were), 3-10 after boxes 1-8,
    * 11 after RUIN's OTT, 12 the output,
@@ -977,7 +983,10 @@ export class Synth {
     this.texThru = cur[P.grindNoiseThru] > 0.5;
     this.bus.control(cur, lead.dst, this.beatPos, this.tempo / 60, (lead.pitch + 12 * cur[P.octave] - K.KEYTRACK_CENTER) / 12, fs, BLOCK, this.rng);
     // RUIN's OTT is part of the chain: its Mix scales it too, so Mix 0 is the chain switched off
-    this.ott.set(cur[P.grindOn] > 0.5 ? cur[P.grindOtt] * cur[P.grindMix] : 0, cur[P.grindLowcut], fs);
+    const ottAmt = cur[P.grindOn] > 0.5 ? cur[P.grindOtt] * cur[P.grindMix] : 0;
+    this.ott.set(ottAmt, cur[P.grindLowcut], fs);
+    this.ottCount = Math.max(1, Math.min(10, Math.round(cur[P.grindOttStack])));
+    for (let j = 0; j < 9; j++) this.ottStack[j].set(j < this.ottCount - 1 ? ottAmt : 0, cur[P.grindLowcut], fs);
 
     // The bar clock.
     this.beatPos += (this.tempo / 60) * (BLOCK / fs);
@@ -1219,6 +1228,13 @@ export class Synth {
         this.ott.process(l, r);
         l = this.ott.l;
         r = this.ott.r;
+        for (let j = 0; j < this.ottCount - 1; j++) {
+          const o = this.ottStack[j];
+          if (!o.on) break;
+          o.process(l, r);
+          l = o.l;
+          r = o.r;
+        }
         if (lm === 3 && la === 11) {
           l -= il;
           r -= ir;

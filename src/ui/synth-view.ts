@@ -3861,7 +3861,10 @@ export class SynthView {
     chains.classList.add('sel-name');
     strip.append(h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'RUIN'), h('div', 'sel gr-chains-sel', chains), rocker),
       h('div', 'gr-m-body', h('div', 'gr-m-row', roll, count), h('div', 'gr-m-row', h('span', 'gr-sub', 'WEIRD'), weird, recipeName), lamps),
-      h('div', 'ob-dials gr-knobs', ott, lowcut, mix, out));
+      h('div', 'ob-dials gr-knobs',
+        // the OTT stack (owner's call, OSC's UNI box): how many OTTs in a row, 1-10
+        h('div', 'k uni-dial', this.chip('OTT', () => this.num('grind.ott_stack'), (v) => this.set('grind.ott_stack', v), 1, 10, ['grind.ott_stack'], 'OTTs stacked in a row (1-10), each level-matched: more is denser, not louder')),
+        ott, lowcut, mix, out));
 
     // ---- the chain: eight boxes in free order (owner's call); each holds one of the four filters or drives, or nothing
     const chain = h('div', 'gr-chain');

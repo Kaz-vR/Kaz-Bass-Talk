@@ -433,6 +433,13 @@ class Synth {
         ott.process(l, r);
         l = ott.l;
         r = ott.r;
+        for (int j = 0; j < ottCount - 1; j++) {
+          Ott& o = ottStack[(size_t)j];
+          if (!o.on()) break;
+          o.process(l, r);
+          l = o.l;
+          r = o.r;
+        }
       }
       if (!direct && texThru) {  // NOISE THRU: after RUIN's OTT, still into the effects
         l += texL;
@@ -977,7 +984,10 @@ class Synth {
     texDirect = cur[P.texDirect] > 0.5;
     texThru = cur[P.grindNoiseThru] > 0.5;  // RUIN's NOISE THRU: the bed skips the chain and its OTT
     bus.control(cur.data(), lead->dst.data(), beatPos, tempo / 60, (lead->pitch + 12 * cur[P.octave] - KEYTRACK_CENTER) / 12, fs, CONTROL_BLOCK, rng);
-    ott.set(cur[P.grindOn] > 0.5 ? cur[P.grindOtt] * cur[P.grindMix] : 0, cur[P.grindLowcut], fs);
+    const double ottAmt = cur[P.grindOn] > 0.5 ? cur[P.grindOtt] * cur[P.grindMix] : 0;
+    ott.set(ottAmt, cur[P.grindLowcut], fs);
+    ottCount = std::max(1, std::min(10, (int)jsRound(cur[P.grindOttStack])));
+    for (int j = 0; j < 9; j++) ottStack[(size_t)j].set(j < ottCount - 1 ? ottAmt : 0, cur[P.grindLowcut], fs);
 
     beatPos += (tempo / 60) * ((double)CONTROL_BLOCK / fs);
     songBeat += (tempo / 60) * ((double)CONTROL_BLOCK / fs);
@@ -1091,6 +1101,11 @@ class Synth {
   int subWaitPos = 0;
   bool texThru = false;
   Ott ott;
+  // RUIN's OTT stack: copies 2-10, each level-matched (see synth.ts)
+  std::array<Ott, 9> ottStack{Ott(OTT_IN_DB, OTT_MAKEUP_DB, true), Ott(OTT_IN_DB, OTT_MAKEUP_DB, true), Ott(OTT_IN_DB, OTT_MAKEUP_DB, true),
+                              Ott(OTT_IN_DB, OTT_MAKEUP_DB, true), Ott(OTT_IN_DB, OTT_MAKEUP_DB, true), Ott(OTT_IN_DB, OTT_MAKEUP_DB, true),
+                              Ott(OTT_IN_DB, OTT_MAKEUP_DB, true), Ott(OTT_IN_DB, OTT_MAKEUP_DB, true), Ott(OTT_IN_DB, OTT_MAKEUP_DB, true)};
+  int ottCount = 1;
 
   // Texture bed.
   Texture texture;
