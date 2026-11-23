@@ -120,6 +120,7 @@ class Voice {
           o.phase[j] = j == 0 ? 0 : freeRun ? 0.5 * (rng.next() + 1) : std::fmod(j * 0.381966, 1.0);
       subPhase = 0;
       syncPhase = 0;
+      fmPhase = 0;
       osc[1].held.fill(0);
       ladL.reset();
       ladR.reset();
@@ -271,6 +272,7 @@ class Voice {
     analog = cur[P.analog];
     sawBow = analog;
     syncOn = cur[P.osc2Sync] > 0.5;
+    fmAmt = cur[P.grindOn] > 0.5 ? cur[P.grindFm] : 0;
 
     noteTime += (double)CONTROL_BLOCK / fs;
     double vib = 0;
@@ -470,12 +472,25 @@ class Voice {
         const double s = specialOsc(0) * o1.gain;
         l += s;
         r += s;
-      } else if (o1.gain > 0) {
+      }
+      // FM (a test): both oscillators read at a phase pushed by a sine at A's pitch
+      double pm = 0;
+      if (fmAmt > 0) {
+        fmPhase += syncInc;
+        if (fmPhase >= 1) fmPhase -= std::floor(fmPhase);
+        pm = 2 * fmAmt * std::sin(2 * 3.14159265358979323846 * fmPhase);
+      }
+      if (o1.gain > 0 && o1.wave < WAVE_STRING) {
         for (int j = 0; j < o1.voices; j++) {
           double ph = o1.phase[j] + o1.inc[j];
           ph -= std::floor(ph);
           o1.phase[j] = ph;
-          const double s = oscSample(o1, ph) * o1.gain;
+          double rp = ph;
+          if (pm != 0) {
+            rp = ph + pm;
+            rp -= std::floor(rp);
+          }
+          const double s = oscSample(o1, rp) * o1.gain;
           l += s * o1.panL[j];
           r += s * o1.panR[j];
         }
@@ -525,7 +540,12 @@ class Voice {
           double ph = o2.phase[j] + o2.inc[j];
           if (ph >= 1) ph -= 1;
           o2.phase[j] = ph;
-          const double s = oscSample(o2, ph) * o2.gain;
+          double rp = ph;
+          if (pm != 0) {
+            rp = ph + pm;
+            rp -= std::floor(rp);
+          }
+          const double s = oscSample(o2, rp) * o2.gain;
           l += s * o2.panL[j];
           r += s * o2.panR[j];
         }
@@ -824,6 +844,7 @@ class Voice {
   double strPeriod[2] = {}, strGain[2] = {}, strTone = 0.5;
   double noteTime = 0, vibPhase = 0, vibRate = 5, accentAmt = 0, subPhase = 0;
   double syncPhase = 0, syncInc = 0;
+  double fmPhase = 0, fmAmt = 0;  // FM (a test, see voice.ts)
   bool syncOn = false;
   std::array<double, 32> subDelay{};
   int subDelayPos = 0;

@@ -3861,7 +3861,7 @@ export class SynthView {
     chains.classList.add('sel-name');
     strip.append(h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'RUIN'), h('div', 'sel gr-chains-sel', chains), rocker),
       h('div', 'gr-m-body', h('div', 'gr-m-row', roll, count), h('div', 'gr-m-row', h('span', 'gr-sub', 'WEIRD'), weird, recipeName), lamps),
-      h('div', 'ob-dials gr-knobs', ott, lowcut, mix, out));
+      h('div', 'ob-dials gr-knobs', ott, lowcut, mix, out, md('grind.fm', 'FM', { fmt: pct })));
 
     // ---- the chain: eight boxes in free order (owner's call); each holds one of the four filters or drives, or nothing
     const chain = h('div', 'gr-chain');
