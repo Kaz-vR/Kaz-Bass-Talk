@@ -9,7 +9,7 @@ import { formatValue } from './params-panel';
 import { DRIVE_FAMILIES, RUIN_RECIPES, recipeParams, stageParams, type RuinStage } from './ruin-recipes';
 import { corrosionTexture, frameTexture, keyGrime, lightGrain, logoWear, panelTexture, woodTexture } from './texture';
 import logoSvg from '../../design/logo.svg?raw';
-import { GRIND_BEAT_NAMES, grindBeat, grindHz, unpackBells } from '../engine/core/grind';
+import { GRIND_BEAT_NAMES, grindBeat, grindHz, unpackBells, unpackPhaser } from '../engine/core/grind';
 import { BELL_ARCHETYPES, type BellArchetype, rollBells } from './bells-roll';
 import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobPointsAt, wobSmoothRadius, wobSmoothTable, wobTableAt, type WobPoint } from '../engine/core/wobshape';
 import { toHex } from './color';
@@ -918,6 +918,8 @@ export class SynthView {
   /** Each GRIND stage's filter frequency right now (from the engine, -1 when silent) and the prints that follow it. */
   private readonly grindLive = [-1, -1, -1, -1, -1, -1, -1, -1];
   private readonly grindLiveRes = [0, 0, 0, 0, 0, 0, 0, 0];
+  /** Each phaser's live L / R LFO, packed (-1 off). */
+  private readonly phaserLive = [-1, -1, -1, -1, -1, -1, -1, -1];
   /** Each RUIN EQ's selected band (0-3). */
   private readonly ruinEqSel = [1, 1, 1, 1, 1, 1, 1, 1];
   /** BELLS: the selected bell per filter (its Freq / Gain / Q on the dials). */
@@ -1093,7 +1095,7 @@ export class SynthView {
   }
 
   /** Follow each GRIND stage's real filter on its print (while the GRIND page shows). */
-  setLiveGrind(read: () => { fc: number[]; res: number[] }): void {
+  setLiveGrind(read: () => { fc: number[]; res: number[]; ph?: number[] }): void {
     const step = () => {
       if (this.grindPage && this.grindPage.offsetParent !== null) {
         // the chain's meters and spectra, 30 times a second
@@ -1101,8 +1103,14 @@ export class SynthView {
           this.ruinTaps = this.ruinRead();
           this.ruinFrame();
         }
-        const { fc: v, res } = read();
+        const { fc: v, res, ph } = read();
         let moved = false;
+        if (ph) for (let i = 0; i < 8; i++) {
+          if (Math.abs(ph[i] - this.phaserLive[i]) > 0.5) {
+            this.phaserLive[i] = ph[i];
+            moved = true;
+          }
+        }
         for (let i = 0; i < 8; i++) {
           const x = v[i] > 0 ? v[i] : -1, was = this.grindLive[i];
           if ((x > 0) !== (was > 0) || (x > 0 && (Math.abs(x / was - 1) > 0.002 || Math.abs(res[i] - this.grindLiveRes[i]) > 0.003))) {
@@ -3761,25 +3769,26 @@ export class SynthView {
     const page = h('div', 'v2-main grind-page ruin-a');
     // the 24 parts (owner's call: up to eight of each): filter 1-8 (k 0-7), drive 1-8 (8-15), EQ 1-8 (16-23),
     // placed in the boxes by grind.slot1..8; part n of each kind belongs to stage n (grind<n>.*)
-    const KINDS = ['filter', 'drive', 'eq'] as const;
+    const KINDS = ['filter', 'drive', 'eq', 'phaser'] as const;
     const PARTS = KINDS.flatMap((kind) => [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ n, kind, drive: kind === 'drive' })));
     // colours (owner's call, tied to the OSC page, which leads): every drive the OSC A red, every filter the filter's
     // blue, one each, no tints (the page's --c-red / --c-blue, so a change on the OSC page moves them too); the EQs
     // keep their bone, pale to grey (tone shaping, not an effect).
     const EQ_COLS = ['#f4ecdc', '#e6dcc8', '#d8ceba', '#c9c0ae', '#bab3a4', '#aaa59a', '#9a9790', '#8b8a86'];
-    const tied = (k: number) => PARTS[k].kind === 'drive' ? '--c-red' : PARTS[k].kind === 'eq' ? '' : '--c-blue';
+    const tied = (k: number) => PARTS[k].kind === 'drive' ? '--c-red' : PARTS[k].kind === 'eq' ? '' : PARTS[k].kind === 'phaser' ? '--c-phaser' : '--c-blue';
     // COLVAR: for CSS (follows the variable live); COLS[k]: the colour itself, for drawing on canvas
     const COLVAR = (k: number) => (tied(k) ? `var(${tied(k)})` : EQ_COLS[PARTS[k].n - 1]);
     const COLS = new Proxy([] as string[], { get: (_t, key) => {
       const k = Number(key); if (typeof key !== 'string' || !Number.isInteger(k) || !PARTS[k]) return undefined;
       const v = tied(k) ? toHex(getComputedStyle(this.page).getPropertyValue(tied(k)).trim()) : '';
-      return v || (PARTS[k].kind === 'drive' ? '#f20000' : PARTS[k].kind === 'eq' ? EQ_COLS[PARTS[k].n - 1] : '#5f64c8'); } });
+      return v || (PARTS[k].kind === 'drive' ? '#f20000' : PARTS[k].kind === 'eq' ? EQ_COLS[PARTS[k].n - 1] : PARTS[k].kind === 'phaser' ? '#aa418e' : '#5f64c8'); } });
     const NAMES = PARTS.map((p) => `${p.kind.toUpperCase()} ${p.n}`);
     const ALL_K = PARTS.map((_, k) => k);
     const stageOf = (k: number) => PARTS[k].n;
     const kindOf = (k: number) => PARTS[k].kind;
     const isDrive = (k: number) => PARTS[k].drive;
     const isEq = (k: number) => PARTS[k].kind === 'eq';
+    const isPh = (k: number) => PARTS[k].kind === 'phaser';
     // which box holds part k (-1 = it is not in the chain); box s is the engine's tap 3 + s
     const SLOT_IDS = [1, 2, 3, 4, 5, 6, 7, 8].map((s) => `grind.slot${s}`);
     const PART_VALUE = PARTS.map((p) => `${p.kind} ${p.n}`);
@@ -3877,6 +3886,7 @@ export class SynthView {
       const n = stageOf(k);
       if (!partOn(k)) return 'OFF';
       if (isEq(k)) return 'EQ';
+      if (isPh(k)) return 'PHASER';
       return String(this.get(isDrive(k) ? `grind${n}.drive_type` : `grind${n}.filter`)).toUpperCase();
     };
     // a box's thin bar switches its part on / off without taking it out of the chain (the ✕ takes it out)
@@ -3928,7 +3938,7 @@ export class SynthView {
       x.title = `Take ${NAMES[k]} out of the chain`;
       x.onclick = (e) => { e.stopPropagation(); removePart(k); };
       const head = h('div', 'gr-node-head', partPower(k), h('span', 'gr-node-name', NAMES[k]), x);
-      this.watch(['grind.on', `grind${n}.on`, `grind${n}.filter`, `grind${n}.filter_on`, `grind${n}.drive_type`, `grind${n}.drive_on`, `grind${n}.eq_on`, ...SLOT_IDS], () => {
+      this.watch(['grind.on', `grind${n}.on`, `grind${n}.filter`, `grind${n}.filter_on`, `grind${n}.drive_type`, `grind${n}.drive_on`, `grind${n}.eq_on`, `grind${n}.phaser_on`, ...SLOT_IDS], () => {
         node.classList.toggle('is-off', typeLine(k) === 'OFF' || !this.get('grind.on'));
       });
       const [cv, g] = canvas(NW, NH, 'gr-node-cv');
@@ -3936,6 +3946,15 @@ export class SynthView {
         // an EQ has no type: its footer just names it
         const foot = h('div', 'gr-node-foot', h('span', 'gr-node-eq', '4-BAND EQ'));
         node.append(head, h('div', 'gr-node-cv-wrap', cv), foot);
+      } else if (isPh(k)) {
+        // a phaser's footer steps its notch count: ‹ 4 NOTCHES ›
+        const nid = `grind${n}.ph_notches`, lab = h('span', 'gr-node-eq');
+        const stepN = (d: number) => (e: Event) => { e.stopPropagation(); this.set(nid, Math.max(1, Math.min(12, Math.round(this.num(nid)) + d))); };
+        const pv = h('button', 'gr-step', '‹'), nx = h('button', 'gr-step', '›');
+        pv.onclick = stepN(-1);
+        nx.onclick = stepN(1);
+        this.watch([nid], () => { const v = Math.round(this.num(nid)); lab.textContent = `${v} NOTCH${v === 1 ? '' : 'ES'}`; });
+        node.append(head, h('div', 'gr-node-cv-wrap', cv), h('div', 'gr-node-foot', pv, lab, nx));
       }
       // the type as a stepper in the footer (owner's pick, option 6): ‹ TYPE ›, the name opens the menu
       const tid = isDrive(k) ? `grind${n}.drive_type` : `grind${n}.filter`;
@@ -3948,7 +3967,7 @@ export class SynthView {
       prev.onclick = step(-1);
       next.onclick = step(1);
       prev.title = next.title = 'Step through the types';
-      if (!isEq(k)) {
+      if (!isEq(k) && !isPh(k)) {
         const sel = isDrive(k) ? this.driveTypeSelector(tid) : this.selector(tid);
         sel.classList.add('gr-node-sel');
         sel.addEventListener('click', (e) => e.stopPropagation());
@@ -3985,14 +4004,37 @@ export class SynthView {
         }
       });
     }
-    // an empty box: + FILTER / + DRIVE / + EQ (eight of each, so every box can hold the same kind)
+    // an empty box (owner's pick): a big thin +, which opens into four tiles in the box (filter, drive, EQ, phaser)
+    const ADD_ICON: Record<(typeof KINDS)[number], string> = {
+      filter: 'M0,9 L6,9 C9,9 10,2 12,2 C14,2 15,9 18,9 L24,9',
+      drive: 'M0,11 C6,11 8,1 12,1 L24,1',
+      eq: 'M0,7 C4,7 5,3 7,3 C9,3 9,7 12,7 C15,7 15,11 17,11 C19,11 20,7 24,7',
+      phaser: 'M0,3 L4,3 C6,3 6,11 7,11 C8,11 8,3 10,3 L14,3 C16,3 16,11 17,11 C18,11 18,3 20,3 L24,3',
+    };
+    const ADD_COL: Record<(typeof KINDS)[number], string> = { filter: 'var(--c-blue)', drive: 'var(--c-red)', eq: '#d8ceba', phaser: 'var(--c-phaser)' };
+    const closeAdds: (() => void)[] = [];
     const empties = SLOT_IDS.map((_, s) => {
-      const addF = h('button', 'gr-add gr-add-f', '+ FILTER'), addD = h('button', 'gr-add gr-add-d', '+ DRIVE'), addE = h('button', 'gr-add gr-add-e', '+ EQ');
-      addF.onclick = () => addPart(s, 'filter');
-      addD.onclick = () => addPart(s, 'drive');
-      addE.onclick = () => addPart(s, 'eq');
-      return h('div', 'gr-node gr-empty', h('span', 'gr-empty-n', String(s + 1)), addF, addD, addE);
+      const plus = h('button', 'gr-plus', '+');
+      plus.title = 'Add a filter, a drive, an EQ or a phaser to this box';
+      const grid = h('div', 'gr-add-grid');
+      for (const kind of KINDS) {
+        const t = h('button', 'gr-add-tile');
+        t.innerHTML = `<svg width="30" height="15" viewBox="0 0 24 12" aria-hidden="true"><path d="${ADD_ICON[kind]}" fill="none" stroke="${ADD_COL[kind]}" stroke-width="1.5"/></svg><span>${kind.toUpperCase()}</span>`;
+        t.style.setProperty('--tile-col', ADD_COL[kind]);
+        t.onclick = (e) => { e.stopPropagation(); close(); addPart(s, kind); };
+        grid.append(t);
+      }
+      const box = h('div', 'gr-node gr-empty', h('span', 'gr-empty-n', String(s + 1)), plus, grid);
+      const close = () => box.classList.remove('gr-adding');
+      closeAdds.push(close);
+      plus.onclick = (e) => {
+        e.stopPropagation();
+        for (const c of closeAdds) c();
+        box.classList.add('gr-adding');
+      };
+      return box;
     });
+    document.addEventListener('pointerdown', (e) => { if (!(e.target as HTMLElement).closest?.('.gr-empty')) for (const c of closeAdds) c(); });
     // lay the boxes out from the slots whenever they change
     this.watch(SLOT_IDS, () => {
       chain.replaceChildren(...SLOT_IDS.map((id, s) => {
@@ -4010,6 +4052,7 @@ export class SynthView {
       filter: ['filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'filter_level', 'bell_link', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`))],
       drive: ['drive_type', 'drive', 'mix', 'drive_level', 'drive_freq', 'drive_width', 'drive_tone', 'drive_dyn'],
       eq: ['eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`))],
+      phaser: ['phaser_level', 'ph_notches', 'ph_center', 'ph_spread', 'ph_amount', 'ph_rate', 'ph_clock', 'ph_feedback', 'ph_stereo'],
     };
     const renumber = () => {
       const vals = SLOT_IDS.map((id) => String(this.get(id)));
@@ -4250,6 +4293,30 @@ export class SynthView {
       showBand();
       const edials = h('div', 'ob-dials gr-edials', ...bandSets, md(`${pre}.eq_scale`, 'Scale', { fmt: (v) => `${Math.round(v * 100)}%` }));
       sets[ek] = h('div', `gr-set gr-s${n}`, ehead, edials);
+      // the PHASER (owner's pick, option 4): NOTCH box, Center, Spread, Amount, Rate, Feedback, Stereo and its clock
+      const pk = 24 + n - 1;
+      const pdice = h('button', 'gr-ic gr-dice');
+      pdice.innerHTML = DICE_SVG;
+      pdice.title = `Roll phaser ${n} only`;
+      pdice.onclick = () => this.phaserRoll(n);
+      const phead = h('div', 'ob-head gr-row-head', partPower(pk), h('span', 'c-title', `PHASER ${n}`), h('span', 'gr-icons', pdice));
+      const pclock = h('span', 'fx-kinds sw-small gr-sync');
+      const pclocks = (['hz', 'sync', 'random'] as const).map((c) => {
+        const b = h('button', 'fx-kind', c === 'random' ? 'RAND' : c.toUpperCase());
+        b.onclick = () => this.set(`${pre}.ph_clock`, c);
+        pclock.append(b);
+        return b;
+      });
+      this.watch([`${pre}.ph_clock`], () => pclocks.forEach((b, j) => b.classList.toggle('on', ['hz', 'sync', 'random'][j] === this.get(`${pre}.ph_clock`))));
+      const pRateFmt = (v: number) => (this.get(`${pre}.ph_clock`) === 'sync' ? GRIND_BEAT_NAMES[grindBeat(v)] : `${this.get(`${pre}.ph_clock`) === 'random' ? '~' : ''}${grindHz(v).toFixed(grindHz(v) < 1 ? 2 : 1)} Hz`);
+      const notch = h('div', 'k uni-dial', this.chip('NOTCH', () => this.num(`${pre}.ph_notches`), (v) => this.set(`${pre}.ph_notches`, v), 1, 12, [`${pre}.ph_notches`], 'How many notches (1-12)'));
+      const oct = (v: number) => `${v.toFixed(1)} oct`;
+      const pdials = h('div', 'ob-dials gr-pdials', notch,
+        md(`${pre}.ph_center`, 'Center', { fmt: (v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)} Hz`) }),
+        md(`${pre}.ph_spread`, 'Spread', { fmt: oct }), md(`${pre}.ph_amount`, 'Amount', { fmt: oct }),
+        md(`${pre}.ph_rate`, 'Rate', { fmt: pRateFmt, deps: [`${pre}.ph_clock`] }), md(`${pre}.ph_feedback`, 'Feedback', { fmt: pct }),
+        md(`${pre}.ph_stereo`, 'Stereo', { fmt: (v) => `${Math.round(v)}°` }), pclock);
+      sets[pk] = h('div', `gr-set gr-s${n}`, phead, pdials);
     }
     sets.forEach((el, k) => {
       el.style.setProperty('--knob-accent', COLVAR(k));
@@ -4514,6 +4581,58 @@ export class SynthView {
           gg.restore();
         }
       }
+      // a PHASER (owner's pick, option 4): the left (its colour) and right (orange) responses where they are right
+      // now, the space between them lit: where they differ is the stereo swirl
+      if (isPh(k) && stageOn(n) && this.get(`grind${n}.phaser_on`)) {
+        const pre = `grind${n}`, N = Math.round(this.num(`${pre}.ph_notches`)), spread = this.num(`${pre}.ph_spread`), amt = this.num(`${pre}.ph_amount`);
+        const cen = this.num(`${pre}.ph_center`), fb = this.num(`${pre}.ph_feedback`), st = this.num(`${pre}.ph_stereo`);
+        const live = this.noteSounding() && this.phaserLive[n - 1] >= 0;
+        // at rest: the left at the centre, the right where STEREO puts it
+        const [mL, mR] = live ? unpackPhaser(this.phaserLive[n - 1]) : [0, Math.sin((Math.PI * st) / 180)];
+        const ys = (m: number) => {
+          const pts: [number, number][] = [];
+          for (let x = 0; x <= GW; x += mini ? 2 : 1.5) pts.push([x, fY(phaserMag(20 * Math.pow(1000, x / GW), cen, N, spread, 0.5 * amt * m, fb))]);
+          return pts;
+        };
+        const L = ys(mL), R = ys(mR);
+        gg.save();
+        gg.strokeStyle = 'rgba(255,255,255,0.12)';
+        gg.setLineDash([1, 4]);
+        gg.beginPath();
+        gg.moveTo(0, fY(1));
+        gg.lineTo(GW, fY(1));
+        gg.stroke();
+        gg.restore();
+        gg.fillStyle = 'rgba(255,255,255,0.05)';
+        gg.beginPath();
+        L.forEach(([x, y], i) => (i ? gg.lineTo(x, y) : gg.moveTo(x, y)));
+        [...R].reverse().forEach(([x, y]) => gg.lineTo(x, y));
+        gg.fill();
+        const line = (pts: [number, number][], c: string, w: number, blur: number) => {
+          gg.save();
+          gg.strokeStyle = c;
+          gg.lineWidth = w;
+          gg.shadowColor = c;
+          gg.shadowBlur = blur;
+          gg.beginPath();
+          pts.forEach(([x, y], i) => (i ? gg.lineTo(x, y) : gg.moveTo(x, y)));
+          gg.stroke();
+          gg.restore();
+        };
+        line(L, col, mini ? 1.2 : 1.6, mini ? 4 : 8);
+        line(R, '#f25d07', mini ? 1 : 1.4, 0);
+        if (!mini) {
+          gg.font = '600 9px "Space Grotesk", sans-serif';
+          gg.fillStyle = col;
+          gg.fillText('L', 8, 13);
+          gg.fillStyle = '#f25d07';
+          gg.fillText('R', 20, 13);
+          gg.fillStyle = 'rgba(200,200,206,0.55)';
+          gg.textAlign = 'right';
+          gg.fillText(`STEREO ${Math.round(st)}°`, GW - 6, 13);
+          gg.textAlign = 'left';
+        }
+      }
       // an EQ: its curve on top in white and its four numbered balls, as the FX page's EQ
       if (isEq(k) && stageOn(n) && this.get(`grind${n}.eq_on`)) {
         const sc = this.num(`grind${n}.eq_scale`), selB = this.ruinEqSel[n - 1];
@@ -4628,7 +4747,7 @@ export class SynthView {
     };
     paintThumb = (g, w, hh, k) => paint(g, w, hh, k, true);
     // dragging on the graph: the drive's ring (where / how wide) or the filter's ball (Freq / H Range), anywhere on it
-    let dragging: 'band' | 'filter' | 'eq' | 'bell' | 'bellRange' | null = null;
+    let dragging: 'band' | 'filter' | 'eq' | 'bell' | 'bellRange' | 'ph' | null = null;
     const isBells = (k: number) => kindOf(k) === 'filter' && this.get(`grind${stageOf(k)}.filter`) === 'bells';
     /** The bell dot or range ball under the pointer: [bell, 'bell' | 'bellRange'], or null. */
     const nearBell = (n: number, x: number, y: number): [number, 'bell' | 'bellRange'] | null => {
@@ -4658,7 +4777,10 @@ export class SynthView {
       if (!dragging) return;
       const n = stageOf(this.ruinSel), pre = `grind${n}`;
       const [x, y] = at(e), f = 20 * Math.pow(1000, Math.max(0, Math.min(1, x / GW)));
-      if (dragging === 'bell' || dragging === 'bellRange') {
+      if (dragging === 'ph') {
+        this.set(`${pre}.ph_center`, Math.round(Math.max(40, Math.min(12000, f))));
+        this.set(`${pre}.ph_amount`, Math.round(Math.max(0, Math.min(6, ((GH - 20 - y) / (GH - 40)) * 6)) * 10) / 10);
+      } else if (dragging === 'bell' || dragging === 'bellRange') {
         const bp = `${pre}.bell${this.ruinBellSel[n - 1] + 1}`;
         this.set(`${bp}_freq`, Math.round(Math.max(20, Math.min(20000, f / this.ruinKey()))));
         if (dragging === 'bell' && !bellNoGain(String(this.get(`${bp}_type`)))) this.set(`${bp}_gain`, Math.round(Math.max(-18, Math.min(18, (GH * 0.42 - y) / (GH / 62))) * 10) / 10);
@@ -4678,7 +4800,9 @@ export class SynthView {
     };
     gcv.addEventListener('pointerdown', (e) => {
       const k = this.ruinSel, n = stageOf(k);
-      if (isBells(k)) {
+      if (isPh(k)) {
+        dragging = this.get(`grind${n}.phaser_on`) ? 'ph' : null;
+      } else if (isBells(k)) {
         const [x, y] = at(e), hit = this.get(`grind${n}.filter_on`) ? nearBell(n, x, y) : null;
         dragging = hit ? hit[1] : null;
         if (hit) {
@@ -4763,6 +4887,7 @@ export class SynthView {
       if (!this.get(`grind${n}.on`)) continue;
       if (this.get(`grind${n}.filter_on`)) on.push(`filter ${n}`);
       if (this.get(`grind${n}.eq_on`)) on.push(`eq ${n}`);
+      if (this.get(`grind${n}.phaser_on`)) on.push(`phaser ${n}`);
       if (this.get(`grind${n}.drive_on`)) on.push(`drive ${n}`);
     }
     const now = [1, 2, 3, 4, 5, 6, 7, 8].map((s) => String(this.get(`grind.slot${s}`)));
@@ -4805,6 +4930,20 @@ export class SynthView {
     const sync = rnd() < 0.55;
     this.set(`${pre}.clock`, sync ? 'sync' : 'random');
     this.set(`${pre}.rate`, sync ? [0.4, 0.6, 0.8][Math.floor(rnd() * 3)] : round(0.3 + 0.4 * rnd() + 0.2 * w));
+  }
+
+  /** A phaser box's own dice: a new set of notches and sweep, kept musical (WEIRD widens it). */
+  private phaserRoll(n: number): void {
+    const pre = `grind${n}`, w = this.grindWeird, rnd = Math.random, r2 = (v: number, d = 100) => Math.round(v * d) / d;
+    this.set(`${pre}.ph_notches`, 2 + Math.floor(rnd() * (4 + 6 * w)));
+    this.set(`${pre}.ph_center`, Math.round(300 * Math.pow(8, rnd())));
+    this.set(`${pre}.ph_spread`, r2(0.5 + rnd() * (0.8 + 1.2 * w), 10));
+    this.set(`${pre}.ph_amount`, r2(0.8 + rnd() * (1.5 + 2.5 * w), 10));
+    const sync = rnd() < 0.5;
+    this.set(`${pre}.ph_clock`, sync ? 'sync' : rnd() < 0.6 ? 'hz' : 'random');
+    this.set(`${pre}.ph_rate`, sync ? [0.2, 0.4, 0.6][Math.floor(rnd() * 3)] : r2(0.15 + rnd() * (0.3 + 0.3 * w)));
+    this.set(`${pre}.ph_feedback`, r2(0.2 + rnd() * (0.4 + 0.3 * w)));
+    this.set(`${pre}.ph_stereo`, Math.round([0, 45, 90, 90, 180][Math.floor(rnd() * 5)]));
   }
 
   /** Roll GRIND stages: low weirdness keeps to the classic neuro moves, high goes anywhere. The chain switches on. */
@@ -5374,7 +5513,8 @@ export class SynthView {
 /** A GRIND stage's parameters (grind<n>.*), in the order a roll snapshot keeps them. */
 const GRIND_KEYS = ['on', 'filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'drive_type', 'drive', 'mix', 'filter_on', 'drive_on', 'filter_level', 'drive_level',
   'drive_freq', 'drive_width', 'drive_tone', 'eq_on', 'eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`)),
-  'bell_link', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`))];
+  'bell_link', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`)),
+  'phaser_on', 'phaser_level', 'ph_notches', 'ph_center', 'ph_spread', 'ph_amount', 'ph_rate', 'ph_clock', 'ph_feedback', 'ph_stereo'];
 type GrindView = { filter: string; freq: number; range: number; res: number; depth?: number };
 type Cx = [number, number];
 const cmul = (a: Cx, b: Cx): Cx => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]];
@@ -5382,6 +5522,21 @@ const cdiv = (a: Cx, b: Cx): Cx => { const d = b[0] * b[0] + b[1] * b[1]; return
 const cabs = (a: Cx): number => Math.hypot(a[0], a[1]);
 /** A state-variable band-pass (s / (s² + ks + 1)) at w = f / fc. */
 const svfBp = (w: number, k: number): Cx => cdiv([0, w], [1 - w * w, k * w]);
+
+/**
+ * |H| of a RUIN phaser (as the engine plays it): N second-order all-passes (k = 1/1.1) at the centre ± the spread,
+ * moved by `shift` octaves, with feedback, summed with the dry and levelled as the engine does.
+ */
+function phaserMag(f: number, center: number, N: number, spread: number, shift: number, fb: number): number {
+  const k = 1 / 1.1;
+  let A: Cx = [1, 0];
+  for (let i = 0; i < N; i++) {
+    const fi = center * Math.pow(2, (i - (N - 1) / 2) * spread + shift), w = f / fi;
+    A = cmul(A, cdiv([1 - w * w, -k * w], [1 - w * w, k * w]));
+  }
+  const V = cdiv(A, [1 - fb * A[0], -fb * A[1]]), c = (1 - fb) / (2 - fb);
+  return cabs([c * (1 + V[0]), c * V[1]]);
+}
 
 /** |H| of one BELLS band (as the engine plays it: an SVF mixed c0·x + c1·bp + c2·lp + c3·hp) at w = f / fc. */
 function bellMag(t: string, db: number, q: number, w: number): number {

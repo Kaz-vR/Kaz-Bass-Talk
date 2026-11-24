@@ -53,8 +53,6 @@ class LowTalkProcessor extends AudioWorkletProcessor {
       if (ctl.length >= 16) for (let i = 0; i < 4; i++) ctl[12 + i].fill(this.synth.liveGrind[i]);
       if (ctl.length >= 20) for (let i = 0; i < 4; i++) ctl[16 + i].fill(this.synth.liveGrindRes[i]);
       // channels 24-27: stages 5-8's filter frequency, 28-31: their resonance
-      // channels 32-39: each phaser's left and right LFO, packed
-      if (ctl.length >= 40) for (let i = 0; i < 8; i++) ctl[32 + i].fill(this.synth.livePhaser[i]);
       if (ctl.length >= 32) for (let i = 0; i < 4; i++) {
         ctl[24 + i].fill(this.synth.liveGrind[4 + i]);
         ctl[28 + i].fill(this.synth.liveGrindRes[4 + i]);
@@ -75,6 +73,9 @@ class LowTalkProcessor extends AudioWorkletProcessor {
     }
     // Output 3: the RUIN page's taps (chain input, each box, RUIN's OTT, the output),
     // the newest samples of each ring, for the page's meters and spectra.
+    // output 4: each RUIN phaser's left and right LFO, packed
+    const ph = outputs[3];
+    if (ph) for (let i = 0; i < Math.min(8, ph.length); i++) ph[i].fill(this.synth.livePhaser[i]);
     const tp = outputs[2];
     if (tp && tp.length >= 13) {
       const n = tp[0].length, taps = this.synth.taps, len = taps[0].length;

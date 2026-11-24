@@ -1626,6 +1626,18 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-empty { align-items: center; justify-content: center; gap: 8px; border-style: dashed; border-color: rgba(255,255,255,0.1); cursor: default; }
 .v2 .gr-empty:hover { border-color: rgba(255,255,255,0.18); }
 .v2 .gr-empty-n { font-size: 10px; letter-spacing: 0.2em; color: #3e3e44; }
+/* an empty box (owner's pick): a big thin +, opening into four tiles inside the box */
+.v2 .gr-empty { position: relative; }
+.v2 .gr-plus { background: transparent; border: 0; cursor: pointer; font: 200 54px "Space Grotesk", sans-serif; line-height: 1; color: #8a8a90; padding: 0 10px; }
+.v2 .gr-plus:hover { color: #e8e8ea; }
+.v2 .gr-add-grid { display: none; position: absolute; inset: 8px; grid-template-columns: 1fr 1fr; gap: 6px; }
+.v2 .gr-adding .gr-add-grid { display: grid; }
+.v2 .gr-adding .gr-plus, .v2 .gr-adding .gr-empty-n { visibility: hidden; }
+.v2 .gr-add-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+  background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.08); color: #d8d8dc;
+  font: 500 10px "Space Grotesk", sans-serif; letter-spacing: 0.18em; }
+.v2 .gr-add-tile:hover { border-color: var(--tile-col); background: rgba(255,255,255,0.06); }
+.v2 .gr-pdials { gap: 8px; }
 .v2 .gr-add { background: transparent; border: 1px solid #2a2a30; border-radius: 3px; padding: 4px 10px; font: 9px "Space Grotesk", sans-serif; letter-spacing: 0.16em; cursor: pointer; width: 92px; }
 .v2 .gr-add-f { color: #3fb8ff; }
 .v2 .gr-add-d { color: #ff6a1a; }

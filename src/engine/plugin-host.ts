@@ -216,7 +216,7 @@ export class PluginHost {
   }
 
   /** Each GRIND stage's filter frequency (Hz, -1 off) and resonance. */
-  liveGrind(): { fc: number[]; res: number[] } {
-    return { fc: [12, 13, 14, 15, 24, 25, 26, 27].map((i) => this.live[i] ?? -1), res: [16, 17, 18, 19, 28, 29, 30, 31].map((i) => this.live[i] ?? 0) };
+  liveGrind(): { fc: number[]; res: number[]; ph: number[] } {
+    return { ph: this.livePhaser(), fc: [12, 13, 14, 15, 24, 25, 26, 27].map((i) => this.live[i] ?? -1), res: [16, 17, 18, 19, 28, 29, 30, 31].map((i) => this.live[i] ?? 0) };
   }
 }
