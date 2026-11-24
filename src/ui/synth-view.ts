@@ -3121,7 +3121,25 @@ export class SynthView {
     };
     document.addEventListener('pointerdown', (e) => { if (!menu.contains(e.target as Node) && e.target !== more) close(); });
     menu.addEventListener('click', (e) => { if ((e.target as Element).closest('.lfo5-tile')) close(); });
-    return h('div', 'v2-main osc-page lfo-page', big, settings, palette);
+    // the LFO page (owner's call): the shapes as a menu from the custom LFO's title row: ‹ SINE ▾ › opens all of
+    // them as tiles over the drawing, picking one closes it
+    const shapeName = h('span', 'lfo5-shape-name');
+    const shapeBtn = h('button', 'lfo5-shape-btn', shapeName, h('span', 'lfo5-shape-caret', '▾'));
+    shapeBtn.title = 'Pick a ready shape (or draw your own on the grid)';
+    this.watch(['wobble.shape'], () => { shapeName.textContent = String(this.get('wobble.shape')).toUpperCase(); });
+    const pop = h('div', 'lfo5-shape-pop', ...tiles);
+    const closePop = () => { pop.classList.remove('open'); shapeBtn.classList.remove('on'); };
+    shapeBtn.onclick = (e) => {
+      e.stopPropagation();
+      pop.classList.toggle('open');
+      shapeBtn.classList.toggle('on', pop.classList.contains('open'));
+    };
+    pop.addEventListener('click', (e) => { if ((e.target as Element).closest('.lfo5-tile')) closePop(); });
+    document.addEventListener('pointerdown', (e) => { if (!pop.contains(e.target as Node) && !shapeBtn.contains(e.target as Node)) closePop(); });
+    big.querySelector('.ob-head .c-title')?.after(shapeBtn);
+    big.append(pop);
+    void palette;
+    return h('div', 'v2-main osc-page lfo-page', big, settings);
   }
 
 

@@ -1794,3 +1794,18 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 .v2 .lfo-all .lfo-retrig { margin-left: 0 !important; }
 .v2 .lfo-sync-col { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .v2 .lfo-sync-col .led { font-size: 9px !important; }
+
+/* the LFO page: the custom LFO and its TARGET box line up with LFO 1-4 (same inner padding, same title row) */
+.v2 .lfo-all > .lfo5-main, .v2 .lfo-all > .lfo5-settings { padding: 8px 12px !important; position: relative; }
+.v2 .lfo-all > .lfo5-main > .ob-head, .v2 .lfo-all > .lfo5-settings > .ob-head { height: 22px; align-items: center; gap: 7px; margin: 0; }
+.v2 .lfo-all .lfo5-main .lfo5-rate { margin: 0 0 0 auto; height: 22px; }
+.v2 .lfo-all .lfo5-main .lfo5-rate-sel { height: 22px; font-size: 12px !important; }
+.v2 .lfo-all .lfo5-main .lfo5-arrow.lfo5-rate-arrow { height: 22px; width: 24px; font-size: 14px; }
+.v2 .lfo-all .lfo5-main .lfo5-lock { margin-left: 14px; }
+/* the shapes menu */
+.v2 .lfo5-shape-btn { display: flex; align-items: center; gap: 6px; margin-left: 10px; height: 22px; padding: 0 8px; background: transparent; border: 1px solid rgba(255,255,255,0.08); border-radius: 2px; cursor: pointer; color: #e8e8ea; font-size: 10.5px; letter-spacing: 0.16em; }
+.v2 .lfo5-shape-btn:hover, .v2 .lfo5-shape-btn.on { border-color: rgba(255,255,255,0.24); }
+.v2 .lfo5-shape-caret { color: #7c7c82; font-size: 9px; }
+.v2 .lfo5-shape-pop { display: none; position: absolute; left: 12px; right: 12px; top: 38px; z-index: 30; grid-template-columns: repeat(8, 1fr); gap: 8px; padding: 10px; background: #0b0b0d; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 14px 40px rgba(0,0,0,0.85); }
+.v2 .lfo5-shape-pop.open { display: grid; }
+.v2 .lfo5-shape-pop .lfo5-tile { height: 74px; }
