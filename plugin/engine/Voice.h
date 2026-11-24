@@ -242,11 +242,11 @@ class Voice {
         // A per-note shape: one cycle from this note's start (Rate or the synced note value), then held.
         const int sync = (int)cur[lp.sync];
         const bool vib = (int)cur[lp.shape] == LFO_VIBRATO;
-        // VIBRATO: its own Rate (3-8 Hz) and Depth (0-±100 cents on a pitch target)
+        // VIBRATO: its own Rate (3-12 Hz) and Depth (0-±50 cents on a pitch target)
         double rate = sync > 0 ? bps / SYNC_BEATS[sync] : vib ? cur[lp.vibRate] : cur[lp.rate];
         const double rm = dst[LFO_RATE_DEST[l]];
         if (rm != 0) rate *= std::pow(2.0, 3 * rm);
-        vibAmt[s] = vib ? cur[lp.vibDepth] / 24 : -1;
+        vibAmt[s] = vib ? cur[lp.vibDepth] * 0.5 / 24 : -1;
         if (vib) rate *= (0.9 + 0.2 * src[SRC_MODWHEEL]);  // the mod wheel plays VIBRATO
         const double pr = lfoProg[l] + (rate * CONTROL_BLOCK) / fs;
         lfoProg[l] = vib ? pr - std::floor(pr) : std::fmin(1.0, pr);

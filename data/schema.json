@@ -1388,12 +1388,12 @@
       "label": "LFO 1 vibrato rate",
       "type": "float",
       "min": 3,
-      "max": 10,
+      "max": 12,
       "default": 5.5,
       "curve": "linear",
       "unit": "Hz",
       "group": "lfo1",
-      "describes": "VIBRATO's speed in Hz mode, 3-10 Hz (the wheel nudges it up to 10 % faster at the top)."
+      "describes": "VIBRATO's speed in Hz mode, 3-12 Hz (the wheel nudges it up to 10 % faster at the top)."
     },
     {
       "id": "lfo1.vib_depth",
@@ -1401,11 +1401,11 @@
       "type": "float",
       "min": 0,
       "max": 1,
-      "default": 0.3,
+      "default": 0.6,
       "curve": "linear",
       "unit": "",
       "group": "lfo1",
-      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±100 cents (200 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
+      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±50 cents (100 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
     },
     {
       "id": "lfo2.on",
@@ -1526,12 +1526,12 @@
       "label": "LFO 2 vibrato rate",
       "type": "float",
       "min": 3,
-      "max": 10,
+      "max": 12,
       "default": 5.5,
       "curve": "linear",
       "unit": "Hz",
       "group": "lfo2",
-      "describes": "VIBRATO's speed in Hz mode, 3-10 Hz (the wheel nudges it up to 10 % faster at the top)."
+      "describes": "VIBRATO's speed in Hz mode, 3-12 Hz (the wheel nudges it up to 10 % faster at the top)."
     },
     {
       "id": "lfo2.vib_depth",
@@ -1539,11 +1539,11 @@
       "type": "float",
       "min": 0,
       "max": 1,
-      "default": 0.3,
+      "default": 0.6,
       "curve": "linear",
       "unit": "",
       "group": "lfo2",
-      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±100 cents (200 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
+      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±50 cents (100 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
     },
     {
       "id": "lfo3.on",
@@ -1664,12 +1664,12 @@
       "label": "LFO 3 vibrato rate",
       "type": "float",
       "min": 3,
-      "max": 10,
+      "max": 12,
       "default": 5.5,
       "curve": "linear",
       "unit": "Hz",
       "group": "lfo3",
-      "describes": "VIBRATO's speed in Hz mode, 3-10 Hz (the wheel nudges it up to 10 % faster at the top)."
+      "describes": "VIBRATO's speed in Hz mode, 3-12 Hz (the wheel nudges it up to 10 % faster at the top)."
     },
     {
       "id": "lfo3.vib_depth",
@@ -1677,11 +1677,11 @@
       "type": "float",
       "min": 0,
       "max": 1,
-      "default": 0.3,
+      "default": 0.6,
       "curve": "linear",
       "unit": "",
       "group": "lfo3",
-      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±100 cents (200 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
+      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±50 cents (100 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
     },
     {
       "id": "lfo4.on",
@@ -1802,12 +1802,12 @@
       "label": "LFO 4 vibrato rate",
       "type": "float",
       "min": 3,
-      "max": 10,
+      "max": 12,
       "default": 5.5,
       "curve": "linear",
       "unit": "Hz",
       "group": "lfo4",
-      "describes": "VIBRATO's speed in Hz mode, 3-10 Hz (the wheel nudges it up to 10 % faster at the top)."
+      "describes": "VIBRATO's speed in Hz mode, 3-12 Hz (the wheel nudges it up to 10 % faster at the top)."
     },
     {
       "id": "lfo4.vib_depth",
@@ -1815,11 +1815,11 @@
       "type": "float",
       "min": 0,
       "max": 1,
-      "default": 0.3,
+      "default": 0.6,
       "curve": "linear",
       "unit": "",
       "group": "lfo4",
-      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±100 cents (200 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
+      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±50 cents (100 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
     },
     {
       "id": "lfo5.on",
@@ -1940,12 +1940,12 @@
       "label": "LFO 5 vibrato rate",
       "type": "float",
       "min": 3,
-      "max": 10,
+      "max": 12,
       "default": 5.5,
       "curve": "linear",
       "unit": "Hz",
       "group": "lfo5",
-      "describes": "VIBRATO's speed in Hz mode, 3-10 Hz (the wheel nudges it up to 10 % faster at the top)."
+      "describes": "VIBRATO's speed in Hz mode, 3-12 Hz (the wheel nudges it up to 10 % faster at the top)."
     },
     {
       "id": "lfo5.vib_depth",
@@ -1953,11 +1953,11 @@
       "type": "float",
       "min": 0,
       "max": 1,
-      "default": 0.3,
+      "default": 0.6,
       "curve": "linear",
       "unit": "",
       "group": "lfo5",
-      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±100 cents (200 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
+      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±50 cents (100 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
     },
     {
       "id": "lfo6.on",
@@ -2078,12 +2078,12 @@
       "label": "LFO 6 vibrato rate",
       "type": "float",
       "min": 3,
-      "max": 10,
+      "max": 12,
       "default": 5.5,
       "curve": "linear",
       "unit": "Hz",
       "group": "lfo6",
-      "describes": "VIBRATO's speed in Hz mode, 3-10 Hz (the wheel nudges it up to 10 % faster at the top)."
+      "describes": "VIBRATO's speed in Hz mode, 3-12 Hz (the wheel nudges it up to 10 % faster at the top)."
     },
     {
       "id": "lfo6.vib_depth",
@@ -2091,11 +2091,11 @@
       "type": "float",
       "min": 0,
       "max": 1,
-      "default": 0.3,
+      "default": 0.6,
       "curve": "linear",
       "unit": "",
       "group": "lfo6",
-      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±100 cents (200 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
+      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±50 cents (100 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
     },
     {
       "id": "mod.on",

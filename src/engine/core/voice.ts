@@ -127,7 +127,7 @@ export class Voice {
   // The per-note LFO shapes (bloom, drop, per note): how far through its cycle each is since this
   // note started (0..1, held at 1), and the note's random value; each voice runs its own.
   private readonly lfoProg = new Float64Array(K.LFO_COUNT);
-  /** Per matrix source: the fixed amount a VIBRATO LFO routes with (its own Depth, ±100 cents at most), or -1. */
+  /** Per matrix source: the fixed amount a VIBRATO LFO routes with (its own Depth, ±50 cents at most), or -1. */
   private readonly vibAmt = new Float64Array(K.SRC_COUNT).fill(-1);
   private readonly lfoRand = new Float64Array(K.LFO_COUNT);
   /** Mod matrix result for this voice (the Synth reads the newest voice's FX targets). */
@@ -428,11 +428,11 @@ export class Voice {
         // A per-note shape: one cycle from this note's start (Rate or the synced note value), then held.
         const sync = cur[lp.sync];
         const vib = cur[lp.shape] === K.LFO_VIBRATO;
-        // VIBRATO has its own Rate (3-8 Hz) and Depth (0-±100 cents on any pitch target: 24 semitones at amount 1)
+        // VIBRATO has its own Rate (3-12 Hz) and Depth (0-±50 cents on any pitch target: 24 semitones at amount 1)
         let rate = sync > 0 ? this.bps / K.SYNC_BEATS[sync] : vib ? cur[lp.vibRate] : cur[lp.rate];
         const rm = this.dst[K.LFO_RATE_DEST[l]];
         if (rm !== 0) rate *= Math.pow(2, 3 * rm);
-        this.vibAmt[s] = vib ? cur[lp.vibDepth] / 24 : -1;
+        this.vibAmt[s] = vib ? (cur[lp.vibDepth] * 0.5) / 24 : -1;
         // VIBRATO (owner's call, a violinist's): the mod wheel plays it; pushed harder it also gets a little faster
         if (vib) rate *= (0.9 + 0.2 * src[K.SRC_MODWHEEL]);
         const pr = this.lfoProg[l] + (rate * CONTROL_BLOCK) / fs;

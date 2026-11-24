@@ -693,7 +693,7 @@ const LFO_SHAPE_GROUPS: [string, string[]][] = [
   ['SHAPES', ['sine', 'triangle', 'saw_up', 'saw_down', 'square']],
   ['OTHER', ['wander', 'sample_hold']],
   ['ONE SHOTS', ['random', 'drop', 'drift_down']],
-  ['VIBRATO', ['vibrato']],
+  ['MOD WHEEL', ['vibrato']],
 ];
 /** A little picture of an LFO shape for its menu (22 x 12), as the RUIN band types have. */
 function lfoIconPath(shape: string): string {
@@ -2539,9 +2539,9 @@ export class SynthView {
     const rate = this.knob(`${L}.rate`, 'Rate', 'lg');
     // Synced: the note value sits where the rate dial was, with the same label.
     const note = h('div', 'k k-lg note-cell', this.selector(id, { label: (o) => o }), h('div', 'k-label', 'Rate'));
-    // VIBRATO has its own Rate (3-10 Hz) and Depth (±0-100 cents): realistic only (owner's call)
+    // VIBRATO has its own Rate (3-12 Hz) and Depth (±0-50 cents): realistic only (owner's call)
     const vibRateK = this.knob(`${L}.vib_rate`, 'Rate', 'lg', { fmt: (v) => `${v.toFixed(1)} Hz` });
-    const vibDepK = this.knob(`${L}.vib_depth`, 'Depth', 'lg', { fmt: (v) => `±${Math.round(v * 100)}¢` });
+    const vibDepK = this.knob(`${L}.vib_depth`, 'Depth', 'lg', { fmt: (v) => `±${Math.round(v * 50)}¢` });
     this.watch([id, `${L}.shape`], () => {
       const free = this.get(id) === 'free', vib = this.get(`${L}.shape`) === 'vibrato';
       rate.style.display = free && !vib ? '' : 'none';
@@ -2580,7 +2580,7 @@ export class SynthView {
     const third = h('div', 'lfo-third', phaseK, bendK, blank);
     this.watch([`${L}.shape`], () => {
       const sh = String(this.get(`${L}.shape`));
-      const which = sh === 'drop' || sh === 'drift_down' ? bendK : sh === 'random' || sh === 'vibrato' ? blank : phaseK;
+      const which = sh === 'drop' || sh === 'drift_down' ? bendK : sh === 'random' ? blank : sh === 'vibrato' ? null : phaseK;
       for (const el of [phaseK, bendK, blank]) el.style.display = el === which ? '' : 'none';
       amt.style.display = sh === 'vibrato' ? 'none' : '';
       vibDepK.style.display = sh === 'vibrato' ? '' : 'none';
@@ -2597,7 +2597,7 @@ export class SynthView {
       this.set(`${L}.on`, true);
       this.set(id, 'free');
       this.set(`${L}.vib_rate`, 5.5);
-      this.set(`${L}.vib_depth`, 0.3);
+      this.set(`${L}.vib_depth`, 0.6);
       this.set(`${L}.retrigger`, true);
     });
     return this.obox(`LFO ${n}`, `mb box-lfo${n}`, {
