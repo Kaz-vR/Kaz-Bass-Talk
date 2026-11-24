@@ -37,3 +37,6 @@ No text input, except typing a value into an envelope dial (double-click: owner'
 
 ---
 
+
+
+**The LFO page (owner's pick, option 1, 24 Nov):** the custom LFO (the Wobbler's drawn shape, empty on every preset) on top with its TARGET box, LFO 1-4 below each with its own target and Amount (slot n of the engine's matrix); no matrix, no LFO 5-6, no WOBBLER tab; velocity only through TOUCH (`tools/convert-lfo-page.ts`).

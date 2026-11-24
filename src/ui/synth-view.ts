@@ -4,7 +4,7 @@
 // the same patch as the full parameter view under it (opened with "All controls"), so both always
 // show the same values.
 import { Biquad, ENV_ATTACK_BEND, ENV_FALL_BEND, envSegment } from '../engine/core/dsp';
-import { fromNormalized, getParam, params, PATCH_ROWS, toNormalized, type ParamValue, type Patch } from '../schema';
+import { fromNormalized, getParam, params, toNormalized, type ParamValue, type Patch } from '../schema';
 import { formatValue } from './params-panel';
 import { DRIVE_FAMILIES, RUIN_RECIPES, recipeParams, stageParams, type RuinStage } from './ruin-recipes';
 import { corrosionTexture, frameTexture, keyGrime, lightGrain, logoWear, panelTexture, woodTexture } from './texture';
@@ -687,33 +687,19 @@ function ghosts(g: CanvasRenderingContext2D, sets: [number, number][][], color: 
   g.restore();
 }
 
-const MOD_SLOTS = 9; // the mod matrix's rows
-const MOD_IDS = Array.from({ length: MOD_SLOTS }, (_, i) => [`mod${i + 1}.source`, `mod${i + 1}.dest`, `mod${i + 1}.amount`, `mod${i + 1}.on`]).flat();
 const LFO_SHAPE: Record<string, string> = { sine: 'SINE', triangle: 'TRIANGLE', saw_up: 'SAW UP', saw_down: 'SAW DOWN', square: 'SQUARE', sample_hold: 'S & H', wander: 'HUMANIZE', bloom: 'BLOOM', drop: 'DROP', random: 'RANDOM', drift: 'DRIFT', 'slow drift': 'SLOW DRIFT' };
-/** The matrix menus in columns: envelopes, LFOs, the player (as the rows are sorted); destinations in signal order. */
-const MX_SRC_GROUPS: [string, string[]][] = [
-  ['ENVELOPE', ['none', 'mod_env', 'amp_env']],
-  ['LFO', ['lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo5', 'lfo6']],
-  ['PLAYER', ['velocity', 'modwheel', 'keytrack']],
+/** What LFO 1-4 can move (owner's call: the LFO page's targets, no matrix). */
+const LFO_TARGETS: [string, string[]][] = [
+  ['FILTER', ['filter_cutoff', 'filter_resonance', 'filter_vowel']],
+  ['SHAPE', ['osc12_shape', 'osc1_pw', 'osc2_pw', 'unison_detune']],
+  ['PITCH', ['osc_pitch', 'osc1_pitch', 'osc2_pitch']],
+  ['LEVEL', ['texture_level', 'osc1_level', 'osc2_level', 'sub_level', 'amp']],
 ];
-/** The destination menu (owner's list): the common ones first, then by kind; the whole menu (MATRIX_DESTS). */
-const MX_DEST_GROUPS: [string, string[]][] = [
-  ['COMMON', ['none', 'pitch', 'osc_pitch', 'filter_cutoff', 'drive', 'dist_drive', 'osc12_shape', 'osc1_pw', 'osc2_pw', 'amp']],
-  ['PITCH', ['pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'sub_pitch', 'noise_pitch', 'vibrato_depth']],
-  ['SHAPE', ['osc12_shape', 'osc1_pw', 'osc2_pw', 'unison_detune', 'osc1_detune', 'osc2_detune']],
-  ['VOLUME', ['amp', 'osc1_level', 'osc2_level', 'sub_level', 'texture_level']],
-  ['FILTER', ['filter_cutoff', 'filter_resonance', 'filter_vowel', 'drive']],
-  ['DISTORTION', ['dist_drive', 'dist_mix', 'dist_tone']],
-];
-const SRC_LABEL: Record<string, string> = {
-  none: '—', lfo1: 'LFO 1', lfo2: 'LFO 2', lfo3: 'LFO 3', lfo4: 'LFO 4', lfo5: 'LFO 5', lfo6: 'LFO 6', mod_env: 'Filter env', amp_env: 'Amp env', velocity: 'Velocity',
-  keytrack: 'Keytrack', modwheel: 'Mod wheel',
-};
-const DEST_LABEL: Record<string, string> = {
-  none: '—', pitch: 'Pitch', osc_pitch: 'A+B Pitch', osc1_pitch: 'A Pitch', osc2_pitch: 'B Pitch', sub_pitch: 'Sub Pitch', noise_pitch: 'Noise Pitch', vibrato_depth: 'Vibrato',
-  osc12_shape: 'A+B Shape', osc1_pw: 'A Shape', osc2_pw: 'B Shape', unison_detune: 'A+B Detune', osc1_detune: 'A Detune', osc2_detune: 'B Detune',
-  amp: 'Level', osc1_level: 'A Level', osc2_level: 'B Level', sub_level: 'Sub Level', texture_level: 'Noise Level',
-  filter_cutoff: 'Fil Cutoff', filter_resonance: 'Fil Res', filter_vowel: 'Fil Vowel', drive: 'Fil Drive', dist_drive: 'Dis Drive', dist_mix: 'Dis Mix', dist_tone: 'Dis Tone',
+/** LFO targets as the title row names them. */
+const LFO_TARGET_NAME: Record<string, string> = {
+  filter_cutoff: 'CUTOFF', filter_resonance: 'RESONANCE', filter_vowel: 'VOWEL', osc12_shape: 'SHAPE', osc1_pw: 'A SHAPE', osc2_pw: 'B SHAPE',
+  unison_detune: 'DETUNE', osc_pitch: 'PITCH', osc1_pitch: 'A PITCH', osc2_pitch: 'B PITCH', texture_level: 'NOISE', osc1_level: 'A LEVEL',
+  osc2_level: 'B LEVEL', sub_level: 'SUB LEVEL', amp: 'VOLUME',
 };
 /** Beats in a note value like 1/4, 1/8D or 1/16T. */
 function syncBeats(v: string): number {
@@ -896,7 +882,6 @@ export class SynthView {
     requestAnimationFrame(step);
   }
   private readonly anim = { on: false, t: 0, rel: -1, amp: 0 };
-  private lastVel = 0.8;
   private animFrame = 0;
   /** The engine's live filter (what the print shows while notes sound), and the prints that draw it. */
   private liveFilter: { cutoff: number; res: number } | null = null;
@@ -1063,35 +1048,6 @@ export class SynthView {
     return heldAt(this.relT0 - this.noteT0) * Math.exp((-5 * (now - this.relT0)) / Math.max(r, 1));
   }
 
-  /**
-   * Roughly what a mod source is doing right now (LFOs -1..1 at their rate and shape's sign, the
-   * per-note shapes from the note's start, velocity / wheel as they are), for the matrix's
-   * amount bars to move with while a note sounds.
-   */
-  private sourceNow(src: string): number {
-    const now = performance.now() / 1000, t = this.anim.t;
-    const m = /^lfo(\d)$/.exec(src);
-    if (m) {
-      const L = `lfo${m[1]}`, sync = String(this.get(`${L}.sync`));
-      const period = sync === 'free' ? 1 / Math.max(0.01, this.num(`${L}.rate`)) : syncBeats(sync) * 0.5;
-      const tt = this.get(`${L}.retrigger`) && this.anim.on ? t : now;
-      const fade = this.num(`${L}.fade`) / 1000, faded = this.anim.on && fade > 0 ? Math.min(1, t / fade) : 1;
-      // the engine's real value when it is running, else an estimate
-      const live = this.liveLfo?.value[Number(m[1]) - 1];
-      if (live !== undefined) return live;
-      const shape = String(this.get(`${L}.shape`)), x = Math.min(1, (this.anim.on ? t : 0) / period);
-      if (shape === 'bloom') return (0.5 - 0.5 * Math.cos(Math.PI * x)) * faded;
-      if (shape === 'drop') return (1 - x) * (1 - x) * faded;
-      if (shape === 'random') return Math.sin(this.noteT0 * 12.9898) * faded;
-      return Math.sin((2 * Math.PI * tt) / period) * faded;
-    }
-    switch (src) {
-      case 'mod_env': return this.anim.amp;
-      case 'velocity': return this.lastVel;
-      case 'modwheel': return this.wheel;
-      default: return 1;
-    }
-  }
 
   /** The RUIN page's taps (meters, spectra). */
   setRuinTaps(read: () => RuinTapsView | null): void {
@@ -1170,7 +1126,6 @@ export class SynthView {
 
   /** How hard the last note was played (0..1). */
   setVelocity(v: number): void {
-    this.lastVel = v;
     this.velTick.style.left = `${Math.round(v * 100)}%`;
     this.velTick.classList.add('hit');
   }
@@ -2437,28 +2392,6 @@ export class SynthView {
 
   // ------------------------------------------------------------------ the MOD page
 
-  /** Slots of the mod matrix that a source feeds, as "→ cutoff +14%, drive +8%". */
-  private routesOf(src: string): string {
-    const out: string[] = [];
-    for (let n = 1; n <= MOD_SLOTS; n++) {
-      const amt = this.num(`mod${n}.amount`), dest = String(this.get(`mod${n}.dest`));
-      if (String(this.get(`mod${n}.source`)) !== src || dest === 'none' || amt === 0 || !this.get('mod.on') || this.get(`mod${n}.on`) === false) continue;
-      const pct = Math.abs(amt) < 0.01 ? (amt * 100).toFixed(1) : String(Math.round(amt * 100));
-      out.push(`${(DEST_LABEL[dest] ?? dest).toLowerCase()} ${amt > 0 ? '+' : ''}${pct}%`);
-    }
-    return out.length ? `→ ${out.join(', ')}` : '';
-  }
-
-  /** A source's routings as a short line ("→ cutoff +14%"), for a print's corner. */
-  /** "not connected to anything" while a switched-on LFO / envelope is used by no matrix row (what it is connected to shows in the matrix). */
-  private routeTag(src: string): HTMLElement {
-    const el = h('span', 'route-tag none');
-    this.watch([...MOD_IDS, 'mod.on', `${src}.on`], () => {
-      el.textContent = this.get(`${src}.on`) !== false && !this.routesOf(src) ? 'not connected to anything' : '';
-    });
-    return el;
-  }
-
   /** Plain-text switch between two states (HZ / SYNC), the chosen one lit. */
   private textSwitch(labels: [string, string], isFirst: () => boolean, pick: (first: boolean) => void, ids: string[]): HTMLElement {
     const a = h('button', 'fx-kind', labels[0]), b = h('button', 'fx-kind', labels[1]);
@@ -2581,13 +2514,32 @@ export class SynthView {
       this.set(`${L}.sync`, 'free');
       this.set(`${L}.rate`, sh === 'drift' ? 1 : 0.25);
     });
+    // LFO 1-4 (owner's call, the LFO page without a matrix): each drives one target directly, through slot n of the
+    // engine's matrix (its source always this LFO), with its Amount
+    const slot = `mod${n}`;
+    const own = () => {
+      if (this.get(`${slot}.source`) !== L) this.set(`${slot}.source`, L);
+      if (!this.get(`${slot}.on`)) this.set(`${slot}.on`, true);
+    };
+    const tsel = h('select', 'sel-name lfo-target') as HTMLSelectElement;
+    for (const [title, os] of LFO_TARGETS) {
+      const og = document.createElement('optgroup');
+      og.label = title;
+      for (const o of os) og.append(new Option(LFO_TARGET_NAME[o] ?? o, o));
+      tsel.append(og);
+    }
+    tsel.onchange = () => { own(); this.set(`${slot}.dest`, tsel.value); };
+    this.watch([`${slot}.dest`], () => { tsel.value = String(this.get(`${slot}.dest`)); });
+    const target = h('div', 'sel lfo-target-sel', h('span', 'lfo-target-arrow', '→'), tsel);
+    target.title = 'What this LFO moves';
+    const amt = this.knob(`${slot}.amount`, 'Amount', 'lg', { fmt: (v) => (Math.abs(v) < 0.005 ? '0' : `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`) });
+    amt.addEventListener('pointerdown', own, true);
     return this.obox(`LFO ${n}`, `mb box-lfo${n}`, {
       power: (el) => this.boolPower(`${L}.on`, el),
-      head: [shapeSel, h('span', 'lfo-retrig', this.toggle(`${L}.retrigger`, 'Retrig', 'small'))],
-      corner: [this.routeTag(L)],
+      head: [shapeSel, target],
       print: this.lfoPrint(n, MB_PRINT_W, MB_PRINT_H),
-      // HZ / SYNC sits just left of the rate it switches
-      dials: [h('div', 'lfo-sync', sync), rate, note, this.knob(`${L}.fade`, 'Fade', 'lg', { fmt: ms })],
+      // HZ / SYNC sits just left of the rate it switches, RETRIG under it
+      dials: [h('div', 'lfo-sync lfo-sync-col', sync, this.toggle(`${L}.retrigger`, 'Retrig', 'small')), rate, note, this.knob(`${L}.fade`, 'Fade', 'lg', { fmt: ms }), amt],
     });
   }
 
@@ -2737,51 +2689,6 @@ export class SynthView {
     return b;
   }
 
-  private matrixBox(): HTMLElement {
-    const row = (n: number): HTMLElement => {
-      const src = this.selector(`mod${n}.source`, { label: (o) => SRC_LABEL[o] ?? o, groups: MX_SRC_GROUPS });
-      const dst = this.selector(`mod${n}.dest`, { label: (o) => DEST_LABEL[o] ?? o, groups: MX_DEST_GROUPS, only: true });
-      src.classList.add('mx-src');
-      dst.classList.add('mx-dst');
-      const on = h('button', 'mx-on', lamp());
-      on.title = 'This modulation on / off (keeps its settings)';
-      // a row from a switched-off LFO or envelope shows as off too; switching it on switches the source on
-      const switched = () => {
-        const s = String(this.get(`mod${n}.source`));
-        return /^lfo\d$/.test(s) ? s : null;
-      };
-      const live = () => !!this.get(`mod${n}.on`) && (!switched() || !!this.get(`${switched()}.on`));
-      on.onclick = () => {
-        if (live()) this.set(`mod${n}.on`, false);
-        else {
-          this.set(`mod${n}.on`, true);
-          const s = switched();
-          if (s) this.set(`${s}.on`, true);
-        }
-      };
-      const el = h('div', 'mx-row', on, h('span', 'mx-n', String(n).padStart(2, '0')), src, h('span', 'mx-arrow', '→'), dst);
-      this.watch([`mod${n}.on`, `mod${n}.source`, 'lfo1.on', 'lfo2.on', 'lfo3.on', 'lfo4.on', 'lfo5.on', 'lfo6.on'], () => {
-        on.classList.toggle('on', live());
-        el.classList.toggle('off', !live());
-      });
-      // The source's name and amount in its own box colour (LFO 1 red, LFO 5 blue …); empty slots
-      // fade. Registered before the amount bar, so the bar draws in the right colour.
-      this.watch([`mod${n}.source`, `mod${n}.dest`, `mod${n}.amount`], () => {
-        const s = String(this.get(`mod${n}.source`));
-        el.dataset.src = s;
-        el.classList.toggle('empty', s === 'none' || String(this.get(`mod${n}.dest`)) === 'none' || this.num(`mod${n}.amount`) === 0);
-      });
-      el.append(this.amountBar(`mod${n}.amount`, [`mod${n}.source`]));
-      return el;
-    };
-    // One MOD MATRIX, all 9 rows the preset's own (owner's call: RUIN'S LFO was removed).
-    const rows = Array.from({ length: PATCH_ROWS }, (_, i) => row(i + 1));
-    const el = h('div', 'c ob box-matrix',
-      h('div', 'ob-head', h('span', 'c-title', 'MOD MATRIX'), h('span', 'mx-note', 'source → destination · amount')),
-      h('div', 'mx-rows mx-all', ...rows));
-    el.querySelector('.ob-head')!.prepend(this.boolPower('mod.on', el));
-    return el;
-  }
 
   /**
    * The Wobbler page (owner's layout): the shape you draw over the six left boxes, as in ShaperBox
@@ -2794,7 +2701,7 @@ export class SynthView {
     const ids = ['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.phase', 'wobble.smooth', 'wobble.lowcut', 'wobble.cutoff', 'wobble.volume', 'wobble.points'];
     for (let i = 1; i <= WOB_MAX_POINTS; i++) ids.push(`wobble.x${i}`, `wobble.y${i}`, `wobble.s${i}`);
     const on = () => !!this.get('wobble.on') && this.num('wobble.depth') > 0;
-    const W = 870, H = 260, PAD = 14, GX = 16, GY = 8;
+    const W = 870, H = 236, PAD = 14, GX = 16, GY = 8;
     const [cv, g] = canvas(W, H, 'disp');
     const [ov, og] = canvas(W, H, 'lfo5-overlay');
     const X = (x: number) => PAD + x * (W - 2 * PAD), Y = (y: number) => PAD + (1 - y) * (H - 2 * PAD);
@@ -3112,7 +3019,7 @@ export class SynthView {
     this.watch(['wobble.rate'], () => { rateSel.value = String(this.get('wobble.rate')); });
     const rate = h('div', 'lfo5-rate', h('span', 'lfo5-rate-label', 'RATE'), rPrev, rateSel, rNext);
     rate.title = rateP.describes;
-    const big = this.obox('WOBBLER', 'box-wob lfo5-main', {
+    const big = this.obox('CUSTOM LFO', 'box-wob lfo5-main', {
       head: [rate, this.lfo5LockButton()],
       print: edit,
     });
@@ -3136,26 +3043,36 @@ export class SynthView {
       b.title = getParam(id)!.describes;
       return b;
     };
+    // the custom LFO's target: NONE (off), CUTOFF, VOLUME or both (its own filter and gate, after the sub joins)
+    const wtSel = h('select', 'sel-name') as HTMLSelectElement;
+    for (const [v, t] of [['none', '— NONE —'], ['cutoff', 'CUTOFF'], ['volume', 'VOLUME'], ['both', 'CUTOFF + VOLUME']]) wtSel.append(new Option(t, v));
+    wtSel.onchange = () => {
+      const v = wtSel.value;
+      if (v === 'none') { this.set('wobble.on', false); return; }
+      if (this.num('wobble.depth') <= 0) this.set('wobble.depth', 1);
+      this.set('wobble.cutoff', v !== 'volume');
+      this.set('wobble.volume', v !== 'cutoff');
+      this.set('wobble.on', true);
+    };
+    this.watch(['wobble.on', 'wobble.depth', 'wobble.cutoff', 'wobble.volume'], () => {
+      const c = !!this.get('wobble.cutoff'), vo = !!this.get('wobble.volume');
+      wtSel.value = !on() || (!c && !vo) ? 'none' : c && vo ? 'both' : c ? 'cutoff' : 'volume';
+    });
+    const wobTarget = h('div', 'sel lfo5-target-sel', wtSel);
+    wobTarget.title = 'What the custom LFO moves: nothing, the cutoff, the volume (a gate) or both';
     const kHz = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)} kHz` : `${Math.round(v)} Hz`);
     const hz = (v: number) => (v <= 21 ? 'off' : kHz(v));
     const pct = (v: number) => `${Math.round(v * 100)}%`;
     const settings = h('div', 'c ob box-wob lfo5-settings',
-      h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'SETTINGS')),
-      // on means it is heard: switching it on with Depth at 0 sets Depth to 100%
-      h('div', 'lfo5-sec lfo5-switch', this.bigToggle('wobble.on', 'Wobbler', {
-        isOn: on,
-        turnOn: () => {
-          if (this.num('wobble.depth') <= 0) this.set('wobble.depth', 1);
-          this.set('wobble.on', true);
-        },
-        deps: ['wobble.depth'],
-      })),
+      h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'TARGET')),
+      // the target (owner's call, a menu instead of the switch and lamps): none, cutoff, volume or both
+      h('div', 'lfo5-sec lfo5-switch', wobTarget),
       h('div', 'lfo5-sec lfo5-knobs',
         this.knob('wobble.depth', 'Depth', 'lg', { fmt: pct }),
         this.knob('wobble.smooth', 'Smooth', 'lg', { fmt: pct }),
         this.knob('wobble.lowcut', 'Lo cut', 'lg', { fmt: hz })),
-      h('div', 'lfo5-sec lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, sNext),
-      h('div', 'lfo5-sec lfo5-targets', lampFor('wobble.cutoff', 'Cutoff'), lampFor('wobble.volume', 'Volume')));
+      h('div', 'lfo5-sec lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, sNext));
+    void lampFor;
 
     // off (switched off, or Depth at 0): the settings go dark like any other box's, the switch stays lit
     this.watch(['wobble.on', 'wobble.depth'], () => {
@@ -3212,61 +3129,15 @@ export class SynthView {
    * The MOD page: LFO 1–6 on the left (two columns of three) and the 12-slot matrix filling the
    * right half.
    */
-  private buildModPage(): HTMLElement {
-    return h('div', 'v2-main mod-page2',
-      this.lfoBox(1), this.lfoBox(2),
-      this.lfoBox(3), this.lfoBox(4),
-      this.lfoBox(5), this.lfoBox(6),
-      this.matrixBox());
+  /**
+   * The LFO page (owner's pick, option 1): the custom LFO (the Wobbler's drawn shape, empty on every preset) across
+   * the top with its TARGET box, LFO 1-4 below, each with its own target. No matrix, no LFO 5-6, no WOBBLER tab.
+   */
+  private buildModPage(wob: HTMLElement): HTMLElement {
+    const big = wob.querySelector('.lfo5-main') as HTMLElement, settings = wob.querySelector('.lfo5-settings') as HTMLElement;
+    return h('div', 'v2-main mod-page2 lfo-all', big, settings, this.lfoBox(1), this.lfoBox(2), this.lfoBox(3), this.lfoBox(4));
   }
 
-  /** A bipolar amount you drag sideways (double-click = 0): a neon line from the centre, in the box colour. */
-  private amountBar(id: string, deps: string[] = [], reset = 0): HTMLElement {
-    const p = getParam(id)!;
-    const W = 92, H = 14;
-    const [cv, g] = canvas(W, H, 'amt');
-    const val = h('span', 'amt-val');
-    const freeSrc = () => {
-      const src = deps[0] ? String(this.get(deps[0])) : '';
-      if (/^lfo\d$/.test(src)) return !!this.get(`${src}.on`);
-      return false;
-    };
-    const draw = () => {
-      // The bar moves with its source (deps[0] is the slot's source): LFOs and drifts all the
-      // time, the rest while a note sounds.
-      const v = this.num(id) * (deps[0] && (this.anim.on || freeSrc()) ? this.sourceNow(String(this.get(deps[0]))) : 1), mid = W / 2, col = accentOf(cv);
-      g.clearRect(0, 0, W, H);
-      g.fillStyle = 'rgba(255,255,255,0.06)';
-      g.fillRect(0, H / 2 - 1, W, 2);
-      g.fillStyle = 'rgba(255,255,255,0.25)';
-      g.fillRect(mid - 0.5, 3, 1, H - 6);
-      if (v !== 0) {
-        g.save();
-        g.fillStyle = col;
-        g.shadowColor = col;
-        g.shadowBlur = 6;
-        g.fillRect(Math.min(mid, mid + v * mid), H / 2 - 1.5, Math.max(1, Math.abs(v * mid)), 3);
-        g.restore();
-      }
-      const amt = this.num(id);
-      val.textContent = amt === 0 ? '0' : `${amt > 0 ? '+' : ''}${Math.abs(amt) < 0.01 ? (amt * 100).toFixed(1) : Math.round(amt * 100)}%`;
-      val.classList.toggle('zero', amt === 0);
-    };
-    this.watch([id, ...deps], draw);
-    if (deps.length) this.animDraws.push({ el: cv, f: draw, free: freeSrc });
-    let x0 = 0, v0 = 0;
-    const set = (v: number) => this.set(id, Math.round(Math.max(p.min!, Math.min(p.max!, v)) * 1000) / 1000);
-    // The number is the handle: drag it up / down (Shift = fine), scroll it, double-click for 0. The
-    // bar only shows the amount (and moves with its source).
-    val.addEventListener('pointerdown', (e) => { val.setPointerCapture(e.pointerId); x0 = e.clientY; v0 = this.num(id); });
-    val.addEventListener('pointermove', (e) => { if (val.hasPointerCapture(e.pointerId)) set(v0 + ((x0 - e.clientY) / (e.shiftKey ? 800 : 160))); });
-    val.addEventListener('pointerup', (e) => val.releasePointerCapture(e.pointerId));
-    val.addEventListener('dblclick', () => this.set(id, reset));
-    val.addEventListener('wheel', (e) => { e.preventDefault(); set(this.num(id) - Math.sign(e.deltaY) * (e.shiftKey ? 0.002 : 0.01)); }, { passive: false });
-    val.title = `${p.label}: drag up / down (Shift = fine), double-click for ${reset ? 'its standard amount' : '0'}`;
-    const el = h('div', 'amt-wrap', cv, val);
-    return el;
-  }
 
   // ------------------------------------------------------------------ the FX page
 
@@ -5036,7 +4907,7 @@ export class SynthView {
   private showTab(t: string): void {
     for (const [name, b] of this.tabBtns) b.classList.toggle('on', name === t);
     if (this.oscPage!.style.display !== 'none') this.pageHeight = this.oscPage!.offsetHeight || this.pageHeight;
-    const pages: [string, HTMLElement][] = [['OSC', this.oscPage!], ['LFO', this.modPage!], ['WOBBLER', this.lfoPage!], ['RUIN', this.grindPage!], ['FX', this.fxPage!], ['PRESETS', this.presetPage]];
+    const pages: [string, HTMLElement][] = [['OSC', this.oscPage!], ['LFO', this.modPage!], ['RUIN', this.grindPage!], ['FX', this.fxPage!], ['PRESETS', this.presetPage]];
     if (t === 'PRESETS') {
       this.pageShelf = this.presets?.current().shelf || this.pageShelf || (this.presets?.shelves()[0]?.id ?? '');
       this.renderPresetPage();
@@ -5466,13 +5337,13 @@ export class SynthView {
     this.page.style.setProperty('--wood-r', `url(${woodTexture('r')})`);
     this.page.style.setProperty('--key-grime', `url(${keyGrime()})`);
     const tabs = h('div', 'v2-tabs');
-    for (const [t, ready] of [['OSC', true], ['LFO', true], ['WOBBLER', true], ['RUIN', true], ['FX', true], ['PRESETS', true]] as const) {
+    for (const [t, ready] of [['OSC', true], ['LFO', true], ['RUIN', true], ['FX', true], ['PRESETS', true]] as const) {
       const b = h('button', 'tab' + (t === 'OSC' ? ' on' : ''), t);
       if (!ready) {
         b.disabled = true;
         b.title = 'Coming later (until then: "All controls" opens every control)';
       } else b.onclick = () => this.showTab(t);
-      if (t === 'WOBBLER') {
+      if (t === 'LFO') {
         this.lockViews.push(() => b.classList.toggle('locked', this.lfo5Locked));
         // A level bar under the name while the Wobbler is on: it grows and shrinks with what the
         // Wobbler does right now (owner's pick); off, the tab looks like any other.
@@ -5498,8 +5369,8 @@ export class SynthView {
     this.oscPage = h('div', 'v2-main osc-page',
       this.oscStrip(1), this.oscStrip(2), this.envBox('amp_env', 'AMP ENVELOPE', 'c-src box-amp'), this.filterBox(),
       this.subStrip(), this.noiseStrip(), this.scopeBox(), this.envBox('mod_env', 'FILTER ENVELOPE', 'c-flt box-fenv'));
-    this.modPage = this.buildModPage();
     this.lfoPage = this.buildLfoPage();
+    this.modPage = this.buildModPage(this.lfoPage);
     this.fxPage = this.buildFxPage();
     this.grindPage = this.buildGrindPage();
     this.grindPage.style.display = 'none';

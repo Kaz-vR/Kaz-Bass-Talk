@@ -1823,7 +1823,7 @@
         "lfo5",
         "lfo6"
       ],
-      "default": "none",
+      "default": "lfo1",
       "group": "mod",
       "describes": "Modulation source for this matrix slot."
     },
@@ -1879,7 +1879,7 @@
         "osc1_detune",
         "osc2_detune"
       ],
-      "default": "none",
+      "default": "filter_cutoff",
       "group": "mod",
       "describes": "Parameter this slot modulates. Pitch moves the whole note, sub included (a drop LFO → Pitch for 808 drops); A+B pitch moves only the two oscillators, so the sub stays steady (LFO wobble and drift). A / B / A+B shape move the oscillator's Shape knob: pulse width on pulse and PWM-saw, wavetable position on wavetable. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; others: ±1 = full range."
     },
@@ -1921,7 +1921,7 @@
         "lfo5",
         "lfo6"
       ],
-      "default": "none",
+      "default": "lfo2",
       "group": "mod",
       "describes": "Modulation source for this matrix slot."
     },
@@ -1977,7 +1977,7 @@
         "osc1_detune",
         "osc2_detune"
       ],
-      "default": "none",
+      "default": "osc12_shape",
       "group": "mod",
       "describes": "Parameter this slot modulates. Pitch moves the whole note, sub included (a drop LFO → Pitch for 808 drops); A+B pitch moves only the two oscillators, so the sub stays steady (LFO wobble and drift). A / B / A+B shape move the oscillator's Shape knob: pulse width on pulse and PWM-saw, wavetable position on wavetable. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; others: ±1 = full range."
     },
@@ -2019,7 +2019,7 @@
         "lfo5",
         "lfo6"
       ],
-      "default": "none",
+      "default": "lfo3",
       "group": "mod",
       "describes": "Modulation source for this matrix slot."
     },
@@ -2075,7 +2075,7 @@
         "osc1_detune",
         "osc2_detune"
       ],
-      "default": "none",
+      "default": "osc_pitch",
       "group": "mod",
       "describes": "Parameter this slot modulates. Pitch moves the whole note, sub included (a drop LFO → Pitch for 808 drops); A+B pitch moves only the two oscillators, so the sub stays steady (LFO wobble and drift). A / B / A+B shape move the oscillator's Shape knob: pulse width on pulse and PWM-saw, wavetable position on wavetable. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; others: ±1 = full range."
     },
@@ -2117,7 +2117,7 @@
         "lfo5",
         "lfo6"
       ],
-      "default": "none",
+      "default": "lfo4",
       "group": "mod",
       "describes": "Modulation source for this matrix slot."
     },
@@ -2173,7 +2173,7 @@
         "osc1_detune",
         "osc2_detune"
       ],
-      "default": "none",
+      "default": "texture_level",
       "group": "mod",
       "describes": "Parameter this slot modulates. Pitch moves the whole note, sub included (a drop LFO → Pitch for 808 drops); A+B pitch moves only the two oscillators, so the sub stays steady (LFO wobble and drift). A / B / A+B shape move the oscillator's Shape knob: pulse width on pulse and PWM-saw, wavetable position on wavetable. Pitch: ±1 = ±24 st; cutoff: ±1 = ±6 octaves; others: ±1 = full range."
     },
@@ -7005,7 +7005,7 @@
       "id": "wobble.on",
       "label": "Wobble on",
       "type": "bool",
-      "default": true,
+      "default": false,
       "group": "wobble",
       "describes": "Switches Wobble on or off without losing its settings. Off also saves CPU."
     },
