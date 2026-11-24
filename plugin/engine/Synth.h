@@ -739,16 +739,7 @@ class Synth {
     const auto& P = PI_();
     auto& x = xdst;
     x.fill(0);
-    const double w = wheel;
-    if (w > 1e-4) {
-      const int sel = (int)jsRound(cur[P.wheelMove]);
-      const int idx = sel > 0 ? sel - 1 : (int)jsRound(cur[P.wheelPreset]);
-      const WheelMove& move = WHEEL_MOVES[idx >= 0 && idx < 8 ? idx : 0];
-      for (int i = 0; i < move.count; i++) {
-        const auto& st = move.steps[i];
-        if (!wheelFrozen || !wheelMovingDest(st.dest)) x[st.dest] += st.amount * w;
-      }
-    }
+    // the mod wheel plays only VIBRATO now (owner's call): its moves are gone
     const double depth = cur[P.wobDepth];
     liveWob = -1;
     wobGateTarget = 1;

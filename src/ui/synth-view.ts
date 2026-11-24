@@ -2579,7 +2579,8 @@ export class SynthView {
     const note = h('div', 'k k-lg note-cell', this.selector(id, { label: (o) => o }), h('div', 'k-label', 'Rate'));
     // VIBRATO has its own Rate (3-12 Hz) and Depth (±0-50 cents): realistic only (owner's call)
     const vibRateK = this.knob(`${L}.vib_rate`, 'Rate', 'lg', { fmt: (v) => `${v.toFixed(1)} Hz` });
-    const vibDepK = this.knob(`${L}.vib_depth`, 'Depth', 'lg', { fmt: (v) => `±${Math.round(v * 50)}¢` });
+    // in cents on a pitch target (±50 at most), in % on the others
+    const vibDepK = this.knob(`${L}.vib_depth`, 'Depth', 'lg', { fmt: (v) => (String(this.get(`mod${n}.dest`)).endsWith('pitch') ? `±${Math.round(v * 50)}¢` : `${Math.round(v * 100)}%`), deps: [`mod${n}.dest`] });
     this.watch([id, `${L}.shape`], () => {
       const free = this.get(id) === 'free', vib = VIB_SHAPES.has(String(this.get(`${L}.shape`)));
       rate.style.display = free && !vib ? '' : 'none';
@@ -2625,8 +2626,6 @@ export class SynthView {
       amt.style.display = VIB_SHAPES.has(sh) ? 'none' : '';
       retrigT.style.visibility = K_ALWAYS_PER_NOTE.has(sh) ? 'hidden' : '';
       vibDepK.style.display = VIB_SHAPES.has(sh) ? '' : 'none';
-      // VIBRATO moves pitch only: the other targets leave its menu
-      for (const og of tsel.querySelectorAll('optgroup')) og.hidden = VIB_SHAPES.has(sh) && og.label !== 'PITCH';
     });
     amt.addEventListener('pointerdown', own, true);
     // picking VIBRATO sets it up ready to play (owner's call): the mod wheel plays it; a classic vibrato on A+B pitch
@@ -5411,16 +5410,6 @@ export class SynthView {
     const up = h('button', 'kb-oct-btn', '›');
     down.onclick = () => this.onOctave(-1);
     up.onclick = () => this.onOctave(1);
-    // The wheel's move: the preset's own, or another one picked here.
-    const nice = (o: string) => o.charAt(0).toUpperCase() + o.slice(1);
-    const move = h('select', 'kb-move');
-    for (const o of getParam('wheel.move')!.options!) move.append(new Option(nice(o), o));
-    move.onchange = () => this.set('wheel.move', move.value);
-    move.title = getParam('wheel.move')!.describes;
-    this.watch(['wheel.move', 'wheel.preset'], () => {
-      move.options[0].text = nice(String(this.get('wheel.preset')));
-      move.value = String(this.get('wheel.move'));
-    });
     // Touch: how much playing harder makes notes louder and brighter (drag sideways); the tick
     // shows how hard the last note was played.
     const touchP = getParam('voice.velocity')!;
@@ -5445,7 +5434,7 @@ export class SynthView {
       h('div', 'kb-wheels', h('div', 'kb-w', pitch, h('span', 'kb-w-label', 'Pitch')), h('div', 'kb-w', mod, h('span', 'kb-w-label', 'Mod'))),
       h('div', 'kb-info',
         h('span', 'kb-label', 'OCTAVE'), h('div', 'kb-oct-row', down, octave, up),
-        h('span', 'kb-label', 'MOVE'), move,
+
         h('span', 'kb-label', 'TOUCH'), touch));
     return h('div', 'kb-strip', side, this.keysEl);
   }

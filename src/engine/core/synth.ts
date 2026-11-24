@@ -701,17 +701,11 @@ export class Synth {
     }
   }
 
-  /** The mod wheel's move, as offsets every voice adds to its mod matrix. */
+  /** Extra modulation every voice adds to its mod matrix: the custom LFO. (The mod wheel plays only VIBRATO now, owner's call: its moves are gone.) */
   private extraModulation(): void {
     const cur = this.cur;
     const x = this.xdst;
     x.fill(0);
-    const w = this.wheel;
-    if (w > 1e-4) {
-      const sel = Math.round(cur[P.wheelMove]);
-      const move = K.WHEEL_MOVES[sel > 0 ? sel - 1 : Math.round(cur[P.wheelPreset])];
-      for (const [d, a] of move) if (!this.wheelFrozen || !K.WHEEL_MOVING_DESTS.has(d)) x[d] += a * w;
-    }
     const depth = cur[P.wobDepth];
     this.liveWob = -1;
     this.wobGateTarget = 1;

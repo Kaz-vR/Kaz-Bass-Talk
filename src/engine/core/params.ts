@@ -83,6 +83,8 @@ export const LFO_DRIFT_DOWN = 12;
 export const LFO_VIBRATO = 13;
 /** The other vibrato waves (owner's call, to try): triangle, saw up, saw down, square; played by the wheel like VIBRATO. */
 export const LFO_VIB_TRI = 14, LFO_VIB_SAW_UP = 15, LFO_VIB_SAW_DOWN = 16, LFO_VIB_SQUARE = 17;
+/** The pitch destinations (24 semitones at amount 1). */
+export const isPitchDest = (d: number): boolean => d === D_PITCH || d === D_OSC1_PITCH || d === D_OSC2_PITCH || d === D_OSC_PITCH || d === D_SUB_PITCH;
 export const isVibrato = (shape: number): boolean => shape >= LFO_VIBRATO && shape <= LFO_VIB_SQUARE;
 /** A vibrato wave at x (0..1 through the cycle), -1..1, starting at the note (triangle from 0 like the sine). */
 export const vibWave = (shape: number, x: number): number => {

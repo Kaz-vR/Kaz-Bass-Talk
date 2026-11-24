@@ -106,6 +106,7 @@ constexpr int D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_
               D_DIST_TONE = 34, D_TEXTURE = 35, D_VIBRATO = 36, D_BREATH = 37, D_OSC_PITCH = 38, D_NOISE_PITCH = 39,
               D_SUB_PITCH = 40, D_LFO5_RATE = 41, D_LFO6_RATE = 42,
               D_SHAPE = 43, D_OSC1_DETUNE = 44, D_OSC2_DETUNE = 45, D_OSC12_LEVEL = 46;
+inline bool isPitchDest(int d) { return d == D_PITCH || d == D_OSC1_PITCH || d == D_OSC2_PITCH || d == D_OSC_PITCH || d == D_SUB_PITCH; }
 constexpr int DEST_COUNT = 47;
 constexpr double TEXTURE_GAIN = 0.5;
 /** Sound layers for solo / mute (Synth::setMonitor bit positions). */

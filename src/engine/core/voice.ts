@@ -432,7 +432,7 @@ export class Voice {
         let rate = sync > 0 ? this.bps / K.SYNC_BEATS[sync] : vib ? cur[lp.vibRate] : cur[lp.rate];
         const rm = this.dst[K.LFO_RATE_DEST[l]];
         if (rm !== 0) rate *= Math.pow(2, 3 * rm);
-        this.vibAmt[s] = vib ? (cur[lp.vibDepth] * 0.5) / 24 : -1;
+        this.vibAmt[s] = vib ? cur[lp.vibDepth] : -1;
         // VIBRATO (owner's call, a violinist's): the mod wheel plays it; pushed harder it also gets a little faster
         if (vib) rate *= (0.9 + 0.2 * src[K.SRC_MODWHEEL]);
         const pr = this.lfoProg[l] + (rate * CONTROL_BLOCK) / fs;
@@ -455,7 +455,8 @@ export class Voice {
       const d = cur[slot.dst];
       if (d > 0) {
         const si = cur[slot.src], va = this.vibAmt[si];
-        dst[d] += (va >= 0 ? va : cur[slot.amt]) * src[si];
+        // a VIBRATO source routes with its own Depth: ±50 cents at most on a pitch target, else 0-100 % like an LFO
+        dst[d] += (va >= 0 ? (K.isPitchDest(d) ? (va * 0.5) / 24 : va) : cur[slot.amt]) * src[si];
       }
     }
     // Switched-off blocks and muted layers ignore their modulation.

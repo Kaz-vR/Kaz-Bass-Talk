@@ -246,7 +246,7 @@ class Voice {
         double rate = sync > 0 ? bps / SYNC_BEATS[sync] : vib ? cur[lp.vibRate] : cur[lp.rate];
         const double rm = dst[LFO_RATE_DEST[l]];
         if (rm != 0) rate *= std::pow(2.0, 3 * rm);
-        vibAmt[s] = vib ? cur[lp.vibDepth] * 0.5 / 24 : -1;
+        vibAmt[s] = vib ? cur[lp.vibDepth] : -1;
         if (vib) rate *= (0.9 + 0.2 * src[SRC_MODWHEEL]);  // the mod wheel plays VIBRATO
         const double pr = lfoProg[l] + (rate * CONTROL_BLOCK) / fs;
         lfoProg[l] = vib ? pr - std::floor(pr) : std::fmin(1.0, pr);
@@ -267,7 +267,7 @@ class Voice {
       if (d > 0) {
         const int si = (int)cur[slot.src];
         const double va = vibAmt[si];
-        dst[d] += (va >= 0 ? va : cur[slot.amt]) * src[si];
+        dst[d] += (va >= 0 ? (isPitchDest(d) ? va * 0.5 / 24 : va) : cur[slot.amt]) * src[si];
       }
     }
     if (dstMask)
