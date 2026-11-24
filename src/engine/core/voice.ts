@@ -146,9 +146,6 @@ export class Voice {
   // Hard sync: the master's phase and increment (oscillator 1's pitch, no unison), and whether it's on.
   private syncPhase = 0;
   private syncInc = 0;
-  /** FM (a test, owner's call, on the RUIN page): a sine at oscillator A's pitch bends oscillator B's phase. */
-  private fmPhase = 0;
-  private fmAmt = 0;
   private syncOn = false;
   // Delays the sub by the oversampler latency so it stays phase-aligned with the voice.
   private readonly subDelay = new Float64Array(32);
@@ -301,7 +298,6 @@ export class Voice {
       }
       this.subPhase = 0;
       this.syncPhase = 0;
-      this.fmPhase = 0;
       this.osc[1].held.fill(0);
       this.ladL.reset();
       this.ladR.reset();
@@ -461,7 +457,6 @@ export class Voice {
     this.sawBow = this.analog;
     // Sync needs a table oscillator on osc 2 (not string).
     this.syncOn = cur[P.osc2Sync] > 0.5;
-    this.fmAmt = cur[P.grindOn] > 0.5 ? cur[P.grindFm] : 0;
 
     // Delayed vibrato: the note starts straight, then sings.
     this.noteTime += CONTROL_BLOCK / fs;
@@ -888,25 +883,12 @@ export class Voice {
         const s = this.specialOsc(0) * o1.gain;
         l += s;
         r += s;
-      }
-      // FM: both oscillators read at a phase pushed by a sine at A's pitch, up to 2 cycles deep
-      let pm = 0;
-      if (this.fmAmt > 0) {
-        this.fmPhase += this.syncInc;
-        if (this.fmPhase >= 1) this.fmPhase -= Math.floor(this.fmPhase);
-        pm = 2 * this.fmAmt * Math.sin(2 * Math.PI * this.fmPhase);
-      }
-      if (o1.gain > 0 && o1.wave < WAVE_STRING) {
+      } else if (o1.gain > 0) {
         for (let j = 0; j < o1.voices; j++) {
           let ph = o1.phase[j] + o1.inc[j];
           ph -= Math.floor(ph);
           o1.phase[j] = ph;
-          let rp = ph;
-          if (pm !== 0) {
-            rp = ph + pm;
-            rp -= Math.floor(rp);
-          }
-          const s = this.oscSample(o1, rp) * o1.gain;
+          const s = this.oscSample(o1, ph) * o1.gain;
           l += s * o1.panL[j];
           r += s * o1.panR[j];
         }
@@ -962,12 +944,7 @@ export class Voice {
           let ph = o2.phase[j] + o2.inc[j];
           if (ph >= 1) ph -= 1;
           o2.phase[j] = ph;
-          let rp = ph;
-          if (pm !== 0) {
-            rp = ph + pm;
-            rp -= Math.floor(rp);
-          }
-          const s = this.oscSample(o2, rp) * o2.gain;
+          const s = this.oscSample(o2, ph) * o2.gain;
           l += s * o2.panL[j];
           r += s * o2.panR[j];
         }

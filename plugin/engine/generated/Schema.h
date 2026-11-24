@@ -6,7 +6,7 @@ struct ParamSpec {
   const char* id; const char* label; PType type; double min, max, def; int curve; double exponent;
   const char* unit; const char* group; const char* options; const char* describes;
 };
-constexpr int PARAM_COUNT = 913;
+constexpr int PARAM_COUNT = 912;
 inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "voice.polyphony", "Polyphony", PType::Int, 1, 8, 1, 0, 3, "voices", "voice", "", "1 = monophonic (legato and glide work, the bass default). 2-8 = that many notes at once, for pads, keys and chords; the oldest note is taken over when more are played." },
   { "voice.legato", "Legato", PType::Bool, 0, 1, 0, 0, 3, "", "voice", "", "On: overlapping notes slide without retriggering the envelopes (303-style). Off: every note retriggers." },
@@ -246,7 +246,6 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "grind.oneshot_dir", "Grind one shot direction", PType::Enum, 0, 1, 0, 0, 3, "", "grind", "down|up", "Which way ONE SHOT sweeps: down = from the top of the range to the bottom (right to left), up = from the bottom to the top (left to right)." },
   { "grind.noise_thru", "Ruin noise thru", PType::Bool, 0, 1, 0, 0, 3, "", "grind", "", "On: the noise layer passes RUIN untouched (no stages, no OTT), so only the oscillators get ruined; it still goes through the effects." },
   { "grind.ott", "Grind OTT", PType::Float, 0, 1, 1, 0, 3, "", "grind", "", "Upward and downward compression in three bands at the end of the chain (as Ableton's OTT): quiet grit comes up, peaks come down. Level-matched: denser, not louder. 0 = off." },
-  { "grind.fm", "RUIN FM", PType::Float, 0, 1, 0, 0, 3, "", "grind", "", "FM (a test): a sine at oscillator A's pitch bends oscillator B, adding harmonics from smooth to metallic; 0 = off. Only while RUIN is on." },
   { "grind.output", "RUIN output", PType::Float, -24, 12, 0, 0, 3, "dB", "grind", "", "RUIN's output level after the whole chain. The stages are pushed hot (more Drive is louder and denser, and hits the next stage harder); turn this down to bring the level back." },
   { "grind.slot1", "Ruin box 1", PType::Enum, 0, 32, 0, 0, 3, "", "grind", "empty|filter 1|filter 2|filter 3|filter 4|filter 5|filter 6|filter 7|filter 8|drive 1|drive 2|drive 3|drive 4|drive 5|drive 6|drive 7|drive 8|eq 1|eq 2|eq 3|eq 4|eq 5|eq 6|eq 7|eq 8|phaser 1|phaser 2|phaser 3|phaser 4|phaser 5|phaser 6|phaser 7|phaser 8", "What the RUIN chain's box 1 holds, in order left to right: a filter, a drive, an EQ, a phaser, or nothing." },
   { "grind.slot2", "Ruin box 2", PType::Enum, 0, 32, 0, 0, 3, "", "grind", "empty|filter 1|filter 2|filter 3|filter 4|filter 5|filter 6|filter 7|filter 8|drive 1|drive 2|drive 3|drive 4|drive 5|drive 6|drive 7|drive 8|eq 1|eq 2|eq 3|eq 4|eq 5|eq 6|eq 7|eq 8|phaser 1|phaser 2|phaser 3|phaser 4|phaser 5|phaser 6|phaser 7|phaser 8", "What the RUIN chain's box 2 holds, in order left to right: a filter, a drive, an EQ, a phaser, or nothing." },
