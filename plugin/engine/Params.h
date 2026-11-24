@@ -92,8 +92,8 @@ constexpr int D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_
               D_PHASER_MIX = 28, D_DELAY_TIME = 29, D_DELAY_MIX = 30, D_REVERB_MIX = 31, D_WIDTH = 32, D_TAPE_WOW = 33,
               D_DIST_TONE = 34, D_TEXTURE = 35, D_VIBRATO = 36, D_BREATH = 37, D_OSC_PITCH = 38, D_NOISE_PITCH = 39,
               D_SUB_PITCH = 40, D_LFO5_RATE = 41, D_LFO6_RATE = 42,
-              D_SHAPE = 43, D_OSC1_DETUNE = 44, D_OSC2_DETUNE = 45;
-constexpr int DEST_COUNT = 46;
+              D_SHAPE = 43, D_OSC1_DETUNE = 44, D_OSC2_DETUNE = 45, D_OSC12_LEVEL = 46;
+constexpr int DEST_COUNT = 47;
 constexpr double TEXTURE_GAIN = 0.5;
 /** Sound layers for solo / mute (Synth::setMonitor bit positions). */
 constexpr int MON_OSC1 = 0, MON_OSC2 = 1, MON_SUB = 2, MON_NOISE = 3, MON_BREATH = 4, MON_TEXTURE = 5;

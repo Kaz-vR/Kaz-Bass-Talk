@@ -690,16 +690,17 @@ function ghosts(g: CanvasRenderingContext2D, sets: [number, number][][], color: 
 const LFO_SHAPE: Record<string, string> = { sine: 'SINE', triangle: 'TRIANGLE', saw_up: 'SAW UP', saw_down: 'SAW DOWN', square: 'SQUARE', sample_hold: 'S & H', wander: 'HUMANIZE', bloom: 'BLOOM', drop: 'DROP', random: 'RANDOM', drift: 'DRIFT', 'slow drift': 'SLOW DRIFT' };
 /** What LFO 1-4 can move (owner's call: the LFO page's targets, no matrix). */
 const LFO_TARGETS: [string, string[]][] = [
-  ['FILTER', ['filter_cutoff', 'filter_resonance', 'filter_vowel']],
-  ['SHAPE', ['osc12_shape', 'osc1_pw', 'osc2_pw', 'unison_detune']],
-  ['PITCH', ['osc_pitch', 'osc1_pitch', 'osc2_pitch']],
-  ['LEVEL', ['texture_level', 'osc1_level', 'osc2_level', 'sub_level', 'amp']],
+  ['VOLUME', ['amp', 'osc12_level', 'osc1_level', 'osc2_level', 'sub_level', 'texture_level']],
+  ['FILTER', ['filter_cutoff', 'filter_resonance']],
+  ['PITCH', ['pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'sub_pitch']],
+  ['SHAPE', ['osc12_shape', 'osc1_pw', 'osc2_pw']],
 ];
-/** LFO targets as the title row names them. */
+/** LFO targets as the title row names them (owner's list). */
 const LFO_TARGET_NAME: Record<string, string> = {
-  filter_cutoff: 'CUTOFF', filter_resonance: 'RESONANCE', filter_vowel: 'VOWEL', osc12_shape: 'SHAPE', osc1_pw: 'A SHAPE', osc2_pw: 'B SHAPE',
-  unison_detune: 'DETUNE', osc_pitch: 'PITCH', osc1_pitch: 'A PITCH', osc2_pitch: 'B PITCH', texture_level: 'NOISE', osc1_level: 'A LEVEL',
-  osc2_level: 'B LEVEL', sub_level: 'SUB LEVEL', amp: 'VOLUME',
+  amp: 'VOLUME', osc12_level: 'A+B VOLUME', osc1_level: 'A VOLUME', osc2_level: 'B VOLUME', sub_level: 'SUB VOLUME', texture_level: 'NOISE VOLUME',
+  filter_cutoff: 'FILTER', filter_resonance: 'RESONANCE',
+  pitch: 'PITCH', osc_pitch: 'A+B PITCH', osc1_pitch: 'A PITCH', osc2_pitch: 'B PITCH', sub_pitch: 'SUB PITCH',
+  osc12_shape: 'A+B SHAPE', osc1_pw: 'A SHAPE', osc2_pw: 'B SHAPE',
 };
 /** Beats in a note value like 1/4, 1/8D or 1/16T. */
 function syncBeats(v: string): number {

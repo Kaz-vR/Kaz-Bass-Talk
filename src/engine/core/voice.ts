@@ -522,7 +522,7 @@ export class Voice {
         o.lastSpread = spread;
         o.lastVoices = voices;
       }
-      const level = clamp(cur[op.level] + dst[n === 0 ? D.OSC1_LEVEL : D.OSC2_LEVEL], 0, 1);
+      const level = clamp(cur[op.level] + dst[n === 0 ? D.OSC1_LEVEL : D.OSC2_LEVEL] + dst[K.D_OSC12_LEVEL], 0, 1);
       if (o.wave === WAVE_STRING) {
         // Single-voice oscillators: unison doesn't apply.
         o.gain = level;

@@ -327,7 +327,7 @@ class Voice {
         o.lastSpread = spread;
         o.lastVoices = voices;
       }
-      const double level = clampd(cur[op.level] + dst[n == 0 ? D_OSC1_LEVEL : D_OSC2_LEVEL], 0, 1);
+      const double level = clampd(cur[op.level] + dst[n == 0 ? D_OSC1_LEVEL : D_OSC2_LEVEL] + dst[D_OSC12_LEVEL], 0, 1);
       if (o.wave == WAVE_STRING) {
         o.gain = level;
         strPeriod[n] = 1 / center;
