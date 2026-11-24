@@ -234,7 +234,7 @@ class Voice {
     for (int l = 0; l < LFO_COUNT; l++) {
       const auto& lp = P.lfo[l];
       if (lfoFade[l] < 1) {
-        const double fadeMs = cur[lp.fade];
+        const double fadeMs = 0;  // the fade-in is gone (owner's call)
         lfoFade[l] = fadeMs > 0 ? std::fmin(1, lfoFade[l] + (CONTROL_BLOCK * 1000) / (fadeMs * fs)) : 1;
       }
       const int s = SRC_LFO[l];

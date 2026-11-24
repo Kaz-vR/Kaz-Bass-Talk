@@ -422,7 +422,7 @@ export class Voice {
     for (let l = 0; l < K.LFO_COUNT; l++) {
       const lp = P.lfo[l];
       if (this.lfoFade[l] < 1) {
-        const fadeMs = cur[lp.fade];
+        const fadeMs = 0; // the LFOs' fade-in is gone (owner's call): lfo<n>.fade is ignored
         this.lfoFade[l] = fadeMs > 0 ? Math.min(1, this.lfoFade[l] + (CONTROL_BLOCK * 1000) / (fadeMs * fs)) : 1;
       }
       const s = K.SRC_LFO[l];

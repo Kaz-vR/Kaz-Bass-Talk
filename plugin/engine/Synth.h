@@ -923,7 +923,9 @@ class Synth {
       } else if (shape == LFO_SLOW_DRIFT) {
         lfoValue[l] = lfoPrev[l] + (lfoHold[l] - lfoPrev[l]) * (0.5 - 0.5 * std::cos(PI * ph));
       } else {
-        lfoValue[l] = lfoShape(shape, ph, lfoHold[l], lfoPrev[l]);
+        double q = ph;
+        if (shape <= LFO_SQUARE && cur[lp.phase] > 0) { q += cur[lp.phase]; q -= std::floor(q); }
+        lfoValue[l] = lfoShape(shape, q, lfoHold[l], lfoPrev[l]);
       }
       if (shape == LFO_WANDER) {
         // HUMANIZE: the slow, uneven moves plus a tremble six times as fast, a quarter of the depth

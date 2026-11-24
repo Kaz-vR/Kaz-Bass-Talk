@@ -137,7 +137,7 @@ inline int paramIndex(const char* id) {
 /** Parameter indices, resolved once from the generated schema (params.ts P). */
 struct ParamIndex {
   struct Osc { int wave, semi, fine, pw, wt, voices, detune, spread, level, hp, fType, fKey; };
-  struct Lfo { int shape, rate, sync, retrig, fade; };
+  struct Lfo { int shape, rate, sync, retrig, fade, phase; };
   struct Slot { int src, dst, amt, on; };
   struct Eq { int type, freq, gain, q; };
   struct Bell { int type, freq, gain, q, range; };
@@ -227,7 +227,7 @@ struct ParamIndex {
     vibDepth = ix("vibrato.depth"); vibRate = ix("vibrato.rate"); vibDelay = ix("vibrato.delay"); vibFade = ix("vibrato.fade");
     for (int n = 0; n < 6; n++) {
       const std::string l = "lfo" + std::to_string(n + 1) + ".";
-      lfo[n] = {ix(l + "shape"), ix(l + "rate"), ix(l + "sync"), ix(l + "retrigger"), ix(l + "fade")};
+      lfo[n] = {ix(l + "shape"), ix(l + "rate"), ix(l + "sync"), ix(l + "retrigger"), ix(l + "fade"), ix(l + "phase")};
     }
     for (int n = 0; n < SLOT_COUNT; n++) {
       const std::string m = "mod" + std::to_string(n + 1) + ".";

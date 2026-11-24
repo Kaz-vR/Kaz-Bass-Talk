@@ -2447,8 +2447,10 @@ export class SynthView {
       const period = beats ? beats * 0.5 : 1 / Math.max(0.01, this.num(`${L}.rate`));
       // A fixed 2-second window (at 120 BPM): a faster rate shows more cycles. Bloom and drop show
       // their whole rise or fall, per note a held value for each of a few notes.
-      const perNote = shape === 'bloom' || shape === 'drop' || shape === 'random';
-      const span = perNote && shape !== 'random' ? Math.max(2, period * 1.25) : 2, fade = this.num(`${L}.fade`) / 1000;
+      const perNote = shape === 'bloom' || shape === 'drop' || shape === 'random' || shape === 'drift_down';
+      const span = perNote && shape !== 'random' ? Math.max(2, period * 1.25) : 2;
+      // Depth (owner's call): the picture shows the real movement, flat at 0; Phase shifts the repeating shapes
+      const depth = n <= 4 ? this.num(`mod${n}.amount`) : 1, phase = ['sine', 'triangle', 'saw_up', 'saw_down', 'square'].includes(shape) ? this.num(`${L}.phase`) : 0;
       let seed = 11 + n;
       const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
       const steps = Array.from({ length: 10 }, rnd);
@@ -2463,6 +2465,7 @@ export class SynthView {
           case 'sample_hold': return steps[Math.floor(ph * 4) % 10] * 0.85;
           case 'bloom': { const x = Math.min(1, ph); return -0.85 + 1.7 * (0.5 - 0.5 * Math.cos(Math.PI * x)); }
           case 'drop': { const x = Math.min(1, ph); return -0.85 + 1.7 * (1 - x) * (1 - x); }
+          case 'drift_down': { const x = Math.min(1, ph); return 0.85 - 1.7 * Math.min(1, Math.pow(x, 2.5) + 0.03 * x * Math.sin(2 * Math.PI * 5.3 * x)); }
           case 'random': return steps[Math.floor((ph * period) / 0.5) % 10] * 0.85;
           case 'drift': { const x = ph * 1.6, i = Math.floor(x), t = x - i, s = 1 - Math.pow(1 - t, 3); return (steps[i % 10] + (steps[(i + 1) % 10] - steps[i % 10]) * s) * 0.85; }
           case 'slow drift': { const x = ph * 1.6, i = Math.floor(x), t = x - i, s = 0.5 - 0.5 * Math.cos(Math.PI * t); return (steps[i % 10] + (steps[(i + 1) % 10] - steps[i % 10]) * s) * 0.85; }
@@ -2480,13 +2483,12 @@ export class SynthView {
           const x = (i / W) * (N - 1), j = Math.floor(x), fr = x - j;
           const at = (k: number) => hist[(this.lfoHistAt - (N - 1) + k + LFO_HIST * 2) % LFO_HIST];
           const v = at(j) + (j + 1 < N ? (at(j + 1) - at(j)) * fr : 0);
-          pts.push([i, H / 2 - v * 0.85 * (H / 2 - 7)]);
+          pts.push([i, H / 2 - v * depth * 0.85 * (H / 2 - 7)]);
         }
       } else {
         for (let i = 0; i <= W; i++) {
           const t = (i / W) * span;
-          const a = fade > 0 ? Math.min(1, t / fade) : 1;
-          pts.push([i, H / 2 - f(t / period) * a * (H / 2 - 7)]);
+          pts.push([i, H / 2 - f(t / period + phase) * depth * (H / 2 - 7)]);
         }
       }
       silver(g, pts, !!this.get(`${L}.on`));
@@ -2515,7 +2517,7 @@ export class SynthView {
         }
       }
     };
-    this.watch([`${L}.shape`, `${L}.fade`, `${L}.rate`, `${L}.sync`, `${L}.on`, `${L}.retrigger`], redraw);
+    this.watch([`${L}.shape`, `${L}.phase`, `${L}.rate`, `${L}.sync`, `${L}.on`, `${L}.retrigger`, ...(n <= 4 ? [`mod${n}.amount`] : [])], redraw);
     this.animDraws.push({ el: cv, f: redraw, free: () => !!this.get(`${L}.on`) });
     return cv;
   }
@@ -2557,14 +2559,15 @@ export class SynthView {
     this.watch([`${slot}.dest`], () => { tsel.value = String(this.get(`${slot}.dest`)); });
     const target = h('div', 'sel lfo-target-sel', h('span', 'lfo-target-arrow', '→'), tsel);
     target.title = 'What this LFO moves';
-    const amt = this.knob(`${slot}.amount`, 'Amount', 'lg', { fmt: (v) => (Math.abs(v) < 0.005 ? '0' : `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`) });
+    const amt = this.knob(`${slot}.amount`, 'Depth', 'lg', { fmt: (v) => `${Math.round(v * 100)}%` });
     amt.addEventListener('pointerdown', own, true);
     return this.obox(`LFO ${n}`, `mb box-lfo${n}`, {
       power: (el) => this.boolPower(`${L}.on`, el),
       head: [shapeSel, target],
       print: this.lfoPrint(n, MB_PRINT_W, MB_PRINT_H),
       // HZ / SYNC sits just left of the rate it switches, RETRIG under it
-      dials: [h('div', 'lfo-sync lfo-sync-col', sync, this.toggle(`${L}.retrigger`, 'Retrig', 'small')), rate, note, this.knob(`${L}.fade`, 'Fade', 'lg', { fmt: ms }), amt],
+      // PHASE (owner's call, in place of Fade): where in the shape it starts, 0-360°
+      dials: [h('div', 'lfo-sync lfo-sync-col', sync, this.toggle(`${L}.retrigger`, 'Retrig', 'small')), rate, note, this.knob(`${L}.phase`, 'Phase', 'lg', { fmt: (v) => `${Math.round(v * 360)}°` }), amt],
     });
   }
 

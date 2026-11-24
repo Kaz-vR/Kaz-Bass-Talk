@@ -916,7 +916,10 @@ export class Synth {
       } else if (shape === K.LFO_SLOW_DRIFT) {
         this.lfoValue[l] = this.lfoPrev[l] + (this.lfoHold[l] - this.lfoPrev[l]) * (0.5 - 0.5 * Math.cos(Math.PI * ph));
       } else {
-        this.lfoValue[l] = this.lfoShape(shape, ph, this.lfoHold[l], this.lfoPrev[l]);
+        // PHASE (owner's call): where in its shape the LFO starts / sits (the repeating shapes)
+        let q = ph;
+        if (shape <= K.LFO_SQUARE && cur[lp.phase] > 0) { q += cur[lp.phase]; q -= Math.floor(q); }
+        this.lfoValue[l] = this.lfoShape(shape, q, this.lfoHold[l], this.lfoPrev[l]);
       }
       if (shape === K.LFO_WANDER) {
         // HUMANIZE (owner's call): as a player wobbles, slow and fast at once. The slow, uneven moves
