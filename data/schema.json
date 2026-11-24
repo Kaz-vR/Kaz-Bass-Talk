@@ -1357,7 +1357,7 @@
       "curve": "linear",
       "unit": "ms",
       "group": "lfo1",
-      "describes": "VIBRATO: how long the vibrato takes to fade in after each note starts (0 = at once)."
+      "describes": "Unused (no LFO fades in now: VIBRATO is played with the mod wheel). Kept so old presets load."
     },
     {
       "id": "lfo1.phase",
@@ -1382,6 +1382,26 @@
       "unit": "",
       "group": "lfo1",
       "describes": "DROP and DRIFT DOWN: the curve's bend, as an envelope's: down = it moves early and slows, up = it holds and then goes late."
+    },
+    {
+      "id": "lfo1.human",
+      "label": "LFO 1 human",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.3,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo1",
+      "describes": "VIBRATO: how much every cycle differs from the last in speed and width, as a player's does (0 = machine-steady)."
+    },
+    {
+      "id": "lfo1.under",
+      "label": "LFO 1 under",
+      "type": "bool",
+      "default": false,
+      "group": "lfo1",
+      "describes": "VIBRATO: off = the pitch swings evenly above and below the note; on = it dips below the note and comes back, never sharp (a violinist's warmer kind)."
     },
     {
       "id": "lfo2.on",
@@ -1471,7 +1491,7 @@
       "curve": "linear",
       "unit": "ms",
       "group": "lfo2",
-      "describes": "VIBRATO: how long the vibrato takes to fade in after each note starts (0 = at once)."
+      "describes": "Unused (no LFO fades in now: VIBRATO is played with the mod wheel). Kept so old presets load."
     },
     {
       "id": "lfo2.phase",
@@ -1496,6 +1516,26 @@
       "unit": "",
       "group": "lfo2",
       "describes": "DROP and DRIFT DOWN: the curve's bend, as an envelope's: down = it moves early and slows, up = it holds and then goes late."
+    },
+    {
+      "id": "lfo2.human",
+      "label": "LFO 2 human",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.3,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo2",
+      "describes": "VIBRATO: how much every cycle differs from the last in speed and width, as a player's does (0 = machine-steady)."
+    },
+    {
+      "id": "lfo2.under",
+      "label": "LFO 2 under",
+      "type": "bool",
+      "default": false,
+      "group": "lfo2",
+      "describes": "VIBRATO: off = the pitch swings evenly above and below the note; on = it dips below the note and comes back, never sharp (a violinist's warmer kind)."
     },
     {
       "id": "lfo3.on",
@@ -1585,7 +1625,7 @@
       "curve": "linear",
       "unit": "ms",
       "group": "lfo3",
-      "describes": "VIBRATO: how long the vibrato takes to fade in after each note starts (0 = at once)."
+      "describes": "Unused (no LFO fades in now: VIBRATO is played with the mod wheel). Kept so old presets load."
     },
     {
       "id": "lfo3.phase",
@@ -1610,6 +1650,26 @@
       "unit": "",
       "group": "lfo3",
       "describes": "DROP and DRIFT DOWN: the curve's bend, as an envelope's: down = it moves early and slows, up = it holds and then goes late."
+    },
+    {
+      "id": "lfo3.human",
+      "label": "LFO 3 human",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.3,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo3",
+      "describes": "VIBRATO: how much every cycle differs from the last in speed and width, as a player's does (0 = machine-steady)."
+    },
+    {
+      "id": "lfo3.under",
+      "label": "LFO 3 under",
+      "type": "bool",
+      "default": false,
+      "group": "lfo3",
+      "describes": "VIBRATO: off = the pitch swings evenly above and below the note; on = it dips below the note and comes back, never sharp (a violinist's warmer kind)."
     },
     {
       "id": "lfo4.on",
@@ -1699,7 +1759,7 @@
       "curve": "linear",
       "unit": "ms",
       "group": "lfo4",
-      "describes": "VIBRATO: how long the vibrato takes to fade in after each note starts (0 = at once)."
+      "describes": "Unused (no LFO fades in now: VIBRATO is played with the mod wheel). Kept so old presets load."
     },
     {
       "id": "lfo4.phase",
@@ -1724,6 +1784,26 @@
       "unit": "",
       "group": "lfo4",
       "describes": "DROP and DRIFT DOWN: the curve's bend, as an envelope's: down = it moves early and slows, up = it holds and then goes late."
+    },
+    {
+      "id": "lfo4.human",
+      "label": "LFO 4 human",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.3,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo4",
+      "describes": "VIBRATO: how much every cycle differs from the last in speed and width, as a player's does (0 = machine-steady)."
+    },
+    {
+      "id": "lfo4.under",
+      "label": "LFO 4 under",
+      "type": "bool",
+      "default": false,
+      "group": "lfo4",
+      "describes": "VIBRATO: off = the pitch swings evenly above and below the note; on = it dips below the note and comes back, never sharp (a violinist's warmer kind)."
     },
     {
       "id": "lfo5.on",
@@ -1813,7 +1893,7 @@
       "curve": "linear",
       "unit": "ms",
       "group": "lfo5",
-      "describes": "VIBRATO: how long the vibrato takes to fade in after each note starts (0 = at once)."
+      "describes": "Unused (no LFO fades in now: VIBRATO is played with the mod wheel). Kept so old presets load."
     },
     {
       "id": "lfo5.phase",
@@ -1838,6 +1918,26 @@
       "unit": "",
       "group": "lfo5",
       "describes": "DROP and DRIFT DOWN: the curve's bend, as an envelope's: down = it moves early and slows, up = it holds and then goes late."
+    },
+    {
+      "id": "lfo5.human",
+      "label": "LFO 5 human",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.3,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo5",
+      "describes": "VIBRATO: how much every cycle differs from the last in speed and width, as a player's does (0 = machine-steady)."
+    },
+    {
+      "id": "lfo5.under",
+      "label": "LFO 5 under",
+      "type": "bool",
+      "default": false,
+      "group": "lfo5",
+      "describes": "VIBRATO: off = the pitch swings evenly above and below the note; on = it dips below the note and comes back, never sharp (a violinist's warmer kind)."
     },
     {
       "id": "lfo6.on",
@@ -1927,7 +2027,7 @@
       "curve": "linear",
       "unit": "ms",
       "group": "lfo6",
-      "describes": "VIBRATO: how long the vibrato takes to fade in after each note starts (0 = at once)."
+      "describes": "Unused (no LFO fades in now: VIBRATO is played with the mod wheel). Kept so old presets load."
     },
     {
       "id": "lfo6.phase",
@@ -1952,6 +2052,26 @@
       "unit": "",
       "group": "lfo6",
       "describes": "DROP and DRIFT DOWN: the curve's bend, as an envelope's: down = it moves early and slows, up = it holds and then goes late."
+    },
+    {
+      "id": "lfo6.human",
+      "label": "LFO 6 human",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.3,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo6",
+      "describes": "VIBRATO: how much every cycle differs from the last in speed and width, as a player's does (0 = machine-steady)."
+    },
+    {
+      "id": "lfo6.under",
+      "label": "LFO 6 under",
+      "type": "bool",
+      "default": false,
+      "group": "lfo6",
+      "describes": "VIBRATO: off = the pitch swings evenly above and below the note; on = it dips below the note and comes back, never sharp (a violinist's warmer kind)."
     },
     {
       "id": "mod.on",

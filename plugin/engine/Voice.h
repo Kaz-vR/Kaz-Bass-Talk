@@ -72,7 +72,7 @@ class Voice {
     subRamp = 1 / (0.01 * fs);
     voiceDcL.setHighpass(VOICE_DC_HZ, SQRT1_2, fs);
     voiceDcR.setHighpass(VOICE_DC_HZ, SQRT1_2, fs);
-    lfoFade.fill(1);
+    lfoFade.fill(1); vibRateJ.fill(1); vibDep.fill(1); vibDepT.fill(1);
     driveF.fill(tanhIntegral(0));
     mixF.fill(tanhIntegral(0));
     Rng card(seed ^ 0x6c8e9cf5u);
@@ -95,7 +95,10 @@ class Voice {
       case LFO_BLOOM: return 0.5 - 0.5 * std::cos(PI * x);
       case LFO_DROP: return std::pow(1 - x, 2 * lfoBendPow(cur[P.lfo[l].bend]));
       case LFO_DRIFT_DOWN: return -std::fmin(1.0, std::pow(x, 2.5 * lfoBendPow(cur[P.lfo[l].bend])) + 0.03 * x * std::sin(2 * PI * 5.3 * x));
-      case LFO_VIBRATO: return std::sin(2 * PI * x);
+      case LFO_VIBRATO: {  // the wheel sets the width (squared); UNDER dips below the note
+        const double w = src[SRC_MODWHEEL], sn = std::sin(2 * PI * x);
+        return (cur[P.lfo[l].under] > 0.5 ? sn - 1 : sn) * w * w * vibDep[l];
+      }
       default: return lfoRand[l];
     }
   }
@@ -144,8 +147,9 @@ class Voice {
     ampEnv.trigger();
     modEnv.trigger();
     for (int l = 0; l < LFO_COUNT; l++) {
-      lfoFade[l] = cur[P.lfo[l].fade] > 0 ? 0 : 1;
+      lfoFade[l] = 1;  // no LFO fades in now: VIBRATO is played with the mod wheel
       lfoProg[l] = 0;
+      vibRateJ[l] = vibDep[l] = vibDepT[l] = 1;
       lfoRand[l] = rng.next();
     }
     noteTime = 0;
@@ -234,10 +238,6 @@ class Voice {
     for (int i = 0; i < SRC_COUNT; i++) src[i] = gsrc[i];
     for (int l = 0; l < LFO_COUNT; l++) {
       const auto& lp = P.lfo[l];
-      if (lfoFade[l] < 1) {
-        const double fadeMs = (int)cur[lp.shape] == LFO_VIBRATO ? cur[lp.fade] : 0;  // only VIBRATO fades in
-        lfoFade[l] = fadeMs > 0 ? std::fmin(1, lfoFade[l] + (CONTROL_BLOCK * 1000) / (fadeMs * fs)) : 1;
-      }
       const int s = SRC_LFO[l];
       if (lfoPerNote((int)cur[lp.shape])) {
         // A per-note shape: one cycle from this note's start (Rate or the synced note value), then held.
@@ -245,8 +245,18 @@ class Voice {
         double rate = sync > 0 ? bps / SYNC_BEATS[sync] : cur[lp.rate];
         const double rm = dst[LFO_RATE_DEST[l]];
         if (rm != 0) rate *= std::pow(2.0, 3 * rm);
+        const bool vib = (int)cur[lp.shape] == LFO_VIBRATO;
+        if (vib) rate *= (0.9 + 0.2 * src[SRC_MODWHEEL]) * vibRateJ[l];  // the mod wheel plays VIBRATO
         const double pr = lfoProg[l] + (rate * CONTROL_BLOCK) / fs;
-        lfoProg[l] = (int)cur[lp.shape] == LFO_VIBRATO ? pr - std::floor(pr) : std::fmin(1.0, pr);
+        if (vib) {
+          if (pr >= 1) {  // HUMAN: every cycle a little different
+            const double hu = cur[lp.human];
+            vibRateJ[l] = 1 + 0.12 * hu * rng.next();
+            vibDepT[l] = 1 + 0.3 * hu * rng.next();
+          }
+          vibDep[l] += (vibDepT[l] - vibDep[l]) * 0.05;
+          lfoProg[l] = pr - std::floor(pr);
+        } else lfoProg[l] = std::fmin(1.0, pr);
         src[s] = lfoNow(l) * cur[P.lfoOn[l]] * lfoFade[l];
       } else {
         src[s] *= lfoFade[l];
@@ -818,7 +828,7 @@ class Voice {
 
   Envelope modEnv;
   std::array<double, SRC_COUNT> src{};
-  std::array<double, LFO_COUNT> lfoFade{}, lfoProg{}, lfoRand{};
+  std::array<double, LFO_COUNT> lfoFade{}, lfoProg{}, lfoRand{}, vibRateJ{}, vibDep{}, vibDepT{};
 
   OscState osc[2];
   DiodeLadder diodeL, diodeR;

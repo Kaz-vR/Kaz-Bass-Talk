@@ -127,6 +127,10 @@ export class Voice {
   // The per-note LFO shapes (bloom, drop, per note): how far through its cycle each is since this
   // note started (0..1, held at 1), and the note's random value; each voice runs its own.
   private readonly lfoProg = new Float64Array(K.LFO_COUNT);
+  /** VIBRATO's HUMAN: this cycle's rate factor, its depth factor (gliding) and the next one's. */
+  private readonly vibRateJ = new Float64Array(K.LFO_COUNT).fill(1);
+  private readonly vibDep = new Float64Array(K.LFO_COUNT).fill(1);
+  private readonly vibDepT = new Float64Array(K.LFO_COUNT).fill(1);
   private readonly lfoRand = new Float64Array(K.LFO_COUNT);
   /** Mod matrix result for this voice (the Synth reads the newest voice's FX targets). */
   readonly dst = new Float64Array(DEST_COUNT);
@@ -322,8 +326,9 @@ export class Voice {
     this.ampEnv.trigger();
     this.modEnv.trigger();
     for (let l = 0; l < K.LFO_COUNT; l++) {
-      this.lfoFade[l] = cur[P.lfo[l].fade] > 0 ? 0 : 1;
+      this.lfoFade[l] = 1; // no LFO fades in now: VIBRATO is played with the mod wheel (owner's call)
       this.lfoProg[l] = 0;
+      this.vibRateJ[l] = this.vibDep[l] = this.vibDepT[l] = 1;
       this.lfoRand[l] = this.rng.next();
     }
     this.noteTime = 0;
@@ -421,11 +426,6 @@ export class Voice {
     src.set(gsrc);
     for (let l = 0; l < K.LFO_COUNT; l++) {
       const lp = P.lfo[l];
-      if (this.lfoFade[l] < 1) {
-        // the fade-in is only VIBRATO's now (owner's call): its Fade knob
-        const fadeMs = cur[lp.shape] === K.LFO_VIBRATO ? cur[lp.fade] : 0;
-        this.lfoFade[l] = fadeMs > 0 ? Math.min(1, this.lfoFade[l] + (CONTROL_BLOCK * 1000) / (fadeMs * fs)) : 1;
-      }
       const s = K.SRC_LFO[l];
       if (K.lfoPerNote(cur[lp.shape])) {
         // A per-note shape: one cycle from this note's start (Rate or the synced note value), then held.
@@ -433,9 +433,20 @@ export class Voice {
         let rate = sync > 0 ? this.bps / K.SYNC_BEATS[sync] : cur[lp.rate];
         const rm = this.dst[K.LFO_RATE_DEST[l]];
         if (rm !== 0) rate *= Math.pow(2, 3 * rm);
+        const vib = cur[lp.shape] === K.LFO_VIBRATO;
+        // VIBRATO (owner's call, a violinist's): the mod wheel plays it; pushed harder it also gets a little faster
+        if (vib) rate *= (0.9 + 0.2 * src[K.SRC_MODWHEEL]) * this.vibRateJ[l];
         const pr = this.lfoProg[l] + (rate * CONTROL_BLOCK) / fs;
-        // VIBRATO keeps going round; the rest run one cycle and hold
-        this.lfoProg[l] = cur[lp.shape] === K.LFO_VIBRATO ? pr - Math.floor(pr) : Math.min(1, pr);
+        if (vib) {
+          // HUMAN: every cycle a little different in speed and width, as a player's never is the same twice
+          if (pr >= 1) {
+            const hu = cur[lp.human];
+            this.vibRateJ[l] = 1 + 0.12 * hu * this.rng.next();
+            this.vibDepT[l] = 1 + 0.3 * hu * this.rng.next();
+          }
+          this.vibDep[l] += (this.vibDepT[l] - this.vibDep[l]) * 0.05;
+          this.lfoProg[l] = pr - Math.floor(pr); // VIBRATO keeps going round
+        } else this.lfoProg[l] = Math.min(1, pr); // the rest run one cycle and hold
         src[s] = this.lfoNow(l) * cur[P.lfoOn[l]] * this.lfoFade[l];
       } else {
         src[s] *= this.lfoFade[l];
@@ -697,7 +708,11 @@ export class Voice {
       case K.LFO_BLOOM: return 0.5 - 0.5 * Math.cos(Math.PI * x);
       case K.LFO_DROP: return Math.pow(1 - x, 2 * K.lfoBendPow(this.cur[P.lfo[l].bend]));
       case K.LFO_DRIFT_DOWN: return -Math.min(1, Math.pow(x, 2.5 * K.lfoBendPow(this.cur[P.lfo[l].bend])) + 0.03 * x * Math.sin(2 * Math.PI * 5.3 * x));
-      case K.LFO_VIBRATO: return Math.sin(2 * Math.PI * x);
+      case K.LFO_VIBRATO: {
+        // the wheel sets the width (squared: the first half stays gentle); UNDER dips below the note, never sharp
+        const w = this.src[K.SRC_MODWHEEL], sn = Math.sin(2 * Math.PI * x);
+        return (this.cur[P.lfo[l].under] > 0.5 ? sn - 1 : sn) * w * w * this.vibDep[l];
+      }
       default: return this.lfoRand[l];
     }
   }

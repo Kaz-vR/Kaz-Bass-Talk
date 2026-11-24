@@ -692,7 +692,8 @@ const LFO_SHAPE: Record<string, string> = { sine: 'SINE', triangle: 'TRIANGLE', 
 const LFO_SHAPE_GROUPS: [string, string[]][] = [
   ['SHAPES', ['sine', 'triangle', 'saw_up', 'saw_down', 'square']],
   ['OTHER', ['wander', 'sample_hold']],
-  ['ONE SHOTS', ['random', 'drop', 'drift_down', 'vibrato']],
+  ['ONE SHOTS', ['random', 'drop', 'drift_down']],
+  ['VIBRATO', ['vibrato']],
 ];
 /** A little picture of an LFO shape for its menu (22 x 12), as the RUIN band types have. */
 function lfoIconPath(shape: string): string {
@@ -2451,7 +2452,7 @@ export class SynthView {
       // their whole rise or fall, per note a held value for each of a few notes.
       const perNote = shape === 'bloom' || shape === 'drop' || shape === 'random' || shape === 'drift_down';
       const span = perNote && shape !== 'random' ? Math.max(2, period * 1.25) : 2;
-      const bendPow = Math.pow(4, 2 * this.num(`${L}.bend`) - 1), fadeS = shape === 'vibrato' ? this.num(`${L}.fade`) / 1000 : 0;
+      const bendPow = Math.pow(4, 2 * this.num(`${L}.bend`) - 1), underV = shape === 'vibrato' && !!this.get(`${L}.under`);
       // Depth (owner's call): the picture shows the real movement, flat at 0; Phase shifts the repeating shapes
       const depth = n <= 4 ? Math.cbrt(this.num(`mod${n}.amount`)) : 1, // the knob's position (Depth is on a cubed curve)
       phase = ['sine', 'triangle', 'saw_up', 'saw_down', 'square'].includes(shape) ? this.num(`${L}.phase`) : 0;
@@ -2470,7 +2471,7 @@ export class SynthView {
           case 'bloom': { const x = Math.min(1, ph); return -0.85 + 1.7 * (0.5 - 0.5 * Math.cos(Math.PI * x)); }
           case 'drop': { const x = Math.min(1, ph); return -0.85 + 1.7 * Math.pow(1 - x, 2 * bendPow); }
           case 'drift_down': { const x = Math.min(1, ph); return 0.85 - 1.7 * Math.min(1, Math.pow(x, 2.5 * bendPow) + 0.03 * x * Math.sin(2 * Math.PI * 5.3 * x)); }
-          case 'vibrato': return Math.sin(2 * Math.PI * ph);
+          case 'vibrato': return underV ? (Math.sin(2 * Math.PI * ph) - 1) / 2 : Math.sin(2 * Math.PI * ph);
           case 'random': return steps[Math.floor((ph * period) / 0.5) % 10] * 0.85;
           case 'drift': { const x = ph * 1.6, i = Math.floor(x), t = x - i, s = 1 - Math.pow(1 - t, 3); return (steps[i % 10] + (steps[(i + 1) % 10] - steps[i % 10]) * s) * 0.85; }
           case 'slow drift': { const x = ph * 1.6, i = Math.floor(x), t = x - i, s = 0.5 - 0.5 * Math.cos(Math.PI * t); return (steps[i % 10] + (steps[(i + 1) % 10] - steps[i % 10]) * s) * 0.85; }
@@ -2493,8 +2494,7 @@ export class SynthView {
       } else {
         for (let i = 0; i <= W; i++) {
           const t = (i / W) * span;
-          const fadeIn = fadeS > 0 ? Math.min(1, t / fadeS) : 1;
-          pts.push([i, H / 2 - f(t / period + phase) * fadeIn * depth * (H / 2 - 7)]);
+          pts.push([i, H / 2 - f(t / period + phase) * depth * (H / 2 - 7)]);
         }
       }
       silver(g, pts, !!this.get(`${L}.on`));
@@ -2523,7 +2523,7 @@ export class SynthView {
         }
       }
     };
-    this.watch([`${L}.shape`, `${L}.phase`, `${L}.bend`, `${L}.fade`, `${L}.rate`, `${L}.sync`, `${L}.on`, `${L}.retrigger`, ...(n <= 4 ? [`mod${n}.amount`] : [])], redraw);
+    this.watch([`${L}.shape`, `${L}.phase`, `${L}.bend`, `${L}.under`, `${L}.rate`, `${L}.sync`, `${L}.on`, `${L}.retrigger`, ...(n <= 4 ? [`mod${n}.amount`] : [])], redraw);
     this.animDraws.push({ el: cv, f: redraw, free: () => !!this.get(`${L}.on`) });
     return cv;
   }
@@ -2571,18 +2571,20 @@ export class SynthView {
       fmt: (v) => !pitchDest() ? `${Math.round(v * 100)}%` : v * 24 < 1 ? `±${Math.round(v * 2400)}¢` : `±${(v * 24).toFixed(1)} st`,
     });
     const phaseK = this.knob(`${L}.phase`, 'Phase', 'lg', { fmt: (v) => `${Math.round(v * 360)}°` });
-    const fadeK = this.knob(`${L}.fade`, 'Fade', 'lg', { fmt: ms });
+    const fadeK = this.knob(`${L}.human`, 'Human', 'lg', { fmt: (v) => `${Math.round(v * 100)}%` });
     const bendK = this.knob(`${L}.bend`, 'Bend', 'lg', { fmt: (v) => `${v > 0.5 ? '+' : ''}${Math.round((v - 0.5) * 200)}` });
     const blank = h('div', 'k k-lg lfo-blank');
+    const under = this.toggle(`${L}.under`, 'Under', 'small');
     const third = h('div', 'lfo-third', phaseK, fadeK, bendK, blank);
     this.watch([`${L}.shape`], () => {
       const sh = String(this.get(`${L}.shape`));
       const which = sh === 'vibrato' ? fadeK : sh === 'drop' || sh === 'drift_down' ? bendK : sh === 'random' ? blank : phaseK;
       for (const el of [phaseK, fadeK, bendK, blank]) el.style.display = el === which ? '' : 'none';
+      under.style.display = sh === 'vibrato' ? '' : 'none';
     });
     amt.addEventListener('pointerdown', own, true);
-    // picking VIBRATO sets it up ready to play (owner's call): a classic vibrato on A+B pitch (the sub stays steady),
-    // 5.5 Hz free, restarting per note, ±25 cents, fading in over 350 ms; a pitch target already chosen is kept
+    // picking VIBRATO sets it up ready to play (owner's call): the mod wheel plays it; a classic vibrato on A+B pitch
+    // (the sub stays steady), 5.5 Hz free, restarting per note, ±50 cents at full wheel; a pitch target already chosen is kept
     shapeSel.addEventListener('change', () => {
       if (this.get(`${L}.shape`) !== 'vibrato') return;
       own();
@@ -2591,8 +2593,8 @@ export class SynthView {
       this.set(id, 'free');
       this.set(`${L}.rate`, 5.5);
       this.set(`${L}.retrigger`, true);
-      this.set(`${L}.fade`, 350);
-      this.set(`${slot}.amount`, 0.25 / 24);
+      this.set(`${L}.human`, 0.3);
+      this.set(`${slot}.amount`, 0.5 / 24);
     });
     return this.obox(`LFO ${n}`, `mb box-lfo${n}`, {
       power: (el) => this.boolPower(`${L}.on`, el),
@@ -2601,7 +2603,8 @@ export class SynthView {
       // HZ / SYNC sits just left of the rate it switches, RETRIG under it
       // the third dial fits the shape (owner's call): PHASE on the repeating shapes, FADE on VIBRATO, BEND on DROP and
       // DRIFT DOWN, nothing on RANDOM ON TRIGGER
-      dials: [h('div', 'lfo-sync lfo-sync-col', sync, this.toggle(`${L}.retrigger`, 'Retrig', 'small')), rate, note, third, amt],
+      // VIBRATO adds UNDER under Retrig: it dips below the note instead of swinging around it
+      dials: [h('div', 'lfo-sync lfo-sync-col', sync, this.toggle(`${L}.retrigger`, 'Retrig', 'small'), under), rate, note, third, amt],
     });
   }
 
