@@ -95,9 +95,9 @@ class Voice {
       case LFO_BLOOM: return 0.5 - 0.5 * std::cos(PI * x);
       case LFO_DROP: return std::pow(1 - x, 2 * lfoBendPow(cur[P.lfo[l].bend]));
       case LFO_DRIFT_DOWN: return -std::fmin(1.0, std::pow(x, 2.5 * lfoBendPow(cur[P.lfo[l].bend])) + 0.03 * x * std::sin(2 * PI * 5.3 * x));
-      case LFO_VIBRATO: {  // the wheel sets the width (squared)
-        const double w = src[SRC_MODWHEEL];
-        return std::sin(2 * PI * x) * w * w;
+      case LFO_VIBRATO: case LFO_VIB_TRI: case LFO_VIB_SAW_UP: case LFO_VIB_SAW_DOWN: case LFO_VIB_SQUARE: {
+        const double w = src[SRC_MODWHEEL];  // the wheel sets the width (squared)
+        return vibWave((int)cur[P.lfo[l].shape], x) * w * w;
       }
       default: return lfoRand[l];
     }
@@ -241,7 +241,7 @@ class Voice {
       if (lfoPerNote((int)cur[lp.shape])) {
         // A per-note shape: one cycle from this note's start (Rate or the synced note value), then held.
         const int sync = (int)cur[lp.sync];
-        const bool vib = (int)cur[lp.shape] == LFO_VIBRATO;
+        const bool vib = isVibrato((int)cur[lp.shape]);
         // VIBRATO: its own Rate (3-12 Hz) and Depth (0-±50 cents on a pitch target)
         double rate = sync > 0 ? bps / SYNC_BEATS[sync] : vib ? cur[lp.vibRate] : cur[lp.rate];
         const double rm = dst[LFO_RATE_DEST[l]];

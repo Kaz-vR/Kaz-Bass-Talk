@@ -81,7 +81,20 @@ export const LFO_DRIFT = 10, LFO_SLOW_DRIFT = 11;
 export const LFO_DRIFT_DOWN = 12;
 /** VIBRATO (owner's call): per note, a sine from the note's start that fades in over the LFO's Fade time. */
 export const LFO_VIBRATO = 13;
-export const lfoPerNote = (shape: number): boolean => (shape >= LFO_BLOOM && shape <= LFO_NOTE) || shape === LFO_DRIFT_DOWN || shape === LFO_VIBRATO;
+/** The other vibrato waves (owner's call, to try): triangle, saw up, saw down, square; played by the wheel like VIBRATO. */
+export const LFO_VIB_TRI = 14, LFO_VIB_SAW_UP = 15, LFO_VIB_SAW_DOWN = 16, LFO_VIB_SQUARE = 17;
+export const isVibrato = (shape: number): boolean => shape >= LFO_VIBRATO && shape <= LFO_VIB_SQUARE;
+/** A vibrato wave at x (0..1 through the cycle), -1..1, starting at the note (triangle from 0 like the sine). */
+export const vibWave = (shape: number, x: number): number => {
+  switch (shape) {
+    case LFO_VIB_TRI: { const p = (x + 0.25) % 1; return p < 0.5 ? 4 * p - 1 : 3 - 4 * p; }
+    case LFO_VIB_SAW_UP: return 2 * x - 1;
+    case LFO_VIB_SAW_DOWN: return 1 - 2 * x;
+    case LFO_VIB_SQUARE: return x < 0.5 ? 1 : -1;
+    default: return Math.sin(2 * Math.PI * x);
+  }
+};
+export const lfoPerNote = (shape: number): boolean => (shape >= LFO_BLOOM && shape <= LFO_NOTE) || shape === LFO_DRIFT_DOWN || (shape >= 13 && shape <= 17);
 /** DROP and DRIFT DOWN's curve exponent for their Bend (0.5 = the standard curve). */
 export const lfoBendPow = (bend: number): number => Math.pow(4, 2 * bend - 1);
 export const LFO_COUNT = 6;

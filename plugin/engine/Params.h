@@ -74,7 +74,18 @@ constexpr int LFO_BLOOM = 7, LFO_DROP = 8, LFO_NOTE = 9;
 // The old drift sources as shapes (shared, free running): drift glides to random points, slow drift curves between them.
 constexpr int LFO_DRIFT = 10, LFO_SLOW_DRIFT = 11;
 constexpr int LFO_DRIFT_DOWN = 12, LFO_VIBRATO = 13;
-inline bool lfoPerNote(int shape) { return (shape >= LFO_BLOOM && shape <= LFO_NOTE) || shape == LFO_DRIFT_DOWN || shape == LFO_VIBRATO; }
+constexpr int LFO_VIB_TRI = 14, LFO_VIB_SAW_UP = 15, LFO_VIB_SAW_DOWN = 16, LFO_VIB_SQUARE = 17;
+inline bool isVibrato(int shape) { return shape >= LFO_VIBRATO && shape <= LFO_VIB_SQUARE; }
+inline double vibWave(int shape, double x) {
+  switch (shape) {
+    case LFO_VIB_TRI: { const double p = std::fmod(x + 0.25, 1.0); return p < 0.5 ? 4 * p - 1 : 3 - 4 * p; }
+    case LFO_VIB_SAW_UP: return 2 * x - 1;
+    case LFO_VIB_SAW_DOWN: return 1 - 2 * x;
+    case LFO_VIB_SQUARE: return x < 0.5 ? 1 : -1;
+    default: return std::sin(2 * PI * x);
+  }
+}
+inline bool lfoPerNote(int shape) { return (shape >= LFO_BLOOM && shape <= LFO_NOTE) || shape == LFO_DRIFT_DOWN || (shape >= 13 && shape <= 17); }
 inline double lfoBendPow(double bend) { return std::pow(4.0, 2 * bend - 1); }
 constexpr int LFO_COUNT = 6;
 /** wobble.shape option indices with their own handling (the rest are WOB_TEMPLATE_ARRAYS). */

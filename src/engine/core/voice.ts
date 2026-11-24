@@ -427,7 +427,7 @@ export class Voice {
       if (K.lfoPerNote(cur[lp.shape])) {
         // A per-note shape: one cycle from this note's start (Rate or the synced note value), then held.
         const sync = cur[lp.sync];
-        const vib = cur[lp.shape] === K.LFO_VIBRATO;
+        const vib = K.isVibrato(cur[lp.shape]);
         // VIBRATO has its own Rate (3-12 Hz) and Depth (0-±50 cents on any pitch target: 24 semitones at amount 1)
         let rate = sync > 0 ? this.bps / K.SYNC_BEATS[sync] : vib ? cur[lp.vibRate] : cur[lp.rate];
         const rm = this.dst[K.LFO_RATE_DEST[l]];
@@ -703,10 +703,10 @@ export class Voice {
       case K.LFO_BLOOM: return 0.5 - 0.5 * Math.cos(Math.PI * x);
       case K.LFO_DROP: return Math.pow(1 - x, 2 * K.lfoBendPow(this.cur[P.lfo[l].bend]));
       case K.LFO_DRIFT_DOWN: return -Math.min(1, Math.pow(x, 2.5 * K.lfoBendPow(this.cur[P.lfo[l].bend])) + 0.03 * x * Math.sin(2 * Math.PI * 5.3 * x));
-      case K.LFO_VIBRATO: {
+      case K.LFO_VIBRATO: case K.LFO_VIB_TRI: case K.LFO_VIB_SAW_UP: case K.LFO_VIB_SAW_DOWN: case K.LFO_VIB_SQUARE: {
         // the wheel sets the width (squared: the first half stays gentle)
         const w = this.src[K.SRC_MODWHEEL];
-        return Math.sin(2 * Math.PI * x) * w * w;
+        return K.vibWave(this.cur[P.lfo[l].shape], x) * w * w;
       }
       default: return this.lfoRand[l];
     }

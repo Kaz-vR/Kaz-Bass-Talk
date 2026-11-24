@@ -25,9 +25,10 @@ Shared by all voices: 6 LFOs (tempo-sync, retrigger, fade-in; shapes sine, trian
 Quality: band-limited oscillators, oversampled anti-aliased nonlinear stages. Expensive-sounding, never "chiptune" unless deliberate. Every parameter is defined in the patch schema (~180 today).
 
 
-### VIBRATO (LFO shape 13, owner's call: a realistic vibrato, played with the mod wheel)
+### VIBRATO (LFO shapes 13-17, owner's call: a realistic vibrato, played with the mod wheel)
 
-A sine running per note (restarting with each note), never on without the wheel: its width is the mod wheel squared
+Sine (13, the classic), triangle (14, from 0 like the sine), saw up (15), saw down (16) or square (17) (`vibWave`),
+running per note (restarting with each note), never on without the wheel: its width is the mod wheel squared
 (the first half gentle) times its own Depth (`lfo<n>.vib_depth`: 0 to ±50 cents on any pitch target; the matrix
 slot's amount is ignored for a VIBRATO source), at its own Rate (`lfo<n>.vib_rate`, 3-12 Hz, or synced), which the
 wheel speeds up slightly (x 0.9 at the bottom to x 1.1 at the top). No LFO fades in any more (`lfo<n>.fade` is unused,

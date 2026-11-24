@@ -1295,7 +1295,11 @@
         "drift",
         "slow drift",
         "drift_down",
-        "vibrato"
+        "vibrato",
+        "vib_triangle",
+        "vib_saw_up",
+        "vib_saw_down",
+        "vib_square"
       ],
       "default": "sine",
       "group": "lfo1",
@@ -1433,7 +1437,11 @@
         "drift",
         "slow drift",
         "drift_down",
-        "vibrato"
+        "vibrato",
+        "vib_triangle",
+        "vib_saw_up",
+        "vib_saw_down",
+        "vib_square"
       ],
       "default": "sine",
       "group": "lfo2",
@@ -1571,7 +1579,11 @@
         "drift",
         "slow drift",
         "drift_down",
-        "vibrato"
+        "vibrato",
+        "vib_triangle",
+        "vib_saw_up",
+        "vib_saw_down",
+        "vib_square"
       ],
       "default": "sine",
       "group": "lfo3",
@@ -1709,7 +1721,11 @@
         "drift",
         "slow drift",
         "drift_down",
-        "vibrato"
+        "vibrato",
+        "vib_triangle",
+        "vib_saw_up",
+        "vib_saw_down",
+        "vib_square"
       ],
       "default": "sine",
       "group": "lfo4",
@@ -1847,7 +1863,11 @@
         "drift",
         "slow drift",
         "drift_down",
-        "vibrato"
+        "vibrato",
+        "vib_triangle",
+        "vib_saw_up",
+        "vib_saw_down",
+        "vib_square"
       ],
       "default": "sine",
       "group": "lfo5",
@@ -1985,7 +2005,11 @@
         "drift",
         "slow drift",
         "drift_down",
-        "vibrato"
+        "vibrato",
+        "vib_triangle",
+        "vib_saw_up",
+        "vib_saw_down",
+        "vib_square"
       ],
       "default": "sine",
       "group": "lfo6",

@@ -687,15 +687,27 @@ function ghosts(g: CanvasRenderingContext2D, sets: [number, number][][], color: 
   g.restore();
 }
 
-const LFO_SHAPE: Record<string, string> = { sine: 'SINE', triangle: 'TRIANGLE', saw_up: 'SAW UP', saw_down: 'SAW DOWN', square: 'SQUARE', sample_hold: 'RANDOM STEPS', wander: 'HUMANIZE', bloom: 'BLOOM', drop: 'DROP', random: 'RANDOM ON TRIGGER', drift: 'DRIFT', 'slow drift': 'SLOW DRIFT', drift_down: 'DRIFT DOWN', vibrato: 'VIBRATO' };
+const LFO_SHAPE: Record<string, string> = { sine: 'SINE', triangle: 'TRIANGLE', saw_up: 'SAW UP', saw_down: 'SAW DOWN', square: 'SQUARE', sample_hold: 'RANDOM STEPS', wander: 'HUMANIZE', bloom: 'BLOOM', drop: 'DROP', random: 'RANDOM ON TRIGGER', drift: 'DRIFT', 'slow drift': 'SLOW DRIFT', drift_down: 'DRIFT DOWN', vibrato: 'SINE VIBRATO', vib_triangle: 'TRIANGLE VIBRATO', vib_saw_up: 'SAW UP VIBRATO', vib_saw_down: 'SAW DOWN VIBRATO', vib_square: 'SQUARE VIBRATO' };
 /** The LFO shape menu (owner's list): SHAPES that repeat, OTHER that wander, hold or fall. */
 /** The shapes that always restart on every note (the one shots and VIBRATO): Retrig does nothing on them. */
-const K_ALWAYS_PER_NOTE = new Set(['random', 'drop', 'drift_down', 'vibrato']);
+const VIB_SHAPES = new Set(['vibrato', 'vib_triangle', 'vib_saw_up', 'vib_saw_down', 'vib_square']);
+const K_ALWAYS_PER_NOTE = new Set(['random', 'drop', 'drift_down', ...VIB_SHAPES]);
+/** A vibrato wave (as the engine's vibWave), -1..1 at x through the cycle. */
+const vibWaveUi = (shape: string, x: number): number => {
+  const p = x - Math.floor(x);
+  switch (shape) {
+    case 'vib_triangle': { const q = (p + 0.25) % 1; return q < 0.5 ? 4 * q - 1 : 3 - 4 * q; }
+    case 'vib_saw_up': return 2 * p - 1;
+    case 'vib_saw_down': return 1 - 2 * p;
+    case 'vib_square': return p < 0.5 ? 1 : -1;
+    default: return Math.sin(2 * Math.PI * p);
+  }
+};
 const LFO_SHAPE_GROUPS: [string, string[]][] = [
   ['SHAPES', ['sine', 'triangle', 'saw_up', 'saw_down', 'square']],
   ['OTHER', ['wander', 'sample_hold']],
   ['ONE SHOTS', ['random', 'drop', 'drift_down']],
-  ['MOD WHEEL', ['vibrato']],
+  ['MOD WHEEL', ['vibrato', 'vib_triangle', 'vib_saw_up', 'vib_saw_down', 'vib_square']],
 ];
 /** A little picture of an LFO shape for its menu (22 x 12), as the RUIN band types have. */
 function lfoIconPath(shape: string): string {
@@ -715,7 +727,7 @@ function lfoIconPath(shape: string): string {
       case 'random': y = x < 0.08 ? 0.5 : 0.78; break;
       case 'drop': y = (1 - x) * (1 - x); break;
       case 'drift_down': y = 1 - Math.min(1, Math.pow(x, 2.5) + 0.03 * x * Math.sin(2 * Math.PI * 5.3 * x)); break;
-      case 'vibrato': y = 0.5 + 0.45 * Math.sin(2 * Math.PI * 4 * x) * Math.min(1, x * 1.6); break;
+      case 'vibrato': case 'vib_triangle': case 'vib_saw_up': case 'vib_saw_down': case 'vib_square': y = 0.5 + 0.42 * vibWaveUi(shape, 4 * x) * Math.min(1, x * 1.6); break;
       default: y = 0.5;
     }
     ys.push(y);
@@ -2449,14 +2461,14 @@ export class SynthView {
       const sync = String(this.get(`${L}.sync`));
       // Seconds per cycle (synced rates at 120 BPM), to place the fade on the same time axis.
       const beats = sync === 'free' ? 0 : syncBeats(sync);
-      const period = beats ? beats * 0.5 : 1 / Math.max(0.01, this.num(shape === 'vibrato' ? `${L}.vib_rate` : `${L}.rate`));
+      const period = beats ? beats * 0.5 : 1 / Math.max(0.01, this.num(VIB_SHAPES.has(shape) ? `${L}.vib_rate` : `${L}.rate`));
       // A fixed 2-second window (at 120 BPM): a faster rate shows more cycles. Bloom and drop show
       // their whole rise or fall, per note a held value for each of a few notes.
       const perNote = shape === 'bloom' || shape === 'drop' || shape === 'random' || shape === 'drift_down';
       const span = perNote && shape !== 'random' ? Math.max(2, period * 1.25) : 2;
       const bendPow = Math.pow(4, 2 * this.num(`${L}.bend`) - 1);
       // Depth (owner's call): the picture shows the real movement, flat at 0; Phase shifts the repeating shapes
-      const depth = shape === 'vibrato' ? this.num(`${L}.vib_depth`) : n <= 4 ? Math.cbrt(this.num(`mod${n}.amount`)) : 1, // the knob's position (Depth is on a cubed curve)
+      const depth = VIB_SHAPES.has(shape) ? this.num(`${L}.vib_depth`) : n <= 4 ? Math.cbrt(this.num(`mod${n}.amount`)) : 1, // the knob's position (Depth is on a cubed curve)
       phase = ['sine', 'triangle', 'saw_up', 'saw_down', 'square'].includes(shape) ? this.num(`${L}.phase`) : 0;
       let seed = 11 + n;
       const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
@@ -2473,7 +2485,7 @@ export class SynthView {
           case 'bloom': { const x = Math.min(1, ph); return -0.85 + 1.7 * (0.5 - 0.5 * Math.cos(Math.PI * x)); }
           case 'drop': { const x = Math.min(1, ph); return -0.85 + 1.7 * Math.pow(1 - x, 2 * bendPow); }
           case 'drift_down': { const x = Math.min(1, ph); return 0.85 - 1.7 * Math.min(1, Math.pow(x, 2.5 * bendPow) + 0.03 * x * Math.sin(2 * Math.PI * 5.3 * x)); }
-          case 'vibrato': return Math.sin(2 * Math.PI * ph);
+          case 'vibrato': case 'vib_triangle': case 'vib_saw_up': case 'vib_saw_down': case 'vib_square': return vibWaveUi(shape, ph);
           case 'random': return steps[Math.floor((ph * period) / 0.5) % 10] * 0.85;
           case 'drift': { const x = ph * 1.6, i = Math.floor(x), t = x - i, s = 1 - Math.pow(1 - t, 3); return (steps[i % 10] + (steps[(i + 1) % 10] - steps[i % 10]) * s) * 0.85; }
           case 'slow drift': { const x = ph * 1.6, i = Math.floor(x), t = x - i, s = 0.5 - 0.5 * Math.cos(Math.PI * t); return (steps[i % 10] + (steps[(i + 1) % 10] - steps[i % 10]) * s) * 0.85; }
@@ -2499,7 +2511,7 @@ export class SynthView {
           pts.push([i, H / 2 - f(t / period + phase) * depth * (H / 2 - 7)]);
         }
       }
-      if (shape === 'vibrato') {
+      if (VIB_SHAPES.has(shape)) {
         // VIBRATO (owner's pick, option 1): the full vibrato faint, the bright line what the mod wheel plays now
         // (flat at wheel 0, growing into the faint one as the wheel goes up: the width is the wheel squared)
         g.save();
@@ -2514,7 +2526,7 @@ export class SynthView {
         for (const p of pts) p[1] = H / 2 + (p[1] - H / 2) * w2;
       }
       silver(g, pts, !!this.get(`${L}.on`));
-      if (shape === 'vibrato') {
+      if (VIB_SHAPES.has(shape)) {
         g.save();
         g.fillStyle = 'rgba(234,227,215,0.45)';
         g.font = '8px "Space Grotesk", sans-serif';
@@ -2550,7 +2562,7 @@ export class SynthView {
     };
     this.watch([`${L}.shape`, `${L}.phase`, `${L}.bend`, `${L}.rate`, `${L}.vib_rate`, `${L}.vib_depth`, `${L}.sync`, `${L}.on`, `${L}.retrigger`, ...(n <= 4 ? [`mod${n}.amount`] : [])], redraw);
     this.animDraws.push({ el: cv, f: redraw, free: () => !!this.get(`${L}.on`) });
-    this.wheelViews.push(() => { if (this.get(`${L}.shape`) === 'vibrato') redraw(); });
+    this.wheelViews.push(() => { if (VIB_SHAPES.has(String(this.get(`${L}.shape`)))) redraw(); });
     return cv;
   }
 
@@ -2569,7 +2581,7 @@ export class SynthView {
     const vibRateK = this.knob(`${L}.vib_rate`, 'Rate', 'lg', { fmt: (v) => `${v.toFixed(1)} Hz` });
     const vibDepK = this.knob(`${L}.vib_depth`, 'Depth', 'lg', { fmt: (v) => `±${Math.round(v * 50)}¢` });
     this.watch([id, `${L}.shape`], () => {
-      const free = this.get(id) === 'free', vib = this.get(`${L}.shape`) === 'vibrato';
+      const free = this.get(id) === 'free', vib = VIB_SHAPES.has(String(this.get(`${L}.shape`)));
       rate.style.display = free && !vib ? '' : 'none';
       vibRateK.style.display = free && vib ? '' : 'none';
       note.style.display = free ? 'none' : '';
@@ -2608,19 +2620,24 @@ export class SynthView {
     const third = h('div', 'lfo-third', phaseK, bendK, blank);
     this.watch([`${L}.shape`], () => {
       const sh = String(this.get(`${L}.shape`));
-      const which = sh === 'drop' || sh === 'drift_down' ? bendK : sh === 'random' ? blank : sh === 'vibrato' ? null : phaseK;
+      const which = sh === 'drop' || sh === 'drift_down' ? bendK : sh === 'random' ? blank : VIB_SHAPES.has(sh) ? null : phaseK;
       for (const el of [phaseK, bendK, blank]) el.style.display = el === which ? '' : 'none';
-      amt.style.display = sh === 'vibrato' ? 'none' : '';
+      amt.style.display = VIB_SHAPES.has(sh) ? 'none' : '';
       retrigT.style.visibility = K_ALWAYS_PER_NOTE.has(sh) ? 'hidden' : '';
-      vibDepK.style.display = sh === 'vibrato' ? '' : 'none';
+      vibDepK.style.display = VIB_SHAPES.has(sh) ? '' : 'none';
       // VIBRATO moves pitch only: the other targets leave its menu
-      for (const og of tsel.querySelectorAll('optgroup')) og.hidden = sh === 'vibrato' && og.label !== 'PITCH';
+      for (const og of tsel.querySelectorAll('optgroup')) og.hidden = VIB_SHAPES.has(sh) && og.label !== 'PITCH';
     });
     amt.addEventListener('pointerdown', own, true);
     // picking VIBRATO sets it up ready to play (owner's call): the mod wheel plays it; a classic vibrato on A+B pitch
     // (the sub stays steady), 5.5 Hz free, restarting per note, ±30 cents at full wheel; a pitch target already chosen is kept
+    // switching between the vibrato waves keeps their settings; coming from another shape sets them up
+    let lastShape = String(this.get(`${L}.shape`));
+    this.watch([`${L}.shape`], () => { queueMicrotask(() => { lastShape = String(this.get(`${L}.shape`)); }); });
     shapeSel.addEventListener('change', () => {
-      if (this.get(`${L}.shape`) !== 'vibrato') return;
+      const was = lastShape;
+      lastShape = String(this.get(`${L}.shape`));
+      if (!VIB_SHAPES.has(lastShape) || VIB_SHAPES.has(was)) return;
       own();
       if (!pitchDest()) this.set(`${slot}.dest`, 'osc_pitch');
       this.set(`${L}.on`, true);
