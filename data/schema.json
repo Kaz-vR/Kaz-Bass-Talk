@@ -3795,6 +3795,18 @@
       "describes": "How deep the filter goes: how deep the notch cuts, how tall the peak stands, how much a band, comb or phaser takes away. 0 = a straight line, no effect."
     },
     {
+      "id": "grind1.bell_count",
+      "label": "Grind 1 bands",
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind1",
+      "describes": "How many of the four bands are used (1-4)."
+    },
+    {
       "id": "grind1.bell_link",
       "label": "Grind 1 bells link",
       "type": "bool",
@@ -3814,11 +3826,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind1",
-      "describes": "Bells: what band 1 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 1 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind1.bell1_freq",
@@ -3880,11 +3895,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind1",
-      "describes": "Bells: what band 2 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 2 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind1.bell2_freq",
@@ -3946,11 +3964,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind1",
-      "describes": "Bells: what band 3 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 3 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind1.bell3_freq",
@@ -4012,11 +4033,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind1",
-      "describes": "Bells: what band 4 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 4 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind1.bell4_freq",
@@ -4573,6 +4597,18 @@
       "describes": "How deep the filter goes: how deep the notch cuts, how tall the peak stands, how much a band, comb or phaser takes away. 0 = a straight line, no effect."
     },
     {
+      "id": "grind2.bell_count",
+      "label": "Grind 2 bands",
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind2",
+      "describes": "How many of the four bands are used (1-4)."
+    },
+    {
       "id": "grind2.bell_link",
       "label": "Grind 2 bells link",
       "type": "bool",
@@ -4592,11 +4628,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind2",
-      "describes": "Bells: what band 1 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 1 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind2.bell1_freq",
@@ -4658,11 +4697,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind2",
-      "describes": "Bells: what band 2 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 2 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind2.bell2_freq",
@@ -4724,11 +4766,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind2",
-      "describes": "Bells: what band 3 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 3 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind2.bell3_freq",
@@ -4790,11 +4835,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind2",
-      "describes": "Bells: what band 4 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 4 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind2.bell4_freq",
@@ -5351,6 +5399,18 @@
       "describes": "How deep the filter goes: how deep the notch cuts, how tall the peak stands, how much a band, comb or phaser takes away. 0 = a straight line, no effect."
     },
     {
+      "id": "grind3.bell_count",
+      "label": "Grind 3 bands",
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind3",
+      "describes": "How many of the four bands are used (1-4)."
+    },
+    {
       "id": "grind3.bell_link",
       "label": "Grind 3 bells link",
       "type": "bool",
@@ -5370,11 +5430,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind3",
-      "describes": "Bells: what band 1 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 1 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind3.bell1_freq",
@@ -5436,11 +5499,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind3",
-      "describes": "Bells: what band 2 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 2 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind3.bell2_freq",
@@ -5502,11 +5568,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind3",
-      "describes": "Bells: what band 3 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 3 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind3.bell3_freq",
@@ -5568,11 +5637,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind3",
-      "describes": "Bells: what band 4 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 4 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind3.bell4_freq",
@@ -6129,6 +6201,18 @@
       "describes": "How deep the filter goes: how deep the notch cuts, how tall the peak stands, how much a band, comb or phaser takes away. 0 = a straight line, no effect."
     },
     {
+      "id": "grind4.bell_count",
+      "label": "Grind 4 bands",
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind4",
+      "describes": "How many of the four bands are used (1-4)."
+    },
+    {
       "id": "grind4.bell_link",
       "label": "Grind 4 bells link",
       "type": "bool",
@@ -6148,11 +6232,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind4",
-      "describes": "Bells: what band 1 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 1 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind4.bell1_freq",
@@ -6214,11 +6301,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind4",
-      "describes": "Bells: what band 2 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 2 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind4.bell2_freq",
@@ -6280,11 +6370,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind4",
-      "describes": "Bells: what band 3 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 3 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind4.bell3_freq",
@@ -6346,11 +6439,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind4",
-      "describes": "Bells: what band 4 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 4 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind4.bell4_freq",
@@ -8362,6 +8458,18 @@
       "describes": "How deep the filter goes: how deep the notch cuts, how tall the peak stands, how much a band, comb or phaser takes away. 0 = a straight line, no effect."
     },
     {
+      "id": "grind5.bell_count",
+      "label": "Grind 5 bands",
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind5",
+      "describes": "How many of the four bands are used (1-4)."
+    },
+    {
       "id": "grind5.bell_link",
       "label": "Grind 5 bells link",
       "type": "bool",
@@ -8381,11 +8489,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind5",
-      "describes": "Bells: what band 1 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 1 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind5.bell1_freq",
@@ -8447,11 +8558,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind5",
-      "describes": "Bells: what band 2 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 2 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind5.bell2_freq",
@@ -8513,11 +8627,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind5",
-      "describes": "Bells: what band 3 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 3 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind5.bell3_freq",
@@ -8579,11 +8696,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind5",
-      "describes": "Bells: what band 4 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 4 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind5.bell4_freq",
@@ -9204,6 +9324,18 @@
       "describes": "How deep the filter goes: how deep the notch cuts, how tall the peak stands, how much a band, comb or phaser takes away. 0 = a straight line, no effect."
     },
     {
+      "id": "grind6.bell_count",
+      "label": "Grind 6 bands",
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind6",
+      "describes": "How many of the four bands are used (1-4)."
+    },
+    {
       "id": "grind6.bell_link",
       "label": "Grind 6 bells link",
       "type": "bool",
@@ -9223,11 +9355,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind6",
-      "describes": "Bells: what band 1 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 1 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind6.bell1_freq",
@@ -9289,11 +9424,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind6",
-      "describes": "Bells: what band 2 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 2 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind6.bell2_freq",
@@ -9355,11 +9493,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind6",
-      "describes": "Bells: what band 3 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 3 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind6.bell3_freq",
@@ -9421,11 +9562,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind6",
-      "describes": "Bells: what band 4 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 4 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind6.bell4_freq",
@@ -10046,6 +10190,18 @@
       "describes": "How deep the filter goes: how deep the notch cuts, how tall the peak stands, how much a band, comb or phaser takes away. 0 = a straight line, no effect."
     },
     {
+      "id": "grind7.bell_count",
+      "label": "Grind 7 bands",
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind7",
+      "describes": "How many of the four bands are used (1-4)."
+    },
+    {
       "id": "grind7.bell_link",
       "label": "Grind 7 bells link",
       "type": "bool",
@@ -10065,11 +10221,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind7",
-      "describes": "Bells: what band 1 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 1 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind7.bell1_freq",
@@ -10131,11 +10290,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind7",
-      "describes": "Bells: what band 2 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 2 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind7.bell2_freq",
@@ -10197,11 +10359,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind7",
-      "describes": "Bells: what band 3 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 3 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind7.bell3_freq",
@@ -10263,11 +10428,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind7",
-      "describes": "Bells: what band 4 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 4 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind7.bell4_freq",
@@ -10888,6 +11056,18 @@
       "describes": "How deep the filter goes: how deep the notch cuts, how tall the peak stands, how much a band, comb or phaser takes away. 0 = a straight line, no effect."
     },
     {
+      "id": "grind8.bell_count",
+      "label": "Grind 8 bands",
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind8",
+      "describes": "How many of the four bands are used (1-4)."
+    },
+    {
       "id": "grind8.bell_link",
       "label": "Grind 8 bells link",
       "type": "bool",
@@ -10907,11 +11087,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind8",
-      "describes": "Bells: what band 1 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 1 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind8.bell1_freq",
@@ -10973,11 +11156,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind8",
-      "describes": "Bells: what band 2 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 2 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind8.bell2_freq",
@@ -11039,11 +11225,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind8",
-      "describes": "Bells: what band 3 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 3 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind8.bell3_freq",
@@ -11105,11 +11294,14 @@
         "notch",
         "high shelf",
         "high cut 12",
-        "high cut 48"
+        "high cut 48",
+        "band",
+        "comb",
+        "phaser"
       ],
       "default": "bell",
       "group": "grind8",
-      "describes": "Bells: what band 4 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves."
+      "describes": "Bells: what band 4 is, as Ableton's EQ Eight: a low cut (48 or 12 dB/oct), a low shelf, a bell, a notch, a high shelf or a high cut (12 or 48 dB/oct). Gain works on the bell and the shelves. Band keeps only a band round Freq (Q = how narrow); comb rings on Freq and its harmonics (Gain = how hard, minus = hollow); phaser sweeps two notches (Q = how sharp)."
     },
     {
       "id": "grind8.bell4_freq",

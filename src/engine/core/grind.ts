@@ -42,6 +42,8 @@ export const unpackPhaser = (v: number): [number, number] => {
  * Simper), four in a row for the 48 dB cuts (Butterworth, the last section's Q times the bell's Q / 0.71).
  */
 export const BT_LC48 = 0, BT_LC12 = 1, BT_LS = 2, BT_BELL = 3, BT_NOTCH = 4, BT_HS = 5, BT_HC12 = 6, BT_HC48 = 7;
+/** The old filters back as band types (owner's call): band, comb (Gain = feedback, minus = hollow), phaser (Q = feedback). */
+export const BT_BAND = 8, BT_COMB = 9, BT_PHASER = 10;
 const BW8_Q = [0.5098, 0.6013, 0.9, 2.5629];
 /** Where the page reads the bells' positions: the live value carries bell 1's Hz, the second packs bells 2-4. */
 export const packBells = (m1: number, m2: number, m3: number): number =>
@@ -227,6 +229,13 @@ class Stage {
   readonly bT = new Int8Array(GRIND_BELLS).fill(BT_BELL);
   readonly bK4 = new Float64Array(4 * GRIND_BELLS).fill(1);
   readonly bC = new Float64Array(4 * GRIND_BELLS);
+  /** How many bands are used (grind<n>.bell_count); per band its comb delay and feedback, its phaser's all-passes. */
+  bN = GRIND_BELLS;
+  readonly bComb = Array.from({ length: 2 * GRIND_BELLS }, () => new Float32Array(COMB_LEN));
+  readonly bDelay = new Float64Array(GRIND_BELLS).fill(100);
+  readonly bDelayStep = new Float64Array(GRIND_BELLS);
+  readonly bFb = new Float64Array(GRIND_BELLS);
+  readonly bAp = new Float64Array(2 * GRIND_BELLS * 5);
   readonly bG = new Float64Array(GRIND_BELLS).fill(0.05);
   readonly bGStep = new Float64Array(GRIND_BELLS);
   readonly bK = new Float64Array(GRIND_BELLS).fill(1);
@@ -513,9 +522,31 @@ class Stage {
       case GF_BELLS: {
         // four bands in a row; a bell is x + (gain - 1) · k · band-pass: exactly its gain at its centre, 0 dB away
         let v = x;
-        for (let b = 0; b < GRIND_BELLS; b++) {
+        for (let b = 0; b < this.bN; b++) {
           const o = (ch * GRIND_BELLS + b) * 4, t = this.bT[b], g = this.bG[b];
-          if (t === BT_LC48 || t === BT_HC48) {
+          if (t === BT_COMB) {
+            // rings on Freq and its harmonics; its peaks at 0 dB
+            const buf = this.bComb[ch * GRIND_BELLS + b], fb = this.bFb[b];
+            let rp = pos - this.bDelay[b];
+            if (rp < 0) rp += COMB_LEN;
+            const i = Math.floor(rp), fr = rp - i;
+            const dd = buf[i] + (buf[(i + 1) & (COMB_LEN - 1)] - buf[i]) * fr;
+            const y = v + fb * dd;
+            buf[pos] = y;
+            v = y * (1 - Math.abs(fb));
+          } else if (t === BT_PHASER) {
+            // four first-order all-passes with feedback, mixed with the dry: two moving notches
+            const s = this.bAp, so = (ch * GRIND_BELLS + b) * 5, fb = this.bFb[b], G = g / (1 + g);
+            let w = v + fb * s[so + 4];
+            for (let j = 0; j < 4; j++) {
+              const u = (w - s[so + j]) * G;
+              const lp = u + s[so + j];
+              s[so + j] = lp + u;
+              w = 2 * lp - w;
+            }
+            s[so + 4] = w;
+            v = ((1 - fb) / (2 - fb)) * (v + w);
+          } else if (t === BT_LC48 || t === BT_HC48) {
             for (let j = 0; j < 4; j++) {
               const f = this.bSvf[o + j];
               f.process(v, g, this.bK4[4 * b + j]);
@@ -653,6 +684,8 @@ export class Grind {
     for (const s of this.stages) {
       for (const f of s.svf) f.reset();
       for (const f of s.bSvf) f.reset();
+      for (const c of s.bComb) c.fill(0);
+      s.bAp.fill(0);
       for (const f of s.phSvf) f.reset();
       s.phFbS.fill(0);
       s.ap.fill(0);
@@ -792,7 +825,14 @@ export class Grind {
           if (t !== s.bT[b]) {
             s.bT[b] = t;
             for (let j = 0; j < 8; j++) s.bSvf[(Math.floor(j / 4) * GRIND_BELLS + b) * 4 + (j % 4)].reset();
+            s.bComb[b].fill(0);
+            s.bComb[GRIND_BELLS + b].fill(0);
+            for (let j = 0; j < 5; j++) s.bAp[b * 5 + j] = s.bAp[(GRIND_BELLS + b) * 5 + j] = 0;
           }
+          if (t === BT_COMB) {
+            s.bDelayStep[b] = (Math.min(fsOs / bfc, COMB_LEN - 2) - s.bDelay[b]) / n;
+            s.bFb[b] = 0.92 * Math.max(-1, Math.min(1, cur[bp.gain] / 18));
+          } else if (t === BT_PHASER) s.bFb[b] = 0.85 * Math.min(1, Math.log2(1 + q) / Math.log2(19));
           // the shelves' corner moves with the gain (Simper's shelves), so the gain's middle sits at Freq
           const gw = Math.tan((Math.PI * bfc) / fsOs) * (t === BT_LS ? 1 / Math.sqrt(A) : t === BT_HS ? Math.sqrt(A) : 1);
           s.bGStep[b] = (gw - s.bG[b]) / n;
@@ -805,11 +845,14 @@ export class Grind {
             case BT_LS: c[o] = 1; c[o + 1] = k * (A - 1); c[o + 2] = A * A - 1; break;
             case BT_HS: c[o] = A * A; c[o + 1] = k * (1 - A) * A; c[o + 2] = 1 - A * A; break;
             case BT_BELL: c[o] = 1; c[o + 1] = (A * A - 1) * k; break;
+            case BT_BAND: c[o + 1] = k; break; // only the band round Freq, its centre at 0 dB
+            case BT_COMB: case BT_PHASER: break;
             default: for (let j = 0; j < 4; j++) s.bK4[o + j] = 1 / (BW8_Q[j] * (j === 3 ? q / 0.7071 : 1));
           }
           if (b === 0) s.fcNow = bfc;
         }
         s.resNow = packBells(s.bM[1], s.bM[2], s.bM[3]);
+        s.bN = Math.max(1, Math.min(GRIND_BELLS, Math.round(cur[gp.bellCount])));
       }
       // WIDTH (owner's call, was Res, turned round: up = wider); it no longer moves (no vertical movement)
       const res = 1 - cur[gp.width];
@@ -957,7 +1000,10 @@ export class Grind {
       if (s.on) {
         s.g += s.gStep;
         if (s.ftype === GF_COMB) s.delay += s.delayStep;
-        else if (s.ftype === GF_BELLS) for (let b = 0; b < GRIND_BELLS; b++) s.bG[b] += s.bGStep[b];
+        else if (s.ftype === GF_BELLS) for (let b = 0; b < GRIND_BELLS; b++) {
+          s.bG[b] += s.bGStep[b];
+          if (s.bT[b] === BT_COMB) s.bDelay[b] += s.bDelayStep[b];
+        }
         if (s.phOn) for (let j = 0; j < s.phN; j++) {
           s.phG[j] += s.phGStep[j];
           s.phG[PH_MAX + j] += s.phGStep[PH_MAX + j];

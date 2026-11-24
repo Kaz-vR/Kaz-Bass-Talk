@@ -21,6 +21,7 @@ constexpr double PH_K = 1 / 1.1;
 inline double packPhaser(double l, double r) { return jsRound((l + 1) * 127.5) + 256 * jsRound((r + 1) * 127.5); }
 /** A bell's type (EQ Eight's eight, see grind.ts). */
 constexpr int BT_LC48 = 0, BT_LC12 = 1, BT_LS = 2, BT_BELL = 3, BT_NOTCH = 4, BT_HS = 5, BT_HC12 = 6, BT_HC48 = 7;
+constexpr int BT_BAND = 8, BT_COMB = 9, BT_PHASER = 10;
 constexpr double BW8_Q[4] = {0.5098, 0.6013, 0.9, 2.5629};
 inline double packBells(double m1, double m2, double m3) {
   return jsRound(255 * m1) + 256 * jsRound(255 * m2) + 65536 * jsRound(255 * m3);
@@ -239,6 +240,9 @@ struct GrindStage {
   }
   int bT[GRIND_BELLS] = {BT_BELL, BT_BELL, BT_BELL, BT_BELL};
   double bK4[4 * GRIND_BELLS] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, bC[4 * GRIND_BELLS] = {};
+  int bN = GRIND_BELLS;
+  std::array<float, GRIND_COMB_LEN> bComb[2 * GRIND_BELLS] = {};
+  double bDelay[GRIND_BELLS] = {100, 100, 100, 100}, bDelayStep[GRIND_BELLS] = {}, bFb[GRIND_BELLS] = {}, bAp[2 * GRIND_BELLS * 5] = {};
   double bG[GRIND_BELLS] = {0.05, 0.05, 0.05, 0.05}, bGStep[GRIND_BELLS] = {}, bK[GRIND_BELLS] = {1, 1, 1, 1};
   double bFrom[GRIND_BELLS] = {0, 0.2, 0.8, 0.45}, bTo[GRIND_BELLS] = {0, 0.7, 0.3, 0.95}, bPos[GRIND_BELLS] = {0, 0.33, 0.66, 0.15}, bSpd[GRIND_BELLS] = {1, 0.8, 1.25, 0.95};
   double bM[GRIND_BELLS] = {};
@@ -448,10 +452,34 @@ struct GrindStage {
       }
       case GF_BELLS: {
         double v = x;
-        for (int b = 0; b < GRIND_BELLS; b++) {
+        for (int b = 0; b < bN; b++) {
           const int o = (ch * GRIND_BELLS + b) * 4, t = bT[b];
           const double gb = bG[b];
-          if (t == BT_LC48 || t == BT_HC48) {
+          if (t == BT_COMB) {
+            auto& buf = bComb[ch * GRIND_BELLS + b];
+            const double fb = bFb[b];
+            double rp = pos - bDelay[b];
+            if (rp < 0) rp += GRIND_COMB_LEN;
+            const int i = (int)std::floor(rp);
+            const double fr = rp - i;
+            const double dd = buf[(size_t)i] + (buf[(size_t)((i + 1) & (GRIND_COMB_LEN - 1))] - buf[(size_t)i]) * fr;
+            const double y = v + fb * dd;
+            buf[(size_t)pos] = (float)y;
+            v = y * (1 - std::fabs(fb));
+          } else if (t == BT_PHASER) {
+            double* s = bAp;
+            const int so = (ch * GRIND_BELLS + b) * 5;
+            const double fb = bFb[b], G = gb / (1 + gb);
+            double w = v + fb * s[so + 4];
+            for (int j = 0; j < 4; j++) {
+              const double u = (w - s[so + j]) * G;
+              const double lp = u + s[so + j];
+              s[so + j] = lp + u;
+              w = 2 * lp - w;
+            }
+            s[so + 4] = w;
+            v = ((1 - fb) / (2 - fb)) * (v + w);
+          } else if (t == BT_LC48 || t == BT_HC48) {
             for (int j = 0; j < 4; j++) {
               Svf& f = bSvf[o + j];
               f.process(v, gb, bK4[4 * b + j]);
@@ -558,6 +586,8 @@ class Grind {
     for (auto& s : stages) {
       for (auto& f : s.svf) f.reset();
       for (auto& f : s.bSvf) f.reset();
+      for (auto& c : s.bComb) c.fill(0);
+      for (double& a : s.bAp) a = 0;
       for (auto& f : s.phSvf) f.reset();
       s.phFbS[0] = s.phFbS[1] = 0;
       for (double& a : s.ap) a = 0;
@@ -688,7 +718,15 @@ class Grind {
           if (t != s.bT[b]) {
             s.bT[b] = t;
             for (int j = 0; j < 8; j++) s.bSvf[((j / 4) * GRIND_BELLS + b) * 4 + (j % 4)].reset();
+            s.bComb[b].fill(0);
+            s.bComb[GRIND_BELLS + b].fill(0);
+            for (int j = 0; j < 5; j++) s.bAp[b * 5 + j] = s.bAp[(GRIND_BELLS + b) * 5 + j] = 0;
           }
+          if (t == BT_COMB) {
+            s.bDelayStep[b] = (std::fmin(fsOs / bfc, GRIND_COMB_LEN - 2) - s.bDelay[b]) / n;
+            s.bFb[b] = 0.92 * std::fmax(-1.0, std::fmin(1.0, cur[bp.gain] / 18));
+          } else if (t == BT_PHASER)
+            s.bFb[b] = 0.85 * std::fmin(1.0, std::log2(1 + q) / std::log2(19.0));
           const double gw = std::tan((PI * bfc) / fsOs) * (t == BT_LS ? 1 / std::sqrt(A) : t == BT_HS ? std::sqrt(A) : 1.0);
           s.bGStep[b] = (gw - s.bG[b]) / n;
           s.bK[b] = k;
@@ -700,11 +738,14 @@ class Grind {
             case BT_LS: c[o] = 1; c[o + 1] = k * (A - 1); c[o + 2] = A * A - 1; break;
             case BT_HS: c[o] = A * A; c[o + 1] = k * (1 - A) * A; c[o + 2] = 1 - A * A; break;
             case BT_BELL: c[o] = 1; c[o + 1] = (A * A - 1) * k; break;
+            case BT_BAND: c[o + 1] = k; break;
+            case BT_COMB: case BT_PHASER: break;
             default: for (int j = 0; j < 4; j++) s.bK4[o + j] = 1 / (BW8_Q[j] * (j == 3 ? q / 0.7071 : 1.0));
           }
           if (b == 0) s.fcNow = bfc;
         }
         s.resNow = packBells(s.bM[1], s.bM[2], s.bM[3]);
+        s.bN = std::max(1, std::min(GRIND_BELLS, (int)jsRound(cur[gp.bellCount])));
       }
       const double res = 1 - cur[gp.width];
       s.depth = ftype == GF_BELLS ? 1 : cur[gp.depth];
@@ -828,7 +869,10 @@ class Grind {
       s.g += s.gStep;
       if (s.ftype == GF_COMB) s.delay += s.delayStep;
       else if (s.ftype == GF_BELLS)
-        for (int b = 0; b < GRIND_BELLS; b++) s.bG[b] += s.bGStep[b];
+        for (int b = 0; b < GRIND_BELLS; b++) {
+          s.bG[b] += s.bGStep[b];
+          if (s.bT[b] == BT_COMB) s.bDelay[b] += s.bDelayStep[b];
+        }
       if (s.phOn)
         for (int j = 0; j < s.phN; j++) {
           s.phG[j] += s.phGStep[j];

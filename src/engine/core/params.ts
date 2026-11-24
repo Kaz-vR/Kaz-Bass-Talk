@@ -224,7 +224,7 @@ export const P = {
     filterOn: ix(`grind${n}.filter_on`), driveOn: ix(`grind${n}.drive_on`), fLevel: ix(`grind${n}.filter_level`), dLevel: ix(`grind${n}.drive_level`),
     eqOn: ix(`grind${n}.eq_on`), eqLevel: ix(`grind${n}.eq_level`), eqScale: ix(`grind${n}.eq_scale`),
     eq: [1, 2, 3, 4].map((b) => ({ type: ix(`grind${n}.eq_b${b}_type`), freq: ix(`grind${n}.eq_b${b}_freq`), gain: ix(`grind${n}.eq_b${b}_gain`), q: ix(`grind${n}.eq_b${b}_q`) })),
-    bellLink: ix(`grind${n}.bell_link`),
+    bellLink: ix(`grind${n}.bell_link`), bellCount: ix(`grind${n}.bell_count`),
     phOn: ix(`grind${n}.phaser_on`), phLevel: ix(`grind${n}.phaser_level`), phNotches: ix(`grind${n}.ph_notches`), phCenter: ix(`grind${n}.ph_center`),
     phSpread: ix(`grind${n}.ph_spread`), phAmount: ix(`grind${n}.ph_amount`), phRate: ix(`grind${n}.ph_rate`), phClock: ix(`grind${n}.ph_clock`),
     phFeedback: ix(`grind${n}.ph_feedback`), phStereo: ix(`grind${n}.ph_stereo`),
