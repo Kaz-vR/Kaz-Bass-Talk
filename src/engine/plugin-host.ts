@@ -210,6 +210,11 @@ export class PluginHost {
     return { phase: [4, 5, 6, 7, 20, 21].map((i) => this.live[i] ?? 0), value: [8, 9, 10, 11, 22, 23].map((i) => this.live[i] ?? 0) };
   }
 
+  /** Each RUIN phaser's left and right LFO, packed (-1 off). */
+  livePhaser(): number[] {
+    return [32, 33, 34, 35, 36, 37, 38, 39].map((i) => this.live[i] ?? -1);
+  }
+
   /** Each GRIND stage's filter frequency (Hz, -1 off) and resonance. */
   liveGrind(): { fc: number[]; res: number[] } {
     return { fc: [12, 13, 14, 15, 24, 25, 26, 27].map((i) => this.live[i] ?? -1), res: [16, 17, 18, 19, 28, 29, 30, 31].map((i) => this.live[i] ?? 0) };

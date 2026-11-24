@@ -37,7 +37,7 @@ class Synth {
   std::array<double, LFO_COUNT> lfoPhase{}, lfoValue{};
   // What the page shows of each LFO: its phase and value; the per-note shapes show the newest note's.
   std::array<double, LFO_COUNT> liveLfoPhase{}, liveLfoValue{};
-  std::array<double, 8> liveGrind{}, liveGrindRes{};
+  std::array<double, 8> liveGrind{}, liveGrindRes{}, livePhaser{};
 
   explicit Synth(double fs)
       : sampleRate(fs), rng(0x1234567), wobRng(0x60bb1e), texGrindRng(0x6a1d), bus(fs, texGrindRng), ott(),
@@ -52,6 +52,7 @@ class Synth {
     }
     dstMask.fill(1);
     liveGrind.fill(-1);
+    livePhaser.fill(-1);
     const float* table = getWavetable().data();
     for (int i = 0; i < MAX_VOICES; i++)
       voices.push_back(std::make_unique<Voice>(fs, cur.data(), table, 0x2468aceu + 0x9e3779bu * (uint32_t)i, dstMask.data()));
@@ -877,6 +878,7 @@ class Synth {
       const auto& st = bus.grind.stages[i];
       liveGrind[i] = lead->active() && bus.grindOn ? st.fcNow : -1;
       liveGrindRes[i] = st.resNow;
+      livePhaser[i] = bus.grindOn ? st.phLive : -1;
     }
     liveRes = lead->resNow;
     if (poly > 1) {

@@ -230,6 +230,7 @@ void LowTalkProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     for (int l = 4; l < 6; l++) live[(size_t)k++].store((float)synth->liveLfoValue[(size_t)l]);
     for (int g = 4; g < 8; g++) live[(size_t)k++].store((float)synth->liveGrind[(size_t)g]);
     for (int g = 4; g < 8; g++) live[(size_t)k++].store((float)synth->liveGrindRes[(size_t)g]);
+    for (int g = 0; g < 8; g++) live[(size_t)k++].store((float)synth->livePhaser[(size_t)g]);
   }
 
   // Feed the window's scope and meter.

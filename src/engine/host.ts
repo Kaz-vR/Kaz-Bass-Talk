@@ -37,7 +37,7 @@ export class EngineHost {
     this.analyser.smoothingTimeConstant = 0.6;
     node.connect(ctx.destination);
     node.connect(this.analyser);
-    const split = ctx.createChannelSplitter(32);
+    const split = ctx.createChannelSplitter(40);
     node.connect(split, 1);
     this.ctlCut = ctx.createAnalyser();
     this.ctlRes = ctx.createAnalyser();
@@ -59,7 +59,7 @@ export class EngineHost {
       this.ruinView.spec.push(new Float32Array(a.frequencyBinCount));
     }
     this.ruinView.binHz = ctx.sampleRate / 2048;
-    for (let c = 3; c < 32; c++) {
+    for (let c = 3; c < 40; c++) {
       const a = ctx.createAnalyser();
       a.fftSize = 32;
       split.connect(a, c);
@@ -86,6 +86,15 @@ export class EngineHost {
     // stages 1-4 on channels 12-15 / 16-19, stages 5-8 on 24-27 / 28-31
     const a = this.ctlLfo;
     return { fc: [...a.slice(9, 13), ...a.slice(21, 25)].map(read), res: [...a.slice(13, 17), ...a.slice(25, 29)].map(read) };
+  }
+
+  /** Each RUIN phaser's left and right LFO (-1..1) right now, packed; -1 when it is off. */
+  livePhaser(): number[] {
+    const read = (a: AnalyserNode) => {
+      a.getFloatTimeDomainData(this.ctlBuf);
+      return this.ctlBuf[31];
+    };
+    return this.ctlLfo.slice(29, 37).map(read);
   }
 
   /** The RUIN page's taps right now: each point's spectrum (dB per bin), level (RMS) and peak, linear. */
@@ -142,7 +151,7 @@ export class EngineHost {
     const node = new AudioWorkletNode(ctx, PROCESSOR_NAME, {
       numberOfInputs: 0,
       numberOfOutputs: 3,
-      outputChannelCount: [2, 32, 13],
+      outputChannelCount: [2, 40, 13],
     });
     return new EngineHost(ctx, node);
   }

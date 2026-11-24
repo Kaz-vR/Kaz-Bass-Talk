@@ -71,7 +71,7 @@ class LowTalkProcessor : public juce::AudioProcessor {
   double getRate() const { return rate; }
   /** What the engine is doing right now, for the window's moving prints: cutoff, resonance, the
    *  two unused slots (were the Wobbler's), each LFO's phase and value, each RUIN stage's frequency and resonance. */
-  static constexpr int LIVE_COUNT = 32;
+  static constexpr int LIVE_COUNT = 40;
   std::array<std::atomic<float>, LIVE_COUNT> live{};
 
   static constexpr const char* WHEEL_ID = "modwheel";

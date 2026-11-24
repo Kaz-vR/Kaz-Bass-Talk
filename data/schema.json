@@ -3406,11 +3406,19 @@
         "eq 5",
         "eq 6",
         "eq 7",
-        "eq 8"
+        "eq 8",
+        "phaser 1",
+        "phaser 2",
+        "phaser 3",
+        "phaser 4",
+        "phaser 5",
+        "phaser 6",
+        "phaser 7",
+        "phaser 8"
       ],
       "default": "empty",
       "group": "grind",
-      "describes": "What the RUIN chain's box 1 holds, in order left to right: one of the four filters, one of the four drives, or nothing."
+      "describes": "What the RUIN chain's box 1 holds, in order left to right: a filter, a drive, an EQ, a phaser, or nothing."
     },
     {
       "id": "grind.slot2",
@@ -3441,11 +3449,19 @@
         "eq 5",
         "eq 6",
         "eq 7",
-        "eq 8"
+        "eq 8",
+        "phaser 1",
+        "phaser 2",
+        "phaser 3",
+        "phaser 4",
+        "phaser 5",
+        "phaser 6",
+        "phaser 7",
+        "phaser 8"
       ],
       "default": "empty",
       "group": "grind",
-      "describes": "What the RUIN chain's box 2 holds, in order left to right: one of the four filters, one of the four drives, or nothing."
+      "describes": "What the RUIN chain's box 2 holds, in order left to right: a filter, a drive, an EQ, a phaser, or nothing."
     },
     {
       "id": "grind.slot3",
@@ -3476,11 +3492,19 @@
         "eq 5",
         "eq 6",
         "eq 7",
-        "eq 8"
+        "eq 8",
+        "phaser 1",
+        "phaser 2",
+        "phaser 3",
+        "phaser 4",
+        "phaser 5",
+        "phaser 6",
+        "phaser 7",
+        "phaser 8"
       ],
       "default": "empty",
       "group": "grind",
-      "describes": "What the RUIN chain's box 3 holds, in order left to right: one of the four filters, one of the four drives, or nothing."
+      "describes": "What the RUIN chain's box 3 holds, in order left to right: a filter, a drive, an EQ, a phaser, or nothing."
     },
     {
       "id": "grind.slot4",
@@ -3511,11 +3535,19 @@
         "eq 5",
         "eq 6",
         "eq 7",
-        "eq 8"
+        "eq 8",
+        "phaser 1",
+        "phaser 2",
+        "phaser 3",
+        "phaser 4",
+        "phaser 5",
+        "phaser 6",
+        "phaser 7",
+        "phaser 8"
       ],
       "default": "empty",
       "group": "grind",
-      "describes": "What the RUIN chain's box 4 holds, in order left to right: one of the four filters, one of the four drives, or nothing."
+      "describes": "What the RUIN chain's box 4 holds, in order left to right: a filter, a drive, an EQ, a phaser, or nothing."
     },
     {
       "id": "grind.slot5",
@@ -3546,11 +3578,19 @@
         "eq 5",
         "eq 6",
         "eq 7",
-        "eq 8"
+        "eq 8",
+        "phaser 1",
+        "phaser 2",
+        "phaser 3",
+        "phaser 4",
+        "phaser 5",
+        "phaser 6",
+        "phaser 7",
+        "phaser 8"
       ],
       "default": "empty",
       "group": "grind",
-      "describes": "What the RUIN chain's box 5 holds, in order left to right: one of the four filters, one of the four drives, or nothing."
+      "describes": "What the RUIN chain's box 5 holds, in order left to right: a filter, a drive, an EQ, a phaser, or nothing."
     },
     {
       "id": "grind.slot6",
@@ -3581,11 +3621,19 @@
         "eq 5",
         "eq 6",
         "eq 7",
-        "eq 8"
+        "eq 8",
+        "phaser 1",
+        "phaser 2",
+        "phaser 3",
+        "phaser 4",
+        "phaser 5",
+        "phaser 6",
+        "phaser 7",
+        "phaser 8"
       ],
       "default": "empty",
       "group": "grind",
-      "describes": "What the RUIN chain's box 6 holds, in order left to right: one of the four filters, one of the four drives, or nothing."
+      "describes": "What the RUIN chain's box 6 holds, in order left to right: a filter, a drive, an EQ, a phaser, or nothing."
     },
     {
       "id": "grind.slot7",
@@ -3616,11 +3664,19 @@
         "eq 5",
         "eq 6",
         "eq 7",
-        "eq 8"
+        "eq 8",
+        "phaser 1",
+        "phaser 2",
+        "phaser 3",
+        "phaser 4",
+        "phaser 5",
+        "phaser 6",
+        "phaser 7",
+        "phaser 8"
       ],
       "default": "empty",
       "group": "grind",
-      "describes": "What the RUIN chain's box 7 holds, in order left to right: one of the four filters, one of the four drives, or nothing."
+      "describes": "What the RUIN chain's box 7 holds, in order left to right: a filter, a drive, an EQ, a phaser, or nothing."
     },
     {
       "id": "grind.slot8",
@@ -3651,11 +3707,19 @@
         "eq 5",
         "eq 6",
         "eq 7",
-        "eq 8"
+        "eq 8",
+        "phaser 1",
+        "phaser 2",
+        "phaser 3",
+        "phaser 4",
+        "phaser 5",
+        "phaser 6",
+        "phaser 7",
+        "phaser 8"
       ],
       "default": "empty",
       "group": "grind",
-      "describes": "What the RUIN chain's box 8 holds, in order left to right: one of the four filters, one of the four drives, or nothing."
+      "describes": "What the RUIN chain's box 8 holds, in order left to right: a filter, a drive, an EQ, a phaser, or nothing."
     },
     {
       "id": "grind1.on",
@@ -4057,6 +4121,123 @@
       "unit": "dB",
       "group": "grind1",
       "describes": "The level leaving the EQ box, set with the handle on its level meter: turn it down when it pushes the next box into the red. 0 dB = untouched."
+    },
+    {
+      "id": "grind1.phaser_on",
+      "label": "Grind 1 phaser on",
+      "group": "grind1",
+      "type": "bool",
+      "default": false,
+      "describes": "Phaser 1 in RUIN's chain on / off."
+    },
+    {
+      "id": "grind1.phaser_level",
+      "label": "Grind 1 phaser level",
+      "group": "grind1",
+      "type": "float",
+      "min": -24,
+      "max": 6,
+      "default": 0,
+      "curve": "linear",
+      "unit": "dB",
+      "describes": "The level leaving the phaser box, set with the handle on its level meter. 0 dB = untouched."
+    },
+    {
+      "id": "grind1.ph_notches",
+      "label": "Grind 1 phaser notches",
+      "group": "grind1",
+      "type": "int",
+      "min": 1,
+      "max": 12,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "describes": "How many notches the phaser cuts (each is a pair of all-pass stages)."
+    },
+    {
+      "id": "grind1.ph_center",
+      "label": "Grind 1 phaser center",
+      "group": "grind1",
+      "type": "float",
+      "min": 40,
+      "max": 12000,
+      "default": 700,
+      "curve": "log",
+      "unit": "Hz",
+      "describes": "The middle of the set of notches: turn it to move them all up or down."
+    },
+    {
+      "id": "grind1.ph_spread",
+      "label": "Grind 1 phaser spread",
+      "group": "grind1",
+      "type": "float",
+      "min": 0.2,
+      "max": 3,
+      "default": 1.1,
+      "curve": "linear",
+      "unit": "oct",
+      "describes": "How far apart the notches sit, in octaves."
+    },
+    {
+      "id": "grind1.ph_amount",
+      "label": "Grind 1 phaser amount",
+      "group": "grind1",
+      "type": "float",
+      "min": 0,
+      "max": 6,
+      "default": 1.5,
+      "curve": "linear",
+      "unit": "oct",
+      "describes": "How far the notches sweep, in octaves (0 = they stand still)."
+    },
+    {
+      "id": "grind1.ph_rate",
+      "label": "Grind 1 phaser rate",
+      "group": "grind1",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.45,
+      "curve": "linear",
+      "unit": "",
+      "describes": "How fast the notches sweep: 0.1-25 Hz, or 1 bar to 1/32 when synced."
+    },
+    {
+      "id": "grind1.ph_clock",
+      "label": "Grind 1 phaser clock",
+      "group": "grind1",
+      "type": "enum",
+      "options": [
+        "hz",
+        "sync",
+        "random"
+      ],
+      "default": "hz",
+      "describes": "How the sweep moves: hz = a free-running sine at Rate; sync = the same on the tempo; random = it wanders, never repeating."
+    },
+    {
+      "id": "grind1.ph_feedback",
+      "label": "Grind 1 phaser feedback",
+      "group": "grind1",
+      "type": "float",
+      "min": 0,
+      "max": 0.9,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "describes": "Feeds the phaser back into itself: sharper notches and ringing peaks between them."
+    },
+    {
+      "id": "grind1.ph_stereo",
+      "label": "Grind 1 phaser stereo",
+      "group": "grind1",
+      "type": "float",
+      "min": 0,
+      "max": 180,
+      "default": 90,
+      "curve": "linear",
+      "unit": "°",
+      "describes": "How far the right channel's sweep runs ahead of the left: 0 = the same (mono), 180 = opposite."
     },
     {
       "id": "grind1.eq_b1_type",
@@ -4720,6 +4901,123 @@
       "describes": "The level leaving the EQ box, set with the handle on its level meter: turn it down when it pushes the next box into the red. 0 dB = untouched."
     },
     {
+      "id": "grind2.phaser_on",
+      "label": "Grind 2 phaser on",
+      "group": "grind2",
+      "type": "bool",
+      "default": false,
+      "describes": "Phaser 2 in RUIN's chain on / off."
+    },
+    {
+      "id": "grind2.phaser_level",
+      "label": "Grind 2 phaser level",
+      "group": "grind2",
+      "type": "float",
+      "min": -24,
+      "max": 6,
+      "default": 0,
+      "curve": "linear",
+      "unit": "dB",
+      "describes": "The level leaving the phaser box, set with the handle on its level meter. 0 dB = untouched."
+    },
+    {
+      "id": "grind2.ph_notches",
+      "label": "Grind 2 phaser notches",
+      "group": "grind2",
+      "type": "int",
+      "min": 1,
+      "max": 12,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "describes": "How many notches the phaser cuts (each is a pair of all-pass stages)."
+    },
+    {
+      "id": "grind2.ph_center",
+      "label": "Grind 2 phaser center",
+      "group": "grind2",
+      "type": "float",
+      "min": 40,
+      "max": 12000,
+      "default": 700,
+      "curve": "log",
+      "unit": "Hz",
+      "describes": "The middle of the set of notches: turn it to move them all up or down."
+    },
+    {
+      "id": "grind2.ph_spread",
+      "label": "Grind 2 phaser spread",
+      "group": "grind2",
+      "type": "float",
+      "min": 0.2,
+      "max": 3,
+      "default": 1.1,
+      "curve": "linear",
+      "unit": "oct",
+      "describes": "How far apart the notches sit, in octaves."
+    },
+    {
+      "id": "grind2.ph_amount",
+      "label": "Grind 2 phaser amount",
+      "group": "grind2",
+      "type": "float",
+      "min": 0,
+      "max": 6,
+      "default": 1.5,
+      "curve": "linear",
+      "unit": "oct",
+      "describes": "How far the notches sweep, in octaves (0 = they stand still)."
+    },
+    {
+      "id": "grind2.ph_rate",
+      "label": "Grind 2 phaser rate",
+      "group": "grind2",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.45,
+      "curve": "linear",
+      "unit": "",
+      "describes": "How fast the notches sweep: 0.1-25 Hz, or 1 bar to 1/32 when synced."
+    },
+    {
+      "id": "grind2.ph_clock",
+      "label": "Grind 2 phaser clock",
+      "group": "grind2",
+      "type": "enum",
+      "options": [
+        "hz",
+        "sync",
+        "random"
+      ],
+      "default": "hz",
+      "describes": "How the sweep moves: hz = a free-running sine at Rate; sync = the same on the tempo; random = it wanders, never repeating."
+    },
+    {
+      "id": "grind2.ph_feedback",
+      "label": "Grind 2 phaser feedback",
+      "group": "grind2",
+      "type": "float",
+      "min": 0,
+      "max": 0.9,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "describes": "Feeds the phaser back into itself: sharper notches and ringing peaks between them."
+    },
+    {
+      "id": "grind2.ph_stereo",
+      "label": "Grind 2 phaser stereo",
+      "group": "grind2",
+      "type": "float",
+      "min": 0,
+      "max": 180,
+      "default": 90,
+      "curve": "linear",
+      "unit": "°",
+      "describes": "How far the right channel's sweep runs ahead of the left: 0 = the same (mono), 180 = opposite."
+    },
+    {
       "id": "grind2.eq_b1_type",
       "label": "Grind 2 EQ 1 type",
       "type": "enum",
@@ -5381,6 +5679,123 @@
       "describes": "The level leaving the EQ box, set with the handle on its level meter: turn it down when it pushes the next box into the red. 0 dB = untouched."
     },
     {
+      "id": "grind3.phaser_on",
+      "label": "Grind 3 phaser on",
+      "group": "grind3",
+      "type": "bool",
+      "default": false,
+      "describes": "Phaser 3 in RUIN's chain on / off."
+    },
+    {
+      "id": "grind3.phaser_level",
+      "label": "Grind 3 phaser level",
+      "group": "grind3",
+      "type": "float",
+      "min": -24,
+      "max": 6,
+      "default": 0,
+      "curve": "linear",
+      "unit": "dB",
+      "describes": "The level leaving the phaser box, set with the handle on its level meter. 0 dB = untouched."
+    },
+    {
+      "id": "grind3.ph_notches",
+      "label": "Grind 3 phaser notches",
+      "group": "grind3",
+      "type": "int",
+      "min": 1,
+      "max": 12,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "describes": "How many notches the phaser cuts (each is a pair of all-pass stages)."
+    },
+    {
+      "id": "grind3.ph_center",
+      "label": "Grind 3 phaser center",
+      "group": "grind3",
+      "type": "float",
+      "min": 40,
+      "max": 12000,
+      "default": 700,
+      "curve": "log",
+      "unit": "Hz",
+      "describes": "The middle of the set of notches: turn it to move them all up or down."
+    },
+    {
+      "id": "grind3.ph_spread",
+      "label": "Grind 3 phaser spread",
+      "group": "grind3",
+      "type": "float",
+      "min": 0.2,
+      "max": 3,
+      "default": 1.1,
+      "curve": "linear",
+      "unit": "oct",
+      "describes": "How far apart the notches sit, in octaves."
+    },
+    {
+      "id": "grind3.ph_amount",
+      "label": "Grind 3 phaser amount",
+      "group": "grind3",
+      "type": "float",
+      "min": 0,
+      "max": 6,
+      "default": 1.5,
+      "curve": "linear",
+      "unit": "oct",
+      "describes": "How far the notches sweep, in octaves (0 = they stand still)."
+    },
+    {
+      "id": "grind3.ph_rate",
+      "label": "Grind 3 phaser rate",
+      "group": "grind3",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.45,
+      "curve": "linear",
+      "unit": "",
+      "describes": "How fast the notches sweep: 0.1-25 Hz, or 1 bar to 1/32 when synced."
+    },
+    {
+      "id": "grind3.ph_clock",
+      "label": "Grind 3 phaser clock",
+      "group": "grind3",
+      "type": "enum",
+      "options": [
+        "hz",
+        "sync",
+        "random"
+      ],
+      "default": "hz",
+      "describes": "How the sweep moves: hz = a free-running sine at Rate; sync = the same on the tempo; random = it wanders, never repeating."
+    },
+    {
+      "id": "grind3.ph_feedback",
+      "label": "Grind 3 phaser feedback",
+      "group": "grind3",
+      "type": "float",
+      "min": 0,
+      "max": 0.9,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "describes": "Feeds the phaser back into itself: sharper notches and ringing peaks between them."
+    },
+    {
+      "id": "grind3.ph_stereo",
+      "label": "Grind 3 phaser stereo",
+      "group": "grind3",
+      "type": "float",
+      "min": 0,
+      "max": 180,
+      "default": 90,
+      "curve": "linear",
+      "unit": "°",
+      "describes": "How far the right channel's sweep runs ahead of the left: 0 = the same (mono), 180 = opposite."
+    },
+    {
       "id": "grind3.eq_b1_type",
       "label": "Grind 3 EQ 1 type",
       "type": "enum",
@@ -6040,6 +6455,123 @@
       "unit": "dB",
       "group": "grind4",
       "describes": "The level leaving the EQ box, set with the handle on its level meter: turn it down when it pushes the next box into the red. 0 dB = untouched."
+    },
+    {
+      "id": "grind4.phaser_on",
+      "label": "Grind 4 phaser on",
+      "group": "grind4",
+      "type": "bool",
+      "default": false,
+      "describes": "Phaser 4 in RUIN's chain on / off."
+    },
+    {
+      "id": "grind4.phaser_level",
+      "label": "Grind 4 phaser level",
+      "group": "grind4",
+      "type": "float",
+      "min": -24,
+      "max": 6,
+      "default": 0,
+      "curve": "linear",
+      "unit": "dB",
+      "describes": "The level leaving the phaser box, set with the handle on its level meter. 0 dB = untouched."
+    },
+    {
+      "id": "grind4.ph_notches",
+      "label": "Grind 4 phaser notches",
+      "group": "grind4",
+      "type": "int",
+      "min": 1,
+      "max": 12,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "describes": "How many notches the phaser cuts (each is a pair of all-pass stages)."
+    },
+    {
+      "id": "grind4.ph_center",
+      "label": "Grind 4 phaser center",
+      "group": "grind4",
+      "type": "float",
+      "min": 40,
+      "max": 12000,
+      "default": 700,
+      "curve": "log",
+      "unit": "Hz",
+      "describes": "The middle of the set of notches: turn it to move them all up or down."
+    },
+    {
+      "id": "grind4.ph_spread",
+      "label": "Grind 4 phaser spread",
+      "group": "grind4",
+      "type": "float",
+      "min": 0.2,
+      "max": 3,
+      "default": 1.1,
+      "curve": "linear",
+      "unit": "oct",
+      "describes": "How far apart the notches sit, in octaves."
+    },
+    {
+      "id": "grind4.ph_amount",
+      "label": "Grind 4 phaser amount",
+      "group": "grind4",
+      "type": "float",
+      "min": 0,
+      "max": 6,
+      "default": 1.5,
+      "curve": "linear",
+      "unit": "oct",
+      "describes": "How far the notches sweep, in octaves (0 = they stand still)."
+    },
+    {
+      "id": "grind4.ph_rate",
+      "label": "Grind 4 phaser rate",
+      "group": "grind4",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.45,
+      "curve": "linear",
+      "unit": "",
+      "describes": "How fast the notches sweep: 0.1-25 Hz, or 1 bar to 1/32 when synced."
+    },
+    {
+      "id": "grind4.ph_clock",
+      "label": "Grind 4 phaser clock",
+      "group": "grind4",
+      "type": "enum",
+      "options": [
+        "hz",
+        "sync",
+        "random"
+      ],
+      "default": "hz",
+      "describes": "How the sweep moves: hz = a free-running sine at Rate; sync = the same on the tempo; random = it wanders, never repeating."
+    },
+    {
+      "id": "grind4.ph_feedback",
+      "label": "Grind 4 phaser feedback",
+      "group": "grind4",
+      "type": "float",
+      "min": 0,
+      "max": 0.9,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "describes": "Feeds the phaser back into itself: sharper notches and ringing peaks between them."
+    },
+    {
+      "id": "grind4.ph_stereo",
+      "label": "Grind 4 phaser stereo",
+      "group": "grind4",
+      "type": "float",
+      "min": 0,
+      "max": 180,
+      "default": 90,
+      "curve": "linear",
+      "unit": "°",
+      "describes": "How far the right channel's sweep runs ahead of the left: 0 = the same (mono), 180 = opposite."
     },
     {
       "id": "grind4.eq_b1_type",
@@ -8158,6 +8690,123 @@
       "describes": "The level leaving the EQ box, set with the handle on its level meter: turn it down when it pushes the next box into the red. 0 dB = untouched."
     },
     {
+      "id": "grind5.phaser_on",
+      "label": "Grind 5 phaser on",
+      "group": "grind5",
+      "type": "bool",
+      "default": false,
+      "describes": "Phaser 5 in RUIN's chain on / off."
+    },
+    {
+      "id": "grind5.phaser_level",
+      "label": "Grind 5 phaser level",
+      "group": "grind5",
+      "type": "float",
+      "min": -24,
+      "max": 6,
+      "default": 0,
+      "curve": "linear",
+      "unit": "dB",
+      "describes": "The level leaving the phaser box, set with the handle on its level meter. 0 dB = untouched."
+    },
+    {
+      "id": "grind5.ph_notches",
+      "label": "Grind 5 phaser notches",
+      "group": "grind5",
+      "type": "int",
+      "min": 1,
+      "max": 12,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "describes": "How many notches the phaser cuts (each is a pair of all-pass stages)."
+    },
+    {
+      "id": "grind5.ph_center",
+      "label": "Grind 5 phaser center",
+      "group": "grind5",
+      "type": "float",
+      "min": 40,
+      "max": 12000,
+      "default": 700,
+      "curve": "log",
+      "unit": "Hz",
+      "describes": "The middle of the set of notches: turn it to move them all up or down."
+    },
+    {
+      "id": "grind5.ph_spread",
+      "label": "Grind 5 phaser spread",
+      "group": "grind5",
+      "type": "float",
+      "min": 0.2,
+      "max": 3,
+      "default": 1.1,
+      "curve": "linear",
+      "unit": "oct",
+      "describes": "How far apart the notches sit, in octaves."
+    },
+    {
+      "id": "grind5.ph_amount",
+      "label": "Grind 5 phaser amount",
+      "group": "grind5",
+      "type": "float",
+      "min": 0,
+      "max": 6,
+      "default": 1.5,
+      "curve": "linear",
+      "unit": "oct",
+      "describes": "How far the notches sweep, in octaves (0 = they stand still)."
+    },
+    {
+      "id": "grind5.ph_rate",
+      "label": "Grind 5 phaser rate",
+      "group": "grind5",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.45,
+      "curve": "linear",
+      "unit": "",
+      "describes": "How fast the notches sweep: 0.1-25 Hz, or 1 bar to 1/32 when synced."
+    },
+    {
+      "id": "grind5.ph_clock",
+      "label": "Grind 5 phaser clock",
+      "group": "grind5",
+      "type": "enum",
+      "options": [
+        "hz",
+        "sync",
+        "random"
+      ],
+      "default": "hz",
+      "describes": "How the sweep moves: hz = a free-running sine at Rate; sync = the same on the tempo; random = it wanders, never repeating."
+    },
+    {
+      "id": "grind5.ph_feedback",
+      "label": "Grind 5 phaser feedback",
+      "group": "grind5",
+      "type": "float",
+      "min": 0,
+      "max": 0.9,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "describes": "Feeds the phaser back into itself: sharper notches and ringing peaks between them."
+    },
+    {
+      "id": "grind5.ph_stereo",
+      "label": "Grind 5 phaser stereo",
+      "group": "grind5",
+      "type": "float",
+      "min": 0,
+      "max": 180,
+      "default": 90,
+      "curve": "linear",
+      "unit": "°",
+      "describes": "How far the right channel's sweep runs ahead of the left: 0 = the same (mono), 180 = opposite."
+    },
+    {
       "id": "grind5.eq_b1_type",
       "label": "Grind 5 EQ 1 type",
       "type": "enum",
@@ -8881,6 +9530,123 @@
       "unit": "dB",
       "group": "grind6",
       "describes": "The level leaving the EQ box, set with the handle on its level meter: turn it down when it pushes the next box into the red. 0 dB = untouched."
+    },
+    {
+      "id": "grind6.phaser_on",
+      "label": "Grind 6 phaser on",
+      "group": "grind6",
+      "type": "bool",
+      "default": false,
+      "describes": "Phaser 6 in RUIN's chain on / off."
+    },
+    {
+      "id": "grind6.phaser_level",
+      "label": "Grind 6 phaser level",
+      "group": "grind6",
+      "type": "float",
+      "min": -24,
+      "max": 6,
+      "default": 0,
+      "curve": "linear",
+      "unit": "dB",
+      "describes": "The level leaving the phaser box, set with the handle on its level meter. 0 dB = untouched."
+    },
+    {
+      "id": "grind6.ph_notches",
+      "label": "Grind 6 phaser notches",
+      "group": "grind6",
+      "type": "int",
+      "min": 1,
+      "max": 12,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "describes": "How many notches the phaser cuts (each is a pair of all-pass stages)."
+    },
+    {
+      "id": "grind6.ph_center",
+      "label": "Grind 6 phaser center",
+      "group": "grind6",
+      "type": "float",
+      "min": 40,
+      "max": 12000,
+      "default": 700,
+      "curve": "log",
+      "unit": "Hz",
+      "describes": "The middle of the set of notches: turn it to move them all up or down."
+    },
+    {
+      "id": "grind6.ph_spread",
+      "label": "Grind 6 phaser spread",
+      "group": "grind6",
+      "type": "float",
+      "min": 0.2,
+      "max": 3,
+      "default": 1.1,
+      "curve": "linear",
+      "unit": "oct",
+      "describes": "How far apart the notches sit, in octaves."
+    },
+    {
+      "id": "grind6.ph_amount",
+      "label": "Grind 6 phaser amount",
+      "group": "grind6",
+      "type": "float",
+      "min": 0,
+      "max": 6,
+      "default": 1.5,
+      "curve": "linear",
+      "unit": "oct",
+      "describes": "How far the notches sweep, in octaves (0 = they stand still)."
+    },
+    {
+      "id": "grind6.ph_rate",
+      "label": "Grind 6 phaser rate",
+      "group": "grind6",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.45,
+      "curve": "linear",
+      "unit": "",
+      "describes": "How fast the notches sweep: 0.1-25 Hz, or 1 bar to 1/32 when synced."
+    },
+    {
+      "id": "grind6.ph_clock",
+      "label": "Grind 6 phaser clock",
+      "group": "grind6",
+      "type": "enum",
+      "options": [
+        "hz",
+        "sync",
+        "random"
+      ],
+      "default": "hz",
+      "describes": "How the sweep moves: hz = a free-running sine at Rate; sync = the same on the tempo; random = it wanders, never repeating."
+    },
+    {
+      "id": "grind6.ph_feedback",
+      "label": "Grind 6 phaser feedback",
+      "group": "grind6",
+      "type": "float",
+      "min": 0,
+      "max": 0.9,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "describes": "Feeds the phaser back into itself: sharper notches and ringing peaks between them."
+    },
+    {
+      "id": "grind6.ph_stereo",
+      "label": "Grind 6 phaser stereo",
+      "group": "grind6",
+      "type": "float",
+      "min": 0,
+      "max": 180,
+      "default": 90,
+      "curve": "linear",
+      "unit": "°",
+      "describes": "How far the right channel's sweep runs ahead of the left: 0 = the same (mono), 180 = opposite."
     },
     {
       "id": "grind6.eq_b1_type",
@@ -9608,6 +10374,123 @@
       "describes": "The level leaving the EQ box, set with the handle on its level meter: turn it down when it pushes the next box into the red. 0 dB = untouched."
     },
     {
+      "id": "grind7.phaser_on",
+      "label": "Grind 7 phaser on",
+      "group": "grind7",
+      "type": "bool",
+      "default": false,
+      "describes": "Phaser 7 in RUIN's chain on / off."
+    },
+    {
+      "id": "grind7.phaser_level",
+      "label": "Grind 7 phaser level",
+      "group": "grind7",
+      "type": "float",
+      "min": -24,
+      "max": 6,
+      "default": 0,
+      "curve": "linear",
+      "unit": "dB",
+      "describes": "The level leaving the phaser box, set with the handle on its level meter. 0 dB = untouched."
+    },
+    {
+      "id": "grind7.ph_notches",
+      "label": "Grind 7 phaser notches",
+      "group": "grind7",
+      "type": "int",
+      "min": 1,
+      "max": 12,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "describes": "How many notches the phaser cuts (each is a pair of all-pass stages)."
+    },
+    {
+      "id": "grind7.ph_center",
+      "label": "Grind 7 phaser center",
+      "group": "grind7",
+      "type": "float",
+      "min": 40,
+      "max": 12000,
+      "default": 700,
+      "curve": "log",
+      "unit": "Hz",
+      "describes": "The middle of the set of notches: turn it to move them all up or down."
+    },
+    {
+      "id": "grind7.ph_spread",
+      "label": "Grind 7 phaser spread",
+      "group": "grind7",
+      "type": "float",
+      "min": 0.2,
+      "max": 3,
+      "default": 1.1,
+      "curve": "linear",
+      "unit": "oct",
+      "describes": "How far apart the notches sit, in octaves."
+    },
+    {
+      "id": "grind7.ph_amount",
+      "label": "Grind 7 phaser amount",
+      "group": "grind7",
+      "type": "float",
+      "min": 0,
+      "max": 6,
+      "default": 1.5,
+      "curve": "linear",
+      "unit": "oct",
+      "describes": "How far the notches sweep, in octaves (0 = they stand still)."
+    },
+    {
+      "id": "grind7.ph_rate",
+      "label": "Grind 7 phaser rate",
+      "group": "grind7",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.45,
+      "curve": "linear",
+      "unit": "",
+      "describes": "How fast the notches sweep: 0.1-25 Hz, or 1 bar to 1/32 when synced."
+    },
+    {
+      "id": "grind7.ph_clock",
+      "label": "Grind 7 phaser clock",
+      "group": "grind7",
+      "type": "enum",
+      "options": [
+        "hz",
+        "sync",
+        "random"
+      ],
+      "default": "hz",
+      "describes": "How the sweep moves: hz = a free-running sine at Rate; sync = the same on the tempo; random = it wanders, never repeating."
+    },
+    {
+      "id": "grind7.ph_feedback",
+      "label": "Grind 7 phaser feedback",
+      "group": "grind7",
+      "type": "float",
+      "min": 0,
+      "max": 0.9,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "describes": "Feeds the phaser back into itself: sharper notches and ringing peaks between them."
+    },
+    {
+      "id": "grind7.ph_stereo",
+      "label": "Grind 7 phaser stereo",
+      "group": "grind7",
+      "type": "float",
+      "min": 0,
+      "max": 180,
+      "default": 90,
+      "curve": "linear",
+      "unit": "°",
+      "describes": "How far the right channel's sweep runs ahead of the left: 0 = the same (mono), 180 = opposite."
+    },
+    {
       "id": "grind7.eq_b1_type",
       "label": "Grind 7 EQ 1 type",
       "type": "enum",
@@ -10331,6 +11214,123 @@
       "unit": "dB",
       "group": "grind8",
       "describes": "The level leaving the EQ box, set with the handle on its level meter: turn it down when it pushes the next box into the red. 0 dB = untouched."
+    },
+    {
+      "id": "grind8.phaser_on",
+      "label": "Grind 8 phaser on",
+      "group": "grind8",
+      "type": "bool",
+      "default": false,
+      "describes": "Phaser 8 in RUIN's chain on / off."
+    },
+    {
+      "id": "grind8.phaser_level",
+      "label": "Grind 8 phaser level",
+      "group": "grind8",
+      "type": "float",
+      "min": -24,
+      "max": 6,
+      "default": 0,
+      "curve": "linear",
+      "unit": "dB",
+      "describes": "The level leaving the phaser box, set with the handle on its level meter. 0 dB = untouched."
+    },
+    {
+      "id": "grind8.ph_notches",
+      "label": "Grind 8 phaser notches",
+      "group": "grind8",
+      "type": "int",
+      "min": 1,
+      "max": 12,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "describes": "How many notches the phaser cuts (each is a pair of all-pass stages)."
+    },
+    {
+      "id": "grind8.ph_center",
+      "label": "Grind 8 phaser center",
+      "group": "grind8",
+      "type": "float",
+      "min": 40,
+      "max": 12000,
+      "default": 700,
+      "curve": "log",
+      "unit": "Hz",
+      "describes": "The middle of the set of notches: turn it to move them all up or down."
+    },
+    {
+      "id": "grind8.ph_spread",
+      "label": "Grind 8 phaser spread",
+      "group": "grind8",
+      "type": "float",
+      "min": 0.2,
+      "max": 3,
+      "default": 1.1,
+      "curve": "linear",
+      "unit": "oct",
+      "describes": "How far apart the notches sit, in octaves."
+    },
+    {
+      "id": "grind8.ph_amount",
+      "label": "Grind 8 phaser amount",
+      "group": "grind8",
+      "type": "float",
+      "min": 0,
+      "max": 6,
+      "default": 1.5,
+      "curve": "linear",
+      "unit": "oct",
+      "describes": "How far the notches sweep, in octaves (0 = they stand still)."
+    },
+    {
+      "id": "grind8.ph_rate",
+      "label": "Grind 8 phaser rate",
+      "group": "grind8",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.45,
+      "curve": "linear",
+      "unit": "",
+      "describes": "How fast the notches sweep: 0.1-25 Hz, or 1 bar to 1/32 when synced."
+    },
+    {
+      "id": "grind8.ph_clock",
+      "label": "Grind 8 phaser clock",
+      "group": "grind8",
+      "type": "enum",
+      "options": [
+        "hz",
+        "sync",
+        "random"
+      ],
+      "default": "hz",
+      "describes": "How the sweep moves: hz = a free-running sine at Rate; sync = the same on the tempo; random = it wanders, never repeating."
+    },
+    {
+      "id": "grind8.ph_feedback",
+      "label": "Grind 8 phaser feedback",
+      "group": "grind8",
+      "type": "float",
+      "min": 0,
+      "max": 0.9,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "describes": "Feeds the phaser back into itself: sharper notches and ringing peaks between them."
+    },
+    {
+      "id": "grind8.ph_stereo",
+      "label": "Grind 8 phaser stereo",
+      "group": "grind8",
+      "type": "float",
+      "min": 0,
+      "max": 180,
+      "default": 90,
+      "curve": "linear",
+      "unit": "°",
+      "describes": "How far the right channel's sweep runs ahead of the left: 0 = the same (mono), 180 = opposite."
     },
     {
       "id": "grind8.eq_b1_type",

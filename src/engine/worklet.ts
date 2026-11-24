@@ -53,6 +53,8 @@ class LowTalkProcessor extends AudioWorkletProcessor {
       if (ctl.length >= 16) for (let i = 0; i < 4; i++) ctl[12 + i].fill(this.synth.liveGrind[i]);
       if (ctl.length >= 20) for (let i = 0; i < 4; i++) ctl[16 + i].fill(this.synth.liveGrindRes[i]);
       // channels 24-27: stages 5-8's filter frequency, 28-31: their resonance
+      // channels 32-39: each phaser's left and right LFO, packed
+      if (ctl.length >= 40) for (let i = 0; i < 8; i++) ctl[32 + i].fill(this.synth.livePhaser[i]);
       if (ctl.length >= 32) for (let i = 0; i < 4; i++) {
         ctl[24 + i].fill(this.synth.liveGrind[4 + i]);
         ctl[28 + i].fill(this.synth.liveGrindRes[4 + i]);

@@ -23,6 +23,20 @@ export const GF_NOTCH = 0, GF_PEAK = 1, GF_BAND = 2, GF_COMB = 3, GF_PHASER = 4,
  */
 export const GRIND_BELLS = 4;
 /**
+ * The PHASER part (owner's call, a fourth kind in RUIN's boxes, slots 25-32): NOTCHES notches, each a second-order
+ * all-pass (an SVF: x - 2k·bp) at its own frequency, CENTER ± SPREAD octaves apart, all swept together by AMOUNT
+ * octaves on the part's own LFO (HZ free running, SYNC on the bar, RANDOM wandering), the right channel STEREO
+ * degrees ahead; the all-passes summed with the dry make the notches, FEEDBACK sharpens them and rings between.
+ */
+export const PH_MAX = 12;
+const PH_K = 1 / 1.1; // the all-passes' 1/Q: notches about a third of an octave wide
+/** The page reads each phaser's left and right LFO (-1..1) packed into one live value. */
+export const packPhaser = (l: number, r: number): number => Math.round((l + 1) * 127.5) + 256 * Math.round((r + 1) * 127.5);
+export const unpackPhaser = (v: number): [number, number] => {
+  const x = Math.max(0, Math.round(v));
+  return [(x & 255) / 127.5 - 1, ((x >> 8) & 255) / 127.5 - 1];
+};
+/**
  * A bell's type (grind<n>.bell<b>_type, owner's call: EQ Eight's eight): low cut 48 / 12 dB, low shelf, bell, notch,
  * high shelf, high cut 12 / 48 dB. One SVF per bell, its output mixed (c0·x + c1·bp + c2·lp + c3·hp, the shelves after
  * Simper), four in a row for the 48 dB cuts (Butterworth, the last section's Q times the bell's Q / 0.71).
@@ -178,6 +192,35 @@ class Stage {
   spd = 1;
   /** DEPTH (owner's call): how much of the filter is heard, 0 = a straight line (no effect), 1 = all of it. */
   depth = 1;
+  /** PHASER: on, its notches' all-passes per channel (stepped coefficient), feedback, level, LFO and its live L / R. */
+  phOn = false;
+  phN = 4;
+  phFb = 0;
+  phLvT = 1;
+  phLv = 1;
+  phPh = 0;
+  readonly phSvf = Array.from({ length: 2 * PH_MAX }, () => new Svf());
+  readonly phG = new Float64Array(2 * PH_MAX).fill(0.05);
+  readonly phGStep = new Float64Array(2 * PH_MAX);
+  readonly phFbS = new Float64Array(2);
+  /** RANDOM: a wander per channel (from, to, position, speed). */
+  readonly phW = Float64Array.from([0.3, 0.7, 0, 1, 0.6, 0.2, 0.5, 1]);
+  readonly phM = new Float64Array(2);
+  phLive = -1;
+
+  /** One sample of one channel through the phaser: the notches' all-passes with feedback, summed with the dry. */
+  phaser(x: number, ch: number): number {
+    const o = ch * PH_MAX, fb = this.phFb;
+    let v = x + fb * this.phFbS[ch];
+    for (let k = 0; k < this.phN; k++) {
+      const f = this.phSvf[o + k];
+      f.process(v, this.phG[o + k], PH_K);
+      v -= 2 * PH_K * f.bp;
+    }
+    this.phFbS[ch] = v;
+    // dry + all-passes: 0 dB away from the notches, the feedback's peaks scaled back to 0 dB
+    return ((1 - fb) / (2 - fb)) * (x + v);
+  }
   /** BELLS: per bell its filter (per channel), coefficient (stepped per sample), 1/Q and gain - 1. */
   readonly bSvf = Array.from({ length: 2 * GRIND_BELLS * 4 }, () => new Svf());
   /** Per bell: its type, its four sections' 1/Q (the 48 dB cuts) and its output mix c0..c3. */
@@ -610,6 +653,8 @@ export class Grind {
     for (const s of this.stages) {
       for (const f of s.svf) f.reset();
       for (const f of s.bSvf) f.reset();
+      for (const f of s.phSvf) f.reset();
+      s.phFbS.fill(0);
       s.ap.fill(0);
       s.comb[0].fill(0);
       s.comb[1].fill(0);
@@ -773,6 +818,49 @@ export class Grind {
       s.dLvT = Math.pow(10, cur[gp.dLevel] / 20);
       s.eqLvT = Math.pow(10, cur[gp.eqLevel] / 20);
       s.eqOn = cur[gp.eqOn] > 0.5;
+      // PHASER: its own LFO (HZ free running, SYNC on the bar, RANDOM wandering), the right channel STEREO ahead
+      s.phOn = cur[gp.phOn] > 0.5;
+      if (s.phOn) {
+        const pRate = cur[gp.phRate], pClock = cur[gp.phClock], st = cur[gp.phStereo] / 360;
+        const phz = pClock === GC_SYNC ? bps / GRIND_BEATS[grindBeat(pRate)] : grindHz(pRate);
+        if (pClock === GC_RANDOM) {
+          const w = s.phW;
+          for (let c = 0; c < 2; c++) {
+            const o = 4 * c;
+            w[o + 2] += phz * w[o + 3] * dt;
+            if (w[o + 2] >= 1) {
+              w[o + 2] -= Math.floor(w[o + 2]);
+              w[o] = w[o + 1];
+              w[o + 1] = rng.next();
+              w[o + 3] = randomSpeed(rng);
+            }
+            s.phM[c] = w[o] + (w[o + 1] - w[o]) * (0.5 - 0.5 * Math.cos(Math.PI * w[o + 2]));
+          }
+          // STEREO blends the right channel from the left's path (0) to its own (180)
+          s.phM[1] = s.phM[0] + (s.phM[1] - s.phM[0]) * Math.min(1, 2 * st);
+        } else {
+          let p: number;
+          if (pClock === GC_SYNC) p = beatPos / GRIND_BEATS[grindBeat(pRate)];
+          else {
+            s.phPh += phz * dt;
+            if (s.phPh >= 1) s.phPh -= Math.floor(s.phPh);
+            p = s.phPh;
+          }
+          s.phM[0] = Math.sin(TWO_PI * p);
+          s.phM[1] = Math.sin(TWO_PI * (p + st));
+        }
+        s.phLive = packPhaser(s.phM[0], s.phM[1]);
+        const N = Math.max(1, Math.min(PH_MAX, Math.round(cur[gp.phNotches])));
+        if (N !== s.phN) s.phN = N;
+        s.phFb = cur[gp.phFeedback];
+        s.phLvT = Math.pow(10, cur[gp.phLevel] / 20);
+        const cen = Math.log2(Math.max(cur[gp.phCenter], 1)), spread = cur[gp.phSpread], amt = cur[gp.phAmount];
+        for (let c = 0; c < 2; c++) for (let k = 0; k < N; k++) {
+          const hz = Math.min(Math.max(Math.pow(2, cen + (k - (N - 1) / 2) * spread + 0.5 * amt * s.phM[c]), 20), fs * 0.45);
+          const j = c * PH_MAX + k;
+          s.phGStep[j] = (Math.tan((Math.PI * hz) / fsOs) - s.phG[j]) / n;
+        }
+      } else s.phLive = -1;
       if (s.eqOn) {
         // the FX page's EQ: band 1 low shelf / high-pass, 2-3 bell / notch, 4 high shelf / low-pass, gains × Scale
         for (let b = 0; b < 4; b++) {
@@ -869,6 +957,10 @@ export class Grind {
         s.g += s.gStep;
         if (s.ftype === GF_COMB) s.delay += s.delayStep;
         else if (s.ftype === GF_BELLS) for (let b = 0; b < GRIND_BELLS; b++) s.bG[b] += s.bGStep[b];
+        if (s.phOn) for (let j = 0; j < s.phN; j++) {
+          s.phG[j] += s.phGStep[j];
+          s.phG[PH_MAX + j] += s.phGStep[PH_MAX + j];
+        }
       }
     }
     // the eight boxes in their order (owner's call: free order): each holds filter n, drive n or nothing
@@ -876,11 +968,17 @@ export class Grind {
     for (let k = 0; k < GRIND_SLOTS; k++) {
       const v = slots[k], kAt = 2 + k;
       if (v > 0 && !done && !(at === kAt && mode === 2)) {
-        // 1-8 filter 1-8, 9-16 drive 1-8, 17-24 EQ 1-8
+        // 1-8 filter 1-8, 9-16 drive 1-8, 17-24 EQ 1-8, 25-32 phaser 1-8
         const kind = Math.floor((v - 1) / GRIND_STAGES), s = this.stages[(v - 1) % GRIND_STAGES], drive = kind === 1;
-        if (s.on && (kind === 0 ? s.filterOn : kind === 1 ? s.driveOn : s.eqOn)) {
+        if (s.on && (kind === 0 ? s.filterOn : kind === 1 ? s.driveOn : kind === 2 ? s.eqOn : s.phOn)) {
           const il = l, ir = r;
-          if (kind === 2) {
+          if (kind === 3) {
+            l = s.phaser(l, 0);
+            r = s.phaser(r, 1);
+            s.phLv += (s.phLvT - s.phLv) * LV_SMOOTH;
+            l *= s.phLv;
+            r *= s.phLv;
+          } else if (kind === 2) {
             for (let b = 0; b < 4; b++) {
               if (s.eqBand[b]) {
                 l = s.eqL[b].process(l);
@@ -910,7 +1008,7 @@ export class Grind {
             r = s.rest[1] + br + (dr - br) * s.mix;
           }
           // the box's level, smoothed so the handle never clicks
-          if (kind === 2) {
+          if (kind >= 2) {
             // (done above)
           } else if (drive) {
             s.dLv += (s.dLvT - s.dLv) * LV_SMOOTH;

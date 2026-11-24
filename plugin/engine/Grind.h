@@ -15,6 +15,10 @@ constexpr int GRIND_SLOTS = 8;  // the RUIN page's eight boxes (grind.slot1..8)
 constexpr int GF_NOTCH = 0, GF_PEAK = 1, GF_BAND = 2, GF_COMB = 3, GF_PHASER = 4, GF_BELLS = 5;
 /** BELLS: the filter as an EQ, four moving bells (see grind.ts). */
 constexpr int GRIND_BELLS = 4;
+/** The PHASER part (see grind.ts): up to 12 notches, second-order all-passes, its own LFO, feedback. */
+constexpr int PH_MAX = 12;
+constexpr double PH_K = 1 / 1.1;
+inline double packPhaser(double l, double r) { return jsRound((l + 1) * 127.5) + 256 * jsRound((r + 1) * 127.5); }
 /** A bell's type (EQ Eight's eight, see grind.ts). */
 constexpr int BT_LC48 = 0, BT_LC12 = 1, BT_LS = 2, BT_BELL = 3, BT_NOTCH = 4, BT_HS = 5, BT_HC12 = 6, BT_HC48 = 7;
 constexpr double BW8_Q[4] = {0.5098, 0.6013, 0.9, 2.5629};
@@ -213,6 +217,26 @@ struct GrindStage {
   Svf svf[2];
   // BELLS: per bell its filter (per channel), stepped coefficient, 1/Q, gain - 1; bells 2-4's own wander; positions
   Svf bSvf[2 * GRIND_BELLS * 4];
+  // PHASER
+  bool phOn = false;
+  int phN = 4;
+  double phFb = 0, phLvT = 1, phLv = 1, phPh = 0, phLive = -1;
+  Svf phSvf[2 * PH_MAX];
+  double phG[2 * PH_MAX] = {0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05};
+  double phGStep[2 * PH_MAX] = {}, phFbS[2] = {}, phM[2] = {};
+  double phW[8] = {0.3, 0.7, 0, 1, 0.6, 0.2, 0.5, 1};
+  double phaser(double x, int ch) {
+    const int o = ch * PH_MAX;
+    const double fb = phFb;
+    double v = x + fb * phFbS[ch];
+    for (int k = 0; k < phN; k++) {
+      Svf& f = phSvf[o + k];
+      f.process(v, phG[o + k], PH_K);
+      v -= 2 * PH_K * f.bp;
+    }
+    phFbS[ch] = v;
+    return ((1 - fb) / (2 - fb)) * (x + v);
+  }
   int bT[GRIND_BELLS] = {BT_BELL, BT_BELL, BT_BELL, BT_BELL};
   double bK4[4 * GRIND_BELLS] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, bC[4 * GRIND_BELLS] = {};
   double bG[GRIND_BELLS] = {0.05, 0.05, 0.05, 0.05}, bGStep[GRIND_BELLS] = {}, bK[GRIND_BELLS] = {1, 1, 1, 1};
@@ -534,6 +558,8 @@ class Grind {
     for (auto& s : stages) {
       for (auto& f : s.svf) f.reset();
       for (auto& f : s.bSvf) f.reset();
+      for (auto& f : s.phSvf) f.reset();
+      s.phFbS[0] = s.phFbS[1] = 0;
       for (double& a : s.ap) a = 0;
       s.comb[0].fill(0);
       s.comb[1].fill(0);
@@ -686,6 +712,50 @@ class Grind {
       s.dLvT = std::pow(10.0, cur[gp.dLevel] / 20);
       s.eqLvT = std::pow(10.0, cur[gp.eqLevel] / 20);
       s.eqOn = cur[gp.eqOn] > 0.5;
+      s.phOn = cur[gp.phOn] > 0.5;
+      if (s.phOn) {
+        const double pRate = cur[gp.phRate], st = cur[gp.phStereo] / 360;
+        const int pClock = (int)cur[gp.phClock];
+        const double phz = pClock == GC_SYNC ? bps / GRIND_BEATS[grindBeat(pRate)] : grindHz(pRate);
+        if (pClock == GC_RANDOM) {
+          double* w = s.phW;
+          for (int c = 0; c < 2; c++) {
+            const int o = 4 * c;
+            w[o + 2] += phz * w[o + 3] * dt;
+            if (w[o + 2] >= 1) {
+              w[o + 2] -= std::floor(w[o + 2]);
+              w[o] = w[o + 1];
+              w[o + 1] = rng.next();
+              w[o + 3] = grindRandomSpeed(rng);
+            }
+            s.phM[c] = w[o] + (w[o + 1] - w[o]) * (0.5 - 0.5 * std::cos(PI * w[o + 2]));
+          }
+          s.phM[1] = s.phM[0] + (s.phM[1] - s.phM[0]) * std::fmin(1.0, 2 * st);
+        } else {
+          double p;
+          if (pClock == GC_SYNC) p = beatPos / GRIND_BEATS[grindBeat(pRate)];
+          else {
+            s.phPh += phz * dt;
+            if (s.phPh >= 1) s.phPh -= std::floor(s.phPh);
+            p = s.phPh;
+          }
+          s.phM[0] = std::sin(TWO_PI * p);
+          s.phM[1] = std::sin(TWO_PI * (p + st));
+        }
+        s.phLive = packPhaser(s.phM[0], s.phM[1]);
+        const int N = std::max(1, std::min(PH_MAX, (int)jsRound(cur[gp.phNotches])));
+        s.phN = N;
+        s.phFb = cur[gp.phFeedback];
+        s.phLvT = std::pow(10.0, cur[gp.phLevel] / 20);
+        const double cen = std::log2(std::fmax(cur[gp.phCenter], 1.0)), spread = cur[gp.phSpread], amt = cur[gp.phAmount];
+        for (int c = 0; c < 2; c++)
+          for (int k = 0; k < N; k++) {
+            const double hz = std::fmin(std::fmax(std::pow(2.0, cen + (k - (N - 1) / 2.0) * spread + 0.5 * amt * s.phM[c]), 20.0), fs * 0.45);
+            const int j = c * PH_MAX + k;
+            s.phGStep[j] = (std::tan((PI * hz) / fsOs) - s.phG[j]) / n;
+          }
+      } else
+        s.phLive = -1;
       if (s.eqOn) {
         for (int b = 0; b < 4; b++) {
           const auto& e = gp.eq[b];
@@ -759,6 +829,11 @@ class Grind {
       if (s.ftype == GF_COMB) s.delay += s.delayStep;
       else if (s.ftype == GF_BELLS)
         for (int b = 0; b < GRIND_BELLS; b++) s.bG[b] += s.bGStep[b];
+      if (s.phOn)
+        for (int j = 0; j < s.phN; j++) {
+          s.phG[j] += s.phGStep[j];
+          s.phG[PH_MAX + j] += s.phGStep[PH_MAX + j];
+        }
     }
     // the eight boxes in their order: each holds filter n, drive n or nothing
     for (int k = 0; k < GRIND_SLOTS; k++) {
@@ -768,7 +843,15 @@ class Grind {
       const int kind = (v - 1) / GRIND_STAGES;
       const bool drive = kind == 1;
       GrindStage& s = stages[(v - 1) % GRIND_STAGES];
-      if (!s.on || !(kind == 0 ? s.filterOn : kind == 1 ? s.driveOn : s.eqOn)) continue;
+      if (!s.on || !(kind == 0 ? s.filterOn : kind == 1 ? s.driveOn : kind == 2 ? s.eqOn : s.phOn)) continue;
+      if (kind == 3) {
+        L = s.phaser(L, 0);
+        R = s.phaser(R, 1);
+        s.phLv += (s.phLvT - s.phLv) * 0.002;
+        L *= s.phLv;
+        R *= s.phLv;
+        continue;
+      }
       if (kind == 2) {
         for (int b = 0; b < 4; b++) {
           if (s.eqBand[b]) {

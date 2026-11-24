@@ -225,6 +225,8 @@ export class Synth {
   /** Each GRIND stage's filter frequency right now (Hz, the newest voice's), -1 when off or silent. */
   readonly liveGrind = new Float64Array(8).fill(-1);
   readonly liveGrindRes = new Float64Array(8);
+  /** Each RUIN phaser's left and right LFO right now, packed (packPhaser), -1 when it is off. */
+  readonly livePhaser = new Float64Array(8).fill(-1);
   liveRes = 0;
 
   /** Position in the bar, in beats [0, 4): the clock of tempo-synced LFOs and RUIN. */
@@ -861,6 +863,7 @@ export class Synth {
       const st = this.bus.grind.stages[i];
       this.liveGrind[i] = lead.active && this.bus.grindOn ? st.fcNow : -1;
       this.liveGrindRes[i] = st.resNow;
+      this.livePhaser[i] = this.bus.grindOn ? st.phLive : -1;
     }
     this.liveRes = lead.resNow;
     if (this.poly > 1) {
