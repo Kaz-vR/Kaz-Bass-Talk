@@ -970,7 +970,7 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .box-lfo5 { --knob-accent: var(--c-purple); }
 .v2 .box-lfo6 { --knob-accent: var(--c-sand); }
 .v2 .box-vib { --knob-accent: #ff6fae; }
-.v2 .box-wob { --knob-accent: #a9dcff; }
+.v2 .box-wob { --knob-accent: var(--c-blue); } /* the custom LFO: the filter's blue (owner's call) */
 .v2 .box-matrix { --knob-accent: #d4d4da; grid-column: 3; grid-row: 1 / 5; display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; }
 .v2 .mx-note { font-size: 9.5px; letter-spacing: 0.14em; color: #66666d; margin-left: 6px; }
 .v2 .mx-rows { flex: 1; display: grid; grid-template-rows: repeat(9, 1fr); }

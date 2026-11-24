@@ -77,7 +77,9 @@ export const LFO_SINE = 0, LFO_TRI = 1, LFO_SAW_UP = 2, LFO_SAW_DOWN = 3, LFO_SQ
 export const LFO_BLOOM = 7, LFO_DROP = 8, LFO_NOTE = 9;
 /** The old drift sources as shapes (shared, free running): drift glides to random points, slow drift curves between them. */
 export const LFO_DRIFT = 10, LFO_SLOW_DRIFT = 11;
-export const lfoPerNote = (shape: number): boolean => shape >= LFO_BLOOM && shape <= LFO_NOTE;
+/** DRIFT DOWN (owner's call): a machine losing power, per note: barely moving at first, then sinking faster and faster to -1, a little unsteady on the way. */
+export const LFO_DRIFT_DOWN = 12;
+export const lfoPerNote = (shape: number): boolean => (shape >= LFO_BLOOM && shape <= LFO_NOTE) || shape === LFO_DRIFT_DOWN;
 export const LFO_COUNT = 6;
 export const SLOT_COUNT = 9; // the mod matrix's rows
 export const SYNC_BEATS = [0, 16, 8, 4, 2, 3, 1, 1.5, 2 / 3, 0.5, 0.75, 1 / 3, 0.25, 0.375, 1 / 6, 0.125];

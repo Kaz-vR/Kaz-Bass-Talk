@@ -687,7 +687,36 @@ function ghosts(g: CanvasRenderingContext2D, sets: [number, number][][], color: 
   g.restore();
 }
 
-const LFO_SHAPE: Record<string, string> = { sine: 'SINE', triangle: 'TRIANGLE', saw_up: 'SAW UP', saw_down: 'SAW DOWN', square: 'SQUARE', sample_hold: 'S & H', wander: 'HUMANIZE', bloom: 'BLOOM', drop: 'DROP', random: 'RANDOM', drift: 'DRIFT', 'slow drift': 'SLOW DRIFT' };
+const LFO_SHAPE: Record<string, string> = { sine: 'SINE', triangle: 'TRIANGLE', saw_up: 'SAW UP', saw_down: 'SAW DOWN', square: 'SQUARE', sample_hold: 'RANDOM STEPS', wander: 'HUMANIZE', bloom: 'BLOOM', drop: 'DROP', random: 'RANDOM ON TRIGGER', drift: 'DRIFT', 'slow drift': 'SLOW DRIFT', drift_down: 'DRIFT DOWN' };
+/** The LFO shape menu (owner's list): SHAPES that repeat, OTHER that wander, hold or fall. */
+const LFO_SHAPE_GROUPS: [string, string[]][] = [
+  ['SHAPES', ['sine', 'triangle', 'saw_up', 'saw_down', 'square']],
+  ['OTHER', ['wander', 'sample_hold', 'random', 'drop', 'drift_down']],
+];
+/** A little picture of an LFO shape for its menu (22 x 12), as the RUIN band types have. */
+function lfoIconPath(shape: string): string {
+  const W = 22, H = 12, N = 44, ys: number[] = [];
+  const steps = [0.7, 0.2, 0.9, 0.4, 0.6, 0.1];
+  for (let i = 0; i <= N; i++) {
+    const x = i / N;
+    let y: number;
+    switch (shape) {
+      case 'sine': y = 0.5 + 0.5 * Math.sin(2 * Math.PI * x); break;
+      case 'triangle': y = 1 - Math.abs(((2 * x + 0.5) % 2) - 1); break;
+      case 'saw_up': y = (2 * x) % 1; break;
+      case 'saw_down': y = 1 - ((2 * x) % 1); break;
+      case 'square': y = (2 * x) % 1 < 0.5 ? 1 : 0; break;
+      case 'sample_hold': y = steps[Math.min(5, Math.floor(x * 6))]; break;
+      case 'wander': y = 0.5 + 0.3 * Math.sin(5.1 * x) + 0.18 * Math.sin(13.7 * x + 1) + 0.1 * Math.sin(29 * x); break;
+      case 'random': y = x < 0.08 ? 0.5 : 0.78; break;
+      case 'drop': y = (1 - x) * (1 - x); break;
+      case 'drift_down': y = 1 - Math.min(1, Math.pow(x, 2.5) + 0.03 * x * Math.sin(2 * Math.PI * 5.3 * x)); break;
+      default: y = 0.5;
+    }
+    ys.push(y);
+  }
+  return ys.map((y, i) => `${i ? 'L' : 'M'}${((i / N) * W).toFixed(1)},${(H - 1 - y * (H - 2)).toFixed(1)}`).join('');
+}
 /** What LFO 1-4 can move (owner's call: the LFO page's targets, no matrix). */
 const LFO_TARGETS: [string, string[]][] = [
   ['VOLUME', ['amp', 'osc12_level', 'osc1_level', 'osc2_level', 'sub_level', 'texture_level']],
@@ -2507,14 +2536,9 @@ export class SynthView {
       rate.style.display = free ? '' : 'none';
       note.style.display = free ? 'none' : '';
     });
-    // Picking Drift or Slow drift sets the old sources' own speed (1 Hz / 0.25 Hz, free running).
-    const shapeSel = this.selector(`${L}.shape`, { label: (o) => LFO_SHAPE[o] ?? o });
-    shapeSel.addEventListener('change', () => {
-      const sh = String(this.get(`${L}.shape`));
-      if (sh !== 'drift' && sh !== 'slow drift') return;
-      this.set(`${L}.sync`, 'free');
-      this.set(`${L}.rate`, sh === 'drift' ? 1 : 0.25);
-    });
+    // the shapes in two columns with a little picture each (owner's list): bloom and the old drifts are gone
+    const shapeSel = this.selector(`${L}.shape`, { label: (o) => LFO_SHAPE[o] ?? o, groups: LFO_SHAPE_GROUPS, only: true });
+    for (const o of shapeSel.querySelectorAll('option')) o.dataset.icon = lfoIconPath(o.value);
     // LFO 1-4 (owner's call, the LFO page without a matrix): each drives one target directly, through slot n of the
     // engine's matrix (its source always this LFO), with its Amount
     const slot = `mod${n}`;

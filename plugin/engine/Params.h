@@ -73,7 +73,8 @@ constexpr int LFO_SINE = 0, LFO_TRI = 1, LFO_SAW_UP = 2, LFO_SAW_DOWN = 3, LFO_S
 constexpr int LFO_BLOOM = 7, LFO_DROP = 8, LFO_NOTE = 9;
 // The old drift sources as shapes (shared, free running): drift glides to random points, slow drift curves between them.
 constexpr int LFO_DRIFT = 10, LFO_SLOW_DRIFT = 11;
-inline bool lfoPerNote(int shape) { return shape >= LFO_BLOOM && shape <= LFO_NOTE; }
+constexpr int LFO_DRIFT_DOWN = 12;
+inline bool lfoPerNote(int shape) { return (shape >= LFO_BLOOM && shape <= LFO_NOTE) || shape == LFO_DRIFT_DOWN; }
 constexpr int LFO_COUNT = 6;
 /** wobble.shape option indices with their own handling (the rest are WOB_TEMPLATE_ARRAYS). */
 constexpr int WOB_RANDOM = 6, WOB_CUSTOM = 7;

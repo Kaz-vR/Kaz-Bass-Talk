@@ -692,6 +692,7 @@ export class Voice {
     switch (this.cur[P.lfo[l].shape]) {
       case K.LFO_BLOOM: return 0.5 - 0.5 * Math.cos(Math.PI * x);
       case K.LFO_DROP: return (1 - x) * (1 - x);
+      case K.LFO_DRIFT_DOWN: return -Math.min(1, Math.pow(x, 2.5) + 0.03 * x * Math.sin(2 * Math.PI * 5.3 * x));
       default: return this.lfoRand[l];
     }
   }

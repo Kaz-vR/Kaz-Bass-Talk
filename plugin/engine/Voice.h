@@ -94,6 +94,7 @@ class Voice {
     switch ((int)cur[P.lfo[l].shape]) {
       case LFO_BLOOM: return 0.5 - 0.5 * std::cos(PI * x);
       case LFO_DROP: return (1 - x) * (1 - x);
+      case LFO_DRIFT_DOWN: return -std::fmin(1.0, std::pow(x, 2.5) + 0.03 * x * std::sin(2 * PI * 5.3 * x));
       default: return lfoRand[l];
     }
   }
