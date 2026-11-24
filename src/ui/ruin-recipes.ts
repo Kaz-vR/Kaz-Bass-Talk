@@ -134,9 +134,45 @@ export function recipeParams(r: RuinRecipe): Record<string, number | string | bo
 }
 
 /** One stage as patch values. */
+/**
+ * The old filter types as the four bands (owner's call: a RUIN filter is only ever the four bands): a notch is a
+ * notch band, a peak a tall narrow bell, a band a bell between a low and a high cut, a comb four narrow bells on the
+ * harmonics, a phaser two notches; each moving as far as the old filter did (its range), linked so they move as one.
+ * The unused bands sit flat. Width (narrow … wide) sets their Q; Depth scales the gains.
+ */
+export function bellsFromOld(p: string, type: string, freq: number, width: number, range: number, depth = 1): Record<string, number | string | boolean> {
+  const q = Math.round(Math.max(0.5, 8 * Math.pow(2, -3.5 * width)) * 100) / 100;
+  const flat = [200, 800, 2500, 6000];
+  const bands: [string, number, number, number, number][] = flat.map((f) => ['bell', f, 0, 0.71, 0]); // type, freq, gain, q, range
+  const f = (m: number) => Math.round(Math.min(18000, freq * m));
+  const g = (db: number) => Math.round(db * depth * 10) / 10;
+  switch (type) {
+    case 'notch': bands[0] = ['notch', f(1), 0, Math.max(0.7, q / 2), range]; break;
+    case 'peak': bands[0] = ['bell', f(1), g(12), Math.max(3, q), range]; break;
+    case 'band':
+      bands[0] = ['low cut 12', f(0.5), 0, 0.71, range];
+      bands[1] = ['bell', f(1), g(6), 1.5, range];
+      bands[3] = ['high cut 12', f(2), 0, 0.71, range];
+      break;
+    case 'comb': [1, 2, 3, 4].forEach((m, i) => { bands[i] = ['bell', f(m), g(10), Math.max(6, q), range]; }); break;
+    case 'phaser':
+      bands[0] = ['notch', f(1), 0, 1.2, range];
+      bands[1] = ['notch', f(2.5), 0, 1.2, range];
+      break;
+    default: break;
+  }
+  const out: Record<string, number | string | boolean> = { [`${p}.filter`]: 'bells', [`${p}.bell_link`]: true };
+  bands.forEach(([t, fr, gn, qq, rg], i) => {
+    const b = `${p}.bell${i + 1}_`;
+    Object.assign(out, { [`${b}type`]: t, [`${b}freq`]: fr, [`${b}gain`]: gn, [`${b}q`]: qq, [`${b}range`]: Math.round(rg * 10) / 10 });
+  });
+  return out;
+}
+
 export function stageParams(p: string, s: RuinStage): Record<string, number | string | boolean> {
   return {
-    [`${p}.on`]: true, [`${p}.filter_on`]: !!s.filter, [`${p}.filter`]: s.filter ?? 'notch', [`${p}.freq`]: s.freq, [`${p}.width`]: s.width, [`${p}.depth`]: s.depth ?? 1,
+    ...(s.filter && s.filter !== 'bells' ? bellsFromOld(p, s.filter, s.freq, s.width, s.range, s.depth ?? 1) : {}),
+    [`${p}.on`]: true, [`${p}.filter_on`]: !!s.filter, [`${p}.freq`]: s.freq, [`${p}.width`]: s.width, [`${p}.depth`]: s.depth ?? 1,
     [`${p}.range`]: s.range, [`${p}.rate`]: s.rate, [`${p}.clock`]: s.clock,
     [`${p}.drive_on`]: true, [`${p}.drive_type`]: s.type, [`${p}.drive`]: s.drive, [`${p}.drive_tone`]: s.tone, [`${p}.mix`]: s.mix,
     [`${p}.drive_freq`]: s.band ? s.band[0] : 1000, [`${p}.drive_width`]: s.band ? s.band[1] : 9, [`${p}.filter_level`]: 0, [`${p}.drive_level`]: 0, [`${p}.eq_on`]: false, [`${p}.eq_level`]: 0,

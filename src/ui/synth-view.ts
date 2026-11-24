@@ -4230,7 +4230,6 @@ export class SynthView {
       const rateFmt = (v: number) => {
         const clock = this.get(`${pre}.clock`), avg = clock === 'random' ? '~' : '';
         if (clock === 'sync') return GRIND_BEAT_NAMES[grindBeat(v)];
-        if (this.get('grind.oneshot')) return `${avg}${Math.round(500 / grindHz(v))} ms`;
         return `${avg}${grindHz(v).toFixed(grindHz(v) < 1 ? 2 : 1)} Hz`;
       };
       const sync = h('span', 'fx-kinds sw-small gr-sync');
@@ -4264,7 +4263,7 @@ export class SynthView {
       bellViews[n - 1] = showBell;
       this.watch([`${pre}.filter`], showBell);
       const fdials = h('div', 'ob-dials gr-fdials', wd, ...bellSets,
-        md(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.clock`, 'grind.oneshot'] }), sync);
+        md(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.clock`] }), sync);
       const dhead = h('div', 'ob-head gr-row-head', partPower(dk), h('span', 'c-title', `DRIVE ${n}`), this.driveTypeSelector(`${pre}.drive_type`));
       const ddials = h('div', 'ob-dials gr-ddials', md(`${pre}.drive`, 'Drive', { fmt: pct }), md(`${pre}.drive_tone`, 'Tone', { fmt: pct }), md(`${pre}.mix`, 'Dry/Wet', { fmt: pct }));
       sets[fk] = h('div', `gr-set gr-s${n}`, fhead, fdials);

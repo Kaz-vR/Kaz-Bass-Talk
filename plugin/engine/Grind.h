@@ -597,8 +597,8 @@ class Grind {
           }
     }
     const double key = cur[P.grindKey] > 0.5 ? std::pow(2.0, keyOct) : 1;
-    const bool oneShot = cur[P.grindOneShot] > 0.5;
-    const double shotDir = cur[P.grindOneShotUp] > 0.5 ? -1.0 : 1.0; // down = top to bottom, up = bottom to top
+    const bool oneShot = false;  // ONE SHOT is gone (owner's call): grind.oneshot is ignored
+    const double shotDir = 1.0;
     for (int k = 0; k < GRIND_SLOTS; k++) slots[k] = (int)cur[P.grindSlot[k]];
     for (int i = 0; i < GRIND_STAGES; i++) {
       GrindStage& s = stages[i];
