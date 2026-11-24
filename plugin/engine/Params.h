@@ -73,8 +73,9 @@ constexpr int LFO_SINE = 0, LFO_TRI = 1, LFO_SAW_UP = 2, LFO_SAW_DOWN = 3, LFO_S
 constexpr int LFO_BLOOM = 7, LFO_DROP = 8, LFO_NOTE = 9;
 // The old drift sources as shapes (shared, free running): drift glides to random points, slow drift curves between them.
 constexpr int LFO_DRIFT = 10, LFO_SLOW_DRIFT = 11;
-constexpr int LFO_DRIFT_DOWN = 12;
-inline bool lfoPerNote(int shape) { return (shape >= LFO_BLOOM && shape <= LFO_NOTE) || shape == LFO_DRIFT_DOWN; }
+constexpr int LFO_DRIFT_DOWN = 12, LFO_VIBRATO = 13;
+inline bool lfoPerNote(int shape) { return (shape >= LFO_BLOOM && shape <= LFO_NOTE) || shape == LFO_DRIFT_DOWN || shape == LFO_VIBRATO; }
+inline double lfoBendPow(double bend) { return std::pow(4.0, 2 * bend - 1); }
 constexpr int LFO_COUNT = 6;
 /** wobble.shape option indices with their own handling (the rest are WOB_TEMPLATE_ARRAYS). */
 constexpr int WOB_RANDOM = 6, WOB_CUSTOM = 7;
@@ -137,7 +138,7 @@ inline int paramIndex(const char* id) {
 /** Parameter indices, resolved once from the generated schema (params.ts P). */
 struct ParamIndex {
   struct Osc { int wave, semi, fine, pw, wt, voices, detune, spread, level, hp, fType, fKey; };
-  struct Lfo { int shape, rate, sync, retrig, fade, phase; };
+  struct Lfo { int shape, rate, sync, retrig, fade, phase, bend; };
   struct Slot { int src, dst, amt, on; };
   struct Eq { int type, freq, gain, q; };
   struct Bell { int type, freq, gain, q, range; };
@@ -227,7 +228,7 @@ struct ParamIndex {
     vibDepth = ix("vibrato.depth"); vibRate = ix("vibrato.rate"); vibDelay = ix("vibrato.delay"); vibFade = ix("vibrato.fade");
     for (int n = 0; n < 6; n++) {
       const std::string l = "lfo" + std::to_string(n + 1) + ".";
-      lfo[n] = {ix(l + "shape"), ix(l + "rate"), ix(l + "sync"), ix(l + "retrigger"), ix(l + "fade"), ix(l + "phase")};
+      lfo[n] = {ix(l + "shape"), ix(l + "rate"), ix(l + "sync"), ix(l + "retrigger"), ix(l + "fade"), ix(l + "phase"), ix(l + "bend")};
     }
     for (int n = 0; n < SLOT_COUNT; n++) {
       const std::string m = "mod" + std::to_string(n + 1) + ".";

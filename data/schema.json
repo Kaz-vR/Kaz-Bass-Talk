@@ -1294,7 +1294,8 @@
         "random",
         "drift",
         "slow drift",
-        "drift_down"
+        "drift_down",
+        "vibrato"
       ],
       "default": "sine",
       "group": "lfo1",
@@ -1356,7 +1357,7 @@
       "curve": "linear",
       "unit": "ms",
       "group": "lfo1",
-      "describes": "Time for the LFO to fade in after each note starts. Lets a note hit clean, then come alive."
+      "describes": "VIBRATO: how long the vibrato takes to fade in after each note starts (0 = at once)."
     },
     {
       "id": "lfo1.phase",
@@ -1369,6 +1370,18 @@
       "unit": "",
       "group": "lfo1",
       "describes": "Where in its shape the LFO starts (0-360°): with RETRIG every note starts there; free running it shifts the whole shape."
+    },
+    {
+      "id": "lfo1.bend",
+      "label": "LFO 1 bend",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo1",
+      "describes": "DROP and DRIFT DOWN: the curve's bend, as an envelope's: down = it moves early and slows, up = it holds and then goes late."
     },
     {
       "id": "lfo2.on",
@@ -1395,7 +1408,8 @@
         "random",
         "drift",
         "slow drift",
-        "drift_down"
+        "drift_down",
+        "vibrato"
       ],
       "default": "sine",
       "group": "lfo2",
@@ -1457,7 +1471,7 @@
       "curve": "linear",
       "unit": "ms",
       "group": "lfo2",
-      "describes": "Time for the LFO to fade in after each note starts. Lets a note hit clean, then come alive."
+      "describes": "VIBRATO: how long the vibrato takes to fade in after each note starts (0 = at once)."
     },
     {
       "id": "lfo2.phase",
@@ -1470,6 +1484,18 @@
       "unit": "",
       "group": "lfo2",
       "describes": "Where in its shape the LFO starts (0-360°): with RETRIG every note starts there; free running it shifts the whole shape."
+    },
+    {
+      "id": "lfo2.bend",
+      "label": "LFO 2 bend",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo2",
+      "describes": "DROP and DRIFT DOWN: the curve's bend, as an envelope's: down = it moves early and slows, up = it holds and then goes late."
     },
     {
       "id": "lfo3.on",
@@ -1496,7 +1522,8 @@
         "random",
         "drift",
         "slow drift",
-        "drift_down"
+        "drift_down",
+        "vibrato"
       ],
       "default": "sine",
       "group": "lfo3",
@@ -1558,7 +1585,7 @@
       "curve": "linear",
       "unit": "ms",
       "group": "lfo3",
-      "describes": "Time for the LFO to fade in after each note starts. Lets a note hit clean, then come alive."
+      "describes": "VIBRATO: how long the vibrato takes to fade in after each note starts (0 = at once)."
     },
     {
       "id": "lfo3.phase",
@@ -1571,6 +1598,18 @@
       "unit": "",
       "group": "lfo3",
       "describes": "Where in its shape the LFO starts (0-360°): with RETRIG every note starts there; free running it shifts the whole shape."
+    },
+    {
+      "id": "lfo3.bend",
+      "label": "LFO 3 bend",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo3",
+      "describes": "DROP and DRIFT DOWN: the curve's bend, as an envelope's: down = it moves early and slows, up = it holds and then goes late."
     },
     {
       "id": "lfo4.on",
@@ -1597,7 +1636,8 @@
         "random",
         "drift",
         "slow drift",
-        "drift_down"
+        "drift_down",
+        "vibrato"
       ],
       "default": "sine",
       "group": "lfo4",
@@ -1659,7 +1699,7 @@
       "curve": "linear",
       "unit": "ms",
       "group": "lfo4",
-      "describes": "Time for the LFO to fade in after each note starts. Lets a note hit clean, then come alive."
+      "describes": "VIBRATO: how long the vibrato takes to fade in after each note starts (0 = at once)."
     },
     {
       "id": "lfo4.phase",
@@ -1672,6 +1712,18 @@
       "unit": "",
       "group": "lfo4",
       "describes": "Where in its shape the LFO starts (0-360°): with RETRIG every note starts there; free running it shifts the whole shape."
+    },
+    {
+      "id": "lfo4.bend",
+      "label": "LFO 4 bend",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo4",
+      "describes": "DROP and DRIFT DOWN: the curve's bend, as an envelope's: down = it moves early and slows, up = it holds and then goes late."
     },
     {
       "id": "lfo5.on",
@@ -1698,7 +1750,8 @@
         "random",
         "drift",
         "slow drift",
-        "drift_down"
+        "drift_down",
+        "vibrato"
       ],
       "default": "sine",
       "group": "lfo5",
@@ -1760,7 +1813,7 @@
       "curve": "linear",
       "unit": "ms",
       "group": "lfo5",
-      "describes": "Time for the LFO to fade in after each note starts. Lets a note hit clean, then come alive."
+      "describes": "VIBRATO: how long the vibrato takes to fade in after each note starts (0 = at once)."
     },
     {
       "id": "lfo5.phase",
@@ -1773,6 +1826,18 @@
       "unit": "",
       "group": "lfo5",
       "describes": "Where in its shape the LFO starts (0-360°): with RETRIG every note starts there; free running it shifts the whole shape."
+    },
+    {
+      "id": "lfo5.bend",
+      "label": "LFO 5 bend",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo5",
+      "describes": "DROP and DRIFT DOWN: the curve's bend, as an envelope's: down = it moves early and slows, up = it holds and then goes late."
     },
     {
       "id": "lfo6.on",
@@ -1799,7 +1864,8 @@
         "random",
         "drift",
         "slow drift",
-        "drift_down"
+        "drift_down",
+        "vibrato"
       ],
       "default": "sine",
       "group": "lfo6",
@@ -1861,7 +1927,7 @@
       "curve": "linear",
       "unit": "ms",
       "group": "lfo6",
-      "describes": "Time for the LFO to fade in after each note starts. Lets a note hit clean, then come alive."
+      "describes": "VIBRATO: how long the vibrato takes to fade in after each note starts (0 = at once)."
     },
     {
       "id": "lfo6.phase",
@@ -1874,6 +1940,18 @@
       "unit": "",
       "group": "lfo6",
       "describes": "Where in its shape the LFO starts (0-360°): with RETRIG every note starts there; free running it shifts the whole shape."
+    },
+    {
+      "id": "lfo6.bend",
+      "label": "LFO 6 bend",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.5,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo6",
+      "describes": "DROP and DRIFT DOWN: the curve's bend, as an envelope's: down = it moves early and slows, up = it holds and then goes late."
     },
     {
       "id": "mod.on",

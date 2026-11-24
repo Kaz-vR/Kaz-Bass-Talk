@@ -93,8 +93,9 @@ class Voice {
     const double x = lfoProg[l];
     switch ((int)cur[P.lfo[l].shape]) {
       case LFO_BLOOM: return 0.5 - 0.5 * std::cos(PI * x);
-      case LFO_DROP: return (1 - x) * (1 - x);
-      case LFO_DRIFT_DOWN: return -std::fmin(1.0, std::pow(x, 2.5) + 0.03 * x * std::sin(2 * PI * 5.3 * x));
+      case LFO_DROP: return std::pow(1 - x, 2 * lfoBendPow(cur[P.lfo[l].bend]));
+      case LFO_DRIFT_DOWN: return -std::fmin(1.0, std::pow(x, 2.5 * lfoBendPow(cur[P.lfo[l].bend])) + 0.03 * x * std::sin(2 * PI * 5.3 * x));
+      case LFO_VIBRATO: return std::sin(2 * PI * x);
       default: return lfoRand[l];
     }
   }
@@ -234,7 +235,7 @@ class Voice {
     for (int l = 0; l < LFO_COUNT; l++) {
       const auto& lp = P.lfo[l];
       if (lfoFade[l] < 1) {
-        const double fadeMs = 0;  // the fade-in is gone (owner's call)
+        const double fadeMs = (int)cur[lp.shape] == LFO_VIBRATO ? cur[lp.fade] : 0;  // only VIBRATO fades in
         lfoFade[l] = fadeMs > 0 ? std::fmin(1, lfoFade[l] + (CONTROL_BLOCK * 1000) / (fadeMs * fs)) : 1;
       }
       const int s = SRC_LFO[l];
@@ -244,7 +245,8 @@ class Voice {
         double rate = sync > 0 ? bps / SYNC_BEATS[sync] : cur[lp.rate];
         const double rm = dst[LFO_RATE_DEST[l]];
         if (rm != 0) rate *= std::pow(2.0, 3 * rm);
-        lfoProg[l] = std::fmin(1, lfoProg[l] + (rate * CONTROL_BLOCK) / fs);
+        const double pr = lfoProg[l] + (rate * CONTROL_BLOCK) / fs;
+        lfoProg[l] = (int)cur[lp.shape] == LFO_VIBRATO ? pr - std::floor(pr) : std::fmin(1.0, pr);
         src[s] = lfoNow(l) * cur[P.lfoOn[l]] * lfoFade[l];
       } else {
         src[s] *= lfoFade[l];

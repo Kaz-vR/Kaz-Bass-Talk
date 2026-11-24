@@ -422,7 +422,8 @@ export class Voice {
     for (let l = 0; l < K.LFO_COUNT; l++) {
       const lp = P.lfo[l];
       if (this.lfoFade[l] < 1) {
-        const fadeMs = 0; // the LFOs' fade-in is gone (owner's call): lfo<n>.fade is ignored
+        // the fade-in is only VIBRATO's now (owner's call): its Fade knob
+        const fadeMs = cur[lp.shape] === K.LFO_VIBRATO ? cur[lp.fade] : 0;
         this.lfoFade[l] = fadeMs > 0 ? Math.min(1, this.lfoFade[l] + (CONTROL_BLOCK * 1000) / (fadeMs * fs)) : 1;
       }
       const s = K.SRC_LFO[l];
@@ -432,7 +433,9 @@ export class Voice {
         let rate = sync > 0 ? this.bps / K.SYNC_BEATS[sync] : cur[lp.rate];
         const rm = this.dst[K.LFO_RATE_DEST[l]];
         if (rm !== 0) rate *= Math.pow(2, 3 * rm);
-        this.lfoProg[l] = Math.min(1, this.lfoProg[l] + (rate * CONTROL_BLOCK) / fs);
+        const pr = this.lfoProg[l] + (rate * CONTROL_BLOCK) / fs;
+        // VIBRATO keeps going round; the rest run one cycle and hold
+        this.lfoProg[l] = cur[lp.shape] === K.LFO_VIBRATO ? pr - Math.floor(pr) : Math.min(1, pr);
         src[s] = this.lfoNow(l) * cur[P.lfoOn[l]] * this.lfoFade[l];
       } else {
         src[s] *= this.lfoFade[l];
@@ -692,8 +695,9 @@ export class Voice {
     const x = this.lfoProg[l];
     switch (this.cur[P.lfo[l].shape]) {
       case K.LFO_BLOOM: return 0.5 - 0.5 * Math.cos(Math.PI * x);
-      case K.LFO_DROP: return (1 - x) * (1 - x);
-      case K.LFO_DRIFT_DOWN: return -Math.min(1, Math.pow(x, 2.5) + 0.03 * x * Math.sin(2 * Math.PI * 5.3 * x));
+      case K.LFO_DROP: return Math.pow(1 - x, 2 * K.lfoBendPow(this.cur[P.lfo[l].bend]));
+      case K.LFO_DRIFT_DOWN: return -Math.min(1, Math.pow(x, 2.5 * K.lfoBendPow(this.cur[P.lfo[l].bend])) + 0.03 * x * Math.sin(2 * Math.PI * 5.3 * x));
+      case K.LFO_VIBRATO: return Math.sin(2 * Math.PI * x);
       default: return this.lfoRand[l];
     }
   }

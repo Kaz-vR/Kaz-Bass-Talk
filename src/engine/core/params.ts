@@ -79,7 +79,11 @@ export const LFO_BLOOM = 7, LFO_DROP = 8, LFO_NOTE = 9;
 export const LFO_DRIFT = 10, LFO_SLOW_DRIFT = 11;
 /** DRIFT DOWN (owner's call): a machine losing power, per note: barely moving at first, then sinking faster and faster to -1, a little unsteady on the way. */
 export const LFO_DRIFT_DOWN = 12;
-export const lfoPerNote = (shape: number): boolean => (shape >= LFO_BLOOM && shape <= LFO_NOTE) || shape === LFO_DRIFT_DOWN;
+/** VIBRATO (owner's call): per note, a sine from the note's start that fades in over the LFO's Fade time. */
+export const LFO_VIBRATO = 13;
+export const lfoPerNote = (shape: number): boolean => (shape >= LFO_BLOOM && shape <= LFO_NOTE) || shape === LFO_DRIFT_DOWN || shape === LFO_VIBRATO;
+/** DROP and DRIFT DOWN's curve exponent for their Bend (0.5 = the standard curve). */
+export const lfoBendPow = (bend: number): number => Math.pow(4, 2 * bend - 1);
 export const LFO_COUNT = 6;
 export const SLOT_COUNT = 9; // the mod matrix's rows
 export const SYNC_BEATS = [0, 16, 8, 4, 2, 3, 1, 1.5, 2 / 3, 0.5, 0.75, 1 / 3, 0.25, 0.375, 1 / 6, 0.125];
@@ -208,7 +212,7 @@ export const P = {
   vibDepth: ix('vibrato.depth'), vibRate: ix('vibrato.rate'), vibDelay: ix('vibrato.delay'), vibFade: ix('vibrato.fade'),
 
   lfo: [1, 2, 3, 4, 5, 6].map((n) => ({
-    shape: ix(`lfo${n}.shape`), rate: ix(`lfo${n}.rate`), sync: ix(`lfo${n}.sync`), retrig: ix(`lfo${n}.retrigger`), fade: ix(`lfo${n}.fade`), phase: ix(`lfo${n}.phase`),
+    shape: ix(`lfo${n}.shape`), rate: ix(`lfo${n}.rate`), sync: ix(`lfo${n}.sync`), retrig: ix(`lfo${n}.retrigger`), fade: ix(`lfo${n}.fade`), phase: ix(`lfo${n}.phase`), bend: ix(`lfo${n}.bend`),
   })),
   slots: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => ({ src: ix(`mod${n}.source`), dst: ix(`mod${n}.dest`), amt: ix(`mod${n}.amount`), on: ix(`mod${n}.on`) })),
   chorusMix: ix('chorus.mix'), chorusDepth: ix('chorus.depth'), phaserMix: ix('phaser.mix'), phaserRate: ix('phaser.rate'),

@@ -1810,3 +1810,5 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 .v2 .lfo5-shape-pop.open { display: grid; }
 .v2 .lfo5-shape-pop .lfo5-tile { height: 74px; }
 .v2 .lfo5-oneshot { flex: 0.5; }
+.v2 .lfo-third { display: contents; }
+.v2 .lfo-blank { width: 48px; }
