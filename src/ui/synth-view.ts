@@ -689,6 +689,8 @@ function ghosts(g: CanvasRenderingContext2D, sets: [number, number][][], color: 
 
 const LFO_SHAPE: Record<string, string> = { sine: 'SINE', triangle: 'TRIANGLE', saw_up: 'SAW UP', saw_down: 'SAW DOWN', square: 'SQUARE', sample_hold: 'RANDOM STEPS', wander: 'HUMANIZE', bloom: 'BLOOM', drop: 'DROP', random: 'RANDOM ON TRIGGER', drift: 'DRIFT', 'slow drift': 'SLOW DRIFT', drift_down: 'DRIFT DOWN', vibrato: 'VIBRATO' };
 /** The LFO shape menu (owner's list): SHAPES that repeat, OTHER that wander, hold or fall. */
+/** The shapes that always restart on every note (the one shots and VIBRATO): Retrig does nothing on them. */
+const K_ALWAYS_PER_NOTE = new Set(['random', 'drop', 'drift_down', 'vibrato']);
 const LFO_SHAPE_GROUPS: [string, string[]][] = [
   ['SHAPES', ['sine', 'triangle', 'saw_up', 'saw_down', 'square']],
   ['OTHER', ['wander', 'sample_hold']],
@@ -2497,9 +2499,32 @@ export class SynthView {
           pts.push([i, H / 2 - f(t / period + phase) * depth * (H / 2 - 7)]);
         }
       }
+      if (shape === 'vibrato') {
+        // VIBRATO (owner's pick, option 1): the full vibrato faint, the bright line what the mod wheel plays now
+        // (flat at wheel 0, growing into the faint one as the wheel goes up: the width is the wheel squared)
+        g.save();
+        g.strokeStyle = accentOf(cv);
+        g.globalAlpha = 0.22;
+        g.lineWidth = 1;
+        g.beginPath();
+        pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+        g.stroke();
+        g.restore();
+        const w2 = this.wheel * this.wheel;
+        for (const p of pts) p[1] = H / 2 + (p[1] - H / 2) * w2;
+      }
       silver(g, pts, !!this.get(`${L}.on`));
-      // Retrig: every note starts the shape from the top (a tick at the start).
-      if (this.get(`${L}.retrigger`)) {
+      if (shape === 'vibrato') {
+        g.save();
+        g.fillStyle = 'rgba(234,227,215,0.45)';
+        g.font = '8px "Space Grotesk", sans-serif';
+        g.letterSpacing = '0.12em';
+        g.textAlign = 'right';
+        g.fillText(`MOD WHEEL ${Math.round(this.wheel * 100)}%`, W - 6, 10);
+        g.restore();
+      }
+      // Retrig: every note starts the shape from the top (a tick at the start); not on the shapes that always restart
+      if (this.get(`${L}.retrigger`) && !K_ALWAYS_PER_NOTE.has(shape)) {
         g.save();
         g.fillStyle = accentOf(cv);
         g.shadowColor = accentOf(cv);
@@ -2525,6 +2550,7 @@ export class SynthView {
     };
     this.watch([`${L}.shape`, `${L}.phase`, `${L}.bend`, `${L}.rate`, `${L}.vib_rate`, `${L}.vib_depth`, `${L}.sync`, `${L}.on`, `${L}.retrigger`, ...(n <= 4 ? [`mod${n}.amount`] : [])], redraw);
     this.animDraws.push({ el: cv, f: redraw, free: () => !!this.get(`${L}.on`) });
+    this.wheelViews.push(() => { if (this.get(`${L}.shape`) === 'vibrato') redraw(); });
     return cv;
   }
 
@@ -2577,12 +2603,15 @@ export class SynthView {
     const phaseK = this.knob(`${L}.phase`, 'Phase', 'lg', { fmt: (v) => `${Math.round(v * 360)}°` });
     const bendK = this.knob(`${L}.bend`, 'Bend', 'lg', { fmt: (v) => `${v > 0.5 ? '+' : ''}${Math.round((v - 0.5) * 200)}` });
     const blank = h('div', 'k k-lg lfo-blank');
+    // Retrig only where it does something: the one shots and VIBRATO always restart on every note
+    const retrigT = this.toggle(`${L}.retrigger`, 'Retrig', 'small');
     const third = h('div', 'lfo-third', phaseK, bendK, blank);
     this.watch([`${L}.shape`], () => {
       const sh = String(this.get(`${L}.shape`));
       const which = sh === 'drop' || sh === 'drift_down' ? bendK : sh === 'random' ? blank : sh === 'vibrato' ? null : phaseK;
       for (const el of [phaseK, bendK, blank]) el.style.display = el === which ? '' : 'none';
       amt.style.display = sh === 'vibrato' ? 'none' : '';
+      retrigT.style.visibility = K_ALWAYS_PER_NOTE.has(sh) ? 'hidden' : '';
       vibDepK.style.display = sh === 'vibrato' ? '' : 'none';
       // VIBRATO moves pitch only: the other targets leave its menu
       for (const og of tsel.querySelectorAll('optgroup')) og.hidden = sh === 'vibrato' && og.label !== 'PITCH';
@@ -2607,7 +2636,7 @@ export class SynthView {
       // HZ / SYNC sits just left of the rate it switches, RETRIG under it
       // the third dial fits the shape (owner's call): PHASE on the repeating shapes, BEND on DROP and
       // DRIFT DOWN, nothing on RANDOM ON TRIGGER and VIBRATO
-      dials: [h('div', 'lfo-sync lfo-sync-col', sync, this.toggle(`${L}.retrigger`, 'Retrig', 'small')), rate, vibRateK, note, third, amt, vibDepK],
+      dials: [h('div', 'lfo-sync lfo-sync-col', sync, retrigT), rate, vibRateK, note, third, amt, vibDepK],
     });
   }
 
