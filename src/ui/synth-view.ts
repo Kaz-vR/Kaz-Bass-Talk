@@ -2453,7 +2453,8 @@ export class SynthView {
       const span = perNote && shape !== 'random' ? Math.max(2, period * 1.25) : 2;
       const bendPow = Math.pow(4, 2 * this.num(`${L}.bend`) - 1), fadeS = shape === 'vibrato' ? this.num(`${L}.fade`) / 1000 : 0;
       // Depth (owner's call): the picture shows the real movement, flat at 0; Phase shifts the repeating shapes
-      const depth = n <= 4 ? this.num(`mod${n}.amount`) : 1, phase = ['sine', 'triangle', 'saw_up', 'saw_down', 'square'].includes(shape) ? this.num(`${L}.phase`) : 0;
+      const depth = n <= 4 ? Math.cbrt(this.num(`mod${n}.amount`)) : 1, // the knob's position (Depth is on a cubed curve)
+      phase = ['sine', 'triangle', 'saw_up', 'saw_down', 'square'].includes(shape) ? this.num(`${L}.phase`) : 0;
       let seed = 11 + n;
       const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
       const steps = Array.from({ length: 10 }, rnd);
@@ -2564,7 +2565,11 @@ export class SynthView {
     this.watch([`${slot}.dest`], () => { tsel.value = String(this.get(`${slot}.dest`)); });
     const target = h('div', 'sel lfo-target-sel', h('span', 'lfo-target-arrow', '→'), tsel);
     target.title = 'What this LFO moves';
-    const amt = this.knob(`${slot}.amount`, 'Depth', 'lg', { fmt: (v) => `${Math.round(v * 100)}%` });
+    // on a pitch target Depth reads in cents / semitones (100 % = ±2 octaves), elsewhere in %
+    const pitchDest = () => String(this.get(`${slot}.dest`)).endsWith('pitch');
+    const amt = this.knob(`${slot}.amount`, 'Depth', 'lg', {
+      fmt: (v) => !pitchDest() ? `${Math.round(v * 100)}%` : v * 24 < 1 ? `±${Math.round(v * 2400)}¢` : `±${(v * 24).toFixed(1)} st`,
+    });
     const phaseK = this.knob(`${L}.phase`, 'Phase', 'lg', { fmt: (v) => `${Math.round(v * 360)}°` });
     const fadeK = this.knob(`${L}.fade`, 'Fade', 'lg', { fmt: ms });
     const bendK = this.knob(`${L}.bend`, 'Bend', 'lg', { fmt: (v) => `${v > 0.5 ? '+' : ''}${Math.round((v - 0.5) * 200)}` });
@@ -2576,6 +2581,19 @@ export class SynthView {
       for (const el of [phaseK, fadeK, bendK, blank]) el.style.display = el === which ? '' : 'none';
     });
     amt.addEventListener('pointerdown', own, true);
+    // picking VIBRATO sets it up ready to play (owner's call): a classic vibrato on A+B pitch (the sub stays steady),
+    // 5.5 Hz free, restarting per note, ±25 cents, fading in over 350 ms; a pitch target already chosen is kept
+    shapeSel.addEventListener('change', () => {
+      if (this.get(`${L}.shape`) !== 'vibrato') return;
+      own();
+      if (!pitchDest()) this.set(`${slot}.dest`, 'osc_pitch');
+      this.set(`${L}.on`, true);
+      this.set(id, 'free');
+      this.set(`${L}.rate`, 5.5);
+      this.set(`${L}.retrigger`, true);
+      this.set(`${L}.fade`, 350);
+      this.set(`${slot}.amount`, 0.25 / 24);
+    });
     return this.obox(`LFO ${n}`, `mb box-lfo${n}`, {
       power: (el) => this.boolPower(`${L}.on`, el),
       head: [shapeSel, target],
