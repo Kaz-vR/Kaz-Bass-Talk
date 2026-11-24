@@ -1404,6 +1404,30 @@
       "describes": "VIBRATO: off = the pitch swings evenly above and below the note; on = it dips below the note and comes back, never sharp (a violinist's warmer kind)."
     },
     {
+      "id": "lfo1.vib_rate",
+      "label": "LFO 1 vibrato rate",
+      "type": "float",
+      "min": 3,
+      "max": 8,
+      "default": 5.5,
+      "curve": "linear",
+      "unit": "Hz",
+      "group": "lfo1",
+      "describes": "VIBRATO's speed in Hz mode, the range a player's vibrato lives in (the wheel nudges it up to 10 % faster at the top)."
+    },
+    {
+      "id": "lfo1.vib_depth",
+      "label": "LFO 1 vibrato depth",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.6,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo1",
+      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±50 cents (100 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
+    },
+    {
       "id": "lfo2.on",
       "label": "LFO 2 on",
       "type": "bool",
@@ -1536,6 +1560,30 @@
       "default": false,
       "group": "lfo2",
       "describes": "VIBRATO: off = the pitch swings evenly above and below the note; on = it dips below the note and comes back, never sharp (a violinist's warmer kind)."
+    },
+    {
+      "id": "lfo2.vib_rate",
+      "label": "LFO 2 vibrato rate",
+      "type": "float",
+      "min": 3,
+      "max": 8,
+      "default": 5.5,
+      "curve": "linear",
+      "unit": "Hz",
+      "group": "lfo2",
+      "describes": "VIBRATO's speed in Hz mode, the range a player's vibrato lives in (the wheel nudges it up to 10 % faster at the top)."
+    },
+    {
+      "id": "lfo2.vib_depth",
+      "label": "LFO 2 vibrato depth",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.6,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo2",
+      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±50 cents (100 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
     },
     {
       "id": "lfo3.on",
@@ -1672,6 +1720,30 @@
       "describes": "VIBRATO: off = the pitch swings evenly above and below the note; on = it dips below the note and comes back, never sharp (a violinist's warmer kind)."
     },
     {
+      "id": "lfo3.vib_rate",
+      "label": "LFO 3 vibrato rate",
+      "type": "float",
+      "min": 3,
+      "max": 8,
+      "default": 5.5,
+      "curve": "linear",
+      "unit": "Hz",
+      "group": "lfo3",
+      "describes": "VIBRATO's speed in Hz mode, the range a player's vibrato lives in (the wheel nudges it up to 10 % faster at the top)."
+    },
+    {
+      "id": "lfo3.vib_depth",
+      "label": "LFO 3 vibrato depth",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.6,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo3",
+      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±50 cents (100 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
+    },
+    {
       "id": "lfo4.on",
       "label": "LFO 4 on",
       "type": "bool",
@@ -1804,6 +1876,30 @@
       "default": false,
       "group": "lfo4",
       "describes": "VIBRATO: off = the pitch swings evenly above and below the note; on = it dips below the note and comes back, never sharp (a violinist's warmer kind)."
+    },
+    {
+      "id": "lfo4.vib_rate",
+      "label": "LFO 4 vibrato rate",
+      "type": "float",
+      "min": 3,
+      "max": 8,
+      "default": 5.5,
+      "curve": "linear",
+      "unit": "Hz",
+      "group": "lfo4",
+      "describes": "VIBRATO's speed in Hz mode, the range a player's vibrato lives in (the wheel nudges it up to 10 % faster at the top)."
+    },
+    {
+      "id": "lfo4.vib_depth",
+      "label": "LFO 4 vibrato depth",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.6,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo4",
+      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±50 cents (100 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
     },
     {
       "id": "lfo5.on",
@@ -1940,6 +2036,30 @@
       "describes": "VIBRATO: off = the pitch swings evenly above and below the note; on = it dips below the note and comes back, never sharp (a violinist's warmer kind)."
     },
     {
+      "id": "lfo5.vib_rate",
+      "label": "LFO 5 vibrato rate",
+      "type": "float",
+      "min": 3,
+      "max": 8,
+      "default": 5.5,
+      "curve": "linear",
+      "unit": "Hz",
+      "group": "lfo5",
+      "describes": "VIBRATO's speed in Hz mode, the range a player's vibrato lives in (the wheel nudges it up to 10 % faster at the top)."
+    },
+    {
+      "id": "lfo5.vib_depth",
+      "label": "LFO 5 vibrato depth",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.6,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo5",
+      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±50 cents (100 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
+    },
+    {
       "id": "lfo6.on",
       "label": "LFO 6 on",
       "type": "bool",
@@ -2072,6 +2192,30 @@
       "default": false,
       "group": "lfo6",
       "describes": "VIBRATO: off = the pitch swings evenly above and below the note; on = it dips below the note and comes back, never sharp (a violinist's warmer kind)."
+    },
+    {
+      "id": "lfo6.vib_rate",
+      "label": "LFO 6 vibrato rate",
+      "type": "float",
+      "min": 3,
+      "max": 8,
+      "default": 5.5,
+      "curve": "linear",
+      "unit": "Hz",
+      "group": "lfo6",
+      "describes": "VIBRATO's speed in Hz mode, the range a player's vibrato lives in (the wheel nudges it up to 10 % faster at the top)."
+    },
+    {
+      "id": "lfo6.vib_depth",
+      "label": "LFO 6 vibrato depth",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.6,
+      "curve": "linear",
+      "unit": "",
+      "group": "lfo6",
+      "describes": "VIBRATO's width at full wheel: 0 = none, 1 = ±50 cents (100 cents bottom to top). Realistic only; extreme pitch movement is for the other shapes."
     },
     {
       "id": "mod.on",

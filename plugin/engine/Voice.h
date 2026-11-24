@@ -72,7 +72,7 @@ class Voice {
     subRamp = 1 / (0.01 * fs);
     voiceDcL.setHighpass(VOICE_DC_HZ, SQRT1_2, fs);
     voiceDcR.setHighpass(VOICE_DC_HZ, SQRT1_2, fs);
-    lfoFade.fill(1); vibRateJ.fill(1); vibDep.fill(1); vibDepT.fill(1);
+    lfoFade.fill(1); vibAmt.fill(-1); vibRateJ.fill(1); vibDep.fill(1); vibDepT.fill(1);
     driveF.fill(tanhIntegral(0));
     mixF.fill(tanhIntegral(0));
     Rng card(seed ^ 0x6c8e9cf5u);
@@ -242,10 +242,12 @@ class Voice {
       if (lfoPerNote((int)cur[lp.shape])) {
         // A per-note shape: one cycle from this note's start (Rate or the synced note value), then held.
         const int sync = (int)cur[lp.sync];
-        double rate = sync > 0 ? bps / SYNC_BEATS[sync] : cur[lp.rate];
+        const bool vib = (int)cur[lp.shape] == LFO_VIBRATO;
+        // VIBRATO: its own Rate (3-8 Hz) and Depth (0-±50 cents on a pitch target)
+        double rate = sync > 0 ? bps / SYNC_BEATS[sync] : vib ? cur[lp.vibRate] : cur[lp.rate];
         const double rm = dst[LFO_RATE_DEST[l]];
         if (rm != 0) rate *= std::pow(2.0, 3 * rm);
-        const bool vib = (int)cur[lp.shape] == LFO_VIBRATO;
+        vibAmt[s] = vib ? cur[lp.vibDepth] * 0.5 / 24 : -1;
         if (vib) rate *= (0.9 + 0.2 * src[SRC_MODWHEEL]) * vibRateJ[l];  // the mod wheel plays VIBRATO
         const double pr = lfoProg[l] + (rate * CONTROL_BLOCK) / fs;
         if (vib) {
@@ -260,6 +262,7 @@ class Voice {
         src[s] = lfoNow(l) * cur[P.lfoOn[l]] * lfoFade[l];
       } else {
         src[s] *= lfoFade[l];
+        vibAmt[s] = -1;
       }
     }
     src[SRC_MOD_ENV] = modEnv.level * cur[P.modEnvOn];
@@ -270,7 +273,11 @@ class Voice {
     for (int s = 0; s < SLOT_COUNT; s++) {
       const auto& slot = P.slots[s];
       const int d = (int)cur[slot.dst];
-      if (d > 0) dst[d] += cur[slot.amt] * src[(int)cur[slot.src]];
+      if (d > 0) {
+        const int si = (int)cur[slot.src];
+        const double va = vibAmt[si];
+        dst[d] += (va >= 0 ? va : cur[slot.amt]) * src[si];
+      }
     }
     if (dstMask)
       for (int d = 1; d < DEST_COUNT; d++) dst[d] *= dstMask[d];
@@ -829,6 +836,7 @@ class Voice {
   Envelope modEnv;
   std::array<double, SRC_COUNT> src{};
   std::array<double, LFO_COUNT> lfoFade{}, lfoProg{}, lfoRand{}, vibRateJ{}, vibDep{}, vibDepT{};
+  std::array<double, SRC_COUNT> vibAmt{};
 
   OscState osc[2];
   DiodeLadder diodeL, diodeR;

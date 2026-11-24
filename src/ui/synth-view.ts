@@ -2447,14 +2447,14 @@ export class SynthView {
       const sync = String(this.get(`${L}.sync`));
       // Seconds per cycle (synced rates at 120 BPM), to place the fade on the same time axis.
       const beats = sync === 'free' ? 0 : syncBeats(sync);
-      const period = beats ? beats * 0.5 : 1 / Math.max(0.01, this.num(`${L}.rate`));
+      const period = beats ? beats * 0.5 : 1 / Math.max(0.01, this.num(shape === 'vibrato' ? `${L}.vib_rate` : `${L}.rate`));
       // A fixed 2-second window (at 120 BPM): a faster rate shows more cycles. Bloom and drop show
       // their whole rise or fall, per note a held value for each of a few notes.
       const perNote = shape === 'bloom' || shape === 'drop' || shape === 'random' || shape === 'drift_down';
       const span = perNote && shape !== 'random' ? Math.max(2, period * 1.25) : 2;
       const bendPow = Math.pow(4, 2 * this.num(`${L}.bend`) - 1), underV = shape === 'vibrato' && !!this.get(`${L}.under`);
       // Depth (owner's call): the picture shows the real movement, flat at 0; Phase shifts the repeating shapes
-      const depth = n <= 4 ? Math.cbrt(this.num(`mod${n}.amount`)) : 1, // the knob's position (Depth is on a cubed curve)
+      const depth = shape === 'vibrato' ? this.num(`${L}.vib_depth`) : n <= 4 ? Math.cbrt(this.num(`mod${n}.amount`)) : 1, // the knob's position (Depth is on a cubed curve)
       phase = ['sine', 'triangle', 'saw_up', 'saw_down', 'square'].includes(shape) ? this.num(`${L}.phase`) : 0;
       let seed = 11 + n;
       const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
@@ -2523,7 +2523,7 @@ export class SynthView {
         }
       }
     };
-    this.watch([`${L}.shape`, `${L}.phase`, `${L}.bend`, `${L}.under`, `${L}.rate`, `${L}.sync`, `${L}.on`, `${L}.retrigger`, ...(n <= 4 ? [`mod${n}.amount`] : [])], redraw);
+    this.watch([`${L}.shape`, `${L}.phase`, `${L}.bend`, `${L}.under`, `${L}.rate`, `${L}.vib_rate`, `${L}.vib_depth`, `${L}.sync`, `${L}.on`, `${L}.retrigger`, ...(n <= 4 ? [`mod${n}.amount`] : [])], redraw);
     this.animDraws.push({ el: cv, f: redraw, free: () => !!this.get(`${L}.on`) });
     return cv;
   }
@@ -2539,9 +2539,13 @@ export class SynthView {
     const rate = this.knob(`${L}.rate`, 'Rate', 'lg');
     // Synced: the note value sits where the rate dial was, with the same label.
     const note = h('div', 'k k-lg note-cell', this.selector(id, { label: (o) => o }), h('div', 'k-label', 'Rate'));
-    this.watch([id], () => {
-      const free = this.get(id) === 'free';
-      rate.style.display = free ? '' : 'none';
+    // VIBRATO has its own Rate (3-8 Hz) and Depth (±0-50 cents): realistic only (owner's call)
+    const vibRateK = this.knob(`${L}.vib_rate`, 'Rate', 'lg', { fmt: (v) => `${v.toFixed(1)} Hz` });
+    const vibDepK = this.knob(`${L}.vib_depth`, 'Depth', 'lg', { fmt: (v) => `±${Math.round(v * 50)}¢` });
+    this.watch([id, `${L}.shape`], () => {
+      const free = this.get(id) === 'free', vib = this.get(`${L}.shape`) === 'vibrato';
+      rate.style.display = free && !vib ? '' : 'none';
+      vibRateK.style.display = free && vib ? '' : 'none';
       note.style.display = free ? 'none' : '';
     });
     // the shapes in two columns with a little picture each (owner's list): bloom and the old drifts are gone
@@ -2581,20 +2585,24 @@ export class SynthView {
       const which = sh === 'vibrato' ? fadeK : sh === 'drop' || sh === 'drift_down' ? bendK : sh === 'random' ? blank : phaseK;
       for (const el of [phaseK, fadeK, bendK, blank]) el.style.display = el === which ? '' : 'none';
       under.style.display = sh === 'vibrato' ? '' : 'none';
+      amt.style.display = sh === 'vibrato' ? 'none' : '';
+      vibDepK.style.display = sh === 'vibrato' ? '' : 'none';
+      // VIBRATO moves pitch only: the other targets leave its menu
+      for (const og of tsel.querySelectorAll('optgroup')) og.hidden = sh === 'vibrato' && og.label !== 'PITCH';
     });
     amt.addEventListener('pointerdown', own, true);
     // picking VIBRATO sets it up ready to play (owner's call): the mod wheel plays it; a classic vibrato on A+B pitch
-    // (the sub stays steady), 5.5 Hz free, restarting per note, ±50 cents at full wheel; a pitch target already chosen is kept
+    // (the sub stays steady), 5.5 Hz free, restarting per note, ±30 cents at full wheel; a pitch target already chosen is kept
     shapeSel.addEventListener('change', () => {
       if (this.get(`${L}.shape`) !== 'vibrato') return;
       own();
       if (!pitchDest()) this.set(`${slot}.dest`, 'osc_pitch');
       this.set(`${L}.on`, true);
       this.set(id, 'free');
-      this.set(`${L}.rate`, 5.5);
+      this.set(`${L}.vib_rate`, 5.5);
+      this.set(`${L}.vib_depth`, 0.6);
       this.set(`${L}.retrigger`, true);
       this.set(`${L}.human`, 0.3);
-      this.set(`${slot}.amount`, 0.5 / 24);
     });
     return this.obox(`LFO ${n}`, `mb box-lfo${n}`, {
       power: (el) => this.boolPower(`${L}.on`, el),
@@ -2604,7 +2612,7 @@ export class SynthView {
       // the third dial fits the shape (owner's call): PHASE on the repeating shapes, FADE on VIBRATO, BEND on DROP and
       // DRIFT DOWN, nothing on RANDOM ON TRIGGER
       // VIBRATO adds UNDER under Retrig: it dips below the note instead of swinging around it
-      dials: [h('div', 'lfo-sync lfo-sync-col', sync, this.toggle(`${L}.retrigger`, 'Retrig', 'small'), under), rate, note, third, amt],
+      dials: [h('div', 'lfo-sync lfo-sync-col', sync, this.toggle(`${L}.retrigger`, 'Retrig', 'small'), under), rate, vibRateK, note, third, amt, vibDepK],
     });
   }
 

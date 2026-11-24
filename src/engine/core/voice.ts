@@ -131,6 +131,8 @@ export class Voice {
   private readonly vibRateJ = new Float64Array(K.LFO_COUNT).fill(1);
   private readonly vibDep = new Float64Array(K.LFO_COUNT).fill(1);
   private readonly vibDepT = new Float64Array(K.LFO_COUNT).fill(1);
+  /** Per matrix source: the fixed amount a VIBRATO LFO routes with (its own Depth, ±50 cents at most), or -1. */
+  private readonly vibAmt = new Float64Array(K.SRC_COUNT).fill(-1);
   private readonly lfoRand = new Float64Array(K.LFO_COUNT);
   /** Mod matrix result for this voice (the Synth reads the newest voice's FX targets). */
   readonly dst = new Float64Array(DEST_COUNT);
@@ -430,10 +432,12 @@ export class Voice {
       if (K.lfoPerNote(cur[lp.shape])) {
         // A per-note shape: one cycle from this note's start (Rate or the synced note value), then held.
         const sync = cur[lp.sync];
-        let rate = sync > 0 ? this.bps / K.SYNC_BEATS[sync] : cur[lp.rate];
+        const vib = cur[lp.shape] === K.LFO_VIBRATO;
+        // VIBRATO has its own Rate (3-8 Hz) and Depth (0-±50 cents on any pitch target: 24 semitones at amount 1)
+        let rate = sync > 0 ? this.bps / K.SYNC_BEATS[sync] : vib ? cur[lp.vibRate] : cur[lp.rate];
         const rm = this.dst[K.LFO_RATE_DEST[l]];
         if (rm !== 0) rate *= Math.pow(2, 3 * rm);
-        const vib = cur[lp.shape] === K.LFO_VIBRATO;
+        this.vibAmt[s] = vib ? (cur[lp.vibDepth] * 0.5) / 24 : -1;
         // VIBRATO (owner's call, a violinist's): the mod wheel plays it; pushed harder it also gets a little faster
         if (vib) rate *= (0.9 + 0.2 * src[K.SRC_MODWHEEL]) * this.vibRateJ[l];
         const pr = this.lfoProg[l] + (rate * CONTROL_BLOCK) / fs;
@@ -450,6 +454,7 @@ export class Voice {
         src[s] = this.lfoNow(l) * cur[P.lfoOn[l]] * this.lfoFade[l];
       } else {
         src[s] *= this.lfoFade[l];
+        this.vibAmt[s] = -1;
       }
     }
     src[K.SRC_MOD_ENV] = this.modEnv.level * cur[P.modEnvOn];
@@ -461,7 +466,10 @@ export class Voice {
     for (let s = 0; s < SLOT_COUNT; s++) {
       const slot = P.slots[s];
       const d = cur[slot.dst];
-      if (d > 0) dst[d] += cur[slot.amt] * src[cur[slot.src]];
+      if (d > 0) {
+        const si = cur[slot.src], va = this.vibAmt[si];
+        dst[d] += (va >= 0 ? va : cur[slot.amt]) * src[si];
+      }
     }
     // Switched-off blocks and muted layers ignore their modulation.
     const mask = this.dstMask;

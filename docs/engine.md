@@ -28,7 +28,8 @@ Quality: band-limited oscillators, oversampled anti-aliased nonlinear stages. Ex
 ### VIBRATO (LFO shape 13, owner's call: a violinist's vibrato, played with the mod wheel)
 
 A sine running per note (restarting with each note), never on without the wheel: its width is the mod wheel squared
-(the first half gentle) times the LFO's Depth, and the wheel also speeds it up slightly (Rate x 0.9 at the bottom to
+(the first half gentle) times its own Depth (`lfo<n>.vib_depth`: 0 to ±50 cents on any pitch target; the matrix
+slot's amount is ignored for a VIBRATO source), at its own Rate (`lfo<n>.vib_rate`, 3-8 Hz, or synced), and the wheel also speeds it up slightly (Rate x 0.9 at the bottom to
 x 1.1 at the top). **Human** (`lfo<n>.human`) varies each cycle's speed (up to ±12 %) and width (up to ±30 %, glided);
 **Under** (`lfo<n>.under`) shifts it to sin - 1, so it dips below the note and never goes sharp. No LFO fades in any
 more (`lfo<n>.fade` is unused, kept so old presets load). Both engines (`voice.ts`, `Voice.h`).
