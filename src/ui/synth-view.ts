@@ -4569,7 +4569,7 @@ export class SynthView {
           gg.restore();
         }
       }
-      // a PHASER (owner's pick, option 4): the left (its colour) and right (orange) responses where they are right
+      // a PHASER (owner's pick, option 4): the left (its colour) and right (pale pink) responses where they are right
       // now, the space between them lit: where they differ is the stereo swirl
       if (isPh(k) && stageOn(n) && this.get(`grind${n}.phaser_on`)) {
         const pre = `grind${n}`, N = Math.round(this.num(`${pre}.ph_notches`)), spread = this.num(`${pre}.ph_spread`), amt = this.num(`${pre}.ph_amount`);
@@ -4608,12 +4608,13 @@ export class SynthView {
           gg.restore();
         };
         line(L, col, mini ? 1.2 : 1.6, mini ? 4 : 8);
-        line(R, '#f25d07', mini ? 1 : 1.4, 0);
+        // the right channel in pale pink, the phaser's own colour lightened (owner's pick)
+        line(R, '#f2a6d8', mini ? 1 : 1.4, mini ? 3 : 6);
         if (!mini) {
           gg.font = '600 9px "Space Grotesk", sans-serif';
           gg.fillStyle = col;
           gg.fillText('L', 8, 13);
-          gg.fillStyle = '#f25d07';
+          gg.fillStyle = '#f2a6d8';
           gg.fillText('R', 20, 13);
           gg.fillStyle = 'rgba(200,200,206,0.55)';
           gg.textAlign = 'right';
