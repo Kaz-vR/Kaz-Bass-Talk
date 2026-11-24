@@ -3053,17 +3053,19 @@ export class SynthView {
       for (const o of os) og.append(new Option(LFO_TARGET_NAME[o] ?? o, o));
       wtSel.append(og);
     }
+    // FILTER and VOLUME are its own filter and gate (the classic wobble, Lo cut keeping the low end out); the rest
+    // move their target as LFO 1-4 do, Depth deep
     wtSel.onchange = () => {
       const v = wtSel.value;
       if (v === 'none') { this.set('wobble.on', false); return; }
       if (this.num('wobble.depth') <= 0) this.set('wobble.depth', 1);
-      // its own old filter and gate are not used any more: the target is
-      this.set('wobble.cutoff', false);
-      this.set('wobble.volume', false);
-      this.set('wobble.dest', v);
+      this.set('wobble.cutoff', v === 'filter_cutoff');
+      this.set('wobble.volume', v === 'amp');
+      this.set('wobble.dest', v === 'filter_cutoff' || v === 'amp' ? 'none' : v);
       this.set('wobble.on', true);
     };
-    this.watch(['wobble.on', 'wobble.depth', 'wobble.dest'], () => { wtSel.value = on() ? String(this.get('wobble.dest')) : 'none'; });
+    const wobTargetNow = () => (!on() ? 'none' : this.get('wobble.cutoff') ? 'filter_cutoff' : this.get('wobble.volume') ? 'amp' : String(this.get('wobble.dest')));
+    this.watch(['wobble.on', 'wobble.depth', 'wobble.dest', 'wobble.cutoff', 'wobble.volume'], () => { wtSel.value = wobTargetNow(); });
     const wobTarget = h('div', 'sel lfo5-target-sel', wtSel);
     wobTarget.title = 'What the custom LFO moves';
     const pct = (v: number) => `${Math.round(v * 100)}%`;
@@ -3072,8 +3074,10 @@ export class SynthView {
       // the target (owner's call, a menu instead of the switch and lamps): none, cutoff, volume or both
       h('div', 'lfo5-sec lfo5-switch', wobTarget),
       h('div', 'lfo5-sec lfo5-knobs',
-        this.knob('wobble.amount', 'Amount', 'lg', { fmt: (v) => (Math.abs(v) < 0.005 ? '0' : `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`) }),
-        this.knob('wobble.smooth', 'Smooth', 'lg', { fmt: pct })),
+        this.knob('wobble.depth', 'Depth', 'lg', { fmt: pct }),
+        this.knob('wobble.smooth', 'Smooth', 'lg', { fmt: pct }),
+        // Lo cut only works with its own filter and gate (FILTER, VOLUME)
+        this.knob('wobble.lowcut', 'Lo cut', 'lg', { fmt: (v) => (v <= 21 ? 'off' : v >= 1000 ? `${(v / 1000).toFixed(1)} kHz` : `${Math.round(v)} Hz`), disabled: () => !this.get('wobble.cutoff') && !this.get('wobble.volume'), deps: ['wobble.cutoff', 'wobble.volume'] })),
       // ONE SHOT (owner's call): the shape runs once from every note and holds its end
       h('div', 'lfo5-sec lfo5-oneshot', this.toggle('wobble.oneshot', 'ONE SHOT', 'small')),
       h('div', 'lfo5-sec lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, sNext));

@@ -774,9 +774,9 @@ export class Synth {
       }
       this.wobV += (target - this.wobV) * 0.35;
       const v = this.wobV;
-      // the LFO page's target (owner's call): the shape moves it as any LFO does, Amount deep, through every voice
+      // the LFO page's target (owner's call): the shape moves it as any LFO does, Depth deep, through every voice
       const dest = Math.round(cur[P.wobDest]);
-      if (dest > 0) x[dest] += cur[P.wobAmount] * v * Math.min(1, depth * this.wobScale);
+      if (dest > 0) x[dest] += v * Math.min(1, depth * this.wobScale);
       // Cutoff and volume, either or both: the Wobbler's own filter opens and shuts, the volume
       // only ducks (never louder).
       if (cur[P.wobCutoff] > 0.5) {

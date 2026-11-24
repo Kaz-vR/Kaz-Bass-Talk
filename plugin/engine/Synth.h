@@ -804,7 +804,7 @@ class Synth {
       wobV += (tgt - wobV) * 0.35;
       const double v = wobV;
       const int dest = (int)jsRound(cur[P.wobDest]);
-      if (dest > 0 && dest < DEST_COUNT) x[(size_t)dest] += cur[P.wobAmount] * v * std::fmin(1.0, depth * wobScale);
+      if (dest > 0 && dest < DEST_COUNT) x[(size_t)dest] += v * std::fmin(1.0, depth * wobScale);
       if (cur[P.wobCutoff] > 0.5) {
         const double lc = cur[P.wobLowcut];
         const double lo = lc > 21 ? lc : 60, hi = std::fmin(18000, sampleRate * 0.45);
