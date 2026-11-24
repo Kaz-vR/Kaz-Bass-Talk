@@ -3303,12 +3303,6 @@ export class SynthView {
   }
 
   /** RUIN's filter types as the title's menu: CUT / BOOST, each with a picture of its curve. */
-  private filterTypeSelector(id: string): HTMLElement {
-    const el = this.selector(id, { groups: [['CUT', ['notch', 'comb', 'phaser']], ['BOOST', ['peak', 'band']], ['EQ', ['bells']]], only: true });
-    for (const o of el.querySelectorAll('option')) o.dataset.icon = filterIconPath(o.value);
-    return el;
-  }
-
   private tapeLast = '';
   private tapeTypes(): HTMLElement {
     const TYPES: [string, number, number][] = [
@@ -3842,17 +3836,7 @@ export class SynthView {
     const mix = md('grind.mix', 'Mix', { fmt: pct });
     const ott = md('grind.ott', 'OTT', { fmt: pct });
     const out = md('grind.output', 'Output', { fmt: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB` });
-    // ONE SHOT's way (owner's call): ← sweeps from the top down (right to left), → from the bottom up
-    const shotDir = h('button', 'gr-shot-dir');
-    shotDir.onclick = () => this.set('grind.oneshot_dir', this.get('grind.oneshot_dir') === 'up' ? 'down' : 'up');
-    this.watch(['grind.oneshot_dir', 'grind.oneshot'], () => {
-      const up = this.get('grind.oneshot_dir') === 'up';
-      // a drawn arrow (the font has no arrow glyph): the way the sweep travels
-      shotDir.innerHTML = `<svg width="14" height="8" viewBox="0 0 14 8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"${up ? '' : ' style="transform:scaleX(-1)"'}><path d="M1 4h12M9 1l3 3-3 3"/></svg>`;
-      shotDir.title = up ? 'ONE SHOT sweeps left to right (bottom to top). Click for right to left.' : 'ONE SHOT sweeps right to left (top to bottom). Click for left to right.';
-      shotDir.classList.toggle('on', !!this.get('grind.oneshot'));
-    });
-    const lamps = h('span', 'gr-lamps gr-lamps-row', this.toggle('grind.key', 'KEY', 'small'), h('span', 'gr-shot', this.toggle('grind.oneshot', 'ONE SHOT', 'small'), shotDir), this.toggle('grind.noise_thru', 'NOISE THRU', 'small'));
+    const lamps = h('span', 'gr-lamps gr-lamps-row', this.toggle('grind.key', 'KEY', 'small'), this.toggle('grind.noise_thru', 'NOISE THRU', 'small'));
     // CHAINS (owner's call: preset chains live in the strip): one of the recipes, exactly as it is (ROLL nudges them)
     const chains = h('select', 'gr-chains') as HTMLSelectElement;
     chains.append(new Option('CHAINS', ''), ...RUIN_RECIPES.map((rc) => new Option(rc.name, rc.name)));
@@ -3967,7 +3951,12 @@ export class SynthView {
       prev.onclick = step(-1);
       next.onclick = step(1);
       prev.title = next.title = 'Step through the types';
-      if (!isEq(k) && !isPh(k)) {
+      if (kindOf(k) === 'filter') {
+        // a filter is the four bands (owner's call: no type menu); an old preset's filter shows its type
+        const lab = h('span', 'gr-node-eq');
+        this.watch([tid], () => { const t = String(this.get(tid)); lab.textContent = t === 'bells' ? '4 BANDS' : t.toUpperCase(); });
+        node.append(head, h('div', 'gr-node-cv-wrap', cv), h('div', 'gr-node-foot', lab));
+      } else if (!isEq(k) && !isPh(k)) {
         const sel = isDrive(k) ? this.driveTypeSelector(tid) : this.selector(tid);
         sel.classList.add('gr-node-sel');
         sel.addEventListener('click', (e) => e.stopPropagation());
@@ -4254,7 +4243,7 @@ export class SynthView {
       this.watch([`${pre}.clock`], () => clocks.forEach((b, j) => b.classList.toggle('on', ['hz', 'sync', 'random'][j] === this.get(`${pre}.clock`))));
       sync.title = getParam(`${pre}.clock`)!.describes;
       const fk = n - 1, dk = 8 + n - 1, ek = 16 + n - 1;
-      const fhead = h('div', 'ob-head gr-row-head', partPower(fk), h('span', 'c-title', `FILTER ${n}`), this.filterTypeSelector(`${pre}.filter`), h('span', 'gr-icons', arch, wBox, link, dice, lock));
+      const fhead = h('div', 'ob-head gr-row-head', partPower(fk), h('span', 'c-title', `FILTER ${n}`), h('span', 'gr-icons', arch, wBox, link, dice, lock));
       // Freq and H Range are the ball on the graph (owner's call): only Res, Depth and Rate are dials
       // BELLS (owner's call): Width and Depth make way for the selected bell's Freq / Gain / Q, as Ableton's EQ
       const wd = h('span', 'eq-set', md(`${pre}.width`, 'Width', { fmt: pct }), md(`${pre}.depth`, 'Depth', { fmt: pct }));
@@ -4985,6 +4974,20 @@ export class SynthView {
     };
     const put = (n: number, st: RuinStage) => {
       for (const [k, v] of Object.entries(stageParams(`grind${n}`, st))) this.set(k, v);
+      // the filter is the four bands now (owner's call): rolled from the archetypes, the recipe's movement kept
+      if (st.filter) {
+        this.set(`grind${n}.filter`, 'bells');
+        const r = rollBells(this.grindArch[n - 1], this.grindWeird);
+        r.bands.forEach((b, i) => {
+          const bp = `grind${n}.bell${i + 1}`;
+          this.set(`${bp}_type`, b.type);
+          this.set(`${bp}_freq`, b.freq);
+          this.set(`${bp}_gain`, b.gain);
+          this.set(`${bp}_q`, b.q);
+          this.set(`${bp}_range`, b.range);
+        });
+        this.set(`grind${n}.bell_link`, r.link);
+      }
     };
     if (!counted) {
       // a stage's own die: one stage from any recipe, nudged
