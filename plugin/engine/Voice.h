@@ -275,7 +275,7 @@ class Voice {
 
     noteTime += (double)CONTROL_BLOCK / fs;
     double vib = 0;
-    const double vibDepth = clampd(cur[P.vibDepth] + 100 * dst[D_VIBRATO], 0, 100);
+    const double vibDepth = clampd(100 * dst[D_VIBRATO], 0, 100);  // the hidden vibrato is gone (owner's call)
     if (vibDepth > 0) {
       const double t = noteTime - cur[P.vibDelay] / 1000;
       if (t > 0) {

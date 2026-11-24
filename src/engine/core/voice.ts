@@ -461,7 +461,8 @@ export class Voice {
     // Delayed vibrato: the note starts straight, then sings.
     this.noteTime += CONTROL_BLOCK / fs;
     let vib = 0;
-    const vibDepth = clamp(cur[P.vibDepth] + 100 * dst[D.VIBRATO], 0, 100);
+    // the hidden vibrato is gone (owner's call: no control on the page); only the mod wheel's vibrato moves remain
+    const vibDepth = clamp(100 * dst[D.VIBRATO], 0, 100);
     if (vibDepth > 0) {
       const t = this.noteTime - cur[P.vibDelay] / 1000;
       if (t > 0) {

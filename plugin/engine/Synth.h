@@ -764,7 +764,7 @@ class Synth {
       liveWob = p;
       if (nC != wobCycle) {
         wobCycle = nC;
-        const double life = cur[P.wobLife];
+        const double life = 0;  // Life is gone (owner's call)
         wobScaleTarget = 1 + 0.45 * life * wobRng.next();
         wobBrightTarget = 0.05 * life * wobRng.next();
       }

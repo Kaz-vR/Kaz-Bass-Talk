@@ -204,19 +204,19 @@ function migrateMatrix(src: Record<string, unknown>): Record<string, unknown> {
   const srcOpts = params.find((p) => p.id === 'mod1.source')!.options!;
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(src)) if (!/^mod\d+\./.test(k)) out[k] = v;
-  let n = 0;
-  const last = hadRuinRows(src) || isOldRuinPatch(src) ? 5 : 12;
-  for (let i = 1; i <= last && n < PATCH_ROWS; i++) {
+  // the LFO page (owner's call): every slot stays where it is (slot n is LFO n's), only unusable rows are left out
+  const last = hadRuinRows(src) || isOldRuinPatch(src) ? 5 : PATCH_ROWS;
+  for (let i = 1; i <= last; i++) {
+    const n = i;
     const s = src[`mod${i}.source`], a = Number(src[`mod${i}.amount`]);
     let d = src[`mod${i}.dest`];
     if (d === 'osc1_wt_pos') d = 'osc1_pw';
     else if (d === 'osc2_wt_pos') d = 'osc2_pw';
     else if (d === 'breath_level') d = 'texture_level';
-    if (typeof s !== 'string' || s === 'none' || !srcOpts.includes(s) || typeof d !== 'string' || d === 'none' || !MATRIX_DESTS.includes(d) || !a) continue;
-    n++;
+    if (typeof s !== 'string' || s === 'none' || !srcOpts.includes(s) || typeof d !== 'string' || d === 'none' || !MATRIX_DESTS.includes(d)) continue;
     out[`mod${n}.source`] = s;
     out[`mod${n}.dest`] = d;
-    out[`mod${n}.amount`] = a;
+    out[`mod${n}.amount`] = Number.isFinite(a) ? a : 0;
     out[`mod${n}.on`] = src[`mod${i}.on`] ?? true;
   }
   return out;
@@ -349,8 +349,26 @@ export function validatePatch(input: unknown): ValidationResult {
   for (const key of Object.keys(src)) {
     if (key !== 'meta' && key !== 'fx.lowcut' && key !== 'wobble.target' && key !== 'wobble.highcut' && key !== 'reverb.size' && key !== 'amp_env.attack_curve' && key !== 'texture.character' && key !== 'reverb.tone' && !key.startsWith('pitch_env.') && !key.startsWith('breath.') && !indexById.has(key)) issues.push({ param: key, message: 'unknown parameter (dropped)' });
   }
-  sortModSlots(patch);
+  // the LFO page (owner's call): slot n belongs to LFO n (its target and Depth), so the slots are never re-sorted;
+  // a slot 1-4 fed by another LFO is moved to that LFO's own slot
+  ownLfoSlots(patch);
   return { patch, issues };
+}
+
+/** Slot n (1-4) is LFO n's: a route from LFO n in another slot moves into slot n (swapped with what was there). */
+export function ownLfoSlots(patch: Patch): void {
+  const get = (n: number) => ({ src: patch[`mod${n}.source`], dest: patch[`mod${n}.dest`], amt: patch[`mod${n}.amount`], on: patch[`mod${n}.on`] });
+  const put = (n: number, v: ReturnType<typeof get>) => { patch[`mod${n}.source`] = v.src; patch[`mod${n}.dest`] = v.dest; patch[`mod${n}.amount`] = v.amt; patch[`mod${n}.on`] = v.on; };
+  for (let n = 1; n <= 4; n++) {
+    if (patch[`mod${n}.source`] === `lfo${n}`) continue;
+    for (let k = 1; k <= PATCH_ROWS; k++) {
+      if (k === n || patch[`mod${k}.source`] !== `lfo${n}`) continue;
+      const a = get(n), b = get(k);
+      put(n, b);
+      put(k, a);
+      break;
+    }
+  }
 }
 
 /** The matrix sources with an on / off switch of their own. */

@@ -729,7 +729,7 @@ export class Synth {
       if (n !== this.wobCycle) {
         // Life: every cycle swings a little deeper or shallower and sits a little brighter or darker.
         this.wobCycle = n;
-        const life = cur[P.wobLife];
+        const life = 0; // Life is gone (owner's call: nothing hidden moves the sound); wobble.life is ignored
         this.wobScaleTarget = 1 + 0.45 * life * this.wobRng.next();
         this.wobBrightTarget = 0.05 * life * this.wobRng.next();
       }
