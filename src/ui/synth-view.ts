@@ -4320,10 +4320,7 @@ export class SynthView {
       return [freqX(this.num(`${bp}_freq`), W), eqPass(n, b) ? fY(1) : fY(Math.pow(10, (this.num(`${bp}_gain`) * this.num(`grind${n}.eq_scale`)) / 20))];
     };
     const eqBq = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
-    // ---- BELLS: four bells, each a dot (Freq / Gain) and a range ball (Freq / its range), each moving in its zone
-    // the range balls share the whole graph with the dots, as the other filters' ball (owner's pick, layout A)
-    const bellRangeY = (oct: number, H: number, mini: boolean) => H - (mini ? 4 : 26) - (oct / 10) * (H - (mini ? 8 : 60));
-    const bellRangeOf = (y: number, H: number) => ((H - 26 - y) / (H - 60)) * 10;
+    // ---- BELLS: four bands, each a numbered dot (Freq / Gain) and a wing (where it moves: drag its round ends)
     const bellZone = (n: number, b: number) => ruinZone(this.num(`grind${n}.bell${b + 1}_freq`) * this.ruinKey(), this.num(`grind${n}.bell${b + 1}_range`));
     /** Where each bell is: the engine's live positions while a note sounds, its Freq at rest. */
     const bellsNow = (n: number): { fc: number[]; live: boolean } => {
@@ -4338,28 +4335,15 @@ export class SynthView {
     const bellType = (n: number, b: number) => String(this.get(`grind${n}.bell${b + 1}_type`));
     const bellDot = (n: number, b: number, W: number, fY: (m: number) => number): [number, number] =>
       [freqX(this.num(`grind${n}.bell${b + 1}_freq`) * this.ruinKey(), W), fY(bellNoGain(bellType(n, b)) ? 1 : Math.pow(10, this.num(`grind${n}.bell${b + 1}_gain`) / 20))];
-    const bellRing = (n: number, b: number, W: number, H: number, mini: boolean): [number, number] =>
-      [freqX(this.num(`grind${n}.bell${b + 1}_freq`) * this.ruinKey(), W), bellRangeY(this.num(`grind${n}.bell${b + 1}_range`), H, mini)];
-    const paintBells = (gg: CanvasRenderingContext2D, GW: number, GH: number, n: number, col: string, mini: boolean, fY: (m: number) => number, bm: number) => {
+    /** A band's wing: where it moves, from end to end, at the height of its dot (owner's pick, wings with round caps). */
+    const bellWing = (n: number, b: number, W: number, fY: (m: number) => number): [number, number, number] => {
+      const [lo, hi] = bellZone(n, b);
+      return [freqX(lo, W), freqX(hi, W), bellDot(n, b, W, fY)[1]];
+    };
+    const paintBells = (gg: CanvasRenderingContext2D, GW: number, _GH: number, n: number, col: string, mini: boolean, fY: (m: number) => number, bm: number) => {
+      void bm;
       const now = bellsNow(n), sel = this.ruinBellSel[n - 1];
-      // each bell's zone, quietly, the selected one a little brighter
-      for (let b = 0; b < 4; b++) {
-        const [zlo, zhi] = bellZone(n, b), x0 = freqX(zlo, GW), x1 = freqX(zhi, GW), hot = b === sel && !mini;
-        gg.fillStyle = hexA(col, hot ? 0.08 : 0.035);
-        gg.fillRect(x0, 0, Math.max(1, x1 - x0), GH - bm);
-        gg.fillStyle = hexA(col, hot ? 0.6 : 0.25);
-        gg.fillRect(x0, 0, Math.max(1, x1 - x0), 2);
-        const ry = bellRing(n, b, GW, GH, mini)[1];
-        gg.save();
-        gg.strokeStyle = hexA(col, hot ? 0.45 : 0.2);
-        gg.setLineDash([2, 3]);
-        gg.beginPath();
-        gg.moveTo(x0, ry);
-        gg.lineTo(x1, ry);
-        gg.stroke();
-        gg.restore();
-      }
-      // 0 dB and the curve: the four bells where they are now
+      // 0 dB and the curve: the four bands where they are now
       gg.save();
       gg.strokeStyle = 'rgba(255,255,255,0.12)';
       gg.setLineDash([1, 4]);
@@ -4377,33 +4361,38 @@ export class SynthView {
         x ? gg.lineTo(x, y) : gg.moveTo(x, y);
       }
       gg.stroke();
+      // each band's wing: a thin line from its dot out to where it moves, a small ring at each end you drag
       for (let b = 0; b < 4; b++) {
-        const hot = b === sel && !mini, [rx, ry] = bellRing(n, b, GW, GH, mini), [dx, dy] = bellDot(n, b, GW, fY);
-        // the range ball: a ring, as the other filters' ball (sideways = Freq, up / down = how far it moves)
+        const hot = b === sel && !mini, [x0, x1, y] = bellWing(n, b, GW, fY), cap = mini ? 1.6 : hot ? 3.5 : 2.5;
+        if (x1 - x0 < 1) continue;
         gg.save();
-        gg.strokeStyle = col;
-        gg.globalAlpha = hot || mini ? 1 : 0.6;
-        gg.lineWidth = mini ? 1.2 : 2;
-        gg.shadowColor = col;
-        gg.shadowBlur = hot ? 8 : 4;
-        gg.fillStyle = '#0d0d0f';
+        gg.strokeStyle = hexA(col, hot || mini ? 0.95 : 0.45);
+        gg.lineWidth = hot ? 1.5 : 1;
         gg.beginPath();
-        gg.arc(rx, ry, mini ? 2.5 : hot ? 6 : 5, 0, 2 * Math.PI);
-        gg.fill();
+        gg.moveTo(x0 + cap, y);
+        gg.lineTo(x1 - cap, y);
         gg.stroke();
-        gg.restore();
-        // the live dot on the ball's row: where the bell is right now
+        gg.fillStyle = '#060607';
+        for (const x of [x0, x1]) {
+          gg.beginPath();
+          gg.arc(x, y, cap, 0, 2 * Math.PI);
+          gg.fill();
+          gg.stroke();
+        }
+        // where the band is right now, riding its wing
         if (now.live) {
-          gg.save();
           gg.fillStyle = '#fff';
           gg.shadowColor = col;
-          gg.shadowBlur = 10;
+          gg.shadowBlur = 8;
           gg.beginPath();
-          gg.arc(freqX(now.fc[b], GW), ry, mini ? 1.6 : 2.6, 0, 2 * Math.PI);
+          gg.arc(freqX(now.fc[b], GW), y, mini ? 1.2 : 2.2, 0, 2 * Math.PI);
           gg.fill();
-          gg.restore();
         }
-        // the bell's dot (Freq / Gain), numbered as the EQ's
+        gg.restore();
+      }
+      for (let b = 0; b < 4; b++) {
+        const hot = b === sel && !mini, [dx, dy] = bellDot(n, b, GW, fY);
+        // the band's dot (Freq / Gain), numbered as the EQ's
         gg.save();
         gg.shadowColor = col;
         gg.shadowBlur = hot ? 12 : 6;
@@ -4738,14 +4727,14 @@ export class SynthView {
     // dragging on the graph: the drive's ring (where / how wide) or the filter's ball (Freq / H Range), anywhere on it
     let dragging: 'band' | 'filter' | 'eq' | 'bell' | 'bellRange' | 'ph' | null = null;
     const isBells = (k: number) => kindOf(k) === 'filter' && this.get(`grind${stageOf(k)}.filter`) === 'bells';
-    /** The bell dot or range ball under the pointer: [bell, 'bell' | 'bellRange'], or null. */
+    /** The band dot or wing end under the pointer: [band, 'bell' | 'bellRange'], or null (a dot wins a tie). */
     const nearBell = (n: number, x: number, y: number): [number, 'bell' | 'bellRange'] | null => {
-      let best: [number, 'bell' | 'bellRange'] | null = null, bd = 16;
+      let best: [number, 'bell' | 'bellRange'] | null = null, bd = 12;
       for (let b = 0; b < 4; b++) {
-        const [dx, dy] = bellDot(n, b, GW, gfY), [rx, ry] = bellRing(n, b, GW, GH, false);
-        const d1 = Math.hypot(x - dx, y - dy), d2 = Math.hypot(x - rx, y - ry);
+        const [dx, dy] = bellDot(n, b, GW, gfY), [x0, x1, wy] = bellWing(n, b, GW, gfY);
+        const d1 = Math.hypot(x - dx, y - dy) - 2, d2 = Math.min(Math.hypot(x - x0, y - wy), Math.hypot(x - x1, y - wy));
         if (d1 < bd) { bd = d1; best = [b, 'bell']; }
-        if (d2 < bd) { bd = d2; best = [b, 'bellRange']; }
+        if (x1 - x0 >= 1 && d2 < bd) { bd = d2; best = [b, 'bellRange']; }
       }
       return best;
     };
@@ -4769,11 +4758,14 @@ export class SynthView {
       if (dragging === 'ph') {
         this.set(`${pre}.ph_center`, Math.round(Math.max(40, Math.min(12000, f))));
         this.set(`${pre}.ph_amount`, Math.round(Math.max(0, Math.min(6, ((GH - 20 - y) / (GH - 40)) * 6)) * 10) / 10);
-      } else if (dragging === 'bell' || dragging === 'bellRange') {
+      } else if (dragging === 'bell') {
         const bp = `${pre}.bell${this.ruinBellSel[n - 1] + 1}`;
         this.set(`${bp}_freq`, Math.round(Math.max(20, Math.min(20000, f / this.ruinKey()))));
-        if (dragging === 'bell' && !bellNoGain(String(this.get(`${bp}_type`)))) this.set(`${bp}_gain`, Math.round(Math.max(-18, Math.min(18, (GH * 0.42 - y) / (GH / 62))) * 10) / 10);
-        else this.set(`${bp}_range`, Math.round(Math.max(0, Math.min(10, bellRangeOf(y, GH))) * 10) / 10);
+        if (!bellNoGain(String(this.get(`${bp}_type`)))) this.set(`${bp}_gain`, Math.round(Math.max(-18, Math.min(18, (GH * 0.42 - y) / (GH / 62))) * 10) / 10);
+      } else if (dragging === 'bellRange') {
+        // a wing's end: how far the band moves, the same each side of its Freq
+        const bp = `${pre}.bell${this.ruinBellSel[n - 1] + 1}`, centre = this.num(`${bp}_freq`) * this.ruinKey();
+        this.set(`${bp}_range`, Math.round(Math.max(0, Math.min(10, 2 * Math.abs(Math.log2(f / centre)))) * 10) / 10);
       } else if (dragging === 'eq') {
         const bp = `${pre}.eq_b${this.ruinEqSel[n - 1] + 1}`, sc = this.num(`${pre}.eq_scale`);
         this.set(`${bp}_freq`, Math.round(Math.max(20, Math.min(20000, f))));
@@ -4825,7 +4817,7 @@ export class SynthView {
     gcv.addEventListener('dblclick', (e) => {
       const n = stageOf(this.ruinSel);
       if (isBells(this.ruinSel)) {
-        // double-click: a dot goes flat (0 dB), a range ball stands still
+        // double-click: a dot goes flat (0 dB), a wing's end makes the band stand still
         const [x, y] = at(e), hit = nearBell(n, x, y);
         if (hit) this.set(`grind${n}.bell${hit[0] + 1}_${hit[1] === 'bell' ? 'gain' : 'range'}`, 0);
       } else if (isEq(this.ruinSel)) {
