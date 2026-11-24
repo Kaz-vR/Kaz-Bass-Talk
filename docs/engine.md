@@ -47,3 +47,5 @@ routes' |amount| (a VIBRATO's times the wheel squared), so no route, Depth 0 or 
 untouched. RESONANCE stays the OSC page filter's. The vibrato's value is smoothed over ~3 ms so its square and saws
 never click on a volume or filter target. LFO routes to the OSC page's cutoff were moved to FILTER
 (`tools/convert-lfo-filters.ts`). Both engines.
+
+The custom LFO's HZ mode (`wobble.free`, `wobble.hz`): its cycle is `tempo / 60 / hz` beats, so everything else (one shot, shift, random steps) runs as in SYNC. Both engines.

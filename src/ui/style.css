@@ -1798,7 +1798,9 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 /* the LFO page: the custom LFO and its TARGET box line up with LFO 1-4 (same inner padding, same title row) */
 .v2 .lfo-all > .lfo5-main, .v2 .lfo-all > .lfo5-settings { padding: 8px 12px !important; position: relative; }
 .v2 .lfo-all > .lfo5-main > .ob-head, .v2 .lfo-all > .lfo5-settings > .ob-head { height: 22px; align-items: center; gap: 7px; margin: 0; }
-.v2 .lfo-all .lfo5-main .lfo5-rate { margin: 0 0 0 auto; height: 22px; }
+.v2 .lfo-all .lfo5-main .lfo5-rate { margin: 0 auto; height: 22px; }
+.v2 .lfo5-hz { cursor: ns-resize; }
+.v2 .lfo5-rate .fx-kinds { margin-right: 8px; }
 .v2 .lfo-all .lfo5-main .lfo5-rate-sel { height: 22px; font-size: 12px !important; }
 .v2 .lfo-all .lfo5-main .lfo5-arrow.lfo5-rate-arrow { height: 22px; width: 24px; font-size: 14px; }
 .v2 .lfo-all .lfo5-main .lfo5-lock { margin-left: 14px; }

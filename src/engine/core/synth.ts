@@ -714,7 +714,8 @@ export class Synth {
     this.liveWobFc = -1;
     if (depth > 1e-4) {
       // Locked to the bar.
-      const cycle = K.WOBBLE_BEATS[Math.round(cur[P.wobRate])] ?? 0.5;
+      // HZ: a free rate, as a cycle in beats at the tempo (so the rest runs the same way); SYNC: a note value
+      const cycle = cur[P.wobFree] > 0.5 ? this.tempo / 60 / Math.max(0.01, cur[P.wobHz]) : K.WOBBLE_BEATS[Math.round(cur[P.wobRate])] ?? 0.5;
       // ONE SHOT (owner's call): from the note's start, once, then holding the end; otherwise locked to the bar
       const one = cur[P.wobOneShot] > 0.5;
       const n = one ? -1 - this.wobNote : Math.floor(this.songBeat / cycle);

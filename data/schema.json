@@ -7446,6 +7446,26 @@
       "describes": "How long one cycle lasts, locked to the tempo and the bar: 1/8 is the classic wobble, 1/16 a fast growl, T triplet swing, d dotted, the bars a slow sweep."
     },
     {
+      "id": "wobble.free",
+      "label": "Custom LFO Hz",
+      "type": "bool",
+      "default": false,
+      "group": "wobble",
+      "describes": "HZ / SYNC: off = the rate is a note value locked to the tempo and the bar; on = a free rate in Hz."
+    },
+    {
+      "id": "wobble.hz",
+      "label": "Custom LFO rate (Hz)",
+      "type": "float",
+      "min": 0.05,
+      "max": 40,
+      "default": 2,
+      "curve": "log",
+      "unit": "Hz",
+      "group": "wobble",
+      "describes": "The custom LFO's free rate in cycles per second (HZ mode)."
+    },
+    {
       "id": "wobble.cutoff",
       "label": "Wobble on cutoff",
       "type": "bool",

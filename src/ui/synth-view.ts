@@ -3108,15 +3108,6 @@ export class SynthView {
       for (const o of rateP.options!) if (has(o)) og.append(new Option(o, o));
       rateSel.append(og);
     }
-    // free rates (not locked to the tempo) aren't in the engine yet: shown, but not offered
-    const free = document.createElement('optgroup');
-    free.label = 'FREE';
-    for (const o of ['Hertz', 'ms']) {
-      const opt = new Option(o, `free:${o}`);
-      opt.disabled = true;
-      free.append(opt);
-    }
-    rateSel.append(free);
     rateSel.dataset.ddStep = '1';
     rateSel.onchange = () => this.set('wobble.rate', rateSel.value);
     // the arrows step within the current column (straight stays straight, triplet stays triplet)
@@ -3128,10 +3119,36 @@ export class SynthView {
     const rPrev = h('button', 'lfo5-arrow lfo5-rate-arrow', '‹'), rNext = h('button', 'lfo5-arrow lfo5-rate-arrow', '›');
     rPrev.title = 'Shorter (faster)';
     rNext.title = 'Longer (slower)';
-    rPrev.onclick = () => stepRate(-1);
-    rNext.onclick = () => stepRate(1);
     this.watch(['wobble.rate'], () => { rateSel.value = String(this.get('wobble.rate')); });
-    const rate = h('div', 'lfo5-rate', h('span', 'lfo5-rate-label', 'RATE'), rPrev, rateSel, rNext);
+    // HZ mode (owner's call): the note value gives way to a Hz value, dragged up / down (Shift = fine), the arrows
+    // stepping a semitone of rate; double-click = 2 Hz
+    const hzP = getParam('wobble.hz')!;
+    const hzBox = h('button', 'sel-name lfo5-rate-sel lfo5-hz');
+    hzBox.title = `${hzP.describes} Drag up / down (Shift = fine), double-click = 2 Hz.`;
+    const setHz = (v: number) => this.set('wobble.hz', Math.round(Math.max(hzP.min!, Math.min(hzP.max!, v)) * 1000) / 1000);
+    hzBox.addEventListener('pointerdown', (e) => {
+      hzBox.setPointerCapture(e.pointerId);
+      const y0 = e.clientY, v0 = this.num('wobble.hz');
+      const move = (m: PointerEvent) => setHz(v0 * Math.pow(2, ((y0 - m.clientY) / (m.shiftKey ? 400 : 80))));
+      const up = () => { hzBox.removeEventListener('pointermove', move); hzBox.removeEventListener('pointerup', up); };
+      hzBox.addEventListener('pointermove', move);
+      hzBox.addEventListener('pointerup', up);
+    });
+    hzBox.ondblclick = () => setHz(2);
+    const free = () => !!this.get('wobble.free');
+    const step = (d: number) => (free() ? setHz(this.num('wobble.hz') * Math.pow(2, -d / 12)) : stepRate(d));
+    rPrev.onclick = () => step(-1);
+    rNext.onclick = () => step(1);
+    const hzSw = this.textSwitch(['HZ', 'SYNC'], free, (f) => this.set('wobble.free', f), ['wobble.free']);
+    this.watch(['wobble.free', 'wobble.hz'], () => {
+      const v = this.num('wobble.hz');
+      hzBox.textContent = `${v < 10 ? v.toFixed(2) : v.toFixed(1)} Hz`;
+      hzBox.style.display = free() ? '' : 'none';
+      rateSel.style.display = free() ? 'none' : '';
+      rPrev.title = free() ? 'Faster' : 'Shorter (faster)';
+      rNext.title = free() ? 'Slower' : 'Longer (slower)';
+    });
+    const rate = h('div', 'lfo5-rate', hzSw, rPrev, rateSel, hzBox, rNext);
     rate.title = rateP.describes;
     const big = this.obox('CUSTOM LFO', 'box-wob lfo5-main', {
       head: [rate, this.lfo5LockButton()],

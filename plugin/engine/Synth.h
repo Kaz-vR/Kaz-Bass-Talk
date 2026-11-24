@@ -748,7 +748,8 @@ class Synth {
     liveWobFc = -1;
     if (depth > 1e-4) {
       const int ri = (int)jsRound(cur[P.wobRate]);
-      const double cycle = ri >= 0 && ri < WOBBLE_RATE_COUNT ? WOBBLE_BEATS[ri] : 0.5;
+      const double cycle = cur[P.wobFree] > 0.5 ? tempo / 60 / std::fmax(0.01, cur[P.wobHz])
+                           : ri >= 0 && ri < WOBBLE_RATE_COUNT ? WOBBLE_BEATS[ri] : 0.5;
       const bool one = cur[P.wobOneShot] > 0.5;
       const double nC = one ? -1.0 - wobNote : std::floor(songBeat / cycle);
       const double p = one ? std::fmin(0.99999, std::fmax(0.0, (songBeat - wobStart) / cycle)) : (songBeat - nC * cycle) / cycle;

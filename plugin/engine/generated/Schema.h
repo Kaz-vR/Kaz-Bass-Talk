@@ -6,7 +6,7 @@ struct ParamSpec {
   const char* id; const char* label; PType type; double min, max, def; int curve; double exponent;
   const char* unit; const char* group; const char* options; const char* describes;
 };
-constexpr int PARAM_COUNT = 946;
+constexpr int PARAM_COUNT = 948;
 inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "voice.polyphony", "Polyphony", PType::Int, 1, 8, 1, 0, 3, "voices", "voice", "", "1 = monophonic (legato and glide work, the bass default). 2-8 = that many notes at once, for pads, keys and chords; the oldest note is taken over when more are played." },
   { "voice.legato", "Legato", PType::Bool, 0, 1, 0, 0, 3, "", "voice", "", "On: overlapping notes slide without retriggering the envelopes (303-style). Off: every note retriggers." },
@@ -548,6 +548,8 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "wobble.on", "Wobble on", PType::Bool, 0, 1, 0, 0, 3, "", "wobble", "", "Switches Wobble on or off without losing its settings. Off also saves CPU." },
   { "wobble.depth", "Wobbler depth", PType::Float, 0, 1, 0, 0, 3, "", "wobble", "", "How deep the wobbler swings: 0 leaves the sound untouched, 1 is the full shape." },
   { "wobble.rate", "Wobble rate", PType::Enum, 0, 22, 7, 0, 3, "", "wobble", "1/128|1/64|1/32|1/16T|1/16|1/8T|1/16d|1/8|1/4T|1/8d|1/4|1/2T|1/4d|1/2|3/4|1 Bar|1.5 Bars|2 Bars|3 Bars|4 Bars|8 Bars|16 Bars|32 Bars", "How long one cycle lasts, locked to the tempo and the bar: 1/8 is the classic wobble, 1/16 a fast growl, T triplet swing, d dotted, the bars a slow sweep." },
+  { "wobble.free", "Custom LFO Hz", PType::Bool, 0, 1, 0, 0, 3, "", "wobble", "", "HZ / SYNC: off = the rate is a note value locked to the tempo and the bar; on = a free rate in Hz." },
+  { "wobble.hz", "Custom LFO rate (Hz)", PType::Float, 0.05, 40, 2, 1, 3, "Hz", "wobble", "", "The custom LFO's free rate in cycles per second (HZ mode)." },
   { "wobble.cutoff", "Wobble on cutoff", PType::Bool, 0, 1, 1, 0, 3, "", "wobble", "", "The wobble moves the filter cutoff: the classic wub, the filter swinging shut and wide open with a resonant peak." },
   { "wobble.volume", "Wobble on volume", PType::Bool, 0, 1, 0, 0, 3, "", "wobble", "", "The wobble moves the volume: a tempo-locked gate that chops the whole sound. With cutoff on too, the filter opens as the sound swells in." },
   { "wobble.shape", "Wobbler shape", PType::Enum, 0, 15, 0, 0, 3, "", "wobble", "saw down|sine|duck|square|sync gate|staircase|random|custom|saw up|triangle|swing gate|ratchet|brake|pulse decay|yoyo|triplet gate", "Saw down opens hard and falls; sine is smooth; duck drops on the beat and curves back up (the sidechain pump); square chops between open and shut; sync gate plays a 3-3-2 rhythm; staircase climbs in four steps; random draws new steps every cycle; custom is your own shape, drawn on the Wobbler page. Under MORE: saw up swells open and snaps shut; triangle rises and falls in straight lines; swing gate pairs long and short gates; ratchet speeds up through the cycle (1, 2, then 4 hits); brake slows down like tape stopping; pulse decay is four soft plucks; yoyo is two humps, small then big; triplet gate is six even gates." },
