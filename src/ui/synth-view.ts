@@ -3044,34 +3044,38 @@ export class SynthView {
       b.title = getParam(id)!.describes;
       return b;
     };
-    // the custom LFO's target: NONE (off), CUTOFF, VOLUME or both (its own filter and gate, after the sub joins)
+    // the custom LFO's target (owner's call): NONE or the LFO page's targets, as LFO 1-4 (wobble.dest, with Amount)
     const wtSel = h('select', 'sel-name') as HTMLSelectElement;
-    for (const [v, t] of [['none', '— NONE —'], ['cutoff', 'CUTOFF'], ['volume', 'VOLUME'], ['both', 'CUTOFF + VOLUME']]) wtSel.append(new Option(t, v));
+    wtSel.append(new Option('— NONE —', 'none'));
+    for (const [title, os] of LFO_TARGETS) {
+      const og = document.createElement('optgroup');
+      og.label = title;
+      for (const o of os) og.append(new Option(LFO_TARGET_NAME[o] ?? o, o));
+      wtSel.append(og);
+    }
     wtSel.onchange = () => {
       const v = wtSel.value;
       if (v === 'none') { this.set('wobble.on', false); return; }
       if (this.num('wobble.depth') <= 0) this.set('wobble.depth', 1);
-      this.set('wobble.cutoff', v !== 'volume');
-      this.set('wobble.volume', v !== 'cutoff');
+      // its own old filter and gate are not used any more: the target is
+      this.set('wobble.cutoff', false);
+      this.set('wobble.volume', false);
+      this.set('wobble.dest', v);
       this.set('wobble.on', true);
     };
-    this.watch(['wobble.on', 'wobble.depth', 'wobble.cutoff', 'wobble.volume'], () => {
-      const c = !!this.get('wobble.cutoff'), vo = !!this.get('wobble.volume');
-      wtSel.value = !on() || (!c && !vo) ? 'none' : c && vo ? 'both' : c ? 'cutoff' : 'volume';
-    });
+    this.watch(['wobble.on', 'wobble.depth', 'wobble.dest'], () => { wtSel.value = on() ? String(this.get('wobble.dest')) : 'none'; });
     const wobTarget = h('div', 'sel lfo5-target-sel', wtSel);
-    wobTarget.title = 'What the custom LFO moves: nothing, the cutoff, the volume (a gate) or both';
-    const kHz = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)} kHz` : `${Math.round(v)} Hz`);
-    const hz = (v: number) => (v <= 21 ? 'off' : kHz(v));
+    wobTarget.title = 'What the custom LFO moves';
     const pct = (v: number) => `${Math.round(v * 100)}%`;
     const settings = h('div', 'c ob box-wob lfo5-settings',
       h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'TARGET')),
       // the target (owner's call, a menu instead of the switch and lamps): none, cutoff, volume or both
       h('div', 'lfo5-sec lfo5-switch', wobTarget),
       h('div', 'lfo5-sec lfo5-knobs',
-        this.knob('wobble.depth', 'Depth', 'lg', { fmt: pct }),
-        this.knob('wobble.smooth', 'Smooth', 'lg', { fmt: pct }),
-        this.knob('wobble.lowcut', 'Lo cut', 'lg', { fmt: hz })),
+        this.knob('wobble.amount', 'Amount', 'lg', { fmt: (v) => (Math.abs(v) < 0.005 ? '0' : `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`) }),
+        this.knob('wobble.smooth', 'Smooth', 'lg', { fmt: pct })),
+      // ONE SHOT (owner's call): the shape runs once from every note and holds its end
+      h('div', 'lfo5-sec lfo5-oneshot', this.toggle('wobble.oneshot', 'ONE SHOT', 'small')),
       h('div', 'lfo5-sec lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, sNext));
     void lampFor;
 

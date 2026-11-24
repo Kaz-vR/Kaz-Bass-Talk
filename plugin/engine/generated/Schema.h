@@ -6,7 +6,7 @@ struct ParamSpec {
   const char* id; const char* label; PType type; double min, max, def; int curve; double exponent;
   const char* unit; const char* group; const char* options; const char* describes;
 };
-constexpr int PARAM_COUNT = 920;
+constexpr int PARAM_COUNT = 923;
 inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "voice.polyphony", "Polyphony", PType::Int, 1, 8, 1, 0, 3, "voices", "voice", "", "1 = monophonic (legato and glide work, the bass default). 2-8 = that many notes at once, for pads, keys and chords; the oldest note is taken over when more are played." },
   { "voice.legato", "Legato", PType::Bool, 0, 1, 0, 0, 3, "", "voice", "", "On: overlapping notes slide without retriggering the envelopes (303-style). Off: every note retriggers." },
@@ -531,6 +531,9 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "wobble.phase", "Wobbler shift", PType::Float, 0, 1, 0, 0, 3, "", "wobble", "", "Moves the shape later in its cycle (0 = as drawn), so a gate or duck can land off the beat." },
   { "wobble.smooth", "Wobbler smooth", PType::Float, 0, 1, 0, 0, 3, "", "wobble", "", "Rounds off the shape's edges and jumps, as in ShaperBox: 0 keeps it sharp, higher glides between levels." },
   { "wobble.lowcut", "Wobbler low cut", PType::Float, 20, 20000, 20, 1, 3, "Hz", "wobble", "", "Below this frequency the Wobbler leaves the sound alone (gate and its own filter work only above it), so the low end stays steady. 20 Hz = the whole sound." },
+  { "wobble.dest", "Custom LFO target", PType::Enum, 0, 46, 0, 0, 3, "", "wobble", "none|pitch|osc1_pitch|osc2_pitch|osc1_wt_pos|osc2_wt_pos|osc1_pw|osc2_pw|osc1_level|osc2_level|unison_detune|fm_amount|sub_level|noise_level|drive|filter_cutoff|filter_resonance|filter_vowel|dist_drive|dist_mix|amp|lfo1_rate|lfo2_rate|fm2_amount|crush_mix|lfo3_rate|lfo4_rate|chorus_depth|phaser_mix|delay_time|delay_mix|reverb_mix|width|tape_wow|dist_tone|texture_level|vibrato_depth|breath_level|osc_pitch|noise_pitch|sub_pitch|lfo5_rate|lfo6_rate|osc12_shape|osc1_detune|osc2_detune|osc12_level", "What the custom LFO moves (the LFO page's targets: volumes, filter, resonance, pitches, shapes)." },
+  { "wobble.amount", "Custom LFO amount", PType::Float, -1, 1, 0.5, 0, 3, "", "wobble", "", "How far the custom LFO moves its target: + up where the shape is up, - down." },
+  { "wobble.oneshot", "Custom LFO one shot", PType::Bool, 0, 1, 0, 0, 3, "", "wobble", "", "ONE SHOT: the shape starts again at every note, runs once at its rate and holds its end until the next note." },
   { "wobble.points", "Wobble custom points", PType::Int, 2, 32, 2, 0, 3, "", "wobble", "", "How many points the custom wobble shape has." },
   { "wobble.x1", "Wobble point 1 time", PType::Float, 0, 1, 0, 0, 3, "", "wobble", "", "Where this point of the custom shape sits in the cycle (0 = start, 1 = end)." },
   { "wobble.y1", "Wobble point 1 level", PType::Float, 0, 1, 1, 0, 3, "", "wobble", "", "How far this point of the custom shape opens (0 = shut, 1 = wide open)." },

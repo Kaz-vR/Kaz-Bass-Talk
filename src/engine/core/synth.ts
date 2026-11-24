@@ -150,6 +150,9 @@ export class Synth {
   private wobGateTarget = 1;
   /** Where the wobble is in its cycle (0..1) for the LFO page's dot; -1 when it is off. */
   liveWob = -1;
+  /** The custom LFO's ONE SHOT: the song beat its newest note started on, and a count of notes. */
+  private wobStart = 0;
+  private wobNote = 0;
   private tempo = 120;
 
   // Shared modulation.
@@ -476,6 +479,9 @@ export class Synth {
       this.noteOff(note);
       return;
     }
+    // the custom LFO's ONE SHOT starts again at every note
+    this.wobStart = this.songBeat;
+    this.wobNote++;
     if (this.poly <= 1) {
       this.removeFromStack(note);
       if (this.stackLen < this.stack.length) this.stack[this.stackLen++] = note;
@@ -715,8 +721,10 @@ export class Synth {
     if (depth > 1e-4) {
       // Locked to the bar.
       const cycle = K.WOBBLE_BEATS[Math.round(cur[P.wobRate])] ?? 0.5;
-      const n = Math.floor(this.songBeat / cycle);
-      const p = (this.songBeat - n * cycle) / cycle;
+      // ONE SHOT (owner's call): from the note's start, once, then holding the end; otherwise locked to the bar
+      const one = cur[P.wobOneShot] > 0.5;
+      const n = one ? -1 - this.wobNote : Math.floor(this.songBeat / cycle);
+      const p = one ? Math.min(0.99999, Math.max(0, (this.songBeat - this.wobStart) / cycle)) : (this.songBeat - n * cycle) / cycle;
       this.liveWob = p;
       if (n !== this.wobCycle) {
         // Life: every cycle swings a little deeper or shallower and sits a little brighter or darker.
@@ -766,6 +774,9 @@ export class Synth {
       }
       this.wobV += (target - this.wobV) * 0.35;
       const v = this.wobV;
+      // the LFO page's target (owner's call): the shape moves it as any LFO does, Amount deep, through every voice
+      const dest = Math.round(cur[P.wobDest]);
+      if (dest > 0) x[dest] += cur[P.wobAmount] * v * Math.min(1, depth * this.wobScale);
       // Cutoff and volume, either or both: the Wobbler's own filter opens and shuts, the volume
       // only ducks (never louder).
       if (cur[P.wobCutoff] > 0.5) {

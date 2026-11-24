@@ -34,6 +34,7 @@ class Synth {
   bool wheelFrozen = false;
   // Live values for the window (the newest voice's).
   double liveCutoff = 0, liveRes = 0, liveWob = -1, liveWobFc = -1;
+  double wobStart = 0, wobNote = 0;  // the custom LFO's ONE SHOT
   std::array<double, LFO_COUNT> lfoPhase{}, lfoValue{};
   // What the page shows of each LFO: its phase and value; the per-note shapes show the newest note's.
   std::array<double, LFO_COUNT> liveLfoPhase{}, liveLfoValue{};
@@ -160,6 +161,8 @@ class Synth {
       noteOff(note, channel);
       return;
     }
+    wobStart = songBeat;
+    wobNote++;
     if (poly <= 1) {
       removeFromStack(note);
       if (stackLen < (int)stack.size()) stack[stackLen++] = note;
@@ -755,8 +758,9 @@ class Synth {
     if (depth > 1e-4) {
       const int ri = (int)jsRound(cur[P.wobRate]);
       const double cycle = ri >= 0 && ri < WOBBLE_RATE_COUNT ? WOBBLE_BEATS[ri] : 0.5;
-      const double nC = std::floor(songBeat / cycle);
-      const double p = (songBeat - nC * cycle) / cycle;
+      const bool one = cur[P.wobOneShot] > 0.5;
+      const double nC = one ? -1.0 - wobNote : std::floor(songBeat / cycle);
+      const double p = one ? std::fmin(0.99999, std::fmax(0.0, (songBeat - wobStart) / cycle)) : (songBeat - nC * cycle) / cycle;
       liveWob = p;
       if (nC != wobCycle) {
         wobCycle = nC;
@@ -799,6 +803,8 @@ class Synth {
       }
       wobV += (tgt - wobV) * 0.35;
       const double v = wobV;
+      const int dest = (int)jsRound(cur[P.wobDest]);
+      if (dest > 0 && dest < DEST_COUNT) x[(size_t)dest] += cur[P.wobAmount] * v * std::fmin(1.0, depth * wobScale);
       if (cur[P.wobCutoff] > 0.5) {
         const double lc = cur[P.wobLowcut];
         const double lo = lc > 21 ? lc : 60, hi = std::fmin(18000, sampleRate * 0.45);
