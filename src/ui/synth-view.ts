@@ -631,6 +631,8 @@ function filterIconPath(type: string): string {
     if (BELL_TYPES.includes(type) || type === 'bells') {
       ys.push(type === 'low cut 48' ? sig((x - 0.4) * 40) : type === 'low cut 12' ? sig((x - 0.4) * 14) : type === 'low shelf' ? 1.6 - 0.6 * sig((x - 0.45) * 18)
         : type === 'bell' ? 1 + 0.9 * Math.exp(-(d * d) / 0.01) : type === 'notch' ? 1 - Math.exp(-(d * d) / 0.004)
+        : type === 'band' ? 0.15 + 0.85 * Math.exp(-(d * d) / 0.012) : type === 'comb' ? 0.55 + 0.45 * Math.cos(x * Math.PI * 8)
+        : type === 'phaser' ? 1 - 0.8 * Math.exp(-((x - 0.33) ** 2) / 0.003) - 0.8 * Math.exp(-((x - 0.66) ** 2) / 0.003)
         : type === 'high shelf' ? 1 + 0.6 * sig((x - 0.55) * 18) : type === 'high cut 12' ? sig((0.6 - x) * 14) : type === 'high cut 48' ? sig((0.6 - x) * 40)
         : 1 + 0.5 * Math.exp(-((x - 0.2) ** 2) / 0.003) - 0.6 * Math.exp(-((x - 0.45) ** 2) / 0.002) + 0.5 * Math.exp(-((x - 0.7) ** 2) / 0.004));
       continue;
@@ -644,9 +646,11 @@ function filterIconPath(type: string): string {
 }
 
 /** BELLS: a band's types, as EQ Eight's (grind<n>.bell<b>_type order). */
-const BELL_TYPES = ['low cut 48', 'low cut 12', 'low shelf', 'bell', 'notch', 'high shelf', 'high cut 12', 'high cut 48'];
+const BELL_TYPES = ['low cut 48', 'low cut 12', 'low shelf', 'bell', 'notch', 'high shelf', 'high cut 12', 'high cut 48', 'band', 'comb', 'phaser'];
 /** A band type with no gain (the cuts and the notch). */
-const bellNoGain = (t: string): boolean => t.includes('cut') || t === 'notch';
+const bellNoGain = (t: string): boolean => t.includes('cut') || t === 'notch' || t === 'band' || t === 'phaser';
+/** A band type with no Q (the comb: its Gain is how hard it rings). */
+const bellNoQ = (t: string): boolean => t === 'comb';
 
 /** The LFO history: samples a second, and how many (40 s). */
 const LFO_HIST_HZ = 30, LFO_HIST = 40 * LFO_HIST_HZ;
@@ -4038,7 +4042,7 @@ export class SynthView {
     // after a drop the numbers read 1, 2, 3 … left to right again, per kind (owner's call): each part's
     // settings move with it to its new number, so the chain sounds exactly as it was dropped
     const KIND_KEYS: Record<(typeof KINDS)[number], string[]> = {
-      filter: ['filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'filter_level', 'bell_link', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`))],
+      filter: ['filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'filter_level', 'bell_link', 'bell_count', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`))],
       drive: ['drive_type', 'drive', 'mix', 'drive_level', 'drive_freq', 'drive_width', 'drive_tone', 'drive_dyn'],
       eq: ['eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`))],
       phaser: ['phaser_level', 'ph_notches', 'ph_center', 'ph_spread', 'ph_amount', 'ph_rate', 'ph_clock', 'ph_feedback', 'ph_stereo'],
@@ -4249,11 +4253,12 @@ export class SynthView {
       const bellSets = [1, 2, 3, 4].map((b) => {
         const bp = `${pre}.bell${b}`;
         // the band's type in a box on the left of its dials (owner's call), as EQ Eight's eight
-        const tsel = this.selector(`${bp}_type`, { groups: [['LOW', ['low cut 48', 'low cut 12', 'low shelf']], ['MID', ['bell', 'notch']], ['HIGH', ['high shelf', 'high cut 12', 'high cut 48']]], only: true });
+        const tsel = this.selector(`${bp}_type`, { groups: [['LOW', ['low cut 48', 'low cut 12', 'low shelf']], ['MID', ['bell', 'notch', 'band']], ['HIGH', ['high shelf', 'high cut 12', 'high cut 48']], ['RUIN', ['comb', 'phaser']]], only: true });
         for (const o of tsel.querySelectorAll('option')) o.dataset.icon = filterIconPath(o.value);
         const tbox = h('div', 'gr-bell-type', h('span', 'gr-bell-type-n', `BAND ${b}`), tsel);
         const noGain = () => bellNoGain(String(this.get(`${bp}_type`)));
-        return h('span', 'eq-set', tbox, md(`${bp}_freq`, 'Freq'), md(`${bp}_gain`, 'Gain', { disabled: noGain, deps: [`${bp}_type`] }), md(`${bp}_q`, 'Q'));
+        const noQ = () => bellNoQ(String(this.get(`${bp}_type`)));
+        return h('span', 'eq-set', tbox, md(`${bp}_freq`, 'Freq'), md(`${bp}_gain`, 'Gain', { disabled: noGain, deps: [`${bp}_type`] }), md(`${bp}_q`, 'Q', { disabled: noQ, deps: [`${bp}_type`] }));
       });
       const showBell = () => {
         const bells = this.get(`${pre}.filter`) === 'bells';
@@ -4262,7 +4267,13 @@ export class SynthView {
       };
       bellViews[n - 1] = showBell;
       this.watch([`${pre}.filter`], showBell);
-      const fdials = h('div', 'ob-dials gr-fdials', wd, ...bellSets,
+      // how many bands (owner's call: a box like OSC's UNI, left of the band's type), 1-4
+      const count = h('div', 'k uni-dial gr-bcount', this.chip('BANDS', () => this.num(`${pre}.bell_count`), (v) => {
+        this.set(`${pre}.bell_count`, v);
+        if (this.ruinBellSel[n - 1] >= v) { this.ruinBellSel[n - 1] = v - 1; showBell(); }
+      }, 1, 4, [`${pre}.bell_count`], 'How many bands (1-4)'));
+      this.watch([`${pre}.filter`], () => { count.style.display = this.get(`${pre}.filter`) === 'bells' ? '' : 'none'; });
+      const fdials = h('div', 'ob-dials gr-fdials', wd, count, ...bellSets,
         md(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.clock`] }), sync);
       const dhead = h('div', 'ob-head gr-row-head', partPower(dk), h('span', 'c-title', `DRIVE ${n}`), this.driveTypeSelector(`${pre}.drive_type`));
       const ddials = h('div', 'ob-dials gr-ddials', md(`${pre}.drive`, 'Drive', { fmt: pct }), md(`${pre}.drive_tone`, 'Tone', { fmt: pct }), md(`${pre}.mix`, 'Dry/Wet', { fmt: pct }));
@@ -4333,6 +4344,7 @@ export class SynthView {
       return { fc: pos.map((p, b) => { const [lo, hi] = bellZone(n, b); return lo * Math.pow(hi / lo, Math.max(0, Math.min(1, p))); }), live: true };
     };
     const bellType = (n: number, b: number) => String(this.get(`grind${n}.bell${b + 1}_type`));
+    const bellCount = (n: number) => Math.max(1, Math.min(4, Math.round(this.num(`grind${n}.bell_count`))));
     const bellDot = (n: number, b: number, W: number, fY: (m: number) => number): [number, number] =>
       [freqX(this.num(`grind${n}.bell${b + 1}_freq`) * this.ruinKey(), W), fY(bellNoGain(bellType(n, b)) ? 1 : Math.pow(10, this.num(`grind${n}.bell${b + 1}_gain`) / 20))];
     /** A band's wing: where it moves, from end to end, at the height of its dot (owner's pick, wings with round caps). */
@@ -4352,7 +4364,8 @@ export class SynthView {
       gg.lineTo(GW, fY(1));
       gg.stroke();
       gg.restore();
-      const bs = [0, 1, 2, 3].map((b) => ({ fc: now.fc[b], t: bellType(n, b), db: this.num(`grind${n}.bell${b + 1}_gain`), q: this.num(`grind${n}.bell${b + 1}_q`) }));
+      const NB = bellCount(n);
+      const bs = [0, 1, 2, 3].slice(0, NB).map((b) => ({ fc: now.fc[b], t: bellType(n, b), db: this.num(`grind${n}.bell${b + 1}_gain`), q: this.num(`grind${n}.bell${b + 1}_q`) }));
       gg.strokeStyle = 'rgba(255,255,255,0.9)';
       gg.lineWidth = 1.4;
       gg.beginPath();
@@ -4362,7 +4375,7 @@ export class SynthView {
       }
       gg.stroke();
       // each band's wing: a thin line from its dot out to where it moves, a small ring at each end you drag
-      for (let b = 0; b < 4; b++) {
+      for (let b = 0; b < NB; b++) {
         const hot = b === sel && !mini, [x0, x1, y] = bellWing(n, b, GW, fY), cap = mini ? 1.6 : hot ? 3.5 : 2.5;
         if (x1 - x0 < 1) continue;
         gg.save();
@@ -4390,7 +4403,7 @@ export class SynthView {
         }
         gg.restore();
       }
-      for (let b = 0; b < 4; b++) {
+      for (let b = 0; b < NB; b++) {
         const hot = b === sel && !mini, [dx, dy] = bellDot(n, b, GW, fY);
         // the band's dot (Freq / Gain), numbered as the EQ's
         gg.save();
@@ -4730,7 +4743,7 @@ export class SynthView {
     /** The band dot or wing end under the pointer: [band, 'bell' | 'bellRange'], or null (a dot wins a tie). */
     const nearBell = (n: number, x: number, y: number): [number, 'bell' | 'bellRange'] | null => {
       let best: [number, 'bell' | 'bellRange'] | null = null, bd = 12;
-      for (let b = 0; b < 4; b++) {
+      for (let b = 0; b < bellCount(n); b++) {
         const [dx, dy] = bellDot(n, b, GW, gfY), [x0, x1, wy] = bellWing(n, b, GW, gfY);
         const d1 = Math.hypot(x - dx, y - dy) - 2, d2 = Math.min(Math.hypot(x - x0, y - wy), Math.hypot(x - x1, y - wy));
         if (d1 < bd) { bd = d1; best = [b, 'bell']; }
@@ -4899,6 +4912,7 @@ export class SynthView {
         this.set(`${bp}_range`, b.range);
       });
       this.set(`${pre}.bell_link`, r.link);
+      this.set(`${pre}.bell_count`, 4);
       this.set(`${pre}.rate`, r.rate);
       this.set(`${pre}.clock`, r.clock);
       return;
@@ -4979,6 +4993,7 @@ export class SynthView {
           this.set(`${bp}_range`, b.range);
         });
         this.set(`grind${n}.bell_link`, r.link);
+        this.set(`grind${n}.bell_count`, 4);
       }
     };
     if (!counted) {
@@ -5508,7 +5523,7 @@ export class SynthView {
 /** A GRIND stage's parameters (grind<n>.*), in the order a roll snapshot keeps them. */
 const GRIND_KEYS = ['on', 'filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'drive_type', 'drive', 'mix', 'filter_on', 'drive_on', 'filter_level', 'drive_level',
   'drive_freq', 'drive_width', 'drive_tone', 'eq_on', 'eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`)),
-  'bell_link', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`)),
+  'bell_link', 'bell_count', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`)),
   'phaser_on', 'phaser_level', 'ph_notches', 'ph_center', 'ph_spread', 'ph_amount', 'ph_rate', 'ph_clock', 'ph_feedback', 'ph_stereo'];
 type GrindView = { filter: string; freq: number; range: number; res: number; depth?: number };
 type Cx = [number, number];
@@ -5545,9 +5560,20 @@ function bellMag(t: string, db: number, q: number, w: number): number {
     const QS = [0.5098, 0.6013, 0.9, 2.5629 * (q / 0.7071)];
     return QS.reduce((m, qq) => { const [lp, , hp] = sec(w, 1 / qq); return m * cabs(t === 'low cut 48' ? hp : lp); }, 1);
   }
+  if (t === 'comb') {
+    // rings on Freq and its harmonics (the delay is one period of Freq), its peaks at 0 dB
+    const fb = 0.92 * Math.max(-1, Math.min(1, db / 18)), ph = 2 * Math.PI * w;
+    return (1 - Math.abs(fb)) / Math.hypot(1 - fb * Math.cos(ph), fb * Math.sin(ph));
+  }
+  if (t === 'phaser') {
+    const fb = 0.85 * Math.min(1, Math.log2(1 + q) / Math.log2(19)), ap1 = cdiv([1, -w], [1, w]);
+    const ap4 = cmul(cmul(ap1, ap1), cmul(ap1, ap1));
+    const v = cdiv(ap4, [1 - fb * ap4[0], -fb * ap4[1]]), c = (1 - fb) / (2 - fb);
+    return cabs([c * (1 + v[0]), c * v[1]]);
+  }
   const w2 = t === 'low shelf' ? w * Math.sqrt(A) : t === 'high shelf' ? w / Math.sqrt(A) : w;
   const [lp, bp, hp] = sec(w2, k);
-  const c = t === 'low cut 12' ? [0, 0, 0, 1] : t === 'high cut 12' ? [0, 0, 1, 0] : t === 'notch' ? [0, 0, 1, 1]
+  const c = t === 'band' ? [0, k, 0, 0] : t === 'low cut 12' ? [0, 0, 0, 1] : t === 'high cut 12' ? [0, 0, 1, 0] : t === 'notch' ? [0, 0, 1, 1]
     : t === 'low shelf' ? [1, k * (A - 1), A * A - 1, 0] : t === 'high shelf' ? [A * A, k * (1 - A) * A, 1 - A * A, 0] : [1, (A * A - 1) * k, 0, 0];
   return cabs([c[0] + c[1] * bp[0] + c[2] * lp[0] + c[3] * hp[0], c[1] * bp[1] + c[2] * lp[1] + c[3] * hp[1]]);
 }
