@@ -131,7 +131,7 @@
   "lfo4.retrigger": false,
   "lfo4.fade": 0,
   "mod1.source": "lfo1",
-  "mod1.dest": "filter_cutoff",
+  "mod1.dest": "lfo_filter",
   "mod1.amount": 0.06,
   "mod2.source": "lfo2",
   "mod2.dest": "osc12_shape",

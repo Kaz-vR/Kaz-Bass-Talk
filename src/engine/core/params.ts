@@ -118,8 +118,15 @@ export const D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_O
   D_VIBRATO = 36, D_BREATH = 37, D_OSC_PITCH = 38, D_NOISE_PITCH = 39, D_SUB_PITCH = 40,
   D_LFO5_RATE = 41, D_LFO6_RATE = 42, D_SHAPE = 43, D_OSC1_DETUNE = 44, D_OSC2_DETUNE = 45,
   /** A and B's level together (the LFO page's A+B Volume): a swell or tremolo on the oscillators, the sub steady. */
-  D_OSC12_LEVEL = 46;
-export const DEST_COUNT = 47;
+  D_OSC12_LEVEL = 46,
+  /**
+   * The LFO page's own filters (owner's call): low-passes of their own, apart from the OSC page's filter and its
+   * A / B / S / N lamps: the whole sound (sub and noise included, after everything), A + B, A, B, Sub, Noise.
+   */
+  D_LF_ALL = 47, D_LF_AB = 48, D_LF_A = 49, D_LF_B = 50, D_LF_SUB = 51, D_LF_NOISE = 52;
+export const DEST_COUNT = 53;
+/** The LFO filters' open frequency and how many octaves a full swing closes them. */
+export const LF_OPEN_HZ = 20000, LF_OCTAVES = 8;
 export const TEXTURE_GAIN = 0.5;
 
 

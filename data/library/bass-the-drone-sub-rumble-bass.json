@@ -59,7 +59,7 @@
   "lfo1.sync": "free",
   "lfo1.retrigger": false,
   "mod1.source": "lfo1",
-  "mod1.dest": "filter_cutoff",
+  "mod1.dest": "lfo_filter",
   "mod1.amount": 0,
   "mod1.on": true,
   "dist.on": true,

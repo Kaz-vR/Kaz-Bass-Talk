@@ -71,7 +71,7 @@
   "lfo1.rate": 1.3,
   "lfo1.sync": "free",
   "mod1.source": "lfo1",
-  "mod1.dest": "filter_cutoff",
+  "mod1.dest": "lfo_filter",
   "mod1.amount": 0,
   "mod2.source": "lfo2",
   "mod2.dest": "osc12_shape",

@@ -130,6 +130,19 @@ export class Voice {
   /** Per matrix source: the fixed amount a VIBRATO LFO routes with (its own Depth, ±50 cents at most), or -1. */
   private readonly vibAmt = new Float64Array(K.SRC_COUNT).fill(-1);
   private readonly lfoRand = new Float64Array(K.LFO_COUNT);
+  /** VIBRATO's value, smoothed over ~3 ms so the square's and saws' jumps never click on a volume or filter target. */
+  private readonly vibSm = new Float64Array(K.LFO_COUNT);
+  /** Per matrix source: how far it can swing right now (1, or a VIBRATO's wheel squared), for the LFO filters. */
+  private readonly srcMax = new Float64Array(K.SRC_COUNT).fill(1);
+  /** The LFO filters' swing (the sum of their routes' |amount| x swing): whole, A+B, A, B, Sub, Noise. */
+  private readonly lfSpan = new Float64Array(6);
+  /** The LFO filters, each a 12 dB low-pass: whole (stereo) + whole on the sub, A, B (stereo), Sub, Noise. */
+  private readonly lfAll = new Svf12(2);
+  private readonly lfAllSub = new Svf12(1);
+  private readonly lfA = new Svf12(2);
+  private readonly lfB = new Svf12(2);
+  private readonly lfS = new Svf12(1);
+  private readonly lfN = new Svf12(1);
   /** Mod matrix result for this voice (the Synth reads the newest voice's FX targets). */
   readonly dst = new Float64Array(DEST_COUNT);
 
@@ -326,6 +339,7 @@ export class Voice {
     for (let l = 0; l < K.LFO_COUNT; l++) {
       this.lfoFade[l] = 1; // no LFO fades in now: VIBRATO is played with the mod wheel (owner's call)
       this.lfoProg[l] = 0;
+      this.vibSm[l] = 0;
       this.lfoRand[l] = this.rng.next();
     }
     this.noteTime = 0;
@@ -344,6 +358,7 @@ export class Voice {
     this.gate = false;
     this.ampEnv.reset();
     this.modEnv.reset();
+    for (const f of [this.lfAll, this.lfAllSub, this.lfA, this.lfB, this.lfS, this.lfN]) f.reset();
     this.ladL.reset();
     this.ladR.reset();
     for (let i = 0; i < 2; i++) {
@@ -438,10 +453,15 @@ export class Voice {
         const pr = this.lfoProg[l] + (rate * CONTROL_BLOCK) / fs;
         // VIBRATO keeps going round; the rest run one cycle and hold
         this.lfoProg[l] = vib ? pr - Math.floor(pr) : Math.min(1, pr);
-        src[s] = this.lfoNow(l) * cur[P.lfoOn[l]] * this.lfoFade[l];
+        let v = this.lfoNow(l);
+        if (vib) v = this.vibSm[l] += (v - this.vibSm[l]) * (1 - Math.exp(-CONTROL_BLOCK / (0.003 * fs)));
+        src[s] = v * cur[P.lfoOn[l]] * this.lfoFade[l];
+        const w = src[K.SRC_MODWHEEL];
+        this.srcMax[s] = vib ? w * w : 1;
       } else {
         src[s] *= this.lfoFade[l];
         this.vibAmt[s] = -1;
+        this.srcMax[s] = 1;
       }
     }
     src[K.SRC_MOD_ENV] = this.modEnv.level * cur[P.modEnvOn];
@@ -449,16 +469,36 @@ export class Voice {
     src[K.SRC_VEL] = this.velocity;
     src[K.SRC_KEY] = clamp((this.pitch - KEYTRACK_CENTER) / 24, -1, 1);
     const dst = this.dst;
-    dst.set(xdst); // the mod wheel's move and the wobble, shared by all voices
+    dst.set(xdst); // the custom LFO, shared by all voices
+    const span = this.lfSpan;
+    span.fill(0);
     for (let s = 0; s < SLOT_COUNT; s++) {
       const slot = P.slots[s];
       const d = cur[slot.dst];
       if (d > 0) {
         const si = cur[slot.src], va = this.vibAmt[si];
         // a VIBRATO source routes with its own Depth: ±50 cents at most on a pitch target, else 0-100 % like an LFO
-        dst[d] += (va >= 0 ? (K.isPitchDest(d) ? (va * 0.5) / 24 : va) : cur[slot.amt]) * src[si];
+        const a = va >= 0 ? (K.isPitchDest(d) ? (va * 0.5) / 24 : va) : cur[slot.amt];
+        dst[d] += a * src[si];
+        if (d >= K.D_LF_ALL) span[d - K.D_LF_ALL] += Math.abs(a) * this.srcMax[si];
       }
     }
+    // The LFO filters: open at the top of their swing, LF_OCTAVES lower at the bottom (closed by how far the
+    // routes' value sits under their swing), nothing at all with no route or a vibrato's wheel at 0
+    const closeOct = (i: number) => (span[i] > 0 ? 0.5 * K.LF_OCTAVES * Math.max(0, span[i] - dst[K.D_LF_ALL + i]) : -1);
+    const setLf = (f: Svf12, oct: number) => {
+      if (f.on && oct < 0) f.reset();
+      f.on = oct >= 0;
+      if (f.on) f.set(Math.min(0.45 * fs, K.LF_OPEN_HZ * Math.pow(2, -oct)) / fs);
+    };
+    const both = (a: number, b: number) => (a < 0 && b < 0 ? -1 : Math.max(0, a) + Math.max(0, b));
+    const oAll = closeOct(0), oAB = closeOct(1);
+    setLf(this.lfAll, oAll);
+    setLf(this.lfAllSub, oAll);
+    setLf(this.lfA, both(oAB, closeOct(2)));
+    setLf(this.lfB, both(oAB, closeOct(3)));
+    setLf(this.lfS, closeOct(4));
+    setLf(this.lfN, closeOct(5));
     // Switched-off blocks and muted layers ignore their modulation.
     const mask = this.dstMask;
     if (mask) for (let d = 1; d < dst.length; d++) dst[d] *= mask[d];
@@ -915,9 +955,13 @@ export class Voice {
         l = f.process(l, 0);
         r = f.process(r, 1);
       }
+      if (this.lfA.on) {
+        l = this.lfA.process(l, 0);
+        r = this.lfA.process(r, 1);
+      }
       // Oscillator 2 sums on its own when it has a filter or a different routing (otherwise
       // straight into l/r).
-      const sepB = this.oscF[1].active || this.routeA !== this.routeB;
+      const sepB = this.oscF[1].active || this.routeA !== this.routeB || this.lfB.on;
       const preL = l, preR = r;
       if (sepB) l = r = 0;
       if (o2.gain > 0 && o2.wave >= WAVE_STRING) {
@@ -975,6 +1019,10 @@ export class Voice {
           bl = f.process(bl, 0);
           br = f.process(br, 1);
         }
+        if (this.lfB.on) {
+          bl = this.lfB.process(bl, 0);
+          br = this.lfB.process(br, 1);
+        }
         if (this.routeA && this.routeB) {
           l = preL + bl;
           r = preR + br;
@@ -991,7 +1039,8 @@ export class Voice {
         l = r = 0;
       }
       if (this.noiseLevel > 0) {
-        const nz = this.rng.next() * this.noiseLevel;
+        let nz = this.rng.next() * this.noiseLevel;
+        if (this.lfN.on) nz = this.lfN.process(nz, 0);
         l += nz;
         r += nz;
       }
@@ -1021,6 +1070,7 @@ export class Voice {
           if (sw === 4) sub = 0.8 * (sub + 0.5);
         }
         if (this.subF.active) sub = this.subF.process(sub);
+        if (this.lfS.on) sub = this.lfS.process(sub, 0);
         if (this.routeS) {
           // Into the main filter at the level the clean path would have had.
           const s = sub * this.subLevel * this.subMix * SUB_ROUTE_GAIN;
@@ -1079,6 +1129,10 @@ export class Voice {
         l = this.clipOut[0];
         r = this.clipOut[1];
       }
+      if (this.lfAll.on) {
+        l = this.lfAll.process(l, 0);
+        r = this.lfAll.process(r, 1);
+      }
 
       this.subDelay[this.subDelayPos] = sub;
     } else {
@@ -1087,8 +1141,9 @@ export class Voice {
     }
     let rp = this.subDelayPos - OVERSAMPLE_LATENCY;
     if (rp < 0) rp += 32;
-    const sub = this.subDelay[rp];
+    let sub = this.subDelay[rp];
     this.subDelayPos = (this.subDelayPos + 1) & 31;
+    if (this.lfAllSub.on) sub = this.lfAllSub.process(sub, 0);
     // The sub leaves on its own (out[2]) and the synth adds it after every effect; with
     // direct out off it joins the voice and goes through the dynamics, effects and EQ.
     if (this.subDirect) {
@@ -1100,5 +1155,41 @@ export class Voice {
       out[1] = r + sub;
       out[2] = 0;
     }
+  }
+}
+
+/**
+ * A 12 dB low-pass (Simper's trapezoidal state-variable filter, Q 0.707) for the LFO page's filters: smooth at any
+ * cutoff, so an LFO can sweep it fast. Per channel state; set() takes the cutoff as a fraction of the sample rate.
+ */
+class Svf12 {
+  on = false;
+  private a1 = 1;
+  private a2 = 0;
+  private a3 = 0;
+  private readonly ic1: Float64Array;
+  private readonly ic2: Float64Array;
+  constructor(channels: number) {
+    this.ic1 = new Float64Array(channels);
+    this.ic2 = new Float64Array(channels);
+  }
+  set(fc: number): void {
+    const g = Math.tan(Math.PI * fc), k = Math.SQRT2;
+    this.a1 = 1 / (1 + g * (g + k));
+    this.a2 = g * this.a1;
+    this.a3 = g * this.a2;
+  }
+  process(x: number, c: number): number {
+    const ic1 = this.ic1[c], ic2 = this.ic2[c];
+    const v3 = x - ic2;
+    const v1 = this.a1 * ic1 + this.a2 * v3;
+    const v2 = ic2 + this.a2 * ic1 + this.a3 * v3;
+    this.ic1[c] = 2 * v1 - ic1;
+    this.ic2[c] = 2 * v2 - ic2;
+    return v2;
+  }
+  reset(): void {
+    this.ic1.fill(0);
+    this.ic2.fill(0);
   }
 }

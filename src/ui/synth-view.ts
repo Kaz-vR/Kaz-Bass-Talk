@@ -737,13 +737,14 @@ function lfoIconPath(shape: string): string {
 /** What LFO 1-4 can move (owner's call: the LFO page's targets, no matrix). */
 const LFO_TARGETS: [string, string[]][] = [
   ['VOLUME', ['amp', 'osc12_level', 'osc1_level', 'osc2_level', 'sub_level', 'texture_level']],
-  ['FILTER', ['filter_cutoff', 'filter_resonance']],
+  ['FILTER', ['lfo_filter', 'lfo_filter_ab', 'lfo_filter_a', 'lfo_filter_b', 'lfo_filter_sub', 'lfo_filter_noise', 'filter_resonance']],
   ['PITCH', ['pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'sub_pitch']],
   ['SHAPE', ['osc12_shape', 'osc1_pw', 'osc2_pw']],
 ];
 /** LFO targets as the title row names them (owner's list). */
 const LFO_TARGET_NAME: Record<string, string> = {
   amp: 'VOLUME', osc12_level: 'A+B VOLUME', osc1_level: 'A VOLUME', osc2_level: 'B VOLUME', sub_level: 'SUB VOLUME', texture_level: 'NOISE VOLUME',
+  lfo_filter: 'FILTER', lfo_filter_ab: 'A+B FILTER', lfo_filter_a: 'A FILTER', lfo_filter_b: 'B FILTER', lfo_filter_sub: 'SUB FILTER', lfo_filter_noise: 'NOISE FILTER',
   filter_cutoff: 'FILTER', filter_resonance: 'RESONANCE',
   pitch: 'PITCH', osc_pitch: 'A+B PITCH', osc1_pitch: 'A PITCH', osc2_pitch: 'B PITCH', sub_pitch: 'SUB PITCH',
   osc12_shape: 'A+B SHAPE', osc1_pw: 'A SHAPE', osc2_pw: 'B SHAPE',
@@ -3162,7 +3163,8 @@ export class SynthView {
     for (const [title, os] of LFO_TARGETS) {
       const og = document.createElement('optgroup');
       og.label = title;
-      for (const o of os) og.append(new Option(LFO_TARGET_NAME[o] ?? o, o));
+      // (its FILTER is its own filter, the classic wobble; the per-source filters are LFO 1-4's)
+      for (const o of os) if (!o.startsWith('lfo_filter_')) og.append(new Option(LFO_TARGET_NAME[o] ?? o, o));
       wtSel.append(og);
     }
     // FILTER and VOLUME are its own filter and gate (the classic wobble, Lo cut keeping the low end out); the rest
@@ -3171,12 +3173,12 @@ export class SynthView {
       const v = wtSel.value;
       if (v === 'none') { this.set('wobble.on', false); return; }
       if (this.num('wobble.depth') <= 0) this.set('wobble.depth', 1);
-      this.set('wobble.cutoff', v === 'filter_cutoff');
+      this.set('wobble.cutoff', v === 'lfo_filter');
       this.set('wobble.volume', v === 'amp');
-      this.set('wobble.dest', v === 'filter_cutoff' || v === 'amp' ? 'none' : v);
+      this.set('wobble.dest', v === 'lfo_filter' || v === 'amp' ? 'none' : v);
       this.set('wobble.on', true);
     };
-    const wobTargetNow = () => (!on() ? 'none' : this.get('wobble.cutoff') ? 'filter_cutoff' : this.get('wobble.volume') ? 'amp' : String(this.get('wobble.dest')));
+    const wobTargetNow = () => (!on() ? 'none' : this.get('wobble.cutoff') ? 'lfo_filter' : this.get('wobble.volume') ? 'amp' : String(this.get('wobble.dest')));
     this.watch(['wobble.on', 'wobble.depth', 'wobble.dest', 'wobble.cutoff', 'wobble.volume'], () => { wtSel.value = wobTargetNow(); });
     const wobTarget = h('div', 'sel lfo5-target-sel', wtSel);
     wobTarget.title = 'What the custom LFO moves';

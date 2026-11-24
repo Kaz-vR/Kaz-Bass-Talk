@@ -70,7 +70,7 @@
   "lfo1.rate": 5,
   "lfo1.sync": "free",
   "mod1.source": "lfo1",
-  "mod1.dest": "filter_cutoff",
+  "mod1.dest": "lfo_filter",
   "mod1.amount": 0,
   "chorus.mode": "bbd",
   "chorus.lowcut": 250,

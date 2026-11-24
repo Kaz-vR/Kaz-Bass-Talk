@@ -70,7 +70,7 @@
   "amp_env.sustain": 1,
   "amp_env.release": 60,
   "mod1.source": "lfo1",
-  "mod1.dest": "filter_cutoff",
+  "mod1.dest": "lfo_filter",
   "mod1.amount": 0,
   "mod1.on": true,
   "lfo1.on": false,

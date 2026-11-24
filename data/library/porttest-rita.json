@@ -62,7 +62,7 @@
   "amp_env.sustain": 1,
   "amp_env.release": 130,
   "mod1.source": "lfo1",
-  "mod1.dest": "filter_cutoff",
+  "mod1.dest": "lfo_filter",
   "mod1.amount": 0,
   "wheel.preset": "vibrato",
   "mod1.on": true,

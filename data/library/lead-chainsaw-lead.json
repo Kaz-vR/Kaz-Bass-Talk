@@ -79,7 +79,7 @@
   "osc2.unison_voices": 1,
   "osc2.sync": true,
   "mod1.source": "lfo1",
-  "mod1.dest": "filter_cutoff",
+  "mod1.dest": "lfo_filter",
   "mod1.amount": 0.08,
   "mod1.on": true,
   "mod2.source": "lfo2",

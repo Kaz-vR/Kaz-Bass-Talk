@@ -18,6 +18,31 @@
 namespace lt {
 
 constexpr double MID_CLIP_REF = 0.8;
+/** A 12 dB low-pass (Simper's SVF, Q 0.707) for the LFO page's filters (port of Svf12 in voice.ts). */
+template <int CH>
+struct Svf12 {
+  bool on = false;
+  double a1 = 1, a2 = 0, a3 = 0;
+  double ic1[CH] = {}, ic2[CH] = {};
+  void set(double fc) {
+    const double g = std::tan(3.141592653589793 * fc), k = std::sqrt(2.0);
+    a1 = 1 / (1 + g * (g + k));
+    a2 = g * a1;
+    a3 = g * a2;
+  }
+  double process(double x, int c) {
+    const double i1 = ic1[c], i2 = ic2[c];
+    const double v3 = x - i2;
+    const double v1 = a1 * i1 + a2 * v3;
+    const double v2 = i2 + a2 * i1 + a3 * v3;
+    ic1[c] = 2 * v1 - i1;
+    ic2[c] = 2 * v2 - i2;
+    return v2;
+  }
+  void reset() {
+    for (int c = 0; c < CH; c++) ic1[c] = ic2[c] = 0;
+  }
+};
 /** polyBLEP residual for a unit step at phase 0 (t in 0..1, dt = phase increment). */
 inline double polyBlep(double t, double dt) {
   if (t < dt) {
@@ -72,7 +97,7 @@ class Voice {
     subRamp = 1 / (0.01 * fs);
     voiceDcL.setHighpass(VOICE_DC_HZ, SQRT1_2, fs);
     voiceDcR.setHighpass(VOICE_DC_HZ, SQRT1_2, fs);
-    lfoFade.fill(1); vibAmt.fill(-1);
+    lfoFade.fill(1); vibAmt.fill(-1); srcMax.fill(1);
     driveF.fill(tanhIntegral(0));
     mixF.fill(tanhIntegral(0));
     Rng card(seed ^ 0x6c8e9cf5u);
@@ -149,6 +174,7 @@ class Voice {
     for (int l = 0; l < LFO_COUNT; l++) {
       lfoFade[l] = 1;  // no LFO fades in now: VIBRATO is played with the mod wheel
       lfoProg[l] = 0;
+      vibSm[l] = 0;
       lfoRand[l] = rng.next();
     }
     noteTime = 0;
@@ -166,6 +192,7 @@ class Voice {
     gate = false;
     ampEnv.reset();
     modEnv.reset();
+    lfAll.reset(); lfAllSub.reset(); lfA.reset(); lfB.reset(); lfS.reset(); lfN.reset();
     ladL.reset();
     ladR.reset();
     for (int i = 0; i < 2; i++) {
@@ -250,10 +277,15 @@ class Voice {
         if (vib) rate *= (0.9 + 0.2 * src[SRC_MODWHEEL]);  // the mod wheel plays VIBRATO
         const double pr = lfoProg[l] + (rate * CONTROL_BLOCK) / fs;
         lfoProg[l] = vib ? pr - std::floor(pr) : std::fmin(1.0, pr);
-        src[s] = lfoNow(l) * cur[P.lfoOn[l]] * lfoFade[l];
+        double v = lfoNow(l);
+        if (vib) v = vibSm[l] += (v - vibSm[l]) * (1 - std::exp(-CONTROL_BLOCK / (0.003 * fs)));  // no clicks
+        src[s] = v * cur[P.lfoOn[l]] * lfoFade[l];
+        const double w = src[SRC_MODWHEEL];
+        srcMax[s] = vib ? w * w : 1;
       } else {
         src[s] *= lfoFade[l];
         vibAmt[s] = -1;
+        srcMax[s] = 1;
       }
     }
     src[SRC_MOD_ENV] = modEnv.level * cur[P.modEnvOn];
@@ -261,14 +293,33 @@ class Voice {
     src[SRC_VEL] = velocity;
     src[SRC_KEY] = clampd((pitch - KEYTRACK_CENTER) / 24, -1, 1);
     for (int d = 0; d < DEST_COUNT; d++) dst[d] = xdst[d];
+    double span[6] = {0, 0, 0, 0, 0, 0};
     for (int s = 0; s < SLOT_COUNT; s++) {
       const auto& slot = P.slots[s];
       const int d = (int)cur[slot.dst];
       if (d > 0) {
         const int si = (int)cur[slot.src];
         const double va = vibAmt[si];
-        dst[d] += (va >= 0 ? (isPitchDest(d) ? va * 0.5 / 24 : va) : cur[slot.amt]) * src[si];
+        const double a = va >= 0 ? (isPitchDest(d) ? va * 0.5 / 24 : va) : cur[slot.amt];
+        dst[d] += a * src[si];
+        if (d >= D_LF_ALL) span[d - D_LF_ALL] += std::fabs(a) * srcMax[si];
       }
+    }
+    {  // the LFO filters: open at the top of their swing, LF_OCTAVES lower at the bottom
+      auto closeOct = [&](int i) { return span[i] > 0 ? 0.5 * LF_OCTAVES * std::fmax(0.0, span[i] - dst[D_LF_ALL + i]) : -1.0; };
+      auto both = [](double a, double b) { return a < 0 && b < 0 ? -1.0 : std::fmax(0.0, a) + std::fmax(0.0, b); };
+      auto setLf = [&](auto& f, double oct) {
+        if (f.on && oct < 0) f.reset();
+        f.on = oct >= 0;
+        if (f.on) f.set(std::fmin(0.45 * fs, LF_OPEN_HZ * std::pow(2.0, -oct)) / fs);
+      };
+      const double oAll = closeOct(0), oAB = closeOct(1);
+      setLf(lfAll, oAll);
+      setLf(lfAllSub, oAll);
+      setLf(lfA, both(oAB, closeOct(2)));
+      setLf(lfB, both(oAB, closeOct(3)));
+      setLf(lfS, closeOct(4));
+      setLf(lfN, closeOct(5));
     }
     if (dstMask)
       for (int d = 1; d < DEST_COUNT; d++) dst[d] *= dstMask[d];
@@ -495,7 +546,11 @@ class Voice {
         l = oscF[0].process(l, 0);
         r = oscF[0].process(r, 1);
       }
-      const bool sepB = oscF[1].active || routeA != routeB;
+      if (lfA.on) {
+        l = lfA.process(l, 0);
+        r = lfA.process(r, 1);
+      }
+      const bool sepB = oscF[1].active || routeA != routeB || lfB.on;
       const double preL = l, preR = r;
       if (sepB) l = r = 0;
       if (o2.gain > 0 && o2.wave >= WAVE_STRING) {
@@ -548,6 +603,10 @@ class Voice {
           bl = oscF[1].process(bl, 0);
           br = oscF[1].process(br, 1);
         }
+        if (lfB.on) {
+          bl = lfB.process(bl, 0);
+          br = lfB.process(br, 1);
+        }
         if (routeA && routeB) {
           l = preL + bl;
           r = preR + br;
@@ -563,7 +622,8 @@ class Voice {
         l = r = 0;
       }
       if (noiseLevel > 0) {
-        const double nz = rng.next() * noiseLevel;
+        double nz = rng.next() * noiseLevel;
+        if (lfN.on) nz = lfN.process(nz, 0);
         l += nz;
         r += nz;
       }
@@ -589,6 +649,7 @@ class Voice {
           if (sw == 4) sub = 0.8 * (sub + 0.5);
         }
         if (subF.active) sub = subF.process(sub);
+        if (lfS.on) sub = lfS.process(sub, 0);
         if (routeS) {
           const double s = sub * subLevel * subMix * SUB_ROUTE_GAIN;
           l += s;
@@ -640,6 +701,10 @@ class Voice {
         l = clipOut[0];
         r = clipOut[1];
       }
+      if (lfAll.on) {
+        l = lfAll.process(l, 0);
+        r = lfAll.process(r, 1);
+      }
 
       subDelay[subDelayPos] = sub;
     } else {
@@ -648,8 +713,9 @@ class Voice {
     }
     int rp = subDelayPos - OVERSAMPLE_LATENCY;
     if (rp < 0) rp += 32;
-    const double sub = subDelay[rp];
+    double sub = subDelay[rp];
     subDelayPos = (subDelayPos + 1) & 31;
+    if (lfAllSub.on) sub = lfAllSub.process(sub, 0);
     if (subDirect) {
       out[0] = l;
       out[1] = r;
@@ -828,6 +894,10 @@ class Voice {
   std::array<double, SRC_COUNT> src{};
   std::array<double, LFO_COUNT> lfoFade{}, lfoProg{}, lfoRand{};
   std::array<double, SRC_COUNT> vibAmt{};
+  std::array<double, LFO_COUNT> vibSm{};
+  std::array<double, SRC_COUNT> srcMax{};
+  Svf12<2> lfAll, lfA, lfB;
+  Svf12<1> lfAllSub, lfS, lfN;
 
   OscState osc[2];
   DiodeLadder diodeL, diodeR;

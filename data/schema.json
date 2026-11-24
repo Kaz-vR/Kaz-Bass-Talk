@@ -2202,7 +2202,13 @@
         "osc12_shape",
         "osc1_detune",
         "osc2_detune",
-        "osc12_level"
+        "osc12_level",
+        "lfo_filter",
+        "lfo_filter_ab",
+        "lfo_filter_a",
+        "lfo_filter_b",
+        "lfo_filter_sub",
+        "lfo_filter_noise"
       ],
       "default": "filter_cutoff",
       "group": "mod",
@@ -2302,7 +2308,13 @@
         "osc12_shape",
         "osc1_detune",
         "osc2_detune",
-        "osc12_level"
+        "osc12_level",
+        "lfo_filter",
+        "lfo_filter_ab",
+        "lfo_filter_a",
+        "lfo_filter_b",
+        "lfo_filter_sub",
+        "lfo_filter_noise"
       ],
       "default": "osc12_shape",
       "group": "mod",
@@ -2402,7 +2414,13 @@
         "osc12_shape",
         "osc1_detune",
         "osc2_detune",
-        "osc12_level"
+        "osc12_level",
+        "lfo_filter",
+        "lfo_filter_ab",
+        "lfo_filter_a",
+        "lfo_filter_b",
+        "lfo_filter_sub",
+        "lfo_filter_noise"
       ],
       "default": "osc_pitch",
       "group": "mod",
@@ -2502,7 +2520,13 @@
         "osc12_shape",
         "osc1_detune",
         "osc2_detune",
-        "osc12_level"
+        "osc12_level",
+        "lfo_filter",
+        "lfo_filter_ab",
+        "lfo_filter_a",
+        "lfo_filter_b",
+        "lfo_filter_sub",
+        "lfo_filter_noise"
       ],
       "default": "texture_level",
       "group": "mod",
@@ -2602,7 +2626,13 @@
         "osc12_shape",
         "osc1_detune",
         "osc2_detune",
-        "osc12_level"
+        "osc12_level",
+        "lfo_filter",
+        "lfo_filter_ab",
+        "lfo_filter_a",
+        "lfo_filter_b",
+        "lfo_filter_sub",
+        "lfo_filter_noise"
       ],
       "default": "none",
       "group": "mod",
@@ -2701,7 +2731,13 @@
         "osc12_shape",
         "osc1_detune",
         "osc2_detune",
-        "osc12_level"
+        "osc12_level",
+        "lfo_filter",
+        "lfo_filter_ab",
+        "lfo_filter_a",
+        "lfo_filter_b",
+        "lfo_filter_sub",
+        "lfo_filter_noise"
       ],
       "default": "none",
       "group": "mod",
@@ -2800,7 +2836,13 @@
         "osc12_shape",
         "osc1_detune",
         "osc2_detune",
-        "osc12_level"
+        "osc12_level",
+        "lfo_filter",
+        "lfo_filter_ab",
+        "lfo_filter_a",
+        "lfo_filter_b",
+        "lfo_filter_sub",
+        "lfo_filter_noise"
       ],
       "default": "none",
       "group": "mod",
@@ -2899,7 +2941,13 @@
         "osc12_shape",
         "osc1_detune",
         "osc2_detune",
-        "osc12_level"
+        "osc12_level",
+        "lfo_filter",
+        "lfo_filter_ab",
+        "lfo_filter_a",
+        "lfo_filter_b",
+        "lfo_filter_sub",
+        "lfo_filter_noise"
       ],
       "default": "none",
       "group": "mod",
@@ -2998,7 +3046,13 @@
         "osc12_shape",
         "osc1_detune",
         "osc2_detune",
-        "osc12_level"
+        "osc12_level",
+        "lfo_filter",
+        "lfo_filter_ab",
+        "lfo_filter_a",
+        "lfo_filter_b",
+        "lfo_filter_sub",
+        "lfo_filter_noise"
       ],
       "default": "none",
       "group": "mod",
@@ -7532,7 +7586,13 @@
         "osc12_shape",
         "osc1_detune",
         "osc2_detune",
-        "osc12_level"
+        "osc12_level",
+        "lfo_filter",
+        "lfo_filter_ab",
+        "lfo_filter_a",
+        "lfo_filter_b",
+        "lfo_filter_sub",
+        "lfo_filter_noise"
       ],
       "default": "none",
       "group": "wobble",

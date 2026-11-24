@@ -35,3 +35,15 @@ wheel speeds up slightly (x 0.9 at the bottom to x 1.1 at the top). No LFO fades
 kept so old presets load). Both engines (`voice.ts`, `Voice.h`).
 
 The mod wheel plays only the VIBRATO shapes (owner's call): its eight connected moves were removed from `extraModulation` in both engines.
+
+### The LFO page's filters (owner's call, 24 Nov)
+
+Six matrix destinations of their own (`D_LF_ALL`..`D_LF_NOISE`, 47-52: `lfo_filter`, `lfo_filter_ab`, `lfo_filter_a`,
+`lfo_filter_b`, `lfo_filter_sub`, `lfo_filter_noise`), apart from the OSC page's filter and its A / B / S / N lamps:
+12 dB low-passes (`Svf12`, Simper's SVF at Q 0.707) on the whole voice after everything (the sub included, at its
+output), on A, on B (A + B = both), on the sub and on the noise. Each is open (20 kHz) at the top of its routes' swing
+and 8 octaves lower at the bottom: closed by `LF_OCTAVES / 2 x (swing - value)` octaves, the swing being the sum of its
+routes' |amount| (a VIBRATO's times the wheel squared), so no route, Depth 0 or a vibrato at wheel 0 leaves the sound
+untouched. RESONANCE stays the OSC page filter's. The vibrato's value is smoothed over ~3 ms so its square and saws
+never click on a volume or filter target. LFO routes to the OSC page's cutoff were moved to FILTER
+(`tools/convert-lfo-filters.ts`). Both engines.

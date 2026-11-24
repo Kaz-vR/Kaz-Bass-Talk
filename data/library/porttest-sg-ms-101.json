@@ -68,7 +68,7 @@
   "amp_env.sustain": 0.75,
   "amp_env.release": 550,
   "mod1.source": "lfo1",
-  "mod1.dest": "filter_cutoff",
+  "mod1.dest": "lfo_filter",
   "mod1.amount": 0,
   "chorus.mode": "classic",
   "chorus.lowcut": 250,

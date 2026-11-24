@@ -72,7 +72,7 @@
   "lfo1.rate": 12,
   "lfo1.sync": "free",
   "mod1.source": "lfo1",
-  "mod1.dest": "filter_cutoff",
+  "mod1.dest": "lfo_filter",
   "mod1.amount": 0,
   "wheel.preset": "unstable",
   "mod1.on": true,
