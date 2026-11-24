@@ -212,7 +212,7 @@ export const P = {
   vibDepth: ix('vibrato.depth'), vibRate: ix('vibrato.rate'), vibDelay: ix('vibrato.delay'), vibFade: ix('vibrato.fade'),
 
   lfo: [1, 2, 3, 4, 5, 6].map((n) => ({
-    shape: ix(`lfo${n}.shape`), rate: ix(`lfo${n}.rate`), sync: ix(`lfo${n}.sync`), retrig: ix(`lfo${n}.retrigger`), fade: ix(`lfo${n}.fade`), phase: ix(`lfo${n}.phase`), bend: ix(`lfo${n}.bend`), human: ix(`lfo${n}.human`), under: ix(`lfo${n}.under`), vibRate: ix(`lfo${n}.vib_rate`), vibDepth: ix(`lfo${n}.vib_depth`),
+    shape: ix(`lfo${n}.shape`), rate: ix(`lfo${n}.rate`), sync: ix(`lfo${n}.sync`), retrig: ix(`lfo${n}.retrigger`), fade: ix(`lfo${n}.fade`), phase: ix(`lfo${n}.phase`), bend: ix(`lfo${n}.bend`), vibRate: ix(`lfo${n}.vib_rate`), vibDepth: ix(`lfo${n}.vib_depth`),
   })),
   slots: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => ({ src: ix(`mod${n}.source`), dst: ix(`mod${n}.dest`), amt: ix(`mod${n}.amount`), on: ix(`mod${n}.on`) })),
   chorusMix: ix('chorus.mix'), chorusDepth: ix('chorus.depth'), phaserMix: ix('phaser.mix'), phaserRate: ix('phaser.rate'),
