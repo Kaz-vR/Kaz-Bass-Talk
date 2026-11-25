@@ -303,6 +303,59 @@ try {
     userSounds.push({ roll: { ...r, patch: validatePatch(r.patch).patch }, id: nextId++ });
   }
 }
+/**
+ * Your saved sounds online too (owner's call: a preset must survive whatever happens to a browser): every save also
+ * goes to the prototype's own database (presets/<name>, readable and writable by the owner only), the sounds already
+ * kept in this browser are uploaded once on open, and sounds saved on another device appear here. Nothing is ever
+ * deleted there: un-starring a sound only removes it from this list.
+ */
+type PresetDoc = { name: string; hint: string; patch: string; savedAt: number };
+let presetsDb: Promise<{ doc(path: string): { get(): Promise<{ exists: boolean; data(): Record<string, unknown> | undefined }>; set(d: Record<string, unknown>): Promise<void> }; collection(path: string): { get(): Promise<{ docs: { data(): Record<string, unknown> | undefined }[] }> } } | null> | null = null;
+function onlineDb() {
+  const c = (window as unknown as { claude?: { use(name: string): Promise<unknown> } }).claude;
+  if (!presetsDb) presetsDb = c?.use ? (c.use('db') as Promise<never>).catch(() => null) : Promise.resolve(null);
+  return presetsDb;
+}
+/** A preset's document id: its name, made safe for a path. */
+const presetId = (name: string) => name.trim().replace(/[^A-Za-z0-9_-]+/g, '-').slice(0, 120) || 'untitled';
+async function backupOnline(r: Roll): Promise<void> {
+  const db = await onlineDb();
+  if (!db) return;
+  const patch = JSON.stringify(r.patch);
+  try {
+    const ref = db.doc(`presets/${presetId(r.name)}`);
+    const have = await ref.get();
+    if (have.exists && (have.data() as PresetDoc | undefined)?.patch === patch) return;
+    await ref.set({ name: r.name, hint: r.hint ?? '', patch, savedAt: Date.now() } satisfies PresetDoc);
+  } catch {
+    // offline or not allowed: it stays in this browser
+  }
+}
+// on open: what this browser kept goes up (once per change), what was saved elsewhere comes down
+void (async () => {
+  const db = await onlineDb();
+  if (!db) return;
+  for (const e of [...userSounds]) await backupOnline(e.roll);
+  try {
+    const snap = await db.collection('presets').get();
+    const have = new Set(userSounds.map((e) => e.roll.name));
+    let added = false;
+    for (const d of snap.docs) {
+      const x = d.data() as PresetDoc | undefined;
+      if (!x || have.has(x.name)) continue;
+      const patch = validatePatch(JSON.parse(x.patch)).patch;
+      userSounds.push({ roll: { name: x.name, hint: x.hint, patch } as Roll, id: nextId++ });
+      added = true;
+    }
+    if (added) {
+      saveUser();
+      renderBrowser();
+    }
+  } catch {
+    // keep what this browser has
+  }
+})();
+
 function saveUser(): void {
   try {
     localStorage.setItem(USER_KEY, JSON.stringify(userSounds.map((e) => e.roll)));
@@ -347,6 +400,7 @@ function saveSound(): void {
   const e: RollEntry = { roll: { patch, name, hint: `Saved from ${current.meta.name}` }, id: nextId++ };
   userSounds = [e, ...userSounds];
   saveUser();
+  void backupOnline(e.roll);
   currentRoll = e;
   reference = patch;
   current.meta = structuredClone(patch.meta);
