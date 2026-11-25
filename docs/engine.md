@@ -59,8 +59,9 @@ targets (`wobble.dest`, `dest2`, `dest3`) with signed depths (`wobble.amt1-3`, -
 filter, VOLUME (`amp`) = its own gate (minus = the shape upside down), the rest `v x amt` into every voice's matrix.
 `wobble.depth`, `wobble.cutoff`, `wobble.volume` are unused now (old patches migrate in `migrateWobTargets`).
 
-Each target also has an **Offset** (`wobble.off1-3`, -1..1, owner's call, 25 Nov): where its swing sits, `(1 - o) / 2`
-of the way down. On a matrix target `(v - (1 - o) / 2) x amt`: +1 = above where it is set, 0 = around it, -1 = below.
-On its own filter and gate, which rest at the top of their range: the closing gets `(1 - o) / 2 x (1 - depth)` added,
-so +1 swings high (the old behaviour), -1 low. Patches from before load with +1 on the rows that move something
-(`migrateWobOffsets`). Both engines.
+Each target follows **its own line** (owner's call, 25 Nov): `y = 0.5 + depth x (v - 0.5) + offset / 2` (`wobble.amt1-3`,
+`wobble.offset1-3`, both -1..1), so depth 100 % = the shape itself (a new target's start), 0 = flat, -100 % = upside
+down, and Offset (starting at 0) moves the line up or down by up to half the range. A matrix target moves by `y - 0.5`
+around where it is set; its own filter is open at y = 1 and shut (at the low cut) at 0; its own gate is the level y.
+Older patches are converted to the same sound (`migrateWobOffsets`: matrix offset = depth x o, filter / gate offset =
+o x (1 - |depth|), o the old `wobble.off` or +1). Both engines.

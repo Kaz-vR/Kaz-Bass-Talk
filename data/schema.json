@@ -7862,7 +7862,7 @@
       "curve": "linear",
       "unit": "",
       "group": "wobble",
-      "describes": "How far the custom LFO moves this target, and which way (minus = the other way round). On Filter and Volume: its own filter and gate."
+      "describes": "How much this target follows the shape: 100% = the shape itself, 0 = flat, minus = the shape upside down. On Filter and Volume: its own filter and gate."
     },
     {
       "id": "wobble.amt2",
@@ -7874,7 +7874,7 @@
       "curve": "linear",
       "unit": "",
       "group": "wobble",
-      "describes": "How far the custom LFO moves this target, and which way (minus = the other way round). On Filter and Volume: its own filter and gate."
+      "describes": "How much this target follows the shape: 100% = the shape itself, 0 = flat, minus = the shape upside down. On Filter and Volume: its own filter and gate."
     },
     {
       "id": "wobble.amt3",
@@ -7886,10 +7886,10 @@
       "curve": "linear",
       "unit": "",
       "group": "wobble",
-      "describes": "How far the custom LFO moves this target, and which way (minus = the other way round). On Filter and Volume: its own filter and gate."
+      "describes": "How much this target follows the shape: 100% = the shape itself, 0 = flat, minus = the shape upside down. On Filter and Volume: its own filter and gate."
     },
     {
-      "id": "wobble.off1",
+      "id": "wobble.offset1",
       "label": "Custom LFO target 1 offset",
       "type": "float",
       "min": -1,
@@ -7898,10 +7898,10 @@
       "curve": "linear",
       "unit": "",
       "group": "wobble",
-      "describes": "Where this target's swing sits: up = above where it is set, centre = around it, down = below it. On Filter and Volume: the swing high in their range (up) or low (down)."
+      "describes": "Moves this target's line up (plus) or down (minus) from the shape, by up to half the range; 0 = on the shape."
     },
     {
-      "id": "wobble.off2",
+      "id": "wobble.offset2",
       "label": "Custom LFO target 2 offset",
       "type": "float",
       "min": -1,
@@ -7910,10 +7910,10 @@
       "curve": "linear",
       "unit": "",
       "group": "wobble",
-      "describes": "Where this target's swing sits: up = above where it is set, centre = around it, down = below it. On Filter and Volume: the swing high in their range (up) or low (down)."
+      "describes": "Moves this target's line up (plus) or down (minus) from the shape, by up to half the range; 0 = on the shape."
     },
     {
-      "id": "wobble.off3",
+      "id": "wobble.offset3",
       "label": "Custom LFO target 3 offset",
       "type": "float",
       "min": -1,
@@ -7922,7 +7922,7 @@
       "curve": "linear",
       "unit": "",
       "group": "wobble",
-      "describes": "Where this target's swing sits: up = above where it is set, centre = around it, down = below it. On Filter and Volume: the swing high in their range (up) or low (down)."
+      "describes": "Moves this target's line up (plus) or down (minus) from the shape, by up to half the range; 0 = on the shape."
     },
     {
       "id": "wobble.oneshot",

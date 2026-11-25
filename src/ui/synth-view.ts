@@ -755,8 +755,8 @@ const LFO_TARGET_NAME: Record<string, string> = {
 /** The custom LFO's three targets and their signed depths (owner's call). */
 const WOB_DESTS = ['wobble.dest', 'wobble.dest2', 'wobble.dest3'];
 const WOB_AMTS = ['wobble.amt1', 'wobble.amt2', 'wobble.amt3'];
-const WOB_OFFS = ['wobble.off1', 'wobble.off2', 'wobble.off3'];
-const WOB_TARGET_IDS = [...WOB_DESTS, ...WOB_AMTS];
+const WOB_OFFS = ['wobble.offset1', 'wobble.offset2', 'wobble.offset3'];
+const WOB_TARGET_IDS = [...WOB_DESTS, ...WOB_AMTS, ...WOB_OFFS];
 const RUIN_SLOT_IDS = [1, 2, 3, 4, 5, 6, 7, 8].map((k) => `grind.slot${k}`);
 /** Beats in a note value like 1/4, 1/8D or 1/16T. */
 function syncBeats(v: string): number {
@@ -2578,7 +2578,7 @@ export class SynthView {
 
   /** The custom LFO is doing something: switched on with at least one target at a depth. */
   private wobActive(): boolean {
-    return !!this.get('wobble.on') && [0, 1, 2].some((t) => this.get(WOB_DESTS[t]) !== 'none' && this.num(WOB_AMTS[t]) !== 0);
+    return !!this.get('wobble.on') && [0, 1, 2].some((t) => this.get(WOB_DESTS[t]) !== 'none' && (this.num(WOB_AMTS[t]) !== 0 || this.num(WOB_OFFS[t]) !== 0));
   }
 
   /** The RUIN boxes (1-8) that hold a drive. */
@@ -2872,10 +2872,7 @@ export class SynthView {
       const d = x + ph;
       return x >= 1 ? ph : d - Math.floor(d);
     };
-    let hover = -1, drag = -1, curve: number[] = [], heard: number[] = [], litLine: number[] = [];
-    // the TARGET row lit (the one under the pointer, or the last one it was on)
-    let lit = -1;
-    const litRows: HTMLElement[] = [];
+    let hover = -1, drag = -1, curve: number[] = [], heard: number[] = [];
     // selected points (a box dragged over empty space picks them; dragging one of them moves them all)
     let sel = new Set<number>();
     let box: { x0: number; y0: number; x1: number; y1: number } | null = null;
@@ -2894,56 +2891,27 @@ export class SynthView {
       }
       const shape = String(this.get('wobble.shape'));
       const full = this.wobCurve(shape, N);
-      // The main line is the shape itself (the points sit on it); each target's own line runs faint around a dotted
-      // SET line (where the target is set), its Depth and Offset as heard, and the row under the pointer is lit
-      // and named (owner's pick, option 4)
+      // The main line is the shape itself (the points sit on it); each target's own line runs faint with it, as it
+      // moves the target (owner's call): depth 100% = on the shape, 0 = flat, -100% = upside down, offset = up / down
       curve = full;
-      const rows = [0, 1, 2].map((t) => ({ t, dest: String(this.get(WOB_DESTS[t])), a: this.num(WOB_AMTS[t]), low: (1 - this.num(WOB_OFFS[t])) / 2 })).filter((r) => r.dest !== 'none' && r.a !== 0);
-      // what is heard, for the level bar under the tab: the deepest target, a VOLUME target dipping from the top
-      const d = rows.reduce((m, r) => Math.max(m, Math.abs(r.a)), 0), vol = rows.some((r) => r.dest === 'amp');
-      heard = full.map((v) => (vol ? 1 - d * (1 - v) : 0.5 + d * (v - 0.5)));
-      if (!rows.some((r) => r.t === lit)) lit = rows.length ? rows[0].t : -1;
-      litRows.forEach((el, i) => el.classList.toggle('lit', i === lit && on()));
-      litLine = [];
+      const rows = [0, 1, 2].map((t) => ({ dest: String(this.get(WOB_DESTS[t])), a: this.num(WOB_AMTS[t]), o: this.num(WOB_OFFS[t]) })).filter((r) => r.dest !== 'none' && (r.a !== 0 || r.o !== 0));
+      const lines = rows.map((r) => full.map((v) => Math.max(0, Math.min(1, 0.5 + r.a * (v - 0.5) + r.o / 2))));
+      // what is heard, for the level bar under the tab: the first target's line
+      heard = lines[0] ?? full;
       const drawTargets = () => {
-      if (rows.length && on()) {
-        g.save();
-        g.setLineDash([2, 4]);
-        g.strokeStyle = 'rgba(255,255,255,0.28)';
-        g.lineWidth = 1;
-        g.beginPath();
-        g.moveTo(PAD, Y(0.5));
-        g.lineTo(W - PAD, Y(0.5));
-        g.stroke();
-        g.restore();
+        if (!on()) return;
         const acc = accentOf(cv);
-        const tl = (r: (typeof rows)[number]) => full.map((v) => 0.5 + 0.5 * r.a * (v - r.low));
-        const stroke = (ys: number[], col: string, lw: number, glow: number, alpha: number) => {
+        for (const ys of lines) {
           g.save();
-          g.globalAlpha = alpha;
-          g.strokeStyle = col;
-          g.lineWidth = lw;
+          g.globalAlpha = 0.55;
+          g.strokeStyle = acc;
+          g.lineWidth = 1;
           g.lineJoin = 'round';
-          if (glow) { g.shadowColor = col; g.shadowBlur = glow; }
           g.beginPath();
           ys.forEach((v, i) => (i ? g.lineTo(X(i / N), Y(v)) : g.moveTo(X(i / N), Y(v))));
           g.stroke();
           g.restore();
-        };
-        for (const r of rows) if (r.t !== lit) stroke(tl(r), acc, 1, 0, 0.55);
-        const r = rows.find((q) => q.t === lit);
-        if (r) {
-          litLine = tl(r);
-          stroke(litLine, '#c3c6ff', 2, 8, 1);
-          g.save();
-          g.font = `8px ${getComputedStyle(cv).fontFamily}`;
-          g.letterSpacing = '2px';
-          g.fillStyle = '#c3c6ff';
-          g.textAlign = 'right';
-          g.fillText((LFO_TARGET_NAME[r.dest] ?? r.dest).toUpperCase(), W - PAD - 4, Math.max(PAD + 10, Y(litLine[N]) - 8));
-          g.restore();
         }
-      }
       };
       const line: [number, number][] = curve.map((v, i) => [X(i / N), Y(v)]);
       if (on()) fillUnder(g, line, H - PAD, accentOf(cv), 0.12, 0.02);
@@ -3020,17 +2988,6 @@ export class SynthView {
       og.arc(x, y, 5, 0, 2 * Math.PI);
       og.fill();
       og.restore();
-      // and where the lit target is
-      if (litLine.length) {
-        og.save();
-        og.shadowColor = '#c3c6ff';
-        og.shadowBlur = 8;
-        og.fillStyle = '#ffffff';
-        og.beginPath();
-        og.arc(x, Y(litLine[Math.min(N, Math.round(p * N))]), 3, 0, 2 * Math.PI);
-        og.fill();
-        og.restore();
-      }
     };
     this.wobDraws.push(drawDot);
 
@@ -3290,19 +3247,17 @@ export class SynthView {
       }
       sel.onchange = () => {
         this.set(dId, sel.value);
-        if (this.num(aId) === 0) this.set(aId, 0.5);
+        if (this.num(aId) === 0 && this.num(WOB_OFFS[t]) === 0) this.set(aId, 1);
         this.set('wobble.on', true);
       };
       // Depth and Offset (owner's pick, knobs only): small dials, their values on hover like every dial
       const depthK = this.knob(aId, 'Depth', 'tiny', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%` });
-      const offK = this.knob(WOB_OFFS[t], 'Offset', 'tiny', { fmt: (v) => (v > 0.005 ? `↑ ${Math.round(v * 100)}` : v < -0.005 ? `↓ ${Math.round(-v * 100)}` : '↕ 0') });
+      const offK = this.knob(WOB_OFFS[t], 'Offset', 'tiny', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%` });
       const x = h('button', 'lfo5-x', '×');
       x.title = 'Remove this target';
       x.onclick = () => { this.set(dId, 'none'); this.set(aId, 0); this.set(WOB_OFFS[t], 0); };
       const row = h('div', 'lfo5-row', h('div', 'sel lfo5-target-sel', sel), h('div', 'lfo5-dials', depthK, offK), x);
       rowEls.push(row);
-      litRows[t] = row;
-      row.addEventListener('pointerenter', () => { if (lit !== t) { lit = t; redraw(); } });
       rowsBox.append(row);
       this.watch([dId, ...RUIN_SLOT_IDS], () => {
         this.driveGroup(sel);
@@ -3319,7 +3274,8 @@ export class SynthView {
       if (t < 0) return;
       const pick = ['lfo_filter', 'amp', 'osc_pitch', 'osc12_shape'].find((o) => !used.includes(o)) ?? 'lfo_filter';
       this.set(WOB_DESTS[t], pick);
-      this.set(WOB_AMTS[t], 0.5);
+      this.set(WOB_AMTS[t], 1);
+      this.set(WOB_OFFS[t], 0);
       this.set('wobble.on', true);
     };
     this.watch(WOB_DESTS, () => {

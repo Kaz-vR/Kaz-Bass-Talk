@@ -322,13 +322,19 @@ function migrateWobTargets(src: Record<string, unknown>): Record<string, unknown
 }
 
 /**
- * Each custom LFO target got an Offset (owner's call); before it every swing sat on top (above the target, high in
- * its own filter's and gate's range), which is Offset +1, so older patches keep their sound.
+ * Each custom LFO target follows its own line now (owner's call): y = 0.5 + depth x (v - 0.5) + offset / 2. Before it
+ * a target swung from where its Offset (`wobble.off1-3`, +1 when missing) put it: a matrix target by (v - (1 - o) / 2) x
+ * depth, its own filter and gate closing by depth x (1 - v) + (1 - o) / 2 x (1 - depth). The same sound in the new
+ * terms: on a matrix target offset = depth x o, on the filter and gate offset = o x (1 - |depth|).
  */
 function migrateWobOffsets(src: Record<string, unknown>): Record<string, unknown> {
-  if (!('wobble.amt1' in src) || 'wobble.off1' in src) return src;
+  if (!('wobble.amt1' in src) || 'wobble.offset1' in src) return src;
   const out = { ...src };
-  for (const n of [1, 2, 3]) out[`wobble.off${n}`] = Number(src[`wobble.amt${n}`]) ? 1 : 0;
+  for (const n of [1, 2, 3]) {
+    const a = Number(src[`wobble.amt${n}`]) || 0, o = `wobble.off${n}` in src ? Number(src[`wobble.off${n}`]) || 0 : 1;
+    const own = src[n === 1 ? 'wobble.dest' : `wobble.dest${n}`] === 'lfo_filter' || src[n === 1 ? 'wobble.dest' : `wobble.dest${n}`] === 'amp';
+    out[`wobble.offset${n}`] = a === 0 ? 0 : own ? o * (1 - Math.abs(a)) : a * o;
+  }
   return out;
 }
 

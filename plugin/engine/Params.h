@@ -226,7 +226,7 @@ struct ParamIndex {
     wobDest = ix("wobble.dest"); wobOneShot = ix("wobble.oneshot");
     wobDepth = ix("wobble.depth"); wobRate = ix("wobble.rate");
     wobDests[0] = ix("wobble.dest"); wobDests[1] = ix("wobble.dest2"); wobDests[2] = ix("wobble.dest3");
-    wobAmts[0] = ix("wobble.amt1"); wobAmts[1] = ix("wobble.amt2"); wobAmts[2] = ix("wobble.amt3"); wobOffs[0] = ix("wobble.off1"); wobOffs[1] = ix("wobble.off2"); wobOffs[2] = ix("wobble.off3"); wobFree = ix("wobble.free"); wobHz = ix("wobble.hz"); wobCutoff = ix("wobble.cutoff"); wobVolume = ix("wobble.volume");
+    wobAmts[0] = ix("wobble.amt1"); wobAmts[1] = ix("wobble.amt2"); wobAmts[2] = ix("wobble.amt3"); wobOffs[0] = ix("wobble.offset1"); wobOffs[1] = ix("wobble.offset2"); wobOffs[2] = ix("wobble.offset3"); wobFree = ix("wobble.free"); wobHz = ix("wobble.hz"); wobCutoff = ix("wobble.cutoff"); wobVolume = ix("wobble.volume");
     wobShape = ix("wobble.shape"); wobLife = ix("wobble.life"); wobPts = ix("wobble.points"); wobPhase = ix("wobble.phase");
     wobSmooth = ix("wobble.smooth"); wobLowcut = ix("wobble.lowcut");
     for (int i = 0; i < 32; i++) {
