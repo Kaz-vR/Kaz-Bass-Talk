@@ -2872,7 +2872,10 @@ export class SynthView {
       const d = x + ph;
       return x >= 1 ? ph : d - Math.floor(d);
     };
-    let hover = -1, drag = -1, curve: number[] = [];
+    let hover = -1, drag = -1, curve: number[] = [], heard: number[] = [], litLine: number[] = [];
+    // the TARGET row lit (the one under the pointer, or the last one it was on)
+    let lit = -1;
+    const litRows: HTMLElement[] = [];
     // selected points (a box dragged over empty space picks them; dragging one of them moves them all)
     let sel = new Set<number>();
     let box: { x0: number; y0: number; x1: number; y1: number } | null = null;
@@ -2891,25 +2894,61 @@ export class SynthView {
       }
       const shape = String(this.get('wobble.shape'));
       const full = this.wobCurve(shape, N);
-      // Depth scales the swing as heard: the volume gate dips from the top, the cutoff swings
-      // around the middle. The full-depth shape stays as a faint guide (the points sit on it).
-      // (the deepest target sets the swing; a VOLUME target dips from the top)
-      const rows = [0, 1, 2].map((t) => ({ dest: String(this.get(WOB_DESTS[t])), a: this.num(WOB_AMTS[t]) })).filter((r) => r.dest !== 'none' && r.a !== 0);
+      // The main line is the shape itself (the points sit on it); each target's own line runs faint around a dotted
+      // SET line (where the target is set), its Depth and Offset as heard, and the row under the pointer is lit
+      // and named (owner's pick, option 4)
+      curve = full;
+      const rows = [0, 1, 2].map((t) => ({ t, dest: String(this.get(WOB_DESTS[t])), a: this.num(WOB_AMTS[t]), low: (1 - this.num(WOB_OFFS[t])) / 2 })).filter((r) => r.dest !== 'none' && r.a !== 0);
+      // what is heard, for the level bar under the tab: the deepest target, a VOLUME target dipping from the top
       const d = rows.reduce((m, r) => Math.max(m, Math.abs(r.a)), 0), vol = rows.some((r) => r.dest === 'amp');
-      curve = full.map((v) => (vol ? 1 - d * (1 - v) : 0.5 + d * (v - 0.5)));
-      if (d < 0.999) {
+      heard = full.map((v) => (vol ? 1 - d * (1 - v) : 0.5 + d * (v - 0.5)));
+      if (!rows.some((r) => r.t === lit)) lit = rows.length ? rows[0].t : -1;
+      litRows.forEach((el, i) => el.classList.toggle('lit', i === lit && on()));
+      litLine = [];
+      const drawTargets = () => {
+      if (rows.length && on()) {
         g.save();
-        g.setLineDash([3, 4]);
-        g.strokeStyle = 'rgba(220,226,232,0.22)';
+        g.setLineDash([2, 4]);
+        g.strokeStyle = 'rgba(255,255,255,0.28)';
         g.lineWidth = 1;
         g.beginPath();
-        full.forEach((v, i) => (i ? g.lineTo(X(i / N), Y(v)) : g.moveTo(X(i / N), Y(v))));
+        g.moveTo(PAD, Y(0.5));
+        g.lineTo(W - PAD, Y(0.5));
         g.stroke();
         g.restore();
+        const acc = accentOf(cv);
+        const tl = (r: (typeof rows)[number]) => full.map((v) => 0.5 + 0.5 * r.a * (v - r.low));
+        const stroke = (ys: number[], col: string, lw: number, glow: number, alpha: number) => {
+          g.save();
+          g.globalAlpha = alpha;
+          g.strokeStyle = col;
+          g.lineWidth = lw;
+          g.lineJoin = 'round';
+          if (glow) { g.shadowColor = col; g.shadowBlur = glow; }
+          g.beginPath();
+          ys.forEach((v, i) => (i ? g.lineTo(X(i / N), Y(v)) : g.moveTo(X(i / N), Y(v))));
+          g.stroke();
+          g.restore();
+        };
+        for (const r of rows) if (r.t !== lit) stroke(tl(r), acc, 1, 0, 0.55);
+        const r = rows.find((q) => q.t === lit);
+        if (r) {
+          litLine = tl(r);
+          stroke(litLine, '#c3c6ff', 2, 8, 1);
+          g.save();
+          g.font = `8px ${getComputedStyle(cv).fontFamily}`;
+          g.letterSpacing = '2px';
+          g.fillStyle = '#c3c6ff';
+          g.textAlign = 'right';
+          g.fillText((LFO_TARGET_NAME[r.dest] ?? r.dest).toUpperCase(), W - PAD - 4, Math.max(PAD + 10, Y(litLine[N]) - 8));
+          g.restore();
+        }
       }
+      };
       const line: [number, number][] = curve.map((v, i) => [X(i / N), Y(v)]);
       if (on()) fillUnder(g, line, H - PAD, accentOf(cv), 0.12, 0.02);
       silver(g, line, on());
+      drawTargets();
       // the low cut, as on every print (lit while Volume is on: the gate only works above it)
       loCutStrip(g, W, H, this.num('wobble.lowcut'), on(), accentOf(cv));
       // the points: a filled dot sits on the line (hard), a ring pulls the line (soft)
@@ -2966,7 +3005,7 @@ export class SynthView {
       og.clearRect(0, 0, W, H);
       const p = this.liveWob;
       // what the Wobbler does right now (0..1), for the level bar under its tab (on every page)
-      this.wobNow = p !== null && on() && curve.length ? curve[Math.min(N, Math.round(p * N))] : null;
+      this.wobNow = p !== null && on() && heard.length ? heard[Math.min(N, Math.round(p * N))] : null;
       this.wobOn = on();
       for (const f of this.wobLevelViews) f();
       if (p === null || !on() || ov.offsetParent === null || !curve.length) return;
@@ -2981,6 +3020,17 @@ export class SynthView {
       og.arc(x, y, 5, 0, 2 * Math.PI);
       og.fill();
       og.restore();
+      // and where the lit target is
+      if (litLine.length) {
+        og.save();
+        og.shadowColor = '#c3c6ff';
+        og.shadowBlur = 8;
+        og.fillStyle = '#ffffff';
+        og.beginPath();
+        og.arc(x, Y(litLine[Math.min(N, Math.round(p * N))]), 3, 0, 2 * Math.PI);
+        og.fill();
+        og.restore();
+      }
     };
     this.wobDraws.push(drawDot);
 
@@ -3251,6 +3301,8 @@ export class SynthView {
       x.onclick = () => { this.set(dId, 'none'); this.set(aId, 0); this.set(WOB_OFFS[t], 0); };
       const row = h('div', 'lfo5-row', h('div', 'sel lfo5-target-sel', sel), h('div', 'lfo5-dials', depthK, offK), x);
       rowEls.push(row);
+      litRows[t] = row;
+      row.addEventListener('pointerenter', () => { if (lit !== t) { lit = t; redraw(); } });
       rowsBox.append(row);
       this.watch([dId, ...RUIN_SLOT_IDS], () => {
         this.driveGroup(sel);

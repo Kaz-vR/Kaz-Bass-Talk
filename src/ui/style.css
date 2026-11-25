@@ -1819,6 +1819,7 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 .v2 .lfo5-row { display: flex; align-items: center; gap: 8px; }
 .v2 .lfo5-row .lfo5-target-sel { width: 104px; flex: none; margin: 0; }
 .v2 .lfo5-row .lfo5-target-sel select { width: 100%; font-size: 10px !important; }
+.v2 .lfo5-row.lit { background: rgba(95,100,200,0.12); }
 .v2 .lfo5-dials { flex: 1; display: flex; justify-content: center; gap: 22px; }
 .v2 .lfo5-dials .k .k-label { display: none; }
 .v2 .lfo5-dials .k { position: relative; }
