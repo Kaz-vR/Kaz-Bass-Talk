@@ -740,7 +740,6 @@ const LFO_TARGETS: [string, string[]][] = [
   ['VOLUME', ['amp', 'osc12_level', 'osc1_level', 'osc2_level', 'sub_level', 'texture_level']],
   ['FILTER', ['lfo_filter', 'lfo_filter_ab', 'lfo_filter_a', 'lfo_filter_b', 'lfo_filter_sub', 'lfo_filter_noise', 'filter_resonance']],
   ['PITCH', ['pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'sub_pitch']],
-  ['SHAPE', ['osc12_shape', 'osc1_pw', 'osc2_pw']],
 ];
 /** LFO targets as the title row names them (owner's list). */
 const LFO_TARGET_NAME: Record<string, string> = {
@@ -2641,18 +2640,28 @@ export class SynthView {
   }
 
   /**
-   * The CUSTOM column of a target menu (owner's call), before DRIVE: "CUSTOM" starts connecting by clicking, and a
-   * target picked that way that no other column lists shows under it.
+   * A target picked with the crosshair that no column lists (owner's call: no CUSTOM column): kept as an option
+   * outside the columns, so the menu shows its name without listing it.
    */
-  private customGroup(sel: HTMLSelectElement, current: string): void {
-    sel.querySelector('optgroup.og-custom')?.remove();
-    const og = document.createElement('optgroup');
-    og.label = 'CUSTOM';
-    og.className = 'og-custom';
-    og.append(new Option('CUSTOM', '__custom'));
-    const listed = [...sel.querySelectorAll('option')].some((o) => o.value === current);
-    if (!listed) og.append(new Option(LFO_TARGET_NAME[current] ?? current.replace(/_/g, ' ').toUpperCase(), current));
-    sel.insertBefore(og, sel.querySelector('optgroup.og-drive'));
+  private customOption(sel: HTMLSelectElement, current: string): void {
+    sel.querySelector('option.opt-custom')?.remove();
+    if ([...sel.querySelectorAll('option')].some((o) => o.value === current)) return;
+    const o = new Option(LFO_TARGET_NAME[current] ?? current.replace(/_/g, ' ').toUpperCase(), current);
+    o.className = 'opt-custom';
+    sel.append(o);
+  }
+
+  /** The crosshair beside a target menu (owner's pick): click it, then click a blinking dial to connect it. */
+  private learnButton(start: (btn: HTMLElement) => void): HTMLElement {
+    const b = h('button', 'learn-btn');
+    b.innerHTML = '<svg viewBox="0 0 14 14" width="12" height="12" aria-hidden="true"><circle cx="7" cy="7" r="4.2" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M7 0.5v3M7 10.5v3M0.5 7h3M10.5 7h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="7" r="1" fill="currentColor"/></svg>';
+    b.title = 'Connect: click, then click any blinking dial (on any page) for this LFO to move it. Escape stops.';
+    b.onclick = (e) => {
+      e.stopPropagation();
+      if (b.classList.contains('on')) this.learnEnd?.();
+      else start(b);
+    };
+    return b;
   }
 
   private learnEnd: (() => void) | null = null;
@@ -2661,8 +2670,9 @@ export class SynthView {
    * CUSTOM (owner's call): every dial an LFO can move blinks (on every page); clicking one connects it, clicking
    * anything else or Escape stops. Switching tabs keeps it going.
    */
-  private startLearn(apply: (dest: string) => void, exclude = ''): void {
+  private startLearn(apply: (dest: string) => void, exclude = '', btn?: HTMLElement): void {
     this.learnEnd?.();
+    btn?.classList.add('on');
     const marked = [...this.page.querySelectorAll<HTMLElement>('.k[data-param]')].filter((el) => {
       const d = this.learnDest(el.dataset.param!);
       return d !== null && d !== exclude;
@@ -2671,7 +2681,7 @@ export class SynthView {
     this.page.classList.add('mod-learning');
     const down = (e: PointerEvent) => {
       const t = e.target as Element;
-      if (t.closest('.tab')) return;
+      if (t.closest('.tab') || (btn && btn.contains(t))) return;
       const k = t.closest('.learnable') as HTMLElement | null;
       e.preventDefault();
       e.stopPropagation();
@@ -2684,6 +2694,7 @@ export class SynthView {
       document.removeEventListener('keydown', key);
       for (const el of marked) el.classList.remove('learnable');
       this.page.classList.remove('mod-learning');
+      btn?.classList.remove('on');
       this.learnEnd = null;
     };
     // (after the click that picked CUSTOM has finished)
@@ -2732,19 +2743,12 @@ export class SynthView {
       for (const o of os) og.append(new Option(LFO_TARGET_NAME[o] ?? o, o));
       tsel.append(og);
     }
-    tsel.onchange = () => {
-      if (tsel.value === '__custom') {
-        tsel.value = String(this.get(`${slot}.dest`));
-        this.startLearn((d) => { own(); this.set(`${slot}.dest`, d); }, `${L}_rate`);
-        return;
-      }
-      own();
-      this.set(`${slot}.dest`, tsel.value);
-    };
+    tsel.onchange = () => { own(); this.set(`${slot}.dest`, tsel.value); };
+    const learn = this.learnButton((b) => this.startLearn((d) => { own(); this.set(`${slot}.dest`, d); }, `${L}_rate`, b));
     this.watch([`${slot}.dest`, ...RUIN_SLOT_IDS], () => {
       this.driveGroup(tsel);
       this.dropGoneDrive(`${slot}.dest`);
-      this.customGroup(tsel, String(this.get(`${slot}.dest`)));
+      this.customOption(tsel, String(this.get(`${slot}.dest`)));
       tsel.value = String(this.get(`${slot}.dest`));
     });
     const target = h('div', 'sel lfo-target-sel', h('span', 'lfo-target-arrow', '→'), tsel);
@@ -2788,7 +2792,7 @@ export class SynthView {
     });
     return this.obox(`LFO ${n}`, `mb box-lfo${n}`, {
       power: (el) => this.boolPower(`${L}.on`, el),
-      head: [shapeSel, target],
+      head: [shapeSel, target, learn],
       print: this.lfoPrint(n, MB_PRINT_W, MB_PRINT_H),
       // HZ / SYNC sits just left of the rate it switches, RETRIG under it
       // the third dial fits the shape (owner's call): PHASE on the repeating shapes, BEND on DROP and
@@ -3349,26 +3353,20 @@ export class SynthView {
         if (d !== 'none' && this.num(aId) === 0 && this.num(WOB_OFFS[t]) === 0) this.set(aId, 1);
         this.set(`${WP}.on`, true);
       };
-      sel.onchange = () => {
-        if (sel.value === '__custom') {
-          sel.value = String(this.get(dId));
-          this.startLearn(pick);
-          return;
-        }
-        pick(sel.value);
-      };
+      sel.onchange = () => pick(sel.value);
+      const learn = this.learnButton((b) => this.startLearn(pick, '', b));
       // Depth and Offset (owner's pick, knobs only): small dials, their values on hover like every dial
       const depthK = this.knob(aId, 'Depth', 'tiny', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%` });
       const offK = this.knob(WOB_OFFS[t], 'Offset', 'tiny', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%` });
       // the four rows are always there (owner's call), a row on NONE moves nothing
-      const row = h('div', 'lfo5-row', h('div', 'sel lfo5-target-sel', sel), h('div', 'lfo5-dials', depthK, offK));
+      const row = h('div', 'lfo5-row', h('div', 'sel lfo5-target-sel', sel), learn, h('div', 'lfo5-dials', depthK, offK));
       rowEls.push(row);
       rowsBox.append(row);
       this.watch([dId, ...RUIN_SLOT_IDS], () => {
         this.driveGroup(sel);
         this.dropGoneDrive(dId);
         const dest = String(this.get(dId));
-        this.customGroup(sel, dest);
+        this.customOption(sel, dest);
         sel.value = dest;
       });
     }

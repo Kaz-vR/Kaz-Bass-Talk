@@ -1849,3 +1849,8 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 @keyframes learn-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
 .v2 .k.learnable { animation: learn-blink 0.9s ease-in-out infinite; cursor: crosshair; }
 .v2 .lfo5-row .lfo5-dials { margin-right: 0; }
+.v2 .learn-btn { flex: none; width: 18px; height: 18px; padding: 0; display: grid; place-items: center; background: none; border: 0;
+  color: #5d5e66; cursor: pointer; }
+.v2 .learn-btn:hover { color: #d9dadd; }
+.v2 .learn-btn.on { color: #f0f0f2; filter: drop-shadow(0 0 4px var(--c-blue)); animation: learn-blink 0.9s ease-in-out infinite; }
+.v2 .mod-page2 .ob-head > .learn-btn { margin-left: -2px; }
