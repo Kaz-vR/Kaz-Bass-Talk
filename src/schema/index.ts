@@ -302,13 +302,33 @@ function migrateReverb(src: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
+ * The custom LFO's one target, Depth and the cutoff / volume lamps became up to three targets with their own signed
+ * depth (owner's call): its own filter (FILTER), its own gate (VOLUME) and the old target, each at the old Depth.
+ */
+function migrateWobTargets(src: Record<string, unknown>): Record<string, unknown> {
+  if ('wobble.amt1' in src || !('wobble.depth' in src)) return src;
+  // (switched off, as on every shipped preset: empty)
+  const depth = src['wobble.on'] === true ? Number(src['wobble.depth']) || 0 : 0;
+  const rows: string[] = [];
+  if (depth > 0 && src['wobble.cutoff'] === true) rows.push('lfo_filter');
+  if (depth > 0 && src['wobble.volume'] === true) rows.push('amp');
+  if (depth > 0 && typeof src['wobble.dest'] === 'string' && src['wobble.dest'] !== 'none') rows.push(src['wobble.dest'] as string);
+  const out = { ...src };
+  ['wobble.dest', 'wobble.dest2', 'wobble.dest3'].forEach((id, t) => {
+    out[id] = rows[t] ?? 'none';
+    out[`wobble.amt${t + 1}`] = rows[t] ? depth : 0;
+  });
+  return out;
+}
+
+/**
  * Validate any patch-like object against the schema. Missing params get
  * defaults; out-of-range values are clamped; unknown keys are dropped.
  * Always returns a complete, safe patch plus a list of what was fixed.
  */
 export function validatePatch(input: unknown): ValidationResult {
   const issues: ValidationIssue[] = [];
-  const src = migrateMatrix(migrateEq(migrateGrindSlots(migrateGrindWidth(migrateGrind(migrateTexture(migrateAttackCurve(migrateReverb(migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>))))))))));
+  const src = migrateWobTargets(migrateMatrix(migrateEq(migrateGrindSlots(migrateGrindWidth(migrateGrind(migrateTexture(migrateAttackCurve(migrateReverb(migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>)))))))))));
   const rawMeta = src.meta && typeof src.meta === 'object' ? (src.meta as PatchMeta) : undefined;
   const meta: PatchMeta = { ...(rawMeta ?? {}), name: typeof rawMeta?.name === 'string' ? rawMeta.name : 'Untitled' };
   if (!rawMeta) issues.push({ param: 'meta', message: 'missing meta' });

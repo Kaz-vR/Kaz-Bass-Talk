@@ -748,7 +748,15 @@ const LFO_TARGET_NAME: Record<string, string> = {
   filter_cutoff: 'FILTER', filter_resonance: 'RESONANCE',
   pitch: 'PITCH', osc_pitch: 'A+B PITCH', osc1_pitch: 'A PITCH', osc2_pitch: 'B PITCH', sub_pitch: 'SUB PITCH',
   osc12_shape: 'A+B SHAPE', osc1_pw: 'A SHAPE', osc2_pw: 'B SHAPE',
+  ruin_drives: 'ALL RUIN DRIVES', dist_drive: 'FX DRIVE',
+  ...Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8].map((k) => [`ruin_drive${k}`, `RUIN DRIVE ${k}`])),
 };
+/** The RUIN boxes' slot parameters (which box holds a drive decides the DRIVE targets). */
+/** The custom LFO's three targets and their signed depths (owner's call). */
+const WOB_DESTS = ['wobble.dest', 'wobble.dest2', 'wobble.dest3'];
+const WOB_AMTS = ['wobble.amt1', 'wobble.amt2', 'wobble.amt3'];
+const WOB_TARGET_IDS = [...WOB_DESTS, ...WOB_AMTS];
+const RUIN_SLOT_IDS = [1, 2, 3, 4, 5, 6, 7, 8].map((k) => `grind.slot${k}`);
 /** Beats in a note value like 1/4, 1/8D or 1/16T. */
 function syncBeats(v: string): number {
   const m = /^(\d+)\/(\d+)([DT]?)$/.exec(v);
@@ -2567,6 +2575,39 @@ export class SynthView {
     return cv;
   }
 
+  /** The custom LFO is doing something: switched on with at least one target at a depth. */
+  private wobActive(): boolean {
+    return !!this.get('wobble.on') && [0, 1, 2].some((t) => this.get(WOB_DESTS[t]) !== 'none' && this.num(WOB_AMTS[t]) !== 0);
+  }
+
+  /** The RUIN boxes (1-8) that hold a drive. */
+  private ruinDriveBoxes(): number[] {
+    return [1, 2, 3, 4, 5, 6, 7, 8].filter((k) => String(this.get(`grind.slot${k}`)).startsWith('drive'));
+  }
+
+  /**
+   * A target menu's DRIVE group (owner's call), rebuilt as RUIN's boxes change: ALL RUIN DRIVES and RUIN DRIVE n for
+   * the boxes that hold a drive (none when there are none), FX DRIVE always, at the bottom.
+   */
+  private driveGroup(sel: HTMLSelectElement): void {
+    sel.querySelector('optgroup.og-drive')?.remove();
+    const og = document.createElement('optgroup');
+    og.label = 'DRIVE';
+    og.className = 'og-drive';
+    const boxes = this.ruinDriveBoxes();
+    if (boxes.length) og.append(new Option('ALL RUIN DRIVES', 'ruin_drives'));
+    for (const k of boxes) og.append(new Option(`RUIN DRIVE ${k}`, `ruin_drive${k}`));
+    og.append(new Option('FX DRIVE', 'dist_drive'));
+    sel.append(og);
+  }
+
+  /** A target aimed at a RUIN drive that is gone (its box emptied or changed) goes to none: nothing hidden moves the sound. */
+  private dropGoneDrive(id: string): void {
+    const v = String(this.get(id)), boxes = this.ruinDriveBoxes();
+    const gone = v === 'ruin_drives' ? boxes.length === 0 : v.startsWith('ruin_drive') ? !boxes.includes(Number(v.slice(10))) : false;
+    if (gone) this.set(id, 'none');
+  }
+
   private lfoBox(n: number): HTMLElement {
     const L = `lfo${n}`, id = `${L}.sync`;
     const sync = this.textSwitch(['HZ', 'SYNC'], () => this.get(id) === 'free', (free) => {
@@ -2606,7 +2647,11 @@ export class SynthView {
       tsel.append(og);
     }
     tsel.onchange = () => { own(); this.set(`${slot}.dest`, tsel.value); };
-    this.watch([`${slot}.dest`], () => { tsel.value = String(this.get(`${slot}.dest`)); });
+    this.watch([`${slot}.dest`, ...RUIN_SLOT_IDS], () => {
+      this.driveGroup(tsel);
+      this.dropGoneDrive(`${slot}.dest`);
+      tsel.value = String(this.get(`${slot}.dest`));
+    });
     const target = h('div', 'sel lfo-target-sel', h('span', 'lfo-target-arrow', '→'), tsel);
     target.title = 'What this LFO moves';
     // on a pitch target Depth reads in cents / semitones (100 % = ±2 octaves), elsewhere in %
@@ -2812,9 +2857,9 @@ export class SynthView {
    * palette under it, and one SETTINGS column on the right.
    */
   private buildLfoPage(): HTMLElement {
-    const ids = ['wobble.on', 'wobble.depth', 'wobble.rate', 'wobble.shape', 'wobble.phase', 'wobble.smooth', 'wobble.lowcut', 'wobble.cutoff', 'wobble.volume', 'wobble.points'];
+    const ids = ['wobble.on', ...WOB_TARGET_IDS, 'wobble.rate', 'wobble.free', 'wobble.hz', 'wobble.shape', 'wobble.phase', 'wobble.smooth', 'wobble.lowcut', 'wobble.points'];
     for (let i = 1; i <= WOB_MAX_POINTS; i++) ids.push(`wobble.x${i}`, `wobble.y${i}`, `wobble.s${i}`);
-    const on = () => !!this.get('wobble.on') && this.num('wobble.depth') > 0;
+    const on = () => this.wobActive();
     const W = 870, H = 236, PAD = 14, GX = 16, GY = 8;
     const [cv, g] = canvas(W, H, 'disp');
     const [ov, og] = canvas(W, H, 'lfo5-overlay');
@@ -2847,7 +2892,9 @@ export class SynthView {
       const full = this.wobCurve(shape, N);
       // Depth scales the swing as heard: the volume gate dips from the top, the cutoff swings
       // around the middle. The full-depth shape stays as a faint guide (the points sit on it).
-      const d = this.num('wobble.depth'), vol = !!this.get('wobble.volume');
+      // (the deepest target sets the swing; a VOLUME target dips from the top)
+      const rows = [0, 1, 2].map((t) => ({ dest: String(this.get(WOB_DESTS[t])), a: this.num(WOB_AMTS[t]) })).filter((r) => r.dest !== 'none' && r.a !== 0);
+      const d = rows.reduce((m, r) => Math.max(m, Math.abs(r.a)), 0), vol = rows.some((r) => r.dest === 'amp');
       curve = full.map((v) => (vol ? 1 - d * (1 - v) : 0.5 + d * (v - 0.5)));
       if (d < 0.999) {
         g.save();
@@ -3174,48 +3221,85 @@ export class SynthView {
       b.title = getParam(id)!.describes;
       return b;
     };
-    // the custom LFO's target (owner's call): NONE or the LFO page's targets, as LFO 1-4 (wobble.dest, with Amount)
-    const wtSel = h('select', 'sel-name') as HTMLSelectElement;
-    wtSel.append(new Option('— NONE —', 'none'));
-    for (const [title, os] of LFO_TARGETS) {
-      const og = document.createElement('optgroup');
-      og.label = title;
-      // (its FILTER is its own filter, the classic wobble; the per-source filters are LFO 1-4's)
-      for (const o of os) if (!o.startsWith('lfo_filter_')) og.append(new Option(LFO_TARGET_NAME[o] ?? o, o));
-      wtSel.append(og);
+    // its targets (owner's pick, option 1): up to three rows, each a target menu, a centre bar for its depth (left =
+    // minus, right = plus; drag it, double-click = 0), the value and ×; + ADD TARGET under them. FILTER and VOLUME are
+    // its own filter and gate (the classic wobble, Lo cut keeping the low end out); the rest move as LFO 1-4 move them
+    const rowsBox = h('div', 'lfo5-rows');
+    const addBtn = h('button', 'lfo5-add', '+ ADD TARGET');
+    const rowEls: HTMLElement[] = [];
+    for (let t = 0; t < 3; t++) {
+      const dId = WOB_DESTS[t], aId = WOB_AMTS[t];
+      const sel = h('select', 'sel-name') as HTMLSelectElement;
+      for (const [title, os] of LFO_TARGETS) {
+        const og = document.createElement('optgroup');
+        og.label = title;
+        // (its FILTER is its own filter; the per-source filters are LFO 1-4's)
+        for (const o of os) if (!o.startsWith('lfo_filter_')) og.append(new Option(LFO_TARGET_NAME[o] ?? o, o));
+        sel.append(og);
+      }
+      sel.onchange = () => {
+        this.set(dId, sel.value);
+        if (this.num(aId) === 0) this.set(aId, 0.5);
+        this.set('wobble.on', true);
+      };
+      const fill = h('i', '');
+      const bar = h('span', 'lfo5-bar', fill);
+      bar.title = 'Depth: drag sideways (left = minus, the other way round), double-click = 0';
+      const setFrom = (e: PointerEvent) => {
+        const r = bar.getBoundingClientRect();
+        let v = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1));
+        if (Math.abs(v) < 0.03) v = 0;
+        this.set(aId, Math.round(v * 100) / 100);
+      };
+      bar.addEventListener('pointerdown', (e) => { bar.setPointerCapture(e.pointerId); setFrom(e); });
+      bar.addEventListener('pointermove', (e) => { if (bar.hasPointerCapture(e.pointerId)) setFrom(e); });
+      bar.addEventListener('pointerup', (e) => bar.releasePointerCapture(e.pointerId));
+      bar.ondblclick = () => this.set(aId, 0);
+      const val = h('span', 'lfo5-val');
+      const x = h('button', 'lfo5-x', '×');
+      x.title = 'Remove this target';
+      x.onclick = () => { this.set(dId, 'none'); this.set(aId, 0); };
+      const row = h('div', 'lfo5-row', h('div', 'sel lfo5-target-sel', sel), bar, val, x);
+      rowEls.push(row);
+      rowsBox.append(row);
+      this.watch([dId, aId, ...RUIN_SLOT_IDS], () => {
+        this.driveGroup(sel);
+        this.dropGoneDrive(dId);
+        const dest = String(this.get(dId)), a = this.num(aId);
+        sel.value = dest;
+        row.style.display = dest === 'none' ? 'none' : '';
+        fill.style.cssText = a >= 0 ? `left:50%;width:${a * 50}%` : `right:50%;width:${-a * 50}%`;
+        val.textContent = `${a > 0 ? '+' : ''}${Math.round(a * 100)}%`;
+        val.classList.toggle('neg', a < 0);
+      });
     }
-    // FILTER and VOLUME are its own filter and gate (the classic wobble, Lo cut keeping the low end out); the rest
-    // move their target as LFO 1-4 do, Depth deep
-    wtSel.onchange = () => {
-      const v = wtSel.value;
-      if (v === 'none') { this.set('wobble.on', false); return; }
-      if (this.num('wobble.depth') <= 0) this.set('wobble.depth', 1);
-      this.set('wobble.cutoff', v === 'lfo_filter');
-      this.set('wobble.volume', v === 'amp');
-      this.set('wobble.dest', v === 'lfo_filter' || v === 'amp' ? 'none' : v);
+    rowsBox.append(addBtn);
+    addBtn.onclick = () => {
+      const used = WOB_DESTS.map((id) => String(this.get(id)));
+      const t = used.indexOf('none');
+      if (t < 0) return;
+      const pick = ['lfo_filter', 'amp', 'osc_pitch', 'osc12_shape'].find((o) => !used.includes(o)) ?? 'lfo_filter';
+      this.set(WOB_DESTS[t], pick);
+      this.set(WOB_AMTS[t], 0.5);
       this.set('wobble.on', true);
     };
-    const wobTargetNow = () => (!on() ? 'none' : this.get('wobble.cutoff') ? 'lfo_filter' : this.get('wobble.volume') ? 'amp' : String(this.get('wobble.dest')));
-    this.watch(['wobble.on', 'wobble.depth', 'wobble.dest', 'wobble.cutoff', 'wobble.volume'], () => { wtSel.value = wobTargetNow(); });
-    const wobTarget = h('div', 'sel lfo5-target-sel', wtSel);
-    wobTarget.title = 'What the custom LFO moves';
+    this.watch(WOB_DESTS, () => { addBtn.style.display = WOB_DESTS.some((id) => this.get(id) === 'none') ? '' : 'none'; });
+    const ownFG = () => WOB_DESTS.some((id) => this.get(id) === 'lfo_filter' || this.get(id) === 'amp');
     const pct = (v: number) => `${Math.round(v * 100)}%`;
     const settings = h('div', 'c ob box-wob lfo5-settings',
       h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'TARGET')),
-      // the target (owner's call, a menu instead of the switch and lamps): none, cutoff, volume or both
-      h('div', 'lfo5-sec lfo5-switch', wobTarget),
+      h('div', 'lfo5-sec lfo5-switch', rowsBox),
       h('div', 'lfo5-sec lfo5-knobs',
-        this.knob('wobble.depth', 'Depth', 'lg', { fmt: pct }),
         this.knob('wobble.smooth', 'Smooth', 'lg', { fmt: pct }),
         // Lo cut only works with its own filter and gate (FILTER, VOLUME)
-        this.knob('wobble.lowcut', 'Lo cut', 'lg', { fmt: (v) => (v <= 21 ? 'off' : v >= 1000 ? `${(v / 1000).toFixed(1)} kHz` : `${Math.round(v)} Hz`), disabled: () => !this.get('wobble.cutoff') && !this.get('wobble.volume'), deps: ['wobble.cutoff', 'wobble.volume'] })),
+        this.knob('wobble.lowcut', 'Lo cut', 'lg', { fmt: (v) => (v <= 21 ? 'off' : v >= 1000 ? `${(v / 1000).toFixed(1)} kHz` : `${Math.round(v)} Hz`), disabled: () => !ownFG(), deps: WOB_DESTS })),
       // ONE SHOT (owner's call): the shape runs once from every note and holds its end
       h('div', 'lfo5-sec lfo5-oneshot', this.toggle('wobble.oneshot', 'ONE SHOT', 'small')),
       h('div', 'lfo5-sec lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, sNext));
     void lampFor;
 
     // off (switched off, or Depth at 0): the settings go dark like any other box's, the switch stays lit
-    this.watch(['wobble.on', 'wobble.depth'], () => {
+    this.watch(['wobble.on', ...WOB_TARGET_IDS], () => {
       settings.classList.toggle('is-off', !on());
       big.classList.toggle('is-off', !on());
     });
@@ -5502,8 +5586,8 @@ export class SynthView {
           fill.style.width = `${Math.round((this.wobNow ?? 0) * 100)}%`;
         };
         this.wobLevelViews.push(view);
-        this.watch(['wobble.on', 'wobble.depth'], () => {
-          this.wobOn = !!this.get('wobble.on') && this.num('wobble.depth') > 0;
+        this.watch(['wobble.on', ...WOB_TARGET_IDS], () => {
+          this.wobOn = this.wobActive();
           view();
         });
       }

@@ -1814,3 +1814,19 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 .v2 .lfo5-oneshot { flex: 0.5; }
 .v2 .lfo-third { display: contents; }
 .v2 .lfo-blank { width: 48px; }
+
+/* the custom LFO's target rows (owner's pick, option 1) */
+.v2 .lfo5-rows { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.v2 .lfo5-row { display: flex; align-items: center; gap: 8px; }
+.v2 .lfo5-row .lfo5-target-sel { width: 104px; flex: none; margin: 0; }
+.v2 .lfo5-row .lfo5-target-sel select { width: 100%; font-size: 10px !important; }
+.v2 .lfo5-bar { position: relative; flex: 1; height: 14px; cursor: ew-resize; }
+.v2 .lfo5-bar::before { content: ''; position: absolute; left: 0; right: 0; top: 5px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.07); }
+.v2 .lfo5-bar::after { content: ''; position: absolute; left: 50%; top: 2px; bottom: 2px; width: 1px; background: rgba(255,255,255,0.25); }
+.v2 .lfo5-bar i { position: absolute; top: 5px; height: 4px; border-radius: 2px; background: var(--c-blue); box-shadow: 0 0 6px var(--c-blue); }
+.v2 .lfo5-val { width: 38px; text-align: right; font-size: 11px; letter-spacing: 0.06em; color: var(--c-blue); }
+.v2 .lfo5-val.neg { color: #b8b9c4; }
+.v2 .lfo5-x { width: 14px; background: none; border: 0; color: #55565c; font-size: 13px; cursor: pointer; padding: 0; }
+.v2 .lfo5-x:hover { color: #d9dadd; }
+.v2 .lfo5-add { height: 22px; border: 1px dashed rgba(255,255,255,0.16); border-radius: 3px; background: none; color: #7c7d85; font-size: 9.5px; letter-spacing: 0.2em; cursor: pointer; }
+.v2 .lfo5-add:hover { color: #d9dadd; border-color: rgba(255,255,255,0.3); }

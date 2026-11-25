@@ -49,3 +49,12 @@ never click on a volume or filter target. LFO routes to the OSC page's cutoff we
 (`tools/convert-lfo-filters.ts`). Both engines.
 
 The custom LFO's HZ mode (`wobble.free`, `wobble.hz`): its cycle is `tempo / 60 / hz` beats, so everything else (one shot, shift, random steps) runs as in SYNC. Both engines.
+
+### RUIN drive targets and the custom LFO's targets (owner's call, 25 Nov)
+
+`ruin_drives` (53) moves every RUIN drive, `ruin_drive1`..`8` (54-61) the drive in that RUIN box; each relative to its
+own Drive (`drive x (1 + value)`, clamped 0-1), its gain glided (`gainT`, LV_SMOOTH) so it never steps; the bus hands
+the newest voice's matrix to `Grind.control`. FX DRIVE is `dist_drive` (added to its Drive). The custom LFO has three
+targets (`wobble.dest`, `dest2`, `dest3`) with signed depths (`wobble.amt1-3`, -1..1): FILTER (`lfo_filter`) = its own
+filter, VOLUME (`amp`) = its own gate (minus = the shape upside down), the rest `v x amt` into every voice's matrix.
+`wobble.depth`, `wobble.cutoff`, `wobble.volume` are unused now (old patches migrate in `migrateWobTargets`).
