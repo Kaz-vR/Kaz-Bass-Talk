@@ -400,7 +400,8 @@ export const SRC_ORDER = ['mod_env', 'amp_env', 'lfo1', 'lfo2', 'lfo3', 'lfo4', 
 export const DEST_ORDER = ['pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'sub_pitch', 'noise_pitch', 'vibrato_depth', 'osc12_shape', 'osc1_pw', 'osc2_pw',
   'unison_detune', 'osc1_detune', 'osc2_detune', 'amp', 'osc1_level', 'osc2_level', 'sub_level', 'texture_level', 'drive', 'filter_cutoff', 'filter_resonance', 'filter_vowel',
   'dist_drive', 'dist_mix', 'dist_tone', 'osc12_level',
-  'lfo_filter', 'lfo_filter_ab', 'lfo_filter_a', 'lfo_filter_b', 'lfo_filter_sub', 'lfo_filter_noise'];
+  'lfo_filter', 'lfo_filter_ab', 'lfo_filter_a', 'lfo_filter_b', 'lfo_filter_sub', 'lfo_filter_noise',
+  'ruin_drives', 'ruin_drive1', 'ruin_drive2', 'ruin_drive3', 'ruin_drive4', 'ruin_drive5', 'ruin_drive6', 'ruin_drive7', 'ruin_drive8'];
 /**
  * The destinations the mod matrix offers (owner's call, the LORN essentials). The engine keeps the others
  * internally (the mod wheel's moves use them), but no matrix row reaches them.

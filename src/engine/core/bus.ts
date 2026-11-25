@@ -75,7 +75,7 @@ export class DirtBus {
     const on = cur[P.grindOn] > 0.5;
     if (on && !this.grindOn) this.grind.reset();
     this.grindOn = on;
-    if (on) this.grind.control(cur, beatPos, bps, keyOct, fs, fsOs, n * OS, rng);
+    if (on) this.grind.control(cur, dst, beatPos, bps, keyOct, fs, fsOs, n * OS, rng);
 
     // DRIVE (the FX page's box): RUIN's drive, pushed hot, with its Output.
     const dDrive = clamp(cur[P.dDrive] + dst[K.D_DIST_DRIVE], 0, 1);

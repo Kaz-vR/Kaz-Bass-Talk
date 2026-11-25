@@ -595,7 +595,7 @@ class Synth {
     if (off(P.distOn)) { zero({P.dMix}); block({D_DIST_MIX, D_DIST_DRIVE, D_DIST_TONE}); }
     if (off(P.crushOn)) { zero({P.crushMix}); block({D_CRUSH}); }
     if (off(P.tapeOn)) { zero({P.tapeWow}); block({D_TAPE_WOW}); }
-    if (off(P.wobOn)) zero({P.wobDepth});
+    if (off(P.wobOn)) zero({P.wobDepth, P.wobAmts[0], P.wobAmts[1], P.wobAmts[2]});
     if (off(P.vibOn)) { zero({P.vibDepth}); block({D_VIBRATO}); }
     // the matrix's master switch is PATCH LFO'S (rows 1-5); RUIN'S LFO (6-10) has only its rows' own lamps
     for (int i = 0; i < SLOT_COUNT; i++)
@@ -740,7 +740,8 @@ class Synth {
     auto& x = xdst;
     x.fill(0);
     // the mod wheel plays only VIBRATO now (owner's call): its moves are gone
-    const double depth = cur[P.wobDepth];
+    double depth = 0;  // up to three targets, each with its own signed depth
+    for (int t = 0; t < 3; t++) depth = std::fmax(depth, std::fabs(cur[P.wobAmts[t]]));
     liveWob = -1;
     wobGateTarget = 1;
     wobFiltWas = wobFiltOn;
@@ -795,13 +796,20 @@ class Synth {
       }
       wobV += (tgt - wobV) * 0.35;
       const double v = wobV;
-      const int dest = (int)jsRound(cur[P.wobDest]);
-      if (dest > 0 && dest < DEST_COUNT) x[(size_t)dest] += v * std::fmin(1.0, depth * wobScale);
-      if (cur[P.wobCutoff] > 0.5) {
+      double fD = 0, fV = v, gD = 0, gV = v;
+      for (int t = 0; t < 3; t++) {
+        const int dest = (int)jsRound(cur[P.wobDests[t]]);
+        const double a = cur[P.wobAmts[t]];
+        if (dest <= 0 || dest >= DEST_COUNT || a == 0) continue;
+        if (dest == D_LF_ALL) { if (std::fabs(a) > fD) { fD = std::fabs(a); fV = a < 0 ? 1 - v : v; } }
+        else if (dest == D_AMP) { if (std::fabs(a) > gD) { gD = std::fabs(a); gV = a < 0 ? 1 - v : v; } }
+        else x[(size_t)dest] += v * a * wobScale;
+      }
+      if (fD > 0) {
         const double lc = cur[P.wobLowcut];
         const double lo = lc > 21 ? lc : 60, hi = std::fmin(18000, sampleRate * 0.45);
-        const double d = std::fmin(1, depth * wobScale);
-        const double fc = std::fmax(20, std::fmin(hi, hi * std::pow(lo / hi, d * (1 - v)) * std::pow(2.0, 6 * wobBright)));
+        const double d = std::fmin(1, fD * wobScale);
+        const double fc = std::fmax(20, std::fmin(hi, hi * std::pow(lo / hi, d * (1 - fV)) * std::pow(2.0, 6 * wobBright)));
         const double gT = std::tan((PI * fc) / sampleRate);
         if (!wobFiltWas) {
           wobG = gT;
@@ -812,7 +820,7 @@ class Synth {
         wobK = 1.3 - 0.75 * d;
         liveWobFc = fc;
       }
-      if (cur[P.wobVolume] > 0.5) wobGateTarget = 1 - std::fmin(1, depth * wobScale) * (1 - v);
+      if (gD > 0) wobGateTarget = 1 - std::fmin(1, gD * wobScale) * (1 - gV);
     }
   }
 

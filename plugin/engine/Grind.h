@@ -214,7 +214,7 @@ struct GrindStage {
   double fcNow = -1, resNow = 0;
   double g = 0.05, gStep = 0, k = 1, peak = 0, delay = 100, delayStep = 0, fb = 0;
   bool driveOn = false, filterOn = true;
-  double gain = 1, inEnv = 0, outEnv = 0, mix = 1;
+  double gain = 1, gainT = 1, inEnv = 0, outEnv = 0, mix = 1;
   Svf svf[2];
   // BELLS: per bell its filter (per channel), stepped coefficient, 1/Q, gain - 1; bells 2-4's own wander; positions
   Svf bSvf[2 * GRIND_BELLS * 4];
@@ -609,7 +609,7 @@ class Grind {
     for (auto& f : split) f.reset();
   }
 
-  void control(const double* cur, double beatPos, double bps, double keyOct, double fs, double fsOs, int n, Rng& rng) {
+  void control(const double* cur, const double* dst, double beatPos, double bps, double keyOct, double fs, double fsOs, int n, Rng& rng) {
     const auto& P = PI_();
     const double dt = n / fsOs;
     dcR = 1 - (TWO_PI * 10) / fsOs;
@@ -834,7 +834,11 @@ class Grind {
       s.driveOn = drive > 0.001 && cur[gp.driveOn] > 0.5;
       s.filterOn = cur[gp.filterOn] > 0.5;
       s.mix = cur[gp.mix];
-      s.gain = grindGain(drive);
+      {  // the LFO page's RUIN drive targets, relative to the Drive
+        double m = dst[D_RUIN_DRIVES];
+        for (int k = 0; k < GRIND_SLOTS; k++) if (slots[k] == 1 + GRIND_STAGES + i) m += dst[D_RUIN_DRIVE1 + k];
+        s.gainT = grindGain(std::fmax(0.0, std::fmin(1.0, drive * (1 + m))));
+      }
       {
         s.setBand(cur[gp.dFreq], cur[gp.dWidth], fs, fsOs);
         const double tone = cur[gp.dTone];
@@ -913,6 +917,7 @@ class Grind {
         L = iL + s.depth * (s.filter(iL, 0, s.g, pos) - iL);
         R = iR + s.depth * (s.filter(iR, 1, s.g, pos) - iR);
       } else {
+        s.gain += (s.gainT - s.gain) * 0.002;
         const double bl = s.split(L, 0), br = s.split(R, 1);
         double dl = s.shape(bl, 0, 1), dr = s.shape(br, 1, 1);
         if (s.toneK < 1) {

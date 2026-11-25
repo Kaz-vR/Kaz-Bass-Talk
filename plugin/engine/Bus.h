@@ -41,7 +41,7 @@ class DirtBus {
     const bool on = cur[P.grindOn] > 0.5;
     if (on && !grindOn) grind.reset();
     grindOn = on;
-    if (on) grind.control(cur, beatPos, bps, keyOct, fs, fsOs, n * OS, rng);
+    if (on) grind.control(cur, dst, beatPos, bps, keyOct, fs, fsOs, n * OS, rng);
 
     const double dDrive = clampd(cur[P.dDrive] + dst[D_DIST_DRIVE], 0, 1);
     distMix = clampd(cur[P.dMix] + dst[D_DIST_MIX], 0, 1);

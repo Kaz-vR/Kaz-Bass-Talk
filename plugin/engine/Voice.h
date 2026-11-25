@@ -302,7 +302,7 @@ class Voice {
         const double va = vibAmt[si];
         const double a = va >= 0 ? (isPitchDest(d) ? va * 0.5 / 24 : va) : cur[slot.amt];
         dst[d] += a * src[si];
-        if (d >= D_LF_ALL) span[d - D_LF_ALL] += std::fabs(a) * srcMax[si];
+        if (d >= D_LF_ALL && d <= D_LF_NOISE) span[d - D_LF_ALL] += std::fabs(a) * srcMax[si];
       }
     }
     {  // the LFO filters: open at the top of their swing, LF_OCTAVES lower at the bottom

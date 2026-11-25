@@ -107,10 +107,12 @@ constexpr int D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_
               D_SUB_PITCH = 40, D_LFO5_RATE = 41, D_LFO6_RATE = 42,
               D_SHAPE = 43, D_OSC1_DETUNE = 44, D_OSC2_DETUNE = 45, D_OSC12_LEVEL = 46,
               // the LFO page's own filters (whole, A+B, A, B, Sub, Noise), apart from the OSC page's filter
-              D_LF_ALL = 47, D_LF_AB = 48, D_LF_A = 49, D_LF_B = 50, D_LF_SUB = 51, D_LF_NOISE = 52;
+              D_LF_ALL = 47, D_LF_AB = 48, D_LF_A = 49, D_LF_B = 50, D_LF_SUB = 51, D_LF_NOISE = 52,
+              // RUIN's drives: all at once, or the drive in box 1-8 (54-61), relative to its own Drive
+              D_RUIN_DRIVES = 53, D_RUIN_DRIVE1 = 54;
 constexpr double LF_OPEN_HZ = 20000, LF_OCTAVES = 8;
 inline bool isPitchDest(int d) { return d == D_PITCH || d == D_OSC1_PITCH || d == D_OSC2_PITCH || d == D_OSC_PITCH || d == D_SUB_PITCH; }
-constexpr int DEST_COUNT = 53;
+constexpr int DEST_COUNT = 62;
 constexpr double TEXTURE_GAIN = 0.5;
 /** Sound layers for solo / mute (Synth::setMonitor bit positions). */
 constexpr int MON_OSC1 = 0, MON_OSC2 = 1, MON_SUB = 2, MON_NOISE = 3, MON_BREATH = 4, MON_TEXTURE = 5;
@@ -171,7 +173,7 @@ struct ParamIndex {
   int driveOn, filterOn, distOn, crushOn, tapeOn, vibOn, lfoOn[6], modOn, eqOn, chorusOn, flangerOn,
       phaserOn, delayOn, reverbOn;
   int wheelMove, wheelPreset;
-  int wobDest, wobOneShot, wobOn, wobDepth, wobRate, wobFree, wobHz, wobCutoff, wobVolume, wobShape, wobLife, wobPts, wobPhase, wobSmooth, wobLowcut, wobX[32], wobY[32], wobS[32];
+  int wobDests[3], wobAmts[3], wobDest, wobOneShot, wobOn, wobDepth, wobRate, wobFree, wobHz, wobCutoff, wobVolume, wobShape, wobLife, wobPts, wobPhase, wobSmooth, wobLowcut, wobX[32], wobY[32], wobS[32];
   int flangerMix, flangerRate, flangerFb, delayMix, delayTime, delayFb, delayTone;
   int reverbType, reverbDecay, reverbPre, reverbOct, eqHighcut;
   int amp[4], mod[4], vibDepth, vibRate, vibDelay, vibFade;
@@ -222,7 +224,9 @@ struct ParamIndex {
     wheelMove = ix("wheel.move"); wheelPreset = ix("wheel.preset");
     wobOn = ix("wobble.on");
     wobDest = ix("wobble.dest"); wobOneShot = ix("wobble.oneshot");
-    wobDepth = ix("wobble.depth"); wobRate = ix("wobble.rate"); wobFree = ix("wobble.free"); wobHz = ix("wobble.hz"); wobCutoff = ix("wobble.cutoff"); wobVolume = ix("wobble.volume");
+    wobDepth = ix("wobble.depth"); wobRate = ix("wobble.rate");
+    wobDests[0] = ix("wobble.dest"); wobDests[1] = ix("wobble.dest2"); wobDests[2] = ix("wobble.dest3");
+    wobAmts[0] = ix("wobble.amt1"); wobAmts[1] = ix("wobble.amt2"); wobAmts[2] = ix("wobble.amt3"); wobFree = ix("wobble.free"); wobHz = ix("wobble.hz"); wobCutoff = ix("wobble.cutoff"); wobVolume = ix("wobble.volume");
     wobShape = ix("wobble.shape"); wobLife = ix("wobble.life"); wobPts = ix("wobble.points"); wobPhase = ix("wobble.phase");
     wobSmooth = ix("wobble.smooth"); wobLowcut = ix("wobble.lowcut");
     for (int i = 0; i < 32; i++) {

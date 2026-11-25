@@ -480,7 +480,7 @@ export class Voice {
         // a VIBRATO source routes with its own Depth: ±50 cents at most on a pitch target, else 0-100 % like an LFO
         const a = va >= 0 ? (K.isPitchDest(d) ? (va * 0.5) / 24 : va) : cur[slot.amt];
         dst[d] += a * src[si];
-        if (d >= K.D_LF_ALL) span[d - K.D_LF_ALL] += Math.abs(a) * this.srcMax[si];
+        if (d >= K.D_LF_ALL && d <= K.D_LF_NOISE) span[d - K.D_LF_ALL] += Math.abs(a) * this.srcMax[si];
       }
     }
     // The LFO filters: open at the top of their swing, LF_OCTAVES lower at the bottom (closed by how far the

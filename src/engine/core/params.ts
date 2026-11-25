@@ -123,8 +123,13 @@ export const D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_O
    * The LFO page's own filters (owner's call): low-passes of their own, apart from the OSC page's filter and its
    * A / B / S / N lamps: the whole sound (sub and noise included, after everything), A + B, A, B, Sub, Noise.
    */
-  D_LF_ALL = 47, D_LF_AB = 48, D_LF_A = 49, D_LF_B = 50, D_LF_SUB = 51, D_LF_NOISE = 52;
-export const DEST_COUNT = 53;
+  D_LF_ALL = 47, D_LF_AB = 48, D_LF_A = 49, D_LF_B = 50, D_LF_SUB = 51, D_LF_NOISE = 52,
+  /**
+   * RUIN's drives (owner's call): all of them at once, or the drive in RUIN box 1-8; each moves relative to its own
+   * Drive (drive x (1 + value)), so a chain's balance holds.
+   */
+  D_RUIN_DRIVES = 53, D_RUIN_DRIVE1 = 54;
+export const DEST_COUNT = 62;
 /** The LFO filters' open frequency and how many octaves a full swing closes them. */
 export const LF_OPEN_HZ = 20000, LF_OCTAVES = 8;
 export const TEXTURE_GAIN = 0.5;
@@ -224,7 +229,7 @@ export const P = {
   phaserOn: ix('phaser.on'), delayOn: ix('delay.on'), reverbOn: ix('reverb.on'),
   wheelMove: ix('wheel.move'), wheelPreset: ix('wheel.preset'),
   wobOn: ix('wobble.on'),
-  wobDepth: ix('wobble.depth'), wobRate: ix('wobble.rate'), wobFree: ix('wobble.free'), wobHz: ix('wobble.hz'), wobCutoff: ix('wobble.cutoff'), wobVolume: ix('wobble.volume'), wobShape: ix('wobble.shape'), wobLife: ix('wobble.life'), wobPts: ix('wobble.points'), wobPhase: ix('wobble.phase'), wobSmooth: ix('wobble.smooth'), wobLowcut: ix('wobble.lowcut'), wobDest: ix('wobble.dest'), wobOneShot: ix('wobble.oneshot'),
+  wobDepth: ix('wobble.depth'), wobRate: ix('wobble.rate'), wobFree: ix('wobble.free'), wobHz: ix('wobble.hz'), wobCutoff: ix('wobble.cutoff'), wobVolume: ix('wobble.volume'), wobShape: ix('wobble.shape'), wobLife: ix('wobble.life'), wobPts: ix('wobble.points'), wobPhase: ix('wobble.phase'), wobSmooth: ix('wobble.smooth'), wobLowcut: ix('wobble.lowcut'), wobDest: ix('wobble.dest'), wobDests: [ix('wobble.dest'), ix('wobble.dest2'), ix('wobble.dest3')], wobAmts: [ix('wobble.amt1'), ix('wobble.amt2'), ix('wobble.amt3')], wobOneShot: ix('wobble.oneshot'),
   wobX: Array.from({ length: 32 }, (_, i) => ix(`wobble.x${i + 1}`)), wobY: Array.from({ length: 32 }, (_, i) => ix(`wobble.y${i + 1}`)), wobS: Array.from({ length: 32 }, (_, i) => ix(`wobble.s${i + 1}`)),
   flangerMix: ix('flanger.mix'), flangerRate: ix('flanger.rate'), flangerFb: ix('flanger.feedback'),
   delayMix: ix('delay.mix'), delayTime: ix('delay.time'), delayFb: ix('delay.feedback'), delayTone: ix('delay.tone'),

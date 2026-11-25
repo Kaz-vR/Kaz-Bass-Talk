@@ -266,6 +266,8 @@ class Stage {
   // drive
   driveOn = false;
   gain = 1;
+  /** The drive's gain to glide to (it moves with an LFO, so it never steps). */
+  gainT = 1;
   /** Level matching: followers of what goes into the drive and what comes out, so more drive is dirtier, not louder, at any input level. */
   inEnv = 0;
   outEnv = 0;
@@ -716,7 +718,7 @@ export class Grind {
    * `bps` the tempo in beats per second, `keyOct` the note in octaves from C3 (for KEY), `n` the samples
    * until the next update.
    */
-  control(cur: Float64Array, beatPos: number, bps: number, keyOct: number, fs: number, fsOs: number, n: number, rng: Rng): void {
+  control(cur: Float64Array, dst: Float64Array, beatPos: number, bps: number, keyOct: number, fs: number, fsOs: number, n: number, rng: Rng): void {
     const dt = n / fsOs;
     this.dcR = 1 - (TWO_PI * 10) / fsOs;
     this.mix = cur[P.grindMix];
@@ -943,7 +945,10 @@ export class Grind {
       s.driveOn = drive > 0.001 && cur[gp.driveOn] > 0.5;
       s.filterOn = cur[gp.filterOn] > 0.5;
       s.mix = cur[gp.mix];
-      s.gain = grindGain(drive);
+      // the LFO page's RUIN drive targets: all drives, or the drive in this stage's box, relative to its Drive
+      let dm = dst[K.D_RUIN_DRIVES];
+      for (let k = 0; k < GRIND_SLOTS; k++) if (this.slots[k] === 1 + GRIND_STAGES + i) dm += dst[K.D_RUIN_DRIVE1 + k];
+      s.gainT = grindGain(Math.max(0, Math.min(1, drive * (1 + dm))));
       // the band in front of the drive (Overdrive's X-Y): centre and width in octaves; 9 octaves = the whole sound
       s.setBand(cur[gp.dFreq], cur[gp.dWidth], fs, fsOs);
       const tone = cur[gp.dTone];
@@ -1043,6 +1048,7 @@ export class Grind {
             // Overdrive's chain: band → drive → tone, pushed hot (owner's call): nothing is level-matched, so a
             // hotter stage hits the next one harder; RUIN's Output sets the chain's level at the end
             // only the band is driven; below and above it pass untouched and are added back
+            s.gain += (s.gainT - s.gain) * LV_SMOOTH;
             const bl = s.split(l, 0), br = s.split(r, 1);
             let dl = s.shape(bl, 0, 1), dr = s.shape(br, 1, 1);
             if (s.toneK < 1) {
