@@ -736,6 +736,7 @@ function lfoIconPath(shape: string): string {
 }
 /** What LFO 1-4 can move (owner's call: the LFO page's targets, no matrix). */
 const LFO_TARGETS: [string, string[]][] = [
+  ['NONE', ['none']],
   ['VOLUME', ['amp', 'osc12_level', 'osc1_level', 'osc2_level', 'sub_level', 'texture_level']],
   ['FILTER', ['lfo_filter', 'lfo_filter_ab', 'lfo_filter_a', 'lfo_filter_b', 'lfo_filter_sub', 'lfo_filter_noise', 'filter_resonance']],
   ['PITCH', ['pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'sub_pitch']],
@@ -743,9 +744,14 @@ const LFO_TARGETS: [string, string[]][] = [
 ];
 /** LFO targets as the title row names them (owner's list). */
 const LFO_TARGET_NAME: Record<string, string> = {
+  none: 'NONE',
   amp: 'VOLUME', osc12_level: 'A+B VOLUME', osc1_level: 'A VOLUME', osc2_level: 'B VOLUME', sub_level: 'SUB VOLUME', texture_level: 'NOISE VOLUME',
   lfo_filter: 'FILTER', lfo_filter_ab: 'A+B FILTER', lfo_filter_a: 'A FILTER', lfo_filter_b: 'B FILTER', lfo_filter_sub: 'SUB FILTER', lfo_filter_noise: 'NOISE FILTER',
-  filter_cutoff: 'FILTER', filter_resonance: 'RESONANCE',
+  filter_cutoff: 'CUTOFF', filter_resonance: 'RESONANCE', drive: 'FILTER DRIVE',
+  osc1_detune: 'A DETUNE', osc2_detune: 'B DETUNE', unison_detune: 'A+B DETUNE',
+  dist_tone: 'FX DRIVE TONE', dist_mix: 'FX DRIVE MIX', crush_mix: 'CRUSH MIX', tape_wow: 'TAPE WOW', chorus_depth: 'CHORUS DEPTH',
+  phaser_mix: 'PHASER MIX', reverb_mix: 'REVERB MIX',
+  ...Object.fromEntries([1, 2, 3, 4, 5, 6].map((k) => [`lfo${k}_rate`, `LFO ${k} RATE`])),
   pitch: 'PITCH', osc_pitch: 'A+B PITCH', osc1_pitch: 'A PITCH', osc2_pitch: 'B PITCH', sub_pitch: 'SUB PITCH',
   osc12_shape: 'A+B SHAPE', osc1_pw: 'A SHAPE', osc2_pw: 'B SHAPE',
   ruin_drives: 'ALL RUIN DRIVES', dist_drive: 'FX DRIVE',
@@ -760,6 +766,16 @@ const wobAmts = (W: string) => [1, 2, 3, 4].map((k) => `${W}.amt${k}`);
 const wobOffs = (W: string) => [1, 2, 3, 4].map((k) => `${W}.offset${k}`);
 const wobTargetIds = (W: string) => [...wobDests(W), ...wobAmts(W), ...wobOffs(W), `${W}.master`];
 const RUIN_SLOT_IDS = [1, 2, 3, 4, 5, 6, 7, 8].map((k) => `grind.slot${k}`);
+/** CUSTOM targets (owner's call): the dials an LFO can be connected to by clicking them, and what each moves. */
+const LEARN_DEST: Record<string, string> = {
+  'osc1.level': 'osc1_level', 'osc2.level': 'osc2_level', 'sub.level': 'sub_level', 'texture.level': 'texture_level',
+  'osc1.unison_detune': 'osc1_detune', 'osc2.unison_detune': 'osc2_detune',
+  'osc1.pulse_width': 'osc1_pw', 'osc1.wt_pos': 'osc1_pw', 'osc2.pulse_width': 'osc2_pw', 'osc2.wt_pos': 'osc2_pw',
+  'filter.cutoff': 'filter_cutoff', 'filter.resonance': 'filter_resonance', 'drive.amount': 'drive',
+  'dist.drive': 'dist_drive', 'dist.post_tone': 'dist_tone', 'dist.mix': 'dist_mix', 'crush.mix': 'crush_mix', 'tape.wow': 'tape_wow',
+  'chorus.depth': 'chorus_depth', 'phaser.mix': 'phaser_mix', 'reverb.mix': 'reverb_mix',
+  'lfo1.rate': 'lfo1_rate', 'lfo2.rate': 'lfo2_rate', 'lfo3.rate': 'lfo3_rate', 'lfo4.rate': 'lfo4_rate',
+};
 /** Beats in a note value like 1/4, 1/8D or 1/16T. */
 function syncBeats(v: string): number {
   const m = /^(\d+)\/(\d+)([DT]?)$/.exec(v);
@@ -1291,6 +1307,7 @@ export class SynthView {
     const val = h('div', 'k-val');
     // The value stays hidden (the dial shows enough) and appears over the name on hover / drag.
     const el = h('div', `k k-${size}${opts.showValue ? '' : ' quiet'}`, cv, h('div', 'k-label', label), val);
+    el.dataset.param = id;
     el.title = `${p.label}: ${p.describes}`;
     const bipolar = (p.min ?? 0) < 0 && (p.max ?? 0) > 0;
     const fmt = (v: number) => (opts.fmt ? opts.fmt(v) : formatValue(p, v));
@@ -2612,6 +2629,71 @@ export class SynthView {
     if (gone) this.set(id, 'none');
   }
 
+  /** What a dial moves as an LFO target (CUSTOM), or null: the fixed list, and a RUIN drive by the box it sits in. */
+  private learnDest(param: string): string | null {
+    if (LEARN_DEST[param]) return LEARN_DEST[param];
+    const m = /^grind(\d)\.drive$/.exec(param);
+    if (m) {
+      const box = RUIN_SLOT_IDS.findIndex((id) => this.get(id) === `drive ${m[1]}`);
+      return box >= 0 ? `ruin_drive${box + 1}` : null;
+    }
+    return null;
+  }
+
+  /**
+   * The CUSTOM column of a target menu (owner's call), before DRIVE: "CUSTOM" starts connecting by clicking, and a
+   * target picked that way that no other column lists shows under it.
+   */
+  private customGroup(sel: HTMLSelectElement, current: string): void {
+    sel.querySelector('optgroup.og-custom')?.remove();
+    const og = document.createElement('optgroup');
+    og.label = 'CUSTOM';
+    og.className = 'og-custom';
+    og.append(new Option('CUSTOM', '__custom'));
+    const listed = [...sel.querySelectorAll('option')].some((o) => o.value === current);
+    if (!listed) og.append(new Option(LFO_TARGET_NAME[current] ?? current.replace(/_/g, ' ').toUpperCase(), current));
+    sel.insertBefore(og, sel.querySelector('optgroup.og-drive'));
+  }
+
+  private learnEnd: (() => void) | null = null;
+
+  /**
+   * CUSTOM (owner's call): every dial an LFO can move blinks (on every page); clicking one connects it, clicking
+   * anything else or Escape stops. Switching tabs keeps it going.
+   */
+  private startLearn(apply: (dest: string) => void, exclude = ''): void {
+    this.learnEnd?.();
+    const marked = [...this.page.querySelectorAll<HTMLElement>('.k[data-param]')].filter((el) => {
+      const d = this.learnDest(el.dataset.param!);
+      return d !== null && d !== exclude;
+    });
+    for (const el of marked) el.classList.add('learnable');
+    this.page.classList.add('mod-learning');
+    const down = (e: PointerEvent) => {
+      const t = e.target as Element;
+      if (t.closest('.tab')) return;
+      const k = t.closest('.learnable') as HTMLElement | null;
+      e.preventDefault();
+      e.stopPropagation();
+      if (k) apply(this.learnDest(k.dataset.param!)!);
+      end();
+    };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') end(); };
+    const end = () => {
+      document.removeEventListener('pointerdown', down, true);
+      document.removeEventListener('keydown', key);
+      for (const el of marked) el.classList.remove('learnable');
+      this.page.classList.remove('mod-learning');
+      this.learnEnd = null;
+    };
+    // (after the click that picked CUSTOM has finished)
+    setTimeout(() => {
+      document.addEventListener('pointerdown', down, true);
+      document.addEventListener('keydown', key);
+    }, 0);
+    this.learnEnd = end;
+  }
+
   private lfoBox(n: number): HTMLElement {
     const L = `lfo${n}`, id = `${L}.sync`;
     const sync = this.textSwitch(['HZ', 'SYNC'], () => this.get(id) === 'free', (free) => {
@@ -2650,10 +2732,19 @@ export class SynthView {
       for (const o of os) og.append(new Option(LFO_TARGET_NAME[o] ?? o, o));
       tsel.append(og);
     }
-    tsel.onchange = () => { own(); this.set(`${slot}.dest`, tsel.value); };
+    tsel.onchange = () => {
+      if (tsel.value === '__custom') {
+        tsel.value = String(this.get(`${slot}.dest`));
+        this.startLearn((d) => { own(); this.set(`${slot}.dest`, d); }, `${L}_rate`);
+        return;
+      }
+      own();
+      this.set(`${slot}.dest`, tsel.value);
+    };
     this.watch([`${slot}.dest`, ...RUIN_SLOT_IDS], () => {
       this.driveGroup(tsel);
       this.dropGoneDrive(`${slot}.dest`);
+      this.customGroup(tsel, String(this.get(`${slot}.dest`)));
       tsel.value = String(this.get(`${slot}.dest`));
     });
     const target = h('div', 'sel lfo-target-sel', h('span', 'lfo-target-arrow', '→'), tsel);
@@ -2869,7 +2960,8 @@ export class SynthView {
     const WOB_DESTS = wobDests(WP), WOB_AMTS = wobAmts(WP), WOB_OFFS = wobOffs(WP), WOB_TARGET_IDS = wobTargetIds(WP);
     const ids = [`${WP}.on`, ...WOB_TARGET_IDS, `${WP}.rate`, `${WP}.free`, `${WP}.hz`, `${WP}.shape`, `${WP}.phase`, `${WP}.smooth`, `${WP}.lowcut`, `${WP}.points`];
     for (let i = 1; i <= WOB_MAX_POINTS; i++) ids.push(`${WP}.x${i}`, `${WP}.y${i}`, `${WP}.s${i}`);
-    const on = () => this.wobActive(WP);
+    // (it always looks on, owner's call: targets on NONE simply move nothing)
+    const on = () => !!this.get(`${WP}.on`);
     const W = 870, H = 236, PAD = 14, GX = 16, GY = 8;
     const [cv, g] = canvas(W, H, 'disp');
     const [ov, og] = canvas(W, H, 'lfo5-overlay');
@@ -3241,7 +3333,6 @@ export class SynthView {
     // minus, right = plus; drag it, double-click = 0), the value and ×; + ADD TARGET under them. FILTER and VOLUME are
     // its own filter and gate (the classic wobble, Lo cut keeping the low end out); the rest move as LFO 1-4 move them
     const rowsBox = h('div', 'lfo5-rows', h('div', 'lfo5-heads', h('span', '', 'DEPTH'), h('span', '', 'OFFSET')));
-    const addBtn = h('button', 'lfo5-add', '+ ADD TARGET');
     const rowEls: HTMLElement[] = [];
     for (let t = 0; t < 4; t++) {
       const dId = WOB_DESTS[t], aId = WOB_AMTS[t];
@@ -3253,43 +3344,34 @@ export class SynthView {
         for (const o of os) if (!o.startsWith('lfo_filter_')) og.append(new Option(LFO_TARGET_NAME[o] ?? o, o));
         sel.append(og);
       }
-      sel.onchange = () => {
-        this.set(dId, sel.value);
-        if (this.num(aId) === 0 && this.num(WOB_OFFS[t]) === 0) this.set(aId, 1);
+      const pick = (d: string) => {
+        this.set(dId, d);
+        if (d !== 'none' && this.num(aId) === 0 && this.num(WOB_OFFS[t]) === 0) this.set(aId, 1);
         this.set(`${WP}.on`, true);
+      };
+      sel.onchange = () => {
+        if (sel.value === '__custom') {
+          sel.value = String(this.get(dId));
+          this.startLearn(pick);
+          return;
+        }
+        pick(sel.value);
       };
       // Depth and Offset (owner's pick, knobs only): small dials, their values on hover like every dial
       const depthK = this.knob(aId, 'Depth', 'tiny', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%` });
       const offK = this.knob(WOB_OFFS[t], 'Offset', 'tiny', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%` });
-      const x = h('button', 'lfo5-x', '×');
-      x.title = 'Remove this target';
-      x.onclick = () => { this.set(dId, 'none'); this.set(aId, 0); this.set(WOB_OFFS[t], 0); };
-      const row = h('div', 'lfo5-row', h('div', 'sel lfo5-target-sel', sel), h('div', 'lfo5-dials', depthK, offK), x);
+      // the four rows are always there (owner's call), a row on NONE moves nothing
+      const row = h('div', 'lfo5-row', h('div', 'sel lfo5-target-sel', sel), h('div', 'lfo5-dials', depthK, offK));
       rowEls.push(row);
       rowsBox.append(row);
       this.watch([dId, ...RUIN_SLOT_IDS], () => {
         this.driveGroup(sel);
         this.dropGoneDrive(dId);
         const dest = String(this.get(dId));
+        this.customGroup(sel, dest);
         sel.value = dest;
-        row.style.display = dest === 'none' ? 'none' : '';
       });
     }
-    rowsBox.append(addBtn);
-    addBtn.onclick = () => {
-      const used = WOB_DESTS.map((id) => String(this.get(id)));
-      const t = used.indexOf('none');
-      if (t < 0) return;
-      const pick = ['lfo_filter', 'amp', 'osc_pitch', 'osc12_shape', 'dist_drive'].find((o) => !used.includes(o)) ?? 'lfo_filter';
-      this.set(WOB_DESTS[t], pick);
-      this.set(WOB_AMTS[t], 1);
-      this.set(WOB_OFFS[t], 0);
-      this.set(`${WP}.on`, true);
-    };
-    this.watch(WOB_DESTS, () => {
-      addBtn.style.display = WOB_DESTS.some((id) => this.get(id) === 'none') ? '' : 'none';
-      (rowsBox.firstChild as HTMLElement).style.display = WOB_DESTS.some((id) => this.get(id) !== 'none') ? '' : 'none';
-    });
     const pct = (v: number) => `${Math.round(v * 100)}%`;
     // under the four targets (owner's layout): the master Depth and Smooth on the left, ONE SHOT over Shift on the right
     const settings = h('div', 'c ob box-wob lfo5-settings',

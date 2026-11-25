@@ -7477,7 +7477,7 @@
       "id": "wobble.on",
       "label": "Wobble on",
       "type": "bool",
-      "default": false,
+      "default": true,
       "group": "wobble",
       "describes": "Switches Wobble on or off without losing its settings. Off also saves CPU."
     },
@@ -9068,7 +9068,7 @@
       "id": "wobble2.on",
       "label": "Custom LFO 2: Wobble on",
       "type": "bool",
-      "default": false,
+      "default": true,
       "group": "wobble",
       "describes": "Switches Wobble on or off without losing its settings. Off also saves CPU."
     },
@@ -10619,7 +10619,7 @@
       "id": "wobble3.on",
       "label": "Custom LFO 3: Wobble on",
       "type": "bool",
-      "default": false,
+      "default": true,
       "group": "wobble",
       "describes": "Switches Wobble on or off without losing its settings. Off also saves CPU."
     },
@@ -12170,7 +12170,7 @@
       "id": "wobble4.on",
       "label": "Custom LFO 4: Wobble on",
       "type": "bool",
-      "default": false,
+      "default": true,
       "group": "wobble",
       "describes": "Switches Wobble on or off without losing its settings. Off also saves CPU."
     },

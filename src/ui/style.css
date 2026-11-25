@@ -1845,3 +1845,7 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 .v2 .lfo5-right .lfo5-shift { display: flex; align-items: center; gap: 8px; }
 .v2 .lfo5-settings.is-off .lfo5-bottom { opacity: 0.4; filter: grayscale(1); }
 .v2 .lfo-all > .wob-hidden { display: none !important; }
+/* CUSTOM targets (owner's call): every dial an LFO can be connected to blinks until one is clicked */
+@keyframes learn-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+.v2 .k.learnable { animation: learn-blink 0.9s ease-in-out infinite; cursor: crosshair; }
+.v2 .lfo5-row .lfo5-dials { margin-right: 0; }

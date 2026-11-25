@@ -416,7 +416,14 @@ const SWITCHED_SOURCES = ['lfo1', 'lfo2', 'lfo3', 'lfo4', 'lfo5', 'lfo6'];
  * uses). The sound is unchanged: an unused source does nothing. Run when a preset or roll loads.
  */
 export function switchOffUnused(patch: Patch): void {
+  // the four custom LFOs and LFO 1-4 always start on (owner's call): with their targets on None they look on and
+  // move nothing
+  for (const w of ['wobble', 'wobble2', 'wobble3', 'wobble4']) patch[`${w}.on`] = true;
   for (const src of SWITCHED_SOURCES) {
+    if (/^lfo[1-4]$/.test(src)) {
+      patch[`${src}.on`] = true;
+      continue;
+    }
     let used = false;
     for (let n = 1; n <= MOD_SLOT_COUNT && !used; n++) {
       used = patch[`mod${n}.source`] === src && patch[`mod${n}.dest`] !== 'none' && Number(patch[`mod${n}.amount`]) !== 0 && patch[`mod${n}.on`] !== false;
