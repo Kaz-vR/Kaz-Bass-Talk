@@ -36,7 +36,7 @@ import * as K from './params';
 import { Voice } from './voice';
 import { Texture } from './voicefx';
 import { getWavetable } from './wavetable';
-import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobShapeAt, wobSmoothRadius, wobSmoothTable, wobTableAt } from './wobshape';
+import { WobUnit } from './wobunit';
 
 export const CONTROL_BLOCK = K.CONTROL_BLOCK;
 /** Most voices a patch can ask for. */
@@ -47,10 +47,6 @@ export const MAX_VOICES = 8;
 const P = K.P;
 const BLOCK = K.CONTROL_BLOCK;
 /** The wobbler's preset shapes as typed arrays, by wobble.shape option (made once, not on the audio thread). */
-const WOB_TEMPLATE_ARRAYS = K.WOB_SHAPES.map((name) => {
-  const pts = WOB_TEMPLATES[name] ?? WOB_TEMPLATES.sine;
-  return { n: pts.length, xs: Float64Array.from(pts, (q) => q.x), ys: Float64Array.from(pts, (q) => q.y), ss: Float64Array.from(pts, (q) => (q.s ? 1 : 0)) };
-});
 const N_PARAMS = PARAM_COUNT;
 const LFO_COUNT = K.LFO_COUNT, SRC_COUNT = K.SRC_COUNT;
 const SYNC_BEATS = K.SYNC_BEATS, LFO_RATE_DEST = K.LFO_RATE_DEST;
@@ -110,46 +106,22 @@ export class Synth {
   wheelFrozen = false;
   /** Extra modulation shared by every voice: the mod wheel's move. */
   private readonly xdst = new Float64Array(K.DEST_COUNT);
-  // Wobble: its own random source, so switching it on doesn't change anything else.
-  private readonly wobRng = new Rng(0x60bb1e);
-  private wobCycle = -1;
-  private wobScale = 1;
-  private wobScaleTarget = 1;
-  private wobBright = 0;
-  private wobBrightTarget = 0;
-  /** The custom shape's points (filled per block, no allocation) and its smoothed value. */
-  private readonly wobXs = new Float64Array(WOB_MAX_POINTS);
-  private readonly wobYs = new Float64Array(WOB_MAX_POINTS);
-  private readonly wobSs = new Float64Array(WOB_MAX_POINTS);
-  private wobV = 0;
-  private wobShapeNow = 0;
-  private wobPtsNow = 0;
-  private wobSig = NaN;
-  private readonly wobTable = new Float64Array(WOB_TABLE);
-  private readonly wobTmp = new Float64Array(WOB_TABLE);
-  /** The current shape, unsmoothed, at q (made once, so the table rebuild never allocates). */
-  private readonly wobRawFn = (q: number): number => this.wobRaw(q);
-  /** Random's steps for the current cycle. */
-  private readonly wobRand = new Float64Array(WOB_RANDOM_STEPS);
-  private wobRandCycle = -1;
-  /** The volume shape's crossover (two one-poles per side): below the low cut the gate leaves the sound alone. */
-  /** The Wobbler's low cut split (per side: LP ×2, HP ×2: a Linkwitz-Riley pair). */
-  private readonly wobBand = [0, 1].map(() => Array.from({ length: 4 }, () => new Biquad()));
-  private wobBandLc = -1;
-  /** The Wobbler's own filter (Cutoff target): two SVFs per side, its g (stepped per sample) and damping. */
+  // The four custom LFOs, each with its own random source, so switching one on doesn't change anything else.
+  private readonly wobs = [0, 1, 2, 3].map((i) => new WobUnit(0x60bb1e + i * 0x9e37));
+  /** Their own filter (the FILTER target): two SVFs per side, its g (stepped per sample) and damping. */
   private readonly wobSvf = [0, 1].map(() => [new Svf(), new Svf()]);
   private wobFiltOn = false;
   private wobFiltWas = false;
   private wobG = 0;
   private wobGStep = 0;
   private wobK = 1.3;
-  /** The Wobbler filter's cutoff right now (Hz), -1 when it is not working; read by the page. */
+  /** Their filter's cutoff right now (Hz), -1 when it is not working. */
   liveWobFc = -1;
-  /** The volume target's gain, ramped per sample towards its target so the gate never clicks. */
+  /** Their gate (the VOLUME target), ramped per sample towards its target so it never clicks. */
   private wobGate = 1;
   private wobGateTarget = 1;
-  /** Where the wobble is in its cycle (0..1) for the LFO page's dot; -1 when it is off. */
-  liveWob = -1;
+  /** Where each custom LFO is in its cycle (0..1) for the LFO page's dot; -1 when it does nothing. */
+  readonly liveWobs = new Float64Array(4).fill(-1);
   /** The custom LFO's ONE SHOT: the song beat its newest note started on, and a count of notes. */
   private wobStart = 0;
   private wobNote = 0;
@@ -443,7 +415,7 @@ export class Synth {
     if (off(P.crushOn)) { zero(P.crushMix); block(K.D_CRUSH); }
     if (off(P.tapeOn)) { zero(P.tapeWow); block(K.D_TAPE_WOW); }
     if (off(P.vibOn)) { zero(P.vibDepth); block(K.D_VIBRATO); }
-    if (off(P.wobOn)) zero(P.wobDepth, ...P.wobAmts, ...P.wobOffs);
+    for (const w of P.wob) if (off(w.on)) zero(...w.amts, ...w.offs);
     // the matrix's master switch is PATCH LFO'S (rows 1-5); RUIN'S LFO (6-10) has only its rows' own lamps
     P.slots.forEach((s) => { if (off(P.modOn) || off(s.on)) t[s.amt] = 0; });
     if (off(P.eqOn)) { zero(P.eqScale, ...P.eq.map((b) => b.type)); t[P.eqHighcut] = 20000; }
@@ -603,11 +575,7 @@ export class Synth {
     }
     this.texture.reset();
     this.texEnv = 0;
-    this.wobCycle = -1;
     this.wobGate = this.wobGateTarget = 1;
-    for (const f of this.wobBand) for (const b of f) b.reset();
-    this.wobScale = this.wobScaleTarget = 1;
-    this.wobBright = this.wobBrightTarget = 0;
     this.hcL.reset();
     this.hcR.reset();
     this.flanger.reset();
@@ -701,146 +669,53 @@ export class Synth {
     }
   }
 
-  /** Extra modulation every voice adds to its mod matrix: the custom LFO. (The mod wheel plays only VIBRATO now, owner's call: its moves are gone.) */
+  /** Extra modulation every voice adds to its mod matrix: the four custom LFOs. (The mod wheel plays only VIBRATO now, owner's call: its moves are gone.) */
   private extraModulation(): void {
     const cur = this.cur;
     const x = this.xdst;
     x.fill(0);
-    // up to three targets, each with its own signed depth (owner's call); FILTER and VOLUME are its own filter and gate
-    let depth = 0;
-    for (let t = 0; t < 3; t++) depth = Math.max(depth, Math.abs(cur[P.wobAmts[t]]), Math.abs(cur[P.wobOffs[t]]));
-    this.liveWob = -1;
-    this.wobGateTarget = 1;
+    // each LFO adds its matrix targets; their FILTER lines multiply into the one filter (any shut = shut), their
+    // VOLUME lines into the one gate, the deepest FILTER setting its resonance
+    let fY = 1, gY = 1, fOn = false, gOn = false, fd = 0;
+    for (let i = 0; i < 4; i++) {
+      const u = this.wobs[i];
+      u.step(cur, P.wob[i], this.songBeat, this.tempo, this.wobStart, this.wobNote, x);
+      this.liveWobs[i] = u.live;
+      if (u.filt >= 0) { fOn = true; fY *= u.filt; fd = Math.max(fd, u.filtDepth); }
+      if (u.gate >= 0) { gOn = true; gY *= u.gate; }
+    }
     this.wobFiltWas = this.wobFiltOn;
     this.wobFiltOn = false;
     this.liveWobFc = -1;
-    if (depth > 1e-4) {
-      // Locked to the bar.
-      // HZ: a free rate, as a cycle in beats at the tempo (so the rest runs the same way); SYNC: a note value
-      const cycle = cur[P.wobFree] > 0.5 ? this.tempo / 60 / Math.max(0.01, cur[P.wobHz]) : K.WOBBLE_BEATS[Math.round(cur[P.wobRate])] ?? 0.5;
-      // ONE SHOT (owner's call): from the note's start, once, then holding the end; otherwise locked to the bar
-      const one = cur[P.wobOneShot] > 0.5;
-      const n = one ? -1 - this.wobNote : Math.floor(this.songBeat / cycle);
-      const p = one ? Math.min(0.99999, Math.max(0, (this.songBeat - this.wobStart) / cycle)) : (this.songBeat - n * cycle) / cycle;
-      this.liveWob = p;
-      if (n !== this.wobCycle) {
-        // Life: every cycle swings a little deeper or shallower and sits a little brighter or darker.
-        this.wobCycle = n;
-        const life = 0; // Life is gone (owner's call: nothing hidden moves the sound); wobble.life is ignored
-        this.wobScaleTarget = 1 + 0.45 * life * this.wobRng.next();
-        this.wobBrightTarget = 0.05 * life * this.wobRng.next();
+    if (fOn) {
+      // The classic wub, on their own filter (the main filter is never touched): a 24 dB low-pass, open at
+      // the line's top and shut at 60 Hz at its bottom, with a resonant peak that grows with depth.
+      const lo = 60, hi = Math.min(18000, this.sampleRate * 0.45);
+      const fc = Math.max(20, Math.min(hi, hi * Math.pow(lo / hi, 1 - fY)));
+      const gT = Math.tan((Math.PI * fc) / this.sampleRate);
+      if (!this.wobFiltWas) {
+        this.wobG = gT;
+        for (const sv of this.wobSvf) for (const f of sv) f.reset();
       }
-      // Glide to the new cycle's depth and brightness (~30 ms) so the change never steps.
-      this.wobScale += (this.wobScaleTarget - this.wobScale) * 0.1;
-      this.wobBright += (this.wobBrightTarget - this.wobBright) * 0.05;
-      // The shape, shifted later in the cycle by the shift setting.
-      let q = p - cur[P.wobPhase];
-      q -= Math.floor(q);
-      const shape = Math.round(cur[P.wobShape]);
-      if (shape === K.WOB_RANDOM && this.wobRandCycle !== n) {
-        // New steps every cycle, never repeating.
-        this.wobRandCycle = n;
-        for (let k = 0; k < WOB_RANDOM_STEPS; k++) this.wobRand[k] = 0.5 + 0.5 * this.wobRng.next();
-      }
-      let m = 0;
-      if (shape === K.WOB_CUSTOM) {
-        // Your own shape (points from the Wobbler page).
-        m = Math.max(2, Math.min(WOB_MAX_POINTS, Math.round(cur[P.wobPts])));
-        for (let k = 0; k < m; k++) {
-          this.wobXs[k] = cur[P.wobX[k]];
-          this.wobYs[k] = cur[P.wobY[k]];
-          this.wobSs[k] = cur[P.wobS[k]] > 0.5 ? 1 : 0;
-        }
-      }
-      this.wobShapeNow = shape;
-      this.wobPtsNow = m;
-      // Smooth (as in ShaperBox): the corners rounded in place, from a table rebuilt only when the
-      // shape or the amount changes. Even at 0 a few ms of glide, so a jump never clicks.
-      const r = wobSmoothRadius(cur[P.wobSmooth]);
-      let target: number;
-      if (r === 0) target = this.wobRaw(q);
-      else {
-        let sig = shape * 7919 + r * 104729 + m * 13;
-        if (shape === K.WOB_RANDOM) sig += n * 1.618;
-        for (let k = 0; k < m; k++) sig += this.wobXs[k] * (k + 1.31) * 3.7 + this.wobYs[k] * (k + 2.17) * 5.3 + this.wobSs[k] * (k + 3.1);
-        if (sig !== this.wobSig) {
-          this.wobSig = sig;
-          wobSmoothTable(this.wobRawFn, r, this.wobTable, this.wobTmp);
-        }
-        target = wobTableAt(this.wobTable, q);
-      }
-      this.wobV += (target - this.wobV) * 0.35;
-      const v = this.wobV;
-      // its targets: FILTER = its own filter, VOLUME = its own gate (minus = the shape upside down), the rest
-      // moved through every voice as any LFO moves them
-      // each target follows its own line (owner's call): y = 0.5 + depth x (v - 0.5) + offset / 2, so depth 1 = the
-      // shape, 0 = flat, -1 = upside down, and offset moves the line up or down; a matrix target moves by y - 0.5
-      // around where it is set, its own filter is open at y = 1 and shut at 0, its own gate is the level y
-      let fD = 0, fY = v, gD = 0, gY = v, fSet = false, gSet = false;
-      for (let t = 0; t < 3; t++) {
-        const dest = Math.round(cur[P.wobDests[t]]), a = cur[P.wobAmts[t]], o = cur[P.wobOffs[t]];
-        if (dest <= 0 || (a === 0 && o === 0)) continue;
-        const y = a * (v - 0.5) + o / 2;
-        if (dest === K.D_LF_ALL) { if (!fSet || Math.abs(a) > fD) { fSet = true; fD = Math.abs(a); fY = Math.max(0, Math.min(1, 0.5 + y)); } }
-        else if (dest === K.D_AMP) { if (!gSet || Math.abs(a) > gD) { gSet = true; gD = Math.abs(a); gY = Math.max(0, Math.min(1, 0.5 + y)); } }
-        else x[dest] += y * this.wobScale;
-      }
-      // Cutoff and volume, either or both: the Wobbler's own filter opens and shuts, the volume
-      // only ducks (never louder).
-      if (fSet) {
-        // The classic wub, on the Wobbler's own filter (the main filter is never touched): a
-        // 24 dB low-pass that opens wide where the shape is up and shuts towards the low cut
-        // where it is down, with a resonant peak that grows with depth.
-        const lc = cur[P.wobLowcut];
-        const lo = lc > 21 ? lc : 60, hi = Math.min(18000, this.sampleRate * 0.45);
-        const d = Math.min(1, fD * this.wobScale);
-        const fc = Math.max(20, Math.min(hi, hi * Math.pow(lo / hi, 1 - fY) * Math.pow(2, 6 * this.wobBright)));
-        const gT = Math.tan((Math.PI * fc) / this.sampleRate);
-        if (!this.wobFiltWas) {
-          this.wobG = gT;
-          for (const sv of this.wobSvf) for (const f of sv) f.reset();
-        }
-        this.wobFiltOn = true;
-        this.wobGStep = (gT - this.wobG) / BLOCK;
-        this.wobK = 1.3 - 0.75 * d;
-        this.liveWobFc = fc;
-      }
-      if (gSet) {
-        // A tempo-locked gate on the whole sound (sub, effects and tails too, as in ShaperBox):
-        // full level where the shape is up, down to silence at full depth.
-        this.wobGateTarget = gY;
-      }
+      this.wobFiltOn = true;
+      this.wobGStep = (gT - this.wobG) / BLOCK;
+      this.wobK = 1.3 - 0.75 * fd;
+      this.liveWobFc = fc;
     }
+    // A tempo-locked gate on the whole sound (sub, effects and tails too, as in ShaperBox).
+    this.wobGateTarget = gOn ? gY : 1;
   }
 
-  /**
-   * One side through the Wobbler: what is above its low cut (all of it when the cut is off) goes
-   * through its own low-pass (the Cutoff target) and its gate (the Volume target); below the cut
-   * the sound passes as it is.
-   */
-  private wobSide(x: number, c: number, loOn: boolean, g: number, filt: boolean): number {
-    const f = this.wobBand[c];
-    let low = 0, mid = x;
-    if (loOn) {
-      low = f[1].process(f[0].process(x));
-      mid = f[3].process(f[2].process(x));
-    }
+  /** One side through the custom LFOs' own filter (the FILTER target) and gate (the VOLUME target). */
+  private wobSide(x: number, c: number, g: number, filt: boolean): number {
+    let y = x;
     if (filt) {
       const sv = this.wobSvf[c];
-      sv[0].process(mid, this.wobG, this.wobK);
+      sv[0].process(y, this.wobG, this.wobK);
       sv[1].process(sv[0].lp, this.wobG, Math.SQRT2);
-      mid = sv[1].lp;
+      y = sv[1].lp;
     }
-    return low + mid * g;
-  }
-
-  /** The wobble shape set up for this block, unsmoothed, at q (0..1). */
-  private wobRaw(q: number): number {
-    const shape = this.wobShapeNow;
-    if (shape === K.WOB_RANDOM) return this.wobRand[Math.min(WOB_RANDOM_STEPS - 1, Math.floor(q * WOB_RANDOM_STEPS))];
-    if (shape === K.WOB_CUSTOM) return wobShapeAt(this.wobXs, this.wobYs, this.wobSs, this.wobPtsNow, q);
-    const t = WOB_TEMPLATE_ARRAYS[shape] ?? WOB_TEMPLATE_ARRAYS[0];
-    return wobShapeAt(t.xs, t.ys, t.ss, t.n, q);
+    return y * g;
   }
 
   private control(): void {
@@ -1313,24 +1188,13 @@ export class Synth {
       }
 
 
-      // LFO 5 on the volume: the gate, ~2 ms per step.
+      // The custom LFOs' filter and gate, ~2 ms per step.
       if (this.wobFiltOn || this.wobGate !== 1 || this.wobGateTarget !== 1) {
         this.wobGate += (this.wobGateTarget - this.wobGate) * 0.02;
         this.wobG += this.wobGStep;
         if (Math.abs(this.wobGate - 1) < 1e-6 && this.wobGateTarget === 1) this.wobGate = 1;
-        // Only what is above the low cut is wobbled: below it the sound stays steady. A 24 dB/oct
-        // Linkwitz-Riley split (as in multiband plugins), so the cut is clean.
-        const lc = cur[P.wobLowcut], loOn = lc > 21;
-        if (lc !== this.wobBandLc) {
-          this.wobBandLc = lc;
-          const fs = this.sampleRate, q = Math.SQRT1_2;
-          if (loOn) for (const f of this.wobBand) for (let k = 0; k < 2; k++) {
-            f[k].setLowpass(lc, q, fs);
-            f[2 + k].setHighpass(lc, q, fs);
-          }
-        }
-        l = this.wobSide(l, 0, loOn, this.wobGate, this.wobFiltOn);
-        r = this.wobSide(r, 1, loOn, this.wobGate, this.wobFiltOn);
+        l = this.wobSide(l, 0, this.wobGate, this.wobFiltOn);
+        r = this.wobSide(r, 1, this.wobGate, this.wobFiltOn);
       }
 
       // Subsonic / DC filter.

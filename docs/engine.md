@@ -59,9 +59,16 @@ targets (`wobble.dest`, `dest2`, `dest3`) with signed depths (`wobble.amt1-3`, -
 filter, VOLUME (`amp`) = its own gate (minus = the shape upside down), the rest `v x amt` into every voice's matrix.
 `wobble.depth`, `wobble.cutoff`, `wobble.volume` are unused now (old patches migrate in `migrateWobTargets`).
 
-Each target follows **its own line** (owner's call, 25 Nov): `y = 0.5 + depth x (v - 0.5) + offset / 2` (`wobble.amt1-3`,
-`wobble.offset1-3`, both -1..1), so depth 100 % = the shape itself (a new target's start), 0 = flat, -100 % = upside
-down, and Offset (starting at 0) moves the line up or down by up to half the range. A matrix target moves by `y - 0.5`
-around where it is set; its own filter is open at y = 1 and shut (at the low cut) at 0; its own gate is the level y.
-Older patches are converted to the same sound (`migrateWobOffsets`: matrix offset = depth x o, filter / gate offset =
-o x (1 - |depth|), o the old `wobble.off` or +1). Both engines.
+**Four custom LFOs** (owner's call, 25 Nov): `wobble.*` and `wobble2.*` .. `wobble4.*`, each its own shape, rate,
+one shot, Smooth, shift and **four targets** (`dest`..`dest4`, `amt1-4`, `offset1-4`), run by `WobUnit`
+(`src/engine/core/wobunit.ts`, `plugin/engine/WobUnit.h`), each with its own random source. Each target follows
+**its own line**: `y = master x (depth x (v - 0.5) + offset / 2)`, so depth 100 % = the shape itself (a new
+target's start), 0 = flat, -100 % = upside down, Offset (starting at 0) moves the line up or down by up to half the
+range, and the **master Depth** (`wobble.master`, 0-1, default 1) scales all of them (0 = the LFO does nothing). A
+matrix target moves by `y` around where it is set; the FILTER lines of all four multiply into their one own filter
+(a 24 dB low-pass open at the top of the line, shut at 60 Hz at its bottom), the VOLUME lines into their one gate
+(the level). **No Lo cut** (owner's call: it only made sense for Filter and Volume; `wobble.lowcut` removed from
+both engines and the schema), so the gate and filter work on the whole sound. Their phases go to the page two to a
+value (`packWob`, worklet control channels 2 and 11, the plugin's live values 2 and 3). Older patches are converted
+to the same sound (`migrateWobOffsets`: matrix offset = depth x o, filter / gate offset = o x (1 - |depth|), o the
+old `wobble.off` or +1). Both engines.

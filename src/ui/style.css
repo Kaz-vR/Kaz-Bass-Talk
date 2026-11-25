@@ -1828,3 +1828,20 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 .v2 .lfo5-x:hover { color: #d9dadd; }
 .v2 .lfo5-add { height: 22px; border: 1px dashed rgba(255,255,255,0.16); border-radius: 3px; background: none; color: #7c7d85; font-size: 9.5px; letter-spacing: 0.2em; cursor: pointer; }
 .v2 .lfo5-add:hover { color: #d9dadd; border-color: rgba(255,255,255,0.3); }
+
+/* The custom LFO, four of them (owner's call): 1 2 3 4 in the title row; four targets; under them the master Depth
+   and Smooth on the left, ONE SHOT over Shift on the right */
+.v2 .lfo5-nums { display: flex; gap: 2px; margin: 0 4px; }
+.v2 .lfo5-num { width: 20px; height: 20px; padding: 0; background: none; border: 1px solid rgba(255,255,255,0.08); border-radius: 2px;
+  color: #6a6b72; font: inherit; font-size: 10px; cursor: pointer; position: relative; }
+.v2 .lfo5-num:hover { color: #d9dadd; }
+.v2 .lfo5-num.on { color: #f0f0f2; border-color: color-mix(in srgb, var(--c-blue) 60%, transparent); box-shadow: inset 0 0 8px -2px var(--c-blue); text-shadow: 0 0 6px var(--c-blue); }
+.v2 .lfo5-num.busy::after { content: ''; position: absolute; left: 50%; bottom: 2px; width: 3px; height: 3px; margin-left: -1.5px; border-radius: 50%; background: var(--c-blue); box-shadow: 0 0 4px var(--c-blue); }
+.v2 .lfo-all > .lfo5-settings .lfo5-switch { flex: 1 1 auto; }
+.v2 .lfo5-rows { gap: 4px !important; }
+.v2 .lfo5-bottom { flex: none; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 4px 0; }
+.v2 .lfo5-bottom .lfo5-knobs { display: flex; gap: 14px; flex: none; }
+.v2 .lfo5-right { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.v2 .lfo5-right .lfo5-shift { display: flex; align-items: center; gap: 8px; }
+.v2 .lfo5-settings.is-off .lfo5-bottom { opacity: 0.4; filter: grayscale(1); }
+.v2 .lfo-all > .wob-hidden { display: none !important; }

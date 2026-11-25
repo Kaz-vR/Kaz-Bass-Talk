@@ -21,6 +21,7 @@
 #include "Voice.h"
 #include "VoiceFx.h"
 #include "Wavetable.h"
+#include "WobUnit.h"
 #include "Wobshape.h"
 
 namespace lt {
@@ -33,7 +34,8 @@ class Synth {
   double peak = 0;
   bool wheelFrozen = false;
   // Live values for the window (the newest voice's).
-  double liveCutoff = 0, liveRes = 0, liveWob = -1, liveWobFc = -1;
+  double liveCutoff = 0, liveRes = 0, liveWobFc = -1;
+  std::array<double, 4> liveWobs{-1, -1, -1, -1};  // each custom LFO's phase (0..1), -1 when it does nothing
   double wobStart = 0, wobNote = 0;  // the custom LFO's ONE SHOT
   std::array<double, LFO_COUNT> lfoPhase{}, lfoValue{};
   // What the page shows of each LFO: its phase and value; the per-note shapes show the newest note's.
@@ -41,7 +43,7 @@ class Synth {
   std::array<double, 8> liveGrind{}, liveGrindRes{}, livePhaser{};
 
   explicit Synth(double fs)
-      : sampleRate(fs), rng(0x1234567), wobRng(0x60bb1e), texGrindRng(0x6a1d), bus(fs, texGrindRng), ott(),
+      : sampleRate(fs), rng(0x1234567), wobs{WobUnit(0x60bb1e), WobUnit(0x60bb1e + 0x9e37), WobUnit(0x60bb1e + 2 * 0x9e37), WobUnit(0x60bb1e + 3 * 0x9e37)}, texGrindRng(0x6a1d), bus(fs, texGrindRng), ott(),
         chorus(fs), phaser(fs), reverb(fs), verbOct(fs), flanger(fs) {
     smoothCoef = 1 - std::exp(-CONTROL_BLOCK / ((SMOOTH_MS / 1000) * fs));
     duckStep = 1 / ((DUCK_MS / 1000) * fs);
@@ -74,7 +76,6 @@ class Synth {
       for (int j = 0; j < HS_TAPS; j++) hsCoef[j] /= sum;
     }
     lastFx.fill(NAN);
-    wobSig = NAN;
     eqLast.fill(NAN);
     for (int l = 0; l < LFO_COUNT; l++) {
       lfoPrev[l] = rng.next();
@@ -252,11 +253,7 @@ class Synth {
     }
     texture.reset();
     texEnv = 0;
-    wobCycle = -1;
     wobGate = wobGateTarget = 1;
-    for (auto& side : wobBand) for (auto& b : side) b.reset();
-    wobScale = wobScaleTarget = 1;
-    wobBright = wobBrightTarget = 0;
     hcL.reset();
     hcR.reset();
     flanger.reset();
@@ -498,19 +495,8 @@ class Synth {
         wobGate += (wobGateTarget - wobGate) * 0.02;
         wobG += wobGStep;
         if (std::fabs(wobGate - 1) < 1e-6 && wobGateTarget == 1) wobGate = 1;
-        const double lc = cur[P.wobLowcut];
-        const bool loOn = lc > 21;
-        if (lc != wobBandLc) {
-          wobBandLc = lc;
-          if (loOn)
-            for (auto& f : wobBand)
-              for (int k = 0; k < 2; k++) {
-                f[k].setLowpass(lc, SQRT1_2, sampleRate);
-                f[2 + k].setHighpass(lc, SQRT1_2, sampleRate);
-              }
-        }
-        l = wobSide(l, 0, loOn, wobGate, wobFiltOn);
-        r = wobSide(r, 1, loOn, wobGate, wobFiltOn);
+        l = wobSide(l, 0, wobGate, wobFiltOn);
+        r = wobSide(r, 1, wobGate, wobFiltOn);
       }
 
       l = dcL[1].process(dcL[0].process(l));
@@ -595,7 +581,7 @@ class Synth {
     if (off(P.distOn)) { zero({P.dMix}); block({D_DIST_MIX, D_DIST_DRIVE, D_DIST_TONE}); }
     if (off(P.crushOn)) { zero({P.crushMix}); block({D_CRUSH}); }
     if (off(P.tapeOn)) { zero({P.tapeWow}); block({D_TAPE_WOW}); }
-    if (off(P.wobOn)) zero({P.wobDepth, P.wobAmts[0], P.wobAmts[1], P.wobAmts[2], P.wobOffs[0], P.wobOffs[1], P.wobOffs[2]});
+    for (const auto& w : P.wob) if (off(w.on)) zero({w.amts[0], w.amts[1], w.amts[2], w.amts[3], w.offs[0], w.offs[1], w.offs[2], w.offs[3]});
     if (off(P.vibOn)) { zero({P.vibDepth}); block({D_VIBRATO}); }
     // the matrix's master switch is PATCH LFO'S (rows 1-5); RUIN'S LFO (6-10) has only its rows' own lamps
     for (int i = 0; i < SLOT_COUNT; i++)
@@ -739,117 +725,44 @@ class Synth {
     const auto& P = PI_();
     auto& x = xdst;
     x.fill(0);
-    // the mod wheel plays only VIBRATO now (owner's call): its moves are gone
-    double depth = 0;  // up to three targets, each with its own signed depth
-    for (int t = 0; t < 3; t++) depth = std::fmax(depth, std::fmax(std::fabs(cur[P.wobAmts[t]]), std::fabs(cur[P.wobOffs[t]])));
-    liveWob = -1;
-    wobGateTarget = 1;
+    // the mod wheel plays only VIBRATO now (owner's call); the four custom LFOs (as synth.ts)
+    double fY = 1, gY = 1, fd = 0;
+    bool fOn = false, gOn = false;
+    for (int i = 0; i < 4; i++) {
+      WobUnit& u = wobs[(size_t)i];
+      u.step(cur, P.wob[i], songBeat, tempo, wobStart, wobNote, x);
+      liveWobs[(size_t)i] = u.live;
+      if (u.filt >= 0) { fOn = true; fY *= u.filt; fd = std::fmax(fd, u.filtDepth); }
+      if (u.gate >= 0) { gOn = true; gY *= u.gate; }
+    }
     wobFiltWas = wobFiltOn;
     wobFiltOn = false;
     liveWobFc = -1;
-    if (depth > 1e-4) {
-      const int ri = (int)jsRound(cur[P.wobRate]);
-      const double cycle = cur[P.wobFree] > 0.5 ? tempo / 60 / std::fmax(0.01, cur[P.wobHz])
-                           : ri >= 0 && ri < WOBBLE_RATE_COUNT ? WOBBLE_BEATS[ri] : 0.5;
-      const bool one = cur[P.wobOneShot] > 0.5;
-      const double nC = one ? -1.0 - wobNote : std::floor(songBeat / cycle);
-      const double p = one ? std::fmin(0.99999, std::fmax(0.0, (songBeat - wobStart) / cycle)) : (songBeat - nC * cycle) / cycle;
-      liveWob = p;
-      if (nC != wobCycle) {
-        wobCycle = nC;
-        const double life = 0;  // Life is gone (owner's call)
-        wobScaleTarget = 1 + 0.45 * life * wobRng.next();
-        wobBrightTarget = 0.05 * life * wobRng.next();
+    if (fOn) {
+      const double lo = 60, hi = std::fmin(18000, sampleRate * 0.45);
+      const double fc = std::fmax(20, std::fmin(hi, hi * std::pow(lo / hi, 1 - fY)));
+      const double gT = std::tan((PI * fc) / sampleRate);
+      if (!wobFiltWas) {
+        wobG = gT;
+        for (auto& sv : wobSvf) for (auto& f : sv) f.reset();
       }
-      wobScale += (wobScaleTarget - wobScale) * 0.1;
-      wobBright += (wobBrightTarget - wobBright) * 0.05;
-      double q = p - cur[P.wobPhase];
-      q -= std::floor(q);
-      const int shape = (int)jsRound(cur[P.wobShape]);
-      if (shape == WOB_RANDOM && wobRandCycle != nC) {
-        wobRandCycle = nC;
-        for (int k = 0; k < WOB_RANDOM_STEPS; k++) wobRand[k] = 0.5 + 0.5 * wobRng.next();
-      }
-      int m = 0;
-      if (shape == WOB_CUSTOM) {
-        m = std::max(2, std::min(WOB_MAX_POINTS, (int)jsRound(cur[P.wobPts])));
-        for (int k = 0; k < m; k++) {
-          wobXs[k] = cur[P.wobX[k]];
-          wobYs[k] = cur[P.wobY[k]];
-          wobSs[k] = cur[P.wobS[k]] > 0.5 ? 1 : 0;
-        }
-      }
-      wobShapeNow = shape;
-      wobPtsNow = m;
-      const int rr = wobSmoothRadius(cur[P.wobSmooth]);
-      double tgt;
-      if (rr == 0) tgt = wobRaw(q);
-      else {
-        double sig = shape * 7919 + rr * 104729 + m * 13;
-        if (shape == WOB_RANDOM) sig += nC * 1.618;
-        for (int k = 0; k < m; k++) sig += wobXs[k] * (k + 1.31) * 3.7 + wobYs[k] * (k + 2.17) * 5.3 + wobSs[k] * (k + 3.1);
-        if (sig != wobSig) {
-          wobSig = sig;
-          wobSmoothTable([this](double qq) { return wobRaw(qq); }, rr, wobTable.data(), wobTmp.data());
-        }
-        tgt = wobTableAt(wobTable.data(), q);
-      }
-      wobV += (tgt - wobV) * 0.35;
-      const double v = wobV;
-      // each target follows its own line: y = 0.5 + depth x (v - 0.5) + offset / 2 (as synth.ts)
-      double fD = 0, fY = v, gD = 0, gY = v;
-      bool fSet = false, gSet = false;
-      for (int t = 0; t < 3; t++) {
-        const int dest = (int)jsRound(cur[P.wobDests[t]]);
-        const double a = cur[P.wobAmts[t]], o = cur[P.wobOffs[t]];
-        if (dest <= 0 || dest >= DEST_COUNT || (a == 0 && o == 0)) continue;
-        const double y = a * (v - 0.5) + o / 2;
-        if (dest == D_LF_ALL) { if (!fSet || std::fabs(a) > fD) { fSet = true; fD = std::fabs(a); fY = std::fmax(0.0, std::fmin(1.0, 0.5 + y)); } }
-        else if (dest == D_AMP) { if (!gSet || std::fabs(a) > gD) { gSet = true; gD = std::fabs(a); gY = std::fmax(0.0, std::fmin(1.0, 0.5 + y)); } }
-        else x[(size_t)dest] += y * wobScale;
-      }
-      if (fSet) {
-        const double lc = cur[P.wobLowcut];
-        const double lo = lc > 21 ? lc : 60, hi = std::fmin(18000, sampleRate * 0.45);
-        const double d = std::fmin(1, fD * wobScale);
-        const double fc = std::fmax(20, std::fmin(hi, hi * std::pow(lo / hi, 1 - fY) * std::pow(2.0, 6 * wobBright)));
-        const double gT = std::tan((PI * fc) / sampleRate);
-        if (!wobFiltWas) {
-          wobG = gT;
-          for (auto& sv : wobSvf) for (auto& f : sv) f.reset();
-        }
-        wobFiltOn = true;
-        wobGStep = (gT - wobG) / CONTROL_BLOCK;
-        wobK = 1.3 - 0.75 * d;
-        liveWobFc = fc;
-      }
-      if (gSet) wobGateTarget = gY;
+      wobFiltOn = true;
+      wobGStep = (gT - wobG) / CONTROL_BLOCK;
+      wobK = 1.3 - 0.75 * fd;
+      liveWobFc = fc;
     }
+    wobGateTarget = gOn ? gY : 1;
   }
 
-  /** The wobble shape set up for this block, unsmoothed, at q (0..1). */
-  double wobRaw(double q) const {
-    const int shape = wobShapeNow;
-    if (shape == WOB_RANDOM) return wobRand[std::min(WOB_RANDOM_STEPS - 1, (int)std::floor(q * WOB_RANDOM_STEPS))];
-    if (shape == WOB_CUSTOM) return wobShapeAt(wobXs.data(), wobYs.data(), wobSs.data(), wobPtsNow, q);
-    const WobTemplate& t = WOB_TEMPLATE_ARRAYS[shape >= 0 && shape < WOB_SHAPE_COUNT ? shape : 0];
-    return wobShapeAt(t.xs, t.ys, t.ss, t.n, q);
-  }
-
-  double wobSide(double x, int c, bool loOn, double g, bool filt) {
-    auto& f = wobBand[c];
-    double low = 0, mid = x;
-    if (loOn) {
-      low = f[1].process(f[0].process(x));
-      mid = f[3].process(f[2].process(x));
-    }
+  double wobSide(double x, int c, double g, bool filt) {
+    double y = x;
     if (filt) {
       auto& sv = wobSvf[c];
-      sv[0].process(mid, wobG, wobK);
+      sv[0].process(y, wobG, wobK);
       sv[1].process(sv[0].lp, wobG, SQRT2);
-      mid = sv[1].lp;
+      y = sv[1].lp;
     }
-    return low + mid * g;
+    return y * g;
   }
 
   void control() {
@@ -1073,7 +986,7 @@ class Synth {
 
   // Shared modulation.
   Rng rng;
-  Rng wobRng;
+  std::array<WobUnit, 4> wobs;
   std::array<double, LFO_COUNT> lfoHold{}, lfoPrev{};
   // Drift and slow drift: each segment's length in cycles (random), and drift's own smoothed value.
   std::array<double, LFO_COUNT> lfoSeg{1, 1, 1, 1, 1, 1}, lfoDrift{};
@@ -1081,17 +994,7 @@ class Synth {
   std::array<double, SRC_COUNT> gsrc{};
   double tempo = 120, beatPos = 0, songBeat = 0;
 
-  // The Wobbler.
-  double wobCycle = -1, wobScale = 1, wobScaleTarget = 1, wobBright = 0, wobBrightTarget = 0;
-  std::array<double, WOB_MAX_POINTS> wobXs{}, wobYs{}, wobSs{};
-  double wobV = 0;
-  int wobShapeNow = 0, wobPtsNow = 0;
-  double wobSig = 0;
-  std::array<double, WOB_TABLE> wobTable{}, wobTmp{};
-  std::array<double, WOB_RANDOM_STEPS> wobRand{};
-  double wobRandCycle = -1;
-  Biquad wobBand[2][4];
-  double wobBandLc = -1;
+  // The custom LFOs' own filter and gate.
   Svf wobSvf[2][2];
   bool wobFiltOn = false, wobFiltWas = false;
   double wobG = 0, wobGStep = 0, wobK = 1.3, wobGate = 1, wobGateTarget = 1;

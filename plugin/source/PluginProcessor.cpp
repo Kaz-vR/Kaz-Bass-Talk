@@ -220,8 +220,9 @@ void LowTalkProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     int k = 0;
     live[(size_t)k++].store((float)synth->liveCutoff);
     live[(size_t)k++].store((float)synth->liveRes);
-    live[(size_t)k++].store((float)synth->liveWob);
-    live[(size_t)k++].store((float)synth->liveWobFc);
+    // the four custom LFOs' phases, two to a value (packWob)
+    live[(size_t)k++].store((float)lt::packWob(synth->liveWobs[0], synth->liveWobs[1]));
+    live[(size_t)k++].store((float)lt::packWob(synth->liveWobs[2], synth->liveWobs[3]));
     for (int l = 0; l < 4; l++) live[(size_t)k++].store((float)synth->liveLfoPhase[(size_t)l]);
     for (int l = 0; l < 4; l++) live[(size_t)k++].store((float)synth->liveLfoValue[(size_t)l]);
     for (int g = 0; g < 4; g++) live[(size_t)k++].store((float)synth->liveGrind[(size_t)g]);

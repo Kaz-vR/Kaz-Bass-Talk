@@ -173,7 +173,9 @@ struct ParamIndex {
   int driveOn, filterOn, distOn, crushOn, tapeOn, vibOn, lfoOn[6], modOn, eqOn, chorusOn, flangerOn,
       phaserOn, delayOn, reverbOn;
   int wheelMove, wheelPreset;
-  int wobDests[3], wobAmts[3], wobOffs[3], wobDest, wobOneShot, wobOn, wobDepth, wobRate, wobFree, wobHz, wobCutoff, wobVolume, wobShape, wobLife, wobPts, wobPhase, wobSmooth, wobLowcut, wobX[32], wobY[32], wobS[32];
+  // the four custom LFOs: 'wobble.*' and 'wobble2.*' .. 'wobble4.*'
+  struct Wob { int on, rate, free, hz, shape, pts, phase, smooth, oneShot, master, dests[4], amts[4], offs[4], x[32], y[32], s[32]; };
+  Wob wob[4];
   int flangerMix, flangerRate, flangerFb, delayMix, delayTime, delayFb, delayTone;
   int reverbType, reverbDecay, reverbPre, reverbOct, eqHighcut;
   int amp[4], mod[4], vibDepth, vibRate, vibDelay, vibFade;
@@ -222,18 +224,22 @@ struct ParamIndex {
     modOn = ix("mod.on"); eqOn = ix("eq.on"); chorusOn = ix("chorus.on"); flangerOn = ix("flanger.on");
     phaserOn = ix("phaser.on"); delayOn = ix("delay.on"); reverbOn = ix("reverb.on");
     wheelMove = ix("wheel.move"); wheelPreset = ix("wheel.preset");
-    wobOn = ix("wobble.on");
-    wobDest = ix("wobble.dest"); wobOneShot = ix("wobble.oneshot");
-    wobDepth = ix("wobble.depth"); wobRate = ix("wobble.rate");
-    wobDests[0] = ix("wobble.dest"); wobDests[1] = ix("wobble.dest2"); wobDests[2] = ix("wobble.dest3");
-    wobAmts[0] = ix("wobble.amt1"); wobAmts[1] = ix("wobble.amt2"); wobAmts[2] = ix("wobble.amt3"); wobOffs[0] = ix("wobble.offset1"); wobOffs[1] = ix("wobble.offset2"); wobOffs[2] = ix("wobble.offset3"); wobFree = ix("wobble.free"); wobHz = ix("wobble.hz"); wobCutoff = ix("wobble.cutoff"); wobVolume = ix("wobble.volume");
-    wobShape = ix("wobble.shape"); wobLife = ix("wobble.life"); wobPts = ix("wobble.points"); wobPhase = ix("wobble.phase");
-    wobSmooth = ix("wobble.smooth"); wobLowcut = ix("wobble.lowcut");
-    for (int i = 0; i < 32; i++) {
-      const std::string k = std::to_string(i + 1);
-      wobX[i] = ix("wobble.x" + k);
-      wobY[i] = ix("wobble.y" + k);
-      wobS[i] = ix("wobble.s" + k);
+    for (int n = 0; n < 4; n++) {
+      const std::string w = n == 0 ? "wobble." : "wobble" + std::to_string(n + 1) + ".";
+      Wob& o = wob[n];
+      o.on = ix(w + "on"); o.rate = ix(w + "rate"); o.free = ix(w + "free"); o.hz = ix(w + "hz"); o.shape = ix(w + "shape"); o.pts = ix(w + "points");
+      o.phase = ix(w + "phase"); o.smooth = ix(w + "smooth"); o.oneShot = ix(w + "oneshot"); o.master = ix(w + "master");
+      o.dests[0] = ix(w + "dest"); o.dests[1] = ix(w + "dest2"); o.dests[2] = ix(w + "dest3"); o.dests[3] = ix(w + "dest4");
+      for (int k = 0; k < 4; k++) {
+        o.amts[k] = ix(w + "amt" + std::to_string(k + 1));
+        o.offs[k] = ix(w + "offset" + std::to_string(k + 1));
+      }
+      for (int i = 0; i < 32; i++) {
+        const std::string k = std::to_string(i + 1);
+        o.x[i] = ix(w + "x" + k);
+        o.y[i] = ix(w + "y" + k);
+        o.s[i] = ix(w + "s" + k);
+      }
     }
     flangerMix = ix("flanger.mix"); flangerRate = ix("flanger.rate"); flangerFb = ix("flanger.feedback");
     delayMix = ix("delay.mix"); delayTime = ix("delay.time"); delayFb = ix("delay.feedback"); delayTone = ix("delay.tone");

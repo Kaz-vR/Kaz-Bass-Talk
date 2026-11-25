@@ -228,9 +228,17 @@ export const P = {
   modOn: ix('mod.on'), eqOn: ix('eq.on'), chorusOn: ix('chorus.on'), flangerOn: ix('flanger.on'),
   phaserOn: ix('phaser.on'), delayOn: ix('delay.on'), reverbOn: ix('reverb.on'),
   wheelMove: ix('wheel.move'), wheelPreset: ix('wheel.preset'),
-  wobOn: ix('wobble.on'),
-  wobDepth: ix('wobble.depth'), wobRate: ix('wobble.rate'), wobFree: ix('wobble.free'), wobHz: ix('wobble.hz'), wobCutoff: ix('wobble.cutoff'), wobVolume: ix('wobble.volume'), wobShape: ix('wobble.shape'), wobLife: ix('wobble.life'), wobPts: ix('wobble.points'), wobPhase: ix('wobble.phase'), wobSmooth: ix('wobble.smooth'), wobLowcut: ix('wobble.lowcut'), wobDest: ix('wobble.dest'), wobDests: [ix('wobble.dest'), ix('wobble.dest2'), ix('wobble.dest3')], wobAmts: [ix('wobble.amt1'), ix('wobble.amt2'), ix('wobble.amt3')], wobOffs: [ix('wobble.offset1'), ix('wobble.offset2'), ix('wobble.offset3')], wobOneShot: ix('wobble.oneshot'),
-  wobX: Array.from({ length: 32 }, (_, i) => ix(`wobble.x${i + 1}`)), wobY: Array.from({ length: 32 }, (_, i) => ix(`wobble.y${i + 1}`)), wobS: Array.from({ length: 32 }, (_, i) => ix(`wobble.s${i + 1}`)),
+  // the four custom LFOs (owner's call): 'wobble.*' is the first, 'wobble2.*' .. 'wobble4.*' the others
+  wob: [1, 2, 3, 4].map((n) => {
+    const w = n === 1 ? 'wobble' : `wobble${n}`;
+    return {
+      on: ix(`${w}.on`), rate: ix(`${w}.rate`), free: ix(`${w}.free`), hz: ix(`${w}.hz`), shape: ix(`${w}.shape`), pts: ix(`${w}.points`),
+      phase: ix(`${w}.phase`), smooth: ix(`${w}.smooth`), oneShot: ix(`${w}.oneshot`), master: ix(`${w}.master`),
+      dests: [ix(`${w}.dest`), ix(`${w}.dest2`), ix(`${w}.dest3`), ix(`${w}.dest4`)],
+      amts: [1, 2, 3, 4].map((k) => ix(`${w}.amt${k}`)), offs: [1, 2, 3, 4].map((k) => ix(`${w}.offset${k}`)),
+      x: Array.from({ length: 32 }, (_, i) => ix(`${w}.x${i + 1}`)), y: Array.from({ length: 32 }, (_, i) => ix(`${w}.y${i + 1}`)), s: Array.from({ length: 32 }, (_, i) => ix(`${w}.s${i + 1}`)),
+    };
+  }),
   flangerMix: ix('flanger.mix'), flangerRate: ix('flanger.rate'), flangerFb: ix('flanger.feedback'),
   delayMix: ix('delay.mix'), delayTime: ix('delay.time'), delayFb: ix('delay.feedback'), delayTone: ix('delay.tone'),
   reverbType: ix('reverb.type'), reverbDecay: ix('reverb.decay'), reverbPre: ix('reverb.predelay'), reverbOct: ix('reverb.octave'), eqHighcut: ix('eq.highcut'),

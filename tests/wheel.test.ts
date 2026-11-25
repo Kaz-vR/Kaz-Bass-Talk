@@ -190,17 +190,6 @@ describe('wobbler settings', () => {
     expect(jump(render({ 'wobble.smooth': 0.8 }))).toBeLessThan(jump(render({})) * 0.5);
   });
 
-  it('low cut keeps the low end steady under the gate', () => {
-    const p = { 'osc1.wave': 'sine', 'osc1.level': 0, 'sub.level': 1 };
-    const win = (0.5 * SR) / 8;
-    const swing = (x: Float32Array) => {
-      const e = env(x, win).slice(8);
-      return Math.max(...e) / Math.max(1e-9, Math.min(...e));
-    };
-    expect(swing(render({ ...p }))).toBeGreaterThan(4);
-    expect(swing(render({ ...p, 'wobble.lowcut': 400 }))).toBeLessThan(1.5);
-  });
-
   it('random draws new steps every cycle', () => {
     const win = (0.5 * SR) / 8;
     const e = env(render({ 'wobble.shape': 'random' }, 3), win);

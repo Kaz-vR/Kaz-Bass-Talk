@@ -1,6 +1,7 @@
 // Main-thread side of the engine: owns the AudioContext and the worklet node,
 // validates patches and compiles loops before handing them to the audio thread.
 
+import { unpackWob } from './core/wobunit';
 import { getParam, paramIndex, patchToArray, toEngineValue, validatePatch, type Patch, type ParamValue } from '../schema';
 import { compileLoop, type Loop } from './core/sequencer';
 import { PROCESSOR_NAME, type EngineMessage } from './messages';
@@ -130,18 +131,13 @@ export class EngineHost {
     this.post({ type: 'listen', at, mode });
   }
 
-  /** The Wobbler filter's cutoff right now (Hz), or null when it is not working. */
-  liveWobFilter(): number | null {
-    this.ctlLfo[8].getFloatTimeDomainData(this.ctlBuf);
-    const fc = this.ctlBuf[31];
-    return fc > 0 ? fc : null;
-  }
-
-  /** Where the Wobbler is in its cycle, 0..1, or null when it is off or silent. */
-  liveWobble(): number | null {
+  /** Where each custom LFO is in its cycle, 0..1, or null when it is off or nothing sounds. */
+  liveWobble(): (number | null)[] {
+    if (!this.liveFilter()) return [null, null, null, null];
     this.ctlWob.getFloatTimeDomainData(this.ctlBuf);
-    const p = this.ctlBuf[31];
-    return p >= 0 && this.liveFilter() ? p : null;
+    const ab = unpackWob(this.ctlBuf[31]);
+    this.ctlLfo[8].getFloatTimeDomainData(this.ctlBuf);
+    return [...ab, ...unpackWob(this.ctlBuf[31])];
   }
 
   /** The newest sounding voice's cutoff (Hz) and resonance, or null when nothing sounds. */

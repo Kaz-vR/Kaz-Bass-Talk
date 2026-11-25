@@ -2,6 +2,7 @@
 // The message handler only copies numbers into preallocated engine state;
 // process() never allocates.
 
+import { packWob } from './core/wobunit';
 import { LoopPlayer } from './core/sequencer';
 import { Synth } from './core/synth';
 import { PROCESSOR_NAME, type EngineMessage } from './messages';
@@ -44,10 +45,11 @@ class LowTalkProcessor extends AudioWorkletProcessor {
     if (ctl && ctl.length >= 2) {
       ctl[0].fill(this.synth.liveCutoff);
       ctl[1].fill(this.synth.liveRes);
-      if (ctl.length >= 3) ctl[2].fill(this.synth.liveWob);
+      // channels 2 and 11: the four custom LFOs' phases, two to a channel (packWob)
+      const lw = this.synth.liveWobs;
+      if (ctl.length >= 3) ctl[2].fill(packWob(lw[0], lw[1]));
       // channels 3-6: each LFO's phase (0..1), 7-10: its value (-1..1); they always run
-      // channel 11: the Wobbler filter's cutoff (Hz, -1 when it is not working)
-      if (ctl.length >= 12) ctl[11].fill(this.synth.liveWobFc);
+      if (ctl.length >= 12) ctl[11].fill(packWob(lw[2], lw[3]));
       // channels 12-15: each GRIND stage's filter frequency (Hz, -1 when off)
       // channels 16-19: their resonance right now
       if (ctl.length >= 16) for (let i = 0; i < 4; i++) ctl[12 + i].fill(this.synth.liveGrind[i]);

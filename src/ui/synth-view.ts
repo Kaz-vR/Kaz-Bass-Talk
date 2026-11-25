@@ -753,10 +753,12 @@ const LFO_TARGET_NAME: Record<string, string> = {
 };
 /** The RUIN boxes' slot parameters (which box holds a drive decides the DRIVE targets). */
 /** The custom LFO's three targets and their signed depths (owner's call). */
-const WOB_DESTS = ['wobble.dest', 'wobble.dest2', 'wobble.dest3'];
-const WOB_AMTS = ['wobble.amt1', 'wobble.amt2', 'wobble.amt3'];
-const WOB_OFFS = ['wobble.offset1', 'wobble.offset2', 'wobble.offset3'];
-const WOB_TARGET_IDS = [...WOB_DESTS, ...WOB_AMTS, ...WOB_OFFS];
+// the four custom LFOs' parameter prefixes (owner's call), and each one's four targets
+const WOB_PREFIXES = ['wobble', 'wobble2', 'wobble3', 'wobble4'];
+const wobDests = (W: string) => [`${W}.dest`, `${W}.dest2`, `${W}.dest3`, `${W}.dest4`];
+const wobAmts = (W: string) => [1, 2, 3, 4].map((k) => `${W}.amt${k}`);
+const wobOffs = (W: string) => [1, 2, 3, 4].map((k) => `${W}.offset${k}`);
+const wobTargetIds = (W: string) => [...wobDests(W), ...wobAmts(W), ...wobOffs(W), `${W}.master`];
 const RUIN_SLOT_IDS = [1, 2, 3, 4, 5, 6, 7, 8].map((k) => `grind.slot${k}`);
 /** Beats in a note value like 1/4, 1/8D or 1/16T. */
 function syncBeats(v: string): number {
@@ -946,7 +948,8 @@ export class SynthView {
   private modPage: HTMLElement | null = null;
   private lfoPage: HTMLElement | null = null;
   /** The wobble's live phase (0..1) and what draws it. */
-  private liveWob: number | null = null;
+  /** Each custom LFO's phase from the engine (0..1, null when it does nothing or nothing sounds). */
+  private liveWobs: (number | null)[] = [null, null, null, null];
   private readonly wobDraws: (() => void)[] = [];
   private fxPage: HTMLElement | null = null;
   private grindPage: HTMLElement | null = null;
@@ -2576,9 +2579,9 @@ export class SynthView {
     return cv;
   }
 
-  /** The custom LFO is doing something: switched on with at least one target at a depth. */
-  private wobActive(): boolean {
-    return !!this.get('wobble.on') && [0, 1, 2].some((t) => this.get(WOB_DESTS[t]) !== 'none' && (this.num(WOB_AMTS[t]) !== 0 || this.num(WOB_OFFS[t]) !== 0));
+  /** A custom LFO is doing something: switched on, its Depth up, with at least one target that moves. */
+  private wobActive(W: string): boolean {
+    return !!this.get(`${W}.on`) && this.num(`${W}.master`) > 0 && [0, 1, 2, 3].some((t) => this.get(wobDests(W)[t]) !== 'none' && (this.num(wobAmts(W)[t]) !== 0 || this.num(wobOffs(W)[t]) !== 0));
   }
 
   /** The RUIN boxes (1-8) that hold a drive. */
@@ -2705,22 +2708,22 @@ export class SynthView {
 
 
   /** The custom shape's points from the patch. */
-  private wobCustomPoints(): WobPoint[] {
-    const n = Math.max(2, Math.min(WOB_MAX_POINTS, Math.round(this.num('wobble.points'))));
-    return Array.from({ length: n }, (_, i) => ({ x: this.num(`wobble.x${i + 1}`), y: this.num(`wobble.y${i + 1}`), s: !!this.get(`wobble.s${i + 1}`) }));
+  private wobCustomPoints(W: string): WobPoint[] {
+    const n = Math.max(2, Math.min(WOB_MAX_POINTS, Math.round(this.num(`${W}.points`))));
+    return Array.from({ length: n }, (_, i) => ({ x: this.num(`${W}.x${i + 1}`), y: this.num(`${W}.y${i + 1}`), s: !!this.get(`${W}.s${i + 1}`) }));
   }
 
   /** The points shown for a shape: the custom ones, a preset shape's template, none for Random. */
-  private wobPoints(shape = String(this.get('wobble.shape'))): WobPoint[] {
-    if (shape === 'custom') return this.wobCustomPoints();
+  private wobPoints(W: string, shape = String(this.get(`${W}.shape`))): WobPoint[] {
+    if (shape === 'custom') return this.wobCustomPoints(W);
     if (shape === 'random') return [];
     return WOB_TEMPLATES[shape] ?? WOB_TEMPLATES['saw down'];
   }
 
   /** A shape's level (0 = shut .. 1 = open) at q in the drawn cycle; Random shows a fixed example. */
-  private wobValueFor(shape: string, q: number): number {
+  private wobValueFor(W: string, shape: string, q: number): number {
     if (shape === 'random') return SynthView.WOB_RANDOM_PREVIEW[Math.min(WOB_RANDOM_STEPS - 1, Math.floor(q * WOB_RANDOM_STEPS))];
-    return wobPointsAt(this.wobPoints(shape), q);
+    return wobPointsAt(this.wobPoints(W, shape), q);
   }
   private static readonly WOB_RANDOM_PREVIEW = [0.62, 0.18, 0.86, 0.4, 0.95, 0.08, 0.55, 0.3];
 
@@ -2728,11 +2731,11 @@ export class SynthView {
    * One cycle as heard, sampled at n + 1 points across the cycle: Smooth rounds the corners with the
    * engine's own table (wobSmoothTable), then the shift moves it along.
    */
-  private wobCurve(shape: string, n: number): number[] {
-    let ph = this.num('wobble.phase');
-    if (shape !== String(this.get('wobble.shape'))) ph = 0; // palette tiles show the shape as drawn
-    const r = wobSmoothRadius(this.num('wobble.smooth'));
-    let at = (q: number) => this.wobValueFor(shape, q);
+  private wobCurve(W: string, shape: string, n: number): number[] {
+    let ph = this.num(`${W}.phase`);
+    if (shape !== String(this.get(`${W}.shape`))) ph = 0; // palette tiles show the shape as drawn
+    const r = wobSmoothRadius(this.num(`${W}.smooth`));
+    let at = (q: number) => this.wobValueFor(W, shape, q);
     if (r > 0) {
       wobSmoothTable(at, r, this.wobTable, this.wobTmp);
       at = (q) => wobTableAt(this.wobTable, q);
@@ -2748,16 +2751,16 @@ export class SynthView {
   private readonly wobTmp = new Float64Array(WOB_TABLE);
 
   /** Write points as the custom shape (and switch to it). */
-  private setWobPoints(pts: WobPoint[]): void {
+  private setWobPoints(W: string, pts: WobPoint[]): void {
     const sorted = [...pts].sort((a, b) => a.x - b.x).slice(0, WOB_MAX_POINTS);
     for (let i = 0; i < WOB_MAX_POINTS; i++) {
       const q = sorted[i] ?? { x: 1, y: 0, s: false };
-      this.set(`wobble.x${i + 1}`, Math.round(q.x * 10000) / 10000);
-      this.set(`wobble.y${i + 1}`, Math.round(q.y * 10000) / 10000);
-      this.set(`wobble.s${i + 1}`, q.s);
+      this.set(`${W}.x${i + 1}`, Math.round(q.x * 10000) / 10000);
+      this.set(`${W}.y${i + 1}`, Math.round(q.y * 10000) / 10000);
+      this.set(`${W}.s${i + 1}`, q.s);
     }
-    this.set('wobble.points', sorted.length);
-    this.set('wobble.shape', 'custom');
+    this.set(`${W}.points`, sorted.length);
+    this.set(`${W}.shape`, 'custom');
   }
 
   /** Wobbler lock: while on, switching presets keeps the Wobbler (every wobble.* setting) as it is. */
@@ -2766,15 +2769,19 @@ export class SynthView {
   })();
   private readonly lockViews: (() => void)[] = [];
   /** The Wobbler's level right now (0..1, null when no note sounds) and whether it is on, for its tab's bar. */
-  private wobNow: number | null = null;
-  private wobOn = false;
+  private wobNows: (number | null)[] = [null, null, null, null];
+  private wobOns = [false, false, false, false];
+  /** The custom LFO shown on the LFO page (0-3), its boxes and its number switches. */
+  private wobSel = 0;
+  private readonly wobBoxes: HTMLElement[][] = [];
+  private readonly wobSelViews: (() => void)[] = [];
   private readonly wobLevelViews: (() => void)[] = [];
 
   /** Called when a preset (or roll) loads: carries the Wobbler (while locked) and locked RUIN stages over from the previous patch. */
   keepLocked(next: Patch, prev: Patch | null): void {
     if (!prev) return;
     const from = prev as Record<string, unknown>, to = next as Record<string, unknown>;
-    if (this.lfo5Locked) for (const p of params) if (p.id.startsWith('wobble.')) to[p.id] = from[p.id] ?? p.default;
+    if (this.lfo5Locked) for (const p of params) if (/^wobble\d?\./.test(p.id)) to[p.id] = from[p.id] ?? p.default;
     // a locked GRIND stage stays as it is, and keeps the chain on if it was on
     let kept = false;
     for (let n = 1; n <= 8; n++) {
@@ -2807,11 +2814,11 @@ export class SynthView {
   }
 
   /** The engine's wobble phase for the Wobbler's dot (0..1, null when off or silent). */
-  setLiveWobble(read: () => number | null): void {
+  setLiveWobble(read: () => (number | null)[]): void {
     const step = () => {
       const v = read();
-      if (v !== this.liveWob) {
-        this.liveWob = v;
+      if (v.some((x, i) => x !== this.liveWobs[i])) {
+        this.liveWobs = v;
         for (const f of this.wobDraws) f();
       }
       requestAnimationFrame(step);
@@ -2857,17 +2864,19 @@ export class SynthView {
    * to add one), the rate in its title row, a dot following the engine's real phase, the shape
    * palette under it, and one SETTINGS column on the right.
    */
-  private buildLfoPage(): HTMLElement {
-    const ids = ['wobble.on', ...WOB_TARGET_IDS, 'wobble.rate', 'wobble.free', 'wobble.hz', 'wobble.shape', 'wobble.phase', 'wobble.smooth', 'wobble.lowcut', 'wobble.points'];
-    for (let i = 1; i <= WOB_MAX_POINTS; i++) ids.push(`wobble.x${i}`, `wobble.y${i}`, `wobble.s${i}`);
-    const on = () => this.wobActive();
+  private buildLfoPage(n: number): HTMLElement {
+    const WP = WOB_PREFIXES[n - 1];
+    const WOB_DESTS = wobDests(WP), WOB_AMTS = wobAmts(WP), WOB_OFFS = wobOffs(WP), WOB_TARGET_IDS = wobTargetIds(WP);
+    const ids = [`${WP}.on`, ...WOB_TARGET_IDS, `${WP}.rate`, `${WP}.free`, `${WP}.hz`, `${WP}.shape`, `${WP}.phase`, `${WP}.smooth`, `${WP}.lowcut`, `${WP}.points`];
+    for (let i = 1; i <= WOB_MAX_POINTS; i++) ids.push(`${WP}.x${i}`, `${WP}.y${i}`, `${WP}.s${i}`);
+    const on = () => this.wobActive(WP);
     const W = 870, H = 236, PAD = 14, GX = 16, GY = 8;
     const [cv, g] = canvas(W, H, 'disp');
     const [ov, og] = canvas(W, H, 'lfo5-overlay');
     const X = (x: number) => PAD + x * (W - 2 * PAD), Y = (y: number) => PAD + (1 - y) * (H - 2 * PAD);
     // a point's place on screen after the shift (the end point sits where the start does)
     const shown = (x: number) => {
-      const ph = this.num('wobble.phase');
+      const ph = this.num(`${WP}.phase`);
       if (ph < 1e-6) return x;
       const d = x + ph;
       return x >= 1 ? ph : d - Math.floor(d);
@@ -2889,8 +2898,8 @@ export class SynthView {
         g.fillStyle = j % 4 === 0 ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)';
         g.fillRect(PAD, Math.round(Y(j / GY)), W - 2 * PAD, 1);
       }
-      const shape = String(this.get('wobble.shape'));
-      const full = this.wobCurve(shape, N);
+      const shape = String(this.get(`${WP}.shape`));
+      const full = this.wobCurve(WP, shape, N);
       // The main line is the shape itself (the points sit on it); each target's own line runs faint with it, as it
       // moves the target (owner's call): depth 100% = on the shape, 0 = flat, -100% = upside down, offset = up / down
       curve = full;
@@ -2918,10 +2927,9 @@ export class SynthView {
       silver(g, line, on());
       drawTargets();
       // the low cut, as on every print (lit while Volume is on: the gate only works above it)
-      loCutStrip(g, W, H, this.num('wobble.lowcut'), on(), accentOf(cv));
       // the points: a filled dot sits on the line (hard), a ring pulls the line (soft)
       const col = accentOf(cv);
-      const pts = this.wobPoints(shape);
+      const pts = this.wobPoints(WP, shape);
       pts.forEach((q, i) => {
         const r = i === hover || i === drag ? 6 : 4.5, px = X(shown(q.x)), py = Y(q.y);
         const soft = q.s && i > 0 && i < pts.length - 1;
@@ -2971,10 +2979,10 @@ export class SynthView {
     // the moving dot: where the wobble is right now
     const drawDot = () => {
       og.clearRect(0, 0, W, H);
-      const p = this.liveWob;
+      const p = this.liveWobs[n - 1];
       // what the Wobbler does right now (0..1), for the level bar under its tab (on every page)
-      this.wobNow = p !== null && on() && heard.length ? heard[Math.min(N, Math.round(p * N))] : null;
-      this.wobOn = on();
+      this.wobNows[n - 1] = p !== null && on() && heard.length ? heard[Math.min(N, Math.round(p * N))] : null;
+      this.wobOns[n - 1] = on();
       for (const f of this.wobLevelViews) f();
       if (p === null || !on() || ov.offsetParent === null || !curve.length) return;
       const x = X(p), y = Y(curve[Math.min(N, Math.round(p * N))]), col = accentOf(cv);
@@ -2995,7 +3003,7 @@ export class SynthView {
     const at = (e: PointerEvent | MouseEvent) => {
       const r = ov.getBoundingClientRect();
       const dx = Math.max(0, Math.min(1, ((e.clientX - r.left) * (W / r.width) - PAD) / (W - 2 * PAD)));
-      let x = dx - this.num('wobble.phase');
+      let x = dx - this.num(`${WP}.phase`);
       x -= Math.floor(x);
       return { x, y: Math.max(0, Math.min(1, 1 - ((e.clientY - r.top) * (H / r.height) - PAD) / (H - 2 * PAD))) };
     };
@@ -3003,7 +3011,7 @@ export class SynthView {
     const hit = (e: PointerEvent | MouseEvent) => {
       const r = ov.getBoundingClientRect(), mx = (e.clientX - r.left) * (W / r.width), my = (e.clientY - r.top) * (H / r.height);
       let best = -1, bd = 10;
-      this.wobPoints().forEach((q, i) => {
+      this.wobPoints(WP).forEach((q, i) => {
         const d = Math.hypot(X(shown(q.x)) - mx, Y(q.y) - my);
         if (d < bd) { bd = d; best = i; }
       });
@@ -3015,7 +3023,7 @@ export class SynthView {
       return { mx: (e.clientX - r.left) * (W / r.width), my: (e.clientY - r.top) * (H / r.height) };
     };
     ov.addEventListener('pointerdown', (e) => {
-      if (this.get('wobble.shape') === 'random') return;
+      if (this.get(`${WP}.shape`) === 'random') return;
       const i = hit(e);
       ov.setPointerCapture(e.pointerId);
       moved = false;
@@ -3030,7 +3038,7 @@ export class SynthView {
       if (sel.has(i) && sel.size > 1) {
         // one of the selected points: they all move together
         const { mx, my } = local(e);
-        group = { mx, my, start: this.wobPoints().map((q) => ({ ...q })) };
+        group = { mx, my, start: this.wobPoints(WP).map((q) => ({ ...q })) };
         drag = i;
         return;
       }
@@ -3067,10 +3075,10 @@ export class SynthView {
         }
         const pts = st.map((q, i) => (sel.has(i) ? { ...q, x: i === 0 || i === last ? q.x : q.x + dx, y: q.y + dy } : { ...q }));
         moved = true;
-        this.setWobPoints(pts);
+        this.setWobPoints(WP, pts);
         return;
       }
-      const pts = this.wobPoints().map((q) => ({ ...q }));
+      const pts = this.wobPoints(WP).map((q) => ({ ...q }));
       let { x, y } = snap(at(e), e);
       const last = pts.length - 1;
       // the first and last points stay at the start and end of the cycle; the rest keep their order
@@ -3078,13 +3086,13 @@ export class SynthView {
       if (Math.abs(x - pts[drag].x) < 1e-6 && Math.abs(y - pts[drag].y) < 1e-6) return;
       moved = true;
       pts[drag] = { ...pts[drag], x, y };
-      this.setWobPoints(pts);
+      this.setWobPoints(WP, pts);
     });
     ov.addEventListener('pointerup', (e) => {
       if (ov.hasPointerCapture(e.pointerId)) ov.releasePointerCapture(e.pointerId);
       if (box) {
         const x0 = Math.min(box.x0, box.x1), x1 = Math.max(box.x0, box.x1), y0 = Math.min(box.y0, box.y1), y1 = Math.max(box.y0, box.y1);
-        this.wobPoints().forEach((q, i) => {
+        this.wobPoints(WP).forEach((q, i) => {
           const px = X(shown(q.x)), py = Y(q.y);
           if (px >= x0 && px <= x1 && py >= y0 && py <= y1) sel.add(i);
         });
@@ -3102,9 +3110,9 @@ export class SynthView {
       if (!moved && !wasGroup) {
         clearTimeout(clickTimer);
         clickTimer = window.setTimeout(() => {
-          const pts = this.wobPoints().map((q) => ({ ...q }));
+          const pts = this.wobPoints(WP).map((q) => ({ ...q }));
           if (pts[i] && i > 0 && i < pts.length - 1) pts[i].s = !pts[i].s;
-          this.setWobPoints(pts);
+          this.setWobPoints(WP, pts);
         }, 230);
       }
       redraw();
@@ -3118,23 +3126,23 @@ export class SynthView {
         return;
       }
       if (e.key !== 'Delete' && e.key !== 'Backspace') return;
-      const pts = this.wobPoints();
+      const pts = this.wobPoints(WP);
       const keep = pts.filter((_, i) => !sel.has(i) || i === 0 || i === pts.length - 1);
       sel = new Set();
-      if (keep.length !== pts.length) this.setWobPoints(keep.map((q) => ({ ...q })));
+      if (keep.length !== pts.length) this.setWobPoints(WP, keep.map((q) => ({ ...q })));
       else redraw();
       e.preventDefault();
     });
     // switching to another shape (a palette tile, a preset) drops the selection
-    this.watch(['wobble.shape', 'wobble.points'], () => {
-      const n = this.wobPoints().length;
+    this.watch([`${WP}.shape`, `${WP}.points`], () => {
+      const n = this.wobPoints(WP).length;
       for (const i of [...sel]) if (i >= n) sel.delete(i);
     });
     ov.addEventListener('dblclick', (e) => {
       clearTimeout(clickTimer);
-      if (this.get('wobble.shape') === 'random') return;
+      if (this.get(`${WP}.shape`) === 'random') return;
       sel = new Set();
-      const pts = this.wobPoints().map((q) => ({ ...q }));
+      const pts = this.wobPoints(WP).map((q) => ({ ...q }));
       const i = hit(e);
       if (i >= 0) {
         // double-click a point: remove it (the first and last stay)
@@ -3146,7 +3154,7 @@ export class SynthView {
         if (x <= 0.002 || x >= 0.998) return;
         pts.push({ x, y, s: false });
       }
-      this.setWobPoints(pts);
+      this.setWobPoints(WP, pts);
     });
     ov.addEventListener('pointerleave', () => { if (hover >= 0) { hover = -1; redraw(); } });
     ov.title = 'Drag a point (Shift snaps to the grid) · click it: on the line (hard) or pulling the line (soft) · double-click a point to remove it, empty space to add one · drag over empty space to select several points, then drag one of them to move them together (Delete removes them)';
@@ -3154,7 +3162,7 @@ export class SynthView {
 
     // the rate in the title row: a big value that opens the rate menu (triplet / straight / dotted
     // columns, as in ShaperBox), and arrows either side that step shorter / longer
-    const rateP = getParam('wobble.rate')!;
+    const rateP = getParam(`${WP}.rate`)!;
     const rateSel = h('select', 'sel-name lfo5-rate-sel');
     const groups: [string, (o: string) => boolean][] = [['TRIPLET', (o) => o.endsWith('T')], ['STRAIGHT', (o) => !/[Td]$/.test(o) && o !== '3/4' && !/^(1\.5|3) /.test(o)], ['DOTTED', (o) => o.endsWith('d') || o === '3/4' || /^(1\.5|3) /.test(o)]];
     for (const [name, has] of groups) {
@@ -3164,39 +3172,39 @@ export class SynthView {
       rateSel.append(og);
     }
     rateSel.dataset.ddStep = '1';
-    rateSel.onchange = () => this.set('wobble.rate', rateSel.value);
+    rateSel.onchange = () => this.set(`${WP}.rate`, rateSel.value);
     // the arrows step within the current column (straight stays straight, triplet stays triplet)
     const stepRate = (d: number) => {
-      const cur = String(this.get('wobble.rate'));
+      const cur = String(this.get(`${WP}.rate`));
       const o = rateP.options!.filter((x) => (groups.find(([, has]) => has(cur)) ?? groups[1])[1](x)), i = o.indexOf(cur);
-      this.set('wobble.rate', o[Math.max(0, Math.min(o.length - 1, i + d))]);
+      this.set(`${WP}.rate`, o[Math.max(0, Math.min(o.length - 1, i + d))]);
     };
     const rPrev = h('button', 'lfo5-arrow lfo5-rate-arrow', '‹'), rNext = h('button', 'lfo5-arrow lfo5-rate-arrow', '›');
     rPrev.title = 'Shorter (faster)';
     rNext.title = 'Longer (slower)';
-    this.watch(['wobble.rate'], () => { rateSel.value = String(this.get('wobble.rate')); });
+    this.watch([`${WP}.rate`], () => { rateSel.value = String(this.get(`${WP}.rate`)); });
     // HZ mode (owner's call): the note value gives way to a Hz value, dragged up / down (Shift = fine), the arrows
     // stepping a semitone of rate; double-click = 2 Hz
-    const hzP = getParam('wobble.hz')!;
+    const hzP = getParam(`${WP}.hz`)!;
     const hzBox = h('button', 'sel-name lfo5-rate-sel lfo5-hz');
     hzBox.title = `${hzP.describes} Drag up / down (Shift = fine), double-click = 2 Hz.`;
-    const setHz = (v: number) => this.set('wobble.hz', Math.round(Math.max(hzP.min!, Math.min(hzP.max!, v)) * 1000) / 1000);
+    const setHz = (v: number) => this.set(`${WP}.hz`, Math.round(Math.max(hzP.min!, Math.min(hzP.max!, v)) * 1000) / 1000);
     hzBox.addEventListener('pointerdown', (e) => {
       hzBox.setPointerCapture(e.pointerId);
-      const y0 = e.clientY, v0 = this.num('wobble.hz');
+      const y0 = e.clientY, v0 = this.num(`${WP}.hz`);
       const move = (m: PointerEvent) => setHz(v0 * Math.pow(2, ((y0 - m.clientY) / (m.shiftKey ? 400 : 80))));
       const up = () => { hzBox.removeEventListener('pointermove', move); hzBox.removeEventListener('pointerup', up); };
       hzBox.addEventListener('pointermove', move);
       hzBox.addEventListener('pointerup', up);
     });
     hzBox.ondblclick = () => setHz(2);
-    const free = () => !!this.get('wobble.free');
-    const step = (d: number) => (free() ? setHz(this.num('wobble.hz') * Math.pow(2, -d / 12)) : stepRate(d));
+    const free = () => !!this.get(`${WP}.free`);
+    const step = (d: number) => (free() ? setHz(this.num(`${WP}.hz`) * Math.pow(2, -d / 12)) : stepRate(d));
     rPrev.onclick = () => step(-1);
     rNext.onclick = () => step(1);
-    const hzSw = this.textSwitch(['HZ', 'SYNC'], free, (f) => this.set('wobble.free', f), ['wobble.free']);
-    this.watch(['wobble.free', 'wobble.hz'], () => {
-      const v = this.num('wobble.hz');
+    const hzSw = this.textSwitch(['HZ', 'SYNC'], free, (f) => this.set(`${WP}.free`, f), [`${WP}.free`]);
+    this.watch([`${WP}.free`, `${WP}.hz`], () => {
+      const v = this.num(`${WP}.hz`);
       hzBox.textContent = `${v < 10 ? v.toFixed(2) : v.toFixed(1)} Hz`;
       hzBox.style.display = free() ? '' : 'none';
       rateSel.style.display = free() ? 'none' : '';
@@ -3212,16 +3220,16 @@ export class SynthView {
 
     // SETTINGS: the switch, depth / low cut / smooth, the shift arrows, the two targets
     const shift = (d: number) => {
-      let v = Math.round(this.num('wobble.phase') * GX) + d;
+      let v = Math.round(this.num(`${WP}.phase`) * GX) + d;
       v = ((v % GX) + GX) % GX;
-      this.set('wobble.phase', v / GX);
+      this.set(`${WP}.phase`, v / GX);
     };
     const sPrev = h('button', 'lfo5-arrow', '<'), sNext = h('button', 'lfo5-arrow', '>');
     sPrev.title = 'Move the shape earlier (a sixteenth of the cycle)';
     sNext.title = 'Move the shape later (a sixteenth of the cycle)';
     sPrev.onclick = () => shift(-1);
     sNext.onclick = () => shift(1);
-    this.watch(['wobble.phase'], () => sPrev.parentElement?.classList.toggle('shifted', this.num('wobble.phase') > 1e-6));
+    this.watch([`${WP}.phase`], () => sPrev.parentElement?.classList.toggle('shifted', this.num(`${WP}.phase`) > 1e-6));
     const lampFor = (id: string, label: string) => {
       const b = h('button', 'led', lamp(), label);
       b.onclick = () => this.set(id, !this.get(id));
@@ -3235,7 +3243,7 @@ export class SynthView {
     const rowsBox = h('div', 'lfo5-rows', h('div', 'lfo5-heads', h('span', '', 'DEPTH'), h('span', '', 'OFFSET')));
     const addBtn = h('button', 'lfo5-add', '+ ADD TARGET');
     const rowEls: HTMLElement[] = [];
-    for (let t = 0; t < 3; t++) {
+    for (let t = 0; t < 4; t++) {
       const dId = WOB_DESTS[t], aId = WOB_AMTS[t];
       const sel = h('select', 'sel-name') as HTMLSelectElement;
       for (const [title, os] of LFO_TARGETS) {
@@ -3248,7 +3256,7 @@ export class SynthView {
       sel.onchange = () => {
         this.set(dId, sel.value);
         if (this.num(aId) === 0 && this.num(WOB_OFFS[t]) === 0) this.set(aId, 1);
-        this.set('wobble.on', true);
+        this.set(`${WP}.on`, true);
       };
       // Depth and Offset (owner's pick, knobs only): small dials, their values on hover like every dial
       const depthK = this.knob(aId, 'Depth', 'tiny', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%` });
@@ -3272,32 +3280,33 @@ export class SynthView {
       const used = WOB_DESTS.map((id) => String(this.get(id)));
       const t = used.indexOf('none');
       if (t < 0) return;
-      const pick = ['lfo_filter', 'amp', 'osc_pitch', 'osc12_shape'].find((o) => !used.includes(o)) ?? 'lfo_filter';
+      const pick = ['lfo_filter', 'amp', 'osc_pitch', 'osc12_shape', 'dist_drive'].find((o) => !used.includes(o)) ?? 'lfo_filter';
       this.set(WOB_DESTS[t], pick);
       this.set(WOB_AMTS[t], 1);
       this.set(WOB_OFFS[t], 0);
-      this.set('wobble.on', true);
+      this.set(`${WP}.on`, true);
     };
     this.watch(WOB_DESTS, () => {
       addBtn.style.display = WOB_DESTS.some((id) => this.get(id) === 'none') ? '' : 'none';
       (rowsBox.firstChild as HTMLElement).style.display = WOB_DESTS.some((id) => this.get(id) !== 'none') ? '' : 'none';
     });
-    const ownFG = () => WOB_DESTS.some((id) => this.get(id) === 'lfo_filter' || this.get(id) === 'amp');
     const pct = (v: number) => `${Math.round(v * 100)}%`;
+    // under the four targets (owner's layout): the master Depth and Smooth on the left, ONE SHOT over Shift on the right
     const settings = h('div', 'c ob box-wob lfo5-settings',
       h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'TARGET')),
       h('div', 'lfo5-sec lfo5-switch', rowsBox),
-      h('div', 'lfo5-sec lfo5-knobs',
-        this.knob('wobble.smooth', 'Smooth', 'lg', { fmt: pct }),
-        // Lo cut only works with its own filter and gate (FILTER, VOLUME)
-        this.knob('wobble.lowcut', 'Lo cut', 'lg', { fmt: (v) => (v <= 21 ? 'off' : v >= 1000 ? `${(v / 1000).toFixed(1)} kHz` : `${Math.round(v)} Hz`), disabled: () => !ownFG(), deps: WOB_DESTS })),
-      // ONE SHOT (owner's call): the shape runs once from every note and holds its end
-      h('div', 'lfo5-sec lfo5-oneshot', this.toggle('wobble.oneshot', 'ONE SHOT', 'small')),
-      h('div', 'lfo5-sec lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, sNext));
+      h('div', 'lfo5-sec lfo5-bottom',
+        h('div', 'lfo5-knobs',
+          this.knob(`${WP}.master`, 'Depth', 'lg', { fmt: pct }),
+          this.knob(`${WP}.smooth`, 'Smooth', 'lg', { fmt: pct })),
+        h('div', 'lfo5-right',
+          // ONE SHOT (owner's call): the shape runs once from every note and holds its end
+          h('div', 'lfo5-oneshot', this.toggle(`${WP}.oneshot`, 'ONE SHOT', 'small')),
+          h('div', 'lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, sNext))));
     void lampFor;
 
     // off (switched off, or Depth at 0): the settings go dark like any other box's, the switch stays lit
-    this.watch(['wobble.on', ...WOB_TARGET_IDS], () => {
+    this.watch([`${WP}.on`, ...WOB_TARGET_IDS], () => {
       settings.classList.toggle('is-off', !on());
       big.classList.toggle('is-off', !on());
     });
@@ -3306,22 +3315,22 @@ export class SynthView {
     const TW = 96, TH = 46, TN = TW - 16;
     const tiles: HTMLElement[] = [];
     // the first eight on the palette, the rest in MORE ▾
-    const allShapes = getParam('wobble.shape')!.options!;
+    const allShapes = getParam(`${WP}.shape`)!.options!;
     const moreShapes = allShapes.slice(8);
     for (const shape of allShapes) {
       const [tc, tgx] = canvas(TW, TH, 'disp');
       const tile = h('button', 'lfo5-tile', tc, h('span', 'lfo5-tile-name', shape.toUpperCase()));
       tile.title = `Shape: ${shape} (resets the shift)`;
       tile.onclick = () => {
-        this.set('wobble.phase', 0);
-        this.set('wobble.shape', shape);
+        this.set(`${WP}.phase`, 0);
+        this.set(`${WP}.shape`, shape);
       };
       this.watch(ids, () => {
-        const chosen = this.get('wobble.shape') === shape;
+        const chosen = this.get(`${WP}.shape`) === shape;
         tile.classList.toggle('on', chosen);
         paper(tgx, TW, TH);
         const pts: [number, number][] = [];
-        for (let i = 0; i <= TN; i++) pts.push([8 + i, TH - 7 - this.wobValueFor(shape, i / TN) * (TH - 14)]);
+        for (let i = 0; i <= TN; i++) pts.push([8 + i, TH - 7 - this.wobValueFor(WP, shape, i / TN) * (TH - 14)]);
         silver(tgx, pts, chosen && on());
       });
       tiles.push(tile);
@@ -3330,7 +3339,7 @@ export class SynthView {
     const menu = h('div', 'lfo5-more-menu', ...tiles.slice(8));
     const more = h('button', 'lfo5-more', 'MORE ▾');
     more.title = '8 more shapes';
-    this.watch(['wobble.shape'], () => more.classList.toggle('picked', moreShapes.includes(String(this.get('wobble.shape')))));
+    this.watch([`${WP}.shape`], () => more.classList.toggle('picked', moreShapes.includes(String(this.get(`${WP}.shape`)))));
     const palette = h('div', 'c ob box-wob lfo5-palette', ...tiles.slice(0, 8), more, menu);
     const close = () => {
       menu.classList.remove('open');
@@ -3348,7 +3357,7 @@ export class SynthView {
     const shapeName = h('span', 'lfo5-shape-name');
     const shapeBtn = h('button', 'lfo5-shape-btn', shapeName, h('span', 'lfo5-shape-caret', '▾'));
     shapeBtn.title = 'Pick a ready shape (or draw your own on the grid)';
-    this.watch(['wobble.shape'], () => { shapeName.textContent = String(this.get('wobble.shape')).toUpperCase(); });
+    this.watch([`${WP}.shape`], () => { shapeName.textContent = String(this.get(`${WP}.shape`)).toUpperCase(); });
     const pop = h('div', 'lfo5-shape-pop', ...tiles);
     const closePop = () => { pop.classList.remove('open'); shapeBtn.classList.remove('on'); };
     shapeBtn.onclick = (e) => {
@@ -3358,7 +3367,23 @@ export class SynthView {
     };
     pop.addEventListener('click', (e) => { if ((e.target as Element).closest('.lfo5-tile')) closePop(); });
     document.addEventListener('pointerdown', (e) => { if (!pop.contains(e.target as Node) && !shapeBtn.contains(e.target as Node)) closePop(); });
-    big.querySelector('.ob-head .c-title')?.after(shapeBtn);
+    // the four custom LFOs (owner's call): 1 2 3 4 between the title and the shape menu, the shown one lit, the
+    // others marked while they do something
+    const nums = h('div', 'lfo5-nums', ...[1, 2, 3, 4].map((k) => {
+      const b = h('button', 'lfo5-num', String(k));
+      b.title = `Custom LFO ${k}`;
+      b.onclick = () => this.showWob(k - 1);
+      const view = () => {
+        b.classList.toggle('on', k === n);
+        b.classList.toggle('busy', this.wobOns[k - 1]);
+      };
+      this.wobSelViews.push(view);
+      this.watch(WOB_PREFIXES.flatMap((w) => [`${w}.on`, ...wobTargetIds(w)]), view);
+      return b;
+    }));
+    big.querySelector('.ob-head .c-title')?.after(nums);
+    nums.after(shapeBtn);
+    this.wobBoxes[n - 1] = [big, settings];
     big.append(pop);
     void palette;
     return h('div', 'v2-main osc-page lfo-page', big, settings);
@@ -3374,8 +3399,20 @@ export class SynthView {
    * the top with its TARGET box, LFO 1-4 below, each with its own target. No matrix, no LFO 5-6, no WOBBLER tab.
    */
   private buildModPage(wob: HTMLElement): HTMLElement {
-    const big = wob.querySelector('.lfo5-main') as HTMLElement, settings = wob.querySelector('.lfo5-settings') as HTMLElement;
-    return h('div', 'v2-main mod-page2 lfo-all', big, settings, this.lfoBox(1), this.lfoBox(2), this.lfoBox(3), this.lfoBox(4));
+    const page = h('div', 'v2-main mod-page2 lfo-all', ...this.wobBoxes.flat(), this.lfoBox(1), this.lfoBox(2), this.lfoBox(3), this.lfoBox(4));
+    void wob;
+    this.showWob(this.wobSel);
+    return page;
+  }
+
+  /** Show custom LFO i (0-3) on the LFO page: its drawing and its TARGET box; the others hide. */
+  private showWob(i: number): void {
+    this.wobSel = i;
+    this.wobBoxes.forEach(([big, settings], k) => {
+      big.classList.toggle('wob-hidden', k !== i);
+      settings.classList.toggle('wob-hidden', k !== i);
+    });
+    for (const f of this.wobSelViews) f();
   }
 
 
@@ -5580,12 +5617,14 @@ export class SynthView {
         const fill = h('span', 'tab-level-fill'), bar = h('span', 'tab-level', fill);
         b.append(bar);
         const view = () => {
-          bar.classList.toggle('on', this.wobOn);
-          fill.style.width = `${Math.round((this.wobNow ?? 0) * 100)}%`;
+          // (the busiest of the four custom LFOs)
+          bar.classList.toggle('on', this.wobOns.some((o) => o));
+          fill.style.width = `${Math.round(Math.max(0, ...this.wobNows.map((v) => v ?? 0)) * 100)}%`;
         };
         this.wobLevelViews.push(view);
-        this.watch(['wobble.on', ...WOB_TARGET_IDS], () => {
-          this.wobOn = this.wobActive();
+        const all = WOB_PREFIXES.flatMap((w) => [`${w}.on`, ...wobTargetIds(w)]);
+        this.watch(all, () => {
+          this.wobOns = WOB_PREFIXES.map((w) => this.wobActive(w));
           view();
         });
       }
@@ -5599,7 +5638,7 @@ export class SynthView {
     this.oscPage = h('div', 'v2-main osc-page',
       this.oscStrip(1), this.oscStrip(2), this.envBox('amp_env', 'AMP ENVELOPE', 'c-src box-amp'), this.filterBox(),
       this.subStrip(), this.noiseStrip(), this.scopeBox(), this.envBox('mod_env', 'FILTER ENVELOPE', 'c-flt box-fenv'));
-    this.lfoPage = this.buildLfoPage();
+    this.lfoPage = h('div', 'v2-main osc-page lfo-page', ...[1, 2, 3, 4].flatMap((n) => [...this.buildLfoPage(n).children] as HTMLElement[]));
     this.modPage = this.buildModPage(this.lfoPage);
     this.fxPage = this.buildFxPage();
     this.grindPage = this.buildGrindPage();

@@ -3,6 +3,7 @@
 // events; the plugin answers with its parameters (host automation, program
 // changes, a reopened window), the notes it plays and its output for the scope.
 
+import { unpackWob } from './core/wobunit';
 import { getParam, paramIndex, params, patchToArray, toEngineValue, validatePatch, type Patch, type ParamValue } from '../schema';
 import { compileLoop, type Loop } from './core/sequencer';
 
@@ -193,16 +194,9 @@ export class PluginHost {
     return c > 0 ? { cutoff: c, res: this.live[1] } : null;
   }
 
-  /** Where the Wobbler is in its cycle (0..1), or null when it is off. */
-  liveWobble(): number | null {
-    const w = this.live[2];
-    return w !== undefined && w >= 0 ? w : null;
-  }
-
-  /** The Wobbler filter's cutoff (Hz), or null when it is not working. */
-  liveWobFilter(): number | null {
-    const f = this.live[3];
-    return f > 0 ? f : null;
+  /** Where each custom LFO is in its cycle (0..1), or null when it is off. */
+  liveWobble(): (number | null)[] {
+    return [...unpackWob(this.live[2] ?? -1), ...unpackWob(this.live[3] ?? -1)];
   }
 
   /** Each LFO's phase (0..1) and value (-1..1). */
