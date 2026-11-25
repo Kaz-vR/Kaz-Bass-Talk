@@ -58,3 +58,9 @@ the newest voice's matrix to `Grind.control`. FX DRIVE is `dist_drive` (added to
 targets (`wobble.dest`, `dest2`, `dest3`) with signed depths (`wobble.amt1-3`, -1..1): FILTER (`lfo_filter`) = its own
 filter, VOLUME (`amp`) = its own gate (minus = the shape upside down), the rest `v x amt` into every voice's matrix.
 `wobble.depth`, `wobble.cutoff`, `wobble.volume` are unused now (old patches migrate in `migrateWobTargets`).
+
+Each target also has an **Offset** (`wobble.off1-3`, -1..1, owner's call, 25 Nov): where its swing sits, `(1 - o) / 2`
+of the way down. On a matrix target `(v - (1 - o) / 2) x amt`: +1 = above where it is set, 0 = around it, -1 = below.
+On its own filter and gate, which rest at the top of their range: the closing gets `(1 - o) / 2 x (1 - depth)` added,
+so +1 swings high (the old behaviour), -1 low. Patches from before load with +1 on the rows that move something
+(`migrateWobOffsets`). Both engines.

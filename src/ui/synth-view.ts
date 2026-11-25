@@ -755,6 +755,7 @@ const LFO_TARGET_NAME: Record<string, string> = {
 /** The custom LFO's three targets and their signed depths (owner's call). */
 const WOB_DESTS = ['wobble.dest', 'wobble.dest2', 'wobble.dest3'];
 const WOB_AMTS = ['wobble.amt1', 'wobble.amt2', 'wobble.amt3'];
+const WOB_OFFS = ['wobble.off1', 'wobble.off2', 'wobble.off3'];
 const WOB_TARGET_IDS = [...WOB_DESTS, ...WOB_AMTS];
 const RUIN_SLOT_IDS = [1, 2, 3, 4, 5, 6, 7, 8].map((k) => `grind.slot${k}`);
 /** Beats in a note value like 1/4, 1/8D or 1/16T. */
@@ -3224,7 +3225,7 @@ export class SynthView {
     // its targets (owner's pick, option 1): up to three rows, each a target menu, a centre bar for its depth (left =
     // minus, right = plus; drag it, double-click = 0), the value and ×; + ADD TARGET under them. FILTER and VOLUME are
     // its own filter and gate (the classic wobble, Lo cut keeping the low end out); the rest move as LFO 1-4 move them
-    const rowsBox = h('div', 'lfo5-rows');
+    const rowsBox = h('div', 'lfo5-rows', h('div', 'lfo5-heads', h('span', '', 'DEPTH'), h('span', '', 'OFFSET')));
     const addBtn = h('button', 'lfo5-add', '+ ADD TARGET');
     const rowEls: HTMLElement[] = [];
     for (let t = 0; t < 3; t++) {
@@ -3242,35 +3243,21 @@ export class SynthView {
         if (this.num(aId) === 0) this.set(aId, 0.5);
         this.set('wobble.on', true);
       };
-      const fill = h('i', '');
-      const bar = h('span', 'lfo5-bar', fill);
-      bar.title = 'Depth: drag sideways (left = minus, the other way round), double-click = 0';
-      const setFrom = (e: PointerEvent) => {
-        const r = bar.getBoundingClientRect();
-        let v = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1));
-        if (Math.abs(v) < 0.03) v = 0;
-        this.set(aId, Math.round(v * 100) / 100);
-      };
-      bar.addEventListener('pointerdown', (e) => { bar.setPointerCapture(e.pointerId); setFrom(e); });
-      bar.addEventListener('pointermove', (e) => { if (bar.hasPointerCapture(e.pointerId)) setFrom(e); });
-      bar.addEventListener('pointerup', (e) => bar.releasePointerCapture(e.pointerId));
-      bar.ondblclick = () => this.set(aId, 0);
-      const val = h('span', 'lfo5-val');
+      // Depth and Offset (owner's pick, knobs only): small dials, their values on hover like every dial
+      const depthK = this.knob(aId, 'Depth', 'tiny', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%` });
+      const offK = this.knob(WOB_OFFS[t], 'Offset', 'tiny', { fmt: (v) => (v > 0.005 ? `↑ ${Math.round(v * 100)}` : v < -0.005 ? `↓ ${Math.round(-v * 100)}` : '↕ 0') });
       const x = h('button', 'lfo5-x', '×');
       x.title = 'Remove this target';
-      x.onclick = () => { this.set(dId, 'none'); this.set(aId, 0); };
-      const row = h('div', 'lfo5-row', h('div', 'sel lfo5-target-sel', sel), bar, val, x);
+      x.onclick = () => { this.set(dId, 'none'); this.set(aId, 0); this.set(WOB_OFFS[t], 0); };
+      const row = h('div', 'lfo5-row', h('div', 'sel lfo5-target-sel', sel), h('div', 'lfo5-dials', depthK, offK), x);
       rowEls.push(row);
       rowsBox.append(row);
-      this.watch([dId, aId, ...RUIN_SLOT_IDS], () => {
+      this.watch([dId, ...RUIN_SLOT_IDS], () => {
         this.driveGroup(sel);
         this.dropGoneDrive(dId);
-        const dest = String(this.get(dId)), a = this.num(aId);
+        const dest = String(this.get(dId));
         sel.value = dest;
         row.style.display = dest === 'none' ? 'none' : '';
-        fill.style.cssText = a >= 0 ? `left:50%;width:${a * 50}%` : `right:50%;width:${-a * 50}%`;
-        val.textContent = `${a > 0 ? '+' : ''}${Math.round(a * 100)}%`;
-        val.classList.toggle('neg', a < 0);
       });
     }
     rowsBox.append(addBtn);
@@ -3283,7 +3270,10 @@ export class SynthView {
       this.set(WOB_AMTS[t], 0.5);
       this.set('wobble.on', true);
     };
-    this.watch(WOB_DESTS, () => { addBtn.style.display = WOB_DESTS.some((id) => this.get(id) === 'none') ? '' : 'none'; });
+    this.watch(WOB_DESTS, () => {
+      addBtn.style.display = WOB_DESTS.some((id) => this.get(id) === 'none') ? '' : 'none';
+      (rowsBox.firstChild as HTMLElement).style.display = WOB_DESTS.some((id) => this.get(id) !== 'none') ? '' : 'none';
+    });
     const ownFG = () => WOB_DESTS.some((id) => this.get(id) === 'lfo_filter' || this.get(id) === 'amp');
     const pct = (v: number) => `${Math.round(v * 100)}%`;
     const settings = h('div', 'c ob box-wob lfo5-settings',

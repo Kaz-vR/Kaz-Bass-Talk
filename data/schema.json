@@ -7889,6 +7889,42 @@
       "describes": "How far the custom LFO moves this target, and which way (minus = the other way round). On Filter and Volume: its own filter and gate."
     },
     {
+      "id": "wobble.off1",
+      "label": "Custom LFO target 1 offset",
+      "type": "float",
+      "min": -1,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "Where this target's swing sits: up = above where it is set, centre = around it, down = below it. On Filter and Volume: the swing high in their range (up) or low (down)."
+    },
+    {
+      "id": "wobble.off2",
+      "label": "Custom LFO target 2 offset",
+      "type": "float",
+      "min": -1,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "Where this target's swing sits: up = above where it is set, centre = around it, down = below it. On Filter and Volume: the swing high in their range (up) or low (down)."
+    },
+    {
+      "id": "wobble.off3",
+      "label": "Custom LFO target 3 offset",
+      "type": "float",
+      "min": -1,
+      "max": 1,
+      "default": 0,
+      "curve": "linear",
+      "unit": "",
+      "group": "wobble",
+      "describes": "Where this target's swing sits: up = above where it is set, centre = around it, down = below it. On Filter and Volume: the swing high in their range (up) or low (down)."
+    },
+    {
       "id": "wobble.oneshot",
       "label": "Custom LFO one shot",
       "type": "bool",

@@ -796,20 +796,21 @@ class Synth {
       }
       wobV += (tgt - wobV) * 0.35;
       const double v = wobV;
-      double fD = 0, fV = v, gD = 0, gV = v;
+      // each target's Offset: where its swing sits, (1 - o) / 2 of the way down (as synth.ts)
+      double fD = 0, fV = v, fO = 0, gD = 0, gV = v, gO = 0;
       for (int t = 0; t < 3; t++) {
         const int dest = (int)jsRound(cur[P.wobDests[t]]);
-        const double a = cur[P.wobAmts[t]];
+        const double a = cur[P.wobAmts[t]], low = (1 - cur[P.wobOffs[t]]) / 2;
         if (dest <= 0 || dest >= DEST_COUNT || a == 0) continue;
-        if (dest == D_LF_ALL) { if (std::fabs(a) > fD) { fD = std::fabs(a); fV = a < 0 ? 1 - v : v; } }
-        else if (dest == D_AMP) { if (std::fabs(a) > gD) { gD = std::fabs(a); gV = a < 0 ? 1 - v : v; } }
-        else x[(size_t)dest] += v * a * wobScale;
+        if (dest == D_LF_ALL) { if (std::fabs(a) > fD) { fD = std::fabs(a); fV = a < 0 ? 1 - v : v; fO = low; } }
+        else if (dest == D_AMP) { if (std::fabs(a) > gD) { gD = std::fabs(a); gV = a < 0 ? 1 - v : v; gO = low; } }
+        else x[(size_t)dest] += (v - low) * a * wobScale;
       }
       if (fD > 0) {
         const double lc = cur[P.wobLowcut];
         const double lo = lc > 21 ? lc : 60, hi = std::fmin(18000, sampleRate * 0.45);
         const double d = std::fmin(1, fD * wobScale);
-        const double fc = std::fmax(20, std::fmin(hi, hi * std::pow(lo / hi, d * (1 - fV)) * std::pow(2.0, 6 * wobBright)));
+        const double fc = std::fmax(20, std::fmin(hi, hi * std::pow(lo / hi, d * (1 - fV) + fO * (1 - d)) * std::pow(2.0, 6 * wobBright)));
         const double gT = std::tan((PI * fc) / sampleRate);
         if (!wobFiltWas) {
           wobG = gT;
@@ -820,7 +821,7 @@ class Synth {
         wobK = 1.3 - 0.75 * d;
         liveWobFc = fc;
       }
-      if (gD > 0) wobGateTarget = 1 - std::fmin(1, gD * wobScale) * (1 - gV);
+      if (gD > 0) { const double gd = std::fmin(1, gD * wobScale); wobGateTarget = std::fmax(0.0, 1 - gd * (1 - gV) - gO * (1 - gd)); }
     }
   }
 

@@ -773,13 +773,15 @@ export class Synth {
       const v = this.wobV;
       // its targets: FILTER = its own filter, VOLUME = its own gate (minus = the shape upside down), the rest
       // moved through every voice as any LFO moves them
-      let fD = 0, fV = v, gD = 0, gV = v;
+      // each target's Offset (owner's call): where its swing sits, (1 - o) / 2 of the way down: up = above where
+      // the target is set, centre = around it, down = below it; on its own filter and gate, high or low in the range
+      let fD = 0, fV = v, fO = 0, gD = 0, gV = v, gO = 0;
       for (let t = 0; t < 3; t++) {
-        const dest = Math.round(cur[P.wobDests[t]]), a = cur[P.wobAmts[t]];
+        const dest = Math.round(cur[P.wobDests[t]]), a = cur[P.wobAmts[t]], low = (1 - cur[P.wobOffs[t]]) / 2;
         if (dest <= 0 || a === 0) continue;
-        if (dest === K.D_LF_ALL) { if (Math.abs(a) > fD) { fD = Math.abs(a); fV = a < 0 ? 1 - v : v; } }
-        else if (dest === K.D_AMP) { if (Math.abs(a) > gD) { gD = Math.abs(a); gV = a < 0 ? 1 - v : v; } }
-        else x[dest] += v * a * this.wobScale;
+        if (dest === K.D_LF_ALL) { if (Math.abs(a) > fD) { fD = Math.abs(a); fV = a < 0 ? 1 - v : v; fO = low; } }
+        else if (dest === K.D_AMP) { if (Math.abs(a) > gD) { gD = Math.abs(a); gV = a < 0 ? 1 - v : v; gO = low; } }
+        else x[dest] += (v - low) * a * this.wobScale;
       }
       // Cutoff and volume, either or both: the Wobbler's own filter opens and shuts, the volume
       // only ducks (never louder).
@@ -790,7 +792,7 @@ export class Synth {
         const lc = cur[P.wobLowcut];
         const lo = lc > 21 ? lc : 60, hi = Math.min(18000, this.sampleRate * 0.45);
         const d = Math.min(1, fD * this.wobScale);
-        const fc = Math.max(20, Math.min(hi, hi * Math.pow(lo / hi, d * (1 - fV)) * Math.pow(2, 6 * this.wobBright)));
+        const fc = Math.max(20, Math.min(hi, hi * Math.pow(lo / hi, d * (1 - fV) + fO * (1 - d)) * Math.pow(2, 6 * this.wobBright)));
         const gT = Math.tan((Math.PI * fc) / this.sampleRate);
         if (!this.wobFiltWas) {
           this.wobG = gT;
@@ -804,7 +806,7 @@ export class Synth {
       if (gD > 0) {
         // A tempo-locked gate on the whole sound (sub, effects and tails too, as in ShaperBox):
         // full level where the shape is up, down to silence at full depth.
-        this.wobGateTarget = 1 - Math.min(1, gD * this.wobScale) * (1 - gV);
+        { const gd = Math.min(1, gD * this.wobScale); this.wobGateTarget = Math.max(0, 1 - gd * (1 - gV) - gO * (1 - gd)); }
       }
     }
   }

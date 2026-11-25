@@ -173,7 +173,7 @@ struct ParamIndex {
   int driveOn, filterOn, distOn, crushOn, tapeOn, vibOn, lfoOn[6], modOn, eqOn, chorusOn, flangerOn,
       phaserOn, delayOn, reverbOn;
   int wheelMove, wheelPreset;
-  int wobDests[3], wobAmts[3], wobDest, wobOneShot, wobOn, wobDepth, wobRate, wobFree, wobHz, wobCutoff, wobVolume, wobShape, wobLife, wobPts, wobPhase, wobSmooth, wobLowcut, wobX[32], wobY[32], wobS[32];
+  int wobDests[3], wobAmts[3], wobOffs[3], wobDest, wobOneShot, wobOn, wobDepth, wobRate, wobFree, wobHz, wobCutoff, wobVolume, wobShape, wobLife, wobPts, wobPhase, wobSmooth, wobLowcut, wobX[32], wobY[32], wobS[32];
   int flangerMix, flangerRate, flangerFb, delayMix, delayTime, delayFb, delayTone;
   int reverbType, reverbDecay, reverbPre, reverbOct, eqHighcut;
   int amp[4], mod[4], vibDepth, vibRate, vibDelay, vibFade;
@@ -226,7 +226,7 @@ struct ParamIndex {
     wobDest = ix("wobble.dest"); wobOneShot = ix("wobble.oneshot");
     wobDepth = ix("wobble.depth"); wobRate = ix("wobble.rate");
     wobDests[0] = ix("wobble.dest"); wobDests[1] = ix("wobble.dest2"); wobDests[2] = ix("wobble.dest3");
-    wobAmts[0] = ix("wobble.amt1"); wobAmts[1] = ix("wobble.amt2"); wobAmts[2] = ix("wobble.amt3"); wobFree = ix("wobble.free"); wobHz = ix("wobble.hz"); wobCutoff = ix("wobble.cutoff"); wobVolume = ix("wobble.volume");
+    wobAmts[0] = ix("wobble.amt1"); wobAmts[1] = ix("wobble.amt2"); wobAmts[2] = ix("wobble.amt3"); wobOffs[0] = ix("wobble.off1"); wobOffs[1] = ix("wobble.off2"); wobOffs[2] = ix("wobble.off3"); wobFree = ix("wobble.free"); wobHz = ix("wobble.hz"); wobCutoff = ix("wobble.cutoff"); wobVolume = ix("wobble.volume");
     wobShape = ix("wobble.shape"); wobLife = ix("wobble.life"); wobPts = ix("wobble.points"); wobPhase = ix("wobble.phase");
     wobSmooth = ix("wobble.smooth"); wobLowcut = ix("wobble.lowcut");
     for (int i = 0; i < 32; i++) {

@@ -322,13 +322,24 @@ function migrateWobTargets(src: Record<string, unknown>): Record<string, unknown
 }
 
 /**
+ * Each custom LFO target got an Offset (owner's call); before it every swing sat on top (above the target, high in
+ * its own filter's and gate's range), which is Offset +1, so older patches keep their sound.
+ */
+function migrateWobOffsets(src: Record<string, unknown>): Record<string, unknown> {
+  if (!('wobble.amt1' in src) || 'wobble.off1' in src) return src;
+  const out = { ...src };
+  for (const n of [1, 2, 3]) out[`wobble.off${n}`] = Number(src[`wobble.amt${n}`]) ? 1 : 0;
+  return out;
+}
+
+/**
  * Validate any patch-like object against the schema. Missing params get
  * defaults; out-of-range values are clamped; unknown keys are dropped.
  * Always returns a complete, safe patch plus a list of what was fixed.
  */
 export function validatePatch(input: unknown): ValidationResult {
   const issues: ValidationIssue[] = [];
-  const src = migrateWobTargets(migrateMatrix(migrateEq(migrateGrindSlots(migrateGrindWidth(migrateGrind(migrateTexture(migrateAttackCurve(migrateReverb(migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>)))))))))));
+  const src = migrateWobOffsets(migrateWobTargets(migrateMatrix(migrateEq(migrateGrindSlots(migrateGrindWidth(migrateGrind(migrateTexture(migrateAttackCurve(migrateReverb(migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>))))))))))));
   const rawMeta = src.meta && typeof src.meta === 'object' ? (src.meta as PatchMeta) : undefined;
   const meta: PatchMeta = { ...(rawMeta ?? {}), name: typeof rawMeta?.name === 'string' ? rawMeta.name : 'Untitled' };
   if (!rawMeta) issues.push({ param: 'meta', message: 'missing meta' });

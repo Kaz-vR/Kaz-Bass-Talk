@@ -6,7 +6,7 @@ struct ParamSpec {
   const char* id; const char* label; PType type; double min, max, def; int curve; double exponent;
   const char* unit; const char* group; const char* options; const char* describes;
 };
-constexpr int PARAM_COUNT = 953;
+constexpr int PARAM_COUNT = 956;
 inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "voice.polyphony", "Polyphony", PType::Int, 1, 8, 1, 0, 3, "voices", "voice", "", "1 = monophonic (legato and glide work, the bass default). 2-8 = that many notes at once, for pads, keys and chords; the oldest note is taken over when more are played." },
   { "voice.legato", "Legato", PType::Bool, 0, 1, 0, 0, 3, "", "voice", "", "On: overlapping notes slide without retriggering the envelopes (303-style). Off: every note retriggers." },
@@ -563,6 +563,9 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "wobble.amt1", "Custom LFO target 1 depth", PType::Float, -1, 1, 0, 0, 3, "", "wobble", "", "How far the custom LFO moves this target, and which way (minus = the other way round). On Filter and Volume: its own filter and gate." },
   { "wobble.amt2", "Custom LFO target 2 depth", PType::Float, -1, 1, 0, 0, 3, "", "wobble", "", "How far the custom LFO moves this target, and which way (minus = the other way round). On Filter and Volume: its own filter and gate." },
   { "wobble.amt3", "Custom LFO target 3 depth", PType::Float, -1, 1, 0, 0, 3, "", "wobble", "", "How far the custom LFO moves this target, and which way (minus = the other way round). On Filter and Volume: its own filter and gate." },
+  { "wobble.off1", "Custom LFO target 1 offset", PType::Float, -1, 1, 0, 0, 3, "", "wobble", "", "Where this target's swing sits: up = above where it is set, centre = around it, down = below it. On Filter and Volume: the swing high in their range (up) or low (down)." },
+  { "wobble.off2", "Custom LFO target 2 offset", PType::Float, -1, 1, 0, 0, 3, "", "wobble", "", "Where this target's swing sits: up = above where it is set, centre = around it, down = below it. On Filter and Volume: the swing high in their range (up) or low (down)." },
+  { "wobble.off3", "Custom LFO target 3 offset", PType::Float, -1, 1, 0, 0, 3, "", "wobble", "", "Where this target's swing sits: up = above where it is set, centre = around it, down = below it. On Filter and Volume: the swing high in their range (up) or low (down)." },
   { "wobble.oneshot", "Custom LFO one shot", PType::Bool, 0, 1, 0, 0, 3, "", "wobble", "", "ONE SHOT: the shape starts again at every note, runs once at its rate and holds its end until the next note." },
   { "wobble.points", "Wobble custom points", PType::Int, 2, 32, 2, 0, 3, "", "wobble", "", "How many points the custom wobble shape has." },
   { "wobble.x1", "Wobble point 1 time", PType::Float, 0, 1, 0, 0, 3, "", "wobble", "", "Where this point of the custom shape sits in the cycle (0 = start, 1 = end)." },
