@@ -134,6 +134,17 @@ export function packWob(a: number, b: number): number {
   return e(a) * 4096 + e(b);
 }
 
+/** The page's side of Synth.liveDials: parameter index -> position (0..1), from the count and the packed values. */
+export function decodeDials(count: number, at: (k: number) => number): Map<number, number> {
+  const out = new Map<number, number>();
+  const n = Math.max(0, Math.min(23, Math.round(count)));
+  for (let k = 0; k < n; k++) {
+    const v = Math.round(at(k)), i = Math.floor(v / 4096);
+    out.set(i, (v - i * 4096) / 4095);
+  }
+  return out;
+}
+
 /** The page's side of packWob: [a, b], null for off. */
 export function unpackWob(v: number): [number | null, number | null] {
   const r = Math.round(v), a = Math.floor(r / 4096), b = r - a * 4096;

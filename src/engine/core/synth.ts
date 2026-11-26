@@ -85,6 +85,9 @@ export class Synth {
   private readonly pmodIdx = new Int32Array(K.MOD_TARGET_PARAMS.length);
   private readonly pmodBase = new Float64Array(PARAM_COUNT);
   private pmodN = 0;
+  /** For the page (owner's call: a moved dial is seen moving): [0] how many dials are moved, then each as
+   * index x 4096 + its position (0..4095 of its 0..1 range), at most LIVE_DIALS. */
+  readonly liveDials = new Float64Array(1 + K.LIVE_DIALS);
   /** The newest voice of the last block (its mod matrix moves the dials), -1 before any. */
   private leadIdx = -1;
   private readonly pMin = new Float64Array(PARAM_COUNT);
@@ -735,7 +738,8 @@ export class Synth {
   private moveDials(): void {
     const lead = this.leadIdx >= 0 ? this.voices[this.leadIdx] : null;
     const dst = lead && lead.active ? lead.dst : this.xdst;
-    const cur = this.cur, list = K.MOD_TARGET_PARAMS;
+    const cur = this.cur, list = K.MOD_TARGET_PARAMS, live = this.liveDials;
+    live[0] = 0;
     for (let k = 0; k < list.length; k++) {
       const m = dst[K.D_PARAM0 + k];
       if (m === 0) continue;
@@ -749,6 +753,7 @@ export class Synth {
       let out = c === 1 ? lo * Math.pow(hi / lo, n) : c === 2 ? lo + (hi - lo) * Math.pow(n, this.pExp[i]) : lo + (hi - lo) * n;
       if (this.isDiscrete[i]) out = Math.round(out);
       cur[i] = out;
+      if (live[0] < K.LIVE_DIALS) live[1 + live[0]++] = i * 4096 + Math.round(n * 4095);
     }
   }
 

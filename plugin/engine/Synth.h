@@ -691,6 +691,7 @@ class Synth {
   void moveDials() {
     const Voice* lv = leadIdx >= 0 ? voices[(size_t)leadIdx].get() : nullptr;
     const double* dst = lv && lv->active() ? lv->dst.data() : xdst.data();
+    liveDials[0] = 0;
     for (int k = 0; k < MOD_TARGET_COUNT; k++) {
       const double m = dst[D_PARAM0 + k];
       if (m == 0) continue;
@@ -706,6 +707,7 @@ class Synth {
       double out = c == 1 ? lo * std::pow(hi / lo, n) : c == 2 ? lo + (hi - lo) * std::pow(n, ps.exponent) : lo + (hi - lo) * n;
       if (isDiscrete[(size_t)i]) out = jsRound(out);
       cur[(size_t)i] = out;
+      if (liveDials[0] < LIVE_DIALS) liveDials[(size_t)(1 + liveDials[0]++)] = i * 4096.0 + jsRound(n * 4095);
     }
   }
 
@@ -1000,6 +1002,10 @@ class Synth {
   std::array<int, MOD_TARGET_COUNT> pmodIdx{};
   std::array<double, PARAM_COUNT> pmodBase{};
   int pmodN = 0, leadIdx = -1;
+ public:
+  // for the page: [0] how many dials are moved, then index x 4096 + position (as synth.ts)
+  std::array<double, 1 + LIVE_DIALS> liveDials{};
+ private:
   int monSolo = 0, monMute = 0;
   double smoothCoef = 0, duckGain = 1, duckStep = 0;
   int duckDir = 0, duckHold = 0;

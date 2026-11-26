@@ -3,7 +3,7 @@
 // events; the plugin answers with its parameters (host automation, program
 // changes, a reopened window), the notes it plays and its output for the scope.
 
-import { unpackWob } from './core/wobunit';
+import { decodeDials, unpackWob } from './core/wobunit';
 import { getParam, paramIndex, params, patchToArray, toEngineValue, validatePatch, type Patch, type ParamValue } from '../schema';
 import { compileLoop, type Loop } from './core/sequencer';
 
@@ -197,6 +197,11 @@ export class PluginHost {
   /** Where each custom LFO is in its cycle (0..1), or null when it is off. */
   liveWobble(): (number | null)[] {
     return [...unpackWob(this.live[2] ?? -1), ...unpackWob(this.live[3] ?? -1)];
+  }
+
+  /** The dials the LFOs move right now: parameter index -> position in its 0..1 range. */
+  liveDials(): Map<number, number> {
+    return decodeDials(this.live[40] ?? 0, (k) => this.live[41 + k] ?? 0);
   }
 
   /** Each LFO's phase (0..1) and value (-1..1). */

@@ -509,6 +509,7 @@ $('start').querySelector('button')!.addEventListener('click', async () => {
   const engine = host;
   synth.setLiveFilter(() => engine.liveFilter());
   synth.setLiveWobble(() => engine.liveWobble());
+  synth.setLiveDials(() => engine.liveDials());
   synth.setLiveLfos(() => engine.liveLfos());
   synth.setLiveGrind(() => engine.liveGrind());
   synth.setRuinTaps(() => engine.ruinTaps());
@@ -592,6 +593,7 @@ function startPlugin(): void {
   // the moving prints read the engine's live values, sent with the scope
   synth.setLiveFilter(() => ph.liveFilter());
   synth.setLiveWobble(() => ph.liveWobble());
+  synth.setLiveDials(() => ph.liveDials());
   synth.setLiveLfos(() => ph.liveLfos());
   synth.setLiveGrind(() => ph.liveGrind());
 }

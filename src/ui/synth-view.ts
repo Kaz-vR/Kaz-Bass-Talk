@@ -1084,7 +1084,7 @@ export class SynthView {
   private runDots(): void {
     if (this.dotRaf) return;
     const step = () => {
-      for (const f of this.dotDraws) f();
+      this.live(() => { for (const f of this.dotDraws) f(); });
       const now = performance.now();
       // The envelopes' balls and the MOD page's moving prints run until the longest release.
       const longest = Math.max(this.num('amp_env.release'), this.num('mod_env.release'));
@@ -1099,7 +1099,7 @@ export class SynthView {
       } else {
         this.noteT0 = -1;
         this.anim.on = false;
-        for (const f of this.dotDraws) f();
+        this.live(() => { for (const f of this.dotDraws) f(); });
         for (const a of this.animDraws) a.f();
       }
       this.dotRaf = live ? requestAnimationFrame(step) : 0;
@@ -1146,7 +1146,7 @@ export class SynthView {
             moved = true;
           }
         }
-        if (moved) for (const f of this.grindLiveDraws) f();
+        if (moved) this.live(() => { for (const f of this.grindLiveDraws) f(); });
       }
       requestAnimationFrame(step);
     };
@@ -1161,7 +1161,7 @@ export class SynthView {
       const moved = !v !== !was || (v && was && (Math.abs(v.cutoff / was.cutoff - 1) > 0.002 || Math.abs(v.res - was.res) > 0.002));
       if (moved) {
         this.liveFilter = v;
-        for (const f of this.liveDraws) f();
+        this.live(() => { for (const f of this.liveDraws) f(); });
       }
       requestAnimationFrame(step);
     };
@@ -1183,7 +1183,7 @@ export class SynthView {
   /** The mod wheel moved elsewhere (hardware or the full view): show it. */
   setWheel(v: number): void {
     this.wheel = v;
-    for (const f of this.wheelViews) f();
+    this.live(() => { for (const f of this.wheelViews) f(); });
   }
 
   /** The keyboard moved an octave (base = its lowest C as a MIDI note). */
@@ -1263,7 +1263,46 @@ export class SynthView {
     return v === undefined ? (getParam(id)?.default as ParamValue) : v;
   }
   private num(id: string): number {
+    // while a view draws, a dial an LFO moves reads where the LFO has it right now (owner's call: it is seen moving)
+    if (this.liveView) {
+      const m = this.dialLive.get(id);
+      if (m !== undefined) return m;
+    }
     return Number(this.get(id));
+  }
+
+  /** Run views with the dials where the LFOs have them right now (the live loops: dots, the live filter, RUIN). */
+  private live(run: () => void): void {
+    const was = this.liveView;
+    this.liveView = true;
+    try {
+      run();
+    } finally {
+      this.liveView = was;
+    }
+  }
+
+  /** The dials the LFOs move right now (id -> value), and whether a view is drawing (so num() reads them). */
+  private dialLive = new Map<string, number>();
+  private liveView = false;
+
+  /** The engine's moved dials (parameter index -> 0..1): every view of a dial that moves or stops redraws. */
+  setLiveDials(read: () => Map<number, number>): void {
+    const step = () => {
+      const raw = read();
+      const next = new Map<string, number>();
+      for (const [i, n] of raw) {
+        const p = params[i];
+        if (p) next.set(p.id, fromNormalized(p, n));
+      }
+      const changed: string[] = [];
+      for (const [id, v] of next) if (this.dialLive.get(id) !== v) changed.push(id);
+      for (const id of this.dialLive.keys()) if (!next.has(id)) changed.push(id);
+      this.dialLive = next;
+      for (const id of changed) for (const f of this.watchers.get(id) ?? []) f();
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
   private set(id: string, v: ParamValue): void {
@@ -1279,7 +1318,17 @@ export class SynthView {
   }
 
   /** Run `view` now, whenever one of `ids` changes, and when a patch loads. */
-  private watch(ids: string[], view: () => void): void {
+  private watch(ids: string[], draw: () => void): void {
+    // (a view always draws with the dials where the LFOs have them right now)
+    const view = () => {
+      const was = this.liveView;
+      this.liveView = true;
+      try {
+        draw();
+      } finally {
+        this.liveView = was;
+      }
+    };
     for (const id of ids) {
       if (!this.watchers.has(id)) this.watchers.set(id, []);
       this.watchers.get(id)!.push(view);
@@ -2916,7 +2965,7 @@ export class SynthView {
       const v = read();
       if (v.some((x, i) => x !== this.liveWobs[i])) {
         this.liveWobs = v;
-        for (const f of this.wobDraws) f();
+        this.live(() => { for (const f of this.wobDraws) f(); });
       }
       requestAnimationFrame(step);
     };
@@ -5616,7 +5665,7 @@ export class SynthView {
     pitch.title = 'Pitch bend (springs back when you let go)';
     const [mod, drawMod] = this.wheelCanvas(() => this.wheel, (v) => {
       this.wheel = v;
-      for (const f of this.wheelViews) f();
+      this.live(() => { for (const f of this.wheelViews) f(); });
       this.onWheel(v);
     }, false);
     mod.title = 'Mod wheel: plays the preset\'s move (follows your keyboard\'s wheel). Double-click to reset.';

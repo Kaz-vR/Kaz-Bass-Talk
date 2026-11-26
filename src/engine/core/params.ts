@@ -135,6 +135,8 @@ export const D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_O
  * 0..1 knob range, before the engine reads it.
  */
 export const D_PARAM0 = 62;
+/** How many moved dials the engine reports to the page at once. */
+export const LIVE_DIALS = 23;
 export const MOD_TARGET_PARAMS = getParam('mod1.dest')!.options!.filter((o) => o.startsWith('p:')).map((o) => paramIndex(o.slice(2)));
 export const DEST_COUNT = D_PARAM0 + MOD_TARGET_PARAMS.length;
 /** The LFO filters' open frequency and how many octaves a full swing closes them. */

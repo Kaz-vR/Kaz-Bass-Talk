@@ -1,7 +1,7 @@
 // Main-thread side of the engine: owns the AudioContext and the worklet node,
 // validates patches and compiles loops before handing them to the audio thread.
 
-import { unpackWob } from './core/wobunit';
+import { decodeDials, unpackWob } from './core/wobunit';
 import { getParam, paramIndex, patchToArray, toEngineValue, validatePatch, type Patch, type ParamValue } from '../schema';
 import { compileLoop, type Loop } from './core/sequencer';
 import { PROCESSOR_NAME, type EngineMessage } from './messages';
@@ -25,6 +25,8 @@ export class EngineHost {
   private readonly ctlWob: AnalyserNode;
   private readonly ctlLfo: AnalyserNode[] = [];
   private readonly ctlPh: AnalyserNode[] = [];
+  /** The dials the LFOs move (output 4, channels 8-31). */
+  private readonly ctlDial: AnalyserNode[] = [];
   private readonly ctlBuf = new Float32Array(32);
   /** The RUIN page's taps (output 3): an analyser on each point of the chain, read only while the page shows. */
   private readonly tapAn: AnalyserNode[] = [];
@@ -48,13 +50,13 @@ export class EngineHost {
     split.connect(this.ctlCut, 0);
     split.connect(this.ctlRes, 1);
     split.connect(this.ctlWob, 2);
-    const psplit = ctx.createChannelSplitter(8);
+    const psplit = ctx.createChannelSplitter(32);
     node.connect(psplit, 3);
-    for (let c = 0; c < 8; c++) {
+    for (let c = 0; c < 32; c++) {
       const a = ctx.createAnalyser();
       a.fftSize = 32;
       psplit.connect(a, c);
-      this.ctlPh.push(a);
+      (c < 8 ? this.ctlPh : this.ctlDial).push(a);
     }
     const tsplit = ctx.createChannelSplitter(13);
     node.connect(tsplit, 2);
@@ -96,6 +98,15 @@ export class EngineHost {
     // stages 1-4 on channels 12-15 / 16-19, stages 5-8 on 24-27 / 28-31
     const a = this.ctlLfo;
     return { fc: [...a.slice(9, 13), ...a.slice(21, 25)].map(read), res: [...a.slice(13, 17), ...a.slice(25, 29)].map(read), ph: this.livePhaser() };
+  }
+
+  /** The dials the LFOs move right now: parameter index -> position in its 0..1 range. */
+  liveDials(): Map<number, number> {
+    const read = (a: AnalyserNode) => {
+      a.getFloatTimeDomainData(this.ctlBuf);
+      return this.ctlBuf[31];
+    };
+    return decodeDials(read(this.ctlDial[0]), (k) => read(this.ctlDial[1 + k]));
   }
 
   /** Each RUIN phaser's left and right LFO (-1..1) right now, packed; -1 when it is off. */
@@ -157,7 +168,7 @@ export class EngineHost {
       numberOfInputs: 0,
       numberOfOutputs: 4,
       // the 4th: each RUIN phaser's live L / R (an output holds at most 32 channels)
-      outputChannelCount: [2, 32, 13, 8],
+      outputChannelCount: [2, 32, 13, 32],
     });
     return new EngineHost(ctx, node);
   }

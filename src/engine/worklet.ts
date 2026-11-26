@@ -78,6 +78,8 @@ class LowTalkProcessor extends AudioWorkletProcessor {
     // output 4: each RUIN phaser's left and right LFO, packed
     const ph = outputs[3];
     if (ph) for (let i = 0; i < Math.min(8, ph.length); i++) ph[i].fill(this.synth.livePhaser[i]);
+    // channels 8-31: the dials the LFOs move right now (count, then index x 4096 + position)
+    if (ph && ph.length >= 32) for (let i = 0; i < 24; i++) ph[8 + i].fill(this.synth.liveDials[i]);
     const tp = outputs[2];
     if (tp && tp.length >= 13) {
       const n = tp[0].length, taps = this.synth.taps, len = taps[0].length;

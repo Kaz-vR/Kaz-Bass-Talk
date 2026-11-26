@@ -232,6 +232,8 @@ void LowTalkProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     for (int g = 4; g < 8; g++) live[(size_t)k++].store((float)synth->liveGrind[(size_t)g]);
     for (int g = 4; g < 8; g++) live[(size_t)k++].store((float)synth->liveGrindRes[(size_t)g]);
     for (int g = 0; g < 8; g++) live[(size_t)k++].store((float)synth->livePhaser[(size_t)g]);
+    // 40-63: the dials the LFOs move (count, then index x 4096 + position)
+    for (int d = 0; d < 1 + lt::LIVE_DIALS; d++) live[(size_t)k++].store((float)synth->liveDials[(size_t)d]);
   }
 
   // Feed the window's scope and meter.
