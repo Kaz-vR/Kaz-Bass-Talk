@@ -11,6 +11,7 @@
 #include "Dsp.h"
 #include "Wavetable.h"
 #include "generated/Schema.h"
+#include "generated/ModTargets.h"
 #include "generated/Wobble.h"
 
 namespace lt {
@@ -112,7 +113,9 @@ constexpr int D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_
               D_RUIN_DRIVES = 53, D_RUIN_DRIVE1 = 54;
 constexpr double LF_OPEN_HZ = 20000, LF_OCTAVES = 8;
 inline bool isPitchDest(int d) { return d == D_PITCH || d == D_OSC1_PITCH || d == D_OSC2_PITCH || d == D_OSC_PITCH || d == D_SUB_PITCH; }
-constexpr int DEST_COUNT = 62;
+// every dial an LFO can be connected to: destinations 62+ (as params.ts)
+constexpr int D_PARAM0 = 62;
+constexpr int DEST_COUNT = D_PARAM0 + MOD_TARGET_COUNT;
 constexpr double TEXTURE_GAIN = 0.5;
 /** Sound layers for solo / mute (Synth::setMonitor bit positions). */
 constexpr int MON_OSC1 = 0, MON_OSC2 = 1, MON_SUB = 2, MON_NOISE = 3, MON_BREATH = 4, MON_TEXTURE = 5;

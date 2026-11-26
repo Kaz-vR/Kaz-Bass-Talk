@@ -72,3 +72,17 @@ both engines and the schema), so the gate and filter work on the whole sound. Th
 value (`packWob`, worklet control channels 2 and 11, the plugin's live values 2 and 3). Older patches are converted
 to the same sound (`migrateWobOffsets`: matrix offset = depth x o, filter / gate offset = o x (1 - |depth|), o the
 old `wobble.off` or +1). Both engines.
+
+### Any dial as an LFO target (owner's call, 26 Nov, as in Serum and Vital)
+
+After the 62 fixed destinations every dest menu (`mod1-9.dest`, the custom LFOs' `dest`..`dest4`) lists
+`p:<param id>` for every dial on the pages (449: OSC A / B's OCT-SEM (`semi`), FIN, Detune, Spread, Shape, Level,
+Lo cut; the sub's OCT, Clip, Level; the noise's OCT, Tone, Density, Tail, Lo cut, Level; both envelopes' ADSR; the
+filter's ENV, Cutoff, Res, Drive, ACCENT, VOWEL; LFO 1-4's knobs and the custom LFOs' knobs and Hz rate; every RUIN
+knob (filter, bells, drive, EQ, phaser, the RUIN box's OTT / Lo cut / Mix / Output); every FX knob and the reverb's
+OCT; Glide and Master). `K.MOD_TARGET_PARAMS` / `generated/ModTargets.h` hold their parameter indices (destination
+`62 + k`). Each block `moveDials` (both engines) puts back last block's moved dials, smooths, then adds each
+destination's amount (the newest voice's matrix with the custom LFOs, from the last block; the custom LFOs alone
+while no voice sounds) to its dial in the dial's own 0..1 knob range (its curve), clamped, whole numbers rounded.
+**Rule (owner's):** every dial added to a page or changed must be targetable: append its id as a `p:` option to
+the dest menus (append only, so the numbers hold), and give its element `data-param` so the crosshair finds it.

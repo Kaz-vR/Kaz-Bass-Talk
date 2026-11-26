@@ -765,16 +765,8 @@ const wobAmts = (W: string) => [1, 2, 3, 4].map((k) => `${W}.amt${k}`);
 const wobOffs = (W: string) => [1, 2, 3, 4].map((k) => `${W}.offset${k}`);
 const wobTargetIds = (W: string) => [...wobDests(W), ...wobAmts(W), ...wobOffs(W), `${W}.master`];
 const RUIN_SLOT_IDS = [1, 2, 3, 4, 5, 6, 7, 8].map((k) => `grind.slot${k}`);
-/** CUSTOM targets (owner's call): the dials an LFO can be connected to by clicking them, and what each moves. */
-const LEARN_DEST: Record<string, string> = {
-  'osc1.level': 'osc1_level', 'osc2.level': 'osc2_level', 'sub.level': 'sub_level', 'texture.level': 'texture_level',
-  'osc1.unison_detune': 'osc1_detune', 'osc2.unison_detune': 'osc2_detune',
-  'osc1.pulse_width': 'osc1_pw', 'osc1.wt_pos': 'osc1_pw', 'osc2.pulse_width': 'osc2_pw', 'osc2.wt_pos': 'osc2_pw',
-  'filter.cutoff': 'filter_cutoff', 'filter.resonance': 'filter_resonance', 'drive.amount': 'drive',
-  'dist.drive': 'dist_drive', 'dist.post_tone': 'dist_tone', 'dist.mix': 'dist_mix', 'crush.mix': 'crush_mix', 'tape.wow': 'tape_wow',
-  'chorus.depth': 'chorus_depth', 'phaser.mix': 'phaser_mix', 'reverb.mix': 'reverb_mix',
-  'lfo1.rate': 'lfo1_rate', 'lfo2.rate': 'lfo2_rate', 'lfo3.rate': 'lfo3_rate', 'lfo4.rate': 'lfo4_rate',
-};
+/** Every dial an LFO can be connected to (owner's rule: every dial on the pages; the dest menus' 'p:' options). */
+const DIAL_TARGETS = new Set(getParam('mod1.dest')!.options!.filter((o) => o.startsWith('p:')).map((o) => o.slice(2)));
 /** Beats in a note value like 1/4, 1/8D or 1/16T. */
 function syncBeats(v: string): number {
   const m = /^(\d+)\/(\d+)([DT]?)$/.exec(v);
@@ -1620,6 +1612,7 @@ export class SynthView {
   private chip(label: string, get: () => number, set: (v: number) => void, min: number, max: number, ids: string[], title = ''): HTMLElement {
     const v = h('span', 'chip-val');
     const el = h('div', 'chip', h('span', 'chip-label', label), v);
+    if (ids[0]) el.dataset.param = ids[0];
     el.title = `${title} (drag up/down)`;
     let y0 = 0, v0 = 0;
     el.addEventListener('pointerdown', (e) => {
@@ -2238,6 +2231,7 @@ export class SynthView {
     const id = 'filter.env_amount', p = getParam(id)!;
     const val = h('span', 'envn-val');
     const el = h('div', 'envn', h('span', 'envn-label', 'ENV'), val);
+    el.dataset.param = id;
     const set = (v: number) => this.set(id, Math.round(Math.max(p.min!, Math.min(p.max!, v)) * 1000) / 1000);
     this.watch([id, 'mod_env.on'], () => {
       const a = this.num(id), oct = a * 6;
@@ -2264,6 +2258,7 @@ export class SynthView {
     const p = getParam(id)!;
     const val = h('span', 'envn-val');
     const el = h('div', 'envn envn-row', h('span', 'envn-label', label), val);
+    el.dataset.param = id;
     const set = (v: number) => this.set(id, Math.round(Math.max(p.min!, Math.min(p.max!, v)) * 1000) / 1000);
     this.watch([id], () => {
       const v = this.num(id);
@@ -2305,6 +2300,7 @@ export class SynthView {
     const p = getParam(id)!;
     const val = h('span', 'ro-val');
     const el = h('div', 'readout', h('span', 'ro-label', label), val);
+    el.dataset.param = id;
     el.title = `${p.label}: ${p.describes} (drag up/down)`;
     let y0 = 0, n0 = 0;
     el.addEventListener('pointerdown', (e) => {
@@ -2346,6 +2342,7 @@ export class SynthView {
     const track = h('div', 'glide-track', h('div', 'glide-fill'));
     const gval = h('span', 'glide-val');
     const glide = h('div', 'glide', h('span', 'glide-label', 'Glide'), track, gval);
+    glide.dataset.param = 'voice.glide';
     glide.title = `${glideP.label}: ${glideP.describes}`;
     const setFromX = (x: number) => {
       const r = track.getBoundingClientRect();
@@ -2628,15 +2625,20 @@ export class SynthView {
     if (gone) this.set(id, 'none');
   }
 
-  /** What a dial moves as an LFO target (CUSTOM), or null: the fixed list, and a RUIN drive by the box it sits in. */
+  /** The target a dial is as an LFO destination ('p:<id>'), or null when it can't be one. */
   private learnDest(param: string): string | null {
-    if (LEARN_DEST[param]) return LEARN_DEST[param];
-    const m = /^grind(\d)\.drive$/.exec(param);
-    if (m) {
-      const box = RUIN_SLOT_IDS.findIndex((id) => this.get(id) === `drive ${m[1]}`);
-      return box >= 0 ? `ruin_drive${box + 1}` : null;
-    }
-    return null;
+    return DIAL_TARGETS.has(param) ? `p:${param}` : null;
+  }
+
+  /** A dial target's name: its box and its own name on the page ("OSC A DETUNE"), else the schema's label. */
+  private dialName(dest: string): string {
+    if (!dest.startsWith('p:')) return LFO_TARGET_NAME[dest] ?? dest.replace(/_/g, ' ').toUpperCase();
+    const id = dest.slice(2);
+    const el = this.page.querySelector<HTMLElement>(`[data-param="${id}"]`);
+    const own = el?.querySelector('.k-label, .chip-label, .envn-label, .ro-label, .glide-label')?.textContent?.trim();
+    const box = el?.closest('.c, .ob, .mb')?.querySelector('.c-title')?.textContent?.trim();
+    if (own) return `${box && !box.startsWith('CUSTOM') ? `${box} ` : ''}${own}`.toUpperCase();
+    return (getParam(id)?.label ?? id).toUpperCase();
   }
 
   /**
@@ -2646,7 +2648,7 @@ export class SynthView {
   private customOption(sel: HTMLSelectElement, current: string): void {
     sel.querySelector('option.opt-custom')?.remove();
     if ([...sel.querySelectorAll('option')].some((o) => o.value === current)) return;
-    const o = new Option(LFO_TARGET_NAME[current] ?? current.replace(/_/g, ' ').toUpperCase(), current);
+    const o = new Option(this.dialName(current), current);
     o.className = 'opt-custom';
     sel.append(o);
   }
@@ -2673,9 +2675,9 @@ export class SynthView {
   private startLearn(apply: (dest: string) => void, exclude = '', btn?: HTMLElement): void {
     this.learnEnd?.();
     btn?.classList.add('on');
-    const marked = [...this.page.querySelectorAll<HTMLElement>('.k[data-param]')].filter((el) => {
+    const marked = [...this.page.querySelectorAll<HTMLElement>('[data-param]')].filter((el) => {
       const d = this.learnDest(el.dataset.param!);
-      return d !== null && d !== exclude;
+      return d !== null && !d.startsWith(exclude || '\u0000');
     });
     for (const el of marked) el.classList.add('learnable');
     this.page.classList.add('mod-learning');
@@ -2744,7 +2746,7 @@ export class SynthView {
       tsel.append(og);
     }
     tsel.onchange = () => { own(); this.set(`${slot}.dest`, tsel.value); };
-    const learn = this.learnButton((b) => this.startLearn((d) => { own(); this.set(`${slot}.dest`, d); }, `${L}_rate`, b));
+    const learn = this.learnButton((b) => this.startLearn((d) => { own(); this.set(`${slot}.dest`, d); }, `p:${L}.rate`, b));
     this.watch([`${slot}.dest`, ...RUIN_SLOT_IDS], () => {
       this.driveGroup(tsel);
       this.dropGoneDrive(`${slot}.dest`);
@@ -3283,6 +3285,7 @@ export class SynthView {
     // stepping a semitone of rate; double-click = 2 Hz
     const hzP = getParam(`${WP}.hz`)!;
     const hzBox = h('button', 'sel-name lfo5-rate-sel lfo5-hz');
+    hzBox.dataset.param = `${WP}.hz`;
     hzBox.title = `${hzP.describes} Drag up / down (Shift = fine), double-click = 2 Hz.`;
     const setHz = (v: number) => this.set(`${WP}.hz`, Math.round(Math.max(hzP.min!, Math.min(hzP.max!, v)) * 1000) / 1000);
     hzBox.addEventListener('pointerdown', (e) => {
@@ -3354,7 +3357,7 @@ export class SynthView {
         this.set(`${WP}.on`, true);
       };
       sel.onchange = () => pick(sel.value);
-      const learn = this.learnButton((b) => this.startLearn(pick, '', b));
+      const learn = this.learnButton((b) => this.startLearn(pick, `p:${WP}.`, b));
       // Depth and Offset (owner's pick, knobs only): small dials, their values on hover like every dial
       const depthK = this.knob(aId, 'Depth', 'tiny', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%` });
       const offK = this.knob(WOB_OFFS[t], 'Offset', 'tiny', { fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%` });

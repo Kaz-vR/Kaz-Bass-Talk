@@ -81,6 +81,16 @@ export class Synth {
   private monitorMute: readonly string[] = [];
   private readonly isLog = new Uint8Array(PARAM_COUNT);
   private readonly isDiscrete = new Uint8Array(PARAM_COUNT);
+  /** Dials moved by an LFO this block (owner's call: any dial is a target): their unmoved values, to put back. */
+  private readonly pmodIdx = new Int32Array(K.MOD_TARGET_PARAMS.length);
+  private readonly pmodBase = new Float64Array(PARAM_COUNT);
+  private pmodN = 0;
+  /** The newest voice of the last block (its mod matrix moves the dials), -1 before any. */
+  private leadIdx = -1;
+  private readonly pMin = new Float64Array(PARAM_COUNT);
+  private readonly pMax = new Float64Array(PARAM_COUNT);
+  private readonly pCurve = new Uint8Array(PARAM_COUNT);
+  private readonly pExp = new Float64Array(PARAM_COUNT);
   private readonly smoothCoef: number;
   private duckGain = 1;
   private duckDir = 0; // -1 fading out, +1 fading in
@@ -275,6 +285,10 @@ export class Synth {
     params.forEach((p, i) => {
       this.isLog[i] = p.curve === 'log' ? 1 : 0;
       this.isDiscrete[i] = p.type === 'float' ? 0 : 1;
+      this.pMin[i] = p.min ?? 0;
+      this.pMax[i] = p.max ?? 1;
+      this.pCurve[i] = p.curve === 'log' ? 1 : p.curve === 'pow' ? 2 : 0;
+      this.pExp[i] = p.exponent ?? 3;
       const d = p.default;
       const v = p.type === 'enum' ? p.options!.indexOf(d as string) : p.type === 'bool' ? (d ? 1 : 0) : (d as number);
       this.raw[i] = this.target[i] = this.cur[i] = v;
@@ -342,6 +356,7 @@ export class Synth {
     this.resolve();
     if (immediate || !this.anyActive()) {
       for (let i = 0; i < N_PARAMS; i++) this.cur[i] = this.target[i];
+      this.pmodN = 0;
       this.applyDiscrete();
     }
   }
@@ -386,6 +401,7 @@ export class Synth {
     if (!this.anyActive()) {
       // Nothing sounding: apply at once (no fade needed).
       this.cur.set(this.target);
+      this.pmodN = 0;
       this.applyDiscrete();
       this.texMon = this.texMonTarget;
     }
@@ -628,6 +644,11 @@ export class Synth {
 
   private copyDiscrete(): void {
     for (let i = 0; i < N_PARAMS; i++) if (this.isDiscrete[i]) this.cur[i] = this.target[i];
+    // (a moved discrete dial puts back its new value)
+    for (let k = 0; k < this.pmodN; k++) {
+      const i = this.pmodIdx[k];
+      if (this.isDiscrete[i]) this.pmodBase[i] = this.target[i];
+    }
     this.applyDiscrete();
   }
 
@@ -706,6 +727,31 @@ export class Synth {
     this.wobGateTarget = gOn ? gY : 1;
   }
 
+  /**
+   * Any dial as a target (owner's call, as in Serum and Vital): each 'p:' destination's amount (the newest voice's
+   * matrix with the custom LFOs, from the last block; the custom LFOs alone while no voice sounds) moves its dial
+   * in the dial's own 0..1 range, clamped, whole numbers rounded; the unmoved values go back next block.
+   */
+  private moveDials(): void {
+    const lead = this.leadIdx >= 0 ? this.voices[this.leadIdx] : null;
+    const dst = lead && lead.active ? lead.dst : this.xdst;
+    const cur = this.cur, list = K.MOD_TARGET_PARAMS;
+    for (let k = 0; k < list.length; k++) {
+      const m = dst[K.D_PARAM0 + k];
+      if (m === 0) continue;
+      const i = list[k];
+      const v = cur[i];
+      this.pmodBase[i] = v;
+      this.pmodIdx[this.pmodN++] = i;
+      const lo = this.pMin[i], hi = this.pMax[i], c = this.pCurve[i];
+      let n = c === 1 ? Math.log(v / lo) / Math.log(hi / lo) : c === 2 ? Math.pow(Math.max(0, (v - lo) / (hi - lo)), 1 / this.pExp[i]) : (v - lo) / (hi - lo);
+      n = Math.max(0, Math.min(1, n + m));
+      let out = c === 1 ? lo * Math.pow(hi / lo, n) : c === 2 ? lo + (hi - lo) * Math.pow(n, this.pExp[i]) : lo + (hi - lo) * n;
+      if (this.isDiscrete[i]) out = Math.round(out);
+      cur[i] = out;
+    }
+  }
+
   /** One side through the custom LFOs' own filter (the FILTER target) and gate (the VOLUME target). */
   private wobSide(x: number, c: number, g: number, filt: boolean): number {
     let y = x;
@@ -721,7 +767,11 @@ export class Synth {
   private control(): void {
     const fs = this.sampleRate;
     const cur = this.cur;
+    // the dials the LFOs moved last block go back to their own values before smoothing
+    for (let k = 0; k < this.pmodN; k++) cur[this.pmodIdx[k]] = this.pmodBase[this.pmodIdx[k]];
+    this.pmodN = 0;
     this.smoothParams();
+    this.moveDials();
 
     // Shared mod sources (per-voice ones are filled in by each voice).
     const src = this.gsrc;
@@ -736,11 +786,15 @@ export class Synth {
     // Voices; find the newest one (its mod matrix drives the shared FX targets)
     // and, in poly mode, the lowest held note (only it carries the sub).
     let lead = this.voices[0];
+    this.leadIdx = 0;
     let lowest: Voice | null = null;
     let anyGate = false;
     for (let i = 0; i < MAX_VOICES; i++) {
       const v = this.voices[i];
-      if (v.order > lead.order) lead = v;
+      if (v.order > lead.order) {
+        lead = v;
+        this.leadIdx = i;
+      }
       if (v.gate) {
         anyGate = true;
         if (!lowest || v.note < lowest.note) lowest = v;

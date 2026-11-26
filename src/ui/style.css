@@ -1847,7 +1847,7 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 .v2 .lfo-all > .wob-hidden { display: none !important; }
 /* CUSTOM targets (owner's call): every dial an LFO can be connected to blinks until one is clicked */
 @keyframes learn-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
-.v2 .k.learnable { animation: learn-blink 0.9s ease-in-out infinite; cursor: crosshair; }
+.v2 .learnable { animation: learn-blink 0.9s ease-in-out infinite; cursor: crosshair; }
 .v2 .lfo5-row .lfo5-dials { margin-right: 0; }
 .v2 .learn-btn { flex: none; width: 18px; height: 18px; padding: 0; display: grid; place-items: center; background: none; border: 0;
   color: #5d5e66; cursor: pointer; }

@@ -129,7 +129,14 @@ export const D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_O
    * Drive (drive x (1 + value)), so a chain's balance holds.
    */
   D_RUIN_DRIVES = 53, D_RUIN_DRIVE1 = 54;
-export const DEST_COUNT = 62;
+/**
+ * Every dial an LFO can be connected to (owner's call, as in Serum and Vital): the destinations after the 62 fixed
+ * ones are 'p:<param id>', in the order of the dest menus' options; each adds to that dial's own value, in its
+ * 0..1 knob range, before the engine reads it.
+ */
+export const D_PARAM0 = 62;
+export const MOD_TARGET_PARAMS = getParam('mod1.dest')!.options!.filter((o) => o.startsWith('p:')).map((o) => paramIndex(o.slice(2)));
+export const DEST_COUNT = D_PARAM0 + MOD_TARGET_PARAMS.length;
 /** The LFO filters' open frequency and how many octaves a full swing closes them. */
 export const LF_OPEN_HZ = 20000, LF_OCTAVES = 8;
 export const TEXTURE_GAIN = 0.5;

@@ -100,6 +100,7 @@ class Synth {
     resolve();
     if (immediate || !anyActive()) {
       cur = target;
+      pmodN = 0;
       applyDiscrete();
     }
   }
@@ -114,6 +115,7 @@ class Synth {
     resolve();
     if (!anyActive()) {
       cur = target;
+      pmodN = 0;
       applyDiscrete();
       texMon = texMonTarget;
     }
@@ -685,9 +687,35 @@ class Synth {
     }
   }
 
+  /** Any dial as a target (as moveDials in synth.ts). */
+  void moveDials() {
+    const Voice* lv = leadIdx >= 0 ? voices[(size_t)leadIdx].get() : nullptr;
+    const double* dst = lv && lv->active() ? lv->dst.data() : xdst.data();
+    for (int k = 0; k < MOD_TARGET_COUNT; k++) {
+      const double m = dst[D_PARAM0 + k];
+      if (m == 0) continue;
+      const int i = MOD_TARGET_PARAMS[k];
+      const ParamSpec& ps = PARAMS[i];
+      const double v = cur[(size_t)i];
+      pmodBase[(size_t)i] = v;
+      pmodIdx[(size_t)pmodN++] = i;
+      const double lo = ps.min, hi = ps.max;
+      const int c = ps.curve;
+      double n = c == 1 ? std::log(v / lo) / std::log(hi / lo) : c == 2 ? std::pow(std::fmax(0.0, (v - lo) / (hi - lo)), 1 / ps.exponent) : (v - lo) / (hi - lo);
+      n = std::fmax(0.0, std::fmin(1.0, n + m));
+      double out = c == 1 ? lo * std::pow(hi / lo, n) : c == 2 ? lo + (hi - lo) * std::pow(n, ps.exponent) : lo + (hi - lo) * n;
+      if (isDiscrete[(size_t)i]) out = jsRound(out);
+      cur[(size_t)i] = out;
+    }
+  }
+
   void copyDiscrete() {
     for (int i = 0; i < PARAM_COUNT; i++)
       if (isDiscrete[i]) cur[i] = target[i];
+    for (int k = 0; k < pmodN; k++) {
+      const int i = pmodIdx[(size_t)k];
+      if (isDiscrete[i]) pmodBase[(size_t)i] = target[(size_t)i];
+    }
     applyDiscrete();
   }
 
@@ -768,7 +796,11 @@ class Synth {
   void control() {
     const auto& P = PI_();
     const double fs = sampleRate;
+    // the dials the LFOs moved last block go back to their own values before smoothing (as synth.ts)
+    for (int k = 0; k < pmodN; k++) cur[(size_t)pmodIdx[(size_t)k]] = pmodBase[(size_t)pmodIdx[(size_t)k]];
+    pmodN = 0;
     smoothParams();
+    moveDials();
 
     auto& src = gsrc;
     src[0] = 0;
@@ -779,11 +811,15 @@ class Synth {
     extraModulation();
 
     Voice* lead = voices[0].get();
+    leadIdx = 0;
     Voice* lowest = nullptr;
     bool gateAny = false;
     for (int i = 0; i < MAX_VOICES; i++) {
       Voice& v = *voices[i];
-      if (v.order > lead->order) lead = &v;
+      if (v.order > lead->order) {
+        lead = &v;
+        leadIdx = i;
+      }
       if (v.gate) {
         gateAny = true;
         if (!lowest || v.note < lowest->note) lowest = &v;
@@ -960,6 +996,10 @@ class Synth {
   std::array<double, PARAM_COUNT> target{}, cur{}, raw{};
   std::array<double, DEST_COUNT> dstMask{};
   std::array<bool, PARAM_COUNT> isLog{}, isDiscrete{};
+  // the dials the LFOs moved this block and their unmoved values; the newest voice of the last block
+  std::array<int, MOD_TARGET_COUNT> pmodIdx{};
+  std::array<double, PARAM_COUNT> pmodBase{};
+  int pmodN = 0, leadIdx = -1;
   int monSolo = 0, monMute = 0;
   double smoothCoef = 0, duckGain = 1, duckStep = 0;
   int duckDir = 0, duckHold = 0;
