@@ -52,6 +52,14 @@ The **measured feature space** is the map: the generator and Sound Tree walk it,
 
 What makes the bank sound like one instrument. Each category has its own version of each point.
 
+**Where each part lives (owner's call, 26 Nov: the preset philosophy for the rebuild).** A preset is readable at a glance and easy to make your own:
+- **OSC page:** the sound itself, everything it can give, maximised (layers, wear from the noise beds and the analog modelling, life from Analog drift, detune and envelopes).
+- **LFOs:** all on NONE. Movement from the LFO page is the user's, never hidden in a preset.
+- **RUIN:** each sound gets a RUIN chain from CHAINS (picked per sound), so the synth's character is heard from the first note; RUIN's own moving boxes give the life; its rocker switches it off to hear the raw OSC sound.
+- **FX:** one light finish profile per category (e.g. tape and a little reverb), the same for every preset on a shelf, kept off the low end.
+
+The points below say what the finished sound has; read them through this split (dirt and life come from the OSC page and RUIN, space and glue from the category's FX profile).
+
 1. **Layers:** a body + a character layer + texture, never a lone oscillator.
 2. **Dirt that shapes tone:** saturation and tape wear; dirt mostly *in front of* the filter so its movement stays audible (heavy saturation after a moving filter masks the movement).
 3. **Alive:** several independent, non-repeating motions on different time scales (smooth random LFOs at unrelated rates, drift, a slow bloom, per-note variation, LFO fade-in), mostly before the distortion so the tone changes, not just the level.
