@@ -464,6 +464,85 @@ function pow2Size(n: number): number {
   return s;
 }
 
+/**
+ * HYPER / DIMENSION (owner's call: as Serum's): HYPER stacks up to 7 copies of the sound (Unison), each a short delay
+ * swung by its own slow sine at about Rate (each a little off the others), Detune setting how far they swing (the
+ * pitch spread), spread from left to right and blended in by Mix; Retrig restarts their swings on every note.
+ * DIMENSION then widens it: each side gets the other side's short delay minus its own (Size = how long), blended by its
+ * own Mix, so the middle stays where it was. Ported line by line to plugin/engine/Fx.h.
+ */
+export class HyperDim {
+  private readonly buf: Float32Array;
+  private readonly mask: number;
+  private w = 0;
+  private readonly ph = new Float64Array(7);
+  private readonly dl: Float32Array;
+  private readonly dr: Float32Array;
+  private readonly dmask: number;
+  private dw = 0;
+
+  constructor(private readonly fs: number) {
+    const size = pow2Size(Math.ceil(0.06 * fs));
+    this.buf = new Float32Array(size);
+    this.mask = size - 1;
+    const ds = pow2Size(Math.ceil(0.04 * fs));
+    this.dl = new Float32Array(ds);
+    this.dr = new Float32Array(ds);
+    this.dmask = ds - 1;
+    this.retrig(7);
+  }
+
+  reset(): void {
+    this.buf.fill(0);
+    this.dl.fill(0);
+    this.dr.fill(0);
+    this.retrig(7);
+  }
+
+  /** Every copy's swing starts again, evenly spread over the cycle. */
+  retrig(unison: number): void {
+    const u = Math.max(1, Math.round(unison));
+    for (let i = 0; i < 7; i++) this.ph[i] = (i % u) / u;
+  }
+
+  /** Writes the result (the whole sound, mixed) to out[0], out[1]. */
+  process(l: number, r: number, rate: number, detune: number, unison: number, mix: number, size: number, dimMix: number, out: Float64Array): void {
+    const fs = this.fs;
+    if (mix > 1e-4) {
+      const u = Math.max(1, Math.min(7, Math.round(unison)));
+      let wl = 0, wr = 0;
+      for (let i = 0; i < u; i++) {
+        const ri = rate * (1 + 0.29 * (((i * 0.618034) % 1) - 0.5));
+        let p = this.ph[i] + ri / fs;
+        p -= Math.floor(p);
+        this.ph[i] = p;
+        const d = (0.008 + 0.0017 * i + detune * 0.005 * (0.5 + 0.5 * Math.sin(2 * Math.PI * p))) * fs;
+        const y = readFrac(this.buf, this.mask, this.w, d);
+        const pan = u > 1 ? (2 * i) / (u - 1) - 1 : 0;
+        wl += y * Math.sqrt(0.5 * (1 - pan));
+        wr += y * Math.sqrt(0.5 * (1 + pan));
+      }
+      this.buf[this.w] = 0.5 * (l + r);
+      this.w = (this.w + 1) & this.mask;
+      const n = 1 / Math.sqrt(u);
+      l = l * (1 - mix) + wl * n * mix;
+      r = r * (1 - mix) + wr * n * mix;
+    }
+    if (dimMix > 1e-4) {
+      const s = 0.003 + 0.015 * size;
+      const a = readFrac(this.dr, this.dmask, this.dw, s * fs), b = readFrac(this.dl, this.dmask, this.dw, s * 1.37 * fs);
+      const c = readFrac(this.dl, this.dmask, this.dw, s * 1.17 * fs), d = readFrac(this.dr, this.dmask, this.dw, s * 1.61 * fs);
+      this.dl[this.dw] = l;
+      this.dr[this.dw] = r;
+      this.dw = (this.dw + 1) & this.dmask;
+      l += dimMix * 0.5 * (a - b);
+      r += dimMix * 0.5 * (c - d);
+    }
+    out[0] = l;
+    out[1] = r;
+  }
+}
+
 export class Flanger {
   private bufL: Float32Array;
   private bufR: Float32Array;

@@ -28,7 +28,7 @@
 
 import { PARAM_COUNT, params } from '../../schema';
 import { AUX_SLOT, Biquad, clamp, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
-import { Chorus, Flanger, OctaveDown, Phaser, Reverb } from './fx';
+import { Chorus, Delay, HyperDim, OctaveDown, Reverb } from './fx';
 import { DirtBus } from './bus';
 import { Ott } from './grind';
 import { OVERSAMPLE_LATENCY } from './oversample';
@@ -223,10 +223,14 @@ export class Synth {
   private songBeat = 0;
 
   // FX + output.
-  private readonly flanger: Flanger;
+  // the FX page's flanger and phaser were taken out (owner's call, 26 Nov; archive/fx-flanger-phaser.md)
+  private readonly hyper: HyperDim;
+  private readonly delay: Delay;
+  private delaySeconds = 0.375;
+  private delayToneCoef = 0.5;
+  private delayMix = 0;
   // Modulated FX amounts (base value + the newest voice's mod matrix), set at control rate.
   private chorusDepth = 0;
-  private phaserMix = 0;
   private width = 1;
   private widthStep = 0;
   private widthTarget = 1;
@@ -241,7 +245,6 @@ export class Synth {
   private readonly hpR = [new Biquad(), new Biquad(), new Biquad(), new Biquad(), new Biquad()];
   private readonly lastLowcut = new Float64Array(5);
   private readonly chorus: Chorus;
-  private readonly phaser: Phaser;
   private readonly reverb: Reverb;
   /** The reverb's -1 octave: its input shifted down before its Lo cut. */
   private readonly verbOct: OctaveDown;
@@ -299,10 +302,10 @@ export class Synth {
     const table = getWavetable().data;
     for (let i = 0; i < MAX_VOICES; i++) this.voices.push(new Voice(sampleRate, this.cur, table, 0x2468ace + 0x9e3779b * i, this.dstMask));
     this.chorus = new Chorus(sampleRate);
-    this.phaser = new Phaser(sampleRate);
+    this.hyper = new HyperDim(sampleRate);
     this.reverb = new Reverb(sampleRate);
     this.verbOct = new OctaveDown(sampleRate);
-    this.flanger = new Flanger(sampleRate);
+    this.delay = new Delay(sampleRate);
     this.bus = new DirtBus(sampleRate, new Rng(0x6a1d));
     // Subsonic + DC filter: 15 Hz 4th-order high-pass (−0.4 dB at 20 Hz, flat by 30 Hz).
     for (let i = 0; i < 2; i++) {
@@ -439,13 +442,11 @@ export class Synth {
     P.slots.forEach((s) => { if (off(P.modOn) || off(s.on)) t[s.amt] = 0; });
     if (off(P.eqOn)) { zero(P.eqScale, ...P.eq.map((b) => b.type)); t[P.eqHighcut] = 20000; }
     if (off(P.chorusOn)) { zero(P.chorusMix); block(K.D_CHORUS_DEPTH); }
-    if (off(P.flangerOn)) zero(P.flangerMix);
-    if (off(P.phaserOn)) { zero(P.phaserMix); block(K.D_PHASER_MIX); }
+    if (off(P.hyperOn)) zero(P.hyperMix, P.hyperDimMix);
     if (off(P.delayOn)) { zero(P.delayMix); block(K.D_DELAY_MIX, K.D_DELAY_TIME); }
     if (off(P.reverbOn)) { zero(P.reverbMix); block(K.D_REVERB_MIX); }
     if (off(P.ottOn)) zero(P.ottDepth);
-    // the delay was taken out of the synth (owner's call: every producer has their own); the reverb came back
-    block(K.D_DELAY_MIX, K.D_DELAY_TIME);
+    // (the delay came back, owner's call, 26 Nov)
 
     const solo = this.monitorSolo, mute = this.monitorMute;
     const hear = (layer: string) => !mute.includes(layer) && (solo.length === 0 || solo.includes(layer));
@@ -470,6 +471,8 @@ export class Synth {
       this.noteOff(note);
       return;
     }
+    // HYPER's RETRIG: its copies' swings start again
+    if (this.cur[P.hyperRetrig] > 0.5) this.hyper.retrig(this.cur[P.hyperUnison]);
     // the custom LFO's ONE SHOT starts again at every note
     this.wobStart = this.songBeat;
     this.wobNote++;
@@ -582,7 +585,7 @@ export class Synth {
       this.hpR[k].reset();
     }
     this.chorus.reset();
-    this.phaser.reset();
+    this.hyper.reset();
     this.reverb.reset();
     this.verbOct.reset();
     this.bus.reset();
@@ -597,7 +600,7 @@ export class Synth {
     this.wobGate = this.wobGateTarget = 1;
     this.hcL.reset();
     this.hcR.reset();
-    this.flanger.reset();
+    this.delay.reset();
   }
 
   private removeFromStack(note: number): void {
@@ -948,7 +951,10 @@ export class Synth {
 
     // Modulated FX amounts.
     this.chorusDepth = clamp(cur[P.chorusDepth] + dst[K.D_CHORUS_DEPTH], 0, 1);
-    this.phaserMix = clamp(cur[P.phaserMix] + dst[K.D_PHASER_MIX], 0, 1);
+    // Delay. Modulating the delay time glides the read head (tape-style pitch smear on the repeats).
+    this.delaySeconds = Math.min(3, ((K.DELAY_BEATS[cur[P.delayTime]] * 60) / this.tempo) * Math.pow(2, clamp(dst[K.D_DELAY_TIME], -1, 1)));
+    this.delayToneCoef = 1 - Math.exp((-TWO_PI * Math.min(800 * Math.pow(20, cur[P.delayTone]), fs * 0.45)) / fs);
+    this.delayMix = clamp(cur[P.delayMix] + dst[K.D_DELAY_MIX], 0, 1);
     this.widthTarget = clamp(1 + dst[K.D_WIDTH], 0, 2);
     this.widthStep = (this.widthTarget - this.width) / BLOCK;
 
@@ -1199,19 +1205,17 @@ export class Synth {
         l += out[0] - hl;
         r += out[1] - hr;
       }
-      const fMix = cur[P.flangerMix];
-      if (fMix > 1e-4) {
-        const hl = hpL[1].process(l), hr = hpR[1].process(r);
-        this.flanger.process(hl, hr, fMix, cur[P.flangerRate], cur[P.flangerFb], out);
-        l += out[0] - hl;
-        r += out[1] - hr;
+      // HYPER / DIMENSION (owner's call, as Serum's), on the whole sound but the clean sub
+      if (cur[P.hyperMix] > 1e-4 || cur[P.hyperDimMix] > 1e-4) {
+        this.hyper.process(l, r, cur[P.hyperRate], cur[P.hyperDetune], cur[P.hyperUnison], cur[P.hyperMix], cur[P.hyperSize], cur[P.hyperDimMix], out);
+        l = out[0];
+        r = out[1];
       }
-      const pMix = this.phaserMix;
-      if (pMix > 1e-4) {
-        const hl = hpL[2].process(l), hr = hpR[2].process(r);
-        this.phaser.process(hl, hr, pMix, cur[P.phaserRate], out);
-        l += out[0] - hl;
-        r += out[1] - hr;
+      const dMix = this.delayMix;
+      if (dMix > 1e-4) {
+        this.delay.process(hpL[3].process(l), hpR[3].process(r), this.delaySeconds, cur[P.delayFb], this.delayToneCoef, out);
+        l += out[0] * dMix;
+        r += out[1] * dMix;
       }
       const rMix = this.reverbMix;
       if (rMix > 1e-4) {

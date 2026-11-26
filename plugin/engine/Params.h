@@ -181,6 +181,7 @@ struct ParamIndex {
   struct Wob { int on, rate, free, hz, shape, pts, phase, smooth, oneShot, master, dests[4], amts[4], offs[4], x[32], y[32], s[32]; };
   Wob wob[4];
   int flangerMix, flangerRate, flangerFb, delayMix, delayTime, delayFb, delayTone;
+  int hyperOn, hyperRate, hyperDetune, hyperRetrig, hyperUnison, hyperMix, hyperSize, hyperDimMix;
   int reverbType, reverbDecay, reverbPre, reverbOct, eqHighcut;
   int amp[4], mod[4], vibDepth, vibRate, vibDelay, vibFade;
   Lfo lfo[6];
@@ -246,6 +247,8 @@ struct ParamIndex {
       }
     }
     flangerMix = ix("flanger.mix"); flangerRate = ix("flanger.rate"); flangerFb = ix("flanger.feedback");
+    hyperOn = ix("hyper.on"); hyperRate = ix("hyper.rate"); hyperDetune = ix("hyper.detune"); hyperRetrig = ix("hyper.retrig");
+    hyperUnison = ix("hyper.unison"); hyperMix = ix("hyper.mix"); hyperSize = ix("hyper.size"); hyperDimMix = ix("hyper.dim_mix");
     delayMix = ix("delay.mix"); delayTime = ix("delay.time"); delayFb = ix("delay.feedback"); delayTone = ix("delay.tone");
     reverbType = ix("reverb.type"); reverbDecay = ix("reverb.decay"); reverbPre = ix("reverb.predelay"); reverbOct = ix("reverb.octave");
     eqHighcut = ix("eq.highcut");

@@ -3690,6 +3690,36 @@ export class SynthView {
     return cv;
   }
 
+  /**
+   * HYPER / DIMENSION's print: Unison copies of the wave, pulled apart by Detune, their bend by Rate, as bright as Mix;
+   * DIMENSION a faint left / right pair spread by Size, as bright as its Mix.
+   */
+  private hyperPrint(): HTMLElement {
+    const W = PRINT_W, H = PRINT_H, TAU = 2 * Math.PI;
+    const [cv, g] = canvas(W, H, 'disp');
+    const redraw = () => {
+      paper(g, W, H);
+      const on = !!this.get('hyper.on'), m = this.num('hyper.mix'), dm = this.num('hyper.dim_mix');
+      const lit = on && (m > 0 || dm > 0), col = lit ? accentOf(cv) : '#4a4a50';
+      const u = Math.round(this.num('hyper.unison')), d = this.num('hyper.detune'), rate = this.num('hyper.rate');
+      const bend = 0.04 * Math.log2(1 + rate);
+      const wave = (off: number, amp = 1, dy = 0): [number, number][] =>
+        Array.from({ length: W + 1 }, (_, x) => [x, H / 2 - 4 + dy - amp * 0.6 * (H / 2 - 10) * Math.sin(TAU * ((x / W) * 2.5 - off + bend * Math.sin(TAU * (x / W) * (0.5 + rate / 4))))]);
+      if (on && dm > 0) {
+        const sp = 3 + 9 * this.num('hyper.size');
+        silver(g, wave(0.02, 0.9, -sp), lit, shade(col, 0.15 + 0.4 * dm));
+        silver(g, wave(-0.02, 0.9, sp), lit, shade(col, 0.15 + 0.4 * dm));
+      }
+      if (on && m > 0) for (let i = 0; i < u; i++) {
+        const k = u > 1 ? i / (u - 1) - 0.5 : 0;
+        silver(g, wave(k * (0.02 + 0.3 * d)), lit, shade(col, 0.3 + 0.55 * m));
+      }
+      silver(g, wave(0), lit);
+    };
+    this.watch(['hyper.on', 'hyper.mix', 'hyper.dim_mix', 'hyper.unison', 'hyper.detune', 'hyper.rate', 'hyper.size'], redraw);
+    return cv;
+  }
+
   /** Glowing spikes (delay repeats, the reverb tail): [x 0..1, height 0..1] from the bottom. */
   private fxSpikes(ids: string[], on: () => boolean, spikes: () => [number, number][], lowcut?: string): HTMLElement {
     const W = PRINT_W, H = PRINT_H;
@@ -3852,26 +3882,31 @@ export class SynthView {
       dials: [lg('chorus.mix', 'Mix'), lg('chorus.depth', 'Depth'), lowCut('chorus')],
     });
 
-    // Flanger and phaser, each its own box.
-    const flanger = this.obox('FLANGER', 'fx-box box-mfx', {
-      power: (el) => this.boolPower('flanger.on', el),
-      print: this.fxLine(['flanger.on', 'flanger.mix', 'flanger.feedback', 'flanger.rate', 'flanger.lowcut'], lit('flanger.on', 'flanger.mix'), (x) => {
-        // Feedback sharpens the teeth, rate sweeps their spacing across the print, mix their depth.
-        const fb = this.num('flanger.feedback'), r = this.num('flanger.rate'), m = Math.min(1, 0.25 + this.num('flanger.mix'));
-        const c = Math.abs(Math.cos(Math.PI * (x * 7 + 0.35 * r * Math.sin(2 * Math.PI * x))));
-        return 0.8 - 1.6 * m * Math.pow(1 - c, 1 + 6 * fb);
-      }, false, { lowcut: 'flanger.lowcut' }),
-      dials: [lg('flanger.mix', 'Mix'), lg('flanger.rate', 'Rate'), lg('flanger.feedback', 'Feedbk'), lowCut('flanger')],
+    // HYPER / DIMENSION (owner's call, as Serum's): Rate, Detune, Retrig, Unison, Mix | Size, Mix
+    const md = (id: string, label: string, opts: Parameters<SynthView['knob']>[3] = {}) => this.knob(id, label, 'mid', opts);
+    const hyperUni = h('div', 'hyper-uni',
+      h('div', 'k uni-dial', this.chip('UNI', () => this.num('hyper.unison'), (v) => this.set('hyper.unison', v), 1, 7, ['hyper.unison'], 'Unison: how many copies are stacked (1-7)')),
+      this.toggle('hyper.retrig', 'RETRIG', 'small'));
+    const hyper = this.obox('HYPER', 'fx-box box-hyper', {
+      power: (el) => this.boolPower('hyper.on', el),
+      head: [h('span', 'fx-kind hyper-dim', 'DIMENSION')],
+      print: this.hyperPrint(),
+      dials: [md('hyper.rate', 'Rate', { fmt: (v) => `${v < 1 ? v.toFixed(2) : v.toFixed(1)} Hz` }), md('hyper.detune', 'Detune', { fmt: pct }), hyperUni,
+        md('hyper.mix', 'Mix', { fmt: pct }), h('span', 'hyper-div'), md('hyper.size', 'Size', { fmt: pct }), md('hyper.dim_mix', 'Mix', { fmt: pct })],
     });
-    const phaser = this.obox('PHASER', 'fx-box box-phaser', {
-      power: (el) => this.boolPower('phaser.on', el),
-      print: this.fxLine(['phaser.on', 'phaser.mix', 'phaser.rate', 'phaser.lowcut'], lit('phaser.on', 'phaser.mix'), (x) => {
-        // The notches drift further apart as the rate goes up; mix sets how deep they go.
-        const m = this.num('phaser.mix'), sp = 0.06 * Math.log2(1 + this.num('phaser.rate'));
-        const notch = (c: number) => Math.exp(-(((x - c) / 0.05) ** 2));
-        return 0.75 - 1.6 * m * (notch(0.42 - sp) + notch(0.55 + sp * 0.3) + 0.6 * notch(0.7 + sp));
-      }, false, { lowcut: 'phaser.lowcut' }),
-      dials: [lg('phaser.mix', 'Mix'), lg('phaser.rate', 'Rate'), lowCut('phaser')],
+
+    // DELAY (owner's call, 26 Nov: back, as it was): the time in its title, the repeats as spikes
+    const delay = this.obox('DELAY', 'fx-box box-delay', {
+      power: (el) => this.boolPower('delay.on', el),
+      head: [this.selector('delay.time', { label: (o) => o })],
+      print: this.fxSpikes(['delay.time', 'delay.feedback', 'delay.mix', 'delay.on', 'delay.tone'], lit('delay.on', 'delay.mix'), () => {
+        const step = syncBeats(String(this.get('delay.time'))) / 4, fb = this.num('delay.feedback');
+        const out: [number, number][] = [[0, 1]];
+        const keep = Math.max(0.05, fb) * (0.55 + 0.45 * this.num('delay.tone'));
+        for (let i = 1, a = 0.9 * Math.max(0.05, this.num('delay.mix') * 1.4); i < 32 && i * step < 1; i++, a *= keep) out.push([i * step, Math.min(1, a)]);
+        return out;
+      }, 'delay.lowcut'),
+      dials: [lg('delay.mix', 'Mix'), lg('delay.feedback', 'Feedbk'), lg('delay.tone', 'Tone'), lowCut('delay')],
     });
 
     // The tail as it is: pre-delay as a gap, each type's build-up (a room's early reflections, a
@@ -3906,7 +3941,7 @@ export class SynthView {
 
     const eq = this.eqBox();
 
-    return h('div', 'v2-main osc-page fx-page2', dist, crush, tape, chorus, flanger, phaser, reverb, eq);
+    return h('div', 'v2-main osc-page fx-page2', dist, crush, tape, chorus, hyper, delay, reverb, eq);
   }
 
   /**

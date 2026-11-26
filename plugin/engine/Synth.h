@@ -44,7 +44,7 @@ class Synth {
 
   explicit Synth(double fs)
       : sampleRate(fs), rng(0x1234567), wobs{WobUnit(0x60bb1e), WobUnit(0x60bb1e + 0x9e37), WobUnit(0x60bb1e + 2 * 0x9e37), WobUnit(0x60bb1e + 3 * 0x9e37)}, texGrindRng(0x6a1d), bus(fs, texGrindRng), ott(),
-        chorus(fs), phaser(fs), reverb(fs), verbOct(fs), flanger(fs) {
+        chorus(fs), hyper(fs), delay(fs), reverb(fs), verbOct(fs) {
     smoothCoef = 1 - std::exp(-CONTROL_BLOCK / ((SMOOTH_MS / 1000) * fs));
     duckStep = 1 / ((DUCK_MS / 1000) * fs);
     postDcR = 1 - (2 * PI * 5) / fs;
@@ -164,6 +164,8 @@ class Synth {
       noteOff(note, channel);
       return;
     }
+    // HYPER's RETRIG (as synth.ts)
+    if (cur[PI_().hyperRetrig] > 0.5) hyper.retrig(cur[PI_().hyperUnison]);
     wobStart = songBeat;
     wobNote++;
     if (poly <= 1) {
@@ -247,7 +249,7 @@ class Synth {
       hpR[k].reset();
     }
     chorus.reset();
-    phaser.reset();
+    hyper.reset();
     postDcXL = postDcYL = postDcXR = postDcYR = 0;
     for (int i = 0; i < 2; i++) {
       dcL[i].reset();
@@ -258,7 +260,7 @@ class Synth {
     wobGate = wobGateTarget = 1;
     hcL.reset();
     hcR.reset();
-    flanger.reset();
+    delay.reset();
     reverb.reset();
     verbOct.reset();
     bus.reset();
@@ -449,19 +451,16 @@ class Synth {
         l += out[0] - hl;
         r += out[1] - hr;
       }
-      const double fMix = cur[P.flangerMix];
-      if (fMix > 1e-4) {
-        const double hl = hpL[1].process(l), hr = hpR[1].process(r);
-        flanger.process(hl, hr, fMix, cur[P.flangerRate], cur[P.flangerFb], out);
-        l += out[0] - hl;
-        r += out[1] - hr;
+      if (cur[P.hyperMix] > 1e-4 || cur[P.hyperDimMix] > 1e-4) {
+        hyper.process(l, r, cur[P.hyperRate], cur[P.hyperDetune], cur[P.hyperUnison], cur[P.hyperMix], cur[P.hyperSize], cur[P.hyperDimMix], out);
+        l = out[0];
+        r = out[1];
       }
-      const double pMix = phaserMix;
-      if (pMix > 1e-4) {
-        const double hl = hpL[2].process(l), hr = hpR[2].process(r);
-        phaser.process(hl, hr, pMix, cur[P.phaserRate], out);
-        l += out[0] - hl;
-        r += out[1] - hr;
+      const double dMix = delayMix;
+      if (dMix > 1e-4) {
+        delay.process(hpL[3].process(l), hpR[3].process(r), delaySeconds, cur[P.delayFb], delayToneCoef, out);
+        l += out[0] * dMix;
+        r += out[1] * dMix;
       }
       const double rMix = reverbMix;
       if (rMix > 1e-4) {
@@ -594,13 +593,11 @@ class Synth {
       t[P.eqHighcut] = 20000;
     }
     if (off(P.chorusOn)) { zero({P.chorusMix}); block({D_CHORUS_DEPTH}); }
-    if (off(P.flangerOn)) zero({P.flangerMix});
-    if (off(P.phaserOn)) { zero({P.phaserMix}); block({D_PHASER_MIX}); }
+    if (off(P.hyperOn)) zero({P.hyperMix, P.hyperDimMix});
     if (off(P.delayOn)) { zero({P.delayMix}); block({D_DELAY_MIX, D_DELAY_TIME}); }
     if (off(P.reverbOn)) { zero({P.reverbMix}); block({D_REVERB_MIX}); }
     if (off(P.ottOn)) zero({P.ottDepth});
-    // reverb and delay were taken out of the synth (owner's call: every producer has their own)
-    block({D_DELAY_MIX, D_DELAY_TIME});
+    // (the delay came back, owner's call, 26 Nov)
     // Solo / mute (a listening aid from the window, not part of the patch).
     auto hear = [&](int layer) { return !(monMute >> layer & 1) && (monSolo == 0 || (monSolo >> layer & 1)); };
     if (!hear(MON_OSC1)) { zero({P.osc[0].level}); block({D_OSC1_LEVEL}); }
@@ -950,7 +947,9 @@ class Synth {
     reverbMix = clampd(cur[P.reverbMix] + dst[D_REVERB_MIX], 0, 1);
 
     chorusDepth = clampd(cur[P.chorusDepth] + dst[D_CHORUS_DEPTH], 0, 1);
-    phaserMix = clampd(cur[P.phaserMix] + dst[D_PHASER_MIX], 0, 1);
+    delaySeconds = std::fmin(3, ((DELAY_BEATS[(int)cur[P.delayTime]] * 60) / tempo) * std::pow(2.0, clampd(dst[D_DELAY_TIME], -1, 1)));
+    delayToneCoef = 1 - std::exp((-TWO_PI * std::fmin(800 * std::pow(20.0, cur[P.delayTone]), fs * 0.45)) / fs);
+    delayMix = clampd(cur[P.delayMix] + dst[D_DELAY_MIX], 0, 1);
     widthTarget = clampd(1 + dst[D_WIDTH], 0, 2);
     widthStep = (widthTarget - width) / CONTROL_BLOCK;
 
@@ -1073,12 +1072,13 @@ class Synth {
 
   // FX + output.
   Chorus chorus;
-  Phaser phaser;
-  Flanger flanger;
+  HyperDim hyper;  // (the flanger and phaser were taken out: archive/fx-flanger-phaser.md)
+  Delay delay;
+  double delaySeconds = 0.375, delayToneCoef = 0.5, delayMix = 0;
   Reverb reverb;
   OctaveDown verbOct;
   double reverbMix = 0;
-  double chorusDepth = 0, phaserMix = 0, width = 1, widthStep = 0, widthTarget = 1;
+  double chorusDepth = 0, width = 1, widthStep = 0, widthTarget = 1;
   Biquad hcL, hcR;
   bool highcutOn = false;
   std::array<bool, 4> eqOn{};

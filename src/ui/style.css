@@ -938,6 +938,8 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .box-chorus { --knob-accent: var(--c-green); }
 .v2 .box-mfx { --knob-accent: var(--c-purple); } /* the flanger */
 .v2 .box-phaser { --knob-accent: var(--c-phaser); }
+.v2 .box-hyper { --knob-accent: var(--c-purple); }
+.v2 .box-delay { --knob-accent: var(--c-phaser); }
 .v2 .box-reverb { --knob-accent: var(--c-blue); }
 .v2 .box-eq { --knob-accent: #d4d4da; }
 .v2 .fx-kinds { display: inline-flex; align-items: center; gap: 6px; }
@@ -1854,3 +1856,13 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 .v2 .learn-btn:hover { color: #d9dadd; }
 .v2 .learn-btn.on { color: #f0f0f2; filter: drop-shadow(0 0 4px var(--c-blue)); animation: learn-blink 0.9s ease-in-out infinite; }
 .v2 .mod-page2 .ob-head > .learn-btn { margin-left: -2px; }
+/* HYPER / DIMENSION (owner's call, as Serum's): Rate, Detune, UNI over RETRIG, Mix | Size, Mix */
+.v2 .box-hyper .ob-dials { gap: 3px !important; }
+.v2 .box-hyper .ob-dials .k { width: 38px; }
+.v2 .box-hyper .ob-dials .k-label { font-size: 9px !important; letter-spacing: 0.04em !important; }
+.v2 .hyper-uni { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0 6px 0 8px; }
+.v2 .hyper-uni .led { white-space: nowrap; }
+.v2 .hyper-uni .k.uni-dial { width: 34px; }
+.v2 .hyper-uni .led { font-size: 7.5px; letter-spacing: 0.12em; }
+.v2 .hyper-div { width: 1px; align-self: stretch; margin: 4px 3px; background: linear-gradient(transparent, rgba(255,255,255,0.14), transparent); }
+.v2 .box-hyper .hyper-dim { margin-left: auto; color: #6a6b72; font-size: 9px; letter-spacing: 0.24em; }

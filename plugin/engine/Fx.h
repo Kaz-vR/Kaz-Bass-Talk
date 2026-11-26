@@ -401,6 +401,70 @@ class Flanger {
   double phase = 0, fbL = 0, fbR = 0, dl = 0, dr = 0, stepL = 0, stepR = 0;
 };
 
+/** HYPER / DIMENSION (as HyperDim in fx.ts). */
+class HyperDim {
+ public:
+  explicit HyperDim(double fs_) : fs(fs_) {
+    const int size = pow2Size(std::ceil(0.06 * fs));
+    buf.assign(size, 0.f);
+    mask = size - 1;
+    const int ds = pow2Size(std::ceil(0.04 * fs));
+    dl.assign(ds, 0.f);
+    dr.assign(ds, 0.f);
+    dmask = ds - 1;
+    retrig(7);
+  }
+  void reset() {
+    std::fill(buf.begin(), buf.end(), 0.f);
+    std::fill(dl.begin(), dl.end(), 0.f);
+    std::fill(dr.begin(), dr.end(), 0.f);
+    retrig(7);
+  }
+  void retrig(double unison) {
+    const int u = std::max(1, (int)jsRound(unison));
+    for (int i = 0; i < 7; i++) ph[i] = (double)(i % u) / u;
+  }
+  void process(double l, double r, double rate, double detune, double unison, double mix, double size, double dimMix, double* out) {
+    if (mix > 1e-4) {
+      const int u = std::max(1, std::min(7, (int)jsRound(unison)));
+      double wl = 0, wr = 0;
+      for (int i = 0; i < u; i++) {
+        const double ri = rate * (1 + 0.29 * (std::fmod(i * 0.618034, 1.0) - 0.5));
+        double p = ph[i] + ri / fs;
+        p -= std::floor(p);
+        ph[i] = p;
+        const double d = (0.008 + 0.0017 * i + detune * 0.005 * (0.5 + 0.5 * std::sin(2 * PI * p))) * fs;
+        const double y = readFrac(buf, mask, w, d);
+        const double pan = u > 1 ? (2.0 * i) / (u - 1) - 1 : 0;
+        wl += y * std::sqrt(0.5 * (1 - pan));
+        wr += y * std::sqrt(0.5 * (1 + pan));
+      }
+      buf[(size_t)w] = (float)(0.5 * (l + r));
+      w = (w + 1) & mask;
+      const double n = 1 / std::sqrt((double)u);
+      l = l * (1 - mix) + wl * n * mix;
+      r = r * (1 - mix) + wr * n * mix;
+    }
+    if (dimMix > 1e-4) {
+      const double s = 0.003 + 0.015 * size;
+      const double a = readFrac(dr, dmask, dw, s * fs), b = readFrac(dl, dmask, dw, s * 1.37 * fs);
+      const double c = readFrac(dl, dmask, dw, s * 1.17 * fs), d = readFrac(dr, dmask, dw, s * 1.61 * fs);
+      dl[(size_t)dw] = (float)l;
+      dr[(size_t)dw] = (float)r;
+      dw = (dw + 1) & dmask;
+      l += dimMix * 0.5 * (a - b);
+      r += dimMix * 0.5 * (c - d);
+    }
+    out[0] = l;
+    out[1] = r;
+  }
+ private:
+  double fs;
+  std::vector<float> buf, dl, dr;
+  int mask = 0, w = 0, dmask = 0, dw = 0;
+  double ph[7] = {};
+};
+
 class Delay {
  public:
   explicit Delay(double fs_) : fs(fs_) {
