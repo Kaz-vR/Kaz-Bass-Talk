@@ -44,6 +44,8 @@ export const unpackPhaser = (v: number): [number, number] => {
 export const BT_LC48 = 0, BT_LC12 = 1, BT_LS = 2, BT_BELL = 3, BT_NOTCH = 4, BT_HS = 5, BT_HC12 = 6, BT_HC48 = 7;
 /** The old filters back as band types (owner's call): band, comb (Gain = feedback, minus = hollow), phaser (Q = feedback). */
 export const BT_BAND = 8, BT_COMB = 9, BT_PHASER = 10;
+/** A band's direction (`grind<n>.bell<k>_dir`): left right, up down, cross. */
+export const BD_LR = 0, BD_UD = 1;
 const BW8_Q = [0.5098, 0.6013, 0.9, 2.5629];
 /** Where the page reads the bells' positions: the live value carries bell 1's Hz, the second packs bells 2-4. */
 export const packBells = (m1: number, m2: number, m3: number): number =>
@@ -821,9 +823,13 @@ export class Grind {
           else if (blo < GZ_LO) { bhi += GZ_LO - blo; blo = GZ_LO; }
           else if (bhi > GZ_HI) { blo -= bhi - GZ_HI; bhi = GZ_HI; }
           const pos = 0.5 * (mb + 1);
-          const bfc = Math.min(Math.pow(2, blo + (bhi - blo) * pos), fs * 0.45);
+          // its direction (owner's call): left right = its frequency moves, up down = its gain (± half its up down
+          // range around its Gain), cross = both, on the same path
+          const dir = cur[bp.dir];
+          const bfc = Math.min(dir === BD_UD ? Math.pow(2, Math.max(GZ_LO, Math.min(GZ_HI, bc))) : Math.pow(2, blo + (bhi - blo) * pos), fs * 0.45);
+          const gain = dir === BD_LR ? cur[bp.gain] : Math.max(-18, Math.min(18, cur[bp.gain] + cur[bp.vrange] * (pos - 0.5)));
           s.bM[b] = pos;
-          const t = cur[bp.type], q = cur[bp.q], k = 1 / q, A = Math.pow(10, cur[bp.gain] / 40), c = s.bC, o = 4 * b;
+          const t = cur[bp.type], q = cur[bp.q], k = 1 / q, A = Math.pow(10, gain / 40), c = s.bC, o = 4 * b;
           if (t !== s.bT[b]) {
             s.bT[b] = t;
             for (let j = 0; j < 8; j++) s.bSvf[(Math.floor(j / 4) * GRIND_BELLS + b) * 4 + (j % 4)].reset();
@@ -833,7 +839,7 @@ export class Grind {
           }
           if (t === BT_COMB) {
             s.bDelayStep[b] = (Math.min(fsOs / bfc, COMB_LEN - 2) - s.bDelay[b]) / n;
-            s.bFb[b] = 0.92 * Math.max(-1, Math.min(1, cur[bp.gain] / 18));
+            s.bFb[b] = 0.92 * Math.max(-1, Math.min(1, gain / 18));
           } else if (t === BT_PHASER) s.bFb[b] = 0.85 * Math.min(1, Math.log2(1 + q) / Math.log2(19));
           // the shelves' corner moves with the gain (Simper's shelves), so the gain's middle sits at Freq
           const gw = Math.tan((Math.PI * bfc) / fsOs) * (t === BT_LS ? 1 / Math.sqrt(A) : t === BT_HS ? Math.sqrt(A) : 1);
@@ -851,7 +857,8 @@ export class Grind {
             case BT_COMB: case BT_PHASER: break;
             default: for (let j = 0; j < 4; j++) s.bK4[o + j] = 1 / (BW8_Q[j] * (j === 3 ? q / 0.7071 : 1));
           }
-          if (b === 0) s.fcNow = bfc;
+          // (moving up down only, band 1's live value carries its position: an octave around its Freq, for the page)
+          if (b === 0) s.fcNow = dir === BD_UD ? Math.pow(2, bc + pos - 0.5) : bfc;
         }
         s.resNow = packBells(s.bM[1], s.bM[2], s.bM[3]);
         s.bN = Math.max(1, Math.min(GRIND_BELLS, Math.round(cur[gp.bellCount])));

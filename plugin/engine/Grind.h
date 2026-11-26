@@ -22,6 +22,7 @@ inline double packPhaser(double l, double r) { return jsRound((l + 1) * 127.5) +
 /** A bell's type (EQ Eight's eight, see grind.ts). */
 constexpr int BT_LC48 = 0, BT_LC12 = 1, BT_LS = 2, BT_BELL = 3, BT_NOTCH = 4, BT_HS = 5, BT_HC12 = 6, BT_HC48 = 7;
 constexpr int BT_BAND = 8, BT_COMB = 9, BT_PHASER = 10;
+constexpr int BD_LR = 0, BD_UD = 1;  // a band's direction (as grind.ts)
 constexpr double BW8_Q[4] = {0.5098, 0.6013, 0.9, 2.5629};
 inline double packBells(double m1, double m2, double m3) {
   return jsRound(255 * m1) + 256 * jsRound(255 * m2) + 65536 * jsRound(255 * m3);
@@ -709,10 +710,13 @@ class Grind {
           else if (blo < gzLo) { bhi += gzLo - blo; blo = gzLo; }
           else if (bhi > gzHi) { blo -= bhi - gzHi; bhi = gzHi; }
           const double pos = 0.5 * (mb + 1);
-          const double bfc = std::fmin(std::pow(2.0, blo + (bhi - blo) * pos), fs * 0.45);
+          // its direction (as grind.ts): left right = frequency, up down = gain, cross = both
+          const int dir = (int)cur[bp.dir];
+          const double bfc = std::fmin(dir == BD_UD ? std::pow(2.0, std::fmax(gzLo, std::fmin(gzHi, bc))) : std::pow(2.0, blo + (bhi - blo) * pos), fs * 0.45);
+          const double gain = dir == BD_LR ? cur[bp.gain] : std::fmax(-18.0, std::fmin(18.0, cur[bp.gain] + cur[bp.vrange] * (pos - 0.5)));
           s.bM[b] = pos;
           const int t = (int)cur[bp.type];
-          const double q = cur[bp.q], k = 1 / q, A = std::pow(10.0, cur[bp.gain] / 40);
+          const double q = cur[bp.q], k = 1 / q, A = std::pow(10.0, gain / 40);
           double* c = s.bC;
           const int o = 4 * b;
           if (t != s.bT[b]) {
@@ -724,7 +728,7 @@ class Grind {
           }
           if (t == BT_COMB) {
             s.bDelayStep[b] = (std::fmin(fsOs / bfc, GRIND_COMB_LEN - 2) - s.bDelay[b]) / n;
-            s.bFb[b] = 0.92 * std::fmax(-1.0, std::fmin(1.0, cur[bp.gain] / 18));
+            s.bFb[b] = 0.92 * std::fmax(-1.0, std::fmin(1.0, gain / 18));
           } else if (t == BT_PHASER)
             s.bFb[b] = 0.85 * std::fmin(1.0, std::log2(1 + q) / std::log2(19.0));
           const double gw = std::tan((PI * bfc) / fsOs) * (t == BT_LS ? 1 / std::sqrt(A) : t == BT_HS ? std::sqrt(A) : 1.0);
@@ -742,7 +746,7 @@ class Grind {
             case BT_COMB: case BT_PHASER: break;
             default: for (int j = 0; j < 4; j++) s.bK4[o + j] = 1 / (BW8_Q[j] * (j == 3 ? q / 0.7071 : 1.0));
           }
-          if (b == 0) s.fcNow = bfc;
+          if (b == 0) s.fcNow = dir == BD_UD ? std::pow(2.0, bc + pos - 0.5) : bfc;
         }
         s.resNow = packBells(s.bM[1], s.bM[2], s.bM[3]);
         s.bN = std::max(1, std::min(GRIND_BELLS, (int)jsRound(cur[gp.bellCount])));

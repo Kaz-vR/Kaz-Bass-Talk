@@ -4564,10 +4564,31 @@ export class SynthView {
         // the band's type in a box on the left of its dials (owner's call), as EQ Eight's eight
         const tsel = this.selector(`${bp}_type`, { groups: [['LOW', ['low cut 48', 'low cut 12', 'low shelf']], ['MID', ['bell', 'notch', 'band']], ['HIGH', ['high shelf', 'high cut 12', 'high cut 48']], ['RUIN', ['comb', 'phaser']]], only: true });
         for (const o of tsel.querySelectorAll('option')) o.dataset.icon = filterIconPath(o.value);
-        const tbox = h('div', 'gr-bell-type', h('span', 'gr-bell-type-n', `BAND ${b}`), tsel);
+        // (owner's call: a small clean box with only the type's picture, "BAND n:" beside it on the left)
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        icon.setAttribute('viewBox', '0 0 22 12');
+        icon.setAttribute('class', 'gr-type-icon');
+        const ipath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        icon.append(ipath);
+        this.watch([`${bp}_type`], () => {
+          ipath.setAttribute('d', filterIconPath(String(this.get(`${bp}_type`))));
+          tsel.title = `Band ${b} type: ${String(this.get(`${bp}_type`)).toUpperCase()}`;
+        });
+        const tbox = h('div', 'gr-bell-type', tsel, icon);
+        // its direction (owner's pick, three segments): left right (Freq moves), up down (Gain moves), cross (both)
+        const dirs = getParam(`${bp}_dir`)!.options!;
+        const seg = h('div', 'gr-dir-seg');
+        const segBtns = ['↔', '↕', '✛'].map((s, j) => {
+          const btn = h('button', '', s);
+          btn.title = ['Left right: the band moves along the frequencies', 'Up down: the band moves in gain', 'Cross: both at once'][j];
+          btn.onclick = () => this.set(`${bp}_dir`, dirs[j]);
+          seg.append(btn);
+          return btn;
+        });
+        this.watch([`${bp}_dir`], () => segBtns.forEach((btn, j) => btn.classList.toggle('on', this.get(`${bp}_dir`) === dirs[j])));
         const noGain = () => bellNoGain(String(this.get(`${bp}_type`)));
         const noQ = () => bellNoQ(String(this.get(`${bp}_type`)));
-        return h('span', 'eq-set', tbox, md(`${bp}_freq`, 'Freq'), md(`${bp}_gain`, 'Gain', { disabled: noGain, deps: [`${bp}_type`] }), md(`${bp}_q`, 'Q', { disabled: noQ, deps: [`${bp}_type`] }));
+        return h('span', 'eq-set', h('span', 'gr-band-n', `BAND ${b}:`), tbox, seg, md(`${bp}_freq`, 'Freq'), md(`${bp}_gain`, 'Gain', { disabled: noGain, deps: [`${bp}_type`] }), md(`${bp}_q`, 'Q', { disabled: noQ, deps: [`${bp}_type`] }));
       });
       const showBell = () => {
         const bells = this.get(`${pre}.filter`) === 'bells';
@@ -4582,8 +4603,11 @@ export class SynthView {
         if (this.ruinBellSel[n - 1] >= v) { this.ruinBellSel[n - 1] = v - 1; showBell(); }
       }, 1, 4, [`${pre}.bell_count`], 'How many bands (1-4)'));
       this.watch([`${pre}.filter`], () => { count.style.display = this.get(`${pre}.filter`) === 'bells' ? '' : 'none'; });
-      const fdials = h('div', 'ob-dials gr-fdials', wd, count, ...bellSets,
-        md(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.clock`] }), sync);
+      // (owner's layout: what is for all the bands left of a thin divider, the selected band's own on its right)
+      const divider = h('span', 'gr-band-div');
+      this.watch([`${pre}.filter`], () => { divider.style.display = this.get(`${pre}.filter`) === 'bells' ? '' : 'none'; });
+      const fdials = h('div', 'ob-dials gr-fdials', wd, count,
+        md(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.clock`] }), sync, divider, ...bellSets);
       const dhead = h('div', 'ob-head gr-row-head', partPower(dk), h('span', 'c-title', `DRIVE ${n}`), this.driveTypeSelector(`${pre}.drive_type`));
       const ddials = h('div', 'ob-dials gr-ddials', md(`${pre}.drive`, 'Drive', { fmt: pct }), md(`${pre}.drive_tone`, 'Tone', { fmt: pct }), md(`${pre}.mix`, 'Dry/Wet', { fmt: pct }));
       sets[fk] = h('div', `gr-set gr-s${n}`, fhead, fdials);
@@ -4643,15 +4667,20 @@ export class SynthView {
     // ---- BELLS: four bands, each a numbered dot (Freq / Gain) and a wing (where it moves: drag its round ends)
     const bellZone = (n: number, b: number) => ruinZone(this.num(`grind${n}.bell${b + 1}_freq`) * this.ruinKey(), this.num(`grind${n}.bell${b + 1}_range`));
     /** Where each bell is: the engine's live positions while a note sounds, its Freq at rest. */
-    const bellsNow = (n: number): { fc: number[]; live: boolean } => {
+    const bellsNow = (n: number): { fc: number[]; pos: number[]; live: boolean } => {
       const live = this.noteSounding() ? this.grindLive[n - 1] : 0;
       const fc = [0, 1, 2, 3].map((b) => this.num(`grind${n}.bell${b + 1}_freq`) * this.ruinKey());
-      if (!(live > 0)) return { fc, live: false };
+      if (!(live > 0)) return { fc, pos: [0.5, 0.5, 0.5, 0.5], live: false };
       const pos = [0, ...unpackBells(this.grindLiveRes[n - 1])];
       const [l0, h0] = bellZone(n, 0);
-      pos[0] = h0 > l0 * 1.0001 ? Math.log(live / l0) / Math.log(h0 / l0) : 0.5;
-      return { fc: pos.map((p, b) => { const [lo, hi] = bellZone(n, b); return lo * Math.pow(hi / lo, Math.max(0, Math.min(1, p))); }), live: true };
+      // (moving up down only, band 1's live value is an octave around its Freq, carrying its position)
+      pos[0] = bellDir(n, 0) === 1 ? Math.max(0, Math.min(1, Math.log2(live / fc[0]) + 0.5)) : h0 > l0 * 1.0001 ? Math.log(live / l0) / Math.log(h0 / l0) : 0.5;
+      return { fc: pos.map((p, b) => { if (bellDir(n, b) === 1) return fc[b]; const [lo, hi] = bellZone(n, b); return lo * Math.pow(hi / lo, Math.max(0, Math.min(1, p))); }), pos, live: true };
     };
+    /** A band's direction: 0 left right, 1 up down, 2 cross (owner's call). */
+    const bellDir = (n: number, b: number) => Math.max(0, getParam(`grind${n}.bell${b + 1}_dir`)!.options!.indexOf(String(this.get(`grind${n}.bell${b + 1}_dir`))));
+    /** A band's gain at a position of its up down swing (± half its range around its Gain). */
+    const bellGainAt = (n: number, b: number, p: number) => Math.max(-18, Math.min(18, this.num(`grind${n}.bell${b + 1}_gain`) + this.num(`grind${n}.bell${b + 1}_vrange`) * (p - 0.5)));
     const bellType = (n: number, b: number) => String(this.get(`grind${n}.bell${b + 1}_type`));
     const bellCount = (n: number) => Math.max(1, Math.min(4, Math.round(this.num(`grind${n}.bell_count`))));
     const bellDot = (n: number, b: number, W: number, fY: (m: number) => number): [number, number] =>
@@ -4663,6 +4692,12 @@ export class SynthView {
     const bellWing = (n: number, b: number, W: number, fY: (m: number) => number, mini = false): [number, number, number] => {
       const [lo, hi] = bellZone(n, b), [dx, dy] = bellDot(n, b, W, fY), m = mini ? 4 : WING_MIN;
       return [Math.min(freqX(lo, W), dx - m), Math.max(freqX(hi, W), dx + m), dy];
+    };
+    /** A band's up down wing (owner's call): from its lowest to its highest gain, through its dot, rings at the ends. */
+    const bellVWing = (n: number, b: number, W: number, fY: (m: number) => number, mini = false): [number, number, number] => {
+      const [dx, dy] = bellDot(n, b, W, fY), m = mini ? 4 : WING_MIN;
+      const yt = fY(Math.pow(10, bellGainAt(n, b, 1) / 20)), yb = fY(Math.pow(10, bellGainAt(n, b, 0) / 20));
+      return [Math.min(yt, dy - m), Math.max(yb, dy + m), dx];
     };
     const paintBells = (gg: CanvasRenderingContext2D, GW: number, _GH: number, n: number, col: string, mini: boolean, fY: (m: number) => number, bm: number) => {
       void bm;
@@ -4677,7 +4712,7 @@ export class SynthView {
       gg.stroke();
       gg.restore();
       const NB = bellCount(n);
-      const bs = [0, 1, 2, 3].slice(0, NB).map((b) => ({ fc: now.fc[b], t: bellType(n, b), db: this.num(`grind${n}.bell${b + 1}_gain`), q: this.num(`grind${n}.bell${b + 1}_q`) }));
+      const bs = [0, 1, 2, 3].slice(0, NB).map((b) => ({ fc: now.fc[b], t: bellType(n, b), db: now.live && bellDir(n, b) !== 0 ? bellGainAt(n, b, now.pos[b]) : this.num(`grind${n}.bell${b + 1}_gain`), q: this.num(`grind${n}.bell${b + 1}_q`) }));
       gg.strokeStyle = 'rgba(255,255,255,0.9)';
       gg.lineWidth = 1.4;
       gg.beginPath();
@@ -4689,27 +4724,44 @@ export class SynthView {
       // each band's wing: a thin line from its dot out to where it moves, a small ring at each end you drag
       for (let b = 0; b < NB; b++) {
         const hot = b === sel && !mini, [x0, x1, y] = bellWing(n, b, GW, fY, mini), cap = mini ? 1.6 : hot ? 3.5 : 2.5;
+        const dir = bellDir(n, b), [y0, y1, vx] = bellVWing(n, b, GW, fY, mini);
         gg.save();
         gg.strokeStyle = hexA(col, hot || mini ? 0.95 : 0.45);
         gg.lineWidth = hot ? 1.5 : 1;
-        gg.beginPath();
-        gg.moveTo(x0 + cap, y);
-        gg.lineTo(x1 - cap, y);
-        gg.stroke();
         gg.fillStyle = '#060607';
-        for (const x of [x0, x1]) {
+        // left right: the wing across; up down: the wing up and down through the dot; cross: both
+        if (dir !== 1) {
           gg.beginPath();
-          gg.arc(x, y, cap, 0, 2 * Math.PI);
-          gg.fill();
+          gg.moveTo(x0 + cap, y);
+          gg.lineTo(x1 - cap, y);
           gg.stroke();
+          for (const x of [x0, x1]) {
+            gg.beginPath();
+            gg.arc(x, y, cap, 0, 2 * Math.PI);
+            gg.fill();
+            gg.stroke();
+          }
         }
-        // where the band is right now, riding its wing
+        if (dir !== 0) {
+          gg.beginPath();
+          gg.moveTo(vx, y0 + cap);
+          gg.lineTo(vx, y1 - cap);
+          gg.stroke();
+          for (const yy of [y0, y1]) {
+            gg.beginPath();
+            gg.arc(vx, yy, cap, 0, 2 * Math.PI);
+            gg.fill();
+            gg.stroke();
+          }
+        }
+        // where the band is right now, riding its wing(s)
         if (now.live) {
           gg.fillStyle = '#fff';
           gg.shadowColor = col;
           gg.shadowBlur = 8;
           gg.beginPath();
-          gg.arc(freqX(now.fc[b], GW), y, mini ? 1.2 : 2.2, 0, 2 * Math.PI);
+          const lx = dir === 1 ? vx : freqX(now.fc[b], GW), ly = dir === 0 ? y : fY(Math.pow(10, bellGainAt(n, b, now.pos[b]) / 20));
+          gg.arc(lx, ly, mini ? 1.2 : 2.2, 0, 2 * Math.PI);
           gg.fill();
         }
         gg.restore();
@@ -5049,16 +5101,19 @@ export class SynthView {
     };
     paintThumb = (g, w, hh, k) => paint(g, w, hh, k, true);
     // dragging on the graph: the drive's ring (where / how wide) or the filter's ball (Freq / H Range), anywhere on it
-    let dragging: 'band' | 'filter' | 'eq' | 'bell' | 'bellRange' | 'ph' | null = null;
+    let dragging: 'band' | 'filter' | 'eq' | 'bell' | 'bellRange' | 'bellVRange' | 'ph' | null = null;
     const isBells = (k: number) => kindOf(k) === 'filter' && this.get(`grind${stageOf(k)}.filter`) === 'bells';
     /** The band dot or wing end under the pointer: [band, 'bell' | 'bellRange'], or null (a dot wins a tie). */
-    const nearBell = (n: number, x: number, y: number): [number, 'bell' | 'bellRange'] | null => {
-      let best: [number, 'bell' | 'bellRange'] | null = null, bd = 12;
+    const nearBell = (n: number, x: number, y: number): [number, 'bell' | 'bellRange' | 'bellVRange'] | null => {
+      let best: [number, 'bell' | 'bellRange' | 'bellVRange'] | null = null, bd = 12;
       for (let b = 0; b < bellCount(n); b++) {
-        const [dx, dy] = bellDot(n, b, GW, gfY), [x0, x1, wy] = bellWing(n, b, GW, gfY);
-        const d1 = Math.hypot(x - dx, y - dy) - 2, d2 = Math.min(Math.hypot(x - x0, y - wy), Math.hypot(x - x1, y - wy));
+        const [dx, dy] = bellDot(n, b, GW, gfY), [x0, x1, wy] = bellWing(n, b, GW, gfY), [y0, y1, vx] = bellVWing(n, b, GW, gfY), dir = bellDir(n, b);
+        const d1 = Math.hypot(x - dx, y - dy) - 2;
+        const d2 = dir !== 1 ? Math.min(Math.hypot(x - x0, y - wy), Math.hypot(x - x1, y - wy)) : Infinity;
+        const d3 = dir !== 0 ? Math.min(Math.hypot(x - vx, y - y0), Math.hypot(x - vx, y - y1)) : Infinity;
         if (d1 < bd) { bd = d1; best = [b, 'bell']; }
         if (d2 < bd) { bd = d2; best = [b, 'bellRange']; }
+        if (d3 < bd) { bd = d3; best = [b, 'bellVRange']; }
       }
       return best;
     };
@@ -5092,6 +5147,11 @@ export class SynthView {
         // the ends stop against the dot: never a range smaller than where the rings touch it
         const minR = 2 * WING_MIN * (Math.log2(1000) / GW);
         this.set(`${bp}_range`, Math.round(Math.max(minR, Math.min(10, 2 * Math.abs(Math.log2(f / centre)))) * 10) / 10);
+      } else if (dragging === 'bellVRange') {
+        // an up down wing's end: how far the band's gain moves, the same each side of its Gain
+        const bp = `${pre}.bell${this.ruinBellSel[n - 1] + 1}`, db = (GH * 0.42 - y) / (GH / 62);
+        const minV = 2 * WING_MIN / (GH / 62);
+        this.set(`${bp}_vrange`, Math.round(Math.max(minV, Math.min(36, 2 * Math.abs(db - this.num(`${bp}_gain`))))));
       } else if (dragging === 'eq') {
         const bp = `${pre}.eq_b${this.ruinEqSel[n - 1] + 1}`, sc = this.num(`${pre}.eq_scale`);
         this.set(`${bp}_freq`, Math.round(Math.max(20, Math.min(20000, f))));
@@ -5145,7 +5205,7 @@ export class SynthView {
       if (isBells(this.ruinSel)) {
         // double-click: a dot goes flat (0 dB), a wing's end makes the band stand still
         const [x, y] = at(e), hit = nearBell(n, x, y);
-        if (hit) this.set(`grind${n}.bell${hit[0] + 1}_${hit[1] === 'bell' ? 'gain' : 'range'}`, 0);
+        if (hit) this.set(`grind${n}.bell${hit[0] + 1}_${hit[1] === 'bell' ? 'gain' : hit[1] === 'bellVRange' ? 'vrange' : 'range'}`, 0);
       } else if (isEq(this.ruinSel)) {
         const [x, y] = at(e), b = nearBall(n, x, y);
         if (b < 0) return;

@@ -1866,3 +1866,19 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 .v2 .hyper-uni .led { font-size: 7.5px; letter-spacing: 0.12em; }
 .v2 .hyper-div { width: 1px; align-self: stretch; margin: 4px 3px; background: linear-gradient(transparent, rgba(255,255,255,0.14), transparent); }
 .v2 .box-hyper .hyper-dim { margin-left: auto; color: #6a6b72; font-size: 9px; letter-spacing: 0.24em; }
+/* RUIN bells (owner's layout, 26 Nov): BANDS, Rate, clock | BAND n:, its type as a small icon box, its direction as
+   three segments (owner's pick, option 5), Freq, Gain, Q */
+.v2 .gr-band-div { width: 1px; align-self: stretch; margin: 6px 8px; background: linear-gradient(transparent, rgba(255,255,255,0.14), transparent); }
+.v2 .gr-fdials .eq-set { align-items: center; gap: 6px; }
+.v2 .gr-band-n { font-size: 8.5px; letter-spacing: 0.2em; color: #7a7a80; white-space: nowrap; }
+.v2 .gr-bell-type { position: relative; flex-direction: row; min-width: 0; width: 40px; height: 24px; padding: 0; margin: 0;
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 3px; background: none; }
+.v2 .gr-bell-type .sel, .v2 .gr-bell-type .sel-name, .v2 .gr-bell-type select { position: absolute; inset: 0; width: 100% !important; height: 100% !important;
+  margin: 0 !important; padding: 0 !important; opacity: 0; cursor: pointer; }
+.v2 .gr-type-icon { width: 26px; height: 14px; pointer-events: none; overflow: visible; }
+.v2 .gr-type-icon path { fill: none; stroke: var(--knob-accent, #e8e8ea); stroke-width: 1.3; filter: drop-shadow(0 0 2px var(--knob-accent)); }
+.v2 .gr-dir-seg { display: flex; border: 1px solid rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+.v2 .gr-dir-seg button { width: 22px; height: 22px; padding: 0; display: grid; place-items: center; background: none; border: 0; font: inherit; font-size: 12px; color: #55565c; cursor: pointer; }
+.v2 .gr-dir-seg button + button { border-left: 1px solid rgba(255,255,255,0.06); }
+.v2 .gr-dir-seg button:hover { color: #d9dadd; }
+.v2 .gr-dir-seg button.on { color: #f0f0f2; background: color-mix(in srgb, var(--knob-accent) 18%, transparent); text-shadow: 0 0 6px var(--knob-accent); }
