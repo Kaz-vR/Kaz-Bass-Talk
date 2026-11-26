@@ -2238,12 +2238,6 @@ export class SynthView {
     const drive = this.knob('drive.amount', 'Drive', 'lg', { disabled: () => !this.get('drive.on'), deps: ['drive.on'] });
     // Turning the drive up switches the drive stage on.
     drive.addEventListener('pointerdown', () => { if (!this.get('drive.on')) this.set('drive.on', true); }, true);
-    // The mixer overdriving (the oscillators' sum saturates first, the Minimoog way): glowing text like
-    // ENV, stacked under it (four dials don't fit the box); part of the drive stage.
-    const mixer = this.glowNumber('drive.mixer', 'MIX', (v) => `${Math.round(v * 100)}`,
-      'Mixer drive: the oscillators overdriving the mixer before the filter, the Minimoog way (louder mixes and chords get denser and grittier). Drag up / down (Shift = fine), double-click for 0.');
-    mixer.classList.remove('envn-row');
-    mixer.addEventListener('pointerdown', () => { if (!this.get('drive.on')) this.set('drive.on', true); }, true);
     // As in Serum: while the filter envelope is on, its sweep is a lighter ring on Cutoff (in place
     // of the dial's own arc), set with the glowing ENV number beside it (owner's pick: no second dial).
     const fenvOn = () => !!this.get('mod_env.on');
@@ -2266,7 +2260,7 @@ export class SynthView {
       power: (el) => this.boolPower('filter.on', el),
       head: [this.selector('filter.type'), this.keyTrack()],
       print: this.filterPrint(PRINT_W, PRINT_H),
-      dials: [routes, h('div', 'envn-stack', envAmt, mixer), cutoff, this.knob('filter.resonance', 'Res', 'lg'), drive],
+      dials: [routes, h('div', 'envn-stack', envAmt), cutoff, this.knob('filter.resonance', 'Res', 'lg'), drive],
       corner: [accent, vowel],
     });
   }

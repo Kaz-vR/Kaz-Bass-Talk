@@ -11431,18 +11431,6 @@
       "describes": "Blend between the filtered and the driven sound."
     },
     {
-      "id": "drive.mixer",
-      "label": "Mixer drive",
-      "type": "float",
-      "min": 0,
-      "max": 1,
-      "default": 0,
-      "curve": "linear",
-      "unit": "",
-      "group": "drive",
-      "describes": "The oscillator mixer overdriving, the Minimoog way: the oscillators' sum saturates before everything else, more as their levels add up (louder mixes and chords get denser and grittier). 0 is off."
-    },
-    {
       "id": "voice.halfspeed",
       "label": "Octave down (half speed)",
       "type": "bool",

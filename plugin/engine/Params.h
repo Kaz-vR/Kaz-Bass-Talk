@@ -169,7 +169,7 @@ struct ParamIndex {
   int strTone, strDecay, accent, ampBend[3], modBend[3], chorusMode;
   int subWave, subOct, subLevel, subClip, midClip, subFType, subFCut, subFKey, subDirect;
   int texPan, texDirect, texFType, texFCut, texFKey;
-  int routeA, routeB, routeN, routeS, postCut, fMix, noise, drive, mixDrive, halfSpeed;
+  int routeA, routeB, routeN, routeS, postCut, fMix, noise, drive, halfSpeed;
   int texType, texLevel, texTone, texDensity, texOct, texKey, texTail;
   int fType, cutoff, res, keytrack, envAmt, modEnvOn, vowel;
   int dType, dDrive, dMix, dTone, dSplit, dBandHz, dBandOct, dDyn, crushMix, crushBits, crushRate, crushLowcut, tapeLowcut, tapeWow, dOut;
@@ -213,7 +213,7 @@ struct ParamIndex {
     texPan = ix("texture.pan"); texDirect = ix("texture.direct"); texFType = ix("texture.filter_type"); texFCut = ix("texture.filter_cutoff"); texFKey = ix("texture.filter_key");
     routeA = ix("filter.route_a"); routeB = ix("filter.route_b"); routeN = ix("filter.route_n"); routeS = ix("filter.route_s");
     postCut = ix("clip.low_cut"); fMix = ix("filter.mix");
-    noise = ix("noise.level"); drive = ix("drive.amount"); mixDrive = ix("drive.mixer"); halfSpeed = ix("voice.halfspeed");
+    noise = ix("noise.level"); drive = ix("drive.amount"); halfSpeed = ix("voice.halfspeed");
     texType = ix("texture.type"); texLevel = ix("texture.level"); texTone = ix("texture.tone"); texDensity = ix("texture.density");
     texOct = ix("texture.octave"); texKey = ix("texture.key"); texTail = ix("texture.tail");
     fType = ix("filter.type"); cutoff = ix("filter.cutoff"); res = ix("filter.resonance"); keytrack = ix("filter.keytrack");

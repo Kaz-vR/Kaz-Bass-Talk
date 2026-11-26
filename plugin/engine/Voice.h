@@ -99,7 +99,6 @@ class Voice {
     voiceDcR.setHighpass(VOICE_DC_HZ, SQRT1_2, fs);
     lfoFade.fill(1); vibAmt.fill(-1); srcMax.fill(1);
     driveF.fill(tanhIntegral(0));
-    mixF.fill(tanhIntegral(0));
     Rng card(seed ^ 0x6c8e9cf5u);
     cardTune = card.next();
     cardCut = card.next();
@@ -453,10 +452,6 @@ class Voice {
     subLevel = clampd(cur[P.subLevel] + dst[D_SUB], 0, 1) * SUB_GAIN;
     noiseLevel = clampd(cur[P.noise] + dst[D_NOISE], 0, 1) * 0.5;
 
-    // mixer drive (see voice.ts)
-    const double md = cur[P.mixDrive];
-    mixGain = 1 + 8 * md;
-    mixComp = 1 / std::sqrt(mixGain);
     const double drive = clampd(cur[P.drive] + dst[D_DRIVE], 0, 1);
     driveMix = std::fmin(1, drive * 4);
     driveGain = 1 + 15 * drive * drive;
@@ -779,16 +774,6 @@ class Voice {
     }
   }
 
-  double mixShape(double x, int ch) {
-    const double u = mixGain * x;
-    const double up = mixU[ch];
-    const double fu = tanhIntegral(u);
-    const double du = u - up;
-    const double y = std::fabs(du) > 1e-5 ? (fu - mixF[ch]) / du : fastTanh(0.5 * (u + up));
-    mixU[ch] = u;
-    mixF[ch] = fu;
-    return y * mixComp;
-  }
 
   double driveShape(double x, int ch) {
     const double u = driveGain * x;
@@ -802,10 +787,6 @@ class Voice {
   }
 
   void nonlinear(double l, double r, int slot, double bl, double br) {
-    if (mixGain > 1) {
-      l = mixShape(l, 0);
-      r = mixShape(r, 1);
-    }
     if (driveMix > 0) {
       const double dc = driveComp, dm = driveMix;
       l += (driveShape(l, 0) * dc - l) * dm;
@@ -920,8 +901,6 @@ class Voice {
   Upsampler2x upBL, upBR;
   double fMix = 1, noiseLevel = 0;
 
-  double mixGain = 1, mixComp = 1;
-  std::array<double, 2> mixU{}, mixF{};
   double driveMix = 0, driveGain = 1, driveComp = 1;
   int filterType = FILTER_LP;
   double g = 0.1, gStep = 0, gPrevTarget = -1, k = 0;

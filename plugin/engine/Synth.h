@@ -573,7 +573,7 @@ class Synth {
     auto off = [&](int flag) { return raw[flag] < 0.5; };
     auto zero = [&](std::initializer_list<int> ix) { for (int i : ix) t[i] = 0; };
     auto block = [&](std::initializer_list<int> ds) { for (int d : ds) dstMask[d] = 0; };
-    if (off(P.driveOn)) { zero({P.drive, P.mixDrive}); block({D_DRIVE}); }
+    if (off(P.driveOn)) { zero({P.drive}); block({D_DRIVE}); }
     if (off(P.filterOn)) {
       t[P.cutoff] = 20000;
       t[P.fType] = FILTER_LP;

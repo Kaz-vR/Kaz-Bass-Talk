@@ -422,7 +422,7 @@ export class Synth {
     const off = (flag: number) => r[flag] < 0.5;
     const zero = (...ix: number[]) => { for (const i of ix) t[i] = 0; };
     const block = (...ds: number[]) => { for (const d of ds) m[d] = 0; };
-    if (off(P.driveOn)) { zero(P.drive); zero(P.mixDrive); block(K.D_DRIVE); }
+    if (off(P.driveOn)) { zero(P.drive); block(K.D_DRIVE); }
     if (off(P.filterOn)) {
       // Wide open: a plain low-pass at the top of the range.
       t[P.cutoff] = 20000;

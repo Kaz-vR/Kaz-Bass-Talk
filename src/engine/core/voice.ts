@@ -190,11 +190,7 @@ export class Voice {
   private fMix = 1;
   private noiseLevel = 0;
 
-  // Mixer drive (the oscillators' sum overdriving), then drive + filter.
-  private mixGain = 1;
-  private mixComp = 1;
-  private readonly mixU = new Float64Array(2);
-  private readonly mixF = new Float64Array(2).fill(tanhIntegral(0));
+  // Drive + filter.
   private driveMix = 0;
   private driveGain = 1;
   private driveComp = 1;
@@ -649,11 +645,6 @@ export class Voice {
     this.subLevel = clamp(cur[P.subLevel] + dst[D.SUB], 0, 1) * SUB_GAIN;
     this.noiseLevel = clamp(cur[P.noise] + dst[D.NOISE], 0, 1) * 0.5;
 
-    // Mixer drive: the mix saturates harder the hotter it is; the make-up keeps a full mix near its level.
-    const md = cur[P.mixDrive];
-    this.mixGain = 1 + 8 * md;
-    this.mixComp = 1 / Math.sqrt(this.mixGain);
-
     // Pre-filter drive.
     const drive = clamp(cur[P.drive] + dst[D.DRIVE], 0, 1);
     this.driveMix = Math.min(1, drive * 4);
@@ -804,18 +795,6 @@ export class Voice {
     }
   }
 
-  /** Mixer drive: tanh saturation of the oscillators' sum, with first-order ADAA (see shape()). */
-  private mixShape(x: number, ch: number): number {
-    const u = this.mixGain * x;
-    const up = this.mixU[ch];
-    const fu = tanhIntegral(u);
-    const du = u - up;
-    const y = Math.abs(du) > 1e-5 ? (fu - this.mixF[ch]) / du : tanh(0.5 * (u + up));
-    this.mixU[ch] = u;
-    this.mixF[ch] = fu;
-    return y * this.mixComp;
-  }
-
   /** Pre-filter drive: tanh saturation with first-order ADAA (see shape()). */
   private driveShape(x: number, ch: number): number {
     const u = this.driveGain * x;
@@ -830,11 +809,6 @@ export class Voice {
 
   /** One oversampled stereo sample through drive → filter → distortion into osOut[slot], osOut[slot + 1]. */
   private nonlinear(l: number, r: number, slot: number, bl: number, br: number): void {
-    // Mixer drive: the oscillators' sum overdriving first, the Minimoog way.
-    if (this.mixGain > 1) {
-      l = this.mixShape(l, 0);
-      r = this.mixShape(r, 1);
-    }
     // Pre-filter drive.
     if (this.driveMix > 0) {
       const dc = this.driveComp, dm = this.driveMix;

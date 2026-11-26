@@ -6,7 +6,7 @@ struct ParamSpec {
   const char* id; const char* label; PType type; double min, max, def; int curve; double exponent;
   const char* unit; const char* group; const char* options; const char* describes;
 };
-constexpr int PARAM_COUNT = 1313;
+constexpr int PARAM_COUNT = 1312;
 inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "voice.polyphony", "Polyphony", PType::Int, 1, 8, 1, 0, 3, "voices", "voice", "", "1 = monophonic (legato and glide work, the bass default). 2-8 = that many notes at once, for pads, keys and chords; the oldest note is taken over when more are played." },
   { "voice.legato", "Legato", PType::Bool, 0, 1, 0, 0, 3, "", "voice", "", "On: overlapping notes slide without retriggering the envelopes (303-style). Off: every note retriggers." },
@@ -535,7 +535,6 @@ inline const ParamSpec PARAMS[PARAM_COUNT] = {
   { "grind4.drive_type", "Grind 4 drive type", PType::Enum, 0, 9, 3, 0, 3, "", "grind4", "tape|tube|amp|soft clip|hard clip|wavefold|rectify|downsample|diode|starved", "The stage's drive after its filter: tape is soft and warm, its highs saturating first and rounded off; tube thick with even harmonics; amp a driven amp through a speaker cab, a close mic and a small room (boxy, biting, no low rumble or fizz on top); soft clip clean below its knee, rounding off the peaks. Then the hard ones: hard clip squares the peaks off flat; wavefold folds the wave back on itself, more folds the harder it is driven (metallic, glassy); rectify flips the bottom half up (the octave above, hollow and buzzy); downsample holds each sample longer as Drive goes up, down to 1/32 of the rate (gritty, aliased, digital); diode is lopsided, soft on top and clipping early below (snarling, uneven harmonics). Starved: a tube starved of current (the Culture Vulture trick): quiet parts sputter and gate, only the big swings get through, lopsided." },
   { "grind4.drive", "Grind 4 drive", PType::Float, 0, 1, 0.37, 0, 3, "", "grind4", "", "How hard the stage's drive is pushed (its level is matched, so more is dirtier, not louder). 0 = the filter only." },
   { "grind4.mix", "Grind 4 mix", PType::Float, 0, 1, 0.75, 0, 3, "", "grind4", "", "Blend between the filtered and the driven sound." },
-  { "drive.mixer", "Mixer drive", PType::Float, 0, 1, 0, 0, 3, "", "drive", "", "The oscillator mixer overdriving, the Minimoog way: the oscillators' sum saturates before everything else, more as their levels add up (louder mixes and chords get denser and grittier). 0 is off." },
   { "voice.halfspeed", "Octave down (half speed)", PType::Bool, 0, 1, 0, 0, 3, "", "voice", "", "Plays the whole synth at half speed, live, like a frozen render pitched down an octave in Ableton's Repitch mode: everything an octave lower and darker, envelopes, glides, LFOs and effects twice as slow. Notes still start when they are played." },
   { "grind1.filter_on", "Grind 1 filter on", PType::Bool, 0, 1, 1, 0, 3, "", "grind1", "", "The stage's moving filter on / off (keeps its settings): off, the stage is only its drive." },
   { "grind1.drive_on", "Grind 1 drive on", PType::Bool, 0, 1, 1, 0, 3, "", "grind1", "", "The stage's drive on / off (keeps its settings): off, the stage is only its moving filter." },
