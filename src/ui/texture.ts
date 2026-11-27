@@ -374,10 +374,7 @@ export function woodTexture(side: 'l' | 'r' = 'l', w = 134, h = 1422, seed = 61)
       const ao = Math.min(1, Math.max(0.45, 1 + 0.9 * (H[i] - 0.15)));
       const e = Math.min(x, w - 1 - x) / w, dk = e < 0.06 ? 0.35 + 0.65 * (e / 0.06) : 1;
       const k = shade * ao * dk, o = i * 4;
-      // (the page's darkening baked in, owner's bug, 27 Nov: a CSS filter on the cheeks sometimes painted them white;
-      // brightness 0.5 and saturation 0.6, as the filter had them)
-      const r0 = R * k * 0.5, g0 = G * k * 0.5, b0 = B * k * 0.5, lum = 0.2126 * r0 + 0.7152 * g0 + 0.0722 * b0;
-      img.data[o] = lum + 0.6 * (r0 - lum); img.data[o + 1] = lum + 0.6 * (g0 - lum); img.data[o + 2] = lum + 0.6 * (b0 - lum); img.data[o + 3] = 255;
+      img.data[o] = R * k; img.data[o + 1] = G * k; img.data[o + 2] = B * k; img.data[o + 3] = 255;
     }
   }
   g.putImageData(img, 0, 0);
@@ -388,7 +385,7 @@ export function woodTexture(side: 'l' | 'r' = 'l', w = 134, h = 1422, seed = 61)
       const a = k / n, b = (k + 1) / n, al = Math.sin(Math.PI * a) * (0.5 + 0.5 * warp(a * 9, 3));
       const p = (u: number) => [(x0 + (x1 - x0) * u) * sx + 1.5 * (warp(u * 14, 7) - 0.5), (y0 + (y1 - y0) * u - 4 * Math.sin(Math.PI * u)) * sy];
       const [ax, ay] = p(a), [bx, by] = p(b);
-      for (const [col, oy, lw] of [[`rgba(5,2,1,${0.6 * al})`, 1.1, 1.3], [`rgba(100,88,79,${0.55 * al})`, 0, 0.8]] as const) {
+      for (const [col, oy, lw] of [[`rgba(10,4,2,${0.6 * al})`, 1.1, 1.3], [`rgba(215,175,145,${0.55 * al})`, 0, 0.8]] as const) {
         g.strokeStyle = col;
         g.lineWidth = lw;
         g.beginPath();
