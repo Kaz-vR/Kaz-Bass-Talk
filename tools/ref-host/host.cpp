@@ -106,6 +106,9 @@ int main(int argc, char** argv) {
   for (int k = 0; k < (int)(0.3 * g_sr / g_block); k++) {
     // (some plugins only take certain changes while running: set them again mid-way through the settle)
     if (k == (int)(0.15 * g_sr / g_block)) for (auto& p : sets) e->setParameter(e, p.first, p.second);
+    // (and idle calls, as a host's UI thread sends: some plugins hand continuous changes on from there)
+    e->dispatcher(e, 19, 0, 0, 0, 0);  // effEditIdle
+    e->dispatcher(e, 22, 0, 0, 0, 0);  // effIdle
     for (auto& v : ib) std::fill(v.begin(), v.end(), 0.f);
     e->processReplacing(e, ip.data(), op.data(), g_block);
   }
