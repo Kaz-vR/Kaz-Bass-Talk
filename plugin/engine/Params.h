@@ -37,9 +37,9 @@ constexpr double VOICE_GAIN = 0.55;
 constexpr double SUB_GAIN = 0.55;
 
 constexpr int WAVE_SINE = 0, WAVE_TRI = 1, WAVE_SAW = 2, WAVE_PULSE = 3, WAVE_PWMSAW = 5, WAVE_STRING = 6;
-// the menu's new waves (as params.ts): square and 9-24 the wave bank's tables, supersaw the unison saw, breath with noise
-constexpr int WAVE_SQUARE = 7, WAVE_SUPERSAW = 8, WAVE_BREATH = 20;
-inline int bankOf(int w) { return w == WAVE_SQUARE ? 0 : w >= 9 ? w - 8 : -1; }
+// the menu's new waves (as params.ts): 7-23 the wave bank's tables, nothing layered or added
+constexpr int WAVE_BANK0 = 7;
+inline int bankOf(int w) { return w >= WAVE_BANK0 ? w - WAVE_BANK0 : -1; }
 constexpr int FILTER_LP = 0, FILTER_BP = 1, FILTER_DIODE = 3, FILTER_NOTCH = 4, FILTER_COMB = 5, FILTER_LPG = 6, FILTER_HP = 7, FILTER_SEM = 8;
 constexpr int FILTER_LP12 = 9, FILTER_MS20 = 10, FILTER_PHASER = 11, FILTER_RING = 12, FILTER_DECIM = 13, FILTER_TALK = 14;
 constexpr int DIST_SOFT = 0, DIST_HARD = 1, DIST_FOLD = 2, DIST_FUZZ = 4, DIST_AMP = 5;

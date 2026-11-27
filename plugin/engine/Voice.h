@@ -65,7 +65,7 @@ struct OscState {
   double gain = 0;
   int wave = WAVE_SAW;
   int baseA = 0, baseB = 0, baseSaw = 0;
-  double frac = 0, pw = 0.5, lastSpread = -1, breath = 0;
+  double frac = 0, pw = 0.5, lastSpread = -1;
   int lastVoices = -1;
 };
 
@@ -243,7 +243,7 @@ class Voice {
     const auto& P = PI_();
     for (int n = 0; n < 2; n++) {
       osc[n].wave = (int)cur[P.osc[n].wave];
-      osc[n].voices = osc[n].wave == WAVE_SUPERSAW ? 7 : (int)cur[P.osc[n].voices];
+      osc[n].voices = (int)cur[P.osc[n].voices];
     }
     filterType = (int)cur[P.fType];
     subWave = (int)cur[P.subWave];
@@ -364,8 +364,7 @@ class Voice {
       while (center < 20 / fs) center *= 2;
       if (n == 0) syncInc = center;
       const int voices = o.voices;
-      double detune = clampd(cur[op.detune] + 100 * (dst[D_DETUNE] + dst[n == 0 ? D_OSC1_DETUNE : D_OSC2_DETUNE]), 0, 100);
-      if (o.wave == WAVE_SUPERSAW) detune = clampd(detune + 70 * clampd(cur[op.wt] + dst[n == 0 ? D_OSC1_WT : D_OSC2_WT] + dst[n == 0 ? D_OSC1_PW : D_OSC2_PW] + dst[D_SHAPE], 0, 1), 0, 100);
+      const double detune = clampd(cur[op.detune] + 100 * (dst[D_DETUNE] + dst[n == 0 ? D_OSC1_DETUNE : D_OSC2_DETUNE]), 0, 100);
       const double spread = cur[op.spread];
       if (voices == 1) {
         o.inc[0] = center;
@@ -414,7 +413,6 @@ class Voice {
       else wt = clampd(cur[op.wt] + dst[n == 0 ? D_OSC1_WT : D_OSC2_WT] + shape, 0, 1);
       const int bw = bankOf(o.wave);
       const int f0 = bw >= 0 ? BANK_LAYOUT.frame0[bw] : 0, nf = bw >= 0 ? BANK_LAYOUT.frames[bw] : FRAME_COUNT;
-      o.breath = o.wave == WAVE_BREATH ? 0.7 * wt : 0;
       const double fpos = f0 + wt * (nf - 1);
       const int fa = std::min(f0 + nf - 2, (int)std::floor(fpos));
       const int mip = mipForIncrement(o.inc[voices - 1]);
@@ -779,7 +777,6 @@ class Voice {
         return 0.6 * sw + 0.35 * (sw - saw(o.baseSaw, p2));
       }
       case WAVE_SAW:
-      case WAVE_SUPERSAW:
         return saw(o.baseSaw, ph);
       case WAVE_PULSE: {
         double p2 = ph - o.pw;
@@ -792,9 +789,9 @@ class Voice {
         const double f = pos - i;
         const int i2 = (i + 1) & TABLE_MASK;
         const double a = table[o.baseA + i] + ((double)table[o.baseA + i2] - table[o.baseA + i]) * f;
-        const double b = o.frac == 0 ? a : table[o.baseB + i] + ((double)table[o.baseB + i2] - table[o.baseB + i]) * f;
-        const double y = a + (b - a) * o.frac;
-        return o.breath > 0 ? y + o.breath * rng.next() * (0.35 + 0.65 * std::fabs(y)) : y;
+        if (o.frac == 0) return a;
+        const double b = table[o.baseB + i] + ((double)table[o.baseB + i2] - table[o.baseB + i]) * f;
+        return a + (b - a) * o.frac;
       }
     }
   }
@@ -930,7 +927,7 @@ class Voice {
   const double fs;
   const double* cur;
   const float* table;
-  mutable Rng rng;  // (oscSample is const: breath noise draws from it)
+  Rng rng;
   const double* dstMask;
 
   bool hasPlayed = false;

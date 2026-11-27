@@ -305,7 +305,6 @@ function waveShape(wave: string, x: number, pw: number, wt: number): number {
       return frames[i] * (1 - f) + frames[i + 1] * f;
     }
     case 'string': return Math.exp(-3 * x) * Math.sin(2 * Math.PI * 3 * x) * (1 - 2 * ((x * 7) % 1) * 0.3);
-    case 'supersaw': return saw;
     default: {
       // a bank wave (owner's call): its keyframes as the engine has them, Shape between them, scaled to the print
       const b = BANK.findIndex((q) => q.name === wave);
@@ -335,15 +334,15 @@ function bankAt(b: number, x: number, s: number): number {
 /** The oscillators' waves in the menu (owner's pick): six columns by what the sound is. */
 const WAVE_GROUPS: [string, string[]][] = [
   ['CLASSICS', ['sine', 'triangle', 'saw', 'pulse', 'square']],
-  ['RICH', ['pwm_saw', 'supersaw', 'double saw', 'sync saw', 'wavetable']],
+  ['RICH', ['pwm_saw', 'double saw', 'sync saw', 'wavetable']],
   ['VOCAL', ['vowel', 'choir', 'talk']],
   ['METAL', ['bell', 'ring', 'digital', 'glass']],
   ['ORGANIC', ['string', 'bowed', 'reed', 'breath']],
   ['WORN', ['tape saw', 'cassette pulse', 'lofi sample', 'broken sine']],
 ];
 const WAVE_LABEL: Record<string, string> = { pwm_saw: 'PWM SAW', wavetable: 'MORPH' };
-/** The waves that use the Shape dial as their position (the wave bank's, the morph table, supersaw and breath). */
-const SHAPE_WT = new Set(['wavetable', 'supersaw', ...BANK.map((q) => q.name)]);
+/** The waves that use the Shape dial as their position (the wave bank's and the morph table). */
+const SHAPE_WT = new Set(['wavetable', ...BANK.map((q) => q.name)]);
 /** A wave's small picture for the menu (22 x 12, one cycle at the middle of its Shape). */
 function waveIconPath(wave: string): string {
   const W = 22, H = 12, N = 44, ys: number[] = [];

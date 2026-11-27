@@ -146,7 +146,7 @@ export function bankKey(w: number, kf: number, x: number): number {
     case 9: { const ks = [1, 4, 8, 12, 16, 24], b = [0.2, 0.5, 0.9][kf]; let y = 0; for (let i = 0; i < ks.length; i++) y += Math.pow(b, i) * Math.sin(2 * Math.PI * ks[i] * x); return y; } // glass
     case 10: { const p = [1.6, 1.3, 1][kf]; return additive(x, 60, (k) => (1 + 0.8 * Math.exp(-(((k - 3) / 1.5) ** 2)) + 0.5 * Math.exp(-(((k - 8) / 3) ** 2))) / Math.pow(k, p)); } // bowed
     case 11: { const n = [0.3, 1, 2][kf]; return additive(x, 60, (k) => (k % 2 === 1 ? 1 / k : 0.15 / k) * (1 + n * Math.exp(-(((k - 7) / 3) ** 2)))); } // reed
-    case 12: { const h = [0.05, 0.2, 0.35][kf]; return S(x) + h * S(2 * x) + 0.4 * h * S(3 * x); } // breath (its breath is noise, by Shape)
+    case 12: { const h = [0.05, 0.2, 0.35][kf]; return S(x) + h * S(2 * x) + 0.4 * h * S(3 * x); } // breath: a soft, flute-like tone, Shape brighter
     case 13: { const d = [1.5, 3, 6][kf]; return Math.tanh(d * (saw(x) + 0.1)) - Math.tanh(d * 0.1); } // tape saw
     case 14: { const dr = [0.5, 1.5, 3][kf]; return x < 0.5 ? Math.exp(-dr * x) : -Math.exp(-dr * (x - 0.5)); } // cassette pulse, sagging
     case 15: { const st = [64, 24, 10][kf], q = [24, 8, 4][kf], xs = Math.floor(x * st) / st; return jr((0.6 * saw(xs + 0.5) + 0.4 * S(xs)) * q) / q; } // lofi sample

@@ -31,11 +31,11 @@ export const SUB_GAIN = 0.55;
 
 // Enum option indices (must match data/schema.json order).
 export const WAVE_SINE = 0, WAVE_TRI = 1, WAVE_SAW = 2, WAVE_PULSE = 3, WAVE_PWMSAW = 5, WAVE_STRING = 6; // 4 = wavetable
-/** The menu's new waves (owner's call, 27 Nov): square (7) and 9-24 are the wave bank's tables; supersaw (8) is the
- * saw through the unison engine; breath (20) adds breath noise by Shape. */
-export const WAVE_SQUARE = 7, WAVE_SUPERSAW = 8, WAVE_BREATH = 20;
+/** The menu's new waves (owner's call, 27 Nov): 7-23 are the wave bank's tables, nothing layered or added (owner's
+ * call: no hidden effects, so no supersaw and no breath noise). */
+export const WAVE_BANK0 = 7;
 /** A wave's index in the wave bank (wavetable.ts BANK), -1 for the others. */
-export const bankOf = (w: number): number => (w === WAVE_SQUARE ? 0 : w >= 9 ? w - 8 : -1);
+export const bankOf = (w: number): number => (w >= WAVE_BANK0 ? w - WAVE_BANK0 : -1);
 export const FILTER_LP = 0, FILTER_BP = 1, FILTER_DIODE = 3, FILTER_NOTCH = 4, FILTER_COMB = 5, FILTER_LPG = 6, FILTER_HP = 7, FILTER_SEM = 8; // 2 = formant
 /** The menu's new filters (owner's call, 27 Nov). TALK is the formant filter with Cutoff moving the vowel. */
 export const FILTER_LP12 = 9, FILTER_MS20 = 10, FILTER_PHASER = 11, FILTER_RING = 12, FILTER_DECIM = 13, FILTER_TALK = 14;

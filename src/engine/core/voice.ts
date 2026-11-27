@@ -38,7 +38,7 @@ const PRE_FILTER_GAIN = K.PRE_FILTER_GAIN, POST_FILTER_GAIN = K.POST_FILTER_GAIN
 /** The sub routed into the main filter arrives at about the level the clean path would have had. */
 const SUB_ROUTE_GAIN = 1 / (VOICE_GAIN * PRE_FILTER_GAIN * POST_FILTER_GAIN);
 const WAVE_SINE = K.WAVE_SINE, WAVE_TRI = K.WAVE_TRI, WAVE_SAW = K.WAVE_SAW, WAVE_PULSE = K.WAVE_PULSE, WAVE_PWMSAW = K.WAVE_PWMSAW;
-const WAVE_STRING = K.WAVE_STRING, WAVE_SUPERSAW = K.WAVE_SUPERSAW, WAVE_BREATH = K.WAVE_BREATH;
+const WAVE_STRING = K.WAVE_STRING;
 const FILTER_LP = K.FILTER_LP, FILTER_BP = K.FILTER_BP, FILTER_DIODE = K.FILTER_DIODE, FILTER_NOTCH = K.FILTER_NOTCH;
 const FILTER_COMB = K.FILTER_COMB, FILTER_LPG = K.FILTER_LPG, FILTER_HP = K.FILTER_HP, FILTER_SEM = K.FILTER_SEM;
 const FILTER_LP12 = K.FILTER_LP12, FILTER_MS20 = K.FILTER_MS20, FILTER_PHASER = K.FILTER_PHASER, FILTER_RING = K.FILTER_RING, FILTER_DECIM = K.FILTER_DECIM, FILTER_TALK = K.FILTER_TALK;
@@ -70,8 +70,6 @@ interface OscState {
   baseB: number;
   frac: number;
   pw: number;
-  /** breath: how much breath noise rides on the tone (0 = none). */
-  breath: number;
   lastSpread: number;
   lastVoices: number;
   baseSaw: number; // mip-mapped saw table offset for this block
@@ -87,7 +85,7 @@ function makeOsc(): OscState {
     inc: new Float64Array(MAX_UNISON),
     panL: new Float64Array(MAX_UNISON),
     panR: new Float64Array(MAX_UNISON),
-    voices: 1, gain: 0, wave: WAVE_SAW, baseA: 0, baseB: 0, baseSaw: 0, frac: 0, pw: 0.5, breath: 0, lastSpread: -1, lastVoices: -1,
+    voices: 1, gain: 0, wave: WAVE_SAW, baseA: 0, baseB: 0, baseSaw: 0, frac: 0, pw: 0.5, lastSpread: -1, lastVoices: -1,
     drift: new Float64Array(MAX_UNISON), driftTarget: new Float64Array(MAX_UNISON), held: new Float64Array(MAX_UNISON),
   };
 }
@@ -419,8 +417,7 @@ export class Voice {
     for (let n = 0; n < 2; n++) {
       const o = this.osc[n];
       o.wave = cur[P.osc[n].wave];
-      // supersaw (owner's call): the saw as seven detuned copies, whatever UNI says
-      o.voices = o.wave === WAVE_SUPERSAW ? 7 : cur[P.osc[n].voices];
+      o.voices = cur[P.osc[n].voices];
     }
     this.filterType = cur[P.fType];
     this.subWave = cur[P.subWave];
@@ -559,9 +556,7 @@ export class Voice {
       while (center < 20 / fs) center *= 2;
       if (n === 0) this.syncInc = center;
       const voices = o.voices;
-      let detune = clamp(cur[op.detune] + 100 * (dst[D.DETUNE] + dst[n === 0 ? D.OSC1_DETUNE : D.OSC2_DETUNE]), 0, 100);
-      // supersaw: Shape spreads its seven copies apart (on top of Detune)
-      if (o.wave === WAVE_SUPERSAW) detune = clamp(detune + 70 * clamp(cur[op.wt] + dst[n === 0 ? D.OSC1_WT : D.OSC2_WT] + dst[n === 0 ? D.OSC1_PW : D.OSC2_PW] + dst[D.SHAPE], 0, 1), 0, 100);
+      const detune = clamp(cur[op.detune] + 100 * (dst[D.DETUNE] + dst[n === 0 ? D.OSC1_DETUNE : D.OSC2_DETUNE]), 0, 100);
       const spread = cur[op.spread];
       if (voices === 1) {
         o.inc[0] = center;
@@ -620,7 +615,6 @@ export class Voice {
       // a bank wave (owner's call): Shape moves through its own frames, after the morph table's
       const bw = K.bankOf(o.wave);
       const f0 = bw >= 0 ? BANK_FRAME0[bw] : 0, nf = bw >= 0 ? BANK_FRAMES[bw] : FRAME_COUNT;
-      o.breath = o.wave === WAVE_BREATH ? 0.7 * wt : 0;
       const fpos = f0 + wt * (nf - 1);
       const fa = Math.min(f0 + nf - 2, Math.floor(fpos));
       const mip = mipForIncrement(o.inc[voices - 1]);
@@ -824,7 +818,6 @@ export class Voice {
         return 0.6 * saw + 0.35 * (saw - this.saw(o.baseSaw, p2));
       }
       case WAVE_SAW:
-      case WAVE_SUPERSAW:
         return this.saw(o.baseSaw, ph);
       case WAVE_PULSE: {
         // Pulse = difference of two band-limited saws, offset by the pulse width.
@@ -840,10 +833,9 @@ export class Voice {
         const f = pos - i;
         const i2 = (i + 1) & TABLE_M;
         const a = t[o.baseA + i] + (t[o.baseA + i2] - t[o.baseA + i]) * f;
-        const b = o.frac === 0 ? a : t[o.baseB + i] + (t[o.baseB + i2] - t[o.baseB + i]) * f;
-        const y = a + (b - a) * o.frac;
-        // breath: noise riding on the tone, louder where the wave is
-        return o.breath > 0 ? y + o.breath * this.rng.next() * (0.35 + 0.65 * Math.abs(y)) : y;
+        if (o.frac === 0) return a;
+        const b = t[o.baseB + i] + (t[o.baseB + i2] - t[o.baseB + i]) * f;
+        return a + (b - a) * o.frac;
       }
     }
   }
