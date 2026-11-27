@@ -1780,7 +1780,7 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 .v2.v2 .scope-glass::after { display: none !important; }
 /* the wooden cheeks a really dark brown (owner's reference): the same wood at half its brightness, colour kept
    (measured: rgb ~34 / 15.5 / 10.5, every channel 49% of the original) */
-.v2 .wood { filter: brightness(.5) saturate(.6); }
+/* (the darkening is baked into the picture now: no filter here, owner's bug, 27 Nov) */
 
 /* The LFO page (owner's pick, option 1, 24 Nov): the custom LFO across the top with its TARGET box, LFO 1-4 below */
 .v2 .mod-page2.lfo-all { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; grid-template-rows: minmax(0, 1fr) 160px !important; height: 452px; }
@@ -1911,4 +1911,4 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 /* the top bar sits above the page's boxes, so the preset menu it opens is seen (owner's bug, 27 Nov: it opened under them) */
 .v2 .v2-top { z-index: 100; overflow: visible; }
 /* the wood's own brown under its generated picture, so it is never white if the picture is missing (owner's bug, 27 Nov) */
-.v2 .wood-l, .v2 .wood-r { background-color: #42201a; }
+.v2 .wood-l, .v2 .wood-r { background-color: #1c110d; }
