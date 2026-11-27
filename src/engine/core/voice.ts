@@ -14,7 +14,7 @@ import { AUX_SLOT, Biquad, clamp, Clipper, Envelope, Ladder, OSC_SLOT, Rng, Slot
 import { Downsampler2x, OVERSAMPLE_LATENCY, Upsampler2x } from './oversample';
 import * as K from './params';
 import { Comb, DiodeLadder, KarplusString } from './voicefx';
-import { BANK_FRAME0, BANK_FRAMES, FRAME_COUNT, FRAMES_PER_SEGMENT, MIP_LEVELS, mipForIncrement, TABLE_MASK, TABLE_SIZE } from './wavetable';
+import { BANK_FRAME0, BANK_FRAMES, FRAME_COUNT, FRAMES_PER_SEGMENT, MIP_SIZE, mipBase, mipForIncrement } from './wavetable';
 
 // Module-local bindings: avoids live-binding getter overhead on hot paths in
 // some module transforms (tsx / vite-node).
@@ -46,7 +46,6 @@ const FILTER_LP12 = K.FILTER_LP12, FILTER_MS20 = K.FILTER_MS20, FILTER_PHASER = 
 const tanh = K.tanh, tanhIntegral = K.tanhIntegral;
 const SLOT_COUNT = K.SLOT_COUNT, SRC_COUNT = K.SRC_COUNT, DEST_COUNT = K.DEST_COUNT;
 const VOWELS = K.VOWELS, FORMANT_GAIN = K.FORMANT_GAIN;
-const TABLE_N = TABLE_SIZE, TABLE_M = TABLE_MASK;
 const D = {
   PITCH: K.D_PITCH, OSC_PITCH: K.D_OSC_PITCH, OSC1_PITCH: K.D_OSC1_PITCH, OSC2_PITCH: K.D_OSC2_PITCH, OSC1_WT: K.D_OSC1_WT, OSC2_WT: K.D_OSC2_WT,
   OSC1_PW: K.D_OSC1_PW, OSC2_PW: K.D_OSC2_PW, OSC1_LEVEL: K.D_OSC1_LEVEL, OSC2_LEVEL: K.D_OSC2_LEVEL, DETUNE: K.D_DETUNE, SHAPE: K.D_SHAPE, OSC1_DETUNE: K.D_OSC1_DETUNE, OSC2_DETUNE: K.D_OSC2_DETUNE,
@@ -73,6 +72,7 @@ interface OscState {
   lastSpread: number;
   lastVoices: number;
   baseSaw: number; // mip-mapped saw table offset for this block
+  tsize: number; // this block's mip level's table length (a power of two)
   drift: Float64Array; // analog pitch drift per unison voice (-1..1)
   /** Hard sync: the slave's previous sample, held back one sample so a reset can be smoothed on both sides (polyBLEP). */
   held: Float64Array;
@@ -85,7 +85,7 @@ function makeOsc(): OscState {
     inc: new Float64Array(MAX_UNISON),
     panL: new Float64Array(MAX_UNISON),
     panR: new Float64Array(MAX_UNISON),
-    voices: 1, gain: 0, wave: WAVE_SAW, baseA: 0, baseB: 0, baseSaw: 0, frac: 0, pw: 0.5, lastSpread: -1, lastVoices: -1,
+    voices: 1, gain: 0, wave: WAVE_SAW, baseA: 0, baseB: 0, baseSaw: 0, tsize: 2048, frac: 0, pw: 0.5, lastSpread: -1, lastVoices: -1,
     drift: new Float64Array(MAX_UNISON), driftTarget: new Float64Array(MAX_UNISON), held: new Float64Array(MAX_UNISON),
   };
 }
@@ -618,10 +618,11 @@ export class Voice {
       const fpos = f0 + wt * (nf - 1);
       const fa = Math.min(f0 + nf - 2, Math.floor(fpos));
       const mip = mipForIncrement(o.inc[voices - 1], this.fs);
-      o.baseA = (fa * MIP_LEVELS + mip) * TABLE_SIZE;
-      o.baseB = ((fa + 1) * MIP_LEVELS + mip) * TABLE_SIZE;
+      o.baseA = mipBase(fa, mip);
+      o.baseB = mipBase(fa + 1, mip);
+      o.tsize = MIP_SIZE[mip];
       o.frac = fpos - fa;
-      o.baseSaw = (SAW_FRAME * MIP_LEVELS + mip) * TABLE_SIZE;
+      o.baseSaw = mipBase(SAW_FRAME, mip);
     }
     for (let n = 0; n < 2; n++) {
       const [kind, p24] = OSC_SLOT[cur[P.osc[n].fType]] ?? OSC_SLOT[0];
@@ -759,13 +760,13 @@ export class Voice {
   // ------------------------------------------------------------ audio rate
 
   /** Read a mip-mapped single-cycle table at phase ph (no interpolation between frames). */
-  private readTable(base: number, ph: number): number {
+  private readTable(base: number, n: number, ph: number): number {
     const t = this.table;
-    const pos = ph * TABLE_N;
+    const pos = ph * n;
     const i = pos | 0;
     const f = pos - i;
     const a = t[base + i];
-    return a + (t[base + ((i + 1) & TABLE_M)] - a) * f;
+    return a + (t[base + ((i + 1) & (n - 1))] - a) * f;
   }
 
   /** How far a per-note LFO shape is through its cycle (0..1). */
@@ -800,8 +801,8 @@ export class Voice {
    * line (a parabola across the ramp, zero at the reset so the jump stays band-limited). Pulses made
    * from two of them droop on their tops, as real pulses do.
    */
-  private saw(base: number, ph: number): number {
-    const s = this.readTable(base, ph);
+  private saw(base: number, n: number, ph: number): number {
+    const s = this.readTable(base, n, ph);
     if (this.sawBow === 0) return s;
     let r = ph + 0.5; // the table's ramp restarts at phase 0.5
     if (r >= 1) r -= 1;
@@ -814,24 +815,24 @@ export class Voice {
         // Rave "hoover": saw blended with a pulse whose width is modulated.
         let p2 = ph - o.pw;
         if (p2 < 0) p2 += 1;
-        const saw = this.saw(o.baseSaw, ph);
-        return 0.6 * saw + 0.35 * (saw - this.saw(o.baseSaw, p2));
+        const saw = this.saw(o.baseSaw, o.tsize, ph);
+        return 0.6 * saw + 0.35 * (saw - this.saw(o.baseSaw, o.tsize, p2));
       }
       case WAVE_SAW:
-        return this.saw(o.baseSaw, ph);
+        return this.saw(o.baseSaw, o.tsize, ph);
       case WAVE_PULSE: {
         // Pulse = difference of two band-limited saws, offset by the pulse width.
         let p2 = ph - o.pw;
         if (p2 < 0) p2 += 1;
-        return 0.5 * (this.saw(o.baseSaw, ph) - this.saw(o.baseSaw, p2));
+        return 0.5 * (this.saw(o.baseSaw, o.tsize, ph) - this.saw(o.baseSaw, o.tsize, p2));
       }
       default: {
         // Wavetable (also used for band-limited sine and triangle).
         const t = this.table;
-        const pos = ph * TABLE_N;
+        const pos = ph * o.tsize;
         const i = pos | 0;
         const f = pos - i;
-        const i2 = (i + 1) & TABLE_M;
+        const i2 = (i + 1) & (o.tsize - 1);
         const a = t[o.baseA + i] + (t[o.baseA + i2] - t[o.baseA + i]) * f;
         if (o.frac === 0) return a;
         const b = t[o.baseB + i] + (t[o.baseB + i2] - t[o.baseB + i]) * f;

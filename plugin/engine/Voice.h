@@ -64,7 +64,7 @@ struct OscState {
   int voices = 1;
   double gain = 0;
   int wave = WAVE_SAW;
-  int baseA = 0, baseB = 0, baseSaw = 0;
+  int baseA = 0, baseB = 0, baseSaw = 0, tsize = TABLE_SIZE;
   double frac = 0, pw = 0.5, lastSpread = -1;
   int lastVoices = -1;
 };
@@ -416,10 +416,11 @@ class Voice {
       const double fpos = f0 + wt * (nf - 1);
       const int fa = std::min(f0 + nf - 2, (int)std::floor(fpos));
       const int mip = mipForIncrement(o.inc[voices - 1], fs);
-      o.baseA = (fa * MIP_LEVELS + mip) * TABLE_SIZE;
-      o.baseB = ((fa + 1) * MIP_LEVELS + mip) * TABLE_SIZE;
+      o.baseA = (int)mipBase(fa, mip);
+      o.baseB = (int)mipBase(fa + 1, mip);
+      o.tsize = MIP_LAYOUT.size[mip];
       o.frac = fpos - fa;
-      o.baseSaw = (SAW_FRAME * MIP_LEVELS + mip) * TABLE_SIZE;
+      o.baseSaw = (int)mipBase(SAW_FRAME, mip);
     }
     for (int n = 0; n < 2; n++) {
       const SlotKind sk = oscSlot(cur[P.osc[n].fType]);
@@ -747,12 +748,12 @@ class Voice {
  private:
   double toInc(double semis) const { return std::fmin(0.45, (440 * std::pow(2.0, (semis - 69) / 12)) / fs); }
 
-  double readTable(int base, double ph) const {
-    const double pos = ph * TABLE_SIZE;
+  double readTable(int base, int n, double ph) const {
+    const double pos = ph * n;
     const int i = (int)pos;
     const double f = pos - i;
     const double a = table[base + i];
-    return a + (table[base + ((i + 1) & TABLE_MASK)] - a) * f;
+    return a + (table[base + ((i + 1) & (n - 1))] - a) * f;
   }
 
   double specialOsc(int n) {
@@ -760,8 +761,8 @@ class Voice {
   }
 
   // the analog-bowed saw (see voice.ts)
-  double saw(int base, double ph) const {
-    const double s = readTable(base, ph);
+  double saw(int base, int n, double ph) const {
+    const double s = readTable(base, n, ph);
     if (sawBow == 0) return s;
     double r = ph + 0.5;
     if (r >= 1) r -= 1;
@@ -773,21 +774,21 @@ class Voice {
       case WAVE_PWMSAW: {
         double p2 = ph - o.pw;
         if (p2 < 0) p2 += 1;
-        const double sw = saw(o.baseSaw, ph);
-        return 0.6 * sw + 0.35 * (sw - saw(o.baseSaw, p2));
+        const double sw = saw(o.baseSaw, o.tsize, ph);
+        return 0.6 * sw + 0.35 * (sw - saw(o.baseSaw, o.tsize, p2));
       }
       case WAVE_SAW:
-        return saw(o.baseSaw, ph);
+        return saw(o.baseSaw, o.tsize, ph);
       case WAVE_PULSE: {
         double p2 = ph - o.pw;
         if (p2 < 0) p2 += 1;
-        return 0.5 * (saw(o.baseSaw, ph) - saw(o.baseSaw, p2));
+        return 0.5 * (saw(o.baseSaw, o.tsize, ph) - saw(o.baseSaw, o.tsize, p2));
       }
       default: {
-        const double pos = ph * TABLE_SIZE;
+        const double pos = ph * o.tsize;
         const int i = (int)pos;
         const double f = pos - i;
-        const int i2 = (i + 1) & TABLE_MASK;
+        const int i2 = (i + 1) & (o.tsize - 1);
         const double a = table[o.baseA + i] + ((double)table[o.baseA + i2] - table[o.baseA + i]) * f;
         if (o.frac == 0) return a;
         const double b = table[o.baseB + i] + ((double)table[o.baseB + i2] - table[o.baseB + i]) * f;

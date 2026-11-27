@@ -16,6 +16,21 @@ export function mipHarmonics(m: number): number {
   const o = 1024 >> (m >> 1);
   return Math.min(TABLE_SIZE / 2 - 1, m & 1 ? Math.floor(o * 0.7071067811865476) : o);
 }
+/** How long mip level m's table is: at least 4 samples per harmonic (as the full table's 2 per), 64 .. 2048, a power
+ * of two; so the levels with few harmonics take little room (a frame is 12544 samples instead of 21 x 2048). */
+export const MIP_SIZE: number[] = [];
+/** Where mip level m starts inside a frame, and how long a frame is. */
+export const MIP_OFFSET: number[] = [];
+export let FRAME_STRIDE = 0;
+for (let m = 0; m < MIP_LEVELS; m++) {
+  let n = 64;
+  while (n < 4 * mipHarmonics(m) && n < TABLE_SIZE) n *= 2;
+  MIP_SIZE.push(n);
+  MIP_OFFSET.push(FRAME_STRIDE);
+  FRAME_STRIDE += n;
+}
+/** Where frame f's mip level m starts in the data. */
+export const mipBase = (f: number, m: number): number => f * FRAME_STRIDE + MIP_OFFSET[m];
 export const FRAMES_PER_SEGMENT = 4;
 export const KEYFRAMES = 5;
 export const FRAME_COUNT = (KEYFRAMES - 1) * FRAMES_PER_SEGMENT + 1; // 17
@@ -87,12 +102,13 @@ function fft(re: Float64Array, im: Float64Array, inverse: boolean): void {
 
 /** Synthesise one period of Σ a[k]·sin(2πk·n/N) for k ≤ maxH. */
 function synth(a: Float64Array, maxH: number, out: Float32Array, scale: number): void {
-  const re = new Float64Array(TABLE_SIZE);
-  const im = new Float64Array(TABLE_SIZE);
+  const N = out.length; // TABLE_SIZE, or a shorter mip level
+  const re = new Float64Array(N);
+  const im = new Float64Array(N);
   for (let k = 1; k <= maxH; k++) {
     // sin = (e^{iθ} - e^{-iθ}) / 2i  →  X[k] = -i a/2, X[N-k] = i a/2
     im[k] = -a[k] / 2;
-    im[TABLE_SIZE - k] = a[k] / 2;
+    im[N - k] = a[k] / 2;
   }
   fft(re, im, true);
   for (let n = 0; n < TABLE_SIZE; n++) out[n] = re[n] * scale;
@@ -243,15 +259,16 @@ export const TOTAL_FRAMES = BANK_FRAME0[BANK_FRAME0.length - 1] + BANK_FRAMES[BA
 
 /** Band-limit one frame's spectrum (re / im, full length) to maxH harmonics into out, times scale. */
 function bandLimit(xr: Float64Array, xi: Float64Array, maxH: number, out: Float32Array, scale: number): void {
-  const re = new Float64Array(TABLE_SIZE), im = new Float64Array(TABLE_SIZE);
+  const N = out.length; // TABLE_SIZE, or a shorter mip level (it holds maxH < N / 2 harmonics)
+  const re = new Float64Array(N), im = new Float64Array(N);
   for (let k = 1; k <= maxH; k++) {
     re[k] = xr[k];
     im[k] = xi[k];
-    re[TABLE_SIZE - k] = xr[TABLE_SIZE - k];
-    im[TABLE_SIZE - k] = xi[TABLE_SIZE - k];
+    re[N - k] = xr[TABLE_SIZE - k];
+    im[N - k] = xi[TABLE_SIZE - k];
   }
   fft(re, im, true);
-  for (let n = 0; n < TABLE_SIZE; n++) out[n] = (re[n] / TABLE_SIZE) * scale;
+  for (let n = 0; n < N; n++) out[n] = (re[n] / TABLE_SIZE) * scale;
 }
 
 /** Build the bank's frames into data (after the morph table). */
@@ -286,14 +303,14 @@ function buildBank(data: Float32Array): void {
       const fi = BANK_FRAME0[w] + f;
       for (let m = 0; m < MIP_LEVELS; m++) {
         const maxH = mipHarmonics(m);
-        bandLimit(xr, xi, maxH, data.subarray((fi * MIP_LEVELS + m) * TABLE_SIZE, (fi * MIP_LEVELS + m + 1) * TABLE_SIZE), scale);
+        bandLimit(xr, xi, maxH, data.subarray(mipBase(fi, m), mipBase(fi, m) + MIP_SIZE[m]), scale);
       }
     }
   }
 }
 
 export interface Wavetable {
-  /** data[(frame * MIP_LEVELS + mip) * TABLE_SIZE + i] */
+  /** data[mipBase(frame, mip) + i], i < MIP_SIZE[mip] */
   data: Float32Array;
 }
 
@@ -301,7 +318,7 @@ let cached: Wavetable | null = null;
 
 export function getWavetable(): Wavetable {
   if (cached) return cached;
-  const data = new Float32Array(TOTAL_FRAMES * MIP_LEVELS * TABLE_SIZE);
+  const data = new Float32Array(TOTAL_FRAMES * FRAME_STRIDE);
   const keys = Array.from({ length: KEYFRAMES }, (_, i) => keyframeSpectrum(i));
   const spec = new Float64Array(MAX_HARMONIC + 1);
   const tmp = new Float32Array(TABLE_SIZE);
@@ -316,7 +333,7 @@ export function getWavetable(): Wavetable {
     const scale = peak > 0 ? 1 / peak : 1;
     for (let m = 0; m < MIP_LEVELS; m++) {
       const maxH = mipHarmonics(m);
-      synth(spec, maxH, data.subarray((f * MIP_LEVELS + m) * TABLE_SIZE, (f * MIP_LEVELS + m + 1) * TABLE_SIZE), scale);
+      synth(spec, maxH, data.subarray(mipBase(f, m), mipBase(f, m) + MIP_SIZE[m]), scale);
     }
   }
   buildBank(data);

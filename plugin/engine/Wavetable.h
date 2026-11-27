@@ -14,10 +14,25 @@ constexpr int TABLE_SIZE = 2048;
 constexpr int TABLE_MASK = TABLE_SIZE - 1;
 constexpr int MIP_LEVELS = 21;  // half an octave a level (as wavetable.ts)
 /** How many harmonics mip level m holds (as mipHarmonics in wavetable.ts). */
-inline int mipHarmonics(int m) {
-  const int o = 1024 >> (m >> 1);
-  return std::min(TABLE_SIZE / 2 - 1, (m & 1) ? (int)std::floor(o * 0.7071067811865476) : o);
+constexpr int mipHarmonics(int m) {
+  // (floor(o x 0.7071...) without std::floor, so it stays constexpr: the same integer)
+  return (m & 1) ? (int)((1024 >> (m >> 1)) * 0.7071067811865476) : std::min(TABLE_SIZE / 2 - 1, 1024 >> (m >> 1));
 }
+/** Each mip level's table length (4 samples a harmonic at least, 64 .. 2048) and place in a frame (as MIP_SIZE). */
+struct MipLayout {
+  int size[MIP_LEVELS], offset[MIP_LEVELS], stride;
+  constexpr MipLayout() : size(), offset(), stride(0) {
+    for (int m = 0; m < MIP_LEVELS; m++) {
+      int n = 64;
+      while (n < 4 * mipHarmonics(m) && n < TABLE_SIZE) n *= 2;
+      size[m] = n;
+      offset[m] = stride;
+      stride += n;
+    }
+  }
+};
+constexpr MipLayout MIP_LAYOUT{};
+inline size_t mipBase(int f, int m) { return (size_t)f * MIP_LAYOUT.stride + MIP_LAYOUT.offset[m]; }
 constexpr int FRAMES_PER_SEGMENT = 4;
 constexpr int KEYFRAMES = 5;
 constexpr int FRAME_COUNT = (KEYFRAMES - 1) * FRAMES_PER_SEGMENT + 1;  // 17
@@ -73,14 +88,14 @@ inline void fft(std::vector<double>& re, std::vector<double>& im, bool inverse) 
   }
 }
 
-inline void synth(const std::vector<double>& a, int maxH, float* out, double scale) {
-  std::vector<double> re(TABLE_SIZE, 0.0), im(TABLE_SIZE, 0.0);
+inline void synth(const std::vector<double>& a, int maxH, float* out, double scale, int N = TABLE_SIZE) {
+  std::vector<double> re(N, 0.0), im(N, 0.0);
   for (int k = 1; k <= maxH; k++) {
     im[k] = -a[k] / 2;
-    im[TABLE_SIZE - k] = a[k] / 2;
+    im[N - k] = a[k] / 2;
   }
   fft(re, im, true);
-  for (int n = 0; n < TABLE_SIZE; n++) out[n] = (float)(re[n] * scale);
+  for (int n = 0; n < N; n++) out[n] = (float)(re[n] * scale);
 }
 }  // namespace wt_detail
 
@@ -205,16 +220,16 @@ struct BankLayout {
 constexpr BankLayout BANK_LAYOUT{};
 
 namespace wt_detail {
-inline void bandLimit(const std::vector<double>& xr, const std::vector<double>& xi, int maxH, float* out, double scale) {
-  std::vector<double> re(TABLE_SIZE, 0.0), im(TABLE_SIZE, 0.0);
+inline void bandLimit(const std::vector<double>& xr, const std::vector<double>& xi, int maxH, float* out, double scale, int N = TABLE_SIZE) {
+  std::vector<double> re(N, 0.0), im(N, 0.0);
   for (int k = 1; k <= maxH; k++) {
     re[k] = xr[k];
     im[k] = xi[k];
-    re[TABLE_SIZE - k] = xr[TABLE_SIZE - k];
-    im[TABLE_SIZE - k] = xi[TABLE_SIZE - k];
+    re[N - k] = xr[TABLE_SIZE - k];
+    im[N - k] = xi[TABLE_SIZE - k];
   }
   fft(re, im, true);
-  for (int n = 0; n < TABLE_SIZE; n++) out[n] = (float)((re[n] / TABLE_SIZE) * scale);
+  for (int n = 0; n < N; n++) out[n] = (float)((re[n] / TABLE_SIZE) * scale);
 }
 inline void buildBank(std::vector<float>& data) {
   std::vector<float> tmp(TABLE_SIZE);
@@ -244,18 +259,18 @@ inline void buildBank(std::vector<float>& data) {
       const int fi = BANK_LAYOUT.frame0[w] + f;
       for (int m = 0; m < MIP_LEVELS; m++) {
         const int maxH = mipHarmonics(m);
-        bandLimit(xr, xi, maxH, data.data() + (size_t)(fi * MIP_LEVELS + m) * TABLE_SIZE, scale);
+        bandLimit(xr, xi, maxH, data.data() + mipBase(fi, m), scale, MIP_LAYOUT.size[m]);
       }
     }
   }
 }
 }  // namespace wt_detail
 
-/** data[(frame * MIP_LEVELS + mip) * TABLE_SIZE + i], shared by every voice. */
+/** data[mipBase(frame, mip) + i], i < MIP_LAYOUT.size[mip], shared by every voice. */
 inline const std::vector<float>& getWavetable() {
   static const std::vector<float> data = [] {
     using namespace wt_detail;
-    std::vector<float> d((size_t)BANK_LAYOUT.total * MIP_LEVELS * TABLE_SIZE);
+    std::vector<float> d((size_t)BANK_LAYOUT.total * MIP_LAYOUT.stride);
     std::vector<std::vector<double>> keys;
     for (int i = 0; i < KEYFRAMES; i++) keys.push_back(keyframeSpectrum(i));
     std::vector<double> spec(MAX_HARMONIC + 1);
@@ -270,7 +285,7 @@ inline const std::vector<float>& getWavetable() {
       const double scale = peak > 0 ? 1 / peak : 1;
       for (int m = 0; m < MIP_LEVELS; m++) {
         const int maxH = mipHarmonics(m);
-        synth(spec, maxH, d.data() + (size_t)(f * MIP_LEVELS + m) * TABLE_SIZE, scale);
+        synth(spec, maxH, d.data() + mipBase(f, m), scale, MIP_LAYOUT.size[m]);
       }
     }
     buildBank(d);
