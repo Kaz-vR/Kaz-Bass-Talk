@@ -7,6 +7,7 @@
 #include <cmath>
 #include <vector>
 #include "Dsp.h"
+#include "Verb.h"
 
 namespace lt {
 
@@ -542,126 +543,6 @@ class OctaveDown {
 };
 
 constexpr int VERB_ROOM = 0, VERB_PLATE = 1, VERB_HALL = 2, VERB_CATHEDRAL = 3;
-// (as fx.ts: each line's decay for the lows (lo) and the top (hi) apart, fitted to VintageVerb)
-struct VerbType { double size, diff, lo, hi, mod, build, level; };
-constexpr VerbType VERB_TYPES[4] = {
-  {0.36, 0.62, 1.36, 0.51, 0.35, 0.55, 0.16}, {0.52, 0.78, 1.14, 0.24, 0.5, 0.25, 0.191}, {1.0, 0.7, 1.46, 0.16, 0.8, 0.7, 0.28}, {1.75, 0.72, 1.36, 0.15, 1.1, 1, 0.447}};
-constexpr double VERB_LINES_MS[8] = {29.7, 37.1, 41.1, 43.7, 53.3, 59.9, 67.7, 73.1};
-constexpr double VERB_DIFF_MS[4] = {4.77, 3.59, 12.73, 9.3};
-constexpr double VERB_MOD_HZ[8] = {0.31, 0.47, 0.61, 0.83, 0.37, 0.53, 0.71, 1.07};
-constexpr double VERB_SIGN_L[8] = {1, -1, 1, 1, -1, 1, -1, -1};
-constexpr double VERB_SIGN_R[8] = {1, 1, -1, -1, 1, 1, -1, -1};
-constexpr double VERB_EARLY = 0.5, VERB_BW_HZ = 10000;
-constexpr double VERB_MAX_PRE = 0.26;
-
-/** Vintage digital reverb (1970s colour): band-limited, diffused input, eight chorused lines (see fx.ts Reverb). */
-class Reverb {
- public:
-  explicit Reverb(double fs_) : fs(fs_) {
-    pre.assign((size_t)std::ceil(VERB_MAX_PRE * fs) + 4, 0.f);
-    const double maxScale = VERB_TYPES[VERB_CATHEDRAL].size;
-    for (int i = 0; i < 4; i++) diff[i].assign((size_t)std::ceil((VERB_DIFF_MS[i] * maxScale * fs) / 1000) + 4, 0.f);
-    for (int i = 0; i < 8; i++) lines[i].assign((size_t)std::ceil(((VERB_LINES_MS[i] * maxScale + 3) * fs) / 1000) + 4, 0.f);
-    bwCoef = 1 - std::exp((-2 * PI * VERB_BW_HZ) / fs);
-    for (int i = 0; i < 8; i++) modPh[i] = i / 8.0;
-  }
-  void reset() {
-    std::fill(pre.begin(), pre.end(), 0.f);
-    for (auto& d : diff) std::fill(d.begin(), d.end(), 0.f);
-    for (auto& l : lines) std::fill(l.begin(), l.end(), 0.f);
-    for (auto& d : damp) d = 0;
-    inLp = inLp2 = outL = outR = 0;
-  }
-  void process(double input, double type, double decay, double predelayMs, double* out) {
-    if (type != lastType || std::fabs(decay - lastDecay) > 1e-4 * decay) setup(type, decay);
-    const int pn = (int)pre.size();
-    pre[preW] = (float)input;
-    const double pd = std::fmin(VERB_MAX_PRE * fs, std::fmax(0, (predelayMs * fs) / 1000));
-    double rp = preW - pd;
-    if (rp < 0) rp += pn;
-    const int ri = (int)std::floor(rp);
-    const double rf = rp - ri;
-    double x = pre[ri] * (1 - rf) + pre[ri + 1 == pn ? 0 : ri + 1] * rf;
-    preW = preW + 1 == pn ? 0 : preW + 1;
-    inLp += bwCoef * (x - inLp);
-    inLp2 += bwCoef * (inLp - inLp2);
-    x = inLp2;
-    const double g = diffG;
-    double early = 0;
-    for (int i = 0; i < 4; i++) {
-      auto& buf = diff[i];
-      const int n = (int)buf.size();
-      int r = diffW[i] - diffLen[i];
-      if (r < 0) r += n;
-      const double d = buf[r];
-      const double v = x + g * d;
-      buf[diffW[i]] = (float)v;
-      x = d - g * v;
-      diffW[i] = diffW[i] + 1 == n ? 0 : diffW[i] + 1;
-      if (i == 1) early = x;
-    }
-    double sum = 0;
-    for (int i = 0; i < 8; i++) {
-      auto& buf = lines[i];
-      const int n = (int)buf.size();
-      double ph = modPh[i] + VERB_MOD_HZ[i] / fs;
-      if (ph >= 1) ph -= 1;
-      modPh[i] = ph;
-      const double m = 1 + modDepth * (0.5 + 0.5 * std::sin(2 * PI * ph));
-      double r = lineW[i] - len[i] - m;
-      while (r < 0) r += n;
-      const int j = (int)std::floor(r);
-      const double f = r - j;
-      const double y = buf[j] * (1 - f) + buf[j + 1 == n ? 0 : j + 1] * f;
-      damp[i] = gain[i] * y + absA[i] * damp[i];
-      const double v = damp[i];
-      lineOut[i] = v;
-      sum += v;
-    }
-    const double hh = (2.0 / 8) * sum;
-    const double b = build;
-    double l = 0, rr = 0;
-    for (int i = 0; i < 8; i++) {
-      const double v = lineOut[i];
-      const double inject = i < 4 ? x : x * (1 - 0.5 * b);
-      auto& buf = lines[i];
-      buf[lineW[i]] = (float)(v - hh + inject);
-      lineW[i] = lineW[i] + 1 == (int)buf.size() ? 0 : lineW[i] + 1;
-      l += VERB_SIGN_L[i] * v;
-      rr += VERB_SIGN_R[i] * v;
-    }
-    l += VERB_EARLY * early;
-    rr += VERB_EARLY * x;
-    outL += bwCoef * (l - outL);
-    outR += bwCoef * (rr - outR);
-    out[0] = outL * level;
-    out[1] = outR * level;
-  }
- private:
-  void setup(double type, double decay) {
-    const VerbType& t = VERB_TYPES[std::max(0, std::min(3, (int)type))];
-    for (int i = 0; i < 8; i++) {
-      len[i] = (VERB_LINES_MS[i] * t.size * fs) / 1000;
-      const double d = std::fmax(0.1, decay);
-      const double gdc = std::pow(10.0, (-3 * len[i]) / (t.lo * d * fs)), gny = std::pow(10.0, (-3 * len[i]) / (t.hi * d * fs));
-      absA[i] = (gdc - gny) / (gdc + gny);
-      gain[i] = gdc * (1 - absA[i]);
-    }
-    for (int i = 0; i < 4; i++) diffLen[i] = std::max(1, (int)jsRound((VERB_DIFF_MS[i] * std::sqrt(t.size) * fs) / 1000));
-    modDepth = (t.mod * fs) / 1000;
-    diffG = t.diff;
-    build = t.build;
-    level = t.level * std::fmin(2, std::pow(std::fmax(0.1, decay) / 2, -0.37));
-    lastType = type;
-    lastDecay = decay;
-  }
-  double fs;
-  std::vector<float> pre, diff[4], lines[8];
-  int preW = 0, diffW[4] = {}, lineW[8] = {}, diffLen[4] = {};
-  double damp[8] = {}, modPh[8] = {}, lineOut[8] = {}, len[8] = {}, gain[8] = {}, absA[8] = {};
-  double inLp = 0, inLp2 = 0, outL = 0, outR = 0, lastType = -1, lastDecay = -1;
-  double modDepth = 0, diffG = 0.7, build = 0.7, level = 0.4, bwCoef = 0;
-};
 
 class Tape {
  public:
