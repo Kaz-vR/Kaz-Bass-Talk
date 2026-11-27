@@ -91,6 +91,131 @@ function synth(a: Float64Array, maxH: number, out: Float32Array, scale: number):
   for (let n = 0; n < TABLE_SIZE; n++) out[n] = re[n] * scale;
 }
 
+
+// ---- The wave bank (owner's call, 27 Nov): the menu's new waves, each a small morph table Shape moves through,
+// keyframes defined as one cycle in time (x in 0..1), built after the morph table in the same data array.
+// Ported line by line to plugin/engine/Wavetable.h (bankKey).
+
+/** Rounds half up, the same in both engines (Math.round differs from C++ on negative halves). */
+const jr = (x: number) => Math.floor(x + 0.5);
+const fr = (x: number) => x - Math.floor(x);
+const S = (x: number) => Math.sin(2 * Math.PI * x);
+/** A sum of harmonics sin(2πkx), amplitude amp(k) for k = 1..h. */
+function additive(x: number, h: number, amp: (k: number) => number): number {
+  let y = 0;
+  for (let k = 1; k <= h; k++) y += amp(k) * Math.sin(2 * Math.PI * k * x);
+  return y;
+}
+/** Vowel formants (Hz) and their gains, A E I O U. */
+const VF = [[730, 1090, 2440], [530, 1840, 2480], [270, 2290, 3010], [570, 840, 2410], [300, 870, 2240]];
+const VG = [1, 0.5, 0.25];
+/** A voice on a 110 Hz fundamental through three formants (vowel index, bandwidth scale, tilt). */
+function voice(x: number, v: number, bw: number, tilt: number): number {
+  return additive(x, 80, (k) => {
+    const f = 110 * k;
+    let a = 0;
+    for (let i = 0; i < 3; i++) {
+      const d = (f - VF[v][i]) / ((90 + 40 * i) * bw);
+      a += VG[i] * Math.exp(-d * d);
+    }
+    return (a + 0.08 / k) / Math.pow(k, tilt);
+  });
+}
+
+/** The bank's waves by name: how many keyframes, and keyframe kf's sample at x. */
+export const BANK: { name: string; keys: number }[] = [
+  { name: 'square', keys: 3 }, { name: 'double saw', keys: 3 }, { name: 'sync saw', keys: 5 }, { name: 'vowel', keys: 5 },
+  { name: 'choir', keys: 3 }, { name: 'talk', keys: 3 }, { name: 'bell', keys: 3 }, { name: 'ring', keys: 3 },
+  { name: 'digital', keys: 3 }, { name: 'glass', keys: 3 }, { name: 'bowed', keys: 3 }, { name: 'reed', keys: 3 },
+  { name: 'breath', keys: 3 }, { name: 'tape saw', keys: 3 }, { name: 'cassette pulse', keys: 3 }, { name: 'lofi sample', keys: 3 },
+  { name: 'broken sine', keys: 3 },
+];
+
+export function bankKey(w: number, kf: number, x: number): number {
+  const saw = (t: number) => 2 * fr(t) - 1;
+  switch (w) {
+    case 0: { const g = [40, 4, 1.4][kf]; return Math.tanh(g * S(x)) / Math.tanh(g); } // square, Shape rounds it
+    case 1: return saw(x) + [0, 0.5, 1][kf] * saw(2 * x); // double saw, Shape brings in the octave
+    case 2: return saw(x * [1, 1.6, 2.4, 3.4, 5][kf]); // sync saw, Shape = how hard it is synced
+    case 3: return voice(x, [0, 1, 2, 3, 4][kf], 1, 0); // vowel A E I O U
+    case 4: return voice(x, [4, 3, 0][kf], 2.4, 0.5); // choir oo oh ah, soft and wide
+    case 5: return voice(x, [3, 2, 0][kf], 0.8, 0.2); // talk o → i → a
+    case 6: { const ks = [1, 5, 9, 14, 21, 28], b = [0.3, 0.6, 1][kf]; let y = 0; for (let i = 0; i < ks.length; i++) y += Math.pow(b, i) / (1 + 0.3 * i) * Math.sin(2 * Math.PI * ks[i] * x); return y; } // bell
+    case 7: return 0.8 * S(x) * S([2, 5, 9][kf] * x) + 0.2 * S(x); // ring
+    case 8: { const n = [32, 8, 3][kf]; return jr((S(x) + 0.3 * S(3 * x)) * n) / n; } // digital steps
+    case 9: { const ks = [1, 4, 8, 12, 16, 24], b = [0.2, 0.5, 0.9][kf]; let y = 0; for (let i = 0; i < ks.length; i++) y += Math.pow(b, i) * Math.sin(2 * Math.PI * ks[i] * x); return y; } // glass
+    case 10: { const p = [1.6, 1.3, 1][kf]; return additive(x, 60, (k) => (1 + 0.8 * Math.exp(-(((k - 3) / 1.5) ** 2)) + 0.5 * Math.exp(-(((k - 8) / 3) ** 2))) / Math.pow(k, p)); } // bowed
+    case 11: { const n = [0.3, 1, 2][kf]; return additive(x, 60, (k) => (k % 2 === 1 ? 1 / k : 0.15 / k) * (1 + n * Math.exp(-(((k - 7) / 3) ** 2)))); } // reed
+    case 12: { const h = [0.05, 0.2, 0.35][kf]; return S(x) + h * S(2 * x) + 0.4 * h * S(3 * x); } // breath (its breath is noise, by Shape)
+    case 13: { const d = [1.5, 3, 6][kf]; return Math.tanh(d * (saw(x) + 0.1)) - Math.tanh(d * 0.1); } // tape saw
+    case 14: { const dr = [0.5, 1.5, 3][kf]; return x < 0.5 ? Math.exp(-dr * x) : -Math.exp(-dr * (x - 0.5)); } // cassette pulse, sagging
+    case 15: { const st = [64, 24, 10][kf], q = [24, 8, 4][kf], xs = Math.floor(x * st) / st; return jr((0.6 * saw(xs + 0.5) + 0.4 * S(xs)) * q) / q; } // lofi sample
+    default: { const g = [0.8, 1.6, 2.8][kf]; return Math.sin(Math.PI * g * S(x)); } // broken sine, folded
+  }
+}
+
+/** Where each bank wave's frames start in the data (after the morph table) and how many it has. */
+export const BANK_FRAME0: number[] = [];
+export const BANK_FRAMES: number[] = [];
+{
+  let f = FRAME_COUNT;
+  for (const b of BANK) {
+    BANK_FRAME0.push(f);
+    BANK_FRAMES.push((b.keys - 1) * FRAMES_PER_SEGMENT + 1);
+    f += (b.keys - 1) * FRAMES_PER_SEGMENT + 1;
+  }
+}
+export const TOTAL_FRAMES = BANK_FRAME0[BANK_FRAME0.length - 1] + BANK_FRAMES[BANK_FRAMES.length - 1];
+
+/** Band-limit one frame's spectrum (re / im, full length) to maxH harmonics into out, times scale. */
+function bandLimit(xr: Float64Array, xi: Float64Array, maxH: number, out: Float32Array, scale: number): void {
+  const re = new Float64Array(TABLE_SIZE), im = new Float64Array(TABLE_SIZE);
+  for (let k = 1; k <= maxH; k++) {
+    re[k] = xr[k];
+    im[k] = xi[k];
+    re[TABLE_SIZE - k] = xr[TABLE_SIZE - k];
+    im[TABLE_SIZE - k] = xi[TABLE_SIZE - k];
+  }
+  fft(re, im, true);
+  for (let n = 0; n < TABLE_SIZE; n++) out[n] = (re[n] / TABLE_SIZE) * scale;
+}
+
+/** Build the bank's frames into data (after the morph table). */
+function buildBank(data: Float32Array): void {
+  const tmp = new Float32Array(TABLE_SIZE);
+  for (let w = 0; w < BANK.length; w++) {
+    const keys = BANK[w].keys;
+    // each keyframe's spectrum (one cycle sampled, forward FFT)
+    const kr: Float64Array[] = [], ki: Float64Array[] = [];
+    for (let kf = 0; kf < keys; kf++) {
+      const re = new Float64Array(TABLE_SIZE), im = new Float64Array(TABLE_SIZE);
+      for (let n = 0; n < TABLE_SIZE; n++) re[n] = bankKey(w, kf, n / TABLE_SIZE);
+      fft(re, im, false);
+      kr.push(re);
+      ki.push(im);
+    }
+    const xr = new Float64Array(TABLE_SIZE), xi = new Float64Array(TABLE_SIZE);
+    for (let f = 0; f < BANK_FRAMES[w]; f++) {
+      const seg = Math.min(keys - 2, Math.floor(f / FRAMES_PER_SEGMENT));
+      const t = f / FRAMES_PER_SEGMENT - seg;
+      for (let k = 0; k < TABLE_SIZE; k++) {
+        xr[k] = kr[seg][k] * (1 - t) + kr[seg + 1][k] * t;
+        xi[k] = ki[seg][k] * (1 - t) + ki[seg + 1][k] * t;
+      }
+      // normalised by the peak of its full-bandwidth version, as the morph table
+      bandLimit(xr, xi, MAX_HARMONIC, tmp, 1);
+      let peak = 0;
+      for (let n = 0; n < TABLE_SIZE; n++) peak = Math.max(peak, Math.abs(tmp[n]));
+      const scale = peak > 0 ? 1 / peak : 1;
+      const fi = BANK_FRAME0[w] + f;
+      for (let m = 0; m < MIP_LEVELS; m++) {
+        const maxH = Math.min(MAX_HARMONIC, 1024 >> m);
+        bandLimit(xr, xi, maxH, data.subarray((fi * MIP_LEVELS + m) * TABLE_SIZE, (fi * MIP_LEVELS + m + 1) * TABLE_SIZE), scale);
+      }
+    }
+  }
+}
+
 export interface Wavetable {
   /** data[(frame * MIP_LEVELS + mip) * TABLE_SIZE + i] */
   data: Float32Array;
@@ -100,7 +225,7 @@ let cached: Wavetable | null = null;
 
 export function getWavetable(): Wavetable {
   if (cached) return cached;
-  const data = new Float32Array(FRAME_COUNT * MIP_LEVELS * TABLE_SIZE);
+  const data = new Float32Array(TOTAL_FRAMES * MIP_LEVELS * TABLE_SIZE);
   const keys = Array.from({ length: KEYFRAMES }, (_, i) => keyframeSpectrum(i));
   const spec = new Float64Array(MAX_HARMONIC + 1);
   const tmp = new Float32Array(TABLE_SIZE);
@@ -118,6 +243,7 @@ export function getWavetable(): Wavetable {
       synth(spec, maxH, data.subarray((f * MIP_LEVELS + m) * TABLE_SIZE, (f * MIP_LEVELS + m + 1) * TABLE_SIZE), scale);
     }
   }
+  buildBank(data);
   cached = { data };
   return cached;
 }

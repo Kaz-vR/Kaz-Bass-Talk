@@ -14,7 +14,7 @@ import { AUX_SLOT, Biquad, clamp, Clipper, Envelope, Ladder, OSC_SLOT, Rng, Slot
 import { Downsampler2x, OVERSAMPLE_LATENCY, Upsampler2x } from './oversample';
 import * as K from './params';
 import { Comb, DiodeLadder, KarplusString } from './voicefx';
-import { FRAME_COUNT, FRAMES_PER_SEGMENT, MIP_LEVELS, mipForIncrement, TABLE_MASK, TABLE_SIZE } from './wavetable';
+import { BANK_FRAME0, BANK_FRAMES, FRAME_COUNT, FRAMES_PER_SEGMENT, MIP_LEVELS, mipForIncrement, TABLE_MASK, TABLE_SIZE } from './wavetable';
 
 // Module-local bindings: avoids live-binding getter overhead on hot paths in
 // some module transforms (tsx / vite-node).
@@ -38,9 +38,10 @@ const PRE_FILTER_GAIN = K.PRE_FILTER_GAIN, POST_FILTER_GAIN = K.POST_FILTER_GAIN
 /** The sub routed into the main filter arrives at about the level the clean path would have had. */
 const SUB_ROUTE_GAIN = 1 / (VOICE_GAIN * PRE_FILTER_GAIN * POST_FILTER_GAIN);
 const WAVE_SINE = K.WAVE_SINE, WAVE_TRI = K.WAVE_TRI, WAVE_SAW = K.WAVE_SAW, WAVE_PULSE = K.WAVE_PULSE, WAVE_PWMSAW = K.WAVE_PWMSAW;
-const WAVE_STRING = K.WAVE_STRING;
+const WAVE_STRING = K.WAVE_STRING, WAVE_SUPERSAW = K.WAVE_SUPERSAW, WAVE_BREATH = K.WAVE_BREATH;
 const FILTER_LP = K.FILTER_LP, FILTER_BP = K.FILTER_BP, FILTER_DIODE = K.FILTER_DIODE, FILTER_NOTCH = K.FILTER_NOTCH;
 const FILTER_COMB = K.FILTER_COMB, FILTER_LPG = K.FILTER_LPG, FILTER_HP = K.FILTER_HP, FILTER_SEM = K.FILTER_SEM;
+const FILTER_LP12 = K.FILTER_LP12, FILTER_MS20 = K.FILTER_MS20, FILTER_PHASER = K.FILTER_PHASER, FILTER_RING = K.FILTER_RING, FILTER_DECIM = K.FILTER_DECIM, FILTER_TALK = K.FILTER_TALK;
 
 const tanh = K.tanh, tanhIntegral = K.tanhIntegral;
 const SLOT_COUNT = K.SLOT_COUNT, SRC_COUNT = K.SRC_COUNT, DEST_COUNT = K.DEST_COUNT;
@@ -69,6 +70,8 @@ interface OscState {
   baseB: number;
   frac: number;
   pw: number;
+  /** breath: how much breath noise rides on the tone (0 = none). */
+  breath: number;
   lastSpread: number;
   lastVoices: number;
   baseSaw: number; // mip-mapped saw table offset for this block
@@ -84,7 +87,7 @@ function makeOsc(): OscState {
     inc: new Float64Array(MAX_UNISON),
     panL: new Float64Array(MAX_UNISON),
     panR: new Float64Array(MAX_UNISON),
-    voices: 1, gain: 0, wave: WAVE_SAW, baseA: 0, baseB: 0, baseSaw: 0, frac: 0, pw: 0.5, lastSpread: -1, lastVoices: -1,
+    voices: 1, gain: 0, wave: WAVE_SAW, baseA: 0, baseB: 0, baseSaw: 0, frac: 0, pw: 0.5, breath: 0, lastSpread: -1, lastVoices: -1,
     drift: new Float64Array(MAX_UNISON), driftTarget: new Float64Array(MAX_UNISON), held: new Float64Array(MAX_UNISON),
   };
 }
@@ -212,6 +215,24 @@ export class Voice {
   /** The SEM-style 12 dB low-pass (a bending state-variable filter). */
   private readonly semL = new Svf();
   private readonly semR = new Svf();
+  // the new filters (owner's call, 27 Nov): low-pass 12, MS-20, phaser, ring, decimate (talk shares the formant's)
+  private readonly lp12L = new Svf();
+  private readonly lp12R = new Svf();
+  private readonly ms20L = new Svf();
+  private readonly ms20R = new Svf();
+  private readonly phL = new Float64Array(4);
+  private readonly phR = new Float64Array(4);
+  private phFbL = 0;
+  private phFbR = 0;
+  private phFb = 0;
+  private ringPh = 0;
+  private ringInc = 0;
+  private ringMix = 0;
+  private decPh = 0;
+  private decInc = 0;
+  private decQ = 65536;
+  private decL = 0;
+  private decR = 0;
   private readonly combL: Comb;
   private readonly combR: Comb;
   private combDelay = 100;
@@ -373,7 +394,11 @@ export class Voice {
     this.voiceDcR.reset();
     this.diodeL.reset();
     this.diodeR.reset();
-    for (const f of [...this.notchL, ...this.notchR, ...this.hpL, ...this.hpR, this.lpgL, this.lpgR, this.semL, this.semR]) f.reset();
+    for (const f of [...this.notchL, ...this.notchR, ...this.hpL, ...this.hpR, this.lpgL, this.lpgR, this.semL, this.semR, this.lp12L, this.lp12R, this.ms20L, this.ms20R]) f.reset();
+      this.phL.fill(0);
+      this.phR.fill(0);
+      this.phFbL = this.phFbR = 0;
+      this.decL = this.decR = 0;
     this.combL.reset();
     this.combR.reset();
     for (const st of this.strings) st.reset();
@@ -394,7 +419,8 @@ export class Voice {
     for (let n = 0; n < 2; n++) {
       const o = this.osc[n];
       o.wave = cur[P.osc[n].wave];
-      o.voices = cur[P.osc[n].voices];
+      // supersaw (owner's call): the saw as seven detuned copies, whatever UNI says
+      o.voices = o.wave === WAVE_SUPERSAW ? 7 : cur[P.osc[n].voices];
     }
     this.filterType = cur[P.fType];
     this.subWave = cur[P.subWave];
@@ -533,7 +559,9 @@ export class Voice {
       while (center < 20 / fs) center *= 2;
       if (n === 0) this.syncInc = center;
       const voices = o.voices;
-      const detune = clamp(cur[op.detune] + 100 * (dst[D.DETUNE] + dst[n === 0 ? D.OSC1_DETUNE : D.OSC2_DETUNE]), 0, 100);
+      let detune = clamp(cur[op.detune] + 100 * (dst[D.DETUNE] + dst[n === 0 ? D.OSC1_DETUNE : D.OSC2_DETUNE]), 0, 100);
+      // supersaw: Shape spreads its seven copies apart (on top of Detune)
+      if (o.wave === WAVE_SUPERSAW) detune = clamp(detune + 70 * clamp(cur[op.wt] + dst[n === 0 ? D.OSC1_WT : D.OSC2_WT] + dst[n === 0 ? D.OSC1_PW : D.OSC2_PW] + dst[D.SHAPE], 0, 1), 0, 100);
       const spread = cur[op.spread];
       if (voices === 1) {
         o.inc[0] = center;
@@ -589,8 +617,12 @@ export class Voice {
       if (o.wave === WAVE_SINE) wt = 0;
       else if (o.wave === WAVE_TRI) wt = FRAMES_PER_SEGMENT / (FRAME_COUNT - 1);
       else wt = clamp(cur[op.wt] + dst[n === 0 ? D.OSC1_WT : D.OSC2_WT] + shape, 0, 1);
-      const fpos = wt * (FRAME_COUNT - 1);
-      const fa = Math.min(FRAME_COUNT - 2, Math.floor(fpos));
+      // a bank wave (owner's call): Shape moves through its own frames, after the morph table's
+      const bw = K.bankOf(o.wave);
+      const f0 = bw >= 0 ? BANK_FRAME0[bw] : 0, nf = bw >= 0 ? BANK_FRAMES[bw] : FRAME_COUNT;
+      o.breath = o.wave === WAVE_BREATH ? 0.7 * wt : 0;
+      const fpos = f0 + wt * (nf - 1);
+      const fa = Math.min(f0 + nf - 2, Math.floor(fpos));
       const mip = mipForIncrement(o.inc[voices - 1]);
       o.baseA = (fa * MIP_LEVELS + mip) * TABLE_SIZE;
       o.baseB = ((fa + 1) * MIP_LEVELS + mip) * TABLE_SIZE;
@@ -687,11 +719,30 @@ export class Voice {
     } else if (this.filterType === FILTER_SEM) {
       // SEM: a 12 dB state-variable low-pass, gentle at res 0, singing but never self-oscillating at the top
       this.k = 1.9 * (1 - res) + 0.12;
+    } else if (this.filterType === FILTER_LP12) {
+      // low-pass 12: a clean 12 dB state-variable low-pass (Butterworth at res 0)
+      this.k = 1.414 * (1 - res) + 0.05;
+    } else if (this.filterType === FILTER_MS20) {
+      // MS-20: a 12 dB low-pass driven hard, its resonance near screaming at the top
+      this.k = 2 * (1 - res) + 0.02;
+    } else if (this.filterType === FILTER_PHASER) {
+      // phaser: four all-passes at Cutoff mixed with the dry (two notches), Res feeding back
+      this.phFb = 0.85 * res;
+    } else if (this.filterType === FILTER_RING) {
+      // ring: the sound times a sine at Cutoff (Hz), Res how much of it
+      this.ringInc = fc / fsOs;
+      this.ringMix = 0.5 + 0.5 * res;
+    } else if (this.filterType === FILTER_DECIM) {
+      // decimate: held at Cutoff as a sample rate, Res taking the bits from 16 down to 3
+      this.decInc = fc / fsOs;
+      this.decQ = Math.pow(2, 16 - 13 * res);
     } else {
-      const v = clamp(cur[P.vowel] + dst[D.VOWEL], 0, 1) * 4;
+      // formant (VOWEL picks the vowel, Cutoff the throat) or talk (Cutoff sweeps the vowel, O … U, the throat fixed)
+      const talk = this.filterType === FILTER_TALK;
+      const v = talk ? clamp(Math.log2(fc / 80) / Math.log2(100), 0, 1) * 4 : clamp(cur[P.vowel] + dst[D.VOWEL], 0, 1) * 4;
       const vi = Math.min(3, Math.floor(v));
       const vf = v - vi;
-      const shift = Math.sqrt(fc / 2000);
+      const shift = talk ? 1 : Math.sqrt(fc / 2000);
       for (let f = 0; f < 3; f++) {
         const hz = VOWELS[vi][f] * Math.pow(VOWELS[vi + 1][f] / VOWELS[vi][f], vf) * shift;
         this.fmtG[f] = Math.tan((Math.PI * clamp(hz, 40, fs * 0.45)) / fsOs);
@@ -773,6 +824,7 @@ export class Voice {
         return 0.6 * saw + 0.35 * (saw - this.saw(o.baseSaw, p2));
       }
       case WAVE_SAW:
+      case WAVE_SUPERSAW:
         return this.saw(o.baseSaw, ph);
       case WAVE_PULSE: {
         // Pulse = difference of two band-limited saws, offset by the pulse width.
@@ -788,9 +840,10 @@ export class Voice {
         const f = pos - i;
         const i2 = (i + 1) & TABLE_M;
         const a = t[o.baseA + i] + (t[o.baseA + i2] - t[o.baseA + i]) * f;
-        if (o.frac === 0) return a;
-        const b = t[o.baseB + i] + (t[o.baseB + i2] - t[o.baseB + i]) * f;
-        return a + (b - a) * o.frac;
+        const b = o.frac === 0 ? a : t[o.baseB + i] + (t[o.baseB + i2] - t[o.baseB + i]) * f;
+        const y = a + (b - a) * o.frac;
+        // breath: noise riding on the tone, louder where the wave is
+        return o.breath > 0 ? y + o.breath * this.rng.next() * (0.35 + 0.65 * Math.abs(y)) : y;
       }
     }
   }
@@ -859,6 +912,46 @@ export class Voice {
       this.semR.processSat(r, g, this.k);
       l = this.semL.lp;
       r = this.semR.lp;
+    } else if (this.filterType === FILTER_LP12) {
+      this.lp12L.process(l, g, this.k);
+      this.lp12R.process(r, g, this.k);
+      l = this.lp12L.lp;
+      r = this.lp12R.lp;
+    } else if (this.filterType === FILTER_MS20) {
+      this.ms20L.processSat(tanh(1.5 * l) / 1.5, g, this.k);
+      this.ms20R.processSat(tanh(1.5 * r) / 1.5, g, this.k);
+      l = (tanh(1.4 * this.ms20L.lp) / 1.4) * 1.3;
+      r = (tanh(1.4 * this.ms20R.lp) / 1.4) * 1.3;
+    } else if (this.filterType === FILTER_PHASER) {
+      const a = (g - 1) / (g + 1);
+      let xl = l + this.phFb * this.phFbL, xr = r + this.phFb * this.phFbR;
+      for (let i = 0; i < 4; i++) {
+        const yl = a * xl + this.phL[i];
+        this.phL[i] = xl - a * yl;
+        xl = yl;
+        const yr = a * xr + this.phR[i];
+        this.phR[i] = xr - a * yr;
+        xr = yr;
+      }
+      this.phFbL = xl;
+      this.phFbR = xr;
+      l = 0.7 * (l + xl);
+      r = 0.7 * (r + xr);
+    } else if (this.filterType === FILTER_RING) {
+      this.ringPh += this.ringInc;
+      if (this.ringPh >= 1) this.ringPh -= 1;
+      const c = Math.sin(TWO_PI * this.ringPh), m = this.ringMix;
+      l = l * (1 - m) + l * c * m * 1.4;
+      r = r * (1 - m) + r * c * m * 1.4;
+    } else if (this.filterType === FILTER_DECIM) {
+      this.decPh += this.decInc;
+      if (this.decPh >= 1) {
+        this.decPh -= Math.floor(this.decPh);
+        this.decL = Math.floor(l * this.decQ + 0.5) / this.decQ;
+        this.decR = Math.floor(r * this.decQ + 0.5) / this.decQ;
+      }
+      l = this.decL;
+      r = this.decR;
     } else if (this.filterType === FILTER_LPG) {
       this.lpgL.processSat(l, g, this.k);
       this.lpgR.processSat(r, g, this.k);
@@ -910,7 +1003,7 @@ export class Voice {
       this.modEnv.tick();
 
       // Oscillators (band-limited at the base rate).
-      if (o1.gain > 0 && o1.wave >= WAVE_STRING) {
+      if (o1.gain > 0 && o1.wave === WAVE_STRING) {
         const s = this.specialOsc(0) * o1.gain;
         l += s;
         r += s;
@@ -938,7 +1031,7 @@ export class Voice {
       const sepB = this.oscF[1].active || this.routeA !== this.routeB || this.lfB.on;
       const preL = l, preR = r;
       if (sepB) l = r = 0;
-      if (o2.gain > 0 && o2.wave >= WAVE_STRING) {
+      if (o2.gain > 0 && o2.wave === WAVE_STRING) {
         const s = this.specialOsc(1) * o2.gain;
         l += s;
         r += s;

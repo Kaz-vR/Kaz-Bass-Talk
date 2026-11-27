@@ -65,7 +65,7 @@ struct OscState {
   double gain = 0;
   int wave = WAVE_SAW;
   int baseA = 0, baseB = 0, baseSaw = 0;
-  double frac = 0, pw = 0.5, lastSpread = -1;
+  double frac = 0, pw = 0.5, lastSpread = -1, breath = 0;
   int lastVoices = -1;
 };
 
@@ -218,6 +218,13 @@ class Voice {
     lpgR.reset();
     semL.reset();
     semR.reset();
+    lp12L.reset();
+    lp12R.reset();
+    ms20L.reset();
+    ms20R.reset();
+    for (int i = 0; i < 4; i++) phL[i] = phR[i] = 0;
+    phFbL = phFbR = 0;
+    decL = decR = 0;
     combL.reset();
     combR.reset();
     for (auto& st : strings) st.reset();
@@ -236,7 +243,7 @@ class Voice {
     const auto& P = PI_();
     for (int n = 0; n < 2; n++) {
       osc[n].wave = (int)cur[P.osc[n].wave];
-      osc[n].voices = (int)cur[P.osc[n].voices];
+      osc[n].voices = osc[n].wave == WAVE_SUPERSAW ? 7 : (int)cur[P.osc[n].voices];
     }
     filterType = (int)cur[P.fType];
     subWave = (int)cur[P.subWave];
@@ -357,7 +364,8 @@ class Voice {
       while (center < 20 / fs) center *= 2;
       if (n == 0) syncInc = center;
       const int voices = o.voices;
-      const double detune = clampd(cur[op.detune] + 100 * (dst[D_DETUNE] + dst[n == 0 ? D_OSC1_DETUNE : D_OSC2_DETUNE]), 0, 100);
+      double detune = clampd(cur[op.detune] + 100 * (dst[D_DETUNE] + dst[n == 0 ? D_OSC1_DETUNE : D_OSC2_DETUNE]), 0, 100);
+      if (o.wave == WAVE_SUPERSAW) detune = clampd(detune + 70 * clampd(cur[op.wt] + dst[n == 0 ? D_OSC1_WT : D_OSC2_WT] + dst[n == 0 ? D_OSC1_PW : D_OSC2_PW] + dst[D_SHAPE], 0, 1), 0, 100);
       const double spread = cur[op.spread];
       if (voices == 1) {
         o.inc[0] = center;
@@ -404,8 +412,11 @@ class Voice {
       if (o.wave == WAVE_SINE) wt = 0;
       else if (o.wave == WAVE_TRI) wt = (double)FRAMES_PER_SEGMENT / (FRAME_COUNT - 1);
       else wt = clampd(cur[op.wt] + dst[n == 0 ? D_OSC1_WT : D_OSC2_WT] + shape, 0, 1);
-      const double fpos = wt * (FRAME_COUNT - 1);
-      const int fa = std::min(FRAME_COUNT - 2, (int)std::floor(fpos));
+      const int bw = bankOf(o.wave);
+      const int f0 = bw >= 0 ? BANK_LAYOUT.frame0[bw] : 0, nf = bw >= 0 ? BANK_LAYOUT.frames[bw] : FRAME_COUNT;
+      o.breath = o.wave == WAVE_BREATH ? 0.7 * wt : 0;
+      const double fpos = f0 + wt * (nf - 1);
+      const int fa = std::min(f0 + nf - 2, (int)std::floor(fpos));
       const int mip = mipForIncrement(o.inc[voices - 1]);
       o.baseA = (fa * MIP_LEVELS + mip) * TABLE_SIZE;
       o.baseB = ((fa + 1) * MIP_LEVELS + mip) * TABLE_SIZE;
@@ -488,11 +499,24 @@ class Voice {
       k = 0.765 * (1 - res) + 0.05;
     } else if (filterType == FILTER_SEM) {
       k = 1.9 * (1 - res) + 0.12;
+    } else if (filterType == FILTER_LP12) {
+      k = 1.414 * (1 - res) + 0.05;
+    } else if (filterType == FILTER_MS20) {
+      k = 2 * (1 - res) + 0.02;
+    } else if (filterType == FILTER_PHASER) {
+      phFb = 0.85 * res;
+    } else if (filterType == FILTER_RING) {
+      ringInc = fc / fsOs;
+      ringMix = 0.5 + 0.5 * res;
+    } else if (filterType == FILTER_DECIM) {
+      decInc = fc / fsOs;
+      decQ = std::pow(2.0, 16 - 13 * res);
     } else {
-      const double v = clampd(cur[P.vowel] + dst[D_VOWEL], 0, 1) * 4;
+      const bool talk = filterType == FILTER_TALK;
+      const double v = talk ? clampd(std::log2(fc / 80) / std::log2(100.0), 0, 1) * 4 : clampd(cur[P.vowel] + dst[D_VOWEL], 0, 1) * 4;
       const int vi = std::min(3, (int)std::floor(v));
       const double vf = v - vi;
-      const double shift = std::sqrt(fc / 2000);
+      const double shift = talk ? 1.0 : std::sqrt(fc / 2000);
       for (int f = 0; f < 3; f++) {
         const double hz = VOWELS[vi][f] * std::pow(VOWELS[vi + 1][f] / VOWELS[vi][f], vf) * shift;
         fmtG[f] = std::tan((PI * clampd(hz, 40, fs * 0.45)) / fsOs);
@@ -523,7 +547,7 @@ class Voice {
       const double env = ampEnv.tick();
       modEnv.tick();
 
-      if (o1.gain > 0 && o1.wave >= WAVE_STRING) {
+      if (o1.gain > 0 && o1.wave == WAVE_STRING) {
         const double s = specialOsc(0) * o1.gain;
         l += s;
         r += s;
@@ -548,7 +572,7 @@ class Voice {
       const bool sepB = oscF[1].active || routeA != routeB || lfB.on;
       const double preL = l, preR = r;
       if (sepB) l = r = 0;
-      if (o2.gain > 0 && o2.wave >= WAVE_STRING) {
+      if (o2.gain > 0 && o2.wave == WAVE_STRING) {
         const double s = specialOsc(1) * o2.gain;
         l += s;
         r += s;
@@ -755,6 +779,7 @@ class Voice {
         return 0.6 * sw + 0.35 * (sw - saw(o.baseSaw, p2));
       }
       case WAVE_SAW:
+      case WAVE_SUPERSAW:
         return saw(o.baseSaw, ph);
       case WAVE_PULSE: {
         double p2 = ph - o.pw;
@@ -767,9 +792,9 @@ class Voice {
         const double f = pos - i;
         const int i2 = (i + 1) & TABLE_MASK;
         const double a = table[o.baseA + i] + ((double)table[o.baseA + i2] - table[o.baseA + i]) * f;
-        if (o.frac == 0) return a;
-        const double b = table[o.baseB + i] + ((double)table[o.baseB + i2] - table[o.baseB + i]) * f;
-        return a + (b - a) * o.frac;
+        const double b = o.frac == 0 ? a : table[o.baseB + i] + ((double)table[o.baseB + i2] - table[o.baseB + i]) * f;
+        const double y = a + (b - a) * o.frac;
+        return o.breath > 0 ? y + o.breath * rng.next() * (0.35 + 0.65 * std::fabs(y)) : y;
       }
     }
   }
@@ -831,6 +856,46 @@ class Voice {
       semR.processSat(r, gg, k);
       l = semL.lp;
       r = semR.lp;
+    } else if (filterType == FILTER_LP12) {
+      lp12L.process(l, gg, k);
+      lp12R.process(r, gg, k);
+      l = lp12L.lp;
+      r = lp12R.lp;
+    } else if (filterType == FILTER_MS20) {
+      ms20L.processSat(fastTanh(1.5 * l) / 1.5, gg, k);
+      ms20R.processSat(fastTanh(1.5 * r) / 1.5, gg, k);
+      l = (fastTanh(1.4 * ms20L.lp) / 1.4) * 1.3;
+      r = (fastTanh(1.4 * ms20R.lp) / 1.4) * 1.3;
+    } else if (filterType == FILTER_PHASER) {
+      const double a = (gg - 1) / (gg + 1);
+      double xl = l + phFb * phFbL, xr = r + phFb * phFbR;
+      for (int i = 0; i < 4; i++) {
+        const double yl = a * xl + phL[i];
+        phL[i] = xl - a * yl;
+        xl = yl;
+        const double yr = a * xr + phR[i];
+        phR[i] = xr - a * yr;
+        xr = yr;
+      }
+      phFbL = xl;
+      phFbR = xr;
+      l = 0.7 * (l + xl);
+      r = 0.7 * (r + xr);
+    } else if (filterType == FILTER_RING) {
+      ringPh += ringInc;
+      if (ringPh >= 1) ringPh -= 1;
+      const double c = std::sin(TWO_PI * ringPh), m = ringMix;
+      l = l * (1 - m) + l * c * m * 1.4;
+      r = r * (1 - m) + r * c * m * 1.4;
+    } else if (filterType == FILTER_DECIM) {
+      decPh += decInc;
+      if (decPh >= 1) {
+        decPh -= std::floor(decPh);
+        decL = std::floor(l * decQ + 0.5) / decQ;
+        decR = std::floor(r * decQ + 0.5) / decQ;
+      }
+      l = decL;
+      r = decR;
     } else if (filterType == FILTER_LPG) {
       lpgL.processSat(l, gg, k);
       lpgR.processSat(r, gg, k);
@@ -865,7 +930,7 @@ class Voice {
   const double fs;
   const double* cur;
   const float* table;
-  Rng rng;
+  mutable Rng rng;  // (oscSample is const: breath noise draws from it)
   const double* dstMask;
 
   bool hasPlayed = false;
@@ -905,7 +970,8 @@ class Voice {
   int filterType = FILTER_LP;
   double g = 0.1, gStep = 0, gPrevTarget = -1, k = 0;
   Ladder ladL, ladR;
-  Svf hpL[2], hpR[2], notchL[2], notchR[2], lpgL, lpgR, semL, semR;
+  Svf hpL[2], hpR[2], notchL[2], notchR[2], lpgL, lpgR, semL, semR, lp12L, lp12R, ms20L, ms20R;
+  double phL[4] = {}, phR[4] = {}, phFbL = 0, phFbR = 0, phFb = 0, ringPh = 0, ringInc = 0, ringMix = 0, decPh = 0, decInc = 0, decQ = 65536, decL = 0, decR = 0;
   double combDelay = 100, combFb = 0;
   Svf bpL[2], bpR[2], fmtL[3], fmtR[3];
   double fmtG[3] = {}, fmtK = 0.2;
