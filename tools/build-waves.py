@@ -352,8 +352,9 @@ def w_morph_vocal(t, r):  # the MORPH table's last keyframe: an "ah" (its harmon
 
 
 WAVES = [  # name, frames, maker, seed
-    ('double saw', 32, w_double_saw, 1), ('vowel', 32, w_vowel, 2), ('choir', 32, w_choir, 3), ('talk', 48, w_talk, 4),
-    ('bell', 32, w_bell, 5), ('digital', 32, w_digital, 6), ('glass', 32, w_glass, 7), ('bowed', 32, w_bowed, 8),
+    # (double saw, bell, digital and glass: the owner kept their formulas, 27 Nov; their makers stay here unused)
+    ('vowel', 32, w_vowel, 2), ('choir', 32, w_choir, 3), ('talk', 48, w_talk, 4),
+    ('bowed', 32, w_bowed, 8),
     ('reed', 32, w_reed, 9), ('breath', 32, w_breath, 10), ('electric guitar', 32, w_eguitar, 11),
     ('tape saw', 32, w_tape_saw, 12), ('cassette pulse', 32, w_cassette, 13), ('lofi sample', 32, w_lofi, 14),
     ('broken sine', 32, w_broken_sine, 15), ('growl', 48, w_growl, 16), ('fold', 64, w_fold, 17),

@@ -100,11 +100,11 @@ inline void synth(const std::vector<double>& a, int maxH, float* out, double sca
 // ---- The wave bank (as wavetable.ts): each new wave a small morph table, keyframes as one cycle in time.
 constexpr int BANK_COUNT = 27;
 /** Each bank wave's sampled table (an index into WAVE_TABLE_DATA: acid, ring, scream, gritty), -1 for a formula (as BANK_SAMPLED). */
-constexpr int BANK_SAMPLED[BANK_COUNT] = {-1, WT_DOUBLE_SAW, WT_SYNC_SAW, WT_VOWEL, WT_CHOIR, WT_TALK, WT_BELL, WT_RING,
-    WT_DIGITAL, WT_GLASS, WT_BOWED, WT_REED, WT_BREATH, WT_TAPE_SAW, WT_CASSETTE_PULSE, WT_LOFI_SAMPLE, WT_BROKEN_SINE,
+constexpr int BANK_SAMPLED[BANK_COUNT] = {-1, -1, WT_SYNC_SAW, WT_VOWEL, WT_CHOIR, WT_TALK, -1, WT_RING,
+    -1, -1, WT_BOWED, WT_REED, WT_BREATH, WT_TAPE_SAW, WT_CASSETTE_PULSE, WT_LOFI_SAMPLE, WT_BROKEN_SINE,
     WT_ELECTRIC_GUITAR, WT_ACID, WT_SCREAM, WT_GROWL, WT_FOLD, -1, WT_CRUSH, WT_SPECTRAL, WT_FORMANT_SCAN, WT_GRITTY};
-/** Keyframes of each bank wave: a sampled table's frames, else its formula's (square 3, harmonic 9). */
-constexpr int bankKeys(int w) { return BANK_SAMPLED[w] >= 0 ? WAVE_TABLE_FRAMES[BANK_SAMPLED[w]] : w == 0 ? 3 : 9; }
+/** Keyframes of each bank wave: a sampled table's frames, else its formula's (square 3, double saw 3, bell / digital / glass 5, harmonic 9). */
+constexpr int bankKeys(int w) { return BANK_SAMPLED[w] >= 0 ? WAVE_TABLE_FRAMES[BANK_SAMPLED[w]] : w == 0 || w == 1 ? 3 : w == 22 ? 9 : 5; }
 constexpr int BANK_KEYS[BANK_COUNT] = {bankKeys(0), bankKeys(1), bankKeys(2), bankKeys(3), bankKeys(4), bankKeys(5), bankKeys(6),
     bankKeys(7), bankKeys(8), bankKeys(9), bankKeys(10), bankKeys(11), bankKeys(12), bankKeys(13), bankKeys(14), bankKeys(15),
     bankKeys(16), bankKeys(17), bankKeys(18), bankKeys(19), bankKeys(20), bankKeys(21), bankKeys(22), bankKeys(23),
@@ -151,6 +151,28 @@ inline double bankKey(int w, int kf, double x) {
     static const double G[] = {0, 4, 1.4};
     const double g = G[kf];
     return std::tanh(g * std::sin(2 * PI * x)) / std::tanh(g);
+  }
+  // (the owner's picks: these four kept their formulas, as wavetable.ts)
+  auto fr = [](double t) { return t - std::floor(t); };
+  auto jr = [](double t) { return std::floor(t + 0.5); };
+  auto saw = [&](double t) { return 2 * fr(t) - 1; };
+  auto S = [](double t) { return std::sin(2 * PI * t); };
+  switch (w) {
+    case 1: { static const double A[] = {0, 0.5, 1}; return saw(x) + A[kf] * saw(2 * x); }
+    case 6: {
+      static const double ks[8] = {1, 5, 9, 14, 21, 28, 35, 44}, B[] = {0.2, 0.4, 0.6, 0.8, 1};
+      double y = 0;
+      for (int i = 0; i < 8; i++) y += std::pow(B[kf], i) * std::sin(2 * PI * ks[i] * x);
+      return y;
+    }
+    case 8: { static const double Nd[] = {48, 16, 8, 4, 2}; const double n = Nd[kf]; return jr((0.6 * saw(x + 0.5) + 0.6 * S(x)) * n) / n; }
+    case 9: {
+      static const double ks[9] = {1, 4, 8, 12, 16, 24, 32, 40, 48}, B[] = {0.15, 0.35, 0.55, 0.75, 1};
+      double y = 0;
+      for (int i = 0; i < 9; i++) y += std::pow(B[kf], i) * std::sin(2 * PI * ks[i] * x);
+      return y;
+    }
+    default: break;
   }
   static const int Nn[] = {1, 2, 3, 4, 6, 8, 12, 16, 24};  // harmonic: partials one by one
   double y = 0;

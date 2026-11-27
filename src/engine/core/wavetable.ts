@@ -130,10 +130,13 @@ function synth(a: Float64Array, maxH: number, out: Float32Array, scale: number):
 // morph table in the same data array. Ported line by line to plugin/engine/Wavetable.h (bankKey).
 
 const S = (x: number) => Math.sin(2 * Math.PI * x);
+/** Rounds half up, the same in both engines (Math.round differs from C++ on negative halves). */
+const jr = (x: number) => Math.floor(x + 0.5);
+const fr = (x: number) => x - Math.floor(x);
 
 /**
  * The sampled waves (owner's call, 27 Nov): acid, ring, scream and gritty are Serum's own tables, from the owner's
- * renders; every other bank wave but square and harmonic is made the same way, a real source through real processing
+ * renders; every other bank wave but square, harmonic and the owner's four kept formulas (double saw, bell, digital, glass) is made the same way, a real source through real processing
  * (tools/build-waves.py), many full-band frames; both taken by tools/extract-waves.py into wave-tables.ts.
  */
 const sampledData: (Float32Array | null)[] = WAVE_TABLES.map(() => null);
@@ -176,8 +179,8 @@ function squareCycle(): Float32Array {
  * real wavetables, made to be scanned (owner's call): two frames per step instead of four. */
 const bank = (name: string, keys = 0) => ({ name, keys: WAVE_TABLES.find((q) => q.name === name)?.frames ?? keys });
 export const BANK: { name: string; keys: number }[] = [
-  bank('square', 3), bank('double saw'), bank('sync saw'), bank('vowel'), bank('choir'), bank('talk'), bank('bell'), bank('ring'),
-  bank('digital'), bank('glass'), bank('bowed'), bank('reed'), bank('breath'), bank('tape saw'), bank('cassette pulse'),
+  bank('square', 3), bank('double saw', 3), bank('sync saw'), bank('vowel'), bank('choir'), bank('talk'), bank('bell', 5), bank('ring'),
+  bank('digital', 5), bank('glass', 5), bank('bowed'), bank('reed'), bank('breath'), bank('tape saw'), bank('cassette pulse'),
   bank('lofi sample'), bank('broken sine'), bank('electric guitar'), bank('acid'), bank('scream'), bank('growl'), bank('fold'),
   bank('harmonic', 9), bank('crush'), bank('spectral'), bank('formant scan'), bank('gritty'),
 ];
@@ -192,6 +195,14 @@ export function bankKey(w: number, kf: number, x: number): number {
     if (kf === 0) return squareCycle()[Math.floor(x * TABLE_SIZE) & TABLE_MASK];
     const g = [0, 4, 1.4][kf];
     return Math.tanh(g * S(x)) / Math.tanh(g);
+  }
+  // (the owner's picks, 27 Nov: these four kept their formulas over the processed versions)
+  const saw = (t: number) => 2 * fr(t) - 1;
+  switch (w) {
+    case 1: return saw(x) + [0, 0.5, 1][kf] * saw(2 * x); // double saw, Shape brings in the octave
+    case 6: { const ks = [1, 5, 9, 14, 21, 28, 35, 44], b = [0.2, 0.4, 0.6, 0.8, 1][kf]; let y = 0; for (let i = 0; i < ks.length; i++) y += Math.pow(b, i) * Math.sin(2 * Math.PI * ks[i] * x); return y; } // bell
+    case 8: { const n = [48, 16, 8, 4, 2][kf]; return jr((0.6 * saw(x + 0.5) + 0.6 * S(x)) * n) / n; } // digital steps, down to two
+    case 9: { const ks = [1, 4, 8, 12, 16, 24, 32, 40, 48], b = [0.15, 0.35, 0.55, 0.75, 1][kf]; let y = 0; for (let i = 0; i < ks.length; i++) y += Math.pow(b, i) * Math.sin(2 * Math.PI * ks[i] * x); return y; } // glass
   }
   // harmonic: partials one by one (clean on purpose)
   const n = [1, 2, 3, 4, 6, 8, 12, 16, 24][kf];
