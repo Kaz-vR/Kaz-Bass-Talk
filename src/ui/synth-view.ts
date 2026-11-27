@@ -3170,6 +3170,11 @@ export class SynthView {
       return x >= 1 ? ph : d - Math.floor(d);
     };
     let hover = -1, drag = -1, curve: number[] = [], heard: number[] = [], hasRows = false;
+    // the master Depth squeezes the drawn shape toward the middle (owner's call: the main line shows it, as Smooth
+    // shows the rounding); the points sit on the squeezed line and editing maps back to the shape
+    const dM = () => Math.max(0, Math.min(1, this.num(`${WP}.master`)));
+    const dy = (v: number) => 0.5 + dM() * (v - 0.5);
+    const iy = (y: number) => Math.max(0, Math.min(1, 0.5 + (y - 0.5) / Math.max(0.05, dM())));
     // selected points (a box dragged over empty space picks them; dragging one of them moves them all)
     let sel = new Set<number>();
     let box: { x0: number; y0: number; x1: number; y1: number } | null = null;
@@ -3190,7 +3195,7 @@ export class SynthView {
       const full = this.wobCurve(WP, shape, N);
       // The main line is the shape itself (the points sit on it); each target's own line runs faint with it, as it
       // moves the target (owner's call): depth 100% = on the shape, 0 = flat, -100% = upside down, offset = up / down
-      curve = full;
+      curve = full.map(dy);
       const rows = [0, 1, 2, 3].map((t) => ({ dest: String(this.get(WOB_DESTS[t])), a: this.num(WOB_AMTS[t]), o: this.num(WOB_OFFS[t]) })).filter((r) => r.dest !== 'none' && (r.a !== 0 || r.o !== 0));
       hasRows = rows.length > 0;
       // (times the master Depth, as the engine moves them)
@@ -3222,7 +3227,7 @@ export class SynthView {
       const col = accentOf(cv);
       const pts = this.wobPoints(WP, shape);
       pts.forEach((q, i) => {
-        const r = i === hover || i === drag ? 6 : 4.5, px = X(shown(q.x)), py = Y(q.y);
+        const r = i === hover || i === drag ? 6 : 4.5, px = X(shown(q.x)), py = Y(dy(q.y));
         const soft = q.s && i > 0 && i < pts.length - 1;
         if (sel.has(i)) {
           // a selected point: a lit ring around it
@@ -3296,14 +3301,14 @@ export class SynthView {
       const dx = Math.max(0, Math.min(1, ((e.clientX - r.left) * (W / r.width) - PAD) / (W - 2 * PAD)));
       let x = dx - this.num(`${WP}.phase`);
       x -= Math.floor(x);
-      return { x, y: Math.max(0, Math.min(1, 1 - ((e.clientY - r.top) * (H / r.height) - PAD) / (H - 2 * PAD))) };
+      return { x, y: iy(Math.max(0, Math.min(1, 1 - ((e.clientY - r.top) * (H / r.height) - PAD) / (H - 2 * PAD)))) };
     };
     const snap = (v: { x: number; y: number }, e: MouseEvent) => (e.shiftKey ? { x: Math.round(v.x * GX) / GX, y: Math.round(v.y * GY) / GY } : v);
     const hit = (e: PointerEvent | MouseEvent) => {
       const r = ov.getBoundingClientRect(), mx = (e.clientX - r.left) * (W / r.width), my = (e.clientY - r.top) * (H / r.height);
       let best = -1, bd = 10;
       this.wobPoints(WP).forEach((q, i) => {
-        const d = Math.hypot(X(shown(q.x)) - mx, Y(q.y) - my);
+        const d = Math.hypot(X(shown(q.x)) - mx, Y(dy(q.y)) - my);
         if (d < bd) { bd = d; best = i; }
       });
       return best;
@@ -3384,7 +3389,7 @@ export class SynthView {
       if (box) {
         const x0 = Math.min(box.x0, box.x1), x1 = Math.max(box.x0, box.x1), y0 = Math.min(box.y0, box.y1), y1 = Math.max(box.y0, box.y1);
         this.wobPoints(WP).forEach((q, i) => {
-          const px = X(shown(q.x)), py = Y(q.y);
+          const px = X(shown(q.x)), py = Y(dy(q.y));
           if (px >= x0 && px <= x1 && py >= y0 && py <= y1) sel.add(i);
         });
         box = null;
