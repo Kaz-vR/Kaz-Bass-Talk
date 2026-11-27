@@ -287,6 +287,11 @@ function lamp(): HTMLElement {
 }
 
 /** Basic wave shapes for the oscillator and sub prints. */
+/** The sub's print: its square is a plain square, its pulse 25% (the oscillators' square is the bank's, with Shape). */
+function subShape(wave: string, x: number): number {
+  return wave === 'square' ? (x < 0.5 ? 0.8 : -0.8) : waveShape(wave, x, 0.25, 0);
+}
+
 function waveShape(wave: string, x: number, pw: number, wt: number): number {
   const tri = x < 0.25 ? 4 * x : x < 0.75 ? 2 - 4 * x : 4 * x - 4;
   const saw = 1 - 2 * x;
@@ -295,7 +300,6 @@ function waveShape(wave: string, x: number, pw: number, wt: number): number {
     case 'warm sine': return 0.86 * (Math.sin(2 * Math.PI * x) + 0.3 * Math.sin(4 * Math.PI * x));
     case 'triangle': return tri;
     case 'saw': return saw;
-    case 'square': return x < 0.5 ? 0.8 : -0.8;
     case 'pulse': return x < pw ? 0.8 : -0.8;
     case 'pwm_saw': return 0.5 * (saw + (1 - 2 * ((x + pw) % 1)));
     case 'wavetable': {
@@ -348,7 +352,7 @@ const SHAPE_WT = new Set(['wavetable', ...BANK.map((q) => q.name)]);
 /** A wave's small picture for the menu (22 x 12, one cycle at the middle of its Shape). */
 function waveIconPath(wave: string): string {
   const W = 22, H = 12, N = 44, ys: number[] = [];
-  for (let i = 0; i <= N; i++) ys.push(waveShape(wave, i / N, 0.3, 0.5));
+  for (let i = 0; i <= N; i++) ys.push(waveShape(wave, i / N, 0.3, wave === 'square' ? 0 : 0.5));
   const peak = Math.max(...ys.map(Math.abs)) || 1;
   return ys.map((y, i) => `${i ? 'L' : 'M'}${((i / N) * W).toFixed(1)},${(H / 2 - (y / peak) * (H / 2 - 1)).toFixed(1)}`).join('');
 }
@@ -1810,7 +1814,7 @@ export class SynthView {
       const cycles = (W / 90) * Math.min(8, Math.pow(2, this.num('sub.octave') + 1)), lvl = this.num('sub.level');
       const k = 1 + this.num('sub.clip') / 3, clip = (v: number) => (k > 1.01 ? Math.tanh(v * k) / Math.tanh(k) : v);
       const pts: [number, number][] = [];
-      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - clip(waveShape(String(this.get('sub.wave')), ((i / W) * cycles) % 1, 0.25, 0)) * (H / 2 - 9) * (0.3 + 0.6 * lvl)]);
+      for (let i = 0; i <= W; i++) pts.push([i, H / 2 - clip(subShape(String(this.get('sub.wave')), ((i / W) * cycles) % 1)) * (H / 2 - 9) * (0.3 + 0.6 * lvl)]);
       silver(g, pts, lvl > 0);
       vignette(g, W, H);
     };
