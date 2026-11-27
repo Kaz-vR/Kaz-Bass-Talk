@@ -281,7 +281,7 @@ export const P = {
   /** The EQ's four bands (low shelf / high-pass, two bells / notches, high shelf / low-pass) and its gain scale. */
   eq: [1, 2, 3, 4].map((n) => ({ type: ix(`eq.b${n}_type`), freq: ix(`eq.b${n}_freq`), gain: ix(`eq.b${n}_gain`), q: ix(`eq.b${n}_q`) })), eqScale: ix('eq.scale'),
   outGain: ix('output.gain'), poly: ix('voice.polyphony'),
-  grindOn: ix('grind.on'), grindMix: ix('grind.mix'), grindLowcut: ix('grind.lowcut'), grindKey: ix('grind.key'), grindOneShot: ix('grind.oneshot'), grindOneShotUp: ix('grind.oneshot_dir'), grindNoiseThru: ix('grind.noise_thru'), grindOtt: ix('grind.ott'), grindOut: ix('grind.output'),
+  grindOn: ix('grind.on'), grindMix: ix('grind.mix'), grindLowcut: ix('grind.lowcut'), grindKey: ix('grind.key'), grindOneShot: ix('grind.oneshot'), grindOneShotUp: ix('grind.oneshot_dir'), grindNoiseThru: ix('grind.noise_thru'), grindOtt: ix('grind.ott'), grindOttBox: ix('grind.ott_box'), grindOut: ix('grind.output'),
   grindSlot: [1, 2, 3, 4, 5, 6, 7, 8].map((k) => ix(`grind.slot${k}`)),
   grind: [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
     on: ix(`grind${n}.on`), filter: ix(`grind${n}.filter`), freq: ix(`grind${n}.freq`), range: ix(`grind${n}.range`),
@@ -293,8 +293,6 @@ export const P = {
     phOn: ix(`grind${n}.phaser_on`), phLevel: ix(`grind${n}.phaser_level`), phNotches: ix(`grind${n}.ph_notches`), phCenter: ix(`grind${n}.ph_center`),
     phSpread: ix(`grind${n}.ph_spread`), phAmount: ix(`grind${n}.ph_amount`), phRate: ix(`grind${n}.ph_rate`), phClock: ix(`grind${n}.ph_clock`),
     phFeedback: ix(`grind${n}.ph_feedback`), phStereo: ix(`grind${n}.ph_stereo`),
-    /** OTT per box: filter, drive, EQ, phaser (the box kinds' order). */
-    ott: ['filter', 'drive', 'eq', 'phaser'].map((k) => ix(`grind${n}.${k}_ott`)),
     bells: [1, 2, 3, 4].map((b) => ({ type: ix(`grind${n}.bell${b}_type`), freq: ix(`grind${n}.bell${b}_freq`), gain: ix(`grind${n}.bell${b}_gain`), q: ix(`grind${n}.bell${b}_q`), range: ix(`grind${n}.bell${b}_range`), dir: ix(`grind${n}.bell${b}_dir`), vrange: ix(`grind${n}.bell${b}_vrange`) })),
     dFreq: ix(`grind${n}.drive_freq`), dWidth: ix(`grind${n}.drive_width`), dTone: ix(`grind${n}.drive_tone`), dDyn: ix(`grind${n}.drive_dyn`),
   })),

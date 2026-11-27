@@ -209,7 +209,7 @@ inline double ampCurve(double u) { return fastTanh(AMP_GAIN * u + AMP_BIAS) - AM
 inline double ampCurveIntegral(double u) { return tanhIntegral(AMP_GAIN * u + AMP_BIAS) / AMP_GAIN - AMP_OFFSET * u; }
 
 struct GrindStage {
-  Ott otts[4];  // OTT per box: filter, drive, EQ, phaser (as grind.ts)
+  Ott otts[4];  // OTT TYPE 1: each box's own, all set by grind.ott_box (as grind.ts)
   bool on = false;
   int ftype = GF_NOTCH, dtype = GD_TAPE;
   double phase = 0, wFrom = 0, wTo = 0, wPos = 0, spd = 1, depth = 1, fLvT = 1, fLv = 1, dLvT = 1, dLv = 1;
@@ -636,7 +636,7 @@ class Grind {
       GrindStage& s = stages[i];
       const auto& gp = P.grind[i];
       s.on = cur[gp.on] > 0.5;
-      for (int q = 0; q < 4; q++) s.otts[q].set(s.on ? cur[gp.ott[q]] : 0, 0, fsOs);
+      for (int q = 0; q < 4; q++) s.otts[q].set(s.on ? cur[P.grindOttBox] : 0, 0, fsOs);
       if (!s.on) {
         s.fcNow = -1;
         continue;

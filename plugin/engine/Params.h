@@ -168,7 +168,7 @@ struct ParamIndex {
   struct Slot { int src, dst, amt, on; };
   struct Eq { int type, freq, gain, q; };
   struct Bell { int type, freq, gain, q, range, dir, vrange; };
-  struct GrindStage { int on, filter, freq, range, rate, clock, width, depth, dtype, drive, mix, filterOn, driveOn, dFreq, dWidth, dTone, dDyn, fLevel, dLevel, eqOn, eqLevel, eqScale; Eq eq[4]; Bell bells[4]; int bellLink, bellCount, phOn, phLevel, phNotches, phCenter, phSpread, phAmount, phRate, phClock, phFeedback, phStereo; int ott[4]; };
+  struct GrindStage { int on, filter, freq, range, rate, clock, width, depth, dtype, drive, mix, filterOn, driveOn, dFreq, dWidth, dTone, dDyn, fLevel, dLevel, eqOn, eqLevel, eqScale; Eq eq[4]; Bell bells[4]; int bellLink, bellCount, phOn, phLevel, phNotches, phCenter, phSpread, phAmount, phRate, phClock, phFeedback, phStereo; };
   int legato, glide, octave, velocity, analog;
   Osc osc[2];
   int strTone, strDecay, accent, ampBend[3], modBend[3], chorusMode;
@@ -194,7 +194,7 @@ struct ParamIndex {
   int chorusMix, chorusDepth, phaserMix, phaserRate, reverbMix, fxLowcut[5], ottOn, ottDepth, ottLowcut;
   Eq eq[4];
   int eqScale, outGain, poly;
-  int grindOn, grindMix, grindLowcut, grindKey, grindOneShot, grindOneShotUp, grindNoiseThru, grindOtt, grindOut;
+  int grindOn, grindMix, grindLowcut, grindKey, grindOneShot, grindOneShotUp, grindNoiseThru, grindOtt, grindOttBox, grindOut;
   int grindSlot[8];
   GrindStage grind[8];
 
@@ -283,7 +283,7 @@ struct ParamIndex {
     eqScale = ix("eq.scale");
     outGain = ix("output.gain"); poly = ix("voice.polyphony");
     grindOn = ix("grind.on"); grindMix = ix("grind.mix"); grindLowcut = ix("grind.lowcut"); grindKey = ix("grind.key");
-    grindOneShot = ix("grind.oneshot"); grindOneShotUp = ix("grind.oneshot_dir"); grindNoiseThru = ix("grind.noise_thru"); grindOtt = ix("grind.ott"); grindOut = ix("grind.output");
+    grindOneShot = ix("grind.oneshot"); grindOneShotUp = ix("grind.oneshot_dir"); grindNoiseThru = ix("grind.noise_thru"); grindOtt = ix("grind.ott"); grindOttBox = ix("grind.ott_box"); grindOut = ix("grind.output");
     for (int k = 0; k < 8; k++) grindSlot[k] = ix("grind.slot" + std::to_string(k + 1));
     for (int n = 0; n < 8; n++) {
       const std::string g = "grind" + std::to_string(n + 1) + ".";
@@ -305,7 +305,6 @@ struct ParamIndex {
         grind[n].phClock = ix(g + "ph_clock");
         grind[n].phFeedback = ix(g + "ph_feedback");
         grind[n].phStereo = ix(g + "ph_stereo");
-        { const char* kinds[4] = {"filter", "drive", "eq", "phaser"}; for (int q = 0; q < 4; q++) grind[n].ott[q] = ix(g + kinds[q] + "_ott"); }
         grind[n].bells[b] = {ix(bl + "type"), ix(bl + "freq"), ix(bl + "gain"), ix(bl + "q"), ix(bl + "range"), ix(bl + "dir"), ix(bl + "vrange")};
       }
     }
