@@ -8378,7 +8378,7 @@
     },
     {
       "id": "grind.ott_box",
-      "label": "Grind OTT type 1",
+      "label": "Grind OTT boxes",
       "type": "float",
       "min": 0,
       "max": 1,
@@ -8386,7 +8386,7 @@
       "curve": "linear",
       "unit": "",
       "group": "grind",
-      "describes": "OTT TYPE 1: an OTT right after every box in the chain (each box its own, this one knob sets them all), so each stage's grit is pulled up before the next one hits it. 0 = off."
+      "describes": "OTT BOXES: an OTT right after every box in the chain (each box its own, this one knob sets them all), so each stage's grit is pulled up before the next one hits it. 0 = off."
     },
     {
       "id": "grind.output",

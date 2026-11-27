@@ -72,9 +72,9 @@ value (`packWob`, worklet control channels 2 and 11, the plugin's live values 2 
 to the same sound (`migrateWobOffsets`: matrix offset = depth x o, filter / gate offset = o x (1 - |depth|), o the
 old `wobble.off` or +1). Both engines.
 
-### OTT TYPE 1 and 2 (owner's call, 27 Nov)
+### OTT BOXES and OTT OUT (owner's call, 27 Nov)
 
-RUIN has two OTTs, both Depth knobs on its strip next to the randomizer. **OTT TYPE 1** (`grind.ott_box`, default 0): every box in the chain (filter, drive, EQ, phaser) runs its own OTT right after its level, all set by this one knob; it is RUIN's OTT (the same `Ott` class, Xfer-fitted bands and times, no Lo cut split of its own: the chain only sees what is above RUIN's Lo cut), at the chain's oversampled rate, so the next box, the listening taps (solo / bypass / delta) and the meters hear it. **OTT TYPE 2** is `grind.ott`, the post OTT after the chain. Both are LFO targets.
+RUIN has two OTTs, both Depth knobs on its strip next to the randomizer. **OTT BOXES** (`grind.ott_box`, default 0): every box in the chain (filter, drive, EQ, phaser) runs its own OTT right after its level, all set by this one knob; it is RUIN's OTT (the same `Ott` class, Xfer-fitted bands and times, no Lo cut split of its own: the chain only sees what is above RUIN's Lo cut), at the chain's oversampled rate, so the next box, the listening taps (solo / bypass / delta) and the meters hear it. **OTT OUT** is `grind.ott`, the post OTT after the chain. Both are LFO targets.
 
 ### Pan targets (owner's call, 27 Nov)
 

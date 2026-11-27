@@ -4246,8 +4246,8 @@ export class SynthView {
     rocker.classList.add('gr-rocker');
     const lowcut = md('grind.lowcut', 'Lo cut', { fmt: (v) => (v <= 21 ? 'off' : `${Math.round(v)} Hz`) });
     const mix = md('grind.mix', 'Mix', { fmt: pct });
-    const ott = md('grind.ott', 'OTT TYPE 2', { fmt: pct });
-    const ottBox = md('grind.ott_box', 'OTT TYPE 1', { fmt: pct });
+    const ott = md('grind.ott', 'OTT OUT', { fmt: pct });
+    const ottBox = md('grind.ott_box', 'OTT BOXES', { fmt: pct });
     const out = md('grind.output', 'Output', { fmt: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB` });
     const lamps = h('span', 'gr-lamps gr-lamps-row', this.toggle('grind.key', 'KEY', 'small'), this.toggle('grind.noise_thru', 'NOISE THRU', 'small'));
     // CHAINS (owner's call: preset chains live in the strip): one of the recipes, exactly as it is (ROLL nudges them)
