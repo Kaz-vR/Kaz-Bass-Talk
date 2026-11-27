@@ -427,10 +427,12 @@ export class Synth {
     const block = (...ds: number[]) => { for (const d of ds) m[d] = 0; };
     if (off(P.driveOn)) { zero(P.drive); block(K.D_DRIVE); }
     if (off(P.filterOn)) {
-      // Wide open: a plain low-pass at the top of the range.
+      // Off is off: the filter's dry / wet all dry, so nothing of it is heard (as Serum's; it was a low-pass at
+      // 20 kHz, -5 dB at 12 kHz on every unfiltered sound), the low-pass left wide open behind it, smoothed so
+      // switching never clicks.
       t[P.cutoff] = 20000;
       t[P.fType] = K.FILTER_LP;
-      zero(P.res, P.envAmt, P.keytrack, P.accent, P.vowel);
+      zero(P.res, P.envAmt, P.keytrack, P.accent, P.vowel, P.fMix);
       block(K.D_CUTOFF, K.D_RES, K.D_VOWEL);
     }
     if (off(P.distOn)) { zero(P.dMix); block(K.D_DIST_MIX, K.D_DIST_DRIVE, K.D_DIST_TONE); }

@@ -576,7 +576,8 @@ class Synth {
     if (off(P.filterOn)) {
       t[P.cutoff] = 20000;
       t[P.fType] = FILTER_LP;
-      zero({P.res, P.envAmt, P.keytrack, P.accent, P.vowel});
+      // off is off: the filter's dry / wet all dry (as synth.ts)
+      zero({P.res, P.envAmt, P.keytrack, P.accent, P.vowel, P.fMix});
       block({D_CUTOFF, D_RES, D_VOWEL});
     }
     if (off(P.distOn)) { zero({P.dMix}); block({D_DIST_MIX, D_DIST_DRIVE, D_DIST_TONE}); }
