@@ -118,7 +118,7 @@
   "filter.route_s": false,
   "filter.mix": 1,
   "dist.on": true,
-  "dist.type": "tube",
+  "dist.type": "triode tube saturation",
   "dist.drive": 0.15,
   "dist.mix": 0.55,
   "dist.post_tone": 0.4,

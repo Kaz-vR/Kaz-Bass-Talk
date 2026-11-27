@@ -80,7 +80,7 @@
   "filter.env_amount": 0,
   "filter.vowel": 0,
   "filter.accent": 0,
-  "dist.type": "tube",
+  "dist.type": "triode tube saturation",
   "dist.drive": 0.65,
   "dist.mix": 0.85,
   "dist.post_tone": 0.5,

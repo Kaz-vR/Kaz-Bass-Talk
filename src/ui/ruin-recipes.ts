@@ -38,8 +38,8 @@ export const RUIN_RECIPES: RuinRecipe[] = [
     name: 'WARM GRIT', idea: 'gentle thickening: tube into tape, a slow notch breathing between them',
     ott: 0.15, lowcut: 120, mix: 1, output: -4.5,
     stages: [
-      st({ type: 'tube', drive: 0.3 }),
-      st({ filter: 'notch', freq: 700, width: 0.55, range: 1.2, rate: 0.3, type: 'tape', drive: 0.25, tone: 0.75 }),
+      st({ type: 'triode tube saturation', drive: 0.3 }),
+      st({ filter: 'notch', freq: 700, width: 0.55, range: 1.2, rate: 0.3, type: 'tape saturation', drive: 0.25, tone: 0.75 }),
       null,
       null,
     ],
@@ -48,18 +48,18 @@ export const RUIN_RECIPES: RuinRecipe[] = [
     name: 'SERIAL ROT', idea: 'the classic serial chain: warm, then bite, then metal, rounded off at the end',
     ott: 0.3, lowcut: 150, mix: 1, output: -8.4,
     stages: [
-      st({ type: 'tube', drive: 0.3 }),
-      st({ filter: 'peak', freq: 1000, width: 0.5, range: 0.3, rate: 0.25, type: 'hard clip', drive: 0.5 }),
-      st({ filter: 'comb', freq: 420, width: 0.4, range: 1.4, rate: 0.35, type: 'wavefold', drive: 0.3, mix: 0.5 }),
-      st({ type: 'soft clip', drive: 0.35, tone: 0.6 }),
+      st({ type: 'triode tube saturation', drive: 0.3 }),
+      st({ filter: 'peak', freq: 1000, width: 0.5, range: 0.3, rate: 0.25, type: 'hard clipper', drive: 0.5 }),
+      st({ filter: 'comb', freq: 420, width: 0.4, range: 1.4, rate: 0.35, type: 'wavefolder', drive: 0.3, mix: 0.5 }),
+      st({ type: 'soft clipper', drive: 0.35, tone: 0.6 }),
     ],
   },
   {
     name: 'STARVED TUBE', idea: 'a dying valve: starved, sputtering on the tails, only the big swings get through',
     ott: 0, lowcut: 140, mix: 1, output: -6.1,
     stages: [
-      st({ type: 'starved', drive: 0.45, tone: 0.7 }),
-      st({ filter: 'notch', freq: 1300, width: 0.6, range: 1.5, rate: 0.28, type: 'tape', drive: 0.3, tone: 0.65 }),
+      st({ type: 'fuzz', drive: 0.45, tone: 0.7 }),
+      st({ filter: 'notch', freq: 1300, width: 0.6, range: 1.5, rate: 0.28, type: 'tape saturation', drive: 0.3, tone: 0.65 }),
       null,
       null,
     ],
@@ -68,19 +68,19 @@ export const RUIN_RECIPES: RuinRecipe[] = [
     name: 'NEURO TALK', idea: 'mid-forward growl: a moving peak and band into the amp, evened out between stages',
     ott: 0.5, lowcut: 180, mix: 1, output: -5.6,
     stages: [
-      st({ filter: 'peak', freq: 700, width: 0.3, range: 2.2, rate: 0.55, clock: 'hz', type: 'amp', drive: 0.55 }),
-      st({ filter: 'band', freq: 1400, width: 0.5, range: 1.6, rate: 0.5, type: 'diode', drive: 0.45 }),
-      st({ filter: 'notch', freq: 2400, width: 0.5, range: 1, rate: 0.6, type: 'hard clip', drive: 0.4 }),
-      st({ type: 'soft clip', drive: 0.3, tone: 0.55 }),
+      st({ filter: 'peak', freq: 700, width: 0.3, range: 2.2, rate: 0.55, clock: 'hz', type: 'amp simulation', drive: 0.55 }),
+      st({ filter: 'band', freq: 1400, width: 0.5, range: 1.6, rate: 0.5, type: 'distortion', drive: 0.45 }),
+      st({ filter: 'notch', freq: 2400, width: 0.5, range: 1, rate: 0.6, type: 'hard clipper', drive: 0.4 }),
+      st({ type: 'soft clipper', drive: 0.3, tone: 0.55 }),
     ],
   },
   {
     name: 'METAL COMB', idea: 'ringing metal: a resonant comb folded, clipped and squashed',
     ott: 0.4, lowcut: 160, mix: 0.85, output: -4.0,
     stages: [
-      st({ filter: 'comb', freq: 300, width: 0.25, range: 1.8, rate: 0.3, type: 'wavefold', drive: 0.4 }),
-      st({ filter: 'comb', freq: 610, width: 0.5, range: 1.2, rate: 0.42, type: 'hard clip', drive: 0.45 }),
-      st({ type: 'tape', drive: 0.3, tone: 0.6 }),
+      st({ filter: 'comb', freq: 300, width: 0.25, range: 1.8, rate: 0.3, type: 'wavefolder', drive: 0.4 }),
+      st({ filter: 'comb', freq: 610, width: 0.5, range: 1.2, rate: 0.42, type: 'hard clipper', drive: 0.45 }),
+      st({ type: 'tape saturation', drive: 0.3, tone: 0.6 }),
       null,
     ],
   },
@@ -88,9 +88,9 @@ export const RUIN_RECIPES: RuinRecipe[] = [
     name: 'BROKEN SIGNAL', idea: 'digital decay: rectified, sample-starved, crackling through a slow phaser',
     ott: 0.2, lowcut: 200, mix: 0.8, output: 2.7,
     stages: [
-      st({ filter: 'phaser', freq: 900, width: 0.5, range: 1.5, rate: 0.25, type: 'rectify', drive: 0.35, mix: 0.6 }),
-      st({ type: 'downsample', drive: 0.3, mix: 0.5 }),
-      st({ filter: 'notch', freq: 1800, width: 0.6, range: 1.2, rate: 0.3, type: 'starved', drive: 0.3, tone: 0.6 }),
+      st({ filter: 'phaser', freq: 900, width: 0.5, range: 1.5, rate: 0.25, type: 'rectifier', drive: 0.35, mix: 0.6 }),
+      st({ type: 'downsampler', drive: 0.3, mix: 0.5 }),
+      st({ filter: 'notch', freq: 1800, width: 0.6, range: 1.2, rate: 0.3, type: 'fuzz', drive: 0.3, tone: 0.6 }),
       null,
     ],
   },
@@ -98,8 +98,8 @@ export const RUIN_RECIPES: RuinRecipe[] = [
     name: 'DARK FUZZ', idea: 'thick and dark: an amp and a diode with the top rolled off, a phaser slowly turning',
     ott: 0.25, lowcut: 130, mix: 1, output: -5.5,
     stages: [
-      st({ filter: 'phaser', freq: 600, width: 0.45, range: 1.6, rate: 0.22, type: 'amp', drive: 0.5, tone: 0.55 }),
-      st({ type: 'diode', drive: 0.4, tone: 0.45 }),
+      st({ filter: 'phaser', freq: 600, width: 0.45, range: 1.6, rate: 0.22, type: 'amp simulation', drive: 0.5, tone: 0.55 }),
+      st({ type: 'distortion', drive: 0.4, tone: 0.45 }),
       null,
       null,
     ],
@@ -108,16 +108,18 @@ export const RUIN_RECIPES: RuinRecipe[] = [
     name: 'REESE SNARL', idea: "a Reese chewed up: phaser and notch moving under tube and clip, Destroyed Reese's kind",
     ott: 0.4, lowcut: 150, mix: 1, output: -9.9,
     stages: [
-      st({ filter: 'notch', freq: 900, width: 0.4, range: 2.4, rate: 0.6, type: 'tape', drive: 0.45 }),
-      st({ filter: 'peak', freq: 1500, width: 0.45, range: 1.8, rate: 0.5, type: 'tube', drive: 0.4 }),
-      st({ filter: 'phaser', freq: 700, width: 0.4, range: 1.5, rate: 0.35, type: 'amp', drive: 0.35 }),
-      st({ filter: 'peak', freq: 2200, width: 0.6, range: 1, rate: 0.45, type: 'soft clip', drive: 0.3, tone: 0.65, mix: 0.75 }),
+      st({ filter: 'notch', freq: 900, width: 0.4, range: 2.4, rate: 0.6, type: 'tape saturation', drive: 0.45 }),
+      st({ filter: 'peak', freq: 1500, width: 0.45, range: 1.8, rate: 0.5, type: 'triode tube saturation', drive: 0.4 }),
+      st({ filter: 'phaser', freq: 700, width: 0.4, range: 1.5, rate: 0.35, type: 'amp simulation', drive: 0.35 }),
+      st({ filter: 'peak', freq: 2200, width: 0.6, range: 1, rate: 0.45, type: 'soft clipper', drive: 0.3, tone: 0.65, mix: 0.75 }),
     ],
   },
 ];
 
 /** The drive types in the menu's columns (a tame roll swaps within one, a wild one across). */
-export const DRIVE_FAMILIES: string[][] = [['tape', 'tube', 'starved', 'amp'], ['soft clip', 'hard clip', 'diode'], ['wavefold', 'rectify'], ['downsample']];
+export const DRIVE_FAMILIES: string[][] = [['transformer saturation', 'soft clipper', 'hard clipper'], ['triode tube saturation', 'overdrive'],
+  ['transistor saturation', 'pentode tube saturation', 'distortion', 'amp simulation', 'wavefolder', 'rectifier'], ['exciter', 'bitcrusher', 'downsampler'],
+  ['tape saturation', 'console saturation', 'fuzz']];
 
 /** A recipe as patch values (the strip and all four stages; a stage that is null is switched off). */
 export function recipeParams(r: RuinRecipe): Record<string, number | string | boolean> {

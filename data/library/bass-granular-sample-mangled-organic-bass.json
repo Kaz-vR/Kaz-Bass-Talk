@@ -77,7 +77,7 @@
   "mod3.amount": 0,
   "mod3.on": true,
   "dist.on": true,
-  "dist.type": "tube",
+  "dist.type": "triode tube saturation",
   "dist.drive": 0.5,
   "dist.mix": 1,
   "dist.post_tone": 0.6,

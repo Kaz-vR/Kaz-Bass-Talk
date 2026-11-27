@@ -105,7 +105,7 @@
   "filter.vowel": 0,
   "filter.accent": 0,
   "dist.on": true,
-  "dist.type": "tube",
+  "dist.type": "triode tube saturation",
   "dist.drive": 0.28,
   "dist.mix": 0.65,
   "dist.post_tone": 0.35,

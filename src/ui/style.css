@@ -1303,6 +1303,8 @@ html, body, .v2-wrap { background: #070708; }
 .dd-group { display: flex; flex-direction: column; min-width: 96px; padding: 0 2px; }
 .dd-group + .dd-group { border-left: 1px solid rgba(255,255,255,0.05); }
 .dd-group-head { padding: 9px 10px 7px; font: 500 9px/1 'LT Space', 'Space Grotesk', sans-serif; letter-spacing: 0.26em; color: #4c4c52; }
+.dd-group-sub { margin-top: 5px; font: 400 9px/1.3 'Space Grotesk', sans-serif; letter-spacing: 0.06em; color: #6a6a70; white-space: nowrap; }
+.dd-info { margin: 0 6px 6px; padding: 8px 10px; border-top: 1px solid rgba(255,255,255,0.06); font: 400 11px/1.4 'Space Grotesk', sans-serif; letter-spacing: 0.02em; color: #b8b8be; min-height: 32px; max-width: 100%; }
 .dd-groups .dd-item { padding: 5px 10px; margin: 1px 0; border-radius: 1px; letter-spacing: 0.12em; text-transform: none; }
 .dd-groups .dd-item.on { color: #050506; text-shadow: none; background: var(--dd-accent); box-shadow: 0 0 10px var(--dd-accent); }
 .dd-groups .dd-item.on::before { display: none; }

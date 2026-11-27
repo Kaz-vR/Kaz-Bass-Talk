@@ -69,19 +69,28 @@ export const GRIND_BEAT_NAMES = ['1 BAR', '1/2', '1/4', '1/8', '1/16', '1/32'];
 export const grindHz = (rate: number): number => 0.1 * Math.pow(2, rate * 8);
 export const grindBeat = (rate: number): number => Math.round(Math.min(1, Math.max(0, rate)) * 5);
 /**
- * grind<n>.drive_type / dist.type option order: tape, tube, amp (driven amp, speaker cab, mic and room), soft clip,
- * then the hard ones (owner's call, for neuro's bite): hard clip, wavefold (a sine fold), rectify (full-wave:
- * the octave up), downsample (sample-and-hold, Drive sets how far the rate drops) and diode (asymmetric).
+ * grind<n>.drive_type / dist.type option order (owner's call, 27 Nov: the drive types rebuilt in five groups, each
+ * loading on its own band): SUB & BASS transformer, soft clipper, hard clipper; LOW-MIDS triode, overdrive; UPPER-MIDS
+ * transistor, pentode, distortion, amp, wavefolder, rectifier; HIGHS exciter, bitcrusher, downsampler; FULL tape,
+ * console, fuzz.
  */
-export const GD_TAPE = 0, GD_TUBE = 1, GD_AMP = 2, GD_SOFT = 3, GD_HARD = 4, GD_FOLD = 5, GD_RECT = 6, GD_DOWN = 7, GD_DIODE = 8, GD_STARVED = 9;
-const DC_HZ = 15; // the DC blocker after rectify, diode and starved (their lopsided output)
-/**
- * STARVED (owner's call, the Culture Vulture's starving, a drive type in place of a Bias dial): a tube starved of
- * current conducts only past a threshold, so the quiet parts fall into a dead zone and sputter, crackle and gate
- * while the big swings get through, lopsided (the negative side starts later and stays lower). More Drive lifts more
- * of the sound past the thresholds, as a hotter input does on the real thing.
- */
-const STARVED_A = 0.08, STARVED_B = 0.25, STARVED_NEG = 0.7;
+export const GD_TRANS = 0, GD_SOFT = 1, GD_HARD = 2, GD_TRIODE = 3, GD_OD = 4, GD_TRANSISTOR = 5, GD_PENTODE = 6, GD_DIST = 7, GD_AMP = 8,
+  GD_FOLD = 9, GD_RECT = 10, GD_EXCITER = 11, GD_CRUSH = 12, GD_DOWN = 13, GD_TAPE = 14, GD_CONSOLE = 15, GD_FUZZ = 16;
+/** Per type: how much hotter it is driven, the high-pass in front of the curve (Hz, 0 none) and the low-pass after it (Hz, 0 none). */
+const TYPE_GAIN = [1, 1, 1, 1, 2, 1.5, 1.2, 4, 3, 1, 1, 1, 1, 1, 1, 0.5, 8];
+const TYPE_TIGHT = [0, 0, 0, 0, 150, 200, 0, 100, 90, 0, 0, 0, 0, 0, 0, 0, 60];
+const TYPE_LOSS = [0, 0, 0, 9000, 5000, 0, 12000, 7000, 0, 0, 0, 0, 0, 0, 11000, 0, 8000];
+const DC_HZ = 15; // the DC blocker after every curve (the lopsided ones leave DC behind)
+/** transformer: the lows pushed into the core harder (+8 dB under ~200 Hz) and taken back after, a lopsided soft curve. */
+const TRANS_EMPH = 1.5, TRANS_EMPH_HZ = 200, TRANS_BIAS = 0.12;
+const CONSOLE_BIAS = 0.03;
+/** overdrive / fuzz: the negative side clips earlier (lopsided, the even harmonics' growl). */
+const OD_NEG = 0.6, FUZZ_NEG = 0.45;
+/** transistor: clean up to the knee, then a fast, hard bend. */
+const TR_KNEE = 0.7, TR_SOFT = 0.3;
+/** pentode: steeper than the triode and less lopsided (more odd harmonics, a sharper edge). */
+const PEN_K = 1.8, PEN_B = 0.15;
+const PEN_OFF = K.tanh(PEN_K * PEN_B), PEN_IOFF = K.tanhIntegral(PEN_K * PEN_B);
 /** The antiderivatives below are taken from 0 (tanhIntegral(0) is not 0), so curves joined at 0 stay continuous. */
 const TI0 = K.tanhIntegral(0);
 /** The peak filter's height at full Depth (x 6 = about +17 dB at its centre). */
@@ -96,11 +105,17 @@ export const grindGain = (drive: number): number => Math.pow(10, 1.5 * drive);
 // a soft knee, a little high-frequency loss
 const TAPE_EMPH = 2;
 const TAPE_EMPH_HZ = 3000;
-const TAPE_LOSS_HZ = 11000;
 const TAPE_BIAS = 0.08;
 const TAPE_OFFSET = TAPE_BIAS / Math.sqrt(1 + TAPE_BIAS * TAPE_BIAS);
+const TRANS_OFFSET = TRANS_BIAS / Math.sqrt(1 + TRANS_BIAS * TRANS_BIAS);
+const CONSOLE_OFFSET = CONSOLE_BIAS / Math.sqrt(1 + CONSOLE_BIAS * CONSOLE_BIAS);
+/** An algebraic soft curve (x / sqrt(1 + x²)) shifted by `b`, offset so 0 stays 0; and its antiderivative. */
+const algC = (u: number, b: number, off: number): number => { const v = u + b; return v / Math.sqrt(1 + v * v) - off; };
+const algI = (u: number, b: number, off: number): number => { const v = u + b; return Math.sqrt(1 + v * v) - off * u; };
+/** tanh with its negative side clipping at `n` (slope 1 through 0); and its antiderivative. */
+const asymC = (u: number, n: number): number => (u >= 0 ? tanh(u) : n * tanh(u / n));
+const asymI = (u: number, n: number): number => (u >= 0 ? tanhIntegral(u) - TI0 : n * n * (tanhIntegral(u / n) - TI0));
 // tube: the lopsided tanh (even harmonics), an output transformer's soft top
-const TUBE_LOSS_HZ = 9000;
 // amp: tightened input, a hot asymmetric preamp, a 4x12 speaker cab heard through a close mic, then the room
 const AMP_GAIN = 3;
 const AMP_BIAS = 0.3;
@@ -381,52 +396,65 @@ class Stage {
   readonly dsHold = new Float64Array(2);
   readonly dsLeft = new Float64Array(2);
   dcK = 0;
-  /**
-   * STARVED: the tube's input sits this far off centre, so quiet parts fall where the curve is flat (they
-   * sputter and gate) and only big swings get through, lopsided. biasOff is the curve's value at rest, taken
-   * off so silence stays silent; a DC blocker follows.
-   */
+  /** An offset into the curve and the curve's value there (taken off so silence stays silent); 0 on every type now. */
   bias = 0;
   biasOff = 0;
   private readonly dcS = new Float64Array(2);
 
   curve(u: number): number {
     switch (this.dtype) {
-      case GD_TAPE: { const v = u + TAPE_BIAS; return v / Math.sqrt(1 + v * v) - TAPE_OFFSET; }
-      case GD_AMP: return tanh(u + AMP_BIAS) - AMP_OFFSET;
+      case GD_TRANS: return algC(u, TRANS_BIAS, TRANS_OFFSET);
       case GD_SOFT: return u > 1 ? 1 : u < -1 ? -1 : 1.5 * u - 0.5 * u * u * u;
       case GD_HARD: return u > 1 ? 1 : u < -1 ? -1 : u;
+      case GD_OD: return asymC(u, OD_NEG);
+      case GD_TRANSISTOR: { const a = Math.abs(u); return a <= TR_KNEE ? u : Math.sign(u) * (TR_KNEE + TR_SOFT * tanh((a - TR_KNEE) / TR_SOFT)); }
+      case GD_PENTODE: return tanh(PEN_K * (u + PEN_B)) - PEN_OFF;
+      case GD_DIST: return tanh(u);
+      case GD_AMP: return tanh(u + AMP_BIAS) - AMP_OFFSET;
       case GD_FOLD: return Math.sin(u);
       case GD_RECT: return Math.abs(tanh(u));
-      case GD_DIODE: return u >= 0 ? tanh(u) : 0.5 * tanh(2 * u);
-      case GD_STARVED: return u > STARVED_A ? tanh(u - STARVED_A) : u < -STARVED_B ? STARVED_NEG * tanh(u + STARVED_B) : 0;
-      default: return tanh(u + TUBE_BIAS) - TUBE_OFFSET;
+      case GD_EXCITER: { const t = tanh(u); return 0.6 * t + 0.4 * Math.abs(t); }
+      case GD_TAPE: return algC(u, TAPE_BIAS, TAPE_OFFSET);
+      case GD_CONSOLE: return algC(u, CONSOLE_BIAS, CONSOLE_OFFSET);
+      case GD_FUZZ: return asymC(u, FUZZ_NEG);
+      default: return tanh(u + TUBE_BIAS) - TUBE_OFFSET; // triode
     }
   }
 
   curveIntegral(u: number): number {
     switch (this.dtype) {
-      case GD_TAPE: { const v = u + TAPE_BIAS; return Math.sqrt(1 + v * v) - TAPE_OFFSET * u; }
-      case GD_AMP: return tanhIntegral(u + AMP_BIAS) - AMP_OFFSET * u;
+      case GD_TRANS: return algI(u, TRANS_BIAS, TRANS_OFFSET);
       case GD_SOFT: { if (u > 1) return u - 0.375; if (u < -1) return -u - 0.375; const u2 = u * u; return 0.75 * u2 - 0.125 * u2 * u2; }
       case GD_HARD: return u > 1 ? u - 0.5 : u < -1 ? -u - 0.5 : 0.5 * u * u;
+      case GD_OD: return asymI(u, OD_NEG);
+      case GD_TRANSISTOR: {
+        const a = Math.abs(u);
+        if (a <= TR_KNEE) return 0.5 * u * u;
+        return 0.5 * TR_KNEE * TR_KNEE + TR_KNEE * (a - TR_KNEE) + TR_SOFT * TR_SOFT * (tanhIntegral((a - TR_KNEE) / TR_SOFT) - TI0);
+      }
+      case GD_PENTODE: return (tanhIntegral(PEN_K * (u + PEN_B)) - PEN_IOFF) / PEN_K - PEN_OFF * u;
+      case GD_DIST: return tanhIntegral(u) - TI0;
+      case GD_AMP: return tanhIntegral(u + AMP_BIAS) - AMP_OFFSET * u;
       case GD_FOLD: return 1 - Math.cos(u);
       case GD_RECT: return u >= 0 ? tanhIntegral(u) - TI0 : TI0 - tanhIntegral(u);
-      case GD_DIODE: return u >= 0 ? tanhIntegral(u) - TI0 : 0.25 * (tanhIntegral(2 * u) - TI0);
-      case GD_STARVED: return u > STARVED_A ? tanhIntegral(u - STARVED_A) - TI0 : u < -STARVED_B ? STARVED_NEG * (tanhIntegral(u + STARVED_B) - TI0) : 0;
+      case GD_EXCITER: { const f = tanhIntegral(u) - TI0; return 0.6 * f + 0.4 * (u >= 0 ? f : -f); }
+      case GD_TAPE: return algI(u, TAPE_BIAS, TAPE_OFFSET);
+      case GD_CONSOLE: return algI(u, CONSOLE_BIAS, CONSOLE_OFFSET);
+      case GD_FUZZ: return asymI(u, FUZZ_NEG);
       default: return tanhIntegral(u + TUBE_BIAS) - TUBE_OFFSET * u;
     }
   }
 
   /** The colour stages' coefficients at the chain's rate. */
   setColour(fs: number): void {
+    const t = this.dtype;
     this.colourFs = fs;
-    this.emphK = 1 - Math.exp((-2 * Math.PI * TAPE_EMPH_HZ) / fs);
-    this.lossK = 1 - Math.exp((-2 * Math.PI * (this.dtype === GD_TUBE || this.dtype === GD_STARVED ? TUBE_LOSS_HZ : TAPE_LOSS_HZ)) / fs);
+    this.emphK = 1 - Math.exp((-2 * Math.PI * (t === GD_TRANS ? TRANS_EMPH_HZ : TAPE_EMPH_HZ)) / fs);
+    this.lossK = TYPE_LOSS[t] > 0 ? 1 - Math.exp((-2 * Math.PI * Math.min(TYPE_LOSS[t], 0.45 * fs)) / fs) : 1;
     this.roomK = 1 - Math.exp((-2 * Math.PI * ROOM_TONE_HZ) / fs);
     this.dcK = 1 - Math.exp((-2 * Math.PI * DC_HZ) / fs);
     for (let ch = 0; ch < 2; ch++) {
-      this.tight[ch].setHighpass(AMP_TIGHT_HZ, 0.7, fs);
+      if (TYPE_TIGHT[t] > 0) this.tight[ch].setHighpass(TYPE_TIGHT[t], 0.7, fs);
       const c = this.cab, o = 5 * ch;
       c[o].setHighpass(55, 0.8, fs); // the cab's low end, a resonant bump just above
       c[o + 1].setPeak(110, 3, 1.2, fs);
@@ -451,14 +479,22 @@ class Stage {
       }
       return this.dsHold[ch];
     }
+    if (t === GD_CRUSH) {
+      // fewer bits as Drive goes up: 16 down to 2 (the steps are the grain and fizz)
+      const steps = Math.pow(2, Math.max(1, 15 - 2.811 * Math.log2(this.gain)));
+      return Math.round(x * steps) / steps;
+    }
     let v = x;
     if (t === GD_TAPE) {
       this.pre[ch] += (v - this.pre[ch]) * this.emphK;
       v += TAPE_EMPH * (v - this.pre[ch]);
-    } else if (t === GD_AMP) {
+    } else if (t === GD_TRANS) {
+      this.pre[ch] += (v - this.pre[ch]) * this.emphK;
+      v += TRANS_EMPH * this.pre[ch];
+    } else if (TYPE_TIGHT[t] > 0) {
       v = this.tight[ch].process(v);
     }
-    const u = this.gain * norm * (t === GD_AMP ? AMP_GAIN : 1) * v + this.bias;
+    const u = this.gain * norm * TYPE_GAIN[t] * v + this.bias;
     const up = this.adaaU[ch];
     const fu = this.curveIntegral(u);
     const du = u - up;
@@ -466,8 +502,7 @@ class Stage {
     this.adaaU[ch] = u;
     this.adaaF[ch] = fu;
     y = this.colour(y, ch);
-    // a lopsided curve (tube, tape, amp, rectify, diode, starved) leaves DC behind: a blocker takes it back out, so the
-    // next box isn't pushed off centre
+    // a lopsided curve leaves DC behind: a blocker takes it back out, so the next box isn't pushed off centre
     {
       this.dcS[ch] += (y - this.dcS[ch]) * this.dcK;
       y -= this.dcS[ch];
@@ -475,40 +510,37 @@ class Stage {
     return y;
   }
 
-  /** The type's colour after its curve (tape's de-emphasis and loss, tube's loss, the amp's cab and room). */
+  /** The type's colour after its curve (tape's de-emphasis, the transformer's, the low-pass of the hot ones, the amp's cab and room). */
   private colour(y: number, ch: number): number {
     const t = this.dtype;
-    switch (t) {
-      case GD_TAPE: {
-        this.post[ch] += (y - this.post[ch]) * this.emphK;
-        y -= (TAPE_EMPH / (1 + TAPE_EMPH)) * (y - this.post[ch]);
-        this.loss[ch] += (y - this.loss[ch]) * this.lossK;
-        return this.loss[ch];
+    if (t === GD_TAPE) {
+      this.post[ch] += (y - this.post[ch]) * this.emphK;
+      y -= (TAPE_EMPH / (1 + TAPE_EMPH)) * (y - this.post[ch]);
+    } else if (t === GD_TRANS) {
+      this.post[ch] += (y - this.post[ch]) * this.emphK;
+      y -= (TRANS_EMPH / (1 + TRANS_EMPH)) * this.post[ch];
+    } else if (t === GD_AMP) {
+      const c = this.cab, o = 5 * ch;
+      y = c[o + 4].process(c[o + 3].process(c[o + 2].process(c[o + 1].process(c[o].process(y)))));
+      // the room: a few early reflections of the cab, darker than it
+      this.roomLp[ch] += (y - this.roomLp[ch]) * this.roomK;
+      const buf = this.room[ch], pos = this.roomPos;
+      buf[pos] = this.roomLp[ch];
+      let r = 0;
+      for (let j = 0; j < 4; j++) {
+        let rp = pos - this.roomTap[4 * ch + j];
+        if (rp < 0) rp += ROOM_LEN;
+        const i = Math.floor(rp), fr = rp - i;
+        r += ROOM_GAIN[j] * (buf[i] + (buf[(i + 1) & (ROOM_LEN - 1)] - buf[i]) * fr);
       }
-      case GD_TUBE:
-      case GD_STARVED: {
-        this.loss[ch] += (y - this.loss[ch]) * this.lossK;
-        return this.loss[ch];
-      }
-      case GD_AMP: {
-        const c = this.cab, o = 5 * ch;
-        y = c[o + 4].process(c[o + 3].process(c[o + 2].process(c[o + 1].process(c[o].process(y)))));
-        // the room: a few early reflections of the cab, darker than it
-        this.roomLp[ch] += (y - this.roomLp[ch]) * this.roomK;
-        const buf = this.room[ch], pos = this.roomPos;
-        buf[pos] = this.roomLp[ch];
-        let r = 0;
-        for (let j = 0; j < 4; j++) {
-          let rp = pos - this.roomTap[4 * ch + j];
-          if (rp < 0) rp += ROOM_LEN;
-          const i = Math.floor(rp), fr = rp - i;
-          r += ROOM_GAIN[j] * (buf[i] + (buf[(i + 1) & (ROOM_LEN - 1)] - buf[i]) * fr);
-        }
-        if (ch === 1) this.roomPos = (pos + 1) & (ROOM_LEN - 1);
-        return y + r;
-      }
-      default: return y;
+      if (ch === 1) this.roomPos = (pos + 1) & (ROOM_LEN - 1);
+      return y + r;
     }
+    if (TYPE_LOSS[t] > 0) {
+      this.loss[ch] += (y - this.loss[ch]) * this.lossK;
+      return this.loss[ch];
+    }
+    return y;
   }
 
   /** One sample of one channel through the filter. */
@@ -611,7 +643,7 @@ export class DriveUnit {
   /** The output level (dist.output, in dB as a gain): the drive itself is never level-matched. */
   private out = 1;
 
-  /** dtype by grind<n>.drive_type order (tape, tube, amp, soft clip); drive / tone / dyn 0..1; band in Hz and octaves. */
+  /** dtype by grind<n>.drive_type order (GD_*); drive / tone / dyn 0..1; band in Hz and octaves. */
   control(dtype: number, drive: number, tone: number, outDb: number, bandHz: number, bandOct: number, fs: number, fsOs: number): void {
     const s = this.s;
     this.out = Math.pow(10, outDb / 20);

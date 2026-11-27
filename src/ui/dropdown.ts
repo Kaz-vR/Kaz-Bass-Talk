@@ -67,11 +67,32 @@ function show(sel: HTMLSelectElement): void {
       const head = document.createElement('div');
       head.className = 'dd-group-head';
       head.textContent = gr.label;
+      if (gr.dataset.sub) {
+        // a second line under the heading (the drive types: the column's range and what it does)
+        const sub = document.createElement('div');
+        sub.className = 'dd-group-sub';
+        sub.textContent = gr.dataset.sub;
+        head.append(sub);
+      }
       col.append(head);
       for (const o of [...gr.children] as HTMLOptionElement[]) if (visible(o)) col.append(item(sel, o));
       cols.append(col);
     }
     menu.append(cols);
+    // options with an info line: a box under the columns shows the hovered one's (name: what it does)
+    if (sel.querySelector('option[data-info]')) {
+      const info = document.createElement('div');
+      info.className = 'dd-info';
+      const cur = () => sel.selectedOptions[0]?.dataset.info ?? '';
+      info.textContent = cur();
+      for (const it of menu.querySelectorAll<HTMLElement>('.dd-item')) {
+        const o = [...sel.options].find((x) => x.value === it.dataset.value);
+        if (!o?.dataset.info) continue;
+        it.addEventListener('mouseenter', () => { info.textContent = o.dataset.info!; });
+        it.addEventListener('mouseleave', () => { info.textContent = cur(); });
+      }
+      menu.append(info);
+    }
   } else {
     const items = [...sel.options].filter(visible);
     if (items.length > 14) menu.classList.add('dd-cols');

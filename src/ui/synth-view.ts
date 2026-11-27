@@ -645,10 +645,45 @@ function loCutStrip(g: CanvasRenderingContext2D, W: number, H: number, hz: numbe
 }
 
 /** The dot that travels along a print while a note sounds: where in its shape the sound is now. */
-/** The drive types in columns, gentle to destroyed. */
-const DRIVE_GROUPS: [string, string[]][] = [
-  ['WARM', ['tape', 'tube', 'starved', 'amp']], ['CLIP', ['soft clip', 'hard clip', 'diode']], ['BREAK', ['wavefold', 'rectify']], ['DIGITAL', ['downsample']],
+/**
+ * The drive types in five columns by where they work (owner's call, 27 Nov): each column's title, its range and what
+ * it does; each type's own line for the menu's info box; loading a type moves the drive band onto its column's range.
+ */
+const DRIVE_CATS: { title: string; lo: number; hi: number; range: string; does: string; types: [string, string][] }[] = [
+  { title: 'SUB & BASS', lo: 20, hi: 250, range: '20–250 Hz', does: 'Weight & Loudness', types: [
+    ['transformer saturation', 'Thickens low-end body.'],
+    ['soft clipper', 'Smoothly rounds off peak spikes for warm loudness.'],
+    ['hard clipper', 'Flatly slices off peak spikes for maximum volume on kicks and 808s.']] },
+  { title: 'LOW-MIDS', lo: 250, hi: 800, range: '250–800 Hz', does: 'Warmth & Body', types: [
+    ['triode tube saturation', 'Adds creamy warmth to vocals and instruments.'],
+    ['overdrive', 'Adds chunky growl to bass and guitars.']] },
+  { title: 'UPPER-MIDS', lo: 800, hi: 5000, range: '800 Hz–5 kHz', does: 'Bite & Cut', types: [
+    ['transistor saturation', 'Adds snappy, aggressive punch to drums and vocals.'],
+    ['pentode tube saturation', 'Pushes lead vocals and guitars forward with sharp harmonic edge.'],
+    ['distortion', 'Creates heavy, sustained rock or synth aggression.'],
+    ['amp simulation', 'Adds realistic speaker breakup and focused midrange grit.'],
+    ['wavefolder', 'Creates bright, complex, metallic synth textures.'],
+    ['rectifier', 'Doubles the frequency for an octave-up, buzzy synth or guitar bite.']] },
+  { title: 'HIGHS & AIR', lo: 5000, hi: 20000, range: '5–20 kHz', does: 'Sparkle & Texture', types: [
+    ['exciter', 'Adds clean brightness and air.'],
+    ['bitcrusher', 'Adds grainy, static-like lo-fi hiss and fizz.'],
+    ['downsampler', 'Adds metallic, robotic ringing artifacts.']] },
+  { title: 'FULL SPECTRUM', lo: 20, hi: 20000, range: '20 Hz–20 kHz', does: 'Glue & Cohesion', types: [
+    ['tape saturation', 'Smooths harsh highs and glues tracks together.'],
+    ['console saturation', 'Adds subtle mix-bus cohesion.'],
+    ['fuzz', 'Creates a massive, full-range wall of sound.']] },
 ];
+const DRIVE_GROUPS: [string, string[]][] = DRIVE_CATS.map((c) => [c.title, c.types.map(([t]) => t)]);
+const titleCase = (t: string): string => t.replace(/\b\w/g, (m) => m.toUpperCase());
+/** A drive type's info line: "Tape Saturation: Smooths harsh highs and glues tracks together." */
+const DRIVE_INFO: Record<string, string> = Object.fromEntries(DRIVE_CATS.flatMap((c) => c.types.map(([t, d]) => [t, `${titleCase(t)}: ${d}`])));
+/** The drive band a type loads with: its column's range as centre (Hz) and width (octaves; 9 = the whole sound). */
+export function driveBand(type: string): [number, number] | null {
+  const c = DRIVE_CATS.find((x) => x.types.some(([t]) => t === type));
+  if (!c) return null;
+  if (c.lo <= 20 && c.hi >= 20000) return [1000, 9];
+  return [Math.sqrt(c.lo * c.hi), Math.log2(c.hi / c.lo)];
+}
 
 /** The RUIN page's live view of the chain (EngineHost.ruinTaps). */
 export interface RuinTapsView {
@@ -682,15 +717,21 @@ function driveIconPath(type: string): string {
   const f = (x: number): number => {
     const u = g * x;
     switch (type) {
-      case 'tape': return (u + 0.08) / Math.sqrt(1 + (u + 0.08) ** 2);
-      case 'tube': return th(u + 0.2) - th(0.2);
-      case 'amp': return th(1.6 * u + 0.3) - th(0.3);
-      case 'soft clip': { const v = Math.max(-1, Math.min(1, u / 1.5)); return 1.5 * v - 0.5 * v * v * v; }
-      case 'hard clip': return Math.max(-1, Math.min(1, u / 1.6));
-      case 'diode': return u >= 0 ? th(u) : 0.5 * th(2 * u);
-    case 'starved': return u > 0.08 ? th(u - 0.08) : u < -0.25 ? 0.7 * th(u + 0.25) : 0;
-      case 'wavefold': return Math.sin(1.7 * u);
-      case 'rectify': return 2 * Math.abs(th(u)) - 1;
+      case 'transformer saturation': return (u + 0.12) / Math.sqrt(1 + (u + 0.12) ** 2);
+      case 'soft clipper': { const v = Math.max(-1, Math.min(1, u / 1.5)); return 1.5 * v - 0.5 * v * v * v; }
+      case 'hard clipper': return Math.max(-1, Math.min(1, u / 1.6));
+      case 'triode tube saturation': return th(u + 0.2) - th(0.2);
+      case 'overdrive': return u >= 0 ? th(1.5 * u) : 0.6 * th((1.5 * u) / 0.6);
+      case 'transistor saturation': { const a = Math.abs(u / 2); return a <= 0.7 ? u / 2 : Math.sign(u) * (0.7 + 0.3 * th((a - 0.7) / 0.3)); }
+      case 'pentode tube saturation': return th(1.8 * (u + 0.15)) - th(0.27);
+      case 'distortion': return th(3 * u);
+      case 'amp simulation': return th(1.6 * u + 0.3) - th(0.3);
+      case 'wavefolder': return Math.sin(1.7 * u);
+      case 'rectifier': return 2 * Math.abs(th(u)) - 1;
+      case 'exciter': return 0.6 * th(u / 2) + 0.4 * Math.abs(th(u / 2));
+      case 'tape saturation': return (u + 0.08) / Math.sqrt(1 + (u + 0.08) ** 2);
+      case 'console saturation': return (u / 3) / Math.sqrt(1 + (u / 3) ** 2);
+      case 'fuzz': return u >= 0 ? th(4 * u) : 0.45 * th((4 * u) / 0.45);
       default: return x;
     }
   };
@@ -699,8 +740,9 @@ function driveIconPath(type: string): string {
   const ys: number[] = [];
   for (let i = 0; i <= N; i++) {
     let ph = i / N;
-    if (type === 'downsample') ph = Math.floor(ph * 7) / 7; // held steps
-    const y = f(Math.sin(2 * Math.PI * ph));
+    if (type === 'downsampler') ph = Math.floor(ph * 7) / 7; // held steps
+    let y = f(Math.sin(2 * Math.PI * ph));
+    if (type === 'bitcrusher') y = Math.round(y * 3) / 3; // a few levels
     ys.push(y);
     peak = Math.max(peak, Math.abs(y));
   }
@@ -1640,7 +1682,7 @@ export class SynthView {
   }
 
   /** A dropdown for an enum parameter (‹ › step through it, the name opens the list). */
-  private selector(id: string, opts: { label?: (o: string) => string; deps?: string[]; groups?: [string, readonly string[]][]; only?: boolean } = {}): HTMLElement {
+  private selector(id: string, opts: { label?: (o: string) => string; deps?: string[]; groups?: [string, readonly string[]][]; only?: boolean; groupSub?: string[]; info?: Record<string, string>; after?: (v: string) => void } = {}): HTMLElement {
     const p = getParam(id)!;
     const sel = h('select', 'sel-name');
     const name = (o: string) => (opts.label ?? ((x: string) => x.replace(/_/g, ' ')))(o).toUpperCase();
@@ -1653,11 +1695,14 @@ export class SynthView {
       // (only: the groups are the whole menu; an option can sit in more than one column)
       const rest = opts.only ? [] : p.options!.filter((o) => !used.has(o) && !RETIRED.has(o));
       if (rest.length) groups[groups.length - 1][1].push(...rest);
-      for (const [title, os] of groups) {
+      for (const [gi, [title, os]] of groups.entries()) {
         const og = document.createElement('optgroup');
         og.label = title;
+        if (opts.groupSub?.[gi]) og.dataset.sub = opts.groupSub[gi];
         for (const o of os) {
-          og.append(new Option(name(o), o));
+          const op = new Option(name(o), o);
+          if (opts.info?.[o]) op.dataset.info = opts.info[o];
+          og.append(op);
           if (!list.includes(o)) list.push(o);
         }
         sel.append(og);
@@ -1667,7 +1712,9 @@ export class SynthView {
       for (const o of list) sel.append(new Option(name(o), o));
     }
     const pick = (to: string) => {
-      if (String(this.get(id)) !== to) this.set(id, to);
+      if (String(this.get(id)) === to) return;
+      this.set(id, to);
+      opts.after?.(to);
     };
     sel.onchange = () => pick(sel.value);
     const step = (d: number) => {
@@ -3673,10 +3720,22 @@ export class SynthView {
    * they do, gentle to destroyed (WARM saturates, CLIP cuts the peaks, BREAK rewrites the wave, DIGITAL
    * takes the resolution away), each with a tiny picture of one sine cycle through it.
    */
-  private driveTypeSelector(id: string): HTMLElement {
-    const el = this.selector(id, { groups: DRIVE_GROUPS, only: true });
+  private driveTypeSelector(id: string, band?: [string, string]): HTMLElement {
+    const el = this.selector(id, {
+      groups: DRIVE_GROUPS, only: true, info: DRIVE_INFO,
+      groupSub: DRIVE_CATS.map((c) => `${c.range} · ${c.does}`),
+      after: (v) => band && this.snapDriveBand(v, band),
+    });
     for (const o of el.querySelectorAll('option')) o.dataset.icon = driveIconPath(o.value);
     return el;
+  }
+
+  /** Move a drive's band onto its type's column range (owner's call: a loaded type works exactly where its column says). */
+  private snapDriveBand(type: string, [freqId, widthId]: [string, string]): void {
+    const b = driveBand(type);
+    if (!b) return;
+    this.set(freqId, Math.round(b[0] * 10) / 10);
+    this.set(widthId, Math.round(b[1] * 1000) / 1000);
   }
 
   /** RUIN's filter types as the title's menu: CUT / BOOST, each with a picture of its curve. */
@@ -3946,7 +4005,7 @@ export class SynthView {
     const pct = (v: number) => `${Math.round(v * 100)}%`;
     const dist = this.obox('DRIVE', 'fx-box box-dist', {
       power: (el) => this.boolPower('dist.on', el),
-      head: [this.driveTypeSelector('dist.type')],
+      head: [this.driveTypeSelector('dist.type', ['dist.band_freq', 'dist.band_width'])],
       print: this.drivePad({ on: () => !!this.get('dist.on') && this.num('dist.mix') > 0, freq: 'dist.band_freq', width: 'dist.band_width', tone: 'dist.post_tone', drive: 'dist.drive', lowcut: 'dist.clean_below', deps: ['dist.on', 'dist.mix'] }),
       // six dials: the RUIN boxes' smaller size, so they fit
       dials: [md6('dist.drive', 'Drive', { fmt: pct }), md6('dist.post_tone', 'Tone', { fmt: pct }), md6('dist.mix', 'Dry/Wet', { fmt: pct }), md6('dist.output', 'Output', { fmt: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB` }), distLow],
@@ -4324,6 +4383,8 @@ export class SynthView {
       this.set(`grind${n}.${kind}_on`, true);
       // a new filter lands on BELLS, the main one (owner's call)
       if (kind === 'filter') this.set(`grind${n}.filter`, 'bells');
+      // a new drive works on its type's column range (owner's call)
+      if (kind === 'drive') this.snapDriveBand(String(this.get(`grind${n}.drive_type`)), [`grind${n}.drive_freq`, `grind${n}.drive_width`]);
       this.set(`grind${n}.on`, true);
       if (!this.get('grind.on')) this.set('grind.on', true);
       this.ruinSelect(k);
@@ -4359,7 +4420,9 @@ export class SynthView {
       const step = (d: number) => (e: Event) => {
         e.stopPropagation();
         const opts = getParam(tid)!.options!, i = opts.indexOf(String(this.get(tid)));
-        this.set(tid, opts[(i + d + opts.length) % opts.length]);
+        const to = opts[(i + d + opts.length) % opts.length];
+        this.set(tid, to);
+        if (isDrive(k)) this.snapDriveBand(to, [`grind${n}.drive_freq`, `grind${n}.drive_width`]);
       };
       const prev = h('button', 'gr-step', '‹'), next = h('button', 'gr-step', '›');
       prev.onclick = step(-1);
@@ -4371,7 +4434,7 @@ export class SynthView {
         this.watch([tid], () => { const t = String(this.get(tid)); lab.textContent = t === 'bells' ? '4 BANDS' : t.toUpperCase(); });
         node.append(head, h('div', 'gr-node-cv-wrap', cv), h('div', 'gr-node-foot', lab));
       } else if (!isEq(k) && !isPh(k)) {
-        const sel = isDrive(k) ? this.driveTypeSelector(tid) : this.selector(tid);
+        const sel = isDrive(k) ? this.driveTypeSelector(tid, [`grind${n}.drive_freq`, `grind${n}.drive_width`]) : this.selector(tid);
         sel.classList.add('gr-node-sel');
         sel.addEventListener('click', (e) => e.stopPropagation());
         const foot = h('div', 'gr-node-foot', prev, sel, next);
@@ -4709,7 +4772,7 @@ export class SynthView {
       this.watch([`${pre}.filter`], () => { divider.style.display = this.get(`${pre}.filter`) === 'bells' ? '' : 'none'; });
       const fdials = h('div', 'ob-dials gr-fdials', wd, count,
         md(`${pre}.rate`, 'Rate', { fmt: rateFmt, deps: [`${pre}.clock`] }), sync, divider, ...bellSets);
-      const dhead = h('div', 'ob-head gr-row-head', partPower(dk), h('span', 'c-title', `DRIVE ${n}`), this.driveTypeSelector(`${pre}.drive_type`));
+      const dhead = h('div', 'ob-head gr-row-head', partPower(dk), h('span', 'c-title', `DRIVE ${n}`), this.driveTypeSelector(`${pre}.drive_type`, [`${pre}.drive_freq`, `${pre}.drive_width`]));
       const ddials = h('div', 'ob-dials gr-ddials', md(`${pre}.drive`, 'Drive', { fmt: pct }), md(`${pre}.drive_tone`, 'Tone', { fmt: pct }), md(`${pre}.mix`, 'Dry/Wet', { fmt: pct }));
       sets[fk] = h('div', `gr-set gr-s${n}`, fhead, fdials);
       sets[dk] = h('div', `gr-set gr-s${n}`, dhead, ddials);

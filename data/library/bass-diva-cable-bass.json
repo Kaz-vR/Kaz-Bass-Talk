@@ -82,7 +82,7 @@
   "mod4.source": "lfo4",
   "mod4.dest": "texture_level",
   "mod4.amount": 0,
-  "dist.type": "tube",
+  "dist.type": "triode tube saturation",
   "dist.clean_below": 150,
   "chorus.mode": "classic",
   "chorus.lowcut": 250,

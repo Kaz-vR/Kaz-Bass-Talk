@@ -53,7 +53,7 @@
   "filter.keytrack": 0.2,
   "mod_env.on": false,
   "dist.on": true,
-  "dist.type": "tube",
+  "dist.type": "triode tube saturation",
   "dist.drive": 0.85,
   "dist.mix": 1,
   "dist.post_tone": 0.6,

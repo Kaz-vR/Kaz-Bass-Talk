@@ -72,6 +72,20 @@ value (`packWob`, worklet control channels 2 and 11, the plugin's live values 2 
 to the same sound (`migrateWobOffsets`: matrix offset = depth x o, filter / gate offset = o x (1 - |depth|), o the
 old `wobble.off` or +1). Both engines.
 
+### Drive types (owner's call, 27 Nov: rebuilt; this replaces the type list in the GRIND paragraph above)
+
+RUIN's drives and the FX page's DRIVE share 17 types (`grind<n>.drive_type`, `dist.type`), in five groups by where they work. Loading a type (menu, ‹ › stepper, or a new drive box) moves the drive band onto its group's range exactly (centre the geometric middle, width log2(hi / lo) octaves; FULL SPECTRUM = 9, the whole sound):
+
+| Group | Range | Types (curve; colour) |
+|---|---|---|
+| SUB & BASS (weight & loudness) | 20–250 Hz | transformer saturation (lows +8 dB under 200 Hz into a lopsided algebraic curve, taken back after), soft clipper (cubic), hard clipper |
+| LOW-MIDS (warmth & body) | 250–800 Hz | triode tube saturation (the old tube: lopsided tanh, 9 kHz loss), overdrive (x2, 150 Hz tight, negative side clips at 0.6, 5 kHz loss) |
+| UPPER-MIDS (bite & cut) | 800 Hz–5 kHz | transistor saturation (x1.5, 200 Hz tight, clean to 0.7 then a hard knee), pentode tube saturation (steep tanh, 12 kHz loss), distortion (x4 tanh, 100 Hz tight, 7 kHz loss), amp simulation (the old amp: cab and room), wavefolder, rectifier |
+| HIGHS & AIR (sparkle & texture) | 5–20 kHz | exciter (0.6 tanh + 0.4 |tanh|: even and odd harmonics on top), bitcrusher (16 bits down to 2 with Drive), downsampler (the old sample-and-hold) |
+| FULL SPECTRUM (glue & cohesion) | 20 Hz–20 kHz | tape saturation (the old tape), console saturation (x0.5, a gentle algebraic curve), fuzz (x8, 60 Hz tight, negative side clips at 0.45, 8 kHz loss) |
+
+Every curve has its exact antiderivative (ADAA) and a DC blocker after it. diode and starved are gone; old patches load diode as distortion, starved as fuzz, and the other old names as their new ones (`migrateDriveTypes`). The menu shows each group's title, range and purpose over its column, and an info box under the columns with the hovered type's "Name: what it does".
+
 ### OTT BOXES and OTT OUT (owner's call, 27 Nov)
 
 RUIN has two OTTs, both Depth knobs on its strip next to the randomizer. **OTT BOXES** (`grind.ott_box`, default 0): every box in the chain (filter, drive, EQ, phaser) runs its own OTT right after its level, all set by this one knob; it is RUIN's OTT (the same `Ott` class, Xfer-fitted bands and times, no Lo cut split of its own: the chain only sees what is above RUIN's Lo cut), at the chain's oversampled rate, so the next box, the listening taps (solo / bypass / delta) and the meters hear it. **OTT DRIVES** (`grind.ott_drives`, default 0): the same, after the drive boxes only (a second OTT on each drive box, after OTT BOXES' when both are up). **OTT OUT** is `grind.ott`, the post OTT after the chain. Both are LFO targets.

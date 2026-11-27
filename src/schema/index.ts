@@ -282,6 +282,16 @@ function migrateGrind(src: Record<string, unknown>): Record<string, unknown> {
   return out;
 }
 
+/** The drive types rebuilt (owner's call, 27 Nov): the old names onto the new ones (diode → distortion, starved → fuzz). */
+const DRIVE_RENAMED: Record<string, string> = {"tape": "tape saturation", "tube": "triode tube saturation", "amp": "amp simulation", "soft clip": "soft clipper", "hard clip": "hard clipper", "wavefold": "wavefolder", "rectify": "rectifier", "downsample": "downsampler", "diode": "distortion", "starved": "fuzz"};
+function migrateDriveTypes(src: Record<string, unknown>): Record<string, unknown> {
+  const ids = ['dist.type', ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => `grind${n}.drive_type`)];
+  if (!ids.some((id) => String(src[id]) in DRIVE_RENAMED)) return src;
+  const out: Record<string, unknown> = { ...src };
+  for (const id of ids) if (String(src[id]) in DRIVE_RENAMED) out[id] = DRIVE_RENAMED[String(src[id])];
+  return out;
+}
+
 function migrateTexture(src: Record<string, unknown>): Record<string, unknown> {
   const t = src['texture.type'];
   const renamed: Record<string, string> = { hum: 'rumble', machine: 'rumble', wind: 'air', breath: 'air hit' };
@@ -345,7 +355,7 @@ function migrateWobOffsets(src: Record<string, unknown>): Record<string, unknown
  */
 export function validatePatch(input: unknown): ValidationResult {
   const issues: ValidationIssue[] = [];
-  const src = migrateWobOffsets(migrateWobTargets(migrateMatrix(migrateEq(migrateGrindSlots(migrateGrindWidth(migrateGrind(migrateTexture(migrateAttackCurve(migrateReverb(migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>))))))))))));
+  const src = migrateDriveTypes(migrateWobOffsets(migrateWobTargets(migrateMatrix(migrateEq(migrateGrindSlots(migrateGrindWidth(migrateGrind(migrateTexture(migrateAttackCurve(migrateReverb(migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>)))))))))))));
   const rawMeta = src.meta && typeof src.meta === 'object' ? (src.meta as PatchMeta) : undefined;
   const meta: PatchMeta = { ...(rawMeta ?? {}), name: typeof rawMeta?.name === 'string' ? rawMeta.name : 'Untitled' };
   if (!rawMeta) issues.push({ param: 'meta', message: 'missing meta' });

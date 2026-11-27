@@ -32,15 +32,25 @@ constexpr double GRIND_BEATS[6] = {4, 2, 1, 0.5, 0.25, 0.125};
 inline double grindRandomSpeed(Rng& rng) { return std::pow(2.0, 1.5 * rng.next()); }
 inline double grindHz(double rate) { return 0.1 * std::pow(2.0, rate * 8); }
 inline int grindBeat(double rate) { return (int)jsRound(std::fmin(1, std::fmax(0, rate)) * 5); }
-/** grind<n>.drive_type option order: tape, tube, amp (driven amp, speaker cab, mic and room), soft clip. */
-constexpr int GD_TAPE = 0, GD_TUBE = 1, GD_AMP = 2, GD_SOFT = 3, GD_HARD = 4, GD_FOLD = 5, GD_RECT = 6, GD_DOWN = 7, GD_DIODE = 8, GD_STARVED = 9;
+/** grind<n>.drive_type / dist.type option order (as grind.ts: five groups, 17 types). */
+constexpr int GD_TRANS = 0, GD_SOFT = 1, GD_HARD = 2, GD_TRIODE = 3, GD_OD = 4, GD_TRANSISTOR = 5, GD_PENTODE = 6, GD_DIST = 7, GD_AMP = 8,
+              GD_FOLD = 9, GD_RECT = 10, GD_EXCITER = 11, GD_CRUSH = 12, GD_DOWN = 13, GD_TAPE = 14, GD_CONSOLE = 15, GD_FUZZ = 16;
+constexpr double TYPE_GAIN[17] = {1, 1, 1, 1, 2, 1.5, 1.2, 4, 3, 1, 1, 1, 1, 1, 1, 0.5, 8};
+constexpr double TYPE_TIGHT[17] = {0, 0, 0, 0, 150, 200, 0, 100, 90, 0, 0, 0, 0, 0, 0, 0, 60};
+constexpr double TYPE_LOSS[17] = {0, 0, 0, 9000, 5000, 0, 12000, 7000, 0, 0, 0, 0, 0, 0, 11000, 0, 8000};
 constexpr double DC_HZ = 15, PEAK_GAIN = 6;
-constexpr double STARVED_A = 0.08, STARVED_B = 0.25, STARVED_NEG = 0.7;
+constexpr double TRANS_EMPH = 1.5, TRANS_EMPH_HZ = 200, TRANS_BIAS = 0.12, CONSOLE_BIAS = 0.03;
+constexpr double OD_NEG = 0.6, FUZZ_NEG = 0.45, TR_KNEE = 0.7, TR_SOFT = 0.3, PEN_K = 1.8, PEN_B = 0.15;
+inline const double PEN_OFF = fastTanh(PEN_K * PEN_B), PEN_IOFF = tanhIntegral(PEN_K * PEN_B), GTI0 = tanhIntegral(0);
+inline const double TRANS_OFFSET = TRANS_BIAS / std::sqrt(1 + TRANS_BIAS * TRANS_BIAS), CONSOLE_OFFSET = CONSOLE_BIAS / std::sqrt(1 + CONSOLE_BIAS * CONSOLE_BIAS);
+inline double algC(double u, double b, double off) { const double v = u + b; return v / std::sqrt(1 + v * v) - off; }
+inline double algI(double u, double b, double off) { const double v = u + b; return std::sqrt(1 + v * v) - off * u; }
+inline double asymC(double u, double n) { return u >= 0 ? fastTanh(u) : n * fastTanh(u / n); }
+inline double asymI(double u, double n) { return u >= 0 ? tanhIntegral(u) - GTI0 : n * n * (tanhIntegral(u / n) - GTI0); }
 /** 0 … +30 dB of drive (see grind.ts). */
 inline double grindGain(double drive) { return std::pow(10.0, 1.5 * drive); }
-constexpr double TAPE_EMPH = 2, TAPE_EMPH_HZ = 3000, TAPE_LOSS_HZ = 11000, TAPE_BIAS = 0.08;
+constexpr double TAPE_EMPH = 2, TAPE_EMPH_HZ = 3000, TAPE_BIAS = 0.08;
 inline const double TAPE_OFFSET = TAPE_BIAS / std::sqrt(1 + TAPE_BIAS * TAPE_BIAS);
-constexpr double TUBE_LOSS_HZ = 9000;
 constexpr double AMP_GAIN = 3, AMP_BIAS = 0.3, AMP_TIGHT_HZ = 90;
 inline const double AMP_OFFSET = fastTanh(AMP_BIAS);
 constexpr int ROOM_LEN = 8192;
@@ -325,21 +335,26 @@ struct GrindStage {
 
   double curve(double u) const {
     switch (dtype) {
-      case GD_TAPE: { const double v = u + TAPE_BIAS; return v / std::sqrt(1 + v * v) - TAPE_OFFSET; }
-      case GD_AMP: return fastTanh(u + AMP_BIAS) - AMP_OFFSET;
+      case GD_TRANS: return algC(u, TRANS_BIAS, TRANS_OFFSET);
       case GD_SOFT: return u > 1 ? 1 : u < -1 ? -1 : 1.5 * u - 0.5 * u * u * u;
       case GD_HARD: return u > 1 ? 1 : u < -1 ? -1 : u;
+      case GD_OD: return asymC(u, OD_NEG);
+      case GD_TRANSISTOR: { const double a = std::fabs(u); return a <= TR_KNEE ? u : (u > 0 ? 1.0 : -1.0) * (TR_KNEE + TR_SOFT * fastTanh((a - TR_KNEE) / TR_SOFT)); }
+      case GD_PENTODE: return fastTanh(PEN_K * (u + PEN_B)) - PEN_OFF;
+      case GD_DIST: return fastTanh(u);
+      case GD_AMP: return fastTanh(u + AMP_BIAS) - AMP_OFFSET;
       case GD_FOLD: return std::sin(u);
       case GD_RECT: return std::fabs(fastTanh(u));
-      case GD_DIODE: return u >= 0 ? fastTanh(u) : 0.5 * fastTanh(2 * u);
-      case GD_STARVED: return u > STARVED_A ? fastTanh(u - STARVED_A) : u < -STARVED_B ? STARVED_NEG * fastTanh(u + STARVED_B) : 0;
+      case GD_EXCITER: { const double t = fastTanh(u); return 0.6 * t + 0.4 * std::fabs(t); }
+      case GD_TAPE: return algC(u, TAPE_BIAS, TAPE_OFFSET);
+      case GD_CONSOLE: return algC(u, CONSOLE_BIAS, CONSOLE_OFFSET);
+      case GD_FUZZ: return asymC(u, FUZZ_NEG);
       default: return fastTanh(u + TUBE_BIAS) - TUBE_OFFSET;
     }
   }
   double curveIntegral(double u) const {
     switch (dtype) {
-      case GD_TAPE: { const double v = u + TAPE_BIAS; return std::sqrt(1 + v * v) - TAPE_OFFSET * u; }
-      case GD_AMP: return tanhIntegral(u + AMP_BIAS) - AMP_OFFSET * u;
+      case GD_TRANS: return algI(u, TRANS_BIAS, TRANS_OFFSET);
       case GD_SOFT: {
         if (u > 1) return u - 0.375;
         if (u < -1) return -u - 0.375;
@@ -347,21 +362,33 @@ struct GrindStage {
         return 0.75 * u2 - 0.125 * u2 * u2;
       }
       case GD_HARD: return u > 1 ? u - 0.5 : u < -1 ? -u - 0.5 : 0.5 * u * u;
+      case GD_OD: return asymI(u, OD_NEG);
+      case GD_TRANSISTOR: {
+        const double a = std::fabs(u);
+        if (a <= TR_KNEE) return 0.5 * u * u;
+        return 0.5 * TR_KNEE * TR_KNEE + TR_KNEE * (a - TR_KNEE) + TR_SOFT * TR_SOFT * (tanhIntegral((a - TR_KNEE) / TR_SOFT) - GTI0);
+      }
+      case GD_PENTODE: return (tanhIntegral(PEN_K * (u + PEN_B)) - PEN_IOFF) / PEN_K - PEN_OFF * u;
+      case GD_DIST: return tanhIntegral(u) - GTI0;
+      case GD_AMP: return tanhIntegral(u + AMP_BIAS) - AMP_OFFSET * u;
       case GD_FOLD: return 1 - std::cos(u);
-      case GD_RECT: { const double t0 = tanhIntegral(0); return u >= 0 ? tanhIntegral(u) - t0 : t0 - tanhIntegral(u); }
-      case GD_DIODE: { const double t0 = tanhIntegral(0); return u >= 0 ? tanhIntegral(u) - t0 : 0.25 * (tanhIntegral(2 * u) - t0); }
-      case GD_STARVED: { const double t0 = tanhIntegral(0); return u > STARVED_A ? tanhIntegral(u - STARVED_A) - t0 : u < -STARVED_B ? STARVED_NEG * (tanhIntegral(u + STARVED_B) - t0) : 0; }
+      case GD_RECT: return u >= 0 ? tanhIntegral(u) - GTI0 : GTI0 - tanhIntegral(u);
+      case GD_EXCITER: { const double f = tanhIntegral(u) - GTI0; return 0.6 * f + 0.4 * (u >= 0 ? f : -f); }
+      case GD_TAPE: return algI(u, TAPE_BIAS, TAPE_OFFSET);
+      case GD_CONSOLE: return algI(u, CONSOLE_BIAS, CONSOLE_OFFSET);
+      case GD_FUZZ: return asymI(u, FUZZ_NEG);
       default: return tanhIntegral(u + TUBE_BIAS) - TUBE_OFFSET * u;
     }
   }
   void setColour(double fs) {
+    const int t = dtype;
     colourFs = fs;
-    emphK = 1 - std::exp((-2 * PI * TAPE_EMPH_HZ) / fs);
-    lossK = 1 - std::exp((-2 * PI * (dtype == GD_TUBE || dtype == GD_STARVED ? TUBE_LOSS_HZ : TAPE_LOSS_HZ)) / fs);
+    emphK = 1 - std::exp((-2 * PI * (t == GD_TRANS ? TRANS_EMPH_HZ : TAPE_EMPH_HZ)) / fs);
+    lossK = TYPE_LOSS[t] > 0 ? 1 - std::exp((-2 * PI * std::fmin(TYPE_LOSS[t], 0.45 * fs)) / fs) : 1;
     roomK = 1 - std::exp((-2 * PI * ROOM_TONE_HZ) / fs);
     dcK = 1 - std::exp((-2 * PI * DC_HZ) / fs);
     for (int ch = 0; ch < 2; ch++) {
-      tight[ch].setHighpass(AMP_TIGHT_HZ, 0.7, fs);
+      if (TYPE_TIGHT[t] > 0) tight[ch].setHighpass(TYPE_TIGHT[t], 0.7, fs);
       const int o = 5 * ch;
       cab[o].setHighpass(55, 0.8, fs);
       cab[o + 1].setPeak(110, 3, 1.2, fs);
@@ -380,14 +407,21 @@ struct GrindStage {
       }
       return dsHold[ch];
     }
+    if (t == GD_CRUSH) {
+      const double steps = std::pow(2.0, std::fmax(1, 15 - 2.811 * std::log2(gain)));
+      return jsRound(x * steps) / steps;
+    }
     double v = x;
     if (t == GD_TAPE) {
       pre[ch] += (v - pre[ch]) * emphK;
       v += TAPE_EMPH * (v - pre[ch]);
-    } else if (t == GD_AMP) {
+    } else if (t == GD_TRANS) {
+      pre[ch] += (v - pre[ch]) * emphK;
+      v += TRANS_EMPH * pre[ch];
+    } else if (TYPE_TIGHT[t] > 0) {
       v = tight[ch].process(v);
     }
-    const double u = gain * norm * (t == GD_AMP ? AMP_GAIN : 1) * v + bias;
+    const double u = gain * norm * TYPE_GAIN[t] * v + bias;
     const double up = adaaU[ch];
     const double fu = curveIntegral(u);
     const double du = u - up;
@@ -403,38 +437,35 @@ struct GrindStage {
   }
   double colour(double y, int ch) {
     const int t = dtype;
-    switch (t) {
-      case GD_TAPE: {
-        post[ch] += (y - post[ch]) * emphK;
-        y -= (TAPE_EMPH / (1 + TAPE_EMPH)) * (y - post[ch]);
-        loss[ch] += (y - loss[ch]) * lossK;
-        return loss[ch];
+    if (t == GD_TAPE) {
+      post[ch] += (y - post[ch]) * emphK;
+      y -= (TAPE_EMPH / (1 + TAPE_EMPH)) * (y - post[ch]);
+    } else if (t == GD_TRANS) {
+      post[ch] += (y - post[ch]) * emphK;
+      y -= (TRANS_EMPH / (1 + TRANS_EMPH)) * post[ch];
+    } else if (t == GD_AMP) {
+      const int o = 5 * ch;
+      y = cab[o + 4].process(cab[o + 3].process(cab[o + 2].process(cab[o + 1].process(cab[o].process(y)))));
+      roomLp[ch] += (y - roomLp[ch]) * roomK;
+      auto& buf = room[ch];
+      const int pos = roomPos;
+      buf[(size_t)pos] = (float)roomLp[ch];
+      double r = 0;
+      for (int j = 0; j < 4; j++) {
+        double rp = pos - roomTap[4 * ch + j];
+        if (rp < 0) rp += ROOM_LEN;
+        const int i = (int)std::floor(rp);
+        const double fr = rp - i;
+        r += ROOM_GAIN[j] * (buf[(size_t)i] + (buf[(size_t)((i + 1) & (ROOM_LEN - 1))] - buf[(size_t)i]) * fr);
       }
-      case GD_TUBE:
-      case GD_STARVED: {
-        loss[ch] += (y - loss[ch]) * lossK;
-        return loss[ch];
-      }
-      case GD_AMP: {
-        const int o = 5 * ch;
-        y = cab[o + 4].process(cab[o + 3].process(cab[o + 2].process(cab[o + 1].process(cab[o].process(y)))));
-        roomLp[ch] += (y - roomLp[ch]) * roomK;
-        auto& buf = room[ch];
-        const int pos = roomPos;
-        buf[(size_t)pos] = (float)roomLp[ch];
-        double r = 0;
-        for (int j = 0; j < 4; j++) {
-          double rp = pos - roomTap[4 * ch + j];
-          if (rp < 0) rp += ROOM_LEN;
-          const int i = (int)std::floor(rp);
-          const double fr = rp - i;
-          r += ROOM_GAIN[j] * (buf[(size_t)i] + (buf[(size_t)((i + 1) & (ROOM_LEN - 1))] - buf[(size_t)i]) * fr);
-        }
-        if (ch == 1) roomPos = (pos + 1) & (ROOM_LEN - 1);
-        return y + r;
-      }
-      default: return y;
+      if (ch == 1) roomPos = (pos + 1) & (ROOM_LEN - 1);
+      return y + r;
     }
+    if (TYPE_LOSS[t] > 0) {
+      loss[ch] += (y - loss[ch]) * lossK;
+      return loss[ch];
+    }
+    return y;
   }
   double filter(double x, int ch, double gg, int pos) {
     switch (ftype) {
