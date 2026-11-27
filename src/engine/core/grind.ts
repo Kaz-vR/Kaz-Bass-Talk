@@ -111,12 +111,15 @@ const ROOM_MS = [6.3, 11.9, 18.7, 27.1, 7.7, 13.4, 21.2, 29.5]; // left taps, ri
 const ROOM_GAIN = [0.3, 0.21, 0.15, 0.1];
 const ROOM_TONE_HZ = 3500;
 const COMB_LEN = 4096;
-// OTT: Ableton's OTT preset (low, mid, high band)
-const OTT_ABOVE = [-33.8, -30.2, -35.5]; // dB, downward 1:66 over it
-const OTT_BELOW = [-40.8, -41.8, -40.8]; // dB, upward 4.17:1 under it
-const OTT_BAND_DB = [10.3, 5.7, 10.3];
-const OTT_ATTACK = [0.0478, 0.0224, 0.0135];
-const OTT_RELEASE = [0.282, 0.282, 0.132];
+// OTT (low, mid, high band): Ableton's OTT preset's ratios, its thresholds, band gains and times fitted to Xfer's OTT
+// (owner's call, 27 Nov, measured with tools/ref-host and tools/ott-ref.ts: tones stepped -60 .. 0 dBFS through each
+// band, within ~1.5 dB; level steps, its attacks 4x and releases 4x faster than the Ableton preset's)
+// (exported, and so writable, only so tools/ott-ref.ts can try values; nothing at runtime writes them)
+export const OTT_ABOVE = [-38.0, -36.5, -41.0]; // dB, downward 1:66 over it
+export const OTT_BELOW = [-46.0, -44.5, -45.2]; // dB, upward 4.17:1 under it
+export const OTT_BAND_DB = [12.4, 11.2, 13.9];
+export const OTT_ATTACK = [0.012, 0.0056, 0.0034];
+export const OTT_RELEASE = [0.07, 0.07, 0.033];
 const OTT_MAX_UP = 36; // dB: the most a band is pulled up (the silence between notes stays silent)
 /**
  * The synth's bus runs far below the full-scale levels Ableton's thresholds assume: the detector sees
