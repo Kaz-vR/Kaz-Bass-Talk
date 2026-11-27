@@ -17,7 +17,10 @@ TYPES = [('tape', 0, 'Soundtoys Decapitator, style A (Ampex 350)'), ('tube', 1, 
          ('starved', 9, 'FabFilter Saturn 2, Broken Tube')]
 KIND = {'hp2': 0, 'lp2': 1, 'peak': 2}
 models = []
+import sys
+ONLY = sys.argv[1].split(',') if len(sys.argv) > 1 else None  # (build from some models only, while others are still fitted)
 for name, idx, src in TYPES:
+    if ONLY and name not in ONLY: continue
     m = json.load(open(os.path.join(ROOT, 'tools/drives', f'model_{name}.json')))
     k = m['knots']
     pre = m.get('eq_pre', m['eq'] if m['where'] == 'pre' else [])
