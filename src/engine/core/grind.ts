@@ -217,7 +217,8 @@ class Stage {
   readonly ottX = [new Ott(), new Ott(), new Ott(), new Ott()];
   on = false;
   ftype = GF_NOTCH;
-  dtype = GD_TAPE;
+  // (-1: no type yet, so the first control sets the type up, its antiderivative included)
+  dtype = -1;
   // movement (control rate)
   phase = 0;
   wFrom = 0;
@@ -744,8 +745,10 @@ export class Grind {
       s.ap.fill(0);
       s.comb[0].fill(0);
       s.comb[1].fill(0);
+      // (the antiderivative at rest is the curve's at 0, not 0: a tape / triode / amp curve's isn't, and a 0 here
+      // made the first sample after a reset a +30 dBFS spike, owner's bug, 27 Nov)
       s.adaaU.fill(0);
-      s.adaaF.fill(0);
+      s.adaaF.fill(s.curveIntegral(0));
       s.pre.fill(0);
       s.post.fill(0);
       s.loss.fill(0);
@@ -1205,7 +1208,15 @@ export class Ott {
    * material); `makeupDb` after the bands; `match`: hold the output at the input's level (a tone and
    * density tool, as GRIND's PRE OTT in front of the stages).
    */
-  constructor(private readonly inDb = OTT_IN_DB, private readonly makeupDb = OTT_MAKEUP_DB, private readonly match = false) {}
+  /**
+   * Each band's ceiling (owner's bug, 27 Nov: the sound exploded): 12 dB over what the band puts out for a full-scale
+   * input, held softly (a tanh), so the few ms the OTT needs to pull its upward gain back when a loud edge follows a
+   * quiet one never come out at +30 dBFS (and never feed the next OTT in a chain that way); normal levels pass as before.
+   */
+  private readonly ceil = new Float64Array(3);
+  constructor(private readonly inDb = OTT_IN_DB, private readonly makeupDb = OTT_MAKEUP_DB, private readonly match = false) {
+    for (let b = 0; b < 3; b++) this.ceil[b] = Math.pow(10, (OTT_ABOVE[b] - inDb + OTT_BAND_DB[b] + makeupDb + 12) / 20);
+  }
 
   get on(): boolean {
     return this.amt > 0;
@@ -1281,8 +1292,9 @@ export class Ott {
         else if (lvl < OTT_BELOW[b]) g = Math.min(OTT_MAX_UP, (OTT_BELOW[b] - lvl) * (1 - 1 / 4.17)) * Math.min(1, Math.max(0, (lvl - this.inDb + 80) / 10));
         gain[b] = Math.pow(10, (g + OTT_BAND_DB[b] + this.makeupDb) / 20);
       }
-      ol += bd[b] * gain[b];
-      or += bd[b + 3] * gain[b];
+      const c = this.ceil[b];
+      ol += c * tanh((bd[b] * gain[b]) / c);
+      or += c * tanh((bd[b + 3] * gain[b]) / c);
     }
     const dl = bd[0] + bd[1] + bd[2], dr = bd[3] + bd[4] + bd[5], d = this.amt;
     if (this.match) {

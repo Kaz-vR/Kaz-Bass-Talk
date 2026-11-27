@@ -74,6 +74,7 @@ class Ott {
  public:
   double l = 0, r = 0;
   explicit Ott(double inDb = OTT_IN_DB, double makeupDb = OTT_MAKEUP_DB, bool match = false) : inDb(inDb), makeupDb(makeupDb), match(match) {
+    for (int b = 0; b < 3; b++) ceil[b] = std::pow(10.0, (OTT_ABOVE[b] - inDb + OTT_BAND_DB[b] + makeupDb + 12) / 20);  // (as grind.ts)
     gain.fill(1);
   }
   bool on() const { return amt > 0; }
@@ -144,8 +145,9 @@ class Ott {
         else if (lvl < OTT_BELOW[b]) g = std::fmin(OTT_MAX_UP, (OTT_BELOW[b] - lvl) * (1 - 1 / 4.17)) * std::fmin(1, std::fmax(0, (lvl - inDb + 80) / 10));
         gain[b] = std::pow(10.0, (g + OTT_BAND_DB[b] + makeupDb) / 20);
       }
-      ol += bd[b] * gain[b];
-      orr += bd[b + 3] * gain[b];
+      const double c = ceil[b];
+      ol += c * fastTanh((bd[b] * gain[b]) / c);
+      orr += c * fastTanh((bd[b + 3] * gain[b]) / c);
     }
     const double dl = bd[0] + bd[1] + bd[2], dr = bd[3] + bd[4] + bd[5], d = amt;
     if (match) {
@@ -161,7 +163,7 @@ class Ott {
   }
 
  private:
-  double inDb, makeupDb;
+  double inDb, makeupDb, ceil[3] = {};
   bool match;
   double amt = 0, fs = 0, lastLc = -1, lvlK = 0, inLvl = 0, outLvl = 0;
   bool lcOn = false;
@@ -224,7 +226,7 @@ struct GrindStage {
   Ott otts[4];
   Ott ottX[4];  // each box's second OTT by kind: OTT DRIVES on the drive, OTT FILTERS on filter / EQ / phaser  // OTT TYPE 1: each box's own, all set by grind.ott_box (as grind.ts)
   bool on = false;
-  int ftype = GF_NOTCH, dtype = GD_TAPE;
+  int ftype = GF_NOTCH, dtype = -1;  // (-1: the first control sets the type up, as grind.ts)
   double phase = 0, wFrom = 0, wTo = 0, wPos = 0, spd = 1, depth = 1, fLvT = 1, fLv = 1, dLvT = 1, dLv = 1;
   double fcNow = -1, resNow = 0;
   double g = 0.05, gStep = 0, k = 1, peak = 0, delay = 100, delayStep = 0, fb = 0;
@@ -629,7 +631,8 @@ class Grind {
       for (double& a : s.ap) a = 0;
       s.comb[0].fill(0);
       s.comb[1].fill(0);
-      s.adaaU[0] = s.adaaU[1] = s.adaaF[0] = s.adaaF[1] = 0;
+      s.adaaU[0] = s.adaaU[1] = 0;
+      s.adaaF[0] = s.adaaF[1] = s.curveIntegral(0);  // (the curve's at rest, not 0: as grind.ts)
       for (int c = 0; c < 2; c++) {
         s.pre[c] = s.post[c] = s.loss[c] = s.roomLp[c] = 0;
         s.tight[c].reset();

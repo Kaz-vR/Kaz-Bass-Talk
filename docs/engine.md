@@ -87,6 +87,17 @@ gain its own envelope read Formant semitones away (down = the same note from som
 it came in at and faded in over the first semitone. **Mix** crossfades the dry to the shifted above **Lo cut** (below
 it stays dry). Every dial is an LFO target.
 
+### The bangs (owner's bug, 27 Nov)
+
+Two causes, both fixed in both engines. (1) A drive's antiderivative was reset to 0 when the chain was cleared and
+started at 0, but for tape, transformer, console, triode and amp the curve's antiderivative at rest isn't 0, so the
+first sample after a reset (a note from silence) came out at about +30 dBFS; it is now set to the curve's own value at 0,
+and a stage starts with no type (-1) so its first control sets everything up. (2) Every OTT lifts quiet passages a lot
+(up to its upward limit plus the band gain and makeup) and needs a few ms to pull that back when a loud edge follows, so
+those few ms came out tens of dB too loud, compounding through the chain's OTTs (OTT OUT is 100 % by default); each OTT
+band now has a soft ceiling 12 dB over what it puts out for a full-scale input (`c·tanh(x/c)`), which normal levels never
+reach. The RUIN chain's worst peaks went from +30 / +41 dBFS to about -2 dBFS with the same average level.
+
 ### OTT FILTERS (owner's call, 27 Nov)
 
 `grind.ott_filters`: as OTT DRIVES, an OTT right after every filter, EQ and phaser box (each box its own; after OTT
