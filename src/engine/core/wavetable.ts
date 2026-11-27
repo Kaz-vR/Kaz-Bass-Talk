@@ -122,6 +122,35 @@ function voice(x: number, v: number, bw: number, tilt: number): number {
   });
 }
 
+/**
+ * ACID (owner's call, measured against a reference acid wavetable): the whole saw, every harmonic up to 1023, with a
+ * resonant peak riding on it, Shape sweeping the peak from harmonic 3 to 40 over 17 keyframes; above the peak only a
+ * gentle extra slope (the saw keeps its brightness), the peak's height and width as the reference's (about 1.6 x the
+ * fundamental low down, 0.45 x at the top, a few harmonics wide).
+ */
+export function acidSpectrum(kf: number): Float64Array {
+  const a = new Float64Array(MAX_HARMONIC + 1);
+  // (fitted to the reference: a k^-0.65 slope, a soft roll-off from harmonic ~80 low on the Shape to ~200 at the top,
+  // the peak +4 dB over the fundamental at the start and -3 dB under it at the end)
+  const t = kf / 16, h = 3 * Math.pow(40 / 3, t), kc = 80 * Math.pow(2.5, t), w = 0.6 + 0.06 * h;
+  const ratio = 1.58 * Math.pow(h / 3, -0.31), r = ratio * Math.pow(h, 0.65) * Math.exp((h - 1) / kc) - 1;
+  for (let k = 1; k <= MAX_HARMONIC; k++) {
+    const d = (k - h) / w;
+    a[k] = (k % 2 === 1 ? 1 : -1) * Math.pow(k, -0.65) * (1 + r * Math.exp(-d * d)) * Math.exp(-k / kc);
+  }
+  return a;
+}
+const acidCycles: Float32Array[] = [];
+/** One cycle of an acid keyframe (made once from its spectrum). */
+function acidCycle(kf: number): Float32Array {
+  if (!acidCycles[kf]) {
+    const c = new Float32Array(TABLE_SIZE);
+    synth(acidSpectrum(kf), MAX_HARMONIC, c, 1);
+    acidCycles[kf] = c;
+  }
+  return acidCycles[kf];
+}
+
 /** The bank's waves by name: how many keyframes, and keyframe kf's sample at x. Tables of 8 keyframes and more are
  * real wavetables, made to be scanned (owner's call): two frames per step instead of four. */
 export const BANK: { name: string; keys: number }[] = [
@@ -129,7 +158,7 @@ export const BANK: { name: string; keys: number }[] = [
   { name: 'choir', keys: 3 }, { name: 'talk', keys: 3 }, { name: 'bell', keys: 5 }, { name: 'ring', keys: 5 },
   { name: 'digital', keys: 5 }, { name: 'glass', keys: 5 }, { name: 'bowed', keys: 3 }, { name: 'reed', keys: 3 },
   { name: 'breath', keys: 3 }, { name: 'tape saw', keys: 3 }, { name: 'cassette pulse', keys: 3 }, { name: 'lofi sample', keys: 3 },
-  { name: 'broken sine', keys: 5 }, { name: 'electric guitar', keys: 3 }, { name: 'acid', keys: 9 }, { name: 'scream', keys: 9 },
+  { name: 'broken sine', keys: 5 }, { name: 'electric guitar', keys: 3 }, { name: 'acid', keys: 17 }, { name: 'scream', keys: 9 },
   { name: 'growl', keys: 9 }, { name: 'fold', keys: 9 }, { name: 'harmonic', keys: 9 }, { name: 'crush', keys: 9 },
   { name: 'spectral', keys: 9 }, { name: 'formant scan', keys: 9 },
 ];
@@ -161,10 +190,7 @@ export function bankKey(w: number, kf: number, x: number): number {
       const d = [1.5, 4, 10][kf];
       return Math.tanh(d * additive(x, 40, (k) => Math.abs(Math.sin(Math.PI * k * 0.2)) / k)) / Math.tanh(d);
     }
-    case 18: { // acid: a saw with its resonant peak baked in, Shape sweeping the peak up the harmonics
-      const h = [2, 3, 4, 6, 8, 11, 15, 20, 28][kf];
-      return additive(x, 64, (k) => (1 / k) * (1 + 6 * Math.exp(-(((k - h) / 1.2) ** 2))) * (k > h ? Math.pow(h / k, 3) : 1));
-    }
+    case 18: return acidCycle(kf)[Math.floor(x * TABLE_SIZE) & TABLE_MASK]; // acid: see acidSpectrum
     case 19: { // scream: two narrow, close formants high up, Shape opening the mouth, pushed hard
       const c = [4, 6, 8, 10, 12, 14, 16, 18, 20][kf];
       const y = additive(x, 64, (k) => 0.3 / k + Math.exp(-(((k - c) / 1.2) ** 2)) + 0.8 * Math.exp(-(((k - 1.7 * c) / 1.6) ** 2)));
