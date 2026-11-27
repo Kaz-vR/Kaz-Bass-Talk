@@ -55,14 +55,17 @@ export class WobUnit {
     this.filtDepth = 0;
     const master = cur[w.master];
     let depth = 0;
-    for (let t = 0; t < WOB_TARGETS; t++) depth = Math.max(depth, Math.abs(cur[w.amts[t]]), Math.abs(cur[w.offs[t]]));
+    // (only rows with a target count: with every target gone it does nothing, and the page shows no dot)
+    for (let t = 0; t < WOB_TARGETS; t++) if (Math.round(cur[w.dests[t]]) > 0) depth = Math.max(depth, Math.abs(cur[w.amts[t]]), Math.abs(cur[w.offs[t]]));
     if (depth * master <= 1e-4) return;
     // HZ: a free rate, as a cycle in beats at the tempo (so the rest runs the same way); SYNC: a note value
     const cycle = cur[w.free] > 0.5 ? tempo / 60 / Math.max(0.01, cur[w.hz]) : K.WOBBLE_BEATS[Math.round(cur[w.rate])] ?? 0.5;
-    // ONE SHOT: from the note's start, once, then holding the end; otherwise locked to the bar
+    // RETRIGGER (owner's call, 27 Nov, was ONE SHOT): the cycle starts again from every note (not a legato one) and
+    // keeps running; otherwise locked to the bar
     const one = cur[w.oneShot] > 0.5;
-    const n = one ? -1 - note : Math.floor(songBeat / cycle);
-    const p = one ? Math.min(0.99999, Math.max(0, (songBeat - start) / cycle)) : (songBeat - n * cycle) / cycle;
+    const el = Math.max(0, songBeat - start) / cycle, ec = Math.floor(el);
+    const n = one ? -1 - (note * 65536 + ec) : Math.floor(songBeat / cycle);
+    const p = one ? el - ec : (songBeat - n * cycle) / cycle;
     this.live = p;
     // The shape, shifted later in the cycle by the shift setting.
     let q = p - cur[w.phase];

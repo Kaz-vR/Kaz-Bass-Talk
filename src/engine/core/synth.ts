@@ -478,9 +478,11 @@ export class Synth {
     }
     // HYPER's RETRIG: its copies' swings start again
     if (this.cur[P.hyperRetrig] > 0.5) this.hyper.retrig(this.cur[P.hyperUnison]);
-    // the custom LFO's ONE SHOT starts again at every note
-    this.wobStart = this.songBeat;
-    this.wobNote++;
+    // the custom LFOs' RETRIGGER starts again at every note, but not a legato one (as the other LFOs)
+    if (!(this.poly <= 1 && this.cur[P.legato] > 0.5 && this.voices[0].gate)) {
+      this.wobStart = this.songBeat;
+      this.wobNote++;
+    }
     if (this.poly <= 1) {
       this.removeFromStack(note);
       if (this.stackLen < this.stack.length) this.stack[this.stackLen++] = note;

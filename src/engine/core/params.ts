@@ -287,7 +287,7 @@ export const P = {
     on: ix(`grind${n}.on`), filter: ix(`grind${n}.filter`), freq: ix(`grind${n}.freq`), range: ix(`grind${n}.range`),
     rate: ix(`grind${n}.rate`), clock: ix(`grind${n}.clock`), width: ix(`grind${n}.width`), depth: ix(`grind${n}.depth`), dtype: ix(`grind${n}.drive_type`), drive: ix(`grind${n}.drive`), mix: ix(`grind${n}.mix`),
     filterOn: ix(`grind${n}.filter_on`), driveOn: ix(`grind${n}.drive_on`), fLevel: ix(`grind${n}.filter_level`), dLevel: ix(`grind${n}.drive_level`),
-    eqOn: ix(`grind${n}.eq_on`), eqLevel: ix(`grind${n}.eq_level`), eqScale: ix(`grind${n}.eq_scale`),
+    eqOn: ix(`grind${n}.eq_on`), eqLevel: ix(`grind${n}.eq_level`), eqScale: ix(`grind${n}.eq_scale`), eqCount: ix(`grind${n}.eq_count`),
     eq: [1, 2, 3, 4].map((b) => ({ type: ix(`grind${n}.eq_b${b}_type`), freq: ix(`grind${n}.eq_b${b}_freq`), gain: ix(`grind${n}.eq_b${b}_gain`), q: ix(`grind${n}.eq_b${b}_q`) })),
     bellLink: ix(`grind${n}.bell_link`), bellCount: ix(`grind${n}.bell_count`),
     phOn: ix(`grind${n}.phaser_on`), phLevel: ix(`grind${n}.phaser_level`), phNotches: ix(`grind${n}.ph_notches`), phCenter: ix(`grind${n}.ph_center`),

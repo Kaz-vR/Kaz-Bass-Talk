@@ -9606,6 +9606,18 @@
       "describes": "How narrow the band is (or how steep a shelf, how resonant a pass filter). Scroll over the graph with its ball selected."
     },
     {
+      "id": "grind1.eq_count",
+      "label": "Grind 1 EQ bands",
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind1",
+      "describes": "How many of the EQ's four bands are used (1-4)."
+    },
+    {
       "id": "grind1.eq_scale",
       "label": "Grind 1 EQ scale",
       "type": "float",
@@ -10513,6 +10525,18 @@
       "unit": "",
       "group": "grind2",
       "describes": "How narrow the band is (or how steep a shelf, how resonant a pass filter). Scroll over the graph with its ball selected."
+    },
+    {
+      "id": "grind2.eq_count",
+      "label": "Grind 2 EQ bands",
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind2",
+      "describes": "How many of the EQ's four bands are used (1-4)."
     },
     {
       "id": "grind2.eq_scale",
@@ -11424,6 +11448,18 @@
       "describes": "How narrow the band is (or how steep a shelf, how resonant a pass filter). Scroll over the graph with its ball selected."
     },
     {
+      "id": "grind3.eq_count",
+      "label": "Grind 3 EQ bands",
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind3",
+      "describes": "How many of the EQ's four bands are used (1-4)."
+    },
+    {
       "id": "grind3.eq_scale",
       "label": "Grind 3 EQ scale",
       "type": "float",
@@ -12331,6 +12367,18 @@
       "unit": "",
       "group": "grind4",
       "describes": "How narrow the band is (or how steep a shelf, how resonant a pass filter). Scroll over the graph with its ball selected."
+    },
+    {
+      "id": "grind4.eq_count",
+      "label": "Grind 4 EQ bands",
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind4",
+      "describes": "How many of the EQ's four bands are used (1-4)."
     },
     {
       "id": "grind4.eq_scale",
@@ -14984,7 +15032,7 @@
       "type": "bool",
       "default": false,
       "group": "wobble",
-      "describes": "ONE SHOT: the shape starts again at every note, runs once at its rate and holds its end until the next note."
+      "describes": "RETRIGGER: the shape starts again from every note (not a legato one, as the other LFOs) and keeps running at its rate; off, it runs locked to the bar."
     },
     {
       "id": "wobble.master",
@@ -18499,7 +18547,7 @@
       "type": "bool",
       "default": false,
       "group": "wobble",
-      "describes": "ONE SHOT: the shape starts again at every note, runs once at its rate and holds its end until the next note."
+      "describes": "RETRIGGER: the shape starts again from every note (not a legato one, as the other LFOs) and keeps running at its rate; off, it runs locked to the bar."
     },
     {
       "id": "wobble2.master",
@@ -22014,7 +22062,7 @@
       "type": "bool",
       "default": false,
       "group": "wobble",
-      "describes": "ONE SHOT: the shape starts again at every note, runs once at its rate and holds its end until the next note."
+      "describes": "RETRIGGER: the shape starts again from every note (not a legato one, as the other LFOs) and keeps running at its rate; off, it runs locked to the bar."
     },
     {
       "id": "wobble3.master",
@@ -25529,7 +25577,7 @@
       "type": "bool",
       "default": false,
       "group": "wobble",
-      "describes": "ONE SHOT: the shape starts again at every note, runs once at its rate and holds its end until the next note."
+      "describes": "RETRIGGER: the shape starts again from every note (not a legato one, as the other LFOs) and keeps running at its rate; off, it runs locked to the bar."
     },
     {
       "id": "wobble4.master",
@@ -27606,6 +27654,18 @@
       "describes": "How narrow the band is (or how steep a shelf, how resonant a pass filter). Scroll over the graph with its ball selected."
     },
     {
+      "id": "grind5.eq_count",
+      "label": "Grind 5 EQ bands",
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind5",
+      "describes": "How many of the EQ's four bands are used (1-4)."
+    },
+    {
       "id": "grind5.eq_scale",
       "label": "Grind 5 EQ scale",
       "type": "float",
@@ -28577,6 +28637,18 @@
       "unit": "",
       "group": "grind6",
       "describes": "How narrow the band is (or how steep a shelf, how resonant a pass filter). Scroll over the graph with its ball selected."
+    },
+    {
+      "id": "grind6.eq_count",
+      "label": "Grind 6 EQ bands",
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind6",
+      "describes": "How many of the EQ's four bands are used (1-4)."
     },
     {
       "id": "grind6.eq_scale",
@@ -29552,6 +29624,18 @@
       "describes": "How narrow the band is (or how steep a shelf, how resonant a pass filter). Scroll over the graph with its ball selected."
     },
     {
+      "id": "grind7.eq_count",
+      "label": "Grind 7 EQ bands",
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind7",
+      "describes": "How many of the EQ's four bands are used (1-4)."
+    },
+    {
       "id": "grind7.eq_scale",
       "label": "Grind 7 EQ scale",
       "type": "float",
@@ -30523,6 +30607,18 @@
       "unit": "",
       "group": "grind8",
       "describes": "How narrow the band is (or how steep a shelf, how resonant a pass filter). Scroll over the graph with its ball selected."
+    },
+    {
+      "id": "grind8.eq_count",
+      "label": "Grind 8 EQ bands",
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "default": 4,
+      "curve": "linear",
+      "unit": "",
+      "group": "grind8",
+      "describes": "How many of the EQ's four bands are used (1-4)."
     },
     {
       "id": "grind8.eq_scale",

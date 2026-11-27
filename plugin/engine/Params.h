@@ -168,7 +168,7 @@ struct ParamIndex {
   struct Slot { int src, dst, amt, on; };
   struct Eq { int type, freq, gain, q; };
   struct Bell { int type, freq, gain, q, range, dir, vrange; };
-  struct GrindStage { int on, filter, freq, range, rate, clock, width, depth, dtype, drive, mix, filterOn, driveOn, dFreq, dWidth, dTone, dDyn, fLevel, dLevel, eqOn, eqLevel, eqScale; Eq eq[4]; Bell bells[4]; int bellLink, bellCount, phOn, phLevel, phNotches, phCenter, phSpread, phAmount, phRate, phClock, phFeedback, phStereo; };
+  struct GrindStage { int on, filter, freq, range, rate, clock, width, depth, dtype, drive, mix, filterOn, driveOn, dFreq, dWidth, dTone, dDyn, fLevel, dLevel, eqOn, eqLevel, eqScale, eqCount; Eq eq[4]; Bell bells[4]; int bellLink, bellCount, phOn, phLevel, phNotches, phCenter, phSpread, phAmount, phRate, phClock, phFeedback, phStereo; };
   int legato, glide, octave, velocity, analog;
   Osc osc[2];
   int strTone, strDecay, accent, ampBend[3], modBend[3], chorusMode;
@@ -288,7 +288,7 @@ struct ParamIndex {
     for (int n = 0; n < 8; n++) {
       const std::string g = "grind" + std::to_string(n + 1) + ".";
       grind[n] = {ix(g + "on"), ix(g + "filter"), ix(g + "freq"), ix(g + "range"), ix(g + "rate"), ix(g + "clock"),
-                  ix(g + "width"), ix(g + "depth"), ix(g + "drive_type"), ix(g + "drive"), ix(g + "mix"), ix(g + "filter_on"), ix(g + "drive_on"), ix(g + "drive_freq"), ix(g + "drive_width"), ix(g + "drive_tone"), ix(g + "drive_dyn"), ix(g + "filter_level"), ix(g + "drive_level"), ix(g + "eq_on"), ix(g + "eq_level"), ix(g + "eq_scale")};
+                  ix(g + "width"), ix(g + "depth"), ix(g + "drive_type"), ix(g + "drive"), ix(g + "mix"), ix(g + "filter_on"), ix(g + "drive_on"), ix(g + "drive_freq"), ix(g + "drive_width"), ix(g + "drive_tone"), ix(g + "drive_dyn"), ix(g + "filter_level"), ix(g + "drive_level"), ix(g + "eq_on"), ix(g + "eq_level"), ix(g + "eq_scale"), ix(g + "eq_count")};
       for (int b = 0; b < 4; b++) {
         const std::string e = g + "eq_b" + std::to_string(b + 1) + "_";
         grind[n].eq[b] = {ix(e + "type"), ix(e + "freq"), ix(e + "gain"), ix(e + "q")};

@@ -9,7 +9,7 @@ import { formatValue } from './params-panel';
 import { DRIVE_FAMILIES, RUIN_RECIPES, recipeParams, stageParams, type RuinStage } from './ruin-recipes';
 import { corrosionTexture, frameTexture, keyGrime, lightGrain, logoWear, panelTexture, woodTexture } from './texture';
 import logoSvg from '../../design/logo.svg?raw';
-import { GRIND_BEAT_NAMES, grindBeat, grindHz, unpackBells, unpackPhaser } from '../engine/core/grind';
+import { GRIND_BEAT_NAMES, crossX, crossY, grindBeat, grindHz, unpackBells, unpackPhaser } from '../engine/core/grind';
 import { BELL_ARCHETYPES, type BellArchetype, rollBells } from './bells-roll';
 import { BANK, bankKey } from '../engine/core/wavetable';
 import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobPointsAt, wobSmoothRadius, wobSmoothTable, wobTableAt, type WobPoint } from '../engine/core/wobshape';
@@ -1429,7 +1429,8 @@ export class SynthView {
       for (const [id, v] of next) if (this.dialLive.get(id) !== v) changed.push(id);
       for (const id of this.dialLive.keys()) if (!next.has(id)) changed.push(id);
       this.dialLive = next;
-      for (const id of changed) for (const f of this.watchers.get(id) ?? []) f();
+      // (the views of a moved dial redraw with its moved value, as the live loops do)
+      if (changed.length) this.live(() => { for (const id of changed) for (const f of this.watchers.get(id) ?? []) f(); });
       requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
@@ -3168,7 +3169,7 @@ export class SynthView {
       const d = x + ph;
       return x >= 1 ? ph : d - Math.floor(d);
     };
-    let hover = -1, drag = -1, curve: number[] = [], heard: number[] = [];
+    let hover = -1, drag = -1, curve: number[] = [], heard: number[] = [], hasRows = false;
     // selected points (a box dragged over empty space picks them; dragging one of them moves them all)
     let sel = new Set<number>();
     let box: { x0: number; y0: number; x1: number; y1: number } | null = null;
@@ -3190,8 +3191,11 @@ export class SynthView {
       // The main line is the shape itself (the points sit on it); each target's own line runs faint with it, as it
       // moves the target (owner's call): depth 100% = on the shape, 0 = flat, -100% = upside down, offset = up / down
       curve = full;
-      const rows = [0, 1, 2].map((t) => ({ dest: String(this.get(WOB_DESTS[t])), a: this.num(WOB_AMTS[t]), o: this.num(WOB_OFFS[t]) })).filter((r) => r.dest !== 'none' && (r.a !== 0 || r.o !== 0));
-      const lines = rows.map((r) => full.map((v) => Math.max(0, Math.min(1, 0.5 + r.a * (v - 0.5) + r.o / 2))));
+      const rows = [0, 1, 2, 3].map((t) => ({ dest: String(this.get(WOB_DESTS[t])), a: this.num(WOB_AMTS[t]), o: this.num(WOB_OFFS[t]) })).filter((r) => r.dest !== 'none' && (r.a !== 0 || r.o !== 0));
+      hasRows = rows.length > 0;
+      // (times the master Depth, as the engine moves them)
+      const M = this.num(`${WP}.master`);
+      const lines = rows.map((r) => full.map((v) => Math.max(0, Math.min(1, 0.5 + M * (r.a * (v - 0.5) + r.o / 2)))));
       // what is heard, for the level bar under the tab: the first target's line
       heard = lines[0] ?? full;
       const drawTargets = () => {
@@ -3271,7 +3275,7 @@ export class SynthView {
       this.wobNows[n - 1] = p !== null && on() && heard.length ? heard[Math.min(N, Math.round(p * N))] : null;
       this.wobOns[n - 1] = on();
       for (const f of this.wobLevelViews) f();
-      if (p === null || !on() || ov.offsetParent === null || !curve.length) return;
+      if (p === null || !on() || !hasRows || ov.offsetParent === null || !curve.length) return;
       const x = X(p), y = Y(curve[Math.min(N, Math.round(p * N))]), col = accentOf(cv);
       og.save();
       og.fillStyle = 'rgba(255,255,255,0.06)';
@@ -3573,7 +3577,7 @@ export class SynthView {
           this.knob(`${WP}.smooth`, 'Smooth', 'lg', { fmt: pct })),
         h('div', 'lfo5-right',
           // ONE SHOT (owner's call): the shape runs once from every note and holds its end
-          h('div', 'lfo5-oneshot', this.toggle(`${WP}.oneshot`, 'ONE SHOT', 'small')),
+          h('div', 'lfo5-oneshot', this.toggle(`${WP}.oneshot`, 'RETRIGGER', 'small')),
           h('div', 'lfo5-shift', h('span', 'k-label', 'Shift'), sPrev, sNext))));
     void lampFor;
 
@@ -4403,7 +4407,9 @@ export class SynthView {
       const [cv, g] = canvas(NW, NH, 'gr-node-cv');
       if (isEq(k)) {
         // an EQ has no type: its footer just names it
-        const foot = h('div', 'gr-node-foot', h('span', 'gr-node-eq', '4-BAND EQ'));
+        const eqLab = h('span', 'gr-node-eq');
+        this.watch([`grind${n}.eq_count`], () => { eqLab.textContent = `${Math.round(this.num(`grind${n}.eq_count`))}-BAND EQ`; });
+        const foot = h('div', 'gr-node-foot', eqLab);
         node.append(head, h('div', 'gr-node-cv-wrap', cv), foot);
       } else if (isPh(k)) {
         // a phaser's footer steps its notch count: ‹ 4 NOTCHES ›
@@ -4517,7 +4523,7 @@ export class SynthView {
     const KIND_KEYS: Record<(typeof KINDS)[number], string[]> = {
       filter: ['filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'filter_level', 'bell_link', 'bell_count', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`))],
       drive: ['drive_type', 'drive', 'mix', 'drive_level', 'drive_freq', 'drive_width', 'drive_tone', 'drive_dyn'],
-      eq: ['eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`))],
+      eq: ['eq_level', 'eq_count', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`))],
       phaser: ['phaser_level', 'ph_notches', 'ph_center', 'ph_spread', 'ph_amount', 'ph_rate', 'ph_clock', 'ph_feedback', 'ph_stereo'],
     };
     const renumber = () => {
@@ -4781,13 +4787,32 @@ export class SynthView {
       const bandSets = [1, 2, 3, 4].map((b) => {
         const bp = `${pre}.eq_b${b}`;
         const passType = () => getParam(`${bp}_type`)!.options!.indexOf(String(this.get(`${bp}_type`))) === 1;
-        const el = h('span', 'eq-set', md(`${bp}_freq`, `${b} Freq`), md(`${bp}_gain`, 'Gain', { disabled: passType, deps: [`${bp}_type`] }), md(`${bp}_q`, 'Q'));
+        // (owner's call, as the filter's bands: "BAND n:" and a small box with the type's picture)
+        const tsel = this.selector(`${bp}_type`);
+        const eqIcon = (t: string) => filterIconPath(t === 'high pass' ? 'low cut 12' : t === 'low pass' ? 'high cut 12' : t);
+        for (const o of tsel.querySelectorAll('option')) o.dataset.icon = eqIcon(o.value);
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        icon.setAttribute('viewBox', '0 0 22 12');
+        icon.setAttribute('class', 'gr-type-icon');
+        const ipath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        icon.append(ipath);
+        this.watch([`${bp}_type`], () => {
+          ipath.setAttribute('d', eqIcon(String(this.get(`${bp}_type`))));
+          tsel.title = `Band ${b} type: ${String(this.get(`${bp}_type`)).toUpperCase()}`;
+        });
+        const tbox = h('div', 'gr-bell-type', tsel, icon);
+        const el = h('span', 'eq-set', h('span', 'gr-band-n', `BAND ${b}:`), tbox, md(`${bp}_freq`, 'Freq'), md(`${bp}_gain`, 'Gain', { disabled: passType, deps: [`${bp}_type`] }), md(`${bp}_q`, 'Q'));
         return el;
       });
       const showBand = () => bandSets.forEach((el, j) => { el.style.display = j === this.ruinEqSel[n - 1] ? '' : 'none'; });
       eqBandViews[n - 1] = showBand;
       showBand();
-      const edials = h('div', 'ob-dials gr-edials', ...bandSets, md(`${pre}.eq_scale`, 'Scale', { fmt: (v) => `${Math.round(v * 100)}%` }));
+      // how many bands (owner's call: as the filter's BANDS box), 1-4
+      const ecount = h('div', 'k uni-dial gr-bcount', this.chip('BANDS', () => this.num(`${pre}.eq_count`), (v) => {
+        this.set(`${pre}.eq_count`, v);
+        if (this.ruinEqSel[n - 1] >= v) { this.ruinEqSel[n - 1] = v - 1; showBand(); }
+      }, 1, 4, [`${pre}.eq_count`], 'How many bands (1-4)'));
+      const edials = h('div', 'ob-dials gr-edials', ecount, md(`${pre}.eq_scale`, 'Scale', { fmt: (v) => `${Math.round(v * 100)}%` }), h('span', 'gr-band-div'), ...bandSets);
       sets[ek] = h('div', `gr-set gr-s${n}`, ehead, edials);
       // the PHASER (owner's pick, option 4): NOTCH box, Center, Spread, Amount, Rate, Feedback, Stereo and its clock
       const pk = 24 + n - 1;
@@ -4828,6 +4853,7 @@ export class SynthView {
       return [freqX(this.num(`${bp}_freq`), W), eqPass(n, b) ? fY(1) : fY(Math.pow(10, (this.num(`${bp}_gain`) * this.num(`grind${n}.eq_scale`)) / 20))];
     };
     const eqBq = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
+    const eqCount = (n: number) => Math.max(1, Math.min(4, Math.round(this.num(`grind${n}.eq_count`))));
     // ---- BELLS: four bands, each a numbered dot (Freq / Gain) and a wing (where it moves: drag its round ends)
     const bellZone = (n: number, b: number) => ruinZone(this.num(`grind${n}.bell${b + 1}_freq`) * this.ruinKey(), this.num(`grind${n}.bell${b + 1}_range`));
     /** Where each bell is: the engine's live positions while a note sounds, its Freq at rest. */
@@ -4838,8 +4864,10 @@ export class SynthView {
       const pos = [0, ...unpackBells(this.grindLiveRes[n - 1])];
       const [l0, h0] = bellZone(n, 0);
       // (moving up down only, band 1's live value is an octave around its Freq, carrying its position)
-      pos[0] = bellDir(n, 0) === 1 ? Math.max(0, Math.min(1, Math.log2(live / fc[0]) + 0.5)) : h0 > l0 * 1.0001 ? Math.log(live / l0) / Math.log(h0 / l0) : 0.5;
-      return { fc: pos.map((p, b) => { if (bellDir(n, b) === 1) return fc[b]; const [lo, hi] = bellZone(n, b); return lo * Math.pow(hi / lo, Math.max(0, Math.min(1, p))); }), pos, live: true };
+      pos[0] = bellDir(n, 0) !== 0 ? Math.max(0, Math.min(1, Math.log2(live / fc[0]) + 0.5)) : h0 > l0 * 1.0001 ? Math.log(live / l0) / Math.log(h0 / l0) : 0.5;
+      // (cross: the position runs along the engine's curve through all four corners)
+      const fcs = pos.map((p, b) => { if (bellDir(n, b) === 1) return fc[b]; const [lo, hi] = bellZone(n, b); return lo * Math.pow(hi / lo, Math.max(0, Math.min(1, bellDir(n, b) === 2 ? crossX(p) : p))); });
+      return { fc: fcs, pos: pos.map((p, b) => (bellDir(n, b) === 2 ? crossY(p) : p)), live: true };
     };
     /** A band's direction: 0 left right, 1 up down, 2 cross (owner's call). */
     const bellDir = (n: number, b: number) => Math.max(0, getParam(`grind${n}.bell${b + 1}_dir`)!.options!.indexOf(String(this.get(`grind${n}.bell${b + 1}_dir`))));
@@ -4986,7 +5014,6 @@ export class SynthView {
         gg.fillStyle = hexA(col, 0.6);
         gg.fillRect(x0, 0, x1 - x0, 2);
         gg.fillStyle = hexA(col, 0.75);
-        !mini && gg.fillText(`DRIVE ${String(this.get(`grind${n}.drive_type`)).toUpperCase()}${bw >= 8.95 ? ' · WHOLE SOUND' : ''}`, x0 + 5, 13);
         // Tone: where it rounds the top off
         const tone = this.num(`grind${n}.drive_tone`);
         if (tone < 0.999) {
@@ -5006,7 +5033,8 @@ export class SynthView {
       // what it adds: the spectrum before (dotted) and after (lit), the new part filled
       if (slotOf(k) < 0) {
         !mini && gg.fillText('Empty chain: add a filter or a drive above.', 16, GH / 2);
-      } else if (t) {
+      } else if (t && ruinSpecPts(t.spec[tk], t.binHz, GW, GH - bm, -100, 0).some(([, y]) => y < GH - bm - 1)) {
+        // (only while there is sound: a spectrum resting on the floor would be a line along the bottom)
         const after = ruinSpecPts(t.spec[tk], t.binHz, GW, GH - bm, -100, 0);
         // the sound before, at its real level (owner's call: no loudness matching), so wherever the box doesn't
         // work (outside a drive's band) the two lines lie on top of each other
@@ -5028,7 +5056,7 @@ export class SynthView {
           gg.restore();
         }
         silver(gg, after, true, col);
-      } else {
+      } else if (!t) {
         gg.fillStyle = '#55555b';
         gg.font = '11px "Space Grotesk", sans-serif';
         !mini && gg.fillText('Play a note: the sound before (dotted) and after this step shows here.', 16, GH / 2 + 40);
@@ -5153,8 +5181,9 @@ export class SynthView {
       }
       // an EQ: its curve on top in white and its four numbered balls, as the FX page's EQ
       if (isEq(k) && stageOn(n) && this.get(`grind${n}.eq_on`)) {
-        const sc = this.num(`grind${n}.eq_scale`), selB = this.ruinEqSel[n - 1];
+        const sc = this.num(`grind${n}.eq_scale`), selB = this.ruinEqSel[n - 1], eqN = eqCount(n);
         for (let b = 0; b < 4; b++) {
+          if (b >= eqN) { eqBq[b].setPeak(1000, 0, 1, FS); continue; }
           const bp = `grind${n}.eq_b${b + 1}`, hz = Math.min(this.num(`${bp}_freq`), FS * 0.45), db = this.num(`${bp}_gain`) * sc, q = this.num(`${bp}_q`), pass = eqPass(n, b);
           const f = eqBq[b];
           if (b === 0) pass ? f.setHighpass(hz, q, FS) : f.setLowShelf(hz, db, FS, q);
@@ -5179,7 +5208,7 @@ export class SynthView {
         gg.beginPath();
         pts.forEach(([x, y], i) => (i ? gg.lineTo(x, y) : gg.moveTo(x, y)));
         gg.stroke();
-        for (let b = 0; b < 4; b++) {
+        for (let b = 0; b < eqN; b++) {
           const [x, y] = eqBall(n, b, GW, fY), hot = b === selB && !mini;
           gg.save();
           gg.shadowColor = col;
@@ -5259,11 +5288,13 @@ export class SynthView {
     lcv.addEventListener('pointerdown', (e) => { lcv.setPointerCapture(e.pointerId); lvDrag(e); });
     lcv.addEventListener('pointermove', (e) => { if (lcv.hasPointerCapture(e.pointerId)) lvDrag(e); });
     lcv.addEventListener('dblclick', () => this.set(lvId(), 0));
-    const drawGraph = () => {
+    // (owner's bug, 27 Nov: drawn now with the set values and now with the LFO's, the graph flickered; every paint
+    // of the RUIN graphs reads the dials where the LFOs have them)
+    const drawGraph = () => this.live(() => {
       paint(gg, GW, GH, this.ruinSel, false);
       drawLevel();
-    };
-    paintThumb = (g, w, hh, k) => paint(g, w, hh, k, true);
+    });
+    paintThumb = (g, w, hh, k) => this.live(() => paint(g, w, hh, k, true));
     // dragging on the graph: the drive's ring (where / how wide) or the filter's ball (Freq / H Range), anywhere on it
     let dragging: 'band' | 'filter' | 'eq' | 'bell' | 'bellRange' | 'bellVRange' | 'ph' | null = null;
     const isBells = (k: number) => kindOf(k) === 'filter' && this.get(`grind${stageOf(k)}.filter`) === 'bells';
@@ -5284,7 +5315,7 @@ export class SynthView {
     const gfY = (mag: number) => eqDbY(GH, 20 * Math.log10(Math.max(mag, 1e-4)));
     const nearBall = (n: number, x: number, y: number) => {
       let best = -1, bd = 16;
-      for (let b = 0; b < 4; b++) {
+      for (let b = 0; b < eqCount(n); b++) {
         const [bx, by] = eqBall(n, b, GW, gfY), d = Math.hypot(x - bx, y - by);
         if (d < bd) { bd = d; best = b; }
       }
@@ -6051,7 +6082,7 @@ export class SynthView {
 
 /** A GRIND stage's parameters (grind<n>.*), in the order a roll snapshot keeps them. */
 const GRIND_KEYS = ['on', 'filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'drive_type', 'drive', 'mix', 'filter_on', 'drive_on', 'filter_level', 'drive_level',
-  'drive_freq', 'drive_width', 'drive_tone', 'eq_on', 'eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`)),
+  'drive_freq', 'drive_width', 'drive_tone', 'eq_on', 'eq_level', 'eq_count', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`)),
   'bell_link', 'bell_count', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`)),
   'phaser_on', 'phaser_level', 'ph_notches', 'ph_center', 'ph_spread', 'ph_amount', 'ph_rate', 'ph_clock', 'ph_feedback', 'ph_stereo'];
 type GrindView = { filter: string; freq: number; range: number; res: number; depth?: number };

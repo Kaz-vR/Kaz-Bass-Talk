@@ -31,14 +31,16 @@ class WobUnit {
     filtDepth = 0;
     const double master = cur[w.master];
     double depth = 0;
-    for (int t = 0; t < WOB_TARGETS; t++) depth = std::fmax(depth, std::fmax(std::fabs(cur[w.amts[t]]), std::fabs(cur[w.offs[t]])));
+    for (int t = 0; t < WOB_TARGETS; t++)
+      if (jsRound(cur[w.dests[t]]) > 0) depth = std::fmax(depth, std::fmax(std::fabs(cur[w.amts[t]]), std::fabs(cur[w.offs[t]])));
     if (depth * master <= 1e-4) return;
     const int ri = (int)jsRound(cur[w.rate]);
     const double cycle = cur[w.free] > 0.5 ? tempo / 60 / std::fmax(0.01, cur[w.hz])
                          : ri >= 0 && ri < WOBBLE_RATE_COUNT ? WOBBLE_BEATS[ri] : 0.5;
     const bool one = cur[w.oneShot] > 0.5;
-    const double nC = one ? -1.0 - note : std::floor(songBeat / cycle);
-    const double p = one ? std::fmin(0.99999, std::fmax(0.0, (songBeat - start) / cycle)) : (songBeat - nC * cycle) / cycle;
+    const double el = std::fmax(0.0, songBeat - start) / cycle, ec = std::floor(el);
+    const double nC = one ? -1.0 - (note * 65536 + ec) : std::floor(songBeat / cycle);
+    const double p = one ? el - ec : (songBeat - nC * cycle) / cycle;
     live = p;
     double q = p - cur[w.phase];
     q -= std::floor(q);

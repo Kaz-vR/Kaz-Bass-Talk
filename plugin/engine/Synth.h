@@ -166,8 +166,10 @@ class Synth {
     }
     // HYPER's RETRIG (as synth.ts)
     if (cur[PI_().hyperRetrig] > 0.5) hyper.retrig(cur[PI_().hyperUnison]);
-    wobStart = songBeat;
-    wobNote++;
+    if (!(poly <= 1 && cur[PI_().legato] > 0.5 && voices[0]->gate)) {
+      wobStart = songBeat;
+      wobNote++;
+    }
     if (poly <= 1) {
       removeFromStack(note);
       if (stackLen < (int)stack.size()) stack[stackLen++] = note;

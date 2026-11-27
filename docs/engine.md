@@ -72,6 +72,12 @@ value (`packWob`, worklet control channels 2 and 11, the plugin's live values 2 
 to the same sound (`migrateWobOffsets`: matrix offset = depth x o, filter / gate offset = o x (1 - |depth|), o the
 old `wobble.off` or +1). Both engines.
 
+### 27 Nov fixes (owner's calls)
+
+- Custom LFOs: a row with no target no longer counts (with every target gone it does nothing). `wobble*.oneshot` is **RETRIGGER**: the cycle restarts from every note and keeps running (was: once, then holding); a legato note (mono, legato on, a key still held) doesn't restart it, as the other LFOs.
+- RUIN EQ: `grind<n>.eq_count` (1-4, default 4): only the first n bands are used.
+- RUIN filter bands on **cross**: the band's position t runs along a curve through all four corners (`crossX` = 0.5 - 0.5 cos 3πt for the frequency, `crossY` = 0.5 + 0.5 sin 2πt for the gain), so random wanders the whole square instead of one diagonal; band 1's live value carries t on up down and cross.
+
 ### Drive types (owner's call, 27 Nov: rebuilt; this replaces the type list in the GRIND paragraph above)
 
 RUIN's drives and the FX page's DRIVE share 17 types (`grind<n>.drive_type`, `dist.type`), in five groups by where they work. Loading a type (menu, ‹ › stepper, or a new drive box) moves the drive band onto its group's range exactly (centre the geometric middle, width log2(hi / lo) octaves; FULL SPECTRUM = 9, the whole sound):

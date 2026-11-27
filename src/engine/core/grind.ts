@@ -45,7 +45,14 @@ export const BT_LC48 = 0, BT_LC12 = 1, BT_LS = 2, BT_BELL = 3, BT_NOTCH = 4, BT_
 /** The old filters back as band types (owner's call): band, comb (Gain = feedback, minus = hollow), phaser (Q = feedback). */
 export const BT_BAND = 8, BT_COMB = 9, BT_PHASER = 10;
 /** A band's direction (`grind<n>.bell<k>_dir`): left right, up down, cross. */
-export const BD_LR = 0, BD_UD = 1;
+export const BD_LR = 0, BD_UD = 1, BD_CROSS = 2;
+/**
+ * CROSS (owner's call, 27 Nov: one path for both made it move only on the diagonal): the band's one position t (0..1)
+ * runs along a curve through all four corners, its frequency 1.5 cycles across (0.5 - 0.5 cos 3πt) and its gain one
+ * (0.5 + 0.5 sin 2πt), so random wanders the whole square; t = 0.5 is the middle. The page draws the same curve.
+ */
+export const crossX = (t: number): number => 0.5 - 0.5 * Math.cos(3 * Math.PI * t);
+export const crossY = (t: number): number => 0.5 + 0.5 * Math.sin(2 * Math.PI * t);
 const BW8_Q = [0.5098, 0.6013, 0.9, 2.5629];
 /** Where the page reads the bells' positions: the live value carries bell 1's Hz, the second packs bells 2-4. */
 export const packBells = (m1: number, m2: number, m3: number): number =>
@@ -867,8 +874,9 @@ export class Grind {
           // its direction (owner's call): left right = its frequency moves, up down = its gain (± half its up down
           // range around its Gain), cross = both, on the same path
           const dir = cur[bp.dir];
-          const bfc = Math.min(dir === BD_UD ? Math.pow(2, Math.max(GZ_LO, Math.min(GZ_HI, bc))) : Math.pow(2, blo + (bhi - blo) * pos), fs * 0.45);
-          const gain = dir === BD_LR ? cur[bp.gain] : Math.max(-18, Math.min(18, cur[bp.gain] + cur[bp.vrange] * (pos - 0.5)));
+          const px = dir === BD_CROSS ? crossX(pos) : pos, py = dir === BD_CROSS ? crossY(pos) : pos;
+          const bfc = Math.min(dir === BD_UD ? Math.pow(2, Math.max(GZ_LO, Math.min(GZ_HI, bc))) : Math.pow(2, blo + (bhi - blo) * px), fs * 0.45);
+          const gain = dir === BD_LR ? cur[bp.gain] : Math.max(-18, Math.min(18, cur[bp.gain] + cur[bp.vrange] * (py - 0.5)));
           s.bM[b] = pos;
           const t = cur[bp.type], q = cur[bp.q], k = 1 / q, A = Math.pow(10, gain / 40), c = s.bC, o = 4 * b;
           if (t !== s.bT[b]) {
@@ -899,7 +907,8 @@ export class Grind {
             default: for (let j = 0; j < 4; j++) s.bK4[o + j] = 1 / (BW8_Q[j] * (j === 3 ? q / 0.7071 : 1));
           }
           // (moving up down only, band 1's live value carries its position: an octave around its Freq, for the page)
-          if (b === 0) s.fcNow = dir === BD_UD ? Math.pow(2, bc + pos - 0.5) : bfc;
+          // (up down and cross: band 1's live value carries its position t, an octave around its Freq, for the page)
+          if (b === 0) s.fcNow = dir !== BD_LR ? Math.pow(2, bc + pos - 0.5) : bfc;
         }
         s.resNow = packBells(s.bM[1], s.bM[2], s.bM[3]);
         s.bN = Math.max(1, Math.min(GRIND_BELLS, Math.round(cur[gp.bellCount])));
@@ -960,7 +969,8 @@ export class Grind {
         for (let b = 0; b < 4; b++) {
           const e = gp.eq[b], o = 4 * b, el = s.eqLast;
           const type = cur[e.type], hz = Math.min(cur[e.freq], fs * 0.45), db = cur[e.gain] * cur[gp.eqScale], q = cur[e.q];
-          s.eqBand[b] = type > 0.5 || Math.abs(db) > 0.01 ? 1 : 0;
+          // (only the first eq_count bands are used)
+          s.eqBand[b] = b < Math.round(cur[gp.eqCount]) && (type > 0.5 || Math.abs(db) > 0.01) ? 1 : 0;
           if (!s.eqBand[b] || (el[o] === type && el[o + 1] === hz && el[o + 2] === db && el[o + 3] === q)) continue;
           el[o] = type;
           el[o + 1] = hz;
