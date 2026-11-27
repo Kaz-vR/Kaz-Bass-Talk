@@ -80,8 +80,10 @@ inline void synth(const std::vector<double>& a, int maxH, float* out, double sca
 
 
 // ---- The wave bank (as wavetable.ts): each new wave a small morph table, keyframes as one cycle in time.
-constexpr int BANK_COUNT = 17;
-constexpr int BANK_KEYS[BANK_COUNT] = {3, 3, 5, 5, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3};
+constexpr int BANK_COUNT = 26;
+constexpr int BANK_KEYS[BANK_COUNT] = {3, 3, 9, 5, 3, 3, 5, 5, 5, 5, 3, 3, 3, 3, 3, 3, 5, 3, 9, 9, 9, 9, 9, 9, 9, 9};
+/** Frames per keyframe step: 4 on the small tables, 2 on the wavetables (as bankFps). */
+constexpr int bankFps(int keys) { return keys >= 8 ? 2 : FRAMES_PER_SEGMENT; }
 
 namespace wt_detail {
 inline double jr(double x) { return std::floor(x + 0.5); }
@@ -111,24 +113,61 @@ inline double voice(double x, int v, double bw, double tilt) {
 inline double bankKey(int w, int kf, double x) {
   using namespace wt_detail;
   auto saw = [](double t) { return 2 * fr(t) - 1; };
+  auto tri = [](double t) { return 1 - 4 * std::fabs(fr(t + 0.25) - 0.5); };
   switch (w) {
-    case 0: { const double g = (double[]){40, 4, 1.4}[kf]; return std::tanh(g * S(x)) / std::tanh(g); }
-    case 1: return saw(x) + (double[]){0, 0.5, 1}[kf] * saw(2 * x);
-    case 2: return saw(x * (double[]){1, 1.6, 2.4, 3.4, 5}[kf]);
-    case 3: return voice(x, (int[]){0, 1, 2, 3, 4}[kf], 1, 0);
-    case 4: return voice(x, (int[]){4, 3, 0}[kf], 2.4, 0.5);
-    case 5: return voice(x, (int[]){3, 2, 0}[kf], 0.8, 0.2);
-    case 6: { const double ks[6] = {1, 5, 9, 14, 21, 28}, b = (double[]){0.3, 0.6, 1}[kf]; double y = 0; for (int i = 0; i < 6; i++) y += std::pow(b, i) / (1 + 0.3 * i) * std::sin(2 * PI * ks[i] * x); return y; }
-    case 7: return 0.8 * S(x) * S((double[]){2, 5, 9}[kf] * x) + 0.2 * S(x);
-    case 8: { const double n = (double[]){32, 8, 3}[kf]; return jr((S(x) + 0.3 * S(3 * x)) * n) / n; }
-    case 9: { const double ks[6] = {1, 4, 8, 12, 16, 24}, b = (double[]){0.2, 0.5, 0.9}[kf]; double y = 0; for (int i = 0; i < 6; i++) y += std::pow(b, i) * std::sin(2 * PI * ks[i] * x); return y; }
-    case 10: { const double p = (double[]){1.6, 1.3, 1}[kf]; return additive(x, 60, [&](int k) { const double a = (k - 3) / 1.5, c = (k - 8) / 3.0; return (1 + 0.8 * std::exp(-(a * a)) + 0.5 * std::exp(-(c * c))) / std::pow((double)k, p); }); }
-    case 11: { const double n = (double[]){0.3, 1, 2}[kf]; return additive(x, 60, [&](int k) { const double a = (k - 7) / 3.0; return (k % 2 == 1 ? 1.0 / k : 0.15 / k) * (1 + n * std::exp(-(a * a))); }); }
-    case 12: { const double h = (double[]){0.05, 0.2, 0.35}[kf]; return S(x) + h * S(2 * x) + 0.4 * h * S(3 * x); }
-    case 13: { const double d = (double[]){1.5, 3, 6}[kf]; return std::tanh(d * (saw(x) + 0.1)) - std::tanh(d * 0.1); }
-    case 14: { const double dr = (double[]){0.5, 1.5, 3}[kf]; return x < 0.5 ? std::exp(-dr * x) : -std::exp(-dr * (x - 0.5)); }
-    case 15: { const double st = (double[]){64, 24, 10}[kf], q = (double[]){24, 8, 4}[kf], xs = std::floor(x * st) / st; return jr((0.6 * saw(xs + 0.5) + 0.4 * S(xs)) * q) / q; }
-    default: { const double g = (double[]){0.8, 1.6, 2.8}[kf]; return std::sin(PI * g * S(x)); }
+    case 0: { static const double G[] = {40, 4, 1.4}; const double g = G[kf]; return std::tanh(g * S(x)) / std::tanh(g); }
+    case 1: { static const double A[] = {0, 0.5, 1}; return saw(x) + A[kf] * saw(2 * x); }
+    case 2: { static const double R[] = {1, 1.5, 2, 2.7, 3.5, 4.5, 6, 8, 11}; return saw(x * R[kf]); }
+    case 3: { static const int V[] = {0, 1, 2, 3, 4}; return voice(x, V[kf], 1, 0); }
+    case 4: { static const int V[] = {4, 3, 0}; return voice(x, V[kf], 2.4, 0.5); }
+    case 5: { static const int V[] = {3, 2, 0}; return voice(x, V[kf], 0.8, 0.2); }
+    case 6: {
+      static const double ks[8] = {1, 5, 9, 14, 21, 28, 35, 44}, B[] = {0.2, 0.4, 0.6, 0.8, 1};
+      double y = 0;
+      for (int i = 0; i < 8; i++) y += std::pow(B[kf], i) * std::sin(2 * PI * ks[i] * x);
+      return y;
+    }
+    case 7: { static const double M[] = {2, 4, 7, 11, 17}; return (0.5 * saw(x) + 0.5 * S(x)) * S(M[kf] * x); }
+    case 8: { static const double N[] = {48, 16, 8, 4, 2}; const double n = N[kf]; return jr((0.6 * saw(x + 0.5) + 0.6 * S(x)) * n) / n; }
+    case 9: {
+      static const double ks[9] = {1, 4, 8, 12, 16, 24, 32, 40, 48}, B[] = {0.15, 0.35, 0.55, 0.75, 1};
+      double y = 0;
+      for (int i = 0; i < 9; i++) y += std::pow(B[kf], i) * std::sin(2 * PI * ks[i] * x);
+      return y;
+    }
+    case 10: { static const double P[] = {1.6, 1.3, 1}; const double p = P[kf]; return additive(x, 60, [&](int k) { const double a = (k - 3) / 1.5, c = (k - 8) / 3.0; return (1 + 0.8 * std::exp(-(a * a)) + 0.5 * std::exp(-(c * c))) / std::pow((double)k, p); }); }
+    case 11: { static const double Nn[] = {0.3, 1, 2}; const double n = Nn[kf]; return additive(x, 60, [&](int k) { const double a = (k - 7) / 3.0; return (k % 2 == 1 ? 1.0 / k : 0.15 / k) * (1 + n * std::exp(-(a * a))); }); }
+    case 12: { static const double H[] = {0.05, 0.2, 0.35}; const double h = H[kf]; return S(x) + h * S(2 * x) + 0.4 * h * S(3 * x); }
+    case 13: { static const double D[] = {1.5, 3, 6}; const double d = D[kf]; return std::tanh(d * (saw(x) + 0.1)) - std::tanh(d * 0.1); }
+    case 14: { static const double D[] = {0.5, 1.5, 3}; const double dr = D[kf]; return x < 0.5 ? std::exp(-dr * x) : -std::exp(-dr * (x - 0.5)); }
+    case 15: { static const double ST[] = {64, 24, 10}, Q[] = {24, 8, 4}; const double st = ST[kf], q = Q[kf], xs = std::floor(x * st) / st; return jr((0.6 * saw(xs + 0.5) + 0.4 * S(xs)) * q) / q; }
+    case 16: { static const double G[] = {0.6, 1.4, 2.4, 3.8, 6}; return std::sin(PI * G[kf] * S(x)); }
+    case 17: {
+      static const double D[] = {1.5, 4, 10};
+      const double d = D[kf];
+      return std::tanh(d * additive(x, 40, [](int k) { return std::fabs(std::sin(PI * k * 0.2)) / k; })) / std::tanh(d);
+    }
+    case 18: {
+      static const double Hh[] = {2, 3, 4, 6, 8, 11, 15, 20, 28};
+      const double h = Hh[kf];
+      return additive(x, 64, [&](int k) { const double a = (k - h) / 1.2; return (1.0 / k) * (1 + 6 * std::exp(-(a * a))) * (k > h ? std::pow(h / k, 3) : 1.0); });
+    }
+    case 19: {
+      static const double C[] = {4, 6, 8, 10, 12, 14, 16, 18, 20};
+      const double c = C[kf];
+      const double y = additive(x, 64, [&](int k) { const double a = (k - c) / 1.2, b = (k - 1.7 * c) / 1.6; return 0.3 / k + std::exp(-(a * a)) + 0.8 * std::exp(-(b * b)); });
+      return std::tanh(1.8 * y);
+    }
+    case 20: { static const int V[] = {3, 4, 3, 0, 1, 2, 1, 0, 3}; return std::tanh(3 * voice(x, V[kf], 0.7, 0)) / std::tanh(3.0); }
+    case 21: { static const double G[] = {0.25, 0.6, 1, 1.6, 2.4, 3.4, 4.6, 6, 8}; return std::sin(0.5 * PI * G[kf] * tri(x)); }
+    case 22: { static const int Nn[] = {1, 2, 3, 4, 6, 8, 12, 16, 24}; return additive(x, Nn[kf], [](int k) { return 1 / std::sqrt((double)k); }); }
+    case 23: {
+      static const double ST[] = {256, 128, 64, 40, 24, 16, 10, 6, 4}, Q[] = {256, 64, 32, 16, 8, 6, 4, 3, 2};
+      const double st = ST[kf], q = Q[kf], xs = std::floor(x * st) / st;
+      return jr((0.5 * saw(xs + 0.5) + 0.7 * S(xs)) * q) / q;
+    }
+    case 24: { const double ph = (kf * PI) / 4; return additive(x, 80, [&](int k) { return (0.5 + 0.5 * std::cos((2 * PI * k) / 6 + ph)) / std::pow((double)k, 0.6); }); }
+    default: { static const int V[] = {0, 1, 2, 3, 4, 3, 1, 0, 2}; return voice(x, V[kf], 0.6, 0); }
   }
 }
 
@@ -138,7 +177,7 @@ struct BankLayout {
     int f = FRAME_COUNT;
     for (int w = 0; w < BANK_COUNT; w++) {
       frame0[w] = f;
-      frames[w] = (BANK_KEYS[w] - 1) * FRAMES_PER_SEGMENT + 1;
+      frames[w] = (BANK_KEYS[w] - 1) * bankFps(BANK_KEYS[w]) + 1;
       f += frames[w];
     }
     total = f;
@@ -172,8 +211,9 @@ inline void buildBank(std::vector<float>& data) {
     }
     std::vector<double> xr(TABLE_SIZE), xi(TABLE_SIZE);
     for (int f = 0; f < BANK_LAYOUT.frames[w]; f++) {
-      const int seg = std::min(keys - 2, (int)std::floor((double)f / FRAMES_PER_SEGMENT));
-      const double t = (double)f / FRAMES_PER_SEGMENT - seg;
+      const int fps = bankFps(keys);
+      const int seg = std::min(keys - 2, (int)std::floor((double)f / fps));
+      const double t = (double)f / fps - seg;
       for (int k = 0; k < TABLE_SIZE; k++) {
         xr[k] = kr[seg][k] * (1 - t) + kr[seg + 1][k] * t;
         xi[k] = ki[seg][k] * (1 - t) + ki[seg + 1][k] * t;

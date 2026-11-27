@@ -334,13 +334,15 @@ function bankAt(b: number, x: number, s: number): number {
 /** The oscillators' waves in the menu (owner's pick): six columns by what the sound is. */
 const WAVE_GROUPS: [string, string[]][] = [
   ['CLASSICS', ['sine', 'triangle', 'saw', 'pulse', 'square']],
-  ['RICH', ['pwm_saw', 'double saw', 'sync saw', 'wavetable']],
+  ['RICH', ['pwm_saw', 'double saw', 'wavetable']],
   ['VOCAL', ['vowel', 'choir', 'talk']],
   ['METAL', ['bell', 'ring', 'digital', 'glass']],
-  ['ORGANIC', ['string', 'bowed', 'reed', 'breath']],
+  ['ORGANIC', ['string', 'bowed', 'reed', 'breath', 'electric guitar']],
   ['WORN', ['tape saw', 'cassette pulse', 'lofi sample', 'broken sine']],
+  // (owner's call: real wavetables, made to be scanned with Shape)
+  ['WAVETABLE', ['acid', 'scream', 'growl', 'fold', 'harmonic', 'sync saw', 'crush', 'spectral', 'formant scan']],
 ];
-const WAVE_LABEL: Record<string, string> = { pwm_saw: 'PWM SAW', wavetable: 'MORPH' };
+const WAVE_LABEL: Record<string, string> = { pwm_saw: 'PWM SAW', wavetable: 'MORPH', 'sync saw': 'SYNC SWEEP', 'electric guitar': 'E-GUITAR' };
 /** The waves that use the Shape dial as their position (the wave bank's and the morph table). */
 const SHAPE_WT = new Set(['wavetable', ...BANK.map((q) => q.name)]);
 /** A wave's small picture for the menu (22 x 12, one cycle at the middle of its Shape). */

@@ -122,35 +122,63 @@ function voice(x: number, v: number, bw: number, tilt: number): number {
   });
 }
 
-/** The bank's waves by name: how many keyframes, and keyframe kf's sample at x. */
+/** The bank's waves by name: how many keyframes, and keyframe kf's sample at x. Tables of 8 keyframes and more are
+ * real wavetables, made to be scanned (owner's call): two frames per step instead of four. */
 export const BANK: { name: string; keys: number }[] = [
-  { name: 'square', keys: 3 }, { name: 'double saw', keys: 3 }, { name: 'sync saw', keys: 5 }, { name: 'vowel', keys: 5 },
-  { name: 'choir', keys: 3 }, { name: 'talk', keys: 3 }, { name: 'bell', keys: 3 }, { name: 'ring', keys: 3 },
-  { name: 'digital', keys: 3 }, { name: 'glass', keys: 3 }, { name: 'bowed', keys: 3 }, { name: 'reed', keys: 3 },
+  { name: 'square', keys: 3 }, { name: 'double saw', keys: 3 }, { name: 'sync saw', keys: 9 }, { name: 'vowel', keys: 5 },
+  { name: 'choir', keys: 3 }, { name: 'talk', keys: 3 }, { name: 'bell', keys: 5 }, { name: 'ring', keys: 5 },
+  { name: 'digital', keys: 5 }, { name: 'glass', keys: 5 }, { name: 'bowed', keys: 3 }, { name: 'reed', keys: 3 },
   { name: 'breath', keys: 3 }, { name: 'tape saw', keys: 3 }, { name: 'cassette pulse', keys: 3 }, { name: 'lofi sample', keys: 3 },
-  { name: 'broken sine', keys: 3 },
+  { name: 'broken sine', keys: 5 }, { name: 'electric guitar', keys: 3 }, { name: 'acid', keys: 9 }, { name: 'scream', keys: 9 },
+  { name: 'growl', keys: 9 }, { name: 'fold', keys: 9 }, { name: 'harmonic', keys: 9 }, { name: 'crush', keys: 9 },
+  { name: 'spectral', keys: 9 }, { name: 'formant scan', keys: 9 },
 ];
+/** Frames per keyframe step: 4 on the small tables, 2 on the wavetables. */
+export const bankFps = (keys: number): number => (keys >= 8 ? 2 : FRAMES_PER_SEGMENT);
 
 export function bankKey(w: number, kf: number, x: number): number {
   const saw = (t: number) => 2 * fr(t) - 1;
+  const tri = (t: number) => 1 - 4 * Math.abs(fr(t + 0.25) - 0.5);
   switch (w) {
     case 0: { const g = [40, 4, 1.4][kf]; return Math.tanh(g * S(x)) / Math.tanh(g); } // square, Shape rounds it
     case 1: return saw(x) + [0, 0.5, 1][kf] * saw(2 * x); // double saw, Shape brings in the octave
-    case 2: return saw(x * [1, 1.6, 2.4, 3.4, 5][kf]); // sync saw, Shape = how hard it is synced
+    case 2: return saw(x * [1, 1.5, 2, 2.7, 3.5, 4.5, 6, 8, 11][kf]); // sync sweep, Shape = how hard it is synced
     case 3: return voice(x, [0, 1, 2, 3, 4][kf], 1, 0); // vowel A E I O U
     case 4: return voice(x, [4, 3, 0][kf], 2.4, 0.5); // choir oo oh ah, soft and wide
     case 5: return voice(x, [3, 2, 0][kf], 0.8, 0.2); // talk o → i → a
-    case 6: { const ks = [1, 5, 9, 14, 21, 28], b = [0.3, 0.6, 1][kf]; let y = 0; for (let i = 0; i < ks.length; i++) y += Math.pow(b, i) / (1 + 0.3 * i) * Math.sin(2 * Math.PI * ks[i] * x); return y; } // bell
-    case 7: return 0.8 * S(x) * S([2, 5, 9][kf] * x) + 0.2 * S(x); // ring
-    case 8: { const n = [32, 8, 3][kf]; return jr((S(x) + 0.3 * S(3 * x)) * n) / n; } // digital steps
-    case 9: { const ks = [1, 4, 8, 12, 16, 24], b = [0.2, 0.5, 0.9][kf]; let y = 0; for (let i = 0; i < ks.length; i++) y += Math.pow(b, i) * Math.sin(2 * Math.PI * ks[i] * x); return y; } // glass
+    case 6: { const ks = [1, 5, 9, 14, 21, 28, 35, 44], b = [0.2, 0.4, 0.6, 0.8, 1][kf]; let y = 0; for (let i = 0; i < ks.length; i++) y += Math.pow(b, i) * Math.sin(2 * Math.PI * ks[i] * x); return y; } // bell, brighter and denser
+    case 7: return (0.5 * saw(x) + 0.5 * S(x)) * S([2, 4, 7, 11, 17][kf] * x); // ring, harsher up the Shape
+    case 8: { const n = [48, 16, 8, 4, 2][kf]; return jr((0.6 * saw(x + 0.5) + 0.6 * S(x)) * n) / n; } // digital steps, down to two
+    case 9: { const ks = [1, 4, 8, 12, 16, 24, 32, 40, 48], b = [0.15, 0.35, 0.55, 0.75, 1][kf]; let y = 0; for (let i = 0; i < ks.length; i++) y += Math.pow(b, i) * Math.sin(2 * Math.PI * ks[i] * x); return y; } // glass
     case 10: { const p = [1.6, 1.3, 1][kf]; return additive(x, 60, (k) => (1 + 0.8 * Math.exp(-(((k - 3) / 1.5) ** 2)) + 0.5 * Math.exp(-(((k - 8) / 3) ** 2))) / Math.pow(k, p)); } // bowed
     case 11: { const n = [0.3, 1, 2][kf]; return additive(x, 60, (k) => (k % 2 === 1 ? 1 / k : 0.15 / k) * (1 + n * Math.exp(-(((k - 7) / 3) ** 2)))); } // reed
     case 12: { const h = [0.05, 0.2, 0.35][kf]; return S(x) + h * S(2 * x) + 0.4 * h * S(3 * x); } // breath: a soft, flute-like tone, Shape brighter
     case 13: { const d = [1.5, 3, 6][kf]; return Math.tanh(d * (saw(x) + 0.1)) - Math.tanh(d * 0.1); } // tape saw
     case 14: { const dr = [0.5, 1.5, 3][kf]; return x < 0.5 ? Math.exp(-dr * x) : -Math.exp(-dr * (x - 0.5)); } // cassette pulse, sagging
     case 15: { const st = [64, 24, 10][kf], q = [24, 8, 4][kf], xs = Math.floor(x * st) / st; return jr((0.6 * saw(xs + 0.5) + 0.4 * S(xs)) * q) / q; } // lofi sample
-    default: { const g = [0.8, 1.6, 2.8][kf]; return Math.sin(Math.PI * g * S(x)); } // broken sine, folded
+    case 16: { const g = [0.6, 1.4, 2.4, 3.8, 6][kf]; return Math.sin(Math.PI * g * S(x)); } // broken sine, folded further
+    case 17: { // electric guitar: a string plucked near the bridge through an amp, Shape = more gain
+      const d = [1.5, 4, 10][kf];
+      return Math.tanh(d * additive(x, 40, (k) => Math.abs(Math.sin(Math.PI * k * 0.2)) / k)) / Math.tanh(d);
+    }
+    case 18: { // acid: a saw with its resonant peak baked in, Shape sweeping the peak up the harmonics
+      const h = [2, 3, 4, 6, 8, 11, 15, 20, 28][kf];
+      return additive(x, 64, (k) => (1 / k) * (1 + 6 * Math.exp(-(((k - h) / 1.2) ** 2))) * (k > h ? Math.pow(h / k, 3) : 1));
+    }
+    case 19: { // scream: two narrow, close formants high up, Shape opening the mouth, pushed hard
+      const c = [4, 6, 8, 10, 12, 14, 16, 18, 20][kf];
+      const y = additive(x, 64, (k) => 0.3 / k + Math.exp(-(((k - c) / 1.2) ** 2)) + 0.8 * Math.exp(-(((k - 1.7 * c) / 1.6) ** 2)));
+      return Math.tanh(1.8 * y);
+    }
+    case 20: return Math.tanh(3 * voice(x, [3, 4, 3, 0, 1, 2, 1, 0, 3][kf], 0.7, 0)) / Math.tanh(3); // growl: a neuro yoi, o-u-o-a-e-i-e-a-o
+    case 21: return Math.sin(0.5 * Math.PI * [0.25, 0.6, 1, 1.6, 2.4, 3.4, 4.6, 6, 8][kf] * tri(x)); // fold: clean to folded hard
+    case 22: { const n = [1, 2, 3, 4, 6, 8, 12, 16, 24][kf]; return additive(x, n, (k) => 1 / Math.sqrt(k)); } // harmonic: partials one by one
+    case 23: { // crush: clean to destroyed, sample rate and bits together
+      const st = [256, 128, 64, 40, 24, 16, 10, 6, 4][kf], q = [256, 64, 32, 16, 8, 6, 4, 3, 2][kf], xs = Math.floor(x * st) / st;
+      return jr((0.5 * saw(xs + 0.5) + 0.7 * S(xs)) * q) / q;
+    }
+    case 24: { const ph = (kf * Math.PI) / 4; return additive(x, 80, (k) => (0.5 + 0.5 * Math.cos((2 * Math.PI * k) / 6 + ph)) / Math.pow(k, 0.6)); } // spectral: a moving comb
+    default: return voice(x, [0, 1, 2, 3, 4, 3, 1, 0, 2][kf], 0.6, 0); // formant scan: a long sweep through the vowels
   }
 }
 
@@ -161,8 +189,8 @@ export const BANK_FRAMES: number[] = [];
   let f = FRAME_COUNT;
   for (const b of BANK) {
     BANK_FRAME0.push(f);
-    BANK_FRAMES.push((b.keys - 1) * FRAMES_PER_SEGMENT + 1);
-    f += (b.keys - 1) * FRAMES_PER_SEGMENT + 1;
+    BANK_FRAMES.push((b.keys - 1) * bankFps(b.keys) + 1);
+    f += (b.keys - 1) * bankFps(b.keys) + 1;
   }
 }
 export const TOTAL_FRAMES = BANK_FRAME0[BANK_FRAME0.length - 1] + BANK_FRAMES[BANK_FRAMES.length - 1];
@@ -196,8 +224,9 @@ function buildBank(data: Float32Array): void {
     }
     const xr = new Float64Array(TABLE_SIZE), xi = new Float64Array(TABLE_SIZE);
     for (let f = 0; f < BANK_FRAMES[w]; f++) {
-      const seg = Math.min(keys - 2, Math.floor(f / FRAMES_PER_SEGMENT));
-      const t = f / FRAMES_PER_SEGMENT - seg;
+      const fps = bankFps(keys);
+      const seg = Math.min(keys - 2, Math.floor(f / fps));
+      const t = f / fps - seg;
       for (let k = 0; k < TABLE_SIZE; k++) {
         xr[k] = kr[seg][k] * (1 - t) + kr[seg + 1][k] * t;
         xi[k] = ki[seg][k] * (1 - t) + ki[seg + 1][k] * t;
