@@ -11,6 +11,7 @@ import { corrosionTexture, frameTexture, keyGrime, lightGrain, logoWear, panelTe
 import logoSvg from '../../design/logo.svg?raw';
 import { GRIND_BEAT_NAMES, grindBeat, grindHz, unpackBells, unpackPhaser } from '../engine/core/grind';
 import { BELL_ARCHETYPES, type BellArchetype, rollBells } from './bells-roll';
+import { BANK, bankKey } from '../engine/core/wavetable';
 import { WOB_MAX_POINTS, WOB_RANDOM_STEPS, WOB_TABLE, WOB_TEMPLATES, wobPointsAt, wobSmoothRadius, wobSmoothTable, wobTableAt, type WobPoint } from '../engine/core/wobshape';
 import { toHex } from './color';
 
@@ -304,8 +305,89 @@ function waveShape(wave: string, x: number, pw: number, wt: number): number {
       return frames[i] * (1 - f) + frames[i + 1] * f;
     }
     case 'string': return Math.exp(-3 * x) * Math.sin(2 * Math.PI * 3 * x) * (1 - 2 * ((x * 7) % 1) * 0.3);
-    default: return saw;
+    case 'supersaw': return saw;
+    default: {
+      // a bank wave (owner's call): its keyframes as the engine has them, Shape between them, scaled to the print
+      const b = BANK.findIndex((q) => q.name === wave);
+      if (b < 0) return saw;
+      return 0.85 * bankAt(b, x, wt);
+    }
   }
+}
+
+/** A bank wave's cycle at x for Shape s (0..1), between its keyframes, centred and normalised to ±1. */
+const bankNorm = new Map<string, { peak: number; mean: number }>();
+function bankAt(b: number, x: number, s: number): number {
+  const keys = BANK[b].keys, pos = Math.max(0, Math.min(1, s)) * (keys - 1), i = Math.min(keys - 2, Math.floor(pos)), f = pos - i;
+  const at = (xx: number) => bankKey(b, i, xx) * (1 - f) + bankKey(b, i + 1, xx) * f;
+  const key = `${b}:${Math.round(s * 64)}`;
+  let nm = bankNorm.get(key);
+  if (!nm) {
+    let mean = 0, peak = 0;
+    for (let n = 0; n < 128; n++) mean += at(n / 128) / 128;
+    for (let n = 0; n < 128; n++) peak = Math.max(peak, Math.abs(at(n / 128) - mean));
+    nm = { peak: peak || 1, mean };
+    bankNorm.set(key, nm);
+  }
+  return (at(x) - nm.mean) / nm.peak;
+}
+
+/** The oscillators' waves in the menu (owner's pick): six columns by what the sound is. */
+const WAVE_GROUPS: [string, string[]][] = [
+  ['CLASSICS', ['sine', 'triangle', 'saw', 'pulse', 'square']],
+  ['RICH', ['pwm_saw', 'supersaw', 'double saw', 'sync saw', 'wavetable']],
+  ['VOCAL', ['vowel', 'choir', 'talk']],
+  ['METAL', ['bell', 'ring', 'digital', 'glass']],
+  ['ORGANIC', ['string', 'bowed', 'reed', 'breath']],
+  ['WORN', ['tape saw', 'cassette pulse', 'lofi sample', 'broken sine']],
+];
+const WAVE_LABEL: Record<string, string> = { pwm_saw: 'PWM SAW', wavetable: 'MORPH' };
+/** The waves that use the Shape dial as their position (the wave bank's, the morph table, supersaw and breath). */
+const SHAPE_WT = new Set(['wavetable', 'supersaw', ...BANK.map((q) => q.name)]);
+/** A wave's small picture for the menu (22 x 12, one cycle at the middle of its Shape). */
+function waveIconPath(wave: string): string {
+  const W = 22, H = 12, N = 44, ys: number[] = [];
+  for (let i = 0; i <= N; i++) ys.push(waveShape(wave, i / N, 0.3, 0.5));
+  const peak = Math.max(...ys.map(Math.abs)) || 1;
+  return ys.map((y, i) => `${i ? 'L' : 'M'}${((i / N) * W).toFixed(1)},${(H / 2 - (y / peak) * (H / 2 - 1)).toFixed(1)}`).join('');
+}
+
+/** The main filter's types in the menu (owner's pick): four columns by what they do. */
+const FILTER_GROUPS: [string, string[]][] = [
+  ['CLASSICS', ['lowpass', 'lowpass 12', 'highpass', 'bandpass', 'notch']],
+  ['VINTAGE', ['sem', 'diode', 'ms-20', 'lpg']],
+  ['VOCAL', ['formant', 'talk']],
+  ['SPECIAL', ['comb', 'phaser', 'ring', 'decimate']],
+];
+const FILTER_LABEL: Record<string, string> = { lowpass: 'LOW-PASS 24', 'lowpass 12': 'LOW-PASS 12', highpass: 'HIGH-PASS', bandpass: 'BAND-PASS', diode: '303 DIODE', lpg: 'LOW-PASS GATE', sem: 'SEM', 'ms-20': 'MS-20' };
+/** A main filter type's small picture (22 x 12): its response, low on the left. */
+function mainFilterIconPath(type: string): string {
+  const W = 22, H = 12, N = 60, ys: number[] = [];
+  const sig = (z: number) => 1 / (1 + Math.exp(-z));
+  for (let i = 0; i <= N; i++) {
+    const x = i / N, d = x - 0.5;
+    let y: number;
+    switch (type) {
+      case 'lowpass': y = sig((0.62 - x) * 30) + 0.35 * Math.exp(-(((x - 0.6) / 0.04) ** 2)); break;
+      case 'lowpass 12': y = sig((0.62 - x) * 12); break;
+      case 'highpass': y = sig((x - 0.38) * 30) + 0.35 * Math.exp(-(((x - 0.4) / 0.04) ** 2)); break;
+      case 'bandpass': y = Math.exp(-((d / 0.12) ** 2)); break;
+      case 'notch': y = 1 - Math.exp(-((d / 0.05) ** 2)); break;
+      case 'sem': y = sig((0.62 - x) * 12) + 0.25 * Math.exp(-(((x - 0.6) / 0.06) ** 2)); break;
+      case 'diode': y = sig((0.6 - x) * 24) + 0.6 * Math.exp(-(((x - 0.6) / 0.03) ** 2)); break;
+      case 'ms-20': y = sig((0.6 - x) * 14) + 0.8 * Math.exp(-(((x - 0.6) / 0.025) ** 2)); break;
+      case 'lpg': y = sig((0.5 - x) * 8) * 0.9; break;
+      case 'formant': y = 0.15 + 0.9 * Math.exp(-(((x - 0.25) / 0.05) ** 2)) + 0.6 * Math.exp(-(((x - 0.55) / 0.05) ** 2)) + 0.35 * Math.exp(-(((x - 0.8) / 0.05) ** 2)); break;
+      case 'talk': y = 0.15 + 0.7 * Math.exp(-(((x - 0.35) / 0.06) ** 2)) + 0.8 * Math.exp(-(((x - 0.65) / 0.06) ** 2)); break;
+      case 'comb': y = 0.55 + 0.45 * Math.cos(x * Math.PI * 10); break;
+      case 'phaser': y = 1 - 0.85 * Math.exp(-(((x - 0.35) / 0.035) ** 2)) - 0.85 * Math.exp(-(((x - 0.65) / 0.035) ** 2)); break;
+      case 'ring': y = 0.5 + 0.45 * Math.sin(x * Math.PI * 6) * Math.sin(x * Math.PI * 17); break;
+      default: y = Math.floor(x * 6) / 6 * 0.4 + 0.5 * (1 - x * 0.5); // decimate: steps
+    }
+    ys.push(y);
+  }
+  const top = Math.max(...ys), bot = Math.min(...ys, 0);
+  return ys.map((y, i) => `${i ? 'L' : 'M'}${((i / N) * W).toFixed(1)},${(H - 1 - ((y - bot) / (top - bot || 1)) * (H - 2)).toFixed(1)}`).join('');
 }
 
 /**
@@ -1792,6 +1874,11 @@ export class SynthView {
         case 'diode': return [['lp', fc, 0.6 + res * 4], ['lp', fc * 1.6, 0.6]];
         case 'lpg': return [['lp', fc, 0.7 + res * 2]];
         case 'sem': return [['lp', fc, 1 / (1.9 * (1 - res) + 0.12)]];
+        case 'lowpass 12': return [['lp', fc, 1 / (1.414 * (1 - res) + 0.05)]];
+        case 'ms-20': return [['lp', fc, 1 / (2 * (1 - res) + 0.02)]];
+        case 'phaser': return [['notch', fc * 0.6, 1.5 + res * 4], ['notch', fc * 1.7, 1.5 + res * 4]];
+        case 'decimate': return [['lp', fc * 0.5, 0.7]];
+        case 'ring': return 'comb';
         case 'highpass': return [['hp', fc, 0.54], ['hp', fc, 1.31 + res * 5]];
         case 'bandpass': return [['bp', fc, 1 + res * 6], ['bp', fc, 1 + res * 6]];
         case 'notch': return [['notch', fc, 0.7 + res * 4]];
@@ -2060,8 +2147,11 @@ export class SynthView {
     // Shape = pulse width on pulse / pwm saw, position on the wavetable, dimmed otherwise.
     const pw = this.knob(`${o}.pulse_width`, 'Shape', 'lg', { disabled: () => !['pulse', 'pwm_saw'].includes(String(this.get(`${o}.wave`))), deps: [`${o}.wave`] });
     const wt = this.knob(`${o}.wt_pos`, 'Shape', 'lg');
+    // the wave menu (owner's pick): six columns by what the sound is, a small picture each
+    const waveSel = this.selector(`${o}.wave`, { groups: WAVE_GROUPS, only: true, label: (v) => WAVE_LABEL[v] ?? v.replace(/_/g, ' ') });
+    for (const op of waveSel.querySelectorAll('option')) op.dataset.icon = waveIconPath(op.value);
     this.watch([`${o}.wave`], () => {
-      const isWt = String(this.get(`${o}.wave`)) === 'wavetable';
+      const isWt = SHAPE_WT.has(String(this.get(`${o}.wave`)));
       wt.style.display = isWt ? '' : 'none';
       pw.style.display = isWt ? 'none' : '';
     });
@@ -2069,7 +2159,7 @@ export class SynthView {
     return this.obox(n === 1 ? 'OSC A' : 'OSC B', `c-src osc box-osc${n === 1 ? 'a' : 'b'}`, {
       power: (el) => this.levelPower(`${o}.level`, el),
       corner: n === 2 ? [this.toggle('osc2.sync', 'Sync', 'small')] : [],
-      head: [this.selector(`${o}.wave`), h('div', 'ob-chips',
+      head: [waveSel, h('div', 'ob-chips',
         this.chip('OCT', oct, (v) => setSemi(12 * v + sem()), -2, 2, [`${o}.semi`], 'Octave'),
         this.chip('SEM', sem, (v) => setSemi(12 * oct() + v), -11, 11, [`${o}.semi`], 'Semitones'),
         this.chip('FIN', () => this.num(`${o}.fine`), (v) => this.set(`${o}.fine`, v), -100, 100, [`${o}.fine`], 'Fine tune (cents)'),
@@ -2256,9 +2346,12 @@ export class SynthView {
       accent.style.display = t === 'diode' ? '' : 'none';
       vowel.style.display = t === 'formant' ? '' : 'none';
     });
+    // the filter menu (owner's pick): four columns by what they do, a small picture each
+    const filterSel = this.selector('filter.type', { groups: FILTER_GROUPS, only: true, label: (v) => FILTER_LABEL[v] ?? v });
+    for (const op of filterSel.querySelectorAll('option')) op.dataset.icon = mainFilterIconPath(op.value);
     return this.obox('FILTER', 'c-flt main-filter box-flt', {
       power: (el) => this.boolPower('filter.on', el),
-      head: [this.selector('filter.type'), this.keyTrack()],
+      head: [filterSel, this.keyTrack()],
       print: this.filterPrint(PRINT_W, PRINT_H),
       dials: [routes, h('div', 'envn-stack', envAmt), cutoff, this.knob('filter.resonance', 'Res', 'lg'), drive],
       corner: [accent, vowel],
