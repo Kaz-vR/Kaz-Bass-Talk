@@ -1910,8 +1910,6 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 
 /* the top bar sits above the page's boxes, so the preset menu it opens is seen (owner's bug, 27 Nov: it opened under them) */
 .v2 .v2-top { z-index: 100; overflow: visible; }
-/* the wood's own brown under its generated picture, so it is never white if the picture is missing (owner's bug, 27 Nov) */
-.v2 .wood-l, .v2 .wood-r { background-color: #42201a; }
 
 /* the darkening baked into the wood's picture (texture.ts): no filter on the cheeks */
 .v2.wood-baked .wood { filter: none; }
