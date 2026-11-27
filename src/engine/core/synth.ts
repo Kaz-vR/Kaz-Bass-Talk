@@ -234,6 +234,9 @@ export class Synth {
   private width = 1;
   private widthStep = 0;
   private widthTarget = 1;
+  /** Pan (whole sound) and Pan Sub: equal-power balances, glided across a block. */
+  private readonly panG = new Float64Array([1, 1, 1, 1]);
+  private readonly panStep = new Float64Array(4);
   private readonly hcL = new Biquad();
   private readonly hcR = new Biquad();
   private highcutOn = false;
@@ -959,6 +962,11 @@ export class Synth {
     this.delayMix = clamp(cur[P.delayMix] + dst[K.D_DELAY_MIX], 0, 1);
     this.widthTarget = clamp(1 + dst[K.D_WIDTH], 0, 2);
     this.widthStep = (this.widthTarget - this.width) / BLOCK;
+    for (let k = 0; k < 2; k++) {
+      const pa = ((clamp(dst[k === 0 ? K.D_PAN : K.D_PAN_SUB], -1, 1) + 1) * Math.PI) / 4;
+      this.panStep[2 * k] = (Math.SQRT2 * Math.cos(pa) - this.panG[2 * k]) / BLOCK;
+      this.panStep[2 * k + 1] = (Math.SQRT2 * Math.sin(pa) - this.panG[2 * k + 1]) / BLOCK;
+    }
 
     // FX filters: only recompute coefficients when values move.
     const lf = this.lastFx;
@@ -1245,12 +1253,17 @@ export class Synth {
       }
 
       // The clean sub joins here, after every effect, before the output's safety stages.
-      l += sub;
-      r += sub;
+      const pg = this.panG, ps = this.panStep;
+      for (let k = 0; k < 4; k++) pg[k] += ps[k];
+      l += sub * pg[2];
+      r += sub * pg[3];
       if (texDirect) {
         l += texL;
         r += texR;
       }
+      // Pan: the whole sound (sub and noise included)
+      l *= pg[0];
+      r *= pg[1];
 
 
       // The custom LFOs' filter and gate, ~2 ms per step.

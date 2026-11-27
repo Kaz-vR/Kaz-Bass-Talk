@@ -71,6 +71,7 @@ struct OscState {
   int baseA = 0, baseB = 0, baseSaw = 0, tsize = TABLE_SIZE;
   double frac = 0, pw = 0.5, lastSpread = -1;
   int lastVoices = -1;
+  double pL = 1, pR = 1, pLStep = 0, pRStep = 0;  // Pan A / B (as voice.ts)
 };
 
 class Voice {
@@ -392,6 +393,12 @@ class Voice {
         o.lastSpread = spread;
         o.lastVoices = voices;
       }
+      {
+        const double pv = clampd(dst[n == 0 ? D_PAN_A : D_PAN_B] + dst[D_PAN_AB], -1, 1);
+        const double pa = ((pv + 1) * PI) / 4;
+        o.pLStep = (SQRT2 * std::cos(pa) - o.pL) / CONTROL_BLOCK;
+        o.pRStep = (SQRT2 * std::sin(pa) - o.pR) / CONTROL_BLOCK;
+      }
       const double level = clampd(cur[op.level] + dst[n == 0 ? D_OSC1_LEVEL : D_OSC2_LEVEL] + dst[D_OSC12_LEVEL], 0, 1);
       if (o.wave == WAVE_STRING) {
         o.gain = level;
@@ -544,19 +551,26 @@ class Voice {
       const double env = ampEnv.tick();
       modEnv.tick();
 
+      o1.pL += o1.pLStep;
+      o1.pR += o1.pRStep;
+      o2.pL += o2.pLStep;
+      o2.pR += o2.pRStep;
       if (o1.gain > 0 && o1.wave == WAVE_STRING) {
         const double s = specialOsc(0) * o1.gain;
-        l += s;
-        r += s;
+        l += s * o1.pL;
+        r += s * o1.pR;
       } else if (o1.gain > 0) {
+        double tl = 0, tr = 0;
         for (int j = 0; j < o1.voices; j++) {
           double ph = o1.phase[j] + o1.inc[j];
           ph -= std::floor(ph);
           o1.phase[j] = ph;
           const double s = oscSample(o1, ph) * o1.gain;
-          l += s * o1.panL[j];
-          r += s * o1.panR[j];
+          tl += s * o1.panL[j];
+          tr += s * o1.panR[j];
         }
+        l += tl * o1.pL;
+        r += tr * o1.pR;
       }
       if (oscF[0].active) {
         l = oscF[0].process(l, 0);
@@ -571,8 +585,8 @@ class Voice {
       if (sepB) l = r = 0;
       if (o2.gain > 0 && o2.wave == WAVE_STRING) {
         const double s = specialOsc(1) * o2.gain;
-        l += s;
-        r += s;
+        l += s * o2.pL;
+        r += s * o2.pR;
       } else if (o2.gain > 0 && syncOn) {
         double mp = syncPhase + syncInc;
         const bool wrapped = mp >= 1;
@@ -582,6 +596,7 @@ class Voice {
           x = mp / syncInc;
         }
         syncPhase = mp;
+        double tl = 0, tr = 0;
         for (int j = 0; j < o2.voices; j++) {
           const double inc = o2.inc[j];
           double ph = o2.phase[j] + inc;
@@ -599,18 +614,23 @@ class Voice {
           const double now = oscSample(o2, ph) + corr;
           const double s = o2.held[j] * o2.gain;
           o2.held[j] = now;
-          l += s * o2.panL[j];
-          r += s * o2.panR[j];
+          tl += s * o2.panL[j];
+          tr += s * o2.panR[j];
         }
+        l += tl * o2.pL;
+        r += tr * o2.pR;
       } else if (o2.gain > 0) {
+        double tl = 0, tr = 0;
         for (int j = 0; j < o2.voices; j++) {
           double ph = o2.phase[j] + o2.inc[j];
           if (ph >= 1) ph -= 1;
           o2.phase[j] = ph;
           const double s = oscSample(o2, ph) * o2.gain;
-          l += s * o2.panL[j];
-          r += s * o2.panR[j];
+          tl += s * o2.panL[j];
+          tr += s * o2.panR[j];
         }
+        l += tl * o2.pL;
+        r += tr * o2.pR;
       }
       double byL = 0, byR = 0;
       if (sepB) {

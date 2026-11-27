@@ -82,6 +82,11 @@ interface OscState {
   /** Hard sync: the slave's previous sample, held back one sample so a reset can be smoothed on both sides (polyBLEP). */
   held: Float64Array;
   driftTarget: Float64Array;
+  /** Pan A / B (+ A+B): the oscillator's equal-power balance, glided per sample across a control block. */
+  pL: number;
+  pR: number;
+  pLStep: number;
+  pRStep: number;
 }
 
 function makeOsc(): OscState {
@@ -92,6 +97,7 @@ function makeOsc(): OscState {
     panR: new Float64Array(MAX_UNISON),
     voices: 1, gain: 0, wave: WAVE_SAW, baseA: 0, baseB: 0, baseSaw: 0, tsize: 2048, frac: 0, pw: 0.5, lastSpread: -1, lastVoices: -1,
     drift: new Float64Array(MAX_UNISON), driftTarget: new Float64Array(MAX_UNISON), held: new Float64Array(MAX_UNISON),
+    pL: 1, pR: 1, pLStep: 0, pRStep: 0,
   };
 }
 
@@ -583,6 +589,12 @@ export class Voice {
         o.lastSpread = spread;
         o.lastVoices = voices;
       }
+      {
+        const pv = clamp(dst[n === 0 ? K.D_PAN_A : K.D_PAN_B] + dst[K.D_PAN_AB], -1, 1);
+        const pa = ((pv + 1) * Math.PI) / 4;
+        o.pLStep = (Math.SQRT2 * Math.cos(pa) - o.pL) / CONTROL_BLOCK;
+        o.pRStep = (Math.SQRT2 * Math.sin(pa) - o.pR) / CONTROL_BLOCK;
+      }
       const level = clamp(cur[op.level] + dst[n === 0 ? D.OSC1_LEVEL : D.OSC2_LEVEL] + dst[K.D_OSC12_LEVEL], 0, 1);
       if (o.wave === WAVE_STRING) {
         // Single-voice oscillators: unison doesn't apply.
@@ -987,20 +999,27 @@ export class Voice {
       const env = this.ampEnv.tick();
       this.modEnv.tick();
 
-      // Oscillators (band-limited at the base rate).
+      // Oscillators (band-limited at the base rate), each through its Pan.
+      o1.pL += o1.pLStep;
+      o1.pR += o1.pRStep;
+      o2.pL += o2.pLStep;
+      o2.pR += o2.pRStep;
       if (o1.gain > 0 && o1.wave === WAVE_STRING) {
         const s = this.specialOsc(0) * o1.gain;
-        l += s;
-        r += s;
+        l += s * o1.pL;
+        r += s * o1.pR;
       } else if (o1.gain > 0) {
+        let tl = 0, tr = 0;
         for (let j = 0; j < o1.voices; j++) {
           let ph = o1.phase[j] + o1.inc[j];
           ph -= Math.floor(ph);
           o1.phase[j] = ph;
           const s = this.oscSample(o1, ph) * o1.gain;
-          l += s * o1.panL[j];
-          r += s * o1.panR[j];
+          tl += s * o1.panL[j];
+          tr += s * o1.panR[j];
         }
+        l += tl * o1.pL;
+        r += tr * o1.pR;
       }
       if (this.oscF[0].active) {
         const f = this.oscF[0];
@@ -1018,8 +1037,8 @@ export class Voice {
       if (sepB) l = r = 0;
       if (o2.gain > 0 && o2.wave === WAVE_STRING) {
         const s = this.specialOsc(1) * o2.gain;
-        l += s;
-        r += s;
+        l += s * o2.pL;
+        r += s * o2.pR;
       } else if (o2.gain > 0 && this.syncOn) {
         // Hard sync: a master at oscillator 1's pitch restarts every slave voice.
         // The jump at each restart is band-limited with a two-sample polyBLEP
@@ -1032,6 +1051,7 @@ export class Voice {
           x = mp / this.syncInc; // how far past the restart this sample is (0..1)
         }
         this.syncPhase = mp;
+        let tl = 0, tr = 0;
         for (let j = 0; j < o2.voices; j++) {
           const inc = o2.inc[j];
           let ph = o2.phase[j] + inc;
@@ -1049,18 +1069,23 @@ export class Voice {
           const now = this.oscSample(o2, ph) + corr;
           const s = o2.held[j] * o2.gain;
           o2.held[j] = now;
-          l += s * o2.panL[j];
-          r += s * o2.panR[j];
+          tl += s * o2.panL[j];
+          tr += s * o2.panR[j];
         }
+        l += tl * o2.pL;
+        r += tr * o2.pR;
       } else if (o2.gain > 0) {
+        let tl = 0, tr = 0;
         for (let j = 0; j < o2.voices; j++) {
           let ph = o2.phase[j] + o2.inc[j];
           if (ph >= 1) ph -= 1;
           o2.phase[j] = ph;
           const s = this.oscSample(o2, ph) * o2.gain;
-          l += s * o2.panL[j];
-          r += s * o2.panR[j];
+          tl += s * o2.panL[j];
+          tr += s * o2.panR[j];
         }
+        l += tl * o2.pL;
+        r += tr * o2.pR;
       }
       // Routing: what goes through the drive and main filter, and what skips them.
       let byL = 0, byR = 0;

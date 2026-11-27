@@ -135,13 +135,18 @@ export const D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_O
    * RUIN's drives (owner's call): all of them at once, or the drive in RUIN box 1-8; each moves relative to its own
    * Drive (drive x (1 + value)), so a chain's balance holds.
    */
-  D_RUIN_DRIVES = 53, D_RUIN_DRIVE1 = 54;
+  D_RUIN_DRIVES = 53, D_RUIN_DRIVE1 = 54,
+  /**
+   * Pan (owner's call, 27 Nov): the whole sound (sub and noise too), A + B, A, B, the sub; an equal-power balance,
+   * -1 left .. 1 right; no dial of its own (an LFO target only).
+   */
+  D_PAN = 62, D_PAN_AB = 63, D_PAN_A = 64, D_PAN_B = 65, D_PAN_SUB = 66;
 /**
- * Every dial an LFO can be connected to (owner's call, as in Serum and Vital): the destinations after the 62 fixed
+ * Every dial an LFO can be connected to (owner's call, as in Serum and Vital): the destinations after the 67 fixed
  * ones are 'p:<param id>', in the order of the dest menus' options; each adds to that dial's own value, in its
  * 0..1 knob range, before the engine reads it.
  */
-export const D_PARAM0 = 62;
+export const D_PARAM0 = 67;
 /** How many moved dials the engine reports to the page at once. */
 export const LIVE_DIALS = 23;
 export const MOD_TARGET_PARAMS = getParam('mod1.dest')!.options!.filter((o) => o.startsWith('p:')).map((o) => paramIndex(o.slice(2)));

@@ -72,6 +72,10 @@ value (`packWob`, worklet control channels 2 and 11, the plugin's live values 2 
 to the same sound (`migrateWobOffsets`: matrix offset = depth x o, filter / gate offset = o x (1 - |depth|), o the
 old `wobble.off` or +1). Both engines.
 
+### Pan targets (owner's call, 27 Nov)
+
+Five fixed destinations after the RUIN drives (`D_PAN` 62 .. `D_PAN_SUB` 66, so `D_PARAM0` is 67): **pan** (the whole sound, sub and NOISE THRU included, after the sub joins, before the DC filters and width), **pan_ab** (adds to both oscillators), **pan_a**, **pan_b** (each oscillator's unison sum, before its own filter, so its stereo spread is kept) and **pan_sub** (the clean sub where it joins). Each is an equal-power balance, -1 left .. 1 right, unity in the centre (gains √2·cos / √2·sin of (v+1)π/4), glided per sample across a control block so a fast LFO doesn't click. No dial: LFO / matrix targets only.
+
 ### Any dial as an LFO target (owner's call, 26 Nov, as in Serum and Vital)
 
 After the 62 fixed destinations every dest menu (`mod1-9.dest`, the custom LFOs' `dest`..`dest4`) lists

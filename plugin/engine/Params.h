@@ -114,11 +114,12 @@ constexpr int D_PITCH = 1, D_OSC1_PITCH = 2, D_OSC2_PITCH = 3, D_OSC1_WT = 4, D_
               // the LFO page's own filters (whole, A+B, A, B, Sub, Noise), apart from the OSC page's filter
               D_LF_ALL = 47, D_LF_AB = 48, D_LF_A = 49, D_LF_B = 50, D_LF_SUB = 51, D_LF_NOISE = 52,
               // RUIN's drives: all at once, or the drive in box 1-8 (54-61), relative to its own Drive
-              D_RUIN_DRIVES = 53, D_RUIN_DRIVE1 = 54;
+              D_RUIN_DRIVES = 53, D_RUIN_DRIVE1 = 54,
+              D_PAN = 62, D_PAN_AB = 63, D_PAN_A = 64, D_PAN_B = 65, D_PAN_SUB = 66;  // (as params.ts)
 constexpr double LF_OPEN_HZ = 20000, LF_OCTAVES = 8;
 inline bool isPitchDest(int d) { return d == D_PITCH || d == D_OSC1_PITCH || d == D_OSC2_PITCH || d == D_OSC_PITCH || d == D_SUB_PITCH; }
 // every dial an LFO can be connected to: destinations 62+ (as params.ts)
-constexpr int D_PARAM0 = 62;
+constexpr int D_PARAM0 = 67;
 constexpr int LIVE_DIALS = 23;  // moved dials reported to the page (as params.ts)
 constexpr int DEST_COUNT = D_PARAM0 + MOD_TARGET_COUNT;
 constexpr double TEXTURE_GAIN = 0.5;

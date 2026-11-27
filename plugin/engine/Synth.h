@@ -485,12 +485,15 @@ class Synth {
         r = hcR.process(r);
       }
 
-      l += sub;
-      r += sub;
+      for (int k = 0; k < 4; k++) panG[k] += panStep[k];
+      l += sub * panG[2];
+      r += sub * panG[3];
       if (direct) {
         l += texL;
         r += texR;
       }
+      l *= panG[0];
+      r *= panG[1];
 
       if (wobFiltOn || wobGate != 1 || wobGateTarget != 1) {
         wobGate += (wobGateTarget - wobGate) * 0.02;
@@ -953,6 +956,11 @@ class Synth {
     delayMix = clampd(cur[P.delayMix] + dst[D_DELAY_MIX], 0, 1);
     widthTarget = clampd(1 + dst[D_WIDTH], 0, 2);
     widthStep = (widthTarget - width) / CONTROL_BLOCK;
+    for (int k = 0; k < 2; k++) {
+      const double pa = ((clampd(dst[k == 0 ? D_PAN : D_PAN_SUB], -1, 1) + 1) * PI) / 4;
+      panStep[2 * k] = (SQRT2 * std::cos(pa) - panG[2 * k]) / CONTROL_BLOCK;
+      panStep[2 * k + 1] = (SQRT2 * std::sin(pa) - panG[2 * k + 1]) / CONTROL_BLOCK;
+    }
 
     for (int k = 0; k < 5; k++) {
       const double lowcut = cur[P.fxLowcut[k]];
@@ -1080,6 +1088,7 @@ class Synth {
   OctaveDown verbOct;
   double reverbMix = 0;
   double chorusDepth = 0, width = 1, widthStep = 0, widthTarget = 1;
+  double panG[4] = {1, 1, 1, 1}, panStep[4] = {0, 0, 0, 0};  // Pan, Pan Sub (as synth.ts)
   Biquad hcL, hcR;
   bool highcutOn = false;
   std::array<bool, 4> eqOn{};

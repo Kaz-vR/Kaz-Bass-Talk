@@ -826,6 +826,7 @@ const LFO_TARGETS: [string, string[]][] = [
   ['VOLUME', ['amp', 'osc12_level', 'osc1_level', 'osc2_level', 'sub_level', 'texture_level']],
   ['FILTER', ['lfo_filter', 'lfo_filter_ab', 'lfo_filter_a', 'lfo_filter_b', 'lfo_filter_sub', 'lfo_filter_noise', 'filter_resonance']],
   ['PITCH', ['pitch', 'osc_pitch', 'osc1_pitch', 'osc2_pitch', 'sub_pitch']],
+  ['PAN', ['pan', 'pan_ab', 'pan_a', 'pan_b', 'pan_sub']],
 ];
 /** LFO targets as the title row names them (owner's list). */
 const LFO_TARGET_NAME: Record<string, string> = {
@@ -838,6 +839,7 @@ const LFO_TARGET_NAME: Record<string, string> = {
   phaser_mix: 'PHASER MIX', reverb_mix: 'REVERB MIX',
   ...Object.fromEntries([1, 2, 3, 4, 5, 6].map((k) => [`lfo${k}_rate`, `LFO ${k} RATE`])),
   pitch: 'PITCH', osc_pitch: 'A+B PITCH', osc1_pitch: 'A PITCH', osc2_pitch: 'B PITCH', sub_pitch: 'SUB PITCH',
+  pan: 'PAN', pan_ab: 'A+B PAN', pan_a: 'A PAN', pan_b: 'B PAN', pan_sub: 'SUB PAN',
   osc12_shape: 'A+B SHAPE', osc1_pw: 'A SHAPE', osc2_pw: 'B SHAPE',
   ruin_drives: 'ALL RUIN DRIVES', dist_drive: 'FX DRIVE',
   ...Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8].map((k) => [`ruin_drive${k}`, `RUIN DRIVE ${k}`])),
