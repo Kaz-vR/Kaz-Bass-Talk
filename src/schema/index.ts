@@ -284,6 +284,15 @@ function migrateGrind(src: Record<string, unknown>): Record<string, unknown> {
 
 /** The drive types rebuilt (owner's call, 27 Nov): the old names onto the new ones (diode → distortion, starved → fuzz). */
 const DRIVE_RENAMED: Record<string, string> = {"tape": "tape saturation", "tube": "triode tube saturation", "amp": "amp simulation", "soft clip": "soft clipper", "hard clip": "hard clipper", "wavefold": "wavefolder", "rectify": "rectifier", "downsample": "downsampler", "diode": "distortion", "starved": "fuzz"};
+/** The cut wavetables (owner's call, 27 Nov) onto the closest kept wave. */
+const WAVE_RENAMED: Record<string, string> = {"fold": "growl", "crush": "gritty", "formant scan": "vowel", "harmonic": "wavetable", "spectral": "scream"};
+function migrateWaves(src: Record<string, unknown>): Record<string, unknown> {
+  if (!['osc1.wave', 'osc2.wave'].some((id) => String(src[id]) in WAVE_RENAMED)) return src;
+  const out: Record<string, unknown> = { ...src };
+  for (const id of ['osc1.wave', 'osc2.wave']) if (String(src[id]) in WAVE_RENAMED) out[id] = WAVE_RENAMED[String(src[id])];
+  return out;
+}
+
 function migrateDriveTypes(src: Record<string, unknown>): Record<string, unknown> {
   const ids = ['dist.type', ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => `grind${n}.drive_type`)];
   if (!ids.some((id) => String(src[id]) in DRIVE_RENAMED)) return src;
@@ -355,7 +364,7 @@ function migrateWobOffsets(src: Record<string, unknown>): Record<string, unknown
  */
 export function validatePatch(input: unknown): ValidationResult {
   const issues: ValidationIssue[] = [];
-  const src = migrateDriveTypes(migrateWobOffsets(migrateWobTargets(migrateMatrix(migrateEq(migrateGrindSlots(migrateGrindWidth(migrateGrind(migrateTexture(migrateAttackCurve(migrateReverb(migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>)))))))))))));
+  const src = migrateWaves(migrateDriveTypes(migrateWobOffsets(migrateWobTargets(migrateMatrix(migrateEq(migrateGrindSlots(migrateGrindWidth(migrateGrind(migrateTexture(migrateAttackCurve(migrateReverb(migrateBreath(migratePitchEnv((input && typeof input === 'object' ? input : {}) as Record<string, unknown>))))))))))))));
   const rawMeta = src.meta && typeof src.meta === 'object' ? (src.meta as PatchMeta) : undefined;
   const meta: PatchMeta = { ...(rawMeta ?? {}), name: typeof rawMeta?.name === 'string' ? rawMeta.name : 'Untitled' };
   if (!rawMeta) issues.push({ param: 'meta', message: 'missing meta' });

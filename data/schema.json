@@ -136,11 +136,6 @@
         "acid",
         "scream",
         "growl",
-        "fold",
-        "harmonic",
-        "crush",
-        "spectral",
-        "formant scan",
         "gritty"
       ],
       "default": "saw",
@@ -306,11 +301,6 @@
         "acid",
         "scream",
         "growl",
-        "fold",
-        "harmonic",
-        "crush",
-        "spectral",
-        "formant scan",
         "gritty"
       ],
       "default": "saw",

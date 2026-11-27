@@ -182,8 +182,8 @@ const bank = (name: string, keys = 0) => ({ name, keys: WAVE_TABLES.find((q) => 
 export const BANK: { name: string; keys: number }[] = [
   bank('square', 3), bank('double saw', 3), bank('sync saw'), bank('vowel'), bank('choir'), bank('talk'), bank('bell', 5), bank('ring'),
   bank('digital', 5), bank('glass', 5), bank('bowed'), bank('reed'), bank('breath'),
-  bank('electric guitar'), bank('acid'), bank('scream'), bank('growl'), bank('fold'),
-  bank('harmonic', 9), bank('crush'), bank('spectral'), bank('formant scan'), bank('gritty'),
+  bank('electric guitar'), bank('acid'), bank('scream'), bank('growl'), bank('gritty'),
+  // (fold, harmonic, crush, spectral and formant scan were cut, owner's call, 27 Nov: each repeated something the synth has)
 ];
 /** Each bank wave's sampled table (an index into WAVE_TABLES), -1 when it is built from its formula. */
 export const BANK_SAMPLED = BANK.map((b) => WAVE_TABLES.findIndex((q) => q.name === b.name));
@@ -205,11 +205,7 @@ export function bankKey(w: number, kf: number, x: number): number {
     case 8: { const n = [48, 16, 8, 4, 2][kf]; return jr((0.6 * saw(x + 0.5) + 0.6 * S(x)) * n) / n; } // digital steps, down to two
     case 9: { const ks = [1, 4, 8, 12, 16, 24, 32, 40, 48], b = [0.15, 0.35, 0.55, 0.75, 1][kf]; let y = 0; for (let i = 0; i < ks.length; i++) y += Math.pow(b, i) * Math.sin(2 * Math.PI * ks[i] * x); return y; } // glass
   }
-  // harmonic: partials one by one (clean on purpose)
-  const n = [1, 2, 3, 4, 6, 8, 12, 16, 24][kf];
-  let y = 0;
-  for (let k = 1; k <= n; k++) y += Math.sin(2 * Math.PI * k * x) / Math.sqrt(k);
-  return y;
+  return 0;
 }
 
 /** Where each bank wave's frames start in the data (after the morph table) and how many it has. */

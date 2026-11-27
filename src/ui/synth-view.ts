@@ -343,7 +343,7 @@ const WAVE_GROUPS: [string, string[]][] = [
   ['METAL', ['bell', 'ring', 'digital', 'glass']],
   ['ORGANIC', ['string', 'bowed', 'reed', 'breath', 'electric guitar']],
   // (owner's call: real wavetables, made to be scanned with Shape)
-  ['WAVETABLE', ['acid', 'scream', 'growl', 'fold', 'harmonic', 'sync saw', 'crush', 'spectral', 'formant scan', 'gritty']],
+  ['WAVETABLE', ['acid', 'scream', 'growl', 'sync saw', 'gritty']],
 ];
 const WAVE_LABEL: Record<string, string> = { pwm_saw: 'PWM SAW', wavetable: 'MORPH', 'sync saw': 'SYNC SWEEP', 'electric guitar': 'E-GUITAR' };
 /** The waves that use the Shape dial as their position (the wave bank's and the morph table). */

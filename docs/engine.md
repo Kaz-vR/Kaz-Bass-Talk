@@ -87,6 +87,14 @@ gain its own envelope read Formant semitones away (down = the same note from som
 it came in at and faded in over the first semitone. **Mix** crossfades the dry to the shifted above **Lo cut** (below
 it stays dry). Every dial is an LFO target.
 
+### The WAVETABLE column cut to five (owner's call, 27 Nov)
+
+Kept: ACID, SCREAM, GRITTY (Serum's), GROWL and SYNC SWEEP (`sync saw`). Cut from both engines, the schema, the bank
+(TS `BANK`, C++ `BANK_SAMPLED`, now 18 bank waves) and the generated tables (`tools/extract-waves.py`): fold, harmonic,
+crush, spectral and formant scan, each repeating something the synth has (RUIN's wavefolder, the crush FX and RUIN's
+bitcrusher, the VOCAL column, MORPH). Old sounds load them as the closest kept wave (`migrateWaves`): fold as growl,
+crush as gritty, formant scan as vowel, harmonic as MORPH, spectral as scream. Their source renders stay in tools/waves/.
+
 ### The bangs (owner's bug, 27 Nov)
 
 Two causes, both fixed in both engines. (1) A drive's antiderivative was reset to 0 when the chain was cleared and
