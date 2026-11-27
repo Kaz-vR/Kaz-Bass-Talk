@@ -222,7 +222,7 @@ inline double ampCurveIntegral(double u) { return tanhIntegral(AMP_GAIN * u + AM
 
 struct GrindStage {
   Ott otts[4];
-  Ott ottDrv;  // OTT DRIVES: the drive box's second OTT, set by grind.ott_drives  // OTT TYPE 1: each box's own, all set by grind.ott_box (as grind.ts)
+  Ott ottX[4];  // each box's second OTT by kind: OTT DRIVES on the drive, OTT FILTERS on filter / EQ / phaser  // OTT TYPE 1: each box's own, all set by grind.ott_box (as grind.ts)
   bool on = false;
   int ftype = GF_NOTCH, dtype = GD_TAPE;
   double phase = 0, wFrom = 0, wTo = 0, wPos = 0, spd = 1, depth = 1, fLvT = 1, fLv = 1, dLvT = 1, dLv = 1;
@@ -671,7 +671,7 @@ class Grind {
       const auto& gp = P.grind[i];
       s.on = cur[gp.on] > 0.5;
       for (int q = 0; q < 4; q++) s.otts[q].set(s.on ? cur[P.grindOttBox] : 0, 0, fsOs);
-      s.ottDrv.set(s.on ? cur[P.grindOttDrives] : 0, 0, fsOs);
+      for (int q = 0; q < 4; q++) s.ottX[q].set(s.on ? cur[q == 1 ? P.grindOttDrives : P.grindOttFilters] : 0, 0, fsOs);
       if (!s.on) {
         s.fcNow = -1;
         continue;
@@ -980,10 +980,11 @@ class Grind {
         L = ot.l;
         R = ot.r;
       }
-      if (drive && s.ottDrv.on()) {
-        s.ottDrv.process(L, R);
-        L = s.ottDrv.l;
-        R = s.ottDrv.r;
+      Ott& ox = s.ottX[kind];
+      if (ox.on()) {
+        ox.process(L, R);
+        L = ox.l;
+        R = ox.r;
       }
     }
     combPos = (pos + 1) & (GRIND_COMB_LEN - 1);

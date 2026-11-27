@@ -72,6 +72,33 @@ value (`packWob`, worklet control channels 2 and 11, the plugin's live values 2 
 to the same sound (`migrateWobOffsets`: matrix offset = depth x o, filter / gate offset = o x (1 - |depth|), o the
 old `wobble.off` or +1). Both engines.
 
+### PITCH SHIFTER (owner's call, 27 Nov: in the delay's place)
+
+The FX page's delay is gone from both engines, the schema and the page (kept for recall in `archive/fx-delay.md`; its
+matrix slots `delay_time` / `delay_mix` stay only so the other destinations keep their numbers). In its place, after
+HYPER and before the reverb, the **PITCH SHIFTER** (`PitchShifter`, fx.ts / Fx.h; `shifter.*`): the reverb's octave-down
+shifter generalised: two read taps sliding through a short line at the ratio's speed, crossfaded sin² / cos², so the
+body moves with the pitch (the monstrous octave down). **Oct** (±3), **Sem** (±11), **Fine** (±100 ct) add up to one
+shift; an anti-alias low-pass in front when it shifts up. **Grain**: the window from 80 ms (smooth) down to 6 ms, and
+each grain's start jittering (grain² x half a window), so it goes granular and warbly. **Feedback** (x0.95): the shifted
+sound back in through a soft limit and a 7 kHz darkening, so it keeps climbing (shimmer) or falling. **Formant** (±24
+st, 0 = the body moves with the pitch): 24 log-spaced bands (60 Hz-15 kHz, Q 4.2) over the shifted sound, each band's
+gain its own envelope read Formant semitones away (down = the same note from something far bigger), held at the level
+it came in at and faded in over the first semitone. **Mix** crossfades the dry to the shifted above **Lo cut** (below
+it stays dry). Every dial is an LFO target.
+
+### OTT FILTERS (owner's call, 27 Nov)
+
+`grind.ott_filters`: as OTT DRIVES, an OTT right after every filter, EQ and phaser box (each box its own; after OTT
+BOXES' when both are up). RUIN's four OTT knobs: OTT DRIVES, OTT FILTERS, OTT BOXES (every box), OTT OUT (after the chain).
+
+### Custom LFO shapes (owner's call, 27 Nov)
+
+Every custom LFO starts as Serum's does: three points, bottom left, top middle, bottom right (`wobble*.shape` custom,
+3 points; the bank's presets carry no custom LFO shape of their own). The **sine** template starts in its middle and goes
+up (top at 1/4, the middle at 1/2, the bottom at 3/4), each quarter a quadratic whose soft point sits where the sine's
+tangents meet.
+
 ### 27 Nov fixes (owner's calls)
 
 - Custom LFOs: a row with no target no longer counts (with every target gone it does nothing). `wobble*.oneshot` is **RETRIGGER**: the cycle restarts from every note and keeps running (was: once, then holding); a legato note (mono, legato on, a key still held) doesn't restart it, as the other LFOs.

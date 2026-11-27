@@ -2,7 +2,7 @@
 // above its own low cut (chorus.lowcut … reverb.lowcut, see Synth), so the low end
 // stays dry, centred and phase-stable whatever the effect settings are.
 
-import { clamp as clamp_, fastTanh as fastTanh_, Rng as Rng_, TWO_PI as TWO_PI_ } from './dsp';
+import { Biquad, clamp as clamp_, fastTanh as fastTanh_, Rng as Rng_, TWO_PI as TWO_PI_ } from './dsp';
 
 // Module-local bindings: avoids live-binding getter overhead on hot paths in
 // some module transforms (tsx / vite-node).
@@ -594,53 +594,180 @@ export class Flanger {
   }
 }
 
-/** Tempo-synced stereo ping-pong delay with a darkening, mud-free feedback path. */
-export class Delay {
-  private bufL: Float32Array;
-  private bufR: Float32Array;
-  private mask: number;
+/** The shifter's formant bank: log-spaced bands from SH_F_LO to SH_F_HI. */
+const SH_BANDS = 24, SH_F_LO = 60, SH_F_HI = 15000;
+const SH_SPACING = Math.log2(SH_F_HI / SH_F_LO) / (SH_BANDS - 1);
+/**
+ * PITCH SHIFTER (owner's call, 27 Nov, in the delay's place): the octave-down shifter generalised. Two read taps slide
+ * through a short delay line at the ratio's speed, crossfaded (sin² / cos²) so each is silent while it jumps; the body
+ * moves with the pitch (the monstrous octave down). Grain sets the window, 80 ms (smooth) down to 6 ms (granular),
+ * and how far each grain's start jitters; Feedback sends the shifted sound back in, so it keeps climbing or falling
+ * (shimmer, the abyss); an anti-alias low-pass in front when it shifts up. Formant moves the body further on its own
+ * (± semitones on top of what the pitch moves it): a bank of 24 bands, the shifted sound's own envelope read
+ * Formant semitones away and laid back onto it, faded in over the first semitone.
+ */
+export class PitchShifter {
+  private readonly buf: Float32Array[];
+  private readonly mask: number;
   private w = 0;
-  private time = -1; // smoothed delay in samples
-  private lpL = 0;
-  private lpR = 0;
-  private hpL = 0;
-  private hpR = 0;
-  private readonly hpCoef: number;
+  private ph = 0;
+  private readonly lastP = new Float64Array(2);
+  private readonly jit = new Float64Array(2);
+  private readonly rng = new Rng_(0x51f7a3);
+  private readonly fbS = new Float64Array(2);
+  private readonly aa = [new Biquad(), new Biquad(), new Biquad(), new Biquad()];
+  private aaOn = false;
+  private lastAa = -1;
+  private ratio = 1;
+  private win = 1;
+  private grain = 0;
+  private fb = 0;
+  private fbK = 0;
+  private formant = 0;
+  // the formant bank: per band its SVF coefficients, both channels' states, the envelope and the gain
+  private readonly fG = new Float64Array(SH_BANDS);
+  private readonly fK = new Float64Array(SH_BANDS);
+  private readonly ic1 = new Float64Array(2 * SH_BANDS);
+  private readonly ic2 = new Float64Array(2 * SH_BANDS);
+  private readonly env = new Float64Array(SH_BANDS);
+  private readonly gain = new Float64Array(SH_BANDS).fill(1);
+  private readonly gainT = new Float64Array(SH_BANDS).fill(1);
+  private readonly bandOut = new Float64Array(2 * SH_BANDS);
+  private envA = 0;
+  private envR = 0;
+  private tick = 0;
+  /** The bank's output held at its input's level (followers over ~50 ms). */
+  private lvIn = 0;
+  private lvOut = 0;
+  private lvK = 0;
 
-  constructor(private fs: number) {
-    const size = pow2Size(Math.ceil(3.1 * fs));
-    this.bufL = new Float32Array(size);
-    this.bufR = new Float32Array(size);
+  constructor(private readonly fs: number) {
+    const size = pow2Size(Math.ceil(0.2 * fs));
+    this.buf = [new Float32Array(size), new Float32Array(size)];
     this.mask = size - 1;
-    this.hpCoef = 1 - Math.exp((-TWO_PI * 150) / fs);
+    for (let b = 0; b < SH_BANDS; b++) {
+      const fc = Math.min(SH_F_LO * Math.pow(2, b * SH_SPACING), 0.45 * fs);
+      this.fG[b] = Math.tan((Math.PI * fc) / fs);
+      this.fK[b] = 1 / 4.2;
+    }
+    this.envA = 1 - Math.exp(-1 / (0.003 * fs));
+    this.envR = 1 - Math.exp(-1 / (0.03 * fs));
+    this.fbK = 1 - Math.exp((-TWO_PI_ * 7000) / fs);
+    this.lvK = 1 - Math.exp(-1 / (0.05 * fs));
   }
 
   reset(): void {
-    this.bufL.fill(0);
-    this.bufR.fill(0);
-    this.lpL = this.lpR = this.hpL = this.hpR = 0;
+    for (const b of this.buf) b.fill(0);
+    this.ph = 0;
+    this.lastP.fill(0);
+    this.jit.fill(0);
+    this.fbS.fill(0);
+    for (const f of this.aa) f.reset();
+    this.ic1.fill(0);
+    this.ic2.fill(0);
+    this.env.fill(0);
+    this.gain.fill(1);
+    this.gainT.fill(1);
+    this.lvIn = this.lvOut = 0;
   }
 
-  /** `toneCoef` is a one-pole LP coefficient for the feedback path. Returns wet only. */
-  process(l: number, r: number, seconds: number, feedback: number, toneCoef: number, out: Float64Array): void {
-    const target = Math.min(seconds * this.fs, this.mask - 2);
-    // Glide towards a new time (tape-style) instead of jumping (no clicks).
-    this.time = this.time < 0 ? target : this.time + (target - this.time) * 0.0005;
-    const yl = readFrac(this.bufL, this.mask, this.w, this.time);
-    const yr = readFrac(this.bufR, this.mask, this.w, this.time);
-    // Feedback filtering: low-pass for darkness, high-pass so repeats never build mud.
-    this.lpL += (yl - this.lpL) * toneCoef;
-    this.lpR += (yr - this.lpR) * toneCoef;
-    this.hpL += (this.lpL - this.hpL) * this.hpCoef;
-    this.hpR += (this.lpR - this.hpR) * this.hpCoef;
-    const fl = this.lpL - this.hpL;
-    const fr = this.lpR - this.hpR;
-    // Ping-pong: the mono input enters on the left, repeats cross over.
-    this.bufL[this.w] = 0.5 * (l + r) + feedback * fr;
-    this.bufR[this.w] = feedback * fl;
-    this.w = (this.w + 1) & this.mask;
-    out[0] = yl;
-    out[1] = yr;
+  /** Control rate: the shift in semitones (oct, semi and fine together), Feedback 0..1, Grain 0..1, Formant in semitones. */
+  set(semis: number, feedback: number, grain: number, formant: number): void {
+    this.ratio = Math.pow(2, semis / 12);
+    this.grain = clamp_(grain, 0, 1);
+    this.win = Math.round(0.08 * Math.pow(6 / 80, this.grain) * this.fs);
+    this.fb = 0.95 * clamp_(feedback, 0, 1);
+    this.formant = clamp_(formant, -24, 24);
+    // shifting up reads faster: what would fold over is taken out first
+    const aa = this.ratio > 1.01 ? Math.min(0.45 * this.fs, (0.45 * this.fs) / this.ratio) : 0;
+    if (aa !== this.lastAa) {
+      this.lastAa = aa;
+      this.aaOn = aa > 0;
+      if (this.aaOn) for (const f of this.aa) f.setLowpass(aa, Math.SQRT1_2, this.fs);
+    }
+  }
+
+  /** One stereo sample (what is above the low cut) into out: the shifted sound only (wet). */
+  process(l: number, r: number, out: Float64Array): void {
+    const mask = this.mask, win = this.win;
+    // the taps: one phase for both channels, each tap's delay 2 .. win (+ its jitter) samples
+    let ph = this.ph + (1 - this.ratio) / win;
+    ph -= Math.floor(ph);
+    this.ph = ph;
+    const ph2 = ph + 0.5 >= 1 ? ph - 0.5 : ph + 0.5;
+    for (let t = 0; t < 2; t++) {
+      const p = t === 0 ? ph : ph2;
+      // a new grain (its phase wrapped, either way): a new jitter
+      if (Math.abs(p - this.lastP[t]) > 0.5) this.jit[t] = this.grain * this.grain * 0.5 * win * (0.5 + 0.5 * this.rng.next());
+      this.lastP[t] = p;
+    }
+    for (let c = 0; c < 2; c++) {
+      let x = (c === 0 ? l : r) + this.fb * this.fbS[c];
+      if (this.aaOn) x = this.aa[2 * c + 1].process(this.aa[2 * c].process(x));
+      const b = this.buf[c];
+      b[this.w] = x;
+      let y = 0;
+      for (let t = 0; t < 2; t++) {
+        const p = t === 0 ? ph : ph2;
+        const d = 2 + p * win + this.jit[t];
+        let rp = this.w - d;
+        rp -= Math.floor(rp / (mask + 1)) * (mask + 1);
+        const i = Math.floor(rp), f = rp - i;
+        const v = b[i & mask] + (b[(i + 1) & mask] - b[i & mask]) * f;
+        const s = Math.sin(Math.PI * p);
+        y += v * s * s;
+      }
+      // the feedback path: darkened a little and held below clipping, so the repeats stay musical
+      this.fbS[c] += (fastTanh_(y) - this.fbS[c]) * this.fbK;
+      out[c] = y;
+    }
+    this.w = (this.w + 1) & mask;
+    if (Math.abs(this.formant) > 1e-3) this.formantWarp(out);
+  }
+
+  private formantWarp(out: Float64Array): void {
+    const NB = SH_BANDS;
+    let sl = 0, sr = 0;
+    for (let b = 0; b < NB; b++) {
+      const g = this.fG[b], k = this.fK[b], a1 = 1 / (1 + g * (g + k)), a2 = g * a1;
+      let e = 0;
+      for (let c = 0; c < 2; c++) {
+        const o = c * NB + b, v0 = out[c];
+        const v1 = a1 * this.ic1[o] + a2 * (v0 - this.ic2[o]);
+        const v2 = this.ic2[o] + g * v1;
+        this.ic1[o] = 2 * v1 - this.ic1[o];
+        this.ic2[o] = 2 * v2 - this.ic2[o];
+        const bp = k * v1;
+        this.bandOut[o] = bp;
+        e += Math.abs(bp);
+      }
+      e *= 0.5;
+      this.env[b] += (e - this.env[b]) * (e > this.env[b] ? this.envA : this.envR);
+    }
+    // every 16 samples: each band takes the envelope Formant semitones away (body down = read from higher up)
+    if ((this.tick = (this.tick + 1) & 15) === 0) {
+      const shift = -this.formant / 12 / SH_SPACING;
+      for (let b = 0; b < NB; b++) {
+        const s = Math.max(0, Math.min(NB - 1, b + shift)), i = Math.min(NB - 2, Math.floor(s)), f = s - i;
+        const src = this.env[i] + (this.env[i + 1] - this.env[i]) * f;
+        this.gainT[b] = Math.min(6, src / (this.env[b] + 1e-5));
+      }
+    }
+    for (let b = 0; b < NB; b++) {
+      this.gain[b] += (this.gainT[b] - this.gain[b]) * 0.02;
+      sl += this.gain[b] * this.bandOut[b];
+      sr += this.gain[b] * this.bandOut[NB + b];
+    }
+    // held at the level it came in at (a body moved is not a louder sound)
+    this.lvIn += (Math.abs(out[0]) + Math.abs(out[1]) - this.lvIn) * this.lvK;
+    this.lvOut += (Math.abs(sl) + Math.abs(sr) - this.lvOut) * this.lvK;
+    const lg = Math.max(0.25, Math.min(2, this.lvIn / (this.lvOut + 1e-9)));
+    sl *= lg;
+    sr *= lg;
+    // faded in over the first semitone, so turning it from 0 never jumps
+    const m = Math.min(1, Math.abs(this.formant));
+    out[0] += (sl - out[0]) * m;
+    out[1] += (sr - out[1]) * m;
   }
 }
 

@@ -56,8 +56,9 @@ function humps(lens: number[], heights: number[] = []): WobPoint[] {
 
 /** The palette's shapes as points (Random has none: it draws new steps every cycle). */
 export const WOB_TEMPLATES: Record<string, WobPoint[]> = {
-  // a smooth bell from the bottom to the top and back
-  sine: [pt(0, 0), pt(0.2, 0, true), pt(0.3, 1, true), pt(0.7, 1, true), pt(0.8, 0, true), pt(1, 0)],
+  // a sine from its middle (owner's call, 27 Nov): up to the top at 1/4, the middle at 1/2, the bottom at 3/4; each
+  // quarter a quadratic whose soft point sits where the sine's tangents meet
+  sine: [pt(0, 0.5), pt(0.159, 1, true), pt(0.25, 1), pt(0.341, 1, true), pt(0.5, 0.5), pt(0.659, 0, true), pt(0.75, 0), pt(0.841, 0, true), pt(1, 0.5)],
   // ducked on the beat, curving quickly back up and holding
   duck: [pt(0, 0), pt(0.04, 0.85, true), pt(0.35, 1), pt(1, 1)],
   // opens hard and falls (the last bit rises back so the wrap doesn't click)

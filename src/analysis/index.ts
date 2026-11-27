@@ -403,7 +403,7 @@ export function frozen(p: Patch): Patch {
   q['osc1.fine'] = 0;
   q['osc2.fine'] = 0;
   for (let n = 1; n <= 9; n++) q[`mod${n}.amount`] = 0;
-  for (const id of ['chorus.mix', 'flanger.mix', 'phaser.mix', 'delay.mix', 'reverb.mix', 'tape.wow', 'filter.env_amount', 'noise.level']) q[id] = 0;
+  for (const id of ['chorus.mix', 'flanger.mix', 'phaser.mix', 'shifter.mix', 'reverb.mix', 'tape.wow', 'filter.env_amount', 'noise.level']) q[id] = 0;
   // Hold the note at full level so short plucks are measured, not their silence.
   q['amp_env.attack'] = 1;
   q['amp_env.sustain'] = 1;

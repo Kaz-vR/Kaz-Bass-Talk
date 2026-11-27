@@ -44,7 +44,7 @@ class Synth {
 
   explicit Synth(double fs)
       : sampleRate(fs), rng(0x1234567), wobs{WobUnit(0x60bb1e), WobUnit(0x60bb1e + 0x9e37), WobUnit(0x60bb1e + 2 * 0x9e37), WobUnit(0x60bb1e + 3 * 0x9e37)}, texGrindRng(0x6a1d), bus(fs, texGrindRng), ott(),
-        chorus(fs), hyper(fs), delay(fs), reverb(fs), verbOct(fs) {
+        chorus(fs), hyper(fs), shifter(fs), reverb(fs), verbOct(fs) {
     smoothCoef = 1 - std::exp(-CONTROL_BLOCK / ((SMOOTH_MS / 1000) * fs));
     duckStep = 1 / ((DUCK_MS / 1000) * fs);
     postDcR = 1 - (2 * PI * 5) / fs;
@@ -262,7 +262,7 @@ class Synth {
     wobGate = wobGateTarget = 1;
     hcL.reset();
     hcR.reset();
-    delay.reset();
+    shifter.reset();
     reverb.reset();
     verbOct.reset();
     bus.reset();
@@ -458,11 +458,12 @@ class Synth {
         l = out[0];
         r = out[1];
       }
-      const double dMix = delayMix;
-      if (dMix > 1e-4) {
-        delay.process(hpL[3].process(l), hpR[3].process(r), delaySeconds, cur[P.delayFb], delayToneCoef, out);
-        l += out[0] * dMix;
-        r += out[1] * dMix;
+      const double sMix = shifterMix;
+      if (sMix > 1e-4) {
+        const double hl = hpL[3].process(l), hr = hpR[3].process(r);
+        shifter.process(hl, hr, out);
+        l += (out[0] - hl) * sMix;
+        r += (out[1] - hr) * sMix;
       }
       const double rMix = reverbMix;
       if (rMix > 1e-4) {
@@ -600,10 +601,9 @@ class Synth {
     }
     if (off(P.chorusOn)) { zero({P.chorusMix}); block({D_CHORUS_DEPTH}); }
     if (off(P.hyperOn)) zero({P.hyperMix, P.hyperDimMix});
-    if (off(P.delayOn)) { zero({P.delayMix}); block({D_DELAY_MIX, D_DELAY_TIME}); }
+    if (off(P.shifterOn)) zero({P.shifterMix});
     if (off(P.reverbOn)) { zero({P.reverbMix}); block({D_REVERB_MIX}); }
     if (off(P.ottOn)) zero({P.ottDepth});
-    // (the delay came back, owner's call, 26 Nov)
     // Solo / mute (a listening aid from the window, not part of the patch).
     auto hear = [&](int layer) { return !(monMute >> layer & 1) && (monSolo == 0 || (monSolo >> layer & 1)); };
     if (!hear(MON_OSC1)) { zero({P.osc[0].level}); block({D_OSC1_LEVEL}); }
@@ -953,9 +953,8 @@ class Synth {
     reverbMix = clampd(cur[P.reverbMix] + dst[D_REVERB_MIX], 0, 1);
 
     chorusDepth = clampd(cur[P.chorusDepth] + dst[D_CHORUS_DEPTH], 0, 1);
-    delaySeconds = std::fmin(3, ((DELAY_BEATS[(int)cur[P.delayTime]] * 60) / tempo) * std::pow(2.0, clampd(dst[D_DELAY_TIME], -1, 1)));
-    delayToneCoef = 1 - std::exp((-TWO_PI * std::fmin(800 * std::pow(20.0, cur[P.delayTone]), fs * 0.45)) / fs);
-    delayMix = clampd(cur[P.delayMix] + dst[D_DELAY_MIX], 0, 1);
+    shifterMix = clampd(cur[P.shifterMix], 0, 1);
+    shifter.set(12 * cur[P.shifterOct] + cur[P.shifterSemi] + cur[P.shifterFine] / 100, cur[P.shifterFb], cur[P.shifterGrain], cur[P.shifterFormant]);
     widthTarget = clampd(1 + dst[D_WIDTH], 0, 2);
     widthStep = (widthTarget - width) / CONTROL_BLOCK;
     for (int k = 0; k < 2; k++) {
@@ -1084,8 +1083,8 @@ class Synth {
   // FX + output.
   Chorus chorus;
   HyperDim hyper;  // (the flanger and phaser were taken out: archive/fx-flanger-phaser.md)
-  Delay delay;
-  double delaySeconds = 0.375, delayToneCoef = 0.5, delayMix = 0;
+  PitchShifter shifter;  // in the delay's place (archive/fx-delay.md)
+  double shifterMix = 0;
   Reverb reverb;
   OctaveDown verbOct;
   double reverbMix = 0;

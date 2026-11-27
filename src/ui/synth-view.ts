@@ -710,43 +710,45 @@ function ruinSpecPts(spec: Float32Array, binHz: number, W: number, H: number, lo
   return pts;
 }
 
-/** One sine cycle through a drive type at a healthy drive, as an SVG path (22 x 12) for its menu entry and tile. */
+/**
+ * One sine cycle through a drive type, as an SVG path (22 x 12) for its menu entry and tile (owner's check, 27 Nov:
+ * each type through its engine curve at its own typical drive, on one fixed scale, nothing normalised, so a gentle
+ * type stays round and a clipper's flat tops show where it slices: soft rounds into them, hard cuts them square).
+ */
 function driveIconPath(type: string): string {
-  const W = 22, H = 12, N = 44, g = 3;
-  const th = Math.tanh;
+  const W = 22, H = 12, N = 88;
+  const th = Math.tanh, clip = (v: number) => Math.max(-1, Math.min(1, v));
+  const alg = (u: number, b: number) => (u + b) / Math.sqrt(1 + (u + b) ** 2) - b / Math.sqrt(1 + b * b);
+  const asym = (u: number, n: number) => (u >= 0 ? th(u) : n * th(u / n));
+  // (each: the drive the picture shows it at, then the curve, as grind.ts has it)
   const f = (x: number): number => {
-    const u = g * x;
     switch (type) {
-      case 'transformer saturation': return (u + 0.12) / Math.sqrt(1 + (u + 0.12) ** 2);
-      case 'soft clipper': { const v = Math.max(-1, Math.min(1, u / 1.5)); return 1.5 * v - 0.5 * v * v * v; }
-      case 'hard clipper': return Math.max(-1, Math.min(1, u / 1.6));
-      case 'triode tube saturation': return th(u + 0.2) - th(0.2);
-      case 'overdrive': return u >= 0 ? th(1.5 * u) : 0.6 * th((1.5 * u) / 0.6);
-      case 'transistor saturation': { const a = Math.abs(u / 2); return a <= 0.7 ? u / 2 : Math.sign(u) * (0.7 + 0.3 * th((a - 0.7) / 0.3)); }
-      case 'pentode tube saturation': return th(1.8 * (u + 0.15)) - th(0.27);
-      case 'distortion': return th(3 * u);
-      case 'amp simulation': return th(1.6 * u + 0.3) - th(0.3);
-      case 'wavefolder': return Math.sin(1.7 * u);
-      case 'rectifier': return 2 * Math.abs(th(u)) - 1;
-      case 'exciter': return 0.6 * th(u / 2) + 0.4 * Math.abs(th(u / 2));
-      case 'tape saturation': return (u + 0.08) / Math.sqrt(1 + (u + 0.08) ** 2);
-      case 'console saturation': return (u / 3) / Math.sqrt(1 + (u / 3) ** 2);
-      case 'fuzz': return u >= 0 ? th(4 * u) : 0.45 * th((4 * u) / 0.45);
-      default: return x;
+      case 'transformer saturation': return 1.15 * alg(1.8 * x, 0.12);
+      case 'soft clipper': { const u = 1.35 * x; return u > 1 ? 1 : u < -1 ? -1 : 1.5 * u - 0.5 * u * u * u; }
+      case 'hard clipper': return clip(1.7 * x);
+      case 'triode tube saturation': return 1.25 * (th(1.4 * x + 0.4) - th(0.4));
+      case 'overdrive': return asym(2.4 * x, 0.6);
+      case 'transistor saturation': { const u = 1.6 * x, a = Math.abs(u); return a <= 0.7 ? u : Math.sign(u) * (0.7 + 0.3 * th((a - 0.7) / 0.3)); }
+      case 'pentode tube saturation': return 1.1 * (th(1.8 * (1.1 * x + 0.15)) - th(0.27));
+      case 'distortion': return th(5 * x);
+      case 'amp simulation': return 1.2 * (th(2.2 * x + 0.3) - th(0.3));
+      case 'wavefolder': return Math.sin(3.6 * x);
+      case 'rectifier': return 2 * Math.abs(th(1.6 * x)) - 0.9;
+      case 'exciter': { const t = th(1.3 * x); return 0.75 * (0.6 * t + 0.4 * Math.abs(t)) + 0.3 * x; }
+      case 'bitcrusher': return Math.round(0.85 * x * 3) / 3;
+      case 'tape saturation': return 1.1 * alg(1.6 * x, 0.08);
+      case 'console saturation': return 1.05 * alg(0.95 * x, 0.03);
+      case 'fuzz': return asym(9 * x, 0.45);
+      default: return 0.85 * x;
     }
   };
   const pts: string[] = [];
-  let peak = 0;
-  const ys: number[] = [];
   for (let i = 0; i <= N; i++) {
     let ph = i / N;
     if (type === 'downsampler') ph = Math.floor(ph * 7) / 7; // held steps
-    let y = f(Math.sin(2 * Math.PI * ph));
-    if (type === 'bitcrusher') y = Math.round(y * 3) / 3; // a few levels
-    ys.push(y);
-    peak = Math.max(peak, Math.abs(y));
+    const y = clip(f(0.85 * Math.sin(2 * Math.PI * ph)));
+    pts.push(`${i ? 'L' : 'M'}${((i / N) * W).toFixed(2)},${(H / 2 - y * (H / 2 - 1)).toFixed(2)}`);
   }
-  ys.forEach((y, i) => pts.push(`${i ? 'L' : 'M'}${((i / N) * W).toFixed(1)},${(H / 2 - (y / (peak || 1)) * (H / 2 - 1)).toFixed(1)}`));
   return pts.join('');
 }
 
@@ -3277,7 +3279,7 @@ export class SynthView {
       const p = this.liveWobs[n - 1];
       // what the Wobbler does right now (0..1), for the level bar under its tab (on every page)
       this.wobNows[n - 1] = p !== null && on() && heard.length ? heard[Math.min(N, Math.round(p * N))] : null;
-      this.wobOns[n - 1] = on();
+      this.wobOns[n - 1] = this.wobActive(WP);
       for (const f of this.wobLevelViews) f();
       if (p === null || !on() || !hasRows || ov.offsetParent === null || !curve.length) return;
       const x = X(p), y = Y(curve[Math.min(N, Math.round(p * N))]), col = accentOf(cv);
@@ -3509,7 +3511,7 @@ export class SynthView {
     });
     const rate = h('div', 'lfo5-rate', hzSw, rPrev, rateSel, hzBox, rNext);
     rate.title = rateP.describes;
-    const big = this.obox('CUSTOM LFO', 'box-wob lfo5-main', {
+    const big = this.obox('CUSTOM LFO', `box-wob lfo5-main wob-c${n}`, {
       head: [rate, this.lfo5LockButton()],
       print: edit,
     });
@@ -3572,7 +3574,7 @@ export class SynthView {
     }
     const pct = (v: number) => `${Math.round(v * 100)}%`;
     // under the four targets (owner's layout): the master Depth and Smooth on the left, ONE SHOT over Shift on the right
-    const settings = h('div', 'c ob box-wob lfo5-settings',
+    const settings = h('div', `c ob box-wob lfo5-settings wob-c${n}`,
       h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'TARGET')),
       h('div', 'lfo5-sec lfo5-switch', rowsBox),
       h('div', 'lfo5-sec lfo5-bottom',
@@ -3638,7 +3640,26 @@ export class SynthView {
     const shapeBtn = h('button', 'lfo5-shape-btn', shapeName, h('span', 'lfo5-shape-caret', '▾'));
     shapeBtn.title = 'Pick a ready shape (or draw your own on the grid)';
     this.watch([`${WP}.shape`], () => { shapeName.textContent = String(this.get(`${WP}.shape`)).toUpperCase(); });
-    const pop = h('div', 'lfo5-shape-pop', ...tiles);
+    // the first row (owner's call, 27 Nov): CUSTOM LFO 1-4 as they are now, so one LFO's shape is a click away on
+    // another (shape, points, Smooth and Shift are copied; its rate and targets stay)
+    const copyKeys = ['shape', 'points', 'smooth', 'phase', ...Array.from({ length: WOB_MAX_POINTS }, (_, i) => [`x${i + 1}`, `y${i + 1}`, `s${i + 1}`]).flat()];
+    const imports = WOB_PREFIXES.map((W2, k) => {
+      const [tc, tgx] = canvas(TW, TH, 'disp');
+      const tile = h('button', `lfo5-tile lfo5-import wob-c${k + 1}`, tc, h('span', 'lfo5-tile-name', `CUSTOM LFO ${k + 1}`));
+      tile.title = W2 === WP ? `This LFO's shape as it is now` : `Copy custom LFO ${k + 1}'s shape here (its points, Smooth and Shift)`;
+      tile.onclick = () => {
+        if (W2 === WP) return;
+        for (const key of copyKeys) if (getParam(`${W2}.${key}`)) this.set(`${WP}.${key}`, this.get(`${W2}.${key}`));
+      };
+      this.watch(copyKeys.map((key) => `${W2}.${key}`).filter((id) => getParam(id)), () => {
+        paper(tgx, TW, TH);
+        const sh = String(this.get(`${W2}.shape`)), pts: [number, number][] = [];
+        for (let i = 0; i <= TN; i++) pts.push([8 + i, TH - 7 - this.wobValueFor(W2, sh, i / TN) * (TH - 14)]);
+        silver(tgx, pts, W2 === WP);
+      });
+      return tile;
+    });
+    const pop = h('div', 'lfo5-shape-pop', ...imports, ...tiles);
     const closePop = () => { pop.classList.remove('open'); shapeBtn.classList.remove('on'); };
     shapeBtn.onclick = (e) => {
       e.stopPropagation();
@@ -3647,10 +3668,11 @@ export class SynthView {
     };
     pop.addEventListener('click', (e) => { if ((e.target as Element).closest('.lfo5-tile')) closePop(); });
     document.addEventListener('pointerdown', (e) => { if (!pop.contains(e.target as Node) && !shapeBtn.contains(e.target as Node)) closePop(); });
-    // the four custom LFOs (owner's call): 1 2 3 4 between the title and the shape menu, the shown one lit, the
-    // others marked while they do something
+    // the four custom LFOs (owner's call): 1 2 3 4 between the title and the shape menu, each in its own colour, the
+    // shown one outlined, and the box filled a little lighter while that LFO moves something (owner's call, 27 Nov:
+    // this is the sign of movement now, no dot, no level line under the LFO tab)
     const nums = h('div', 'lfo5-nums', ...[1, 2, 3, 4].map((k) => {
-      const b = h('button', 'lfo5-num', String(k));
+      const b = h('button', `lfo5-num wob-c${k}`, String(k));
       b.title = `Custom LFO ${k}`;
       b.onclick = () => this.showWob(k - 1);
       const view = () => {
@@ -3993,7 +4015,7 @@ export class SynthView {
   /**
    * The FX page: eight 4:3 boxes like the OSC page, in signal order. The dirt (in each voice):
    * distortion, crush, tape; then the shared effects, each above its own low cut: chorus,
-   * flanger or phaser (one at a time), delay, reverb; and the EQ last.
+   * hyper, the pitch shifter, reverb; and the EQ last.
    */
   private buildFxPage(): HTMLElement {
     const lit = (power: string, mix?: string) => () => !!this.get(power) && (!mix || this.num(mix) > 0);
@@ -4061,18 +4083,28 @@ export class SynthView {
         md('hyper.mix', 'Mix', { fmt: pct }), h('span', 'hyper-div'), md('hyper.size', 'Size', { fmt: pct }), md('hyper.dim_mix', 'Mix', { fmt: pct })],
     });
 
-    // DELAY (owner's call, 26 Nov: back, as it was): the time in its title, the repeats as spikes
-    const delay = this.obox('DELAY', 'fx-box box-delay', {
-      power: (el) => this.boolPower('delay.on', el),
-      head: [this.selector('delay.time', { label: (o) => o })],
-      print: this.fxSpikes(['delay.time', 'delay.feedback', 'delay.mix', 'delay.on', 'delay.tone'], lit('delay.on', 'delay.mix'), () => {
-        const step = syncBeats(String(this.get('delay.time'))) / 4, fb = this.num('delay.feedback');
-        const out: [number, number][] = [[0, 1]];
-        const keep = Math.max(0.05, fb) * (0.55 + 0.45 * this.num('delay.tone'));
-        for (let i = 1, a = 0.9 * Math.max(0.05, this.num('delay.mix') * 1.4); i < 32 && i * step < 1; i++, a *= keep) out.push([i * step, Math.min(1, a)]);
-        return out;
-      }, 'delay.lowcut'),
-      dials: [lg('delay.mix', 'Mix'), lg('delay.feedback', 'Feedbk'), lg('delay.tone', 'Tone'), lowCut('delay')],
+    // PITCH SHIFTER (owner's call, 27 Nov, in the delay's place; the delay is in archive/fx-delay.md): OCT / SEM / FIN as
+    // OSC A / B's, the shifted wave as the print (its grains as dips, its pitch against the dry's two cycles)
+    const shDeps = ['shifter.on', 'shifter.mix', 'shifter.oct', 'shifter.semi', 'shifter.fine', 'shifter.grain', 'shifter.formant', 'shifter.feedback'];
+    const shifter = this.obox('PITCH SHIFTER', 'fx-box box-shifter', {
+      power: (el) => this.boolPower('shifter.on', el),
+      head: [h('div', 'ob-chips',
+        this.chip('OCT', () => this.num('shifter.oct'), (v) => this.set('shifter.oct', v), -3, 3, ['shifter.oct'], 'Shift in octaves'),
+        this.chip('SEM', () => this.num('shifter.semi'), (v) => this.set('shifter.semi', v), -11, 11, ['shifter.semi'], 'Shift in semitones'),
+        this.chip('FIN', () => this.num('shifter.fine'), (v) => this.set('shifter.fine', v), -100, 100, ['shifter.fine'], 'Fine shift (cents)'))],
+      print: this.fxLine(shDeps, lit('shifter.on', 'shifter.mix'), (x) => {
+        const st = 12 * this.num('shifter.oct') + this.num('shifter.semi') + this.num('shifter.fine') / 100;
+        const cyc = Math.max(0.5, Math.min(24, 2 * Math.pow(2, st / 12)));
+        // the grains: windows across the print, shorter and rougher as Grain goes up
+        const gn = 3 + Math.round(12 * this.num('shifter.grain')), gp = x * gn - Math.floor(x * gn);
+        const win = 1 - this.num('shifter.grain') * 0.8 * Math.pow(Math.cos(Math.PI * gp), 8);
+        // the body: Formant leans the wave toward a brighter or a hollower shape
+        const f = this.num('shifter.formant') / 24;
+        const y = Math.sin(2 * Math.PI * cyc * x) + (f > 0 ? 0.35 * f * Math.sin(6 * Math.PI * cyc * x) : 0) - (f < 0 ? 0.3 * f * Math.sin(Math.PI * cyc * x) : 0);
+        return 0.82 * win * Math.max(-1.1, Math.min(1.1, y));
+      }, false, { lowcut: 'shifter.lowcut' }),
+      dials: [md6('shifter.mix', 'Mix', { fmt: pct }), md6('shifter.feedback', 'Feedbk', { fmt: pct }), md6('shifter.grain', 'Grain', { fmt: pct }),
+        md6('shifter.formant', 'Formant', { fmt: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} st` }), md6('shifter.lowcut', 'Lo cut', { fmt: (v) => `${Math.round(v)} Hz` })],
     });
 
     // The tail as it is: pre-delay as a gap, each type's build-up (a room's early reflections, a
@@ -4107,7 +4139,7 @@ export class SynthView {
 
     const eq = this.eqBox();
 
-    return h('div', 'v2-main osc-page fx-page2', dist, crush, tape, chorus, hyper, delay, reverb, eq);
+    return h('div', 'v2-main osc-page fx-page2', dist, crush, tape, chorus, hyper, shifter, reverb, eq);
   }
 
   /**
@@ -4316,6 +4348,7 @@ export class SynthView {
     const ott = md('grind.ott', 'OTT OUT', { fmt: pct });
     const ottBox = md('grind.ott_box', 'OTT BOXES', { fmt: pct });
     const ottDrv = md('grind.ott_drives', 'OTT DRIVES', { fmt: pct });
+    const ottFlt = md('grind.ott_filters', 'OTT FILTERS', { fmt: pct });
     const out = md('grind.output', 'Output', { fmt: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB` });
     const lamps = h('span', 'gr-lamps gr-lamps-row', this.toggle('grind.key', 'KEY', 'small'), this.toggle('grind.noise_thru', 'NOISE THRU', 'small'));
     // CHAINS (owner's call: preset chains live in the strip): one of the recipes, exactly as it is (ROLL nudges them)
@@ -4333,9 +4366,14 @@ export class SynthView {
       recipeName.title = `${rc.name}: ${rc.idea}`;
     };
     chains.classList.add('sel-name');
+    // (owner's layout, 27 Nov: the graph in the middle under the middle four boxes; left of it the chains and the
+    // randomizer, right of it the four OTTs in a square, KEY / NOISE THRU, Lo cut and Output, and Mix under them)
+    strip.classList.add('gr-left');
     strip.append(h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'RUIN'), h('div', 'sel gr-chains-sel', chains), rocker),
-      h('div', 'gr-m-body', h('div', 'gr-m-row', roll, count), h('div', 'gr-m-row', h('span', 'gr-sub', 'WEIRD'), weird, recipeName), lamps),
-      h('div', 'ob-dials gr-knobs', ottDrv, ottBox, ott, lowcut, mix, out));
+      h('div', 'gr-m-body', h('div', 'gr-m-row', roll), h('div', 'gr-m-row', count), h('div', 'gr-m-row', h('span', 'gr-sub', 'WEIRD'), weird), h('div', 'gr-m-row', recipeName)));
+    const right = h('div', 'c ob gr-master gr-right',
+      h('div', 'gr-ott4', ottDrv, ottFlt, ottBox, ott), lamps,
+      h('div', 'gr-r-row', lowcut, out), h('div', 'gr-r-row', mix));
 
     // ---- the chain: eight boxes in free order (owner's call); each holds one of the four filters or drives, or nothing
     const chain = h('div', 'gr-chain');
@@ -4847,11 +4885,15 @@ export class SynthView {
       el.style.setProperty('--knob-accent', COLVAR(k));
       ctl.append(el);
     });
-    const edit = h('div', 'gr-edit', graphBox, strip);
+    const edit = h('div', 'gr-edit', strip, graphBox, right);
 
     // the EQ parts: band b's pass type (high-pass / notch / low-pass), its ball on a graph, the curve's biquads
     const eqPass = (n: number, b: number) => getParam(`grind${n}.eq_b${b + 1}_type`)!.options!.indexOf(String(this.get(`grind${n}.eq_b${b + 1}_type`))) === 1;
-    const eqDbY = (GH: number, db: number) => GH * 0.42 - Math.max(-30, Math.min(18, db)) * (GH / 62);
+    // the gain scale (owner's bug, 27 Nov: the balls couldn't reach the bottom): +18 dB at the top, -18 dB just above
+    // the frequency labels, so a ball goes the whole height; deeper cuts lie on the floor
+    const dbPx = (GH: number) => (GH - 32) / 36;
+    const eqDbY = (GH: number, db: number) => 14 + (18 - Math.max(-18, Math.min(18, db))) * dbPx(GH);
+    const yDb = (GH: number, y: number) => 18 - (y - 14) / dbPx(GH);
     const eqBall = (n: number, b: number, W: number, fY: (m: number) => number): [number, number] => {
       const bp = `grind${n}.eq_b${b + 1}`;
       return [freqX(this.num(`${bp}_freq`), W), eqPass(n, b) ? fY(1) : fY(Math.pow(10, (this.num(`${bp}_gain`) * this.num(`grind${n}.eq_scale`)) / 20))];
@@ -4990,7 +5032,7 @@ export class SynthView {
       const bandY = (w: number) => GH - (mini ? 4 : 26) - ((w - 0.5) / 8.5) * (GH - (mini ? 8 : 60));
       const fY = (mag: number) => {
         const d = 20 * Math.log10(Math.max(mag, 1e-4));
-        return GH * 0.42 - Math.max(-30, Math.min(18, d)) * (GH / 62);
+        return eqDbY(GH, d);
       };
       // the filter's ball on the graph, as the drive's: sideways = Freq, up / down = H Range (0 at the bottom, the whole
       // spectrum at the top); with KEY on, shown where it sits for the note playing, as the engine has it
@@ -5339,7 +5381,7 @@ export class SynthView {
       } else if (dragging === 'bell') {
         const bp = `${pre}.bell${this.ruinBellSel[n - 1] + 1}`;
         this.set(`${bp}_freq`, Math.round(Math.max(20, Math.min(20000, f / this.ruinKey()))));
-        if (!bellNoGain(String(this.get(`${bp}_type`)))) this.set(`${bp}_gain`, Math.round(Math.max(-18, Math.min(18, (GH * 0.42 - y) / (GH / 62))) * 10) / 10);
+        if (!bellNoGain(String(this.get(`${bp}_type`)))) this.set(`${bp}_gain`, Math.round(Math.max(-18, Math.min(18, yDb(GH, y))) * 10) / 10);
       } else if (dragging === 'bellRange') {
         // a wing's end: how far the band moves, the same each side of its Freq
         const bp = `${pre}.bell${this.ruinBellSel[n - 1] + 1}`, centre = this.num(`${bp}_freq`) * this.ruinKey();
@@ -5348,13 +5390,13 @@ export class SynthView {
         this.set(`${bp}_range`, Math.round(Math.max(minR, Math.min(10, 2 * Math.abs(Math.log2(f / centre)))) * 10) / 10);
       } else if (dragging === 'bellVRange') {
         // an up down wing's end: how far the band's gain moves, the same each side of its Gain
-        const bp = `${pre}.bell${this.ruinBellSel[n - 1] + 1}`, db = (GH * 0.42 - y) / (GH / 62);
-        const minV = 2 * WING_MIN / (GH / 62);
+        const bp = `${pre}.bell${this.ruinBellSel[n - 1] + 1}`, db = yDb(GH, y);
+        const minV = 2 * WING_MIN / dbPx(GH);
         this.set(`${bp}_vrange`, Math.round(Math.max(minV, Math.min(36, 2 * Math.abs(db - this.num(`${bp}_gain`))))));
       } else if (dragging === 'eq') {
         const bp = `${pre}.eq_b${this.ruinEqSel[n - 1] + 1}`, sc = this.num(`${pre}.eq_scale`);
         this.set(`${bp}_freq`, Math.round(Math.max(20, Math.min(20000, f))));
-        const db = Math.max(-18, Math.min(18, (GH * 0.42 - y) / (GH / 62)));
+        const db = Math.max(-18, Math.min(18, yDb(GH, y)));
         if (!eqPass(n, this.ruinEqSel[n - 1]) && Math.abs(sc) > 0.01) this.set(`${bp}_gain`, Math.round((db / sc) * 10) / 10);
       } else if (dragging === 'band') {
         this.set(`${pre}.drive_freq`, Math.round(Math.max(50, Math.min(18000, f))));
@@ -6032,20 +6074,11 @@ export class SynthView {
       } else b.onclick = () => this.showTab(t);
       if (t === 'LFO') {
         this.lockViews.push(() => b.classList.toggle('locked', this.lfo5Locked));
-        // A level bar under the name while the Wobbler is on: it grows and shrinks with what the
-        // Wobbler does right now (owner's pick); off, the tab looks like any other.
-        const fill = h('span', 'tab-level-fill'), bar = h('span', 'tab-level', fill);
-        b.append(bar);
-        const view = () => {
-          // (the busiest of the four custom LFOs)
-          bar.classList.toggle('on', this.wobOns.some((o) => o));
-          fill.style.width = `${Math.round(Math.max(0, ...this.wobNows.map((v) => v ?? 0)) * 100)}%`;
-        };
-        this.wobLevelViews.push(view);
+        // (the level line under the tab is gone, owner's call, 27 Nov: the 1-4 boxes show which LFOs move)
         const all = WOB_PREFIXES.flatMap((w) => [`${w}.on`, ...wobTargetIds(w)]);
         this.watch(all, () => {
           this.wobOns = WOB_PREFIXES.map((w) => this.wobActive(w));
-          view();
+          for (const f of this.wobSelViews) f();
         });
       }
       this.tabBtns.set(t, b);

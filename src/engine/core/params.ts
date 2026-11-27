@@ -109,7 +109,6 @@ export const lfoBendPow = (bend: number): number => Math.pow(4, 2 * bend - 1);
 export const LFO_COUNT = 6;
 export const SLOT_COUNT = 9; // the mod matrix's rows
 export const SYNC_BEATS = [0, 16, 8, 4, 2, 3, 1, 1.5, 2 / 3, 0.5, 0.75, 1 / 3, 0.25, 0.375, 1 / 6, 0.125];
-export const DELAY_BEATS = [0.125, 1 / 6, 0.25, 0.375, 1 / 3, 0.5, 0.75, 2 / 3, 1, 1.5, 2, 3, 4];
 
 // Mod matrix sources / destinations (schema option order).
 export const SRC_LFO1 = 1, SRC_LFO2 = 2, SRC_MOD_ENV = 3, SRC_AMP_ENV = 4, SRC_VEL = 5, SRC_KEY = 6, SRC_MODWHEEL = 7,
@@ -247,7 +246,7 @@ export const P = {
   driveOn: ix('drive.on'), filterOn: ix('filter.on'), distOn: ix('dist.on'), crushOn: ix('crush.on'),
   tapeOn: ix('tape.on'), vibOn: ix('vibrato.on'), lfoOn: [1, 2, 3, 4, 5, 6].map((n) => ix(`lfo${n}.on`)),
   modOn: ix('mod.on'), eqOn: ix('eq.on'), chorusOn: ix('chorus.on'), flangerOn: ix('flanger.on'),
-  phaserOn: ix('phaser.on'), delayOn: ix('delay.on'), reverbOn: ix('reverb.on'),
+  phaserOn: ix('phaser.on'), shifterOn: ix('shifter.on'), reverbOn: ix('reverb.on'),
   wheelMove: ix('wheel.move'), wheelPreset: ix('wheel.preset'),
   // the four custom LFOs (owner's call): 'wobble.*' is the first, 'wobble2.*' .. 'wobble4.*' the others
   wob: [1, 2, 3, 4].map((n) => {
@@ -262,7 +261,8 @@ export const P = {
   }),
   flangerMix: ix('flanger.mix'), flangerRate: ix('flanger.rate'), flangerFb: ix('flanger.feedback'),
   hyperOn: ix('hyper.on'), hyperRate: ix('hyper.rate'), hyperDetune: ix('hyper.detune'), hyperRetrig: ix('hyper.retrig'), hyperUnison: ix('hyper.unison'), hyperMix: ix('hyper.mix'), hyperSize: ix('hyper.size'), hyperDimMix: ix('hyper.dim_mix'),
-  delayMix: ix('delay.mix'), delayTime: ix('delay.time'), delayFb: ix('delay.feedback'), delayTone: ix('delay.tone'),
+  shifterOct: ix('shifter.oct'), shifterSemi: ix('shifter.semi'), shifterFine: ix('shifter.fine'), shifterMix: ix('shifter.mix'),
+  shifterFb: ix('shifter.feedback'), shifterGrain: ix('shifter.grain'), shifterFormant: ix('shifter.formant'),
   reverbType: ix('reverb.type'), reverbDecay: ix('reverb.decay'), reverbPre: ix('reverb.predelay'), reverbOct: ix('reverb.octave'), eqHighcut: ix('eq.highcut'),
   amp: [ix('amp_env.attack'), ix('amp_env.decay'), ix('amp_env.sustain'), ix('amp_env.release')],
   mod: [ix('mod_env.attack'), ix('mod_env.decay'), ix('mod_env.sustain'), ix('mod_env.release')],
@@ -277,11 +277,11 @@ export const P = {
   /** The FX page's OTT (its own, after the phaser; GRIND has another). */
   ottOn: ix('ott.on'), ottDepth: ix('ott.depth'), ottLowcut: ix('ott.lowcut'),
   /** Each modulation / space effect's own low cut: it only works above it. */
-  fxLowcut: ['chorus', 'flanger', 'phaser', 'delay', 'reverb'].map((f) => ix(`${f}.lowcut`)),
+  fxLowcut: ['chorus', 'flanger', 'phaser', 'shifter', 'reverb'].map((f) => ix(`${f}.lowcut`)),
   /** The EQ's four bands (low shelf / high-pass, two bells / notches, high shelf / low-pass) and its gain scale. */
   eq: [1, 2, 3, 4].map((n) => ({ type: ix(`eq.b${n}_type`), freq: ix(`eq.b${n}_freq`), gain: ix(`eq.b${n}_gain`), q: ix(`eq.b${n}_q`) })), eqScale: ix('eq.scale'),
   outGain: ix('output.gain'), poly: ix('voice.polyphony'),
-  grindOn: ix('grind.on'), grindMix: ix('grind.mix'), grindLowcut: ix('grind.lowcut'), grindKey: ix('grind.key'), grindOneShot: ix('grind.oneshot'), grindOneShotUp: ix('grind.oneshot_dir'), grindNoiseThru: ix('grind.noise_thru'), grindOtt: ix('grind.ott'), grindOttBox: ix('grind.ott_box'), grindOttDrives: ix('grind.ott_drives'), grindOut: ix('grind.output'),
+  grindOn: ix('grind.on'), grindMix: ix('grind.mix'), grindLowcut: ix('grind.lowcut'), grindKey: ix('grind.key'), grindOneShot: ix('grind.oneshot'), grindOneShotUp: ix('grind.oneshot_dir'), grindNoiseThru: ix('grind.noise_thru'), grindOtt: ix('grind.ott'), grindOttBox: ix('grind.ott_box'), grindOttDrives: ix('grind.ott_drives'), grindOttFilters: ix('grind.ott_filters'), grindOut: ix('grind.output'),
   grindSlot: [1, 2, 3, 4, 5, 6, 7, 8].map((k) => ix(`grind.slot${k}`)),
   grind: [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
     on: ix(`grind${n}.on`), filter: ix(`grind${n}.filter`), freq: ix(`grind${n}.freq`), range: ix(`grind${n}.range`),

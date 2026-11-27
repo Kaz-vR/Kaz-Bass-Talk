@@ -97,7 +97,6 @@ constexpr int LFO_COUNT = 6;
 constexpr int WOB_RANDOM = 6, WOB_CUSTOM = 7;
 constexpr int SLOT_COUNT = 9;  // the mod matrix's rows
 constexpr double SYNC_BEATS[16] = {0, 16, 8, 4, 2, 3, 1, 1.5, 2.0 / 3, 0.5, 0.75, 1.0 / 3, 0.25, 0.375, 1.0 / 6, 0.125};
-constexpr double DELAY_BEATS[13] = {0.125, 1.0 / 6, 0.25, 0.375, 1.0 / 3, 0.5, 0.75, 2.0 / 3, 1, 1.5, 2, 3, 4};
 
 constexpr int SRC_LFO1 = 1, SRC_LFO2 = 2, SRC_MOD_ENV = 3, SRC_AMP_ENV = 4, SRC_VEL = 5, SRC_KEY = 6, SRC_MODWHEEL = 7,
               SRC_LFO3 = 8, SRC_LFO4 = 9, SRC_LFO5 = 10, SRC_LFO6 = 11;
@@ -180,12 +179,12 @@ struct ParamIndex {
   int dType, dDrive, dMix, dTone, dSplit, dBandHz, dBandOct, dDyn, crushMix, crushBits, crushRate, crushLowcut, tapeLowcut, tapeWow, dOut;
   int osc2Sync;
   int driveOn, filterOn, distOn, crushOn, tapeOn, vibOn, lfoOn[6], modOn, eqOn, chorusOn, flangerOn,
-      phaserOn, delayOn, reverbOn;
+      phaserOn, shifterOn, reverbOn;
   int wheelMove, wheelPreset;
   // the four custom LFOs: 'wobble.*' and 'wobble2.*' .. 'wobble4.*'
   struct Wob { int on, rate, free, hz, shape, pts, phase, smooth, oneShot, master, dests[4], amts[4], offs[4], x[32], y[32], s[32]; };
   Wob wob[4];
-  int flangerMix, flangerRate, flangerFb, delayMix, delayTime, delayFb, delayTone;
+  int flangerMix, flangerRate, flangerFb, shifterOct, shifterSemi, shifterFine, shifterMix, shifterFb, shifterGrain, shifterFormant;
   int hyperOn, hyperRate, hyperDetune, hyperRetrig, hyperUnison, hyperMix, hyperSize, hyperDimMix;
   int reverbType, reverbDecay, reverbPre, reverbOct, eqHighcut;
   int amp[4], mod[4], vibDepth, vibRate, vibDelay, vibFade;
@@ -194,7 +193,7 @@ struct ParamIndex {
   int chorusMix, chorusDepth, phaserMix, phaserRate, reverbMix, fxLowcut[5], ottOn, ottDepth, ottLowcut;
   Eq eq[4];
   int eqScale, outGain, poly;
-  int grindOn, grindMix, grindLowcut, grindKey, grindOneShot, grindOneShotUp, grindNoiseThru, grindOtt, grindOttBox, grindOttDrives, grindOut;
+  int grindOn, grindMix, grindLowcut, grindKey, grindOneShot, grindOneShotUp, grindNoiseThru, grindOtt, grindOttBox, grindOttDrives, grindOttFilters, grindOut;
   int grindSlot[8];
   GrindStage grind[8];
 
@@ -232,7 +231,7 @@ struct ParamIndex {
     tapeOn = ix("tape.on"); vibOn = ix("vibrato.on");
     for (int n = 0; n < 6; n++) lfoOn[n] = ix("lfo" + std::to_string(n + 1) + ".on");
     modOn = ix("mod.on"); eqOn = ix("eq.on"); chorusOn = ix("chorus.on"); flangerOn = ix("flanger.on");
-    phaserOn = ix("phaser.on"); delayOn = ix("delay.on"); reverbOn = ix("reverb.on");
+    phaserOn = ix("phaser.on"); shifterOn = ix("shifter.on"); reverbOn = ix("reverb.on");
     wheelMove = ix("wheel.move"); wheelPreset = ix("wheel.preset");
     for (int n = 0; n < 4; n++) {
       const std::string w = n == 0 ? "wobble." : "wobble" + std::to_string(n + 1) + ".";
@@ -254,7 +253,8 @@ struct ParamIndex {
     flangerMix = ix("flanger.mix"); flangerRate = ix("flanger.rate"); flangerFb = ix("flanger.feedback");
     hyperOn = ix("hyper.on"); hyperRate = ix("hyper.rate"); hyperDetune = ix("hyper.detune"); hyperRetrig = ix("hyper.retrig");
     hyperUnison = ix("hyper.unison"); hyperMix = ix("hyper.mix"); hyperSize = ix("hyper.size"); hyperDimMix = ix("hyper.dim_mix");
-    delayMix = ix("delay.mix"); delayTime = ix("delay.time"); delayFb = ix("delay.feedback"); delayTone = ix("delay.tone");
+    shifterOct = ix("shifter.oct"); shifterSemi = ix("shifter.semi"); shifterFine = ix("shifter.fine"); shifterMix = ix("shifter.mix");
+    shifterFb = ix("shifter.feedback"); shifterGrain = ix("shifter.grain"); shifterFormant = ix("shifter.formant");
     reverbType = ix("reverb.type"); reverbDecay = ix("reverb.decay"); reverbPre = ix("reverb.predelay"); reverbOct = ix("reverb.octave");
     eqHighcut = ix("eq.highcut");
     const char* stages[4] = {"attack", "decay", "sustain", "release"};
@@ -274,7 +274,7 @@ struct ParamIndex {
     chorusMix = ix("chorus.mix"); chorusDepth = ix("chorus.depth"); phaserMix = ix("phaser.mix"); phaserRate = ix("phaser.rate");
     reverbMix = ix("reverb.mix");
     ottOn = ix("ott.on"); ottDepth = ix("ott.depth"); ottLowcut = ix("ott.lowcut");
-    const char* fx[5] = {"chorus", "flanger", "phaser", "delay", "reverb"};
+    const char* fx[5] = {"chorus", "flanger", "phaser", "shifter", "reverb"};
     for (int k = 0; k < 5; k++) fxLowcut[k] = ix(std::string(fx[k]) + ".lowcut");
     for (int b = 0; b < 4; b++) {
       const std::string e = "eq.b" + std::to_string(b + 1) + "_";
@@ -283,7 +283,7 @@ struct ParamIndex {
     eqScale = ix("eq.scale");
     outGain = ix("output.gain"); poly = ix("voice.polyphony");
     grindOn = ix("grind.on"); grindMix = ix("grind.mix"); grindLowcut = ix("grind.lowcut"); grindKey = ix("grind.key");
-    grindOneShot = ix("grind.oneshot"); grindOneShotUp = ix("grind.oneshot_dir"); grindNoiseThru = ix("grind.noise_thru"); grindOtt = ix("grind.ott"); grindOttBox = ix("grind.ott_box"); grindOttDrives = ix("grind.ott_drives"); grindOut = ix("grind.output");
+    grindOneShot = ix("grind.oneshot"); grindOneShotUp = ix("grind.oneshot_dir"); grindNoiseThru = ix("grind.noise_thru"); grindOtt = ix("grind.ott"); grindOttBox = ix("grind.ott_box"); grindOttDrives = ix("grind.ott_drives"); grindOttFilters = ix("grind.ott_filters"); grindOut = ix("grind.output");
     for (int k = 0; k < 8; k++) grindSlot[k] = ix("grind.slot" + std::to_string(k + 1));
     for (int n = 0; n < 8; n++) {
       const std::string g = "grind" + std::to_string(n + 1) + ".";

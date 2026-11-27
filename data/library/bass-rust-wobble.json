@@ -163,7 +163,6 @@
   "wobble.rate": "1/4",
   "wobble.cutoff": true,
   "wobble.volume": false,
-  "wobble.shape": "saw down",
   "wobble.life": 0.6,
   "mod.on": true,
   "mod1.source": "lfo1",

@@ -939,7 +939,7 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .box-mfx { --knob-accent: var(--c-purple); } /* the flanger */
 .v2 .box-phaser { --knob-accent: var(--c-phaser); }
 .v2 .box-hyper { --knob-accent: var(--c-purple); }
-.v2 .box-delay { --knob-accent: var(--c-phaser); }
+.v2 .box-shifter { --knob-accent: var(--c-phaser); }
 .v2 .box-reverb { --knob-accent: var(--c-blue); }
 .v2 .box-eq { --knob-accent: #d4d4da; }
 .v2 .fx-kinds { display: inline-flex; align-items: center; gap: 6px; }
@@ -972,7 +972,11 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .box-lfo5 { --knob-accent: var(--c-purple); }
 .v2 .box-lfo6 { --knob-accent: var(--c-sand); }
 .v2 .box-vib { --knob-accent: #ff6fae; }
-.v2 .box-wob { --knob-accent: var(--c-blue); } /* the custom LFO: the filter's blue (owner's call) */
+.v2 .box-wob, .v2 .wob-c1 { --knob-accent: var(--c-blue); } /* custom LFO 1: the filter's blue (owner's call) */
+/* custom LFOs 2-4 (owner's call, 27 Nov): LFO 2's orange, LFO 3's green, LFO 1's red */
+.v2 .box-wob.wob-c2, .v2 .wob-c2 { --knob-accent: var(--c-orange); }
+.v2 .box-wob.wob-c3, .v2 .wob-c3 { --knob-accent: var(--c-green); }
+.v2 .box-wob.wob-c4, .v2 .wob-c4 { --knob-accent: var(--c-red); }
 .v2 .box-matrix { --knob-accent: #d4d4da; grid-column: 3; grid-row: 1 / 5; display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; }
 .v2 .mx-note { font-size: 9.5px; letter-spacing: 0.14em; color: #66666d; margin-left: 6px; }
 .v2 .mx-rows { flex: 1; display: grid; grid-template-rows: repeat(9, 1fr); }
@@ -1399,7 +1403,7 @@ html, body, .v2-wrap { background: #070708; }
   padding: 9px 10px 9px 12px !important; border-radius: 2px; transition: color 120ms, text-shadow 120ms; }
 .v2 .v2-tabs .tab:hover { color: #d8d8dc !important; }
 .v2 .v2-tabs .tab.on { color: #fff !important; text-shadow: 0 0 10px rgba(255,255,255,0.75), 0 0 2px rgba(255,255,255,0.9) !important; }
-.v2 .v2-tabs .tab::before { content: ""; position: absolute; left: 12px; right: 10px; bottom: 0; height: 1px; background: #fff; opacity: 0; box-shadow: 0 0 6px #fff, 0 0 2px #fff; transition: opacity 120ms; }
+.v2 .v2-tabs .tab::before { content: ""; position: absolute; left: 12px; right: 10px; bottom: 4px; height: 1px; background: #fff; opacity: 0; box-shadow: 0 0 6px #fff, 0 0 2px #fff; transition: opacity 120ms; }
 .v2 .v2-tabs .tab.on::before { opacity: 0.9; }
 .v2 .v2-tabs .tab-level { left: 12px !important; right: 10px !important; bottom: 3px !important; }
 .v2 .v2-tabs .tab.locked::after { right: 0 !important; }
@@ -1816,6 +1820,7 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 .v2 .lfo5-shape-pop { display: none; position: absolute; left: 12px; right: 12px; top: 38px; z-index: 30; grid-template-columns: repeat(8, 1fr); gap: 8px; padding: 10px; background: #0b0b0d; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 14px 40px rgba(0,0,0,0.85); }
 .v2 .lfo5-shape-pop.open { display: grid; }
 .v2 .lfo5-shape-pop .lfo5-tile { height: 74px; }
+.v2 .lfo5-shape-pop .lfo5-import { grid-column: span 2; }
 .v2 .lfo5-oneshot { flex: 0.5; }
 .v2 .lfo-third { display: contents; }
 .v2 .lfo-blank { width: 48px; }
@@ -1838,11 +1843,12 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 /* The custom LFO, four of them (owner's call): 1 2 3 4 in the title row; four targets; under them the master Depth
    and Smooth on the left, ONE SHOT over Shift on the right */
 .v2 .lfo5-nums { display: flex; gap: 2px; margin: 0 4px; }
-.v2 .lfo5-num { width: 20px; height: 20px; padding: 0; background: none; border: 1px solid rgba(255,255,255,0.08); border-radius: 2px;
-  color: #6a6b72; font: inherit; font-size: 10px; cursor: pointer; position: relative; }
+.v2 .lfo5-num { width: 20px; height: 20px; padding: 0; background: none; border: 1px solid color-mix(in srgb, var(--knob-accent) 22%, transparent); border-radius: 2px;
+  color: #6a6b72; font: inherit; font-size: 10px; line-height: 1; cursor: pointer; position: relative; display: inline-flex; align-items: center; justify-content: center; text-indent: 0.1em; transition: background 120ms; }
 .v2 .lfo5-num:hover { color: #d9dadd; }
-.v2 .lfo5-num.on { color: #f0f0f2; border-color: color-mix(in srgb, var(--c-blue) 60%, transparent); box-shadow: inset 0 0 8px -2px var(--c-blue); text-shadow: 0 0 6px var(--c-blue); }
-.v2 .lfo5-num.busy::after { content: ''; position: absolute; left: 50%; bottom: 2px; width: 3px; height: 3px; margin-left: -1.5px; border-radius: 50%; background: var(--c-blue); box-shadow: 0 0 4px var(--c-blue); }
+.v2 .lfo5-num.on { color: #f0f0f2; border-color: color-mix(in srgb, var(--knob-accent) 75%, transparent); box-shadow: inset 0 0 8px -2px var(--knob-accent); text-shadow: 0 0 6px var(--knob-accent); }
+/* moving something: the box filled a little lighter in its colour (owner's call, 27 Nov) */
+.v2 .lfo5-num.busy { background: color-mix(in srgb, var(--knob-accent) 32%, transparent); color: #e8e8ea; }
 .v2 .lfo-all > .lfo5-settings .lfo5-switch { flex: 1 1 auto; }
 .v2 .lfo5-rows { gap: 4px !important; }
 .v2 .lfo5-bottom { flex: none; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 4px 0; }
@@ -1886,3 +1892,18 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 .v2 .gr-dir-seg button + button { border-left: 1px solid rgba(255,255,255,0.06); }
 .v2 .gr-dir-seg button:hover { color: #d9dadd; }
 .v2 .gr-dir-seg button.on { color: #f0f0f2; background: color-mix(in srgb, var(--knob-accent) 18%, transparent); text-shadow: 0 0 6px var(--knob-accent); }
+
+/* RUIN layout (owner's call, 27 Nov): under the eight boxes, the chains and randomizer under boxes 1-2, the graph under
+   boxes 3-6, the OTTs, KEY / NOISE THRU, Lo cut, Output and Mix under boxes 7-8 */
+.v2 .grind-page .gr-edit { grid-template-columns: repeat(8, minmax(0, 1fr)) !important; gap: 6px; }
+.v2 .grind-page .gr-edit > .gr-left { grid-column: 1 / 3; }
+.v2 .grind-page .gr-edit > .gr-focus { grid-column: 3 / 7; padding: 12px 12px !important; }
+.v2 .grind-page .gr-edit > .gr-right { grid-column: 7 / 9; }
+.v2 .gr-left .gr-m-body { gap: 14px; }
+.v2 .gr-left .gr-weird { width: 120px; }
+.v2 .gr-left .gr-recipe { max-width: 220px; }
+.v2 .gr-right { display: flex !important; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 10px 12px !important; }
+.v2 .gr-right .gr-ott4 { display: grid; grid-template-columns: repeat(2, 74px); gap: 2px 8px; justify-items: center; }
+.v2 .gr-right .gr-r-row { display: flex; justify-content: center; gap: 34px; }
+.v2 .gr-right .gr-lamps-row { flex-direction: row; gap: 12px; margin: 2px 0; align-items: center; }
+.v2 .gr-right .k .k-label { white-space: nowrap; }

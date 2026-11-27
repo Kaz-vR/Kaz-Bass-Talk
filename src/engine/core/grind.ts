@@ -210,8 +210,11 @@ export const ampCurveIntegral = (u: number): number => tanhIntegral(AMP_GAIN * u
 class Stage {
   /** OTT TYPE 1 (owner's call, 27 Nov): each box's own OTT, after its level, all set by grind.ott_box: filter, drive, EQ, phaser. */
   readonly otts = [new Ott(), new Ott(), new Ott(), new Ott()];
-  /** OTT DRIVES (owner's call, 27 Nov): the drive box's second OTT, after OTT BOXES', set by grind.ott_drives. */
-  readonly ottDrv = new Ott();
+  /**
+   * Each box's second OTT, after OTT BOXES': OTT DRIVES on the drive box, OTT FILTERS on the filter, EQ and phaser boxes
+   * (owner's calls, 27 Nov; grind.ott_drives / grind.ott_filters), by box kind.
+   */
+  readonly ottX = [new Ott(), new Ott(), new Ott(), new Ott()];
   on = false;
   ftype = GF_NOTCH;
   dtype = GD_TAPE;
@@ -790,7 +793,7 @@ export class Grind {
       const s = this.stages[i], gp = P.grind[i];
       s.on = cur[gp.on] > 0.5;
       for (let q = 0; q < 4; q++) s.otts[q].set(s.on ? cur[P.grindOttBox] : 0, 0, fsOs);
-      s.ottDrv.set(s.on ? cur[P.grindOttDrives] : 0, 0, fsOs);
+      for (let q = 0; q < 4; q++) s.ottX[q].set(s.on ? cur[q === 1 ? P.grindOttDrives : P.grindOttFilters] : 0, 0, fsOs);
       if (!s.on) {
         s.fcNow = -1;
         continue;
@@ -1137,10 +1140,11 @@ export class Grind {
             l = ot.l;
             r = ot.r;
           }
-          if (drive && s.ottDrv.on) {
-            s.ottDrv.process(l, r);
-            l = s.ottDrv.l;
-            r = s.ottDrv.r;
+          const ox = s.ottX[kind];
+          if (ox.on) {
+            ox.process(l, r);
+            l = ox.l;
+            r = ox.r;
           }
           if (at === kAt && mode >= 1) {
             if (mode === 3) {

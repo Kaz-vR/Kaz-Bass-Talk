@@ -28,7 +28,7 @@
 
 import { PARAM_COUNT, params } from '../../schema';
 import { AUX_SLOT, Biquad, clamp, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
-import { Chorus, Delay, HyperDim, OctaveDown, Reverb } from './fx';
+import { Chorus, HyperDim, OctaveDown, PitchShifter, Reverb } from './fx';
 import { DirtBus } from './bus';
 import { Ott } from './grind';
 import { OVERSAMPLE_LATENCY } from './oversample';
@@ -225,10 +225,9 @@ export class Synth {
   // FX + output.
   // the FX page's flanger and phaser were taken out (owner's call, 26 Nov; archive/fx-flanger-phaser.md)
   private readonly hyper: HyperDim;
-  private readonly delay: Delay;
-  private delaySeconds = 0.375;
-  private delayToneCoef = 0.5;
-  private delayMix = 0;
+  /** The PITCH SHIFTER (owner's call, 27 Nov, in the delay's place; the delay is in archive/fx-delay.md). */
+  private readonly shifter: PitchShifter;
+  private shifterMix = 0;
   // Modulated FX amounts (base value + the newest voice's mod matrix), set at control rate.
   private chorusDepth = 0;
   private width = 1;
@@ -308,7 +307,7 @@ export class Synth {
     this.hyper = new HyperDim(sampleRate);
     this.reverb = new Reverb(sampleRate);
     this.verbOct = new OctaveDown(sampleRate);
-    this.delay = new Delay(sampleRate);
+    this.shifter = new PitchShifter(sampleRate);
     this.bus = new DirtBus(sampleRate, new Rng(0x6a1d));
     // Subsonic + DC filter: 15 Hz 4th-order high-pass (−0.4 dB at 20 Hz, flat by 30 Hz).
     for (let i = 0; i < 2; i++) {
@@ -448,10 +447,9 @@ export class Synth {
     if (off(P.eqOn)) { zero(P.eqScale, ...P.eq.map((b) => b.type)); t[P.eqHighcut] = 20000; }
     if (off(P.chorusOn)) { zero(P.chorusMix); block(K.D_CHORUS_DEPTH); }
     if (off(P.hyperOn)) zero(P.hyperMix, P.hyperDimMix);
-    if (off(P.delayOn)) { zero(P.delayMix); block(K.D_DELAY_MIX, K.D_DELAY_TIME); }
+    if (off(P.shifterOn)) zero(P.shifterMix);
     if (off(P.reverbOn)) { zero(P.reverbMix); block(K.D_REVERB_MIX); }
     if (off(P.ottOn)) zero(P.ottDepth);
-    // (the delay came back, owner's call, 26 Nov)
 
     const solo = this.monitorSolo, mute = this.monitorMute;
     const hear = (layer: string) => !mute.includes(layer) && (solo.length === 0 || solo.includes(layer));
@@ -607,7 +605,7 @@ export class Synth {
     this.wobGate = this.wobGateTarget = 1;
     this.hcL.reset();
     this.hcR.reset();
-    this.delay.reset();
+    this.shifter.reset();
   }
 
   private removeFromStack(note: number): void {
@@ -958,10 +956,9 @@ export class Synth {
 
     // Modulated FX amounts.
     this.chorusDepth = clamp(cur[P.chorusDepth] + dst[K.D_CHORUS_DEPTH], 0, 1);
-    // Delay. Modulating the delay time glides the read head (tape-style pitch smear on the repeats).
-    this.delaySeconds = Math.min(3, ((K.DELAY_BEATS[cur[P.delayTime]] * 60) / this.tempo) * Math.pow(2, clamp(dst[K.D_DELAY_TIME], -1, 1)));
-    this.delayToneCoef = 1 - Math.exp((-TWO_PI * Math.min(800 * Math.pow(20, cur[P.delayTone]), fs * 0.45)) / fs);
-    this.delayMix = clamp(cur[P.delayMix] + dst[K.D_DELAY_MIX], 0, 1);
+    // The pitch shifter: Oct, Sem and Fine as one shift in semitones.
+    this.shifterMix = clamp(cur[P.shifterMix], 0, 1);
+    this.shifter.set(12 * cur[P.shifterOct] + cur[P.shifterSemi] + cur[P.shifterFine] / 100, cur[P.shifterFb], cur[P.shifterGrain], cur[P.shifterFormant]);
     this.widthTarget = clamp(1 + dst[K.D_WIDTH], 0, 2);
     this.widthStep = (this.widthTarget - this.width) / BLOCK;
     for (let k = 0; k < 2; k++) {
@@ -1223,11 +1220,13 @@ export class Synth {
         l = out[0];
         r = out[1];
       }
-      const dMix = this.delayMix;
-      if (dMix > 1e-4) {
-        this.delay.process(hpL[3].process(l), hpR[3].process(r), this.delaySeconds, cur[P.delayFb], this.delayToneCoef, out);
-        l += out[0] * dMix;
-        r += out[1] * dMix;
+      // the PITCH SHIFTER: above its low cut, the dry crossfaded to the shifted by Mix (below stays dry)
+      const sMix = this.shifterMix;
+      if (sMix > 1e-4) {
+        const hl = hpL[3].process(l), hr = hpR[3].process(r);
+        this.shifter.process(hl, hr, out);
+        l += (out[0] - hl) * sMix;
+        r += (out[1] - hr) * sMix;
       }
       const rMix = this.reverbMix;
       if (rMix > 1e-4) {

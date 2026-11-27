@@ -223,10 +223,10 @@ function migrateMatrix(src: Record<string, unknown>): Record<string, unknown> {
 }
 
 /** The FX distortion became DRIVE (RUIN's drive, owner's call): its old types as the new ones closest to them. */
-const OLD_DIST_TYPE: Record<string, string> = { soft: 'tape', hard: 'soft clip', fold: 'amp', fuzz: 'amp' };
+const OLD_DIST_TYPE: Record<string, string> = { soft: 'tape saturation', hard: 'soft clipper', fold: 'amp simulation' };
 
 /** RUIN's old drive types, as the new ones closest to them. */
-const OLD_GRIND_DRIVE: Record<string, string> = { soft: 'soft clip', hard: 'soft clip', fold: 'amp', fuzz: 'amp' };
+const OLD_GRIND_DRIVE: Record<string, string> = { soft: 'soft clipper', hard: 'soft clipper', fold: 'amp simulation' };
 
 /** RUIN's filters (owner's call): Res became Width (turned round: up = wider), V Range became Depth (how deep the
  * notch / how tall the peak; old patches keep the whole filter, Depth 1); the resonance no longer moves. */

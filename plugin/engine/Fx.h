@@ -466,41 +466,144 @@ class HyperDim {
   double ph[7] = {};
 };
 
-class Delay {
+/** PITCH SHIFTER (as fx.ts PitchShifter): two crossfaded taps at the ratio's speed, grain, feedback, the formant bank. */
+constexpr int SH_BANDS = 24;
+constexpr double SH_F_LO = 60, SH_F_HI = 15000;
+class PitchShifter {
  public:
-  explicit Delay(double fs_) : fs(fs_) {
-    const int size = pow2Size(std::ceil(3.1 * fs));
-    bufL.assign(size, 0.f);
-    bufR.assign(size, 0.f);
+  explicit PitchShifter(double fs_) : fs(fs_) {
+    const int size = pow2Size(std::ceil(0.2 * fs));
+    buf[0].assign((size_t)size, 0.0f);
+    buf[1].assign((size_t)size, 0.0f);
     mask = size - 1;
-    hpCoef = 1 - std::exp((-TWO_PI * 150) / fs);
+    const double spacing = std::log2(SH_F_HI / SH_F_LO) / (SH_BANDS - 1);
+    for (int b = 0; b < SH_BANDS; b++) {
+      const double fc = std::fmin(SH_F_LO * std::pow(2.0, b * spacing), 0.45 * fs);
+      fG[b] = std::tan((PI * fc) / fs);
+      fK[b] = 1 / 4.2;
+      gain[b] = gainT[b] = 1;
+    }
+    envA = 1 - std::exp(-1 / (0.003 * fs));
+    envR = 1 - std::exp(-1 / (0.03 * fs));
+    fbK = 1 - std::exp((-TWO_PI * 7000) / fs);
+    lvK = 1 - std::exp(-1 / (0.05 * fs));
   }
   void reset() {
-    std::fill(bufL.begin(), bufL.end(), 0.f);
-    std::fill(bufR.begin(), bufR.end(), 0.f);
-    lpL = lpR = hpL = hpR = 0;
+    std::fill(buf[0].begin(), buf[0].end(), 0.0f);
+    std::fill(buf[1].begin(), buf[1].end(), 0.0f);
+    ph = 0;
+    lastP[0] = lastP[1] = jit[0] = jit[1] = fbS[0] = fbS[1] = 0;
+    for (auto& f : aa) f.reset();
+    for (int k = 0; k < 2 * SH_BANDS; k++) ic1[k] = ic2[k] = 0;
+    for (int b = 0; b < SH_BANDS; b++) { env[b] = 0; gain[b] = gainT[b] = 1; }
+    lvIn = lvOut = 0;
   }
-  void process(double l, double r, double seconds, double feedback, double toneCoef, double* out) {
-    const double target = std::fmin(seconds * fs, mask - 2);
-    time = time < 0 ? target : time + (target - time) * 0.0005;
-    const double yl = readFrac(bufL, mask, w, time);
-    const double yr = readFrac(bufR, mask, w, time);
-    lpL += (yl - lpL) * toneCoef;
-    lpR += (yr - lpR) * toneCoef;
-    hpL += (lpL - hpL) * hpCoef;
-    hpR += (lpR - hpR) * hpCoef;
-    const double fl = lpL - hpL, fr = lpR - hpR;
-    bufL[w] = (float)(0.5 * (l + r) + feedback * fr);
-    bufR[w] = (float)(feedback * fl);
+  void set(double semis, double feedback, double grainV, double formantV) {
+    ratio = std::pow(2.0, semis / 12);
+    grain = std::fmin(1, std::fmax(0, grainV));
+    win = jsRound(0.08 * std::pow(6.0 / 80, grain) * fs);
+    fb = 0.95 * std::fmin(1, std::fmax(0, feedback));
+    formant = std::fmin(24, std::fmax(-24, formantV));
+    const double a = ratio > 1.01 ? std::fmin(0.45 * fs, (0.45 * fs) / ratio) : 0;
+    if (a != lastAa) {
+      lastAa = a;
+      aaOn = a > 0;
+      if (aaOn) for (auto& f : aa) f.setLowpass(a, SQRT1_2, fs);
+    }
+  }
+  void process(double l, double r, double* out) {
+    double p0 = ph + (1 - ratio) / win;
+    p0 -= std::floor(p0);
+    ph = p0;
+    const double p1 = p0 + 0.5 >= 1 ? p0 - 0.5 : p0 + 0.5;
+    for (int t = 0; t < 2; t++) {
+      const double p = t == 0 ? p0 : p1;
+      if (std::fabs(p - lastP[t]) > 0.5) jit[t] = grain * grain * 0.5 * win * (0.5 + 0.5 * rng.next());
+      lastP[t] = p;
+    }
+    const double size = mask + 1;
+    for (int c = 0; c < 2; c++) {
+      double x = (c == 0 ? l : r) + fb * fbS[c];
+      if (aaOn) x = aa[2 * c + 1].process(aa[2 * c].process(x));
+      auto& b = buf[c];
+      b[(size_t)w] = (float)x;
+      double y = 0;
+      for (int t = 0; t < 2; t++) {
+        const double p = t == 0 ? p0 : p1;
+        const double d = 2 + p * win + jit[t];
+        double rp = w - d;
+        rp -= std::floor(rp / size) * size;
+        const int i = (int)std::floor(rp);
+        const double f = rp - i;
+        const double a0 = b[(size_t)(i & mask)];
+        const double v = a0 + (b[(size_t)((i + 1) & mask)] - a0) * f;
+        const double s = std::sin(PI * p);
+        y += v * s * s;
+      }
+      fbS[c] += (fastTanh(y) - fbS[c]) * fbK;
+      out[c] = y;
+    }
     w = (w + 1) & mask;
-    out[0] = yl;
-    out[1] = yr;
+    if (std::fabs(formant) > 1e-3) formantWarp(out);
   }
+
  private:
+  void formantWarp(double* out) {
+    const int NB = SH_BANDS;
+    double sl = 0, sr = 0;
+    for (int b = 0; b < NB; b++) {
+      const double g = fG[b], k = fK[b], a1 = 1 / (1 + g * (g + k)), a2 = g * a1;
+      double e = 0;
+      for (int c = 0; c < 2; c++) {
+        const int o = c * NB + b;
+        const double v0 = out[c];
+        const double v1 = a1 * ic1[o] + a2 * (v0 - ic2[o]);
+        const double v2 = ic2[o] + g * v1;
+        ic1[o] = 2 * v1 - ic1[o];
+        ic2[o] = 2 * v2 - ic2[o];
+        const double bp = k * v1;
+        bandOut[o] = bp;
+        e += std::fabs(bp);
+      }
+      e *= 0.5;
+      env[b] += (e - env[b]) * (e > env[b] ? envA : envR);
+    }
+    if ((tick = (tick + 1) & 15) == 0) {
+      const double spacing = std::log2(SH_F_HI / SH_F_LO) / (SH_BANDS - 1);
+      const double shift = -formant / 12 / spacing;
+      for (int b = 0; b < NB; b++) {
+        const double s = std::fmax(0, std::fmin(NB - 1, b + shift));
+        const int i = std::min(NB - 2, (int)std::floor(s));
+        const double f = s - i;
+        const double src = env[i] + (env[i + 1] - env[i]) * f;
+        gainT[b] = std::fmin(6, src / (env[b] + 1e-5));
+      }
+    }
+    for (int b = 0; b < NB; b++) {
+      gain[b] += (gainT[b] - gain[b]) * 0.02;
+      sl += gain[b] * bandOut[b];
+      sr += gain[b] * bandOut[NB + b];
+    }
+    lvIn += (std::fabs(out[0]) + std::fabs(out[1]) - lvIn) * lvK;
+    lvOut += (std::fabs(sl) + std::fabs(sr) - lvOut) * lvK;
+    const double lg = std::fmax(0.25, std::fmin(2, lvIn / (lvOut + 1e-9)));
+    sl *= lg;
+    sr *= lg;
+    const double m = std::fmin(1, std::fabs(formant));
+    out[0] += (sl - out[0]) * m;
+    out[1] += (sr - out[1]) * m;
+  }
   double fs;
-  std::vector<float> bufL, bufR;
-  int mask = 0, w = 0;
-  double time = -1, lpL = 0, lpR = 0, hpL = 0, hpR = 0, hpCoef = 0;
+  std::vector<float> buf[2];
+  int mask = 0, w = 0, tick = 0;
+  double ph = 0, lastP[2] = {}, jit[2] = {}, fbS[2] = {};
+  Rng rng{0x51f7a3u};
+  Biquad aa[4];
+  bool aaOn = false;
+  double lastAa = -1, ratio = 1, win = 1, grain = 0, fb = 0, fbK = 0, formant = 0;
+  double fG[SH_BANDS] = {}, fK[SH_BANDS] = {}, ic1[2 * SH_BANDS] = {}, ic2[2 * SH_BANDS] = {}, env[SH_BANDS] = {};
+  double gain[SH_BANDS] = {}, gainT[SH_BANDS] = {}, bandOut[2 * SH_BANDS] = {};
+  double envA = 0, envR = 0, lvIn = 0, lvOut = 0, lvK = 0;
 };
 
 /**
