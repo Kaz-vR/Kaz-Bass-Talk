@@ -5380,7 +5380,9 @@ export class SynthView {
         this.set(`${pre}.ph_amount`, Math.round(Math.max(0, Math.min(6, ((GH - 20 - y) / (GH - 40)) * 6)) * 10) / 10);
       } else if (dragging === 'bell') {
         const bp = `${pre}.bell${this.ruinBellSel[n - 1] + 1}`;
-        this.set(`${bp}_freq`, Math.round(Math.max(20, Math.min(20000, f / this.ruinKey()))));
+        // (owner's bug, 27 Nov: keyed to a low note the band couldn't reach the right edge; the graph's 20 Hz-20 kHz is
+        // where it goes on screen, the stored Freq is that before KEY)
+        this.set(`${bp}_freq`, Math.round(Math.max(5, Math.min(80000, f / this.ruinKey()))));
         if (!bellNoGain(String(this.get(`${bp}_type`)))) this.set(`${bp}_gain`, Math.round(Math.max(-18, Math.min(18, yDb(GH, y))) * 10) / 10);
       } else if (dragging === 'bellRange') {
         // a wing's end: how far the band moves, the same each side of its Freq

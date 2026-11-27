@@ -8983,13 +8983,13 @@
       "id": "grind1.bell1_freq",
       "label": "Grind 1 bell 1 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 220,
       "curve": "log",
       "unit": "Hz",
       "group": "grind1",
-      "describes": "Bells: where bell 1 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 1 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind1.bell1_gain",
@@ -9077,13 +9077,13 @@
       "id": "grind1.bell2_freq",
       "label": "Grind 1 bell 2 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 700,
       "curve": "log",
       "unit": "Hz",
       "group": "grind1",
-      "describes": "Bells: where bell 2 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 2 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind1.bell2_gain",
@@ -9171,13 +9171,13 @@
       "id": "grind1.bell3_freq",
       "label": "Grind 1 bell 3 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 1800,
       "curve": "log",
       "unit": "Hz",
       "group": "grind1",
-      "describes": "Bells: where bell 3 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 3 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind1.bell3_gain",
@@ -9265,13 +9265,13 @@
       "id": "grind1.bell4_freq",
       "label": "Grind 1 bell 4 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 4500,
       "curve": "log",
       "unit": "Hz",
       "group": "grind1",
-      "describes": "Bells: where bell 4 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 4 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind1.bell4_gain",
@@ -9904,13 +9904,13 @@
       "id": "grind2.bell1_freq",
       "label": "Grind 2 bell 1 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 220,
       "curve": "log",
       "unit": "Hz",
       "group": "grind2",
-      "describes": "Bells: where bell 1 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 1 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind2.bell1_gain",
@@ -9998,13 +9998,13 @@
       "id": "grind2.bell2_freq",
       "label": "Grind 2 bell 2 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 700,
       "curve": "log",
       "unit": "Hz",
       "group": "grind2",
-      "describes": "Bells: where bell 2 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 2 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind2.bell2_gain",
@@ -10092,13 +10092,13 @@
       "id": "grind2.bell3_freq",
       "label": "Grind 2 bell 3 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 1800,
       "curve": "log",
       "unit": "Hz",
       "group": "grind2",
-      "describes": "Bells: where bell 3 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 3 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind2.bell3_gain",
@@ -10186,13 +10186,13 @@
       "id": "grind2.bell4_freq",
       "label": "Grind 2 bell 4 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 4500,
       "curve": "log",
       "unit": "Hz",
       "group": "grind2",
-      "describes": "Bells: where bell 4 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 4 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind2.bell4_gain",
@@ -10825,13 +10825,13 @@
       "id": "grind3.bell1_freq",
       "label": "Grind 3 bell 1 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 220,
       "curve": "log",
       "unit": "Hz",
       "group": "grind3",
-      "describes": "Bells: where bell 1 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 1 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind3.bell1_gain",
@@ -10919,13 +10919,13 @@
       "id": "grind3.bell2_freq",
       "label": "Grind 3 bell 2 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 700,
       "curve": "log",
       "unit": "Hz",
       "group": "grind3",
-      "describes": "Bells: where bell 2 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 2 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind3.bell2_gain",
@@ -11013,13 +11013,13 @@
       "id": "grind3.bell3_freq",
       "label": "Grind 3 bell 3 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 1800,
       "curve": "log",
       "unit": "Hz",
       "group": "grind3",
-      "describes": "Bells: where bell 3 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 3 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind3.bell3_gain",
@@ -11107,13 +11107,13 @@
       "id": "grind3.bell4_freq",
       "label": "Grind 3 bell 4 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 4500,
       "curve": "log",
       "unit": "Hz",
       "group": "grind3",
-      "describes": "Bells: where bell 4 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 4 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind3.bell4_gain",
@@ -11746,13 +11746,13 @@
       "id": "grind4.bell1_freq",
       "label": "Grind 4 bell 1 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 220,
       "curve": "log",
       "unit": "Hz",
       "group": "grind4",
-      "describes": "Bells: where bell 1 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 1 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind4.bell1_gain",
@@ -11840,13 +11840,13 @@
       "id": "grind4.bell2_freq",
       "label": "Grind 4 bell 2 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 700,
       "curve": "log",
       "unit": "Hz",
       "group": "grind4",
-      "describes": "Bells: where bell 2 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 2 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind4.bell2_gain",
@@ -11934,13 +11934,13 @@
       "id": "grind4.bell3_freq",
       "label": "Grind 4 bell 3 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 1800,
       "curve": "log",
       "unit": "Hz",
       "group": "grind4",
-      "describes": "Bells: where bell 3 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 3 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind4.bell3_gain",
@@ -12028,13 +12028,13 @@
       "id": "grind4.bell4_freq",
       "label": "Grind 4 bell 4 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 4500,
       "curve": "log",
       "unit": "Hz",
       "group": "grind4",
-      "describes": "Bells: where bell 4 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 4 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind4.bell4_gain",
@@ -27111,13 +27111,13 @@
       "id": "grind5.bell1_freq",
       "label": "Grind 5 bell 1 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 220,
       "curve": "log",
       "unit": "Hz",
       "group": "grind5",
-      "describes": "Bells: where bell 1 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 1 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind5.bell1_gain",
@@ -27205,13 +27205,13 @@
       "id": "grind5.bell2_freq",
       "label": "Grind 5 bell 2 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 700,
       "curve": "log",
       "unit": "Hz",
       "group": "grind5",
-      "describes": "Bells: where bell 2 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 2 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind5.bell2_gain",
@@ -27299,13 +27299,13 @@
       "id": "grind5.bell3_freq",
       "label": "Grind 5 bell 3 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 1800,
       "curve": "log",
       "unit": "Hz",
       "group": "grind5",
-      "describes": "Bells: where bell 3 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 3 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind5.bell3_gain",
@@ -27393,13 +27393,13 @@
       "id": "grind5.bell4_freq",
       "label": "Grind 5 bell 4 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 4500,
       "curve": "log",
       "unit": "Hz",
       "group": "grind5",
-      "describes": "Bells: where bell 4 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 4 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind5.bell4_gain",
@@ -28096,13 +28096,13 @@
       "id": "grind6.bell1_freq",
       "label": "Grind 6 bell 1 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 220,
       "curve": "log",
       "unit": "Hz",
       "group": "grind6",
-      "describes": "Bells: where bell 1 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 1 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind6.bell1_gain",
@@ -28190,13 +28190,13 @@
       "id": "grind6.bell2_freq",
       "label": "Grind 6 bell 2 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 700,
       "curve": "log",
       "unit": "Hz",
       "group": "grind6",
-      "describes": "Bells: where bell 2 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 2 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind6.bell2_gain",
@@ -28284,13 +28284,13 @@
       "id": "grind6.bell3_freq",
       "label": "Grind 6 bell 3 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 1800,
       "curve": "log",
       "unit": "Hz",
       "group": "grind6",
-      "describes": "Bells: where bell 3 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 3 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind6.bell3_gain",
@@ -28378,13 +28378,13 @@
       "id": "grind6.bell4_freq",
       "label": "Grind 6 bell 4 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 4500,
       "curve": "log",
       "unit": "Hz",
       "group": "grind6",
-      "describes": "Bells: where bell 4 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 4 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind6.bell4_gain",
@@ -29081,13 +29081,13 @@
       "id": "grind7.bell1_freq",
       "label": "Grind 7 bell 1 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 220,
       "curve": "log",
       "unit": "Hz",
       "group": "grind7",
-      "describes": "Bells: where bell 1 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 1 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind7.bell1_gain",
@@ -29175,13 +29175,13 @@
       "id": "grind7.bell2_freq",
       "label": "Grind 7 bell 2 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 700,
       "curve": "log",
       "unit": "Hz",
       "group": "grind7",
-      "describes": "Bells: where bell 2 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 2 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind7.bell2_gain",
@@ -29269,13 +29269,13 @@
       "id": "grind7.bell3_freq",
       "label": "Grind 7 bell 3 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 1800,
       "curve": "log",
       "unit": "Hz",
       "group": "grind7",
-      "describes": "Bells: where bell 3 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 3 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind7.bell3_gain",
@@ -29363,13 +29363,13 @@
       "id": "grind7.bell4_freq",
       "label": "Grind 7 bell 4 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 4500,
       "curve": "log",
       "unit": "Hz",
       "group": "grind7",
-      "describes": "Bells: where bell 4 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 4 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind7.bell4_gain",
@@ -30066,13 +30066,13 @@
       "id": "grind8.bell1_freq",
       "label": "Grind 8 bell 1 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 220,
       "curve": "log",
       "unit": "Hz",
       "group": "grind8",
-      "describes": "Bells: where bell 1 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 1 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind8.bell1_gain",
@@ -30160,13 +30160,13 @@
       "id": "grind8.bell2_freq",
       "label": "Grind 8 bell 2 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 700,
       "curve": "log",
       "unit": "Hz",
       "group": "grind8",
-      "describes": "Bells: where bell 2 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 2 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind8.bell2_gain",
@@ -30254,13 +30254,13 @@
       "id": "grind8.bell3_freq",
       "label": "Grind 8 bell 3 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 1800,
       "curve": "log",
       "unit": "Hz",
       "group": "grind8",
-      "describes": "Bells: where bell 3 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 3 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind8.bell3_gain",
@@ -30348,13 +30348,13 @@
       "id": "grind8.bell4_freq",
       "label": "Grind 8 bell 4 frequency",
       "type": "float",
-      "min": 20,
-      "max": 20000,
+      "min": 5,
+      "max": 80000,
       "default": 4500,
       "curve": "log",
       "unit": "Hz",
       "group": "grind8",
-      "describes": "Bells: where bell 4 sits, the middle of its movement. Drag its dot sideways on the graph."
+      "describes": "Bells: where bell 4 sits, the middle of its movement. Drag its dot sideways on the graph. (Stored before KEY: it may sit beyond 20 Hz-20 kHz so that, keyed to a low or high note, the band still reaches the graph's edges.)"
     },
     {
       "id": "grind8.bell4_gain",

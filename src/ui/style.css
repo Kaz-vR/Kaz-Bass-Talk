@@ -1907,3 +1907,8 @@ html, body, .v2-wrap, .v2.v2, .v2.v2 .v2-top, .v2.v2 .v2-main { background: #000
 .v2 .gr-right .gr-r-row { display: flex; justify-content: center; gap: 34px; }
 .v2 .gr-right .gr-lamps-row { flex-direction: row; gap: 12px; margin: 2px 0; align-items: center; }
 .v2 .gr-right .k .k-label { white-space: nowrap; }
+
+/* the top bar sits above the page's boxes, so the preset menu it opens is seen (owner's bug, 27 Nov: it opened under them) */
+.v2 .v2-top { z-index: 100; overflow: visible; }
+/* the wood's own brown under its generated picture, so it is never white if the picture is missing (owner's bug, 27 Nov) */
+.v2 .wood-l, .v2 .wood-r { background-color: #42201a; }
