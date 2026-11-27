@@ -12,7 +12,12 @@ namespace lt {
 
 constexpr int TABLE_SIZE = 2048;
 constexpr int TABLE_MASK = TABLE_SIZE - 1;
-constexpr int MIP_LEVELS = 11;
+constexpr int MIP_LEVELS = 21;  // half an octave a level (as wavetable.ts)
+/** How many harmonics mip level m holds (as mipHarmonics in wavetable.ts). */
+inline int mipHarmonics(int m) {
+  const int o = 1024 >> (m >> 1);
+  return std::min(TABLE_SIZE / 2 - 1, (m & 1) ? (int)std::floor(o * 0.7071067811865476) : o);
+}
 constexpr int FRAMES_PER_SEGMENT = 4;
 constexpr int KEYFRAMES = 5;
 constexpr int FRAME_COUNT = (KEYFRAMES - 1) * FRAMES_PER_SEGMENT + 1;  // 17
@@ -221,7 +226,7 @@ inline void buildBank(std::vector<float>& data) {
       const double scale = BANK_SAMPLED[w] >= 0 || peak <= 0 ? 1 : 1 / peak;
       const int fi = BANK_LAYOUT.frame0[w] + f;
       for (int m = 0; m < MIP_LEVELS; m++) {
-        const int maxH = std::min(MAX_HARMONIC, 1024 >> m);
+        const int maxH = mipHarmonics(m);
         bandLimit(xr, xi, maxH, data.data() + (size_t)(fi * MIP_LEVELS + m) * TABLE_SIZE, scale);
       }
     }
@@ -247,7 +252,7 @@ inline const std::vector<float>& getWavetable() {
       for (int n = 0; n < TABLE_SIZE; n++) peak = std::fmax(peak, std::fabs((double)tmp[n]));
       const double scale = peak > 0 ? 1 / peak : 1;
       for (int m = 0; m < MIP_LEVELS; m++) {
-        const int maxH = std::min(MAX_HARMONIC, 1024 >> m);
+        const int maxH = mipHarmonics(m);
         synth(spec, maxH, d.data() + (size_t)(f * MIP_LEVELS + m) * TABLE_SIZE, scale);
       }
     }
@@ -257,13 +262,13 @@ inline const std::vector<float>& getWavetable() {
   return data;
 }
 
-/** Mip level for a phase increment (cycles/sample) so harmonics stay below Nyquist. */
-inline int mipForIncrement(double inc) {
+/** Mip level for a phase increment at sample rate fs: folding back only above 20 kHz (as wavetable.ts). */
+inline int mipForIncrement(double inc, double fs) {
   const double a = std::fabs(inc);
   if (a <= 0) return 0;
-  const double allowed = 0.5 / a;
+  const double allowed = std::fmax(0.5, 1 - 20000 / fs) / a;
   int m = 0;
-  while (m < MIP_LEVELS - 1 && std::min(MAX_HARMONIC, 1024 >> m) > allowed) m++;
+  while (m < MIP_LEVELS - 1 && mipHarmonics(m) > allowed) m++;
   return m;
 }
 

@@ -10,7 +10,12 @@ import { WAVE_TABLES } from './wave-tables';
 
 export const TABLE_SIZE = 2048;
 export const TABLE_MASK = TABLE_SIZE - 1;
-export const MIP_LEVELS = 11; // level m holds harmonics 1..min(1023, 1024 >> m)
+export const MIP_LEVELS = 21; // level m holds harmonics 1..mipHarmonics(m): half an octave a level
+/** How many harmonics mip level m holds: 1023, 724, 512, 362, 256 … 1 (half an octave a step). */
+export function mipHarmonics(m: number): number {
+  const o = 1024 >> (m >> 1);
+  return Math.min(TABLE_SIZE / 2 - 1, m & 1 ? Math.floor(o * 0.7071067811865476) : o);
+}
 export const FRAMES_PER_SEGMENT = 4;
 export const KEYFRAMES = 5;
 export const FRAME_COUNT = (KEYFRAMES - 1) * FRAMES_PER_SEGMENT + 1; // 17
@@ -265,7 +270,7 @@ function buildBank(data: Float32Array): void {
       const scale = BANK_SAMPLED[w] >= 0 || peak <= 0 ? 1 : 1 / peak;
       const fi = BANK_FRAME0[w] + f;
       for (let m = 0; m < MIP_LEVELS; m++) {
-        const maxH = Math.min(MAX_HARMONIC, 1024 >> m);
+        const maxH = mipHarmonics(m);
         bandLimit(xr, xi, maxH, data.subarray((fi * MIP_LEVELS + m) * TABLE_SIZE, (fi * MIP_LEVELS + m + 1) * TABLE_SIZE), scale);
       }
     }
@@ -295,7 +300,7 @@ export function getWavetable(): Wavetable {
     for (let n = 0; n < TABLE_SIZE; n++) peak = Math.max(peak, Math.abs(tmp[n]));
     const scale = peak > 0 ? 1 / peak : 1;
     for (let m = 0; m < MIP_LEVELS; m++) {
-      const maxH = Math.min(MAX_HARMONIC, 1024 >> m);
+      const maxH = mipHarmonics(m);
       synth(spec, maxH, data.subarray((f * MIP_LEVELS + m) * TABLE_SIZE, (f * MIP_LEVELS + m + 1) * TABLE_SIZE), scale);
     }
   }
@@ -304,12 +309,16 @@ export function getWavetable(): Wavetable {
   return cached;
 }
 
-/** Mip level for a phase increment (cycles/sample) so harmonics stay below Nyquist. */
-export function mipForIncrement(inc: number): number {
+/**
+ * Mip level for a phase increment (cycles/sample) at sample rate fs: the fullest level whose harmonics, where they
+ * pass Nyquist, only fold back above 20 kHz (as the big wavetable synths do), so every note keeps its top end up to
+ * about 20 kHz (half-octave levels: the top partial is never under 0.71 x that limit; at 48 kHz about 19.8 kHz).
+ */
+export function mipForIncrement(inc: number, fs: number): number {
   const a = Math.abs(inc);
   if (a <= 0) return 0;
-  const allowed = 0.5 / a; // highest harmonic below Nyquist
+  const allowed = Math.max(0.5, 1 - 20000 / fs) / a;
   let m = 0;
-  while (m < MIP_LEVELS - 1 && Math.min(MAX_HARMONIC, 1024 >> m) > allowed) m++;
+  while (m < MIP_LEVELS - 1 && mipHarmonics(m) > allowed) m++;
   return m;
 }

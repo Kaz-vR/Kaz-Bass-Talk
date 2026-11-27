@@ -617,7 +617,7 @@ export class Voice {
       const f0 = bw >= 0 ? BANK_FRAME0[bw] : 0, nf = bw >= 0 ? BANK_FRAMES[bw] : FRAME_COUNT;
       const fpos = f0 + wt * (nf - 1);
       const fa = Math.min(f0 + nf - 2, Math.floor(fpos));
-      const mip = mipForIncrement(o.inc[voices - 1]);
+      const mip = mipForIncrement(o.inc[voices - 1], this.fs);
       o.baseA = (fa * MIP_LEVELS + mip) * TABLE_SIZE;
       o.baseB = ((fa + 1) * MIP_LEVELS + mip) * TABLE_SIZE;
       o.frac = fpos - fa;

@@ -415,7 +415,7 @@ class Voice {
       const int f0 = bw >= 0 ? BANK_LAYOUT.frame0[bw] : 0, nf = bw >= 0 ? BANK_LAYOUT.frames[bw] : FRAME_COUNT;
       const double fpos = f0 + wt * (nf - 1);
       const int fa = std::min(f0 + nf - 2, (int)std::floor(fpos));
-      const int mip = mipForIncrement(o.inc[voices - 1]);
+      const int mip = mipForIncrement(o.inc[voices - 1], fs);
       o.baseA = (fa * MIP_LEVELS + mip) * TABLE_SIZE;
       o.baseB = ((fa + 1) * MIP_LEVELS + mip) * TABLE_SIZE;
       o.frac = fpos - fa;
