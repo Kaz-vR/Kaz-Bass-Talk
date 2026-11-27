@@ -168,7 +168,7 @@ struct ParamIndex {
   struct Slot { int src, dst, amt, on; };
   struct Eq { int type, freq, gain, q; };
   struct Bell { int type, freq, gain, q, range, dir, vrange; };
-  struct GrindStage { int on, filter, freq, range, rate, clock, width, depth, dtype, drive, mix, filterOn, driveOn, dFreq, dWidth, dTone, dDyn, fLevel, dLevel, eqOn, eqLevel, eqScale; Eq eq[4]; Bell bells[4]; int bellLink, bellCount, phOn, phLevel, phNotches, phCenter, phSpread, phAmount, phRate, phClock, phFeedback, phStereo; };
+  struct GrindStage { int on, filter, freq, range, rate, clock, width, depth, dtype, drive, mix, filterOn, driveOn, dFreq, dWidth, dTone, dDyn, fLevel, dLevel, eqOn, eqLevel, eqScale; Eq eq[4]; Bell bells[4]; int bellLink, bellCount, phOn, phLevel, phNotches, phCenter, phSpread, phAmount, phRate, phClock, phFeedback, phStereo; int ott[4]; };
   int legato, glide, octave, velocity, analog;
   Osc osc[2];
   int strTone, strDecay, accent, ampBend[3], modBend[3], chorusMode;
@@ -305,6 +305,7 @@ struct ParamIndex {
         grind[n].phClock = ix(g + "ph_clock");
         grind[n].phFeedback = ix(g + "ph_feedback");
         grind[n].phStereo = ix(g + "ph_stereo");
+        { const char* kinds[4] = {"filter", "drive", "eq", "phaser"}; for (int q = 0; q < 4; q++) grind[n].ott[q] = ix(g + kinds[q] + "_ott"); }
         grind[n].bells[b] = {ix(bl + "type"), ix(bl + "freq"), ix(bl + "gain"), ix(bl + "q"), ix(bl + "range"), ix(bl + "dir"), ix(bl + "vrange")};
       }
     }

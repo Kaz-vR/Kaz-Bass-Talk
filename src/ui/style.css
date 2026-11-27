@@ -1683,6 +1683,8 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-focus .ob-dials { grid-row: 3; justify-content: center; align-items: center; gap: 14px; margin: 0; }
 .v2 .gr-focus .gr-about { grid-row: 3; align-self: center; text-align: center; font-size: 11px; color: #8a8a90; }
 .v2 .gr-focus .gr-level-cv { margin-left: 0; }
+.v2 .gr-focus .gr-lvcol { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.v2 .gr-focus .gr-ott { display: flex; justify-content: center; }
 .v2 .gr-focus .gr-sync { margin: 0 0 14px 2px; }
 .v2 .gr-focus .gr-eq-hint { margin-left: auto; }
 /* the RUIN box: CHAINS in its title, the rocker at its right; ROLL, WEIRD and the lamps centred; its dials at the bottom */

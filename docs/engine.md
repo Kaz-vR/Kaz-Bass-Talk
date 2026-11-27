@@ -72,6 +72,10 @@ value (`packWob`, worklet control channels 2 and 11, the plugin's live values 2 
 to the same sound (`migrateWobOffsets`: matrix offset = depth x o, filter / gate offset = o x (1 - |depth|), o the
 old `wobble.off` or +1). Both engines.
 
+### OTT per RUIN box (owner's call, 27 Nov)
+
+Every RUIN box (filter, drive, EQ, phaser of each of the 8 stages) has its own OTT: `grind<n>.filter_ott` / `drive_ott` / `eq_ott` / `phaser_ott` (Depth 0-1, 0 = off, every one a `p:` LFO target). It is RUIN's OTT (the same `Ott` class, the same Xfer-fitted bands and times, no Lo cut split of its own: the chain already only sees what is above RUIN's Lo cut), run at the chain's oversampled rate right after the box's level, so the next box, the listening taps (solo / bypass / delta) and the meter all hear it. Built in, not a box of its own: a chain spot stays for sound, not for one knob. Not used by any preset yet (playing with it first).
+
 ### Pan targets (owner's call, 27 Nov)
 
 Five fixed destinations after the RUIN drives (`D_PAN` 62 .. `D_PAN_SUB` 66, so `D_PARAM0` is 67): **pan** (the whole sound, sub and NOISE THRU included, after the sub joins, before the DC filters and width), **pan_ab** (adds to both oscillators), **pan_a**, **pan_b** (each oscillator's unison sum, before its own filter, so its stereo spread is kept) and **pan_sub** (the clean sub where it joins). Each is an equal-power balance, -1 left .. 1 right, unity in the centre (gains √2·cos / √2·sin of (v+1)π/4), glided per sample across a control block so a fast LFO doesn't click. No dial: LFO / matrix targets only.

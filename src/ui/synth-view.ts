@@ -4450,10 +4450,10 @@ export class SynthView {
     // after a drop the numbers read 1, 2, 3 … left to right again, per kind (owner's call): each part's
     // settings move with it to its new number, so the chain sounds exactly as it was dropped
     const KIND_KEYS: Record<(typeof KINDS)[number], string[]> = {
-      filter: ['filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'filter_level', 'bell_link', 'bell_count', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`))],
-      drive: ['drive_type', 'drive', 'mix', 'drive_level', 'drive_freq', 'drive_width', 'drive_tone', 'drive_dyn'],
-      eq: ['eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`))],
-      phaser: ['phaser_level', 'ph_notches', 'ph_center', 'ph_spread', 'ph_amount', 'ph_rate', 'ph_clock', 'ph_feedback', 'ph_stereo'],
+      filter: ['filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'filter_level', 'filter_ott', 'bell_link', 'bell_count', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`))],
+      drive: ['drive_type', 'drive', 'mix', 'drive_level', 'drive_ott', 'drive_freq', 'drive_width', 'drive_tone', 'drive_dyn'],
+      eq: ['eq_level', 'eq_ott', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`))],
+      phaser: ['phaser_level', 'phaser_ott', 'ph_notches', 'ph_center', 'ph_spread', 'ph_amount', 'ph_rate', 'ph_clock', 'ph_feedback', 'ph_stereo'],
     };
     const renumber = () => {
       const vals = SLOT_IDS.map((id) => String(this.get(id)));
@@ -4579,10 +4579,21 @@ export class SynthView {
     const [gcv, gg] = canvas(GW, GH, 'disp gr-graph-cv');
     // the selected box's level, beside the graph (owner's call: the graph shows tone, not level): its output as a
     // meter over -48 … +6 dB with the 0 dB line and red over it, and a handle that turns the box down (or up)
-    const [lcv, lg] = canvas(LMW, GH, 'disp gr-level-cv');
+    // under the meter (owner's call, 27 Nov): the box's own OTT knob, so the meter is shorter by its height
+    const LH = GH - 46;
+    const [lcv, lg] = canvas(LMW, LH, 'disp gr-level-cv');
     lcv.title = 'The level leaving this box. Drag the handle to turn it down (or up to +6 dB); double-click = 0 dB.';
     // the focus box (house style): the selected part's title row, its graph and level as the print, its dials
-    const graphBox = h('div', 'c ob gr-focus', h('div', 'gr-print', gcv, lcv));
+    const ottHold = h('div', 'gr-ott');
+    const ottKnobs = new Map<string, HTMLElement>();
+    for (let n = 1; n <= 8; n++) for (const k of ['filter', 'drive', 'eq', 'phaser']) {
+      const id = `grind${n}.${k}_ott`, el = this.knob(id, 'OTT', 'tiny', { fmt: pct });
+      el.style.display = 'none';
+      ottKnobs.set(id, el);
+      ottHold.append(el);
+    }
+    let ottShown = '';
+    const graphBox = h('div', 'c ob gr-focus', h('div', 'gr-print', gcv, h('div', 'gr-lvcol', lcv, ottHold)));
     const ctl = graphBox;
     const emptyHint = h('div', 'gr-about', 'The chain is empty: add a filter or a drive to a box above, or pick a chain from CHAINS.');
     ctl.append(emptyHint);
@@ -5150,12 +5161,18 @@ export class SynthView {
       }
     
     };
-    const LY0 = 16, LY1 = GH - 14;
+    const LY0 = 16, LY1 = LH - 14;
     const lvY = (d: number) => LY1 - Math.max(0, Math.min(1, (d + 48) / 54)) * (LY1 - LY0);
     const lvId = () => `grind${stageOf(this.ruinSel)}.${kindOf(this.ruinSel)}_level`;
     const drawLevel = () => {
       const k = this.ruinSel, col = COLS[k], t = this.ruinTaps, x0 = 4, w = LMW - 8;
-      lg.clearRect(0, 0, LMW, GH);
+      lg.clearRect(0, 0, LMW, LH);
+      const oid = lvId().replace(/_level$/, '_ott');
+      if (oid !== ottShown) {
+        ottKnobs.get(ottShown)?.style.setProperty('display', 'none');
+        ottKnobs.get(oid)?.style.setProperty('display', '');
+        ottShown = oid;
+      }
       lg.fillStyle = '#08080a';
       lg.fillRect(x0, LY0, w, LY1 - LY0);
       lg.fillStyle = 'rgba(255,48,32,0.14)';
@@ -5182,11 +5199,11 @@ export class SynthView {
       lg.fillStyle = '#0d0d0f';
       lg.fillRect(LMW / 2 - 5, hy - 0.5, 10, 1);
       lg.fillStyle = lv !== 0 ? '#e8e8ea' : '#6a6a70';
-      lg.fillText(lv !== 0 ? `${lv > 0 ? '+' : ''}${lv.toFixed(1)}` : '0 dB', LMW / 2, GH - 3);
+      lg.fillText(lv !== 0 ? `${lv > 0 ? '+' : ''}${lv.toFixed(1)}` : '0 dB', LMW / 2, LH - 3);
       lg.textAlign = 'left';
     };
     const lvDrag = (e: PointerEvent) => {
-      const r = lcv.getBoundingClientRect(), y = ((e.clientY - r.top) / r.height) * GH;
+      const r = lcv.getBoundingClientRect(), y = ((e.clientY - r.top) / r.height) * LH;
       const d = -48 + ((LY1 - y) / (LY1 - LY0)) * 54;
       const v = Math.max(-24, Math.min(6, Math.round(d * 2) / 2));
       this.set(lvId(), Math.abs(v) < 0.75 ? 0 : v);
@@ -5988,7 +6005,7 @@ export class SynthView {
 const GRIND_KEYS = ['on', 'filter', 'freq', 'range', 'rate', 'clock', 'width', 'depth', 'drive_type', 'drive', 'mix', 'filter_on', 'drive_on', 'filter_level', 'drive_level',
   'drive_freq', 'drive_width', 'drive_tone', 'eq_on', 'eq_level', 'eq_scale', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q'].map((x) => `eq_b${b}_${x}`)),
   'bell_link', 'bell_count', ...[1, 2, 3, 4].flatMap((b) => ['type', 'freq', 'gain', 'q', 'range'].map((x) => `bell${b}_${x}`)),
-  'phaser_on', 'phaser_level', 'ph_notches', 'ph_center', 'ph_spread', 'ph_amount', 'ph_rate', 'ph_clock', 'ph_feedback', 'ph_stereo'];
+  'phaser_on', 'phaser_level', 'ph_notches', 'ph_center', 'ph_spread', 'ph_amount', 'ph_rate', 'ph_clock', 'ph_feedback', 'ph_stereo', 'filter_ott', 'drive_ott', 'eq_ott', 'phaser_ott'];
 type GrindView = { filter: string; freq: number; range: number; res: number; depth?: number };
 type Cx = [number, number];
 const cmul = (a: Cx, b: Cx): Cx => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]];

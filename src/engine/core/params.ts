@@ -293,6 +293,8 @@ export const P = {
     phOn: ix(`grind${n}.phaser_on`), phLevel: ix(`grind${n}.phaser_level`), phNotches: ix(`grind${n}.ph_notches`), phCenter: ix(`grind${n}.ph_center`),
     phSpread: ix(`grind${n}.ph_spread`), phAmount: ix(`grind${n}.ph_amount`), phRate: ix(`grind${n}.ph_rate`), phClock: ix(`grind${n}.ph_clock`),
     phFeedback: ix(`grind${n}.ph_feedback`), phStereo: ix(`grind${n}.ph_stereo`),
+    /** OTT per box: filter, drive, EQ, phaser (the box kinds' order). */
+    ott: ['filter', 'drive', 'eq', 'phaser'].map((k) => ix(`grind${n}.${k}_ott`)),
     bells: [1, 2, 3, 4].map((b) => ({ type: ix(`grind${n}.bell${b}_type`), freq: ix(`grind${n}.bell${b}_freq`), gain: ix(`grind${n}.bell${b}_gain`), q: ix(`grind${n}.bell${b}_q`), range: ix(`grind${n}.bell${b}_range`), dir: ix(`grind${n}.bell${b}_dir`), vrange: ix(`grind${n}.bell${b}_vrange`) })),
     dFreq: ix(`grind${n}.drive_freq`), dWidth: ix(`grind${n}.drive_width`), dTone: ix(`grind${n}.drive_tone`), dDyn: ix(`grind${n}.drive_dyn`),
   })),

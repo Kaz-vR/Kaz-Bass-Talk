@@ -186,6 +186,8 @@ export const ampCurve = (u: number): number => tanh(AMP_GAIN * u + AMP_BIAS) - A
 export const ampCurveIntegral = (u: number): number => tanhIntegral(AMP_GAIN * u + AMP_BIAS) / AMP_GAIN - AMP_OFFSET * u;
 
 class Stage {
+  /** OTT per box (owner's call, 27 Nov: a knob under each box's level): filter, drive, EQ, phaser. */
+  readonly otts = [new Ott(), new Ott(), new Ott(), new Ott()];
   on = false;
   ftype = GF_NOTCH;
   dtype = GD_TAPE;
@@ -746,6 +748,7 @@ export class Grind {
     for (let i = 0; i < GRIND_STAGES; i++) {
       const s = this.stages[i], gp = P.grind[i];
       s.on = cur[gp.on] > 0.5;
+      for (let q = 0; q < 4; q++) s.otts[q].set(s.on ? cur[gp.ott[q]] : 0, 0, fsOs);
       if (!s.on) {
         s.fcNow = -1;
         continue;
@@ -1081,6 +1084,13 @@ export class Grind {
             s.fLv += (s.fLvT - s.fLv) * LV_SMOOTH;
             l *= s.fLv;
             r *= s.fLv;
+          }
+          // the box's own OTT, after its level
+          const ot = s.otts[kind];
+          if (ot.on) {
+            ot.process(l, r);
+            l = ot.l;
+            r = ot.r;
           }
           if (at === kAt && mode >= 1) {
             if (mode === 3) {

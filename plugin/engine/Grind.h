@@ -209,6 +209,7 @@ inline double ampCurve(double u) { return fastTanh(AMP_GAIN * u + AMP_BIAS) - AM
 inline double ampCurveIntegral(double u) { return tanhIntegral(AMP_GAIN * u + AMP_BIAS) / AMP_GAIN - AMP_OFFSET * u; }
 
 struct GrindStage {
+  Ott otts[4];  // OTT per box: filter, drive, EQ, phaser (as grind.ts)
   bool on = false;
   int ftype = GF_NOTCH, dtype = GD_TAPE;
   double phase = 0, wFrom = 0, wTo = 0, wPos = 0, spd = 1, depth = 1, fLvT = 1, fLv = 1, dLvT = 1, dLv = 1;
@@ -635,6 +636,7 @@ class Grind {
       GrindStage& s = stages[i];
       const auto& gp = P.grind[i];
       s.on = cur[gp.on] > 0.5;
+      for (int q = 0; q < 4; q++) s.otts[q].set(s.on ? cur[gp.ott[q]] : 0, 0, fsOs);
       if (!s.on) {
         s.fcNow = -1;
         continue;
@@ -902,9 +904,7 @@ class Grind {
         s.phLv += (s.phLvT - s.phLv) * 0.002;
         L *= s.phLv;
         R *= s.phLv;
-        continue;
-      }
-      if (kind == 2) {
+      } else if (kind == 2) {
         for (int b = 0; b < 4; b++) {
           if (s.eqBand[b]) {
             L = s.eqL[b].process(L);
@@ -914,12 +914,13 @@ class Grind {
         s.eqLv += (s.eqLvT - s.eqLv) * 0.002;
         L *= s.eqLv;
         R *= s.eqLv;
-        continue;
-      }
-      if (!drive) {
+      } else if (!drive) {
         const double iL = L, iR = R;
         L = iL + s.depth * (s.filter(iL, 0, s.g, pos) - iL);
         R = iR + s.depth * (s.filter(iR, 1, s.g, pos) - iR);
+        s.fLv += (s.fLvT - s.fLv) * 0.002;
+        L *= s.fLv;
+        R *= s.fLv;
       } else {
         s.gain += (s.gainT - s.gain) * 0.002;
         const double bl = s.split(L, 0), br = s.split(R, 1);
@@ -932,16 +933,17 @@ class Grind {
         }
         L = s.rest[0] + bl + (dl - bl) * s.mix;
         R = s.rest[1] + br + (dr - br) * s.mix;
-      }
-      // the box's level, smoothed so the handle never clicks
-      if (drive) {
+        // the box's level, smoothed so the handle never clicks
         s.dLv += (s.dLvT - s.dLv) * 0.002;
         L *= s.dLv;
         R *= s.dLv;
-      } else {
-        s.fLv += (s.fLvT - s.fLv) * 0.002;
-        L *= s.fLv;
-        R *= s.fLv;
+      }
+      // the box's own OTT, after its level
+      Ott& ot = s.otts[kind];
+      if (ot.on()) {
+        ot.process(L, R);
+        L = ot.l;
+        R = ot.r;
       }
     }
     combPos = (pos + 1) & (GRIND_COMB_LEN - 1);
