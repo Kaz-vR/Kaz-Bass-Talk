@@ -97,82 +97,68 @@ export class Rng {
   }
 }
 
-/** Level (in signal units) where the ladder's poles start to bend: lower = they saturate sooner. */
-export const LADDER_V = 0.5;
-/** Level where the 12 dB filter's input and resonance start to bend. */
-export const SVF_V = 0.6;
+/** Level where the main filters' input stage starts to bend (owner's call, 27 Nov, measured against Serum: clean at
+ * playing level, so the resonance stays on pitch and at full strength; it only bends when the sound is driven). */
+export const FILTER_SAT_V = 3;
+/** Level where the 12 dB filter's input and resonance start to bend (SEM, MS-20, low-pass gate). */
+export const SVF_V = 1.5;
+
+/** The four-pole ladder's modes: low-pass 24, and low-pass read at its third pole (18 dB, the diode). */
+export const LAD_LP = 0, LAD_LP18 = 1;
 
 /**
- * The slope of V·tanh(x/V) between a and b (its derivative where they meet): how much a
- * transistor stage passes of the difference between its input and its output right now.
- */
-function bendGain(a: number, b: number, V: number): number {
-  const d = a - b;
-  if (d > 1e-6 || d < -1e-6) return (V * (fastTanh(a / V) - fastTanh(b / V))) / d;
-  const t = fastTanh(a / V);
-  return 1 - t * t;
-}
-
-/**
- * Zero-delay-feedback 4-pole ladder low-pass (Zavalishin TPT form) that saturates like the
- * transistor ladder: the input / resonance stage bends (tanh), and so does each of the four poles
- * (each pole follows tanh(in) − tanh(out), as in Huovilainen's model). The poles are solved with
- * their gain linearised around the last sample (Mystran's method), so the feedback stays
- * zero-delay and stable: loud signals pull the poles down and thicken, the resonance squashes,
- * and the bass sags as the resonance rises, as on the real circuit.
+ * Zero-delay-feedback four-pole low-pass ladder (Zavalishin TPT form), as Serum's MG Low 24 / 18 measure: linear
+ * poles, the resonance k (0 .. 4, self-oscillating at 4) around the loop, the bass dropping as 1 / (1 + k) as on
+ * the real circuit, and only the input stage saturating (tanh at FILTER_SAT_V), so a
+ * driven filter thickens and its resonance self-limits but never drifts off its pitch.
  */
 export class Ladder {
   private s1 = 0;
   private s2 = 0;
   private s3 = 0;
   private s4 = 0;
-  // Each pole's gain factor (0..1] for this sample, from its input and output a sample ago.
-  private t1 = 1;
-  private t2 = 1;
-  private t3 = 1;
-  private t4 = 1;
 
   reset(): void {
     this.s1 = this.s2 = this.s3 = this.s4 = 0;
-    this.t1 = this.t2 = this.t3 = this.t4 = 1;
   }
 
-  /** g = tan(π·fc/fs); k = feedback 0..~3.9 */
-  process(x: number, g: number, k: number): number {
-    return this.processG(x, g / (1 + g), k);
-  }
-
-  /** Same as process() with G = g / (1 + g) precomputed (share it across channels). */
-  processG(x: number, G: number, k: number): number {
-    const g = G / (1 - G);
-    const g1 = g * this.t1, g2 = g * this.t2, g3 = g * this.t3, g4 = g * this.t4;
-    const G1 = g1 / (1 + g1), G2 = g2 / (1 + g2), G3 = g3 / (1 + g3), G4 = g4 / (1 + g4);
-    const Gp = G1 * G2 * G3 * G4;
-    const S = G4 * G3 * G2 * (1 - G1) * this.s1 + G4 * G3 * (1 - G2) * this.s2 + G4 * (1 - G3) * this.s3 + (1 - G4) * this.s4;
-    // Partial passband compensation so resonance doesn't hollow out the bass.
-    const xin = x * (1 + 0.3 * k);
-    const y4est = (Gp * xin + S) / (1 + k * Gp);
-    const u = fastTanh(xin - k * y4est);
-
-    let v = (u - this.s1) * G1;
+  /** G = g / (1 + g), g = tan(π·fc/fs); k = resonance 0..4; mode LAD_*. */
+  processG(x: number, G: number, k: number, mode: number): number {
+    const H = 1 - G, V = FILTER_SAT_V;
+    const Gp = G * G * G * G;
+    const S = G * G * G * H * this.s1 + G * G * H * this.s2 + G * H * this.s3 + H * this.s4;
+    const y4est = (Gp * x + S) / (1 + k * Gp);
+    const u = V * fastTanh((x - k * y4est) / V);
+    let v = (u - this.s1) * G;
     const y1 = v + this.s1;
     this.s1 = y1 + v;
-    v = (y1 - this.s2) * G2;
+    v = (y1 - this.s2) * G;
     const y2 = v + this.s2;
     this.s2 = y2 + v;
-    v = (y2 - this.s3) * G3;
+    v = (y2 - this.s3) * G;
     const y3 = v + this.s3;
     this.s3 = y3 + v;
-    v = (y3 - this.s4) * G4;
+    v = (y3 - this.s4) * G;
     const y4 = v + this.s4;
     this.s4 = y4 + v;
-    this.t1 = bendGain(u, y1, LADDER_V);
-    this.t2 = bendGain(y1, y2, LADDER_V);
-    this.t3 = bendGain(y2, y3, LADDER_V);
-    this.t4 = bendGain(y3, y4, LADDER_V);
-    return y4;
+    return mode === LAD_LP18 ? y3 : y4;
   }
 }
+
+/** Piecewise-linear lookup of a measured curve at r (0..1) over RES_POINTS (0, .25, .5, .75, .9, 1). */
+export const RES_POINTS = [0, 0.25, 0.5, 0.75, 0.9, 1];
+export function resCurve(ys: readonly number[], r: number): number {
+  const x = r < 0 ? 0 : r > 1 ? 1 : r;
+  let i = 0;
+  while (i < RES_POINTS.length - 2 && x > RES_POINTS[i + 1]) i++;
+  const t = (x - RES_POINTS[i]) / (RES_POINTS[i + 1] - RES_POINTS[i]);
+  return ys[i] + (ys[i + 1] - ys[i]) * t;
+}
+/** Measured on Serum (27 Nov), at RES_POINTS: Low 12's damping k = 1/Q (as its log, interpolated in log); Band 24's
+ * and High 24's (each two 12 dB stages in a row, the same damping in both) damping (log); Notch 24's k. */
+export const LP12_LOGK = [Math.log(2.02), Math.log(0.603), Math.log(0.327), Math.log(0.146), Math.log(0.061), Math.log(0.021)];
+export const BP_LOGK = [Math.log(2.09), Math.log(0.8), Math.log(0.554), Math.log(0.358), Math.log(0.227), Math.log(0.156)];
+export const NOTCH_K = [1.97, 0.866, 0.739, 0.697, 0.674, 0.674];
 
 /** Trapezoidal state-variable filter (Simper). Exposes LP/BP/HP outputs. */
 export class Svf {

@@ -72,58 +72,54 @@ class Rng {
   uint32_t s;
 };
 
-/** Level where the ladder's poles start to bend (matches LADDER_V in dsp.ts). */
-constexpr double LADDER_V = 0.5;
+/** Level where the main filters' input stage bends (FILTER_SAT_V in dsp.ts). */
+constexpr double FILTER_SAT_V = 3;
 /** Level where the 12 dB filter's input and resonance start to bend (SVF_V). */
-constexpr double SVF_V = 0.6;
+constexpr double SVF_V = 1.5;
+/** The ladder's modes (as dsp.ts): low-pass 24, and read at its third pole (18 dB, the diode). */
+constexpr int LAD_LP = 0, LAD_LP18 = 1;
 
-/** The slope of V·tanh(x/V) between a and b (bendGain in dsp.ts). */
-inline double bendGain(double a, double b, double V) {
-  const double d = a - b;
-  if (d > 1e-6 || d < -1e-6) return (V * (fastTanh(a / V) - fastTanh(b / V))) / d;
-  const double t = fastTanh(a / V);
-  return 1 - t * t;
-}
-
-/** Saturating ZDF 4-pole ladder (as Ladder in dsp.ts): bending input stage and poles. */
+/** Four-pole low-pass ladder, linear poles, input-stage tanh (Ladder in dsp.ts). */
 class Ladder {
  public:
-  void reset() {
-    s1 = s2 = s3 = s4 = 0;
-    t1 = t2 = t3 = t4 = 1;
-  }
-  double process(double x, double g, double k) { return processG(x, g / (1 + g), k); }
-  double processG(double x, double G, double k) {
-    const double g = G / (1 - G);
-    const double g1 = g * t1, g2 = g * t2, g3 = g * t3, g4 = g * t4;
-    const double G1 = g1 / (1 + g1), G2 = g2 / (1 + g2), G3 = g3 / (1 + g3), G4 = g4 / (1 + g4);
-    const double Gp = G1 * G2 * G3 * G4;
-    const double S = G4 * G3 * G2 * (1 - G1) * s1 + G4 * G3 * (1 - G2) * s2 + G4 * (1 - G3) * s3 + (1 - G4) * s4;
-    const double xin = x * (1 + 0.3 * k);
-    const double y4est = (Gp * xin + S) / (1 + k * Gp);
-    const double u = fastTanh(xin - k * y4est);
-    double v = (u - s1) * G1;
+  void reset() { s1 = s2 = s3 = s4 = 0; }
+  double processG(double x, double G, double k, int mode) {
+    const double H = 1 - G, V = FILTER_SAT_V;
+    const double Gp = G * G * G * G;
+    const double S = G * G * G * H * s1 + G * G * H * s2 + G * H * s3 + H * s4;
+    const double y4est = (Gp * x + S) / (1 + k * Gp);
+    const double u = V * fastTanh((x - k * y4est) / V);
+    double v = (u - s1) * G;
     const double y1 = v + s1;
     s1 = y1 + v;
-    v = (y1 - s2) * G2;
+    v = (y1 - s2) * G;
     const double y2 = v + s2;
     s2 = y2 + v;
-    v = (y2 - s3) * G3;
+    v = (y2 - s3) * G;
     const double y3 = v + s3;
     s3 = y3 + v;
-    v = (y3 - s4) * G4;
+    v = (y3 - s4) * G;
     const double y4 = v + s4;
     s4 = y4 + v;
-    t1 = bendGain(u, y1, LADDER_V);
-    t2 = bendGain(y1, y2, LADDER_V);
-    t3 = bendGain(y2, y3, LADDER_V);
-    t4 = bendGain(y3, y4, LADDER_V);
-    return y4;
+    return mode == LAD_LP18 ? y3 : y4;
   }
  private:
   double s1 = 0, s2 = 0, s3 = 0, s4 = 0;
-  double t1 = 1, t2 = 1, t3 = 1, t4 = 1;
 };
+
+/** Piecewise-linear lookup over (0, .25, .5, .75, .9, 1) (resCurve in dsp.ts). */
+inline double resCurve(const double* ys, double r) {
+  static constexpr double X[6] = {0, 0.25, 0.5, 0.75, 0.9, 1};
+  const double x = r < 0 ? 0 : r > 1 ? 1 : r;
+  int i = 0;
+  while (i < 4 && x > X[i + 1]) i++;
+  const double t = (x - X[i]) / (X[i + 1] - X[i]);
+  return ys[i] + (ys[i + 1] - ys[i]) * t;
+}
+/** Measured on Serum (as dsp.ts): Low 12's log damping, Band / High 24's log damping, Notch 24's damping. */
+inline const double* lp12LogK() { static const double v[6] = {std::log(2.02), std::log(0.603), std::log(0.327), std::log(0.146), std::log(0.061), std::log(0.021)}; return v; }
+inline const double* bpLogK() { static const double v[6] = {std::log(2.09), std::log(0.8), std::log(0.554), std::log(0.358), std::log(0.227), std::log(0.156)}; return v; }
+inline const double* notchK() { static const double v[6] = {1.97, 0.866, 0.739, 0.697, 0.674, 0.674}; return v; }
 
 /** Trapezoidal state-variable filter (Simper). Exposes LP/BP/HP outputs. */
 class Svf {

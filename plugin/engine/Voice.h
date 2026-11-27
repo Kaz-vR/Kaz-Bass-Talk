@@ -156,8 +156,6 @@ class Voice {
       upR.reset();
       dnL.reset();
       dnR.reset();
-      diodeL.reset();
-      diodeR.reset();
     }
     noteCutoffJitter = rng.next();
     noteEnvJitter = cur[P.poly] > 1.5 ? 1 + 0.12 * cur[P.analog] * rng.next() : 1;
@@ -208,12 +206,8 @@ class Voice {
     dnR.reset();
     voiceDcL.reset();
     voiceDcR.reset();
-    diodeL.reset();
-    diodeR.reset();
     for (auto& f : notchL) f.reset();
     for (auto& f : notchR) f.reset();
-    for (auto& f : hpL) f.reset();
-    for (auto& f : hpR) f.reset();
     lpgL.reset();
     lpgR.reset();
     semL.reset();
@@ -481,25 +475,26 @@ class Voice {
     if (gPrevTarget < 0) g = gTarget;
     gStep = (gTarget - g) / (CONTROL_BLOCK * OS);
     gPrevTarget = gTarget;
+    fIn = 1 / (1 + 4 * res);
     if (filterType == FILTER_LP) {
-      k = 3.85 * res;
+      k = 4 * res;
     } else if (filterType == FILTER_BP) {
-      k = 1.4 * (1 - res) + 0.08;
+      k = std::exp(resCurve(bpLogK(), res));
     } else if (filterType == FILTER_DIODE) {
-      k = 7.2 * res;
+      k = 4 * res;
     } else if (filterType == FILTER_NOTCH) {
-      k = 2 * (1 - res) + 0.05;
+      k = resCurve(notchK(), res);
     } else if (filterType == FILTER_COMB) {
       combDelay = fsOs / fc;
       combFb = 0.96 * res;
     } else if (filterType == FILTER_LPG) {
       k = 1.4 - 1.1 * res;
     } else if (filterType == FILTER_HP) {
-      k = 0.765 * (1 - res) + 0.05;
+      k = std::exp(resCurve(bpLogK(), res));
     } else if (filterType == FILTER_SEM) {
       k = 1.9 * (1 - res) + 0.12;
     } else if (filterType == FILTER_LP12) {
-      k = 1.414 * (1 - res) + 0.05;
+      k = std::exp(resCurve(lp12LogK(), res));
     } else if (filterType == FILTER_MS20) {
       k = 2 * (1 - res) + 0.02;
     } else if (filterType == FILTER_PHASER) {
@@ -818,45 +813,44 @@ class Voice {
     const double dryL = l, dryR = r;
     g += gStep;
     const double gg = g;
-    if (filterType == FILTER_LP) {
+    const double V = FILTER_SAT_V;
+    if (filterType == FILTER_LP || filterType == FILTER_DIODE) {
       const double G = gg / (1 + gg);
-      l = ladL.processG(l, G, k);
-      r = ladR.processG(r, G, k);
+      const int mode = filterType == FILTER_LP ? LAD_LP : LAD_LP18;
+      l = ladL.processG(l, G, k, mode);
+      r = ladR.processG(r, G, k, mode);
     } else if (filterType == FILTER_BP) {
-      bpL[0].processSat(l, gg, k);
-      bpL[1].processSat(bpL[0].bp * k, gg, k);
-      l = bpL[1].bp * k * 1.5;
-      bpR[0].processSat(r, gg, k);
-      bpR[1].processSat(bpR[0].bp * k, gg, k);
-      r = bpR[1].bp * k * 1.5;
-    } else if (filterType == FILTER_DIODE) {
-      l = diodeL.process(l, gg, k) * 1.4;
-      r = diodeR.process(r, gg, k) * 1.4;
+      bpL[0].process(V * fastTanh((l * fIn) / V), gg, k);
+      bpL[1].process(bpL[0].bp, gg, k);
+      l = bpL[1].bp;
+      bpR[0].process(V * fastTanh((r * fIn) / V), gg, k);
+      bpR[1].process(bpR[0].bp, gg, k);
+      r = bpR[1].bp;
+    } else if (filterType == FILTER_HP) {
+      bpL[0].process(V * fastTanh((l * fIn) / V), gg, k);
+      bpL[1].process(bpL[0].hp, gg, k);
+      l = bpL[1].hp;
+      bpR[0].process(V * fastTanh((r * fIn) / V), gg, k);
+      bpR[1].process(bpR[0].hp, gg, k);
+      r = bpR[1].hp;
     } else if (filterType == FILTER_NOTCH) {
-      notchL[0].processSat(l, gg, k);
-      notchL[1].processSat(notchL[0].lp + notchL[0].hp, gg, k);
+      notchL[0].process(V * fastTanh(l / V), gg, k);
+      notchL[1].process(notchL[0].lp + notchL[0].hp, gg, k);
       l = notchL[1].lp + notchL[1].hp;
-      notchR[0].processSat(r, gg, k);
-      notchR[1].processSat(notchR[0].lp + notchR[0].hp, gg, k);
+      notchR[0].process(V * fastTanh(r / V), gg, k);
+      notchR[1].process(notchR[0].lp + notchR[0].hp, gg, k);
       r = notchR[1].lp + notchR[1].hp;
     } else if (filterType == FILTER_COMB) {
       l = combL.process(l, combDelay, combFb);
       r = combR.process(r, combDelay, combFb);
-    } else if (filterType == FILTER_HP) {
-      hpL[0].processSat(l, gg, 1.848);
-      hpL[1].processSat(hpL[0].hp, gg, k);
-      l = hpL[1].hp;
-      hpR[0].processSat(r, gg, 1.848);
-      hpR[1].processSat(hpR[0].hp, gg, k);
-      r = hpR[1].hp;
     } else if (filterType == FILTER_SEM) {
       semL.processSat(l, gg, k);
       semR.processSat(r, gg, k);
       l = semL.lp;
       r = semR.lp;
     } else if (filterType == FILTER_LP12) {
-      lp12L.process(l, gg, k);
-      lp12R.process(r, gg, k);
+      lp12L.process(V * fastTanh((l * fIn) / V), gg, k);
+      lp12R.process(V * fastTanh((r * fIn) / V), gg, k);
       l = lp12L.lp;
       r = lp12R.lp;
     } else if (filterType == FILTER_MS20) {
@@ -944,7 +938,6 @@ class Voice {
   Svf12<1> lfAllSub, lfS, lfN;
 
   OscState osc[2];
-  DiodeLadder diodeL, diodeR;
   Comb combL, combR;
   KarplusString strings[2];
   double strPeriod[2] = {}, strGain[2] = {}, strTone = 0.5;
@@ -963,12 +956,14 @@ class Voice {
   bool routeA = true, routeB = true, routeS = false, subDirect = true, bypassOn = false;
   Upsampler2x upBL, upBR;
   double fMix = 1, noiseLevel = 0;
+  /** Input level into the 12 dB low-pass, band-pass and high-pass: 1 / (1 + 4 res) (fIn in voice.ts). */
+  double fIn = 1;
 
   double driveMix = 0, driveGain = 1, driveComp = 1;
   int filterType = FILTER_LP;
   double g = 0.1, gStep = 0, gPrevTarget = -1, k = 0;
   Ladder ladL, ladR;
-  Svf hpL[2], hpR[2], notchL[2], notchR[2], lpgL, lpgR, semL, semR, lp12L, lp12R, ms20L, ms20R;
+  Svf notchL[2], notchR[2], lpgL, lpgR, semL, semR, lp12L, lp12R, ms20L, ms20R;
   double phL[4] = {}, phR[4] = {}, phFbL = 0, phFbR = 0, phFb = 0, ringPh = 0, ringInc = 0, ringMix = 0, decPh = 0, decInc = 0, decQ = 65536, decL = 0, decR = 0;
   double combDelay = 100, combFb = 0;
   Svf bpL[2], bpR[2], fmtL[3], fmtR[3];

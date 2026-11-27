@@ -10,28 +10,6 @@
 
 namespace lt {
 
-class DiodeLadder {
- public:
-  void reset() { s1 = s2 = s3 = y = 0; }
-  double process(double x, double g, double k) {
-    const double G = g / (1 + g);
-    const double u = fastTanh(x * (1 + 0.15 * k) - k * y);
-    double v = (u - s1) * G;
-    const double y1 = v + s1;
-    s1 = y1 + v;
-    v = (fastTanh(y1) - s2) * G;
-    const double y2 = v + s2;
-    s2 = y2 + v;
-    v = (y2 - s3) * G;
-    const double y3 = v + s3;
-    s3 = y3 + v;
-    y = y3;
-    return y3;
-  }
- private:
-  double s1 = 0, s2 = 0, s3 = 0, y = 0;
-};
-
 class Comb {
  public:
   explicit Comb(int maxDelaySamples) {

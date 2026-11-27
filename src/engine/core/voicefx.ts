@@ -1,48 +1,13 @@
-// Voice building blocks added for full bass-directory coverage: 303-style
-// diode filter, comb filter, physical-model string
+// Voice building blocks added for full bass-directory coverage: comb filter, physical-model string
 // and the texture bed. All state is preallocated; nothing here
 // allocates after construction.
 
-import { fastTanh as fastTanh_, Rng as Rng_, Svf as Svf_ } from './dsp';
+import { Rng as Rng_, Svf as Svf_ } from './dsp';
 
 // Module-local bindings: avoids live-binding getter overhead on hot paths in
 // some module transforms (tsx / vite-node).
-const fastTanh = fastTanh_;
 const Rng = Rng_;
 const Svf = Svf_;
-
-/**
- * 3-pole (18 dB/oct) diode-style ladder, the 303 filter's character: each
- * stage saturates and the feedback loop is looser than a Moog ladder, so it
- * squelches and growls rather than whistling.
- */
-export class DiodeLadder {
-  private s1 = 0;
-  private s2 = 0;
-  private s3 = 0;
-  private y = 0;
-
-  reset(): void {
-    this.s1 = this.s2 = this.s3 = this.y = 0;
-  }
-
-  /** g = tan(π·fc/fs); k = feedback 0..~7 */
-  process(x: number, g: number, k: number): number {
-    const G = g / (1 + g);
-    const u = fastTanh(x * (1 + 0.15 * k) - k * this.y);
-    let v = (u - this.s1) * G;
-    const y1 = v + this.s1;
-    this.s1 = y1 + v;
-    v = (fastTanh(y1) - this.s2) * G;
-    const y2 = v + this.s2;
-    this.s2 = y2 + v;
-    v = (y2 - this.s3) * G;
-    const y3 = v + this.s3;
-    this.s3 = y3 + v;
-    this.y = y3;
-    return y3;
-  }
-}
 
 /**
  * Feedback comb filter: rings at the cutoff frequency and its harmonics.

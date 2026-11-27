@@ -10,10 +10,10 @@
 // parameters, LFOs and drift sources, the texture bed and the FX chain.
 // Pure TypeScript, allocation-free after construction.
 
-import { AUX_SLOT, Biquad, clamp, Clipper, Envelope, Ladder, OSC_SLOT, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
+import { AUX_SLOT, Biquad, BP_LOGK, clamp, Clipper, Envelope, FILTER_SAT_V, LAD_LP, LAD_LP18, Ladder, LP12_LOGK, NOTCH_K, OSC_SLOT, resCurve, Rng, SlotFilter, Svf, TWO_PI } from './dsp';
 import { Downsampler2x, OVERSAMPLE_LATENCY, Upsampler2x } from './oversample';
 import * as K from './params';
-import { Comb, DiodeLadder, KarplusString } from './voicefx';
+import { Comb, KarplusString } from './voicefx';
 import { BANK_FRAME0, BANK_FRAMES, FRAME_COUNT, FRAMES_PER_SEGMENT, MIP_SIZE, mipBase, mipForIncrement } from './wavetable';
 
 // Module-local bindings: avoids live-binding getter overhead on hot paths in
@@ -200,13 +200,13 @@ export class Voice {
   private gStep = 0;
   private gPrevTarget = -1;
   private k = 0;
+  /** The input level into the 12 dB low-pass and the band-pass: 1 / (1 + 4 res), as Serum's. */
+  private fIn = 1;
   private readonly ladL = new Ladder();
   private readonly ladR = new Ladder();
-  private readonly diodeL = new DiodeLadder();
-  private readonly diodeR = new DiodeLadder();
-  private readonly hpL = [new Svf(), new Svf()];
-  private readonly hpR = [new Svf(), new Svf()];
   private readonly notchL = [new Svf(), new Svf()];
+  private readonly bpL = [new Svf(), new Svf()];
+  private readonly bpR = [new Svf(), new Svf()];
   private readonly notchR = [new Svf(), new Svf()];
   private readonly lpgL = new Svf();
   private readonly lpgR = new Svf();
@@ -235,8 +235,6 @@ export class Voice {
   private readonly combR: Comb;
   private combDelay = 100;
   private combFb = 0;
-  private readonly bpL = [new Svf(), new Svf()];
-  private readonly bpR = [new Svf(), new Svf()];
   private readonly fmtL = [new Svf(), new Svf(), new Svf()];
   private readonly fmtR = [new Svf(), new Svf(), new Svf()];
   private readonly fmtG = new Float64Array(3);
@@ -335,8 +333,6 @@ export class Voice {
       this.upR.reset();
       this.dnL.reset();
       this.dnR.reset();
-      this.diodeL.reset();
-      this.diodeR.reset();
     }
     this.noteCutoffJitter = this.rng.next();
     // (poly only, as the voice cards: a mono bass keeps the same punch on every note)
@@ -376,10 +372,6 @@ export class Voice {
     for (const f of [this.lfAll, this.lfAllSub, this.lfA, this.lfB, this.lfS, this.lfN]) f.reset();
     this.ladL.reset();
     this.ladR.reset();
-    for (let i = 0; i < 2; i++) {
-      this.bpL[i].reset();
-      this.bpR[i].reset();
-    }
     for (let i = 0; i < 3; i++) {
       this.fmtL[i].reset();
       this.fmtR[i].reset();
@@ -390,9 +382,7 @@ export class Voice {
     this.dnR.reset();
     this.voiceDcL.reset();
     this.voiceDcR.reset();
-    this.diodeL.reset();
-    this.diodeR.reset();
-    for (const f of [...this.notchL, ...this.notchR, ...this.hpL, ...this.hpR, this.lpgL, this.lpgR, this.semL, this.semR, this.lp12L, this.lp12R, this.ms20L, this.ms20R]) f.reset();
+    for (const f of [...this.notchL, ...this.notchR, ...this.bpL, ...this.bpR, this.lpgL, this.lpgR, this.semL, this.semR, this.lp12L, this.lp12R, this.ms20L, this.ms20R]) f.reset();
       this.phL.fill(0);
       this.phR.fill(0);
       this.phFbL = this.phFbR = 0;
@@ -695,28 +685,30 @@ export class Voice {
     if (this.gPrevTarget < 0) this.g = gTarget;
     this.gStep = (gTarget - this.g) / (CONTROL_BLOCK * OS);
     this.gPrevTarget = gTarget;
+    // (owner's call, 27 Nov: the classic filters as Serum's measure, see dsp.ts)
+    this.fIn = 1 / (1 + 4 * res);
     if (this.filterType === FILTER_LP) {
-      this.k = 3.85 * res;
+      this.k = 4 * res; // MG Low 24
     } else if (this.filterType === FILTER_BP) {
-      this.k = 1.4 * (1 - res) + 0.08; // 1/Q
+      this.k = Math.exp(resCurve(BP_LOGK, res)); // Band 24: two band-pass stages
     } else if (this.filterType === FILTER_DIODE) {
-      this.k = 7.2 * res;
+      this.k = 4 * res; // MG Low 18: the ladder read at its third pole
     } else if (this.filterType === FILTER_NOTCH) {
-      this.k = 2 * (1 - res) + 0.05;
+      this.k = resCurve(NOTCH_K, res); // Notch 24
     } else if (this.filterType === FILTER_COMB) {
       this.combDelay = fsOs / fc;
       this.combFb = 0.96 * res;
     } else if (this.filterType === FILTER_LPG) {
       this.k = 1.4 - 1.1 * res;
     } else if (this.filterType === FILTER_HP) {
-      // 4-pole high-pass: two 2-pole stages (Butterworth at res 0), the resonance on the sharper one
-      this.k = 0.765 * (1 - res) + 0.05;
+      // High 24: two 12 dB high-pass stages, Band 24's damping
+      this.k = Math.exp(resCurve(BP_LOGK, res));
     } else if (this.filterType === FILTER_SEM) {
       // SEM: a 12 dB state-variable low-pass, gentle at res 0, singing but never self-oscillating at the top
       this.k = 1.9 * (1 - res) + 0.12;
     } else if (this.filterType === FILTER_LP12) {
-      // low-pass 12: a clean 12 dB state-variable low-pass (Butterworth at res 0)
-      this.k = 1.414 * (1 - res) + 0.05;
+      // Low 12: a clean 12 dB state-variable low-pass, Serum's damping curve
+      this.k = Math.exp(resCurve(LP12_LOGK, res));
     } else if (this.filterType === FILTER_MS20) {
       // MS-20: a 12 dB low-pass driven hard, its resonance near screaming at the top
       this.k = 2 * (1 - res) + 0.02;
@@ -866,48 +858,47 @@ export class Voice {
     // Filter (coefficients are for the oversampled rate).
     this.g += this.gStep;
     const g = this.g;
-    if (this.filterType === FILTER_LP) {
-      const G = g / (1 + g);
-      l = this.ladL.processG(l, G, this.k);
-      r = this.ladR.processG(r, G, this.k);
+    const V = FILTER_SAT_V;
+    if (this.filterType === FILTER_LP || this.filterType === FILTER_DIODE) {
+      const G = g / (1 + g), mode = this.filterType === FILTER_LP ? LAD_LP : LAD_LP18;
+      l = this.ladL.processG(l, G, this.k, mode);
+      r = this.ladR.processG(r, G, this.k, mode);
     } else if (this.filterType === FILTER_BP) {
-      const k = this.k;
-      this.bpL[0].processSat(l, g, k);
-      this.bpL[1].processSat(this.bpL[0].bp * k, g, k);
-      l = this.bpL[1].bp * k * 1.5;
-      this.bpR[0].processSat(r, g, k);
-      this.bpR[1].processSat(this.bpR[0].bp * k, g, k);
-      r = this.bpR[1].bp * k * 1.5;
-    } else if (this.filterType === FILTER_DIODE) {
-      l = this.diodeL.process(l, g, this.k) * 1.4;
-      r = this.diodeR.process(r, g, this.k) * 1.4;
+      const k = this.k, s = this.fIn, bl = this.bpL, br = this.bpR;
+      bl[0].process(V * tanh((l * s) / V), g, k);
+      bl[1].process(bl[0].bp, g, k);
+      l = bl[1].bp;
+      br[0].process(V * tanh((r * s) / V), g, k);
+      br[1].process(br[0].bp, g, k);
+      r = br[1].bp;
+    } else if (this.filterType === FILTER_HP) {
+      const k = this.k, s = this.fIn, bl = this.bpL, br = this.bpR;
+      bl[0].process(V * tanh((l * s) / V), g, k);
+      bl[1].process(bl[0].hp, g, k);
+      l = bl[1].hp;
+      br[0].process(V * tanh((r * s) / V), g, k);
+      br[1].process(br[0].hp, g, k);
+      r = br[1].hp;
     } else if (this.filterType === FILTER_NOTCH) {
       const k = this.k, nl = this.notchL, nr = this.notchR;
-      nl[0].processSat(l, g, k);
-      nl[1].processSat(nl[0].lp + nl[0].hp, g, k);
+      nl[0].process(V * tanh(l / V), g, k);
+      nl[1].process(nl[0].lp + nl[0].hp, g, k);
       l = nl[1].lp + nl[1].hp;
-      nr[0].processSat(r, g, k);
-      nr[1].processSat(nr[0].lp + nr[0].hp, g, k);
+      nr[0].process(V * tanh(r / V), g, k);
+      nr[1].process(nr[0].lp + nr[0].hp, g, k);
       r = nr[1].lp + nr[1].hp;
     } else if (this.filterType === FILTER_COMB) {
       l = this.combL.process(l, this.combDelay, this.combFb);
       r = this.combR.process(r, this.combDelay, this.combFb);
-    } else if (this.filterType === FILTER_HP) {
-      const k = this.k, hl = this.hpL, hr = this.hpR;
-      hl[0].processSat(l, g, 1.848);
-      hl[1].processSat(hl[0].hp, g, k);
-      l = hl[1].hp;
-      hr[0].processSat(r, g, 1.848);
-      hr[1].processSat(hr[0].hp, g, k);
-      r = hr[1].hp;
+
     } else if (this.filterType === FILTER_SEM) {
       this.semL.processSat(l, g, this.k);
       this.semR.processSat(r, g, this.k);
       l = this.semL.lp;
       r = this.semR.lp;
     } else if (this.filterType === FILTER_LP12) {
-      this.lp12L.process(l, g, this.k);
-      this.lp12R.process(r, g, this.k);
+      this.lp12L.process(V * tanh((l * this.fIn) / V), g, this.k);
+      this.lp12R.process(V * tanh((r * this.fIn) / V), g, this.k);
       l = this.lp12L.lp;
       r = this.lp12R.lp;
     } else if (this.filterType === FILTER_MS20) {
