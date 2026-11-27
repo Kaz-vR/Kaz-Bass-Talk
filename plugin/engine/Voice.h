@@ -57,7 +57,11 @@ inline double polyBlep(double t, double dt) {
 }
 /** The sub routed into the main filter arrives at about the level the clean path would have had. */
 constexpr double SUB_ROUTE_GAIN = 1 / (VOICE_GAIN * PRE_FILTER_GAIN * POST_FILTER_GAIN);
-constexpr double UNISON_SKEW[7] = {0, 0.19, -0.13, 0.08, -0.17, 0.11, 0};
+/** Unison voice j's side of n (uniSide in voice.ts). */
+inline double uniSide(int j, int n) {
+  if (n % 2 == 1 && j == (n - 1) / 2) return 0;
+  return j < n / 2.0 ? (j % 2 == 0 ? 1.0 : -1.0) : -uniSide(n - 1 - j, n);
+}
 
 struct OscState {
   std::array<double, MAX_UNISON> phase{}, inc{}, panL{}, panR{}, drift{}, driftTarget{}, held{};
@@ -143,10 +147,9 @@ class Voice {
     if (!retrigger) return;
     velocity = clampd(vel, 0, 1);
     if (!sounding) {
-      const bool freeRun = cur[P.analog] > 0.01;
       for (auto& o : osc)
         for (int j = 0; j < MAX_UNISON; j++)
-          o.phase[j] = j == 0 ? 0 : freeRun ? 0.5 * (rng.next() + 1) : std::fmod(j * 0.381966, 1.0);
+          o.phase[j] = j == 0 ? 0 : 0.5 * (rng.next() + 1);
       subPhase = 0;
       syncPhase = 0;
       osc[1].held.fill(0);
@@ -358,14 +361,14 @@ class Voice {
       while (center < 20 / fs) center *= 2;
       if (n == 0) syncInc = center;
       const int voices = o.voices;
-      const double detune = clampd(cur[op.detune] + 100 * (dst[D_DETUNE] + dst[n == 0 ? D_OSC1_DETUNE : D_OSC2_DETUNE]), 0, 100);
+      const double detune = clampd(cur[op.detune] + 100 * (dst[D_DETUNE] + dst[n == 0 ? D_OSC1_DETUNE : D_OSC2_DETUNE]), 0, 400);
       const double spread = cur[op.spread];
       if (voices == 1) {
         o.inc[0] = center;
       } else {
         const int last = voices - 1;
         for (int j = 0; j < voices; j++) {
-          const double pos = (double)j / last - 0.5 + (j > 0 && j < last ? UNISON_SKEW[j] / last : 0);
+          const double pos = (double)j / last - 0.5;
           const double inc = center * std::pow(2.0, (detune * pos) / 1200);
           o.inc[j] = inc < 0.45 ? inc : 0.45;
         }
@@ -381,7 +384,7 @@ class Voice {
       }
       if (spread != o.lastSpread || voices != o.lastVoices) {
         for (int j = 0; j < voices; j++) {
-          const double pos = voices == 1 ? 0 : (2.0 * j) / (voices - 1) - 1;
+          const double pos = voices == 1 ? 0 : uniSide(j, voices);
           const double a = ((pos * spread + 1) * PI) / 4;
           o.panL[j] = SQRT2 * std::cos(a);
           o.panR[j] = SQRT2 * std::sin(a);

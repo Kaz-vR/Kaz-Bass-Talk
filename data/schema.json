@@ -210,13 +210,13 @@
       "label": "Osc 1 unison detune",
       "type": "float",
       "min": 0,
-      "max": 100,
+      "max": 400,
       "default": 15,
       "curve": "pow",
       "unit": "ct",
       "group": "osc1",
-      "describes": "Spread of the unison copies in cents. Low is subtle thickening; high is a dissonant, washy smear.",
-      "exponent": 2
+      "describes": "Spread of the unison copies in cents, outer to outer (up to 400: ±2 semitones, as Serum). Low is subtle thickening; high is a dissonant, washy smear.",
+      "exponent": 2.5
     },
     {
       "id": "osc1.unison_spread",
@@ -380,13 +380,13 @@
       "label": "Osc 2 unison detune",
       "type": "float",
       "min": 0,
-      "max": 100,
+      "max": 400,
       "default": 15,
       "curve": "pow",
       "unit": "ct",
       "group": "osc2",
-      "describes": "Spread of the unison copies in cents. Low is subtle thickening; high is a dissonant, washy smear.",
-      "exponent": 2
+      "describes": "Spread of the unison copies in cents, outer to outer (up to 400: ±2 semitones, as Serum). Low is subtle thickening; high is a dissonant, washy smear.",
+      "exponent": 2.5
     },
     {
       "id": "osc2.unison_spread",

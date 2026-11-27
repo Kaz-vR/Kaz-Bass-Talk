@@ -54,8 +54,13 @@ const D = {
   DIST_TONE: K.D_DIST_TONE, VIBRATO: K.D_VIBRATO, BREATH: K.D_BREATH, SUB_PITCH: K.D_SUB_PITCH,
 };
 
-/** Offsets (in grid steps) of interior unison voices from an even spread. */
-const UNISON_SKEW = [0, 0.19, -0.13, 0.08, -0.17, 0.11, 0];
+/** Unison voice j's side (-1 left, 1 right, 0 the centre) of n: alternating from the outside in and mirrored, as
+ * Serum's, so every detune is heard on both sides (lowest right, next left, ...; the middle voice of an odd count in
+ * the centre). */
+function uniSide(j: number, n: number): number {
+  if (n % 2 === 1 && j === (n - 1) / 2) return 0;
+  return j < n / 2 ? (j % 2 === 0 ? 1 : -1) : -uniSide(n - 1 - j, n);
+}
 
 interface OscState {
   phase: Float64Array;
@@ -315,13 +320,11 @@ export class Voice {
     this.velocity = clamp(velocity, 0, 1);
     const cur = this.cur;
     if (!sounding) {
-      // Fresh note from silence: reset phases for a consistent, phase-stable attack.
-      // Voice 0 always starts at phase 0 (consistent punch); other unison voices
-      // start at fixed spread phases, or free-running random ones with analog drift.
-      const free = cur[P.analog] > 0.01;
+      // Fresh note from silence: voice 0 starts at phase 0 (a consistent punch), the other unison voices at random
+      // phases, new on every note, as Serum's (its Random Phase at 100 %).
       for (const o of this.osc) {
         for (let j = 0; j < MAX_UNISON; j++) {
-          o.phase[j] = j === 0 ? 0 : free ? 0.5 * (this.rng.next() + 1) : (j * 0.381966) % 1;
+          o.phase[j] = j === 0 ? 0 : 0.5 * (this.rng.next() + 1);
         }
       }
       this.subPhase = 0;
@@ -546,17 +549,15 @@ export class Voice {
       while (center < 20 / fs) center *= 2;
       if (n === 0) this.syncInc = center;
       const voices = o.voices;
-      const detune = clamp(cur[op.detune] + 100 * (dst[D.DETUNE] + dst[n === 0 ? D.OSC1_DETUNE : D.OSC2_DETUNE]), 0, 100);
+      const detune = clamp(cur[op.detune] + 100 * (dst[D.DETUNE] + dst[n === 0 ? D.OSC1_DETUNE : D.OSC2_DETUNE]), 0, 400);
       const spread = cur[op.spread];
       if (voices === 1) {
         o.inc[0] = center;
       } else {
-        // Voices spread over ±detune/2 cents. Interior voices sit slightly off the even
-        // grid: evenly spaced detunes beat at exact multiples of each other and the
-        // pattern repeats like a clock; uneven ones never line up.
+        // Voices evenly over ±detune/2 cents, as Serum's.
         const last = voices - 1;
         for (let j = 0; j < voices; j++) {
-          const pos = j / last - 0.5 + (j > 0 && j < last ? UNISON_SKEW[j] / last : 0);
+          const pos = j / last - 0.5;
           const inc = center * Math.pow(2, (detune * pos) / 1200);
           o.inc[j] = inc < 0.45 ? inc : 0.45;
         }
@@ -574,7 +575,7 @@ export class Voice {
       }
       if (spread !== o.lastSpread || voices !== o.lastVoices) {
         for (let j = 0; j < voices; j++) {
-          const pos = voices === 1 ? 0 : (2 * j) / (voices - 1) - 1; // -1..1
+          const pos = voices === 1 ? 0 : uniSide(j, voices); // alternating sides, as Serum's
           const a = ((pos * spread + 1) * Math.PI) / 4; // equal-power, unity in the centre
           o.panL[j] = Math.SQRT2 * Math.cos(a);
           o.panR[j] = Math.SQRT2 * Math.sin(a);
