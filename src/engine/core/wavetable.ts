@@ -6,6 +6,8 @@
 // in-between frames are real hybrid timbres rather than crossfades. Each frame
 // has one mip level per octave so that no harmonic ever exceeds Nyquist.
 
+import { ACID_B64, ACID_FRAMES } from './acid-table';
+
 export const TABLE_SIZE = 2048;
 export const TABLE_MASK = TABLE_SIZE - 1;
 export const MIP_LEVELS = 11; // level m holds harmonics 1..min(1023, 1024 >> m)
@@ -123,32 +125,30 @@ function voice(x: number, v: number, bw: number, tilt: number): number {
 }
 
 /**
- * ACID (owner's call, measured against a reference acid wavetable): the whole saw, every harmonic up to 1023, with a
- * resonant peak riding on it, Shape sweeping the peak from harmonic 3 to 40 over 17 keyframes; above the peak only a
- * gentle extra slope (the saw keeps its brightness), the peak's height and width as the reference's (about 1.6 x the
- * fundamental low down, 0.45 x at the top, a few harmonics wide).
+ * ACID (owner's call: exactly Serum's Acid): its 40 frames, taken straight from the owner's render of it
+ * (tools/extract-acid.py), Shape scanning the resonant peak from harmonic 4 to 29.
  */
-export function acidSpectrum(kf: number): Float64Array {
-  const a = new Float64Array(MAX_HARMONIC + 1);
-  // (fitted to the reference: a k^-0.65 slope, a soft roll-off from harmonic ~80 low on the Shape to ~200 at the top,
-  // the peak +4 dB over the fundamental at the start and -3 dB under it at the end)
-  const t = kf / 16, h = 3 * Math.pow(40 / 3, t), kc = 80 * Math.pow(2.5, t), w = 0.6 + 0.06 * h;
-  const ratio = 1.58 * Math.pow(h / 3, -0.31), r = ratio * Math.pow(h, 0.65) * Math.exp((h - 1) / kc) - 1;
-  for (let k = 1; k <= MAX_HARMONIC; k++) {
-    const d = (k - h) / w;
-    a[k] = (k % 2 === 1 ? 1 : -1) * Math.pow(k, -0.65) * (1 + r * Math.exp(-d * d)) * Math.exp(-k / kc);
+let acidData: Float32Array | null = null;
+function acidSample(kf: number, x: number): number {
+  if (!acidData) {
+    // base64 -> int16 by hand (the audio worklet has no atob)
+    const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/', s = ACID_B64, lut = new Int8Array(128);
+    for (let i = 0; i < 64; i++) lut[A.charCodeAt(i)] = i;
+    const bytes = new Uint8Array(ACID_FRAMES * TABLE_SIZE * 2);
+    let o = 0;
+    for (let i = 0; i + 3 < s.length && o < bytes.length; i += 4) {
+      const n = (lut[s.charCodeAt(i)] << 18) | (lut[s.charCodeAt(i + 1)] << 12) | (lut[s.charCodeAt(i + 2)] << 6) | lut[s.charCodeAt(i + 3)];
+      bytes[o++] = (n >> 16) & 255;
+      if (o < bytes.length) bytes[o++] = (n >> 8) & 255;
+      if (o < bytes.length) bytes[o++] = n & 255;
+    }
+    acidData = new Float32Array(ACID_FRAMES * TABLE_SIZE);
+    for (let i = 0; i < acidData.length; i++) {
+      const v = bytes[2 * i] | (bytes[2 * i + 1] << 8);
+      acidData[i] = (v >= 32768 ? v - 65536 : v) / 32767;
+    }
   }
-  return a;
-}
-const acidCycles: Float32Array[] = [];
-/** One cycle of an acid keyframe (made once from its spectrum). */
-function acidCycle(kf: number): Float32Array {
-  if (!acidCycles[kf]) {
-    const c = new Float32Array(TABLE_SIZE);
-    synth(acidSpectrum(kf), MAX_HARMONIC, c, 1);
-    acidCycles[kf] = c;
-  }
-  return acidCycles[kf];
+  return acidData[kf * TABLE_SIZE + (Math.floor(x * TABLE_SIZE) & TABLE_MASK)];
 }
 
 /** The bank's waves by name: how many keyframes, and keyframe kf's sample at x. Tables of 8 keyframes and more are
@@ -158,12 +158,12 @@ export const BANK: { name: string; keys: number }[] = [
   { name: 'choir', keys: 3 }, { name: 'talk', keys: 3 }, { name: 'bell', keys: 5 }, { name: 'ring', keys: 5 },
   { name: 'digital', keys: 5 }, { name: 'glass', keys: 5 }, { name: 'bowed', keys: 3 }, { name: 'reed', keys: 3 },
   { name: 'breath', keys: 3 }, { name: 'tape saw', keys: 3 }, { name: 'cassette pulse', keys: 3 }, { name: 'lofi sample', keys: 3 },
-  { name: 'broken sine', keys: 5 }, { name: 'electric guitar', keys: 3 }, { name: 'acid', keys: 17 }, { name: 'scream', keys: 9 },
+  { name: 'broken sine', keys: 5 }, { name: 'electric guitar', keys: 3 }, { name: 'acid', keys: ACID_FRAMES }, { name: 'scream', keys: 9 },
   { name: 'growl', keys: 9 }, { name: 'fold', keys: 9 }, { name: 'harmonic', keys: 9 }, { name: 'crush', keys: 9 },
   { name: 'spectral', keys: 9 }, { name: 'formant scan', keys: 9 },
 ];
-/** Frames per keyframe step: 4 on the small tables, 2 on the wavetables. */
-export const bankFps = (keys: number): number => (keys >= 8 ? 2 : FRAMES_PER_SEGMENT);
+/** Frames per keyframe step: 4 on the small tables, 2 on the wavetables, 1 on a table taken frame by frame (acid). */
+export const bankFps = (keys: number): number => (keys >= 32 ? 1 : keys >= 8 ? 2 : FRAMES_PER_SEGMENT);
 
 export function bankKey(w: number, kf: number, x: number): number {
   const saw = (t: number) => 2 * fr(t) - 1;
@@ -190,7 +190,7 @@ export function bankKey(w: number, kf: number, x: number): number {
       const d = [1.5, 4, 10][kf];
       return Math.tanh(d * additive(x, 40, (k) => Math.abs(Math.sin(Math.PI * k * 0.2)) / k)) / Math.tanh(d);
     }
-    case 18: return acidCycle(kf)[Math.floor(x * TABLE_SIZE) & TABLE_MASK]; // acid: see acidSpectrum
+    case 18: return acidSample(kf, x); // acid: Serum's frames
     case 19: { // scream: two narrow, close formants high up, Shape opening the mouth, pushed hard
       const c = [4, 6, 8, 10, 12, 14, 16, 18, 20][kf];
       const y = additive(x, 64, (k) => 0.3 / k + Math.exp(-(((k - c) / 1.2) ** 2)) + 0.8 * Math.exp(-(((k - 1.7 * c) / 1.6) ** 2)));

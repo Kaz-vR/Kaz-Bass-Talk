@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 #include "Dsp.h"
+#include "generated/AcidTable.h"
 
 namespace lt {
 
@@ -81,9 +82,9 @@ inline void synth(const std::vector<double>& a, int maxH, float* out, double sca
 
 // ---- The wave bank (as wavetable.ts): each new wave a small morph table, keyframes as one cycle in time.
 constexpr int BANK_COUNT = 26;
-constexpr int BANK_KEYS[BANK_COUNT] = {3, 3, 9, 5, 3, 3, 5, 5, 5, 5, 3, 3, 3, 3, 3, 3, 5, 3, 17, 9, 9, 9, 9, 9, 9, 9};
-/** Frames per keyframe step: 4 on the small tables, 2 on the wavetables (as bankFps). */
-constexpr int bankFps(int keys) { return keys >= 8 ? 2 : FRAMES_PER_SEGMENT; }
+constexpr int BANK_KEYS[BANK_COUNT] = {3, 3, 9, 5, 3, 3, 5, 5, 5, 5, 3, 3, 3, 3, 3, 3, 5, 3, ACID_FRAMES, 9, 9, 9, 9, 9, 9, 9};
+/** Frames per keyframe step: 4 on the small tables, 2 on the wavetables, 1 frame by frame (acid) (as bankFps). */
+constexpr int bankFps(int keys) { return keys >= 32 ? 1 : keys >= 8 ? 2 : FRAMES_PER_SEGMENT; }
 
 namespace wt_detail {
 inline double jr(double x) { return std::floor(x + 0.5); }
@@ -110,24 +111,9 @@ inline double voice(double x, int v, double bw, double tilt) {
 }
 }  // namespace wt_detail
 
-/** ACID (as acidSpectrum in wavetable.ts): the whole saw with a resonant peak swept from harmonic 3 to 40. */
-inline std::vector<double> acidSpectrum(int kf) {
-  std::vector<double> a(MAX_HARMONIC + 1, 0.0);
-  const double t = kf / 16.0, h = 3 * std::pow(40.0 / 3, t), kc = 80 * std::pow(2.5, t), w = 0.6 + 0.06 * h;
-  const double ratio = 1.58 * std::pow(h / 3, -0.31), r = ratio * std::pow(h, 0.65) * std::exp((h - 1) / kc) - 1;
-  for (int k = 1; k <= MAX_HARMONIC; k++) {
-    const double d = (k - h) / w;
-    a[k] = (k % 2 == 1 ? 1.0 : -1.0) * std::pow((double)k, -0.65) * (1 + r * std::exp(-d * d)) * std::exp(-k / kc);
-  }
-  return a;
-}
-inline const std::vector<float>& acidCycle(int kf) {
-  static std::vector<std::vector<float>> cycles(17);
-  if (cycles[kf].empty()) {
-    cycles[kf].assign(TABLE_SIZE, 0.f);
-    wt_detail::synth(acidSpectrum(kf), MAX_HARMONIC, cycles[kf].data(), 1);
-  }
-  return cycles[kf];
+/** ACID (as acidSample in wavetable.ts): Serum's Acid, its 40 frames taken from the owner's render. */
+inline double acidSample(int kf, double x) {
+  return ACID_TABLE[kf * TABLE_SIZE + ((int)std::floor(x * TABLE_SIZE) & TABLE_MASK)] / 32767.0;
 }
 
 inline double bankKey(int w, int kf, double x) {
@@ -167,7 +153,7 @@ inline double bankKey(int w, int kf, double x) {
       const double d = D[kf];
       return std::tanh(d * additive(x, 40, [](int k) { return std::fabs(std::sin(PI * k * 0.2)) / k; })) / std::tanh(d);
     }
-    case 18: return acidCycle(kf)[(int)std::floor(x * TABLE_SIZE) & TABLE_MASK];
+    case 18: return acidSample(kf, x);
     case 19: {
       static const double C[] = {4, 6, 8, 10, 12, 14, 16, 18, 20};
       const double c = C[kf];

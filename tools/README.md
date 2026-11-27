@@ -6,6 +6,7 @@ render data for human review.
 
 | Script | What it does |
 | --- | --- |
+| `python3 -I tools/extract-acid.py` | Takes the Acid wave's 40 frames from the owner's Serum render (`tools/waves/acid.wav`) into `src/engine/core/acid-table.ts` and `plugin/engine/generated/AcidTable.h`. |
 | `npm run validate:data` | Validates every library patch and loop against the schema. |
 | `npm run level:patches` | Renders each library patch on the default loop and sets `output.gain` so they all sit at the same loudness. |
 | `npm run render:previews` | Renders every library patch to WAV in `renders/` (gitignored) for listening, and prints a level/brightness table. |
