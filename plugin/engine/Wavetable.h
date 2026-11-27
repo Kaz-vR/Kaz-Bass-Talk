@@ -118,6 +118,18 @@ inline double voice(double x, int v, double bw, double tilt) {
 }
 }  // namespace wt_detail
 
+/** The true square (as squareCycle in wavetable.ts): every odd harmonic up to 1023 at exactly 1/k. */
+inline const std::vector<float>& squareCycle() {
+  static const std::vector<float> c = [] {
+    std::vector<double> a(MAX_HARMONIC + 1, 0.0);
+    for (int k = 1; k <= MAX_HARMONIC; k += 2) a[k] = 4 / (PI * k);
+    std::vector<float> out(TABLE_SIZE);
+    wt_detail::synth(a, MAX_HARMONIC, out.data(), 1);
+    return out;
+  }();
+  return c;
+}
+
 /** A sampled wave's frame kf at x (as sampledSample in wavetable.ts): Serum's own tables, from the owner's renders. */
 inline double sampledSample(int t, int kf, double x) {
   return WAVE_TABLE_DATA[t][kf * TABLE_SIZE + ((int)std::floor(x * TABLE_SIZE) & TABLE_MASK)] / 32767.0;
@@ -129,7 +141,12 @@ inline double bankKey(int w, int kf, double x) {
   auto saw = [](double t) { return 2 * fr(t) - 1; };
   auto tri = [](double t) { return 1 - 4 * std::fabs(fr(t + 0.25) - 0.5); };
   switch (w) {
-    case 0: { static const double G[] = {40, 4, 1.4}; const double g = G[kf]; return std::tanh(g * S(x)) / std::tanh(g); }
+    case 0: {
+      if (kf == 0) return squareCycle()[(int)std::floor(x * TABLE_SIZE) & TABLE_MASK];
+      static const double G[] = {0, 4, 1.4};
+      const double g = G[kf];
+      return std::tanh(g * S(x)) / std::tanh(g);
+    }
     case 1: { static const double A[] = {0, 0.5, 1}; return saw(x) + A[kf] * saw(2 * x); }
     case 2: { static const double R[] = {1, 1.5, 2, 2.7, 3.5, 4.5, 6, 8, 11}; return saw(x * R[kf]); }
     case 3: { static const int V[] = {0, 1, 2, 3, 4}; return voice(x, V[kf], 1, 0); }

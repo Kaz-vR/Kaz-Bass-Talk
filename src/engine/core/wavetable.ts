@@ -157,6 +157,17 @@ function sampledSample(t: number, kf: number, x: number): number {
   }
   return d[kf * TABLE_SIZE + (Math.floor(x * TABLE_SIZE) & TABLE_MASK)];
 }
+/** The true square (made once from its spectrum): every odd harmonic up to 1023 at exactly 1/k, as the textbook. */
+let squareData: Float32Array | null = null;
+function squareCycle(): Float32Array {
+  if (!squareData) {
+    const a = new Float64Array(MAX_HARMONIC + 1);
+    for (let k = 1; k <= MAX_HARMONIC; k += 2) a[k] = 4 / (Math.PI * k);
+    squareData = new Float32Array(TABLE_SIZE);
+    synth(a, MAX_HARMONIC, squareData, 1);
+  }
+  return squareData;
+}
 const sampledFrames = (name: string): number => WAVE_TABLES.find((q) => q.name === name)?.frames ?? 2;
 
 /** The bank's waves by name: how many keyframes, and keyframe kf's sample at x. Tables of 8 keyframes and more are
@@ -181,7 +192,11 @@ export function bankKey(w: number, kf: number, x: number): number {
   const saw = (t: number) => 2 * fr(t) - 1;
   const tri = (t: number) => 1 - 4 * Math.abs(fr(t + 0.25) - 0.5);
   switch (w) {
-    case 0: { const g = [40, 4, 1.4][kf]; return Math.tanh(g * S(x)) / Math.tanh(g); } // square, Shape rounds it
+    case 0: { // square: a true square at Shape 0 (as Serum's, every odd harmonic at 1/k), Shape rounding it
+      if (kf === 0) return squareCycle()[Math.floor(x * TABLE_SIZE) & TABLE_MASK];
+      const g = [0, 4, 1.4][kf];
+      return Math.tanh(g * S(x)) / Math.tanh(g);
+    }
     case 1: return saw(x) + [0, 0.5, 1][kf] * saw(2 * x); // double saw, Shape brings in the octave
     case 2: return saw(x * [1, 1.5, 2, 2.7, 3.5, 4.5, 6, 8, 11][kf]); // sync sweep, Shape = how hard it is synced
     case 3: return voice(x, [0, 1, 2, 3, 4][kf], 1, 0); // vowel A E I O U
