@@ -77,6 +77,11 @@ int main(int argc, char** argv) {
     for (int i = 0; i < e->numParams; i++) { char n[256] = {0}, d[256] = {0}, l[64] = {0}; e->dispatcher(e, 8, i, 0, n, 0); e->dispatcher(e, 7, i, 0, d, 0); e->dispatcher(e, 6, i, 0, l, 0); printf("%d\t%s\t%.4f\t%s %s\n", i, n, e->getParameter(e, i), d, l); }
     return 0;
   }
+  if (mode == "scan" && argc > 4) {  // scan <param> <steps>: the display at each value
+    const int pi = atoi(argv[3]), n = atoi(argv[4]);
+    for (int k = 0; k < n; k++) { const float v = n > 1 ? (float)k / (n - 1) : 0; e->setParameter(e, pi, v); char d[256] = {0}, l[64] = {0}; e->dispatcher(e, 7, pi, 0, d, 0); e->dispatcher(e, 6, pi, 0, l, 0); printf("%.5f\t%s %s\n", v, d, l); }
+    return 0;
+  }
   const char* in = argv[3]; const char* outp = argv[4];
   double tail = 2; std::vector<std::pair<int, float>> sets; std::string chunk;
   for (int a = 6; a < argc; a++) {
