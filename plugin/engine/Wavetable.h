@@ -98,17 +98,16 @@ inline void synth(const std::vector<double>& a, int maxH, float* out, double sca
 
 
 // ---- The wave bank (as wavetable.ts): each new wave a small morph table, keyframes as one cycle in time.
-constexpr int BANK_COUNT = 27;
+constexpr int BANK_COUNT = 23;
 /** Each bank wave's sampled table (an index into WAVE_TABLE_DATA: acid, ring, scream, gritty), -1 for a formula (as BANK_SAMPLED). */
+/** The harmonic wave's place in the bank (a formula, 9 keyframes). */
+constexpr int BANK_HARMONIC = 18;
 constexpr int BANK_SAMPLED[BANK_COUNT] = {-1, -1, WT_SYNC_SAW, WT_VOWEL, WT_CHOIR, WT_TALK, -1, WT_RING,
-    -1, -1, WT_BOWED, WT_REED, WT_BREATH, WT_TAPE_SAW, WT_CASSETTE_PULSE, WT_LOFI_SAMPLE, WT_BROKEN_SINE,
+    -1, -1, WT_BOWED, WT_REED, WT_BREATH,
     WT_ELECTRIC_GUITAR, WT_ACID, WT_SCREAM, WT_GROWL, WT_FOLD, -1, WT_CRUSH, WT_SPECTRAL, WT_FORMANT_SCAN, WT_GRITTY};
 /** Keyframes of each bank wave: a sampled table's frames, else its formula's (square 3, double saw 3, bell / digital / glass 5, harmonic 9). */
-constexpr int bankKeys(int w) { return BANK_SAMPLED[w] >= 0 ? WAVE_TABLE_FRAMES[BANK_SAMPLED[w]] : w == 0 || w == 1 ? 3 : w == 22 ? 9 : 5; }
-constexpr int BANK_KEYS[BANK_COUNT] = {bankKeys(0), bankKeys(1), bankKeys(2), bankKeys(3), bankKeys(4), bankKeys(5), bankKeys(6),
-    bankKeys(7), bankKeys(8), bankKeys(9), bankKeys(10), bankKeys(11), bankKeys(12), bankKeys(13), bankKeys(14), bankKeys(15),
-    bankKeys(16), bankKeys(17), bankKeys(18), bankKeys(19), bankKeys(20), bankKeys(21), bankKeys(22), bankKeys(23),
-    bankKeys(24), bankKeys(25), bankKeys(26)};
+constexpr int bankKeys(int w) { return BANK_SAMPLED[w] >= 0 ? WAVE_TABLE_FRAMES[BANK_SAMPLED[w]] : w == 0 || w == 1 ? 3 : w == BANK_HARMONIC ? 9 : 5; }
+constexpr int BANK_KEYS[BANK_COUNT] = {bankKeys(0), bankKeys(1), bankKeys(2), bankKeys(3), bankKeys(4), bankKeys(5), bankKeys(6), bankKeys(7), bankKeys(8), bankKeys(9), bankKeys(10), bankKeys(11), bankKeys(12), bankKeys(13), bankKeys(14), bankKeys(15), bankKeys(16), bankKeys(17), bankKeys(18), bankKeys(19), bankKeys(20), bankKeys(21), bankKeys(22)};
 /** Frames per keyframe step of bank wave w: 1 on a sampled table, 2 on the wavetables, 4 on the rest (as bankFps). */
 constexpr int bankFps(int w) { return BANK_SAMPLED[w] >= 0 ? 1 : BANK_KEYS[w] >= 8 ? 2 : FRAMES_PER_SEGMENT; }
 

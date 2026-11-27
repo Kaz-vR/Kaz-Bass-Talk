@@ -14,7 +14,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 N = 2048
 # the owner's Serum renders, then the processed waves of tools/build-waves.py (the order of WAVE_TABLES)
 WAVES = ['acid', 'ring', 'scream', 'gritty', 'vowel', 'choir', 'talk', 'bowed',
-         'reed', 'breath', 'electric guitar', 'tape saw', 'cassette pulse', 'lofi sample', 'broken sine', 'growl', 'fold',
+         'reed', 'breath', 'electric guitar', 'growl', 'fold',
          'sync saw', 'crush', 'spectral', 'formant scan', 'morph vocal']
 
 

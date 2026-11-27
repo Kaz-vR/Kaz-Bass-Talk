@@ -180,8 +180,8 @@ function squareCycle(): Float32Array {
 const bank = (name: string, keys = 0) => ({ name, keys: WAVE_TABLES.find((q) => q.name === name)?.frames ?? keys });
 export const BANK: { name: string; keys: number }[] = [
   bank('square', 3), bank('double saw', 3), bank('sync saw'), bank('vowel'), bank('choir'), bank('talk'), bank('bell', 5), bank('ring'),
-  bank('digital', 5), bank('glass', 5), bank('bowed'), bank('reed'), bank('breath'), bank('tape saw'), bank('cassette pulse'),
-  bank('lofi sample'), bank('broken sine'), bank('electric guitar'), bank('acid'), bank('scream'), bank('growl'), bank('fold'),
+  bank('digital', 5), bank('glass', 5), bank('bowed'), bank('reed'), bank('breath'),
+  bank('electric guitar'), bank('acid'), bank('scream'), bank('growl'), bank('fold'),
   bank('harmonic', 9), bank('crush'), bank('spectral'), bank('formant scan'), bank('gritty'),
 ];
 /** Each bank wave's sampled table (an index into WAVE_TABLES), -1 when it is built from its formula. */

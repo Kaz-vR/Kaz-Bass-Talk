@@ -342,7 +342,6 @@ const WAVE_GROUPS: [string, string[]][] = [
   ['VOCAL', ['vowel', 'choir', 'talk']],
   ['METAL', ['bell', 'ring', 'digital', 'glass']],
   ['ORGANIC', ['string', 'bowed', 'reed', 'breath', 'electric guitar']],
-  ['WORN', ['tape saw', 'cassette pulse', 'lofi sample', 'broken sine']],
   // (owner's call: real wavetables, made to be scanned with Shape)
   ['WAVETABLE', ['acid', 'scream', 'growl', 'fold', 'harmonic', 'sync saw', 'crush', 'spectral', 'formant scan', 'gritty']],
 ];

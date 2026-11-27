@@ -1,7 +1,7 @@
 """Dev only: the processed waves (owner's call, 27 Nov: made the way Serum's tables are, not as formulas).
 
 Every wave here is a real source run through real processing (glottal pulses through formant filters, FM, hard sync,
-folders, tape and amp chains, sample-rate and bit crushing), computed one cycle at a time at 16x the table's
+folders, amp chains, sample-rate and bit crushing), computed one cycle at a time at 16x the table's
 resolution (so nothing folds back inside the cycle), then cut to the table's 1023 harmonics: full band, many frames
 (32-64), each a little different from its neighbours (small seeded jitter per frame, as in Serum's tables), the
 frames keeping their natural level differences (only half evened out). Written as int16 WAVs into tools/waves/,
@@ -211,36 +211,12 @@ def w_growl(t, r):  # a neuro yoi: phase-modulated saw through moving narrow for
     return filt(y, lowpass(V0, 9000, 2))
 
 
-def w_double_saw(t, r):  # a saw and its octave, the octave coming in and sliding against it, saturated together
-    a = lerp(0.0, 1.0, t)
-    ph = 0.25 * t * jit(r, 0.3)
-    y = saw(T) + a * saw(2 * T + ph)
-    return np.tanh(1.6 * y / 2) * 2
 
 
-def w_bell(t, r):  # two FM pairs at harmonic ratios (1:4 and 3:11), the index swept up, a little feedback fold
-    i1 = (0.2 + 7 * t ** 1.3) * jit(r, 0.06)
-    i2 = 0.1 + 4 * t ** 2
-    y = sine(T + i1 * jit(r, 0.04) * sine(4 * T) / (2 * np.pi)) + 0.5 * sine(3 * T + i2 * sine(11 * T) / (2 * np.pi))
-    return np.sin(1.2 * y)
 
 
-def w_digital(t, r):  # bit operations on an 8-bit phase (XOR, shifts, multiplies), the operation changing up the Shape
-    p = np.floor(T * 256).astype(np.int64)
-    def op(j):
-        return (((p * (1 + j)) ^ (p >> (1 + j % 4))) & 255) / 127.5 - 1
-    q = t * 11
-    j = min(10, int(q))
-    y = lerp(op(j), op(j + 1), q - j)
-    y = 0.6 * y + 0.4 * saw(T)
-    return quant(y, lerp(8, 3, t) * jit(r, 0.05))
 
 
-def w_glass(t, r):  # a sine synced to the note and faded out each cycle (the windowed-sync glass), plus its 12th
-    ratio = logl(2, 22, t) * jit(r, 0.01)
-    w = (1 - T) ** lerp(1.5, 3.5, t)
-    y = sine(ratio * T) * w + 0.35 * sine(ratio * 1.5 * T) * w ** 2
-    return y + 0.4 * sine(T)
 
 
 def w_bowed(t, r):  # Helmholtz motion of a bowed string (bow position comb), bow pressure -> brightness, a wooden body
@@ -283,39 +259,6 @@ def w_eguitar(t, r):  # a string plucked near the bridge, the pickup's comb, the
     return filt(y, lambda k: lowpass(V0, 5200, 4)(k) * (1 + 0.5 * reson(V0, 110, 40)(k)))
 
 
-def tape(y, drive, wear, r):
-    y = filt(y, bell(55, 3000, 3, 0.8))  # pre-emphasis
-    y = np.tanh(drive * (y + 0.08)) - np.tanh(drive * 0.08)  # the tape's asymmetric saturation
-    y = filt(y, bell(55, 3000, -3, 0.8))  # de-emphasis
-    y = filt(y, lambda k: lowpass(55, logl(16000, 6000, wear), 2)(k) * (1 + 0.3 * reson(55, 70, 30)(k)))  # head loss, head bump
-    return smear(y, 0.15 + 0.5 * wear, r)
-
-
-def w_tape_saw(t, r):  # a saw through tape: saturation, head bump, the top worn away and smeared up the Shape
-    return tape(saw(T), logl(1.2, 6, t) * jit(r, 0.1), t, r)
-
-
-def w_cassette(t, r):  # a sagging pulse through a worn cassette
-    w = lerp(0.5, 0.42, t)
-    dr = logl(0.3, 3.5, t)
-    tt = fr(T)
-    y = np.where(tt < w, np.exp(-dr * tt), -np.exp(-dr * (tt - w)))
-    return tape(y, logl(1.5, 5, t) * jit(r, 0.1), 0.3 + 0.7 * t, r)
-
-
-def w_lofi(t, r):  # a sample (a saw and an "ah") through a sampler, its rate and bits dropping up the Shape
-    v = voice(VOWELS['a'], 1.0, 0.45, 0.06, 1.0)
-    src = 0.55 * saw(T) + 0.45 * v
-    steps = int(round(logl(256, 10, t)))
-    bits = logl(12, 3, t)
-    return quant(stair(src, steps) * 0.9, max(2, int(round(bits))))
-
-
-def w_broken_sine(t, r):  # a sine through an asymmetric wavefolder, some rectifying, folded further up the Shape
-    g = logl(0.6, 8, t) * jit(r, 0.06)
-    y = np.sin(g * sine(T) + lerp(0, 0.7, t))
-    y = (1 - 0.4 * t) * y + 0.4 * t * np.abs(y)
-    return np.tanh(1.5 * y)
 
 
 def w_fold(t, r):  # a triangle through three folding stages, the gain and bias rising
@@ -352,12 +295,11 @@ def w_morph_vocal(t, r):  # the MORPH table's last keyframe: an "ah" (its harmon
 
 
 WAVES = [  # name, frames, maker, seed
-    # (double saw, bell, digital and glass: the owner kept their formulas, 27 Nov; their makers stay here unused)
+    # (double saw, bell, digital and glass: the owner kept their formulas, 27 Nov)
     ('vowel', 32, w_vowel, 2), ('choir', 32, w_choir, 3), ('talk', 48, w_talk, 4),
     ('bowed', 32, w_bowed, 8),
     ('reed', 32, w_reed, 9), ('breath', 32, w_breath, 10), ('electric guitar', 32, w_eguitar, 11),
-    ('tape saw', 32, w_tape_saw, 12), ('cassette pulse', 32, w_cassette, 13), ('lofi sample', 32, w_lofi, 14),
-    ('broken sine', 32, w_broken_sine, 15), ('growl', 48, w_growl, 16), ('fold', 64, w_fold, 17),
+    ('growl', 48, w_growl, 16), ('fold', 64, w_fold, 17),
     ('sync saw', 128, w_sync, 18), ('crush', 32, w_crush, 19), ('spectral', 32, w_spectral, 20),
     ('formant scan', 64, w_formant, 21), ('morph vocal', 2, w_morph_vocal, 22),
 ]
