@@ -298,6 +298,9 @@ function fbmNoise(r: () => number, oct: number): (x: number, y: number) => numbe
   };
 }
 
+/** Whether woodTexture baked the darkening in (then the cheeks drop their CSS filter). */
+export let woodBaked = false;
+
 export function woodTexture(side: 'l' | 'r' = 'l', w = 134, h = 1422, seed = 61): string {
   const r = rng(seed + (side === 'r' ? 7 : 0));
   const sx = w / 66, sy = h / 711, D = WOOD_DAMAGE[side];
@@ -393,6 +396,21 @@ export function woodTexture(side: 'l' | 'r' = 'l', w = 134, h = 1422, seed = 61)
         g.lineTo(bx, by + oy);
         g.stroke();
       }
+    }
+  }
+  // the page's darkening (brightness 0.5, saturation 0.6) baked in with the browser's own filter, so it looks the same
+  // but the cheeks need no CSS filter when painted (owner's bug, 27 Nov: a filtered cheek sometimes painted white);
+  // where the canvas has no filter, the CSS one stays (woodBaked false)
+  const out = document.createElement('canvas');
+  out.width = w;
+  out.height = h;
+  const g2 = out.getContext('2d')!;
+  if ('filter' in g2) {
+    g2.filter = 'brightness(0.5) saturate(0.6)';
+    g2.drawImage(cv, 0, 0);
+    if (g2.filter !== 'none') {
+      woodBaked = true;
+      return out.toDataURL();
     }
   }
   return cv.toDataURL();
