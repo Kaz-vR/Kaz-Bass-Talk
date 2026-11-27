@@ -41,6 +41,20 @@ export const WT_POS_TRIANGLE = 1 / (KEYFRAMES - 1);
 
 const MAX_HARMONIC = TABLE_SIZE / 2 - 1;
 
+/** The MORPH table's last keyframe: the harmonic amplitudes of the processed "ah" (its frame 0, measured once). */
+let vocalAmps: Float64Array | null = null;
+function morphVocal(): Float64Array {
+  if (!vocalAmps) {
+    const t = WAVE_TABLES.findIndex((q) => q.name === 'morph vocal');
+    const re = new Float64Array(TABLE_SIZE), im = new Float64Array(TABLE_SIZE);
+    for (let n = 0; n < TABLE_SIZE; n++) re[n] = sampledSample(t, 0, n / TABLE_SIZE);
+    fft(re, im, false);
+    vocalAmps = new Float64Array(MAX_HARMONIC + 1);
+    for (let k = 1; k <= MAX_HARMONIC; k++) vocalAmps[k] = (2 * Math.hypot(re[k], im[k])) / TABLE_SIZE;
+  }
+  return vocalAmps;
+}
+
 function keyframeSpectrum(kf: number): Float64Array {
   const a = new Float64Array(MAX_HARMONIC + 1);
   for (let k = 1; k <= MAX_HARMONIC; k++) {
@@ -57,12 +71,9 @@ function keyframeSpectrum(kf: number): Float64Array {
       case 3: // square
         a[k] = k % 2 === 1 ? 4 / (Math.PI * k) : 0;
         break;
-      case 4: {
-        // "vocal": strong fundamental plus formant-like humps at fixed harmonics
-        const hump = (c: number, w: number) => Math.exp(-(((k - c) / w) ** 2));
-        a[k] = (k === 1 ? 0.8 : 0) + (0.9 * hump(4, 1.6) + 0.55 * hump(11, 3) + 0.3 * hump(26, 7)) / Math.sqrt(k) + 0.15 / k;
+      case 4: // "vocal": the harmonics of a sung "ah" (tools/build-waves.py, 'morph vocal')
+        a[k] = morphVocal()[k];
         break;
-      }
     }
   }
   return a;
@@ -115,39 +126,15 @@ function synth(a: Float64Array, maxH: number, out: Float32Array, scale: number):
 }
 
 
-// ---- The wave bank (owner's call, 27 Nov): the menu's new waves, each a small morph table Shape moves through,
-// keyframes defined as one cycle in time (x in 0..1), built after the morph table in the same data array.
-// Ported line by line to plugin/engine/Wavetable.h (bankKey).
+// ---- The wave bank (owner's call, 27 Nov): the menu's new waves, each a table Shape moves through, built after the
+// morph table in the same data array. Ported line by line to plugin/engine/Wavetable.h (bankKey).
 
-/** Rounds half up, the same in both engines (Math.round differs from C++ on negative halves). */
-const jr = (x: number) => Math.floor(x + 0.5);
-const fr = (x: number) => x - Math.floor(x);
 const S = (x: number) => Math.sin(2 * Math.PI * x);
-/** A sum of harmonics sin(2πkx), amplitude amp(k) for k = 1..h. */
-function additive(x: number, h: number, amp: (k: number) => number): number {
-  let y = 0;
-  for (let k = 1; k <= h; k++) y += amp(k) * Math.sin(2 * Math.PI * k * x);
-  return y;
-}
-/** Vowel formants (Hz) and their gains, A E I O U. */
-const VF = [[730, 1090, 2440], [530, 1840, 2480], [270, 2290, 3010], [570, 840, 2410], [300, 870, 2240]];
-const VG = [1, 0.5, 0.25];
-/** A voice on a 110 Hz fundamental through three formants (vowel index, bandwidth scale, tilt). */
-function voice(x: number, v: number, bw: number, tilt: number): number {
-  return additive(x, 80, (k) => {
-    const f = 110 * k;
-    let a = 0;
-    for (let i = 0; i < 3; i++) {
-      const d = (f - VF[v][i]) / ((90 + 40 * i) * bw);
-      a += VG[i] * Math.exp(-d * d);
-    }
-    return (a + 0.08 / k) / Math.pow(k, tilt);
-  });
-}
 
 /**
- * The sampled waves (owner's call: exactly Serum's): acid, ring, scream and gritty are Serum's own tables, taken frame
- * by frame from the owner's renders (tools/extract-waves.py, wave-tables.ts), Shape scanning their frames.
+ * The sampled waves (owner's call, 27 Nov): acid, ring, scream and gritty are Serum's own tables, from the owner's
+ * renders; every other bank wave but square and harmonic is made the same way, a real source through real processing
+ * (tools/build-waves.py), many full-band frames; both taken by tools/extract-waves.py into wave-tables.ts.
  */
 const sampledData: (Float32Array | null)[] = WAVE_TABLES.map(() => null);
 function sampledSample(t: number, kf: number, x: number): number {
@@ -184,19 +171,15 @@ function squareCycle(): Float32Array {
   }
   return squareData;
 }
-const sampledFrames = (name: string): number => WAVE_TABLES.find((q) => q.name === name)?.frames ?? 2;
 
 /** The bank's waves by name: how many keyframes, and keyframe kf's sample at x. Tables of 8 keyframes and more are
  * real wavetables, made to be scanned (owner's call): two frames per step instead of four. */
+const bank = (name: string, keys = 0) => ({ name, keys: WAVE_TABLES.find((q) => q.name === name)?.frames ?? keys });
 export const BANK: { name: string; keys: number }[] = [
-  { name: 'square', keys: 3 }, { name: 'double saw', keys: 3 }, { name: 'sync saw', keys: 9 }, { name: 'vowel', keys: 5 },
-  { name: 'choir', keys: 3 }, { name: 'talk', keys: 3 }, { name: 'bell', keys: 5 }, { name: 'ring', keys: sampledFrames('ring') },
-  { name: 'digital', keys: 5 }, { name: 'glass', keys: 5 }, { name: 'bowed', keys: 3 }, { name: 'reed', keys: 3 },
-  { name: 'breath', keys: 3 }, { name: 'tape saw', keys: 3 }, { name: 'cassette pulse', keys: 3 }, { name: 'lofi sample', keys: 3 },
-  { name: 'broken sine', keys: 5 }, { name: 'electric guitar', keys: 3 }, { name: 'acid', keys: sampledFrames('acid') }, { name: 'scream', keys: sampledFrames('scream') },
-  { name: 'growl', keys: 9 }, { name: 'fold', keys: 9 }, { name: 'harmonic', keys: 9 }, { name: 'crush', keys: 9 },
-  { name: 'spectral', keys: 9 }, { name: 'formant scan', keys: 9 },
-  { name: 'gritty', keys: sampledFrames('gritty') },
+  bank('square', 3), bank('double saw'), bank('sync saw'), bank('vowel'), bank('choir'), bank('talk'), bank('bell'), bank('ring'),
+  bank('digital'), bank('glass'), bank('bowed'), bank('reed'), bank('breath'), bank('tape saw'), bank('cassette pulse'),
+  bank('lofi sample'), bank('broken sine'), bank('electric guitar'), bank('acid'), bank('scream'), bank('growl'), bank('fold'),
+  bank('harmonic', 9), bank('crush'), bank('spectral'), bank('formant scan'), bank('gritty'),
 ];
 /** Each bank wave's sampled table (an index into WAVE_TABLES), -1 when it is built from its formula. */
 export const BANK_SAMPLED = BANK.map((b) => WAVE_TABLES.findIndex((q) => q.name === b.name));
@@ -205,43 +188,16 @@ export const bankFps = (w: number): number => (BANK_SAMPLED[w] >= 0 ? 1 : BANK[w
 
 export function bankKey(w: number, kf: number, x: number): number {
   if (BANK_SAMPLED[w] >= 0) return sampledSample(BANK_SAMPLED[w], kf, x);
-  const saw = (t: number) => 2 * fr(t) - 1;
-  const tri = (t: number) => 1 - 4 * Math.abs(fr(t + 0.25) - 0.5);
-  switch (w) {
-    case 0: { // square: a true square at Shape 0 (as Serum's, every odd harmonic at 1/k), Shape rounding it
-      if (kf === 0) return squareCycle()[Math.floor(x * TABLE_SIZE) & TABLE_MASK];
-      const g = [0, 4, 1.4][kf];
-      return Math.tanh(g * S(x)) / Math.tanh(g);
-    }
-    case 1: return saw(x) + [0, 0.5, 1][kf] * saw(2 * x); // double saw, Shape brings in the octave
-    case 2: return saw(x * [1, 1.5, 2, 2.7, 3.5, 4.5, 6, 8, 11][kf]); // sync sweep, Shape = how hard it is synced
-    case 3: return voice(x, [0, 1, 2, 3, 4][kf], 1, 0); // vowel A E I O U
-    case 4: return voice(x, [4, 3, 0][kf], 2.4, 0.5); // choir oo oh ah, soft and wide
-    case 5: return voice(x, [3, 2, 0][kf], 0.8, 0.2); // talk o → i → a
-    case 6: { const ks = [1, 5, 9, 14, 21, 28, 35, 44], b = [0.2, 0.4, 0.6, 0.8, 1][kf]; let y = 0; for (let i = 0; i < ks.length; i++) y += Math.pow(b, i) * Math.sin(2 * Math.PI * ks[i] * x); return y; } // bell, brighter and denser
-    case 8: { const n = [48, 16, 8, 4, 2][kf]; return jr((0.6 * saw(x + 0.5) + 0.6 * S(x)) * n) / n; } // digital steps, down to two
-    case 9: { const ks = [1, 4, 8, 12, 16, 24, 32, 40, 48], b = [0.15, 0.35, 0.55, 0.75, 1][kf]; let y = 0; for (let i = 0; i < ks.length; i++) y += Math.pow(b, i) * Math.sin(2 * Math.PI * ks[i] * x); return y; } // glass
-    case 10: { const p = [1.6, 1.3, 1][kf]; return additive(x, 60, (k) => (1 + 0.8 * Math.exp(-(((k - 3) / 1.5) ** 2)) + 0.5 * Math.exp(-(((k - 8) / 3) ** 2))) / Math.pow(k, p)); } // bowed
-    case 11: { const n = [0.3, 1, 2][kf]; return additive(x, 60, (k) => (k % 2 === 1 ? 1 / k : 0.15 / k) * (1 + n * Math.exp(-(((k - 7) / 3) ** 2)))); } // reed
-    case 12: { const h = [0.05, 0.2, 0.35][kf]; return S(x) + h * S(2 * x) + 0.4 * h * S(3 * x); } // breath: a soft, flute-like tone, Shape brighter
-    case 13: { const d = [1.5, 3, 6][kf]; return Math.tanh(d * (saw(x) + 0.1)) - Math.tanh(d * 0.1); } // tape saw
-    case 14: { const dr = [0.5, 1.5, 3][kf]; return x < 0.5 ? Math.exp(-dr * x) : -Math.exp(-dr * (x - 0.5)); } // cassette pulse, sagging
-    case 15: { const st = [64, 24, 10][kf], q = [24, 8, 4][kf], xs = Math.floor(x * st) / st; return jr((0.6 * saw(xs + 0.5) + 0.4 * S(xs)) * q) / q; } // lofi sample
-    case 16: { const g = [0.6, 1.4, 2.4, 3.8, 6][kf]; return Math.sin(Math.PI * g * S(x)); } // broken sine, folded further
-    case 17: { // electric guitar: a string plucked near the bridge through an amp, Shape = more gain
-      const d = [1.5, 4, 10][kf];
-      return Math.tanh(d * additive(x, 40, (k) => Math.abs(Math.sin(Math.PI * k * 0.2)) / k)) / Math.tanh(d);
-    }
-    case 20: return Math.tanh(3 * voice(x, [3, 4, 3, 0, 1, 2, 1, 0, 3][kf], 0.7, 0)) / Math.tanh(3); // growl: a neuro yoi, o-u-o-a-e-i-e-a-o
-    case 21: return Math.sin(0.5 * Math.PI * [0.25, 0.6, 1, 1.6, 2.4, 3.4, 4.6, 6, 8][kf] * tri(x)); // fold: clean to folded hard
-    case 22: { const n = [1, 2, 3, 4, 6, 8, 12, 16, 24][kf]; return additive(x, n, (k) => 1 / Math.sqrt(k)); } // harmonic: partials one by one
-    case 23: { // crush: clean to destroyed, sample rate and bits together
-      const st = [256, 128, 64, 40, 24, 16, 10, 6, 4][kf], q = [256, 64, 32, 16, 8, 6, 4, 3, 2][kf], xs = Math.floor(x * st) / st;
-      return jr((0.5 * saw(xs + 0.5) + 0.7 * S(xs)) * q) / q;
-    }
-    case 24: { const ph = (kf * Math.PI) / 4; return additive(x, 80, (k) => (0.5 + 0.5 * Math.cos((2 * Math.PI * k) / 6 + ph)) / Math.pow(k, 0.6)); } // spectral: a moving comb
-    default: return voice(x, [0, 1, 2, 3, 4, 3, 1, 0, 2][kf], 0.6, 0); // formant scan: a long sweep through the vowels
+  if (w === 0) { // square: a true square at Shape 0 (as Serum's, every odd harmonic at 1/k), Shape rounding it
+    if (kf === 0) return squareCycle()[Math.floor(x * TABLE_SIZE) & TABLE_MASK];
+    const g = [0, 4, 1.4][kf];
+    return Math.tanh(g * S(x)) / Math.tanh(g);
   }
+  // harmonic: partials one by one (clean on purpose)
+  const n = [1, 2, 3, 4, 6, 8, 12, 16, 24][kf];
+  let y = 0;
+  for (let k = 1; k <= n; k++) y += Math.sin(2 * Math.PI * k * x) / Math.sqrt(k);
+  return y;
 }
 
 /** Where each bank wave's frames start in the data (after the morph table) and how many it has. */

@@ -6,7 +6,8 @@ render data for human review.
 
 | Script | What it does |
 | --- | --- |
-| `python3 -I tools/extract-waves.py` | Takes the sampled waves (acid, ring, scream, gritty) frame by frame from the owner's Serum renders (`tools/waves/*.wav`) into `src/engine/core/wave-tables.ts` and `plugin/engine/generated/WaveTables.h`. |
+| `python3 -I tools/build-waves.py` | Builds the processed waves (every bank wave but square, harmonic and the Serum four) into `tools/waves/*.wav`: real sources through real processing, full band, many frames. Then run extract-waves. |
+| `python3 -I tools/extract-waves.py` | Takes the sampled waves (the owner's Serum renders and the processed waves) frame by frame from `tools/waves/*.wav` into `src/engine/core/wave-tables.ts` and `plugin/engine/generated/WaveTables.h`. |
 | `npm run validate:data` | Validates every library patch and loop against the schema. |
 | `npm run level:patches` | Renders each library patch on the default loop and sets `output.gain` so they all sit at the same loudness. |
 | `npm run render:previews` | Renders every library patch to WAV in `renders/` (gitignored) for listening, and prints a level/brightness table. |

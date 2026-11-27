@@ -1,7 +1,7 @@
 """Dev only: the sampled waves (owner's call: exactly Serum's), taken from the owner's renders in tools/waves/.
 
-Each file is a Serum wavetable written out frame after frame, 2048 samples a frame (Acid 40 frames, Ring 33,
-Scream 123, Gritty 4). Every frame has its DC removed; the whole table is scaled by one number (its loudest frame
+Each file is a wavetable written out frame after frame, 2048 samples a frame: the owner's Serum renders (acid 40
+frames, ring 33, scream 123, gritty 4) and the processed waves (tools/build-waves.py). Every frame has its DC removed; the whole table is scaled by one number (its loudest frame
 to full scale), so the frames keep Serum's levels relative to each other. Written as int16 to
 src/engine/core/wave-tables.ts (base64) and plugin/engine/generated/WaveTables.h, the same numbers in both engines.
 
@@ -12,7 +12,10 @@ import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 N = 2048
-WAVES = ['acid', 'ring', 'scream', 'gritty']  # the order of SAMPLED in wavetable.ts
+# the owner's Serum renders, then the processed waves of tools/build-waves.py (the order of WAVE_TABLES)
+WAVES = ['acid', 'ring', 'scream', 'gritty', 'double saw', 'vowel', 'choir', 'talk', 'bell', 'digital', 'glass', 'bowed',
+         'reed', 'breath', 'electric guitar', 'tape saw', 'cassette pulse', 'lofi sample', 'broken sine', 'growl', 'fold',
+         'sync saw', 'crush', 'spectral', 'formant scan', 'morph vocal']
 
 
 def read(path):
@@ -31,9 +34,12 @@ def read(path):
     return x.reshape(-1, ch)[:, 0].astype(np.float64)
 
 
+def cname(n): return n.upper().replace(' ', '_')
+
+
 tables = []
 for name in WAVES:
-    x = read(os.path.join(ROOT, 'tools/waves', name + '.wav'))
+    x = read(os.path.join(ROOT, 'tools/waves', name.replace(' ', '-') + '.wav'))
     assert len(x) % N == 0, name
     f = x.reshape(-1, N)
     f = f - f.mean(axis=1, keepdims=True)
@@ -55,9 +61,12 @@ with open(os.path.join(ROOT, 'plugin/engine/generated/WaveTables.h'), 'w') as o:
     o.write('constexpr int WAVE_TABLE_FRAMES[WAVE_TABLE_COUNT] = {' + ', '.join(str(len(q)) for _, q in tables) + '};\n')
     for name, q in tables:
         flat = q.reshape(-1)
-        o.write(f'/** {name} (as wave-tables.ts). */\ninline constexpr int16_t WAVE_{name.upper()}[{len(q)} * 2048] = {{\n')
+        o.write(f'/** {name} (as wave-tables.ts). */\ninline constexpr int16_t WAVE_{cname(name)}[{len(q)} * 2048] = {{\n')
         for i in range(0, len(flat), 32):
             o.write('  ' + ','.join(str(int(v)) for v in flat[i:i + 32]) + ',\n')
         o.write('};\n')
-    o.write('inline const int16_t* const WAVE_TABLE_DATA[WAVE_TABLE_COUNT] = {' + ', '.join('WAVE_' + n.upper() for n, _ in tables) + '};\n')
+    o.write('inline const int16_t* const WAVE_TABLE_DATA[WAVE_TABLE_COUNT] = {' + ', '.join('WAVE_' + cname(n) for n, _ in tables) + '};\n')
+    o.write('/** Each table\'s index by name. */\n')
+    for i, (n, _) in enumerate(tables):
+        o.write(f'constexpr int WT_{cname(n)} = {i};\n')
     o.write('\n}  // namespace lt\n')
