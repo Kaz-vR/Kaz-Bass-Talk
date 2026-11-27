@@ -103,7 +103,12 @@ int main(int argc, char** argv) {
   std::vector<float> out; out.reserve(frames * 2);
   e->dispatcher(e, 12, 0, 1, 0, 0); e->dispatcher(e, 71, 0, 0, 0, 0);
   // settle (parameter smoothing) before the signal
-  for (int k = 0; k < (int)(0.3 * g_sr / g_block); k++) { for (auto& v : ib) std::fill(v.begin(), v.end(), 0.f); e->processReplacing(e, ip.data(), op.data(), g_block); }
+  for (int k = 0; k < (int)(0.3 * g_sr / g_block); k++) {
+    // (some plugins only take certain changes while running: set them again mid-way through the settle)
+    if (k == (int)(0.15 * g_sr / g_block)) for (auto& p : sets) e->setParameter(e, p.first, p.second);
+    for (auto& v : ib) std::fill(v.begin(), v.end(), 0.f);
+    e->processReplacing(e, ip.data(), op.data(), g_block);
+  }
   const size_t offAt = note >= 0 ? (size_t)(noteLen * g_sr) : 0;
   for (size_t pos = 0; pos < frames; pos += g_block) {
     g_ti.samplePos = pos;
