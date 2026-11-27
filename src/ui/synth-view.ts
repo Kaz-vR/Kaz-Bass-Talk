@@ -7,7 +7,7 @@ import { Biquad, ENV_ATTACK_BEND, ENV_FALL_BEND, envSegment } from '../engine/co
 import { fromNormalized, getParam, params, toNormalized, type ParamValue, type Patch } from '../schema';
 import { formatValue } from './params-panel';
 import { DRIVE_FAMILIES, RUIN_RECIPES, recipeParams, stageParams, type RuinStage } from './ruin-recipes';
-import { corrosionTexture, frameTexture, keyGrime, lightGrain, logoWear, panelTexture, woodBaked, woodTexture } from './texture';
+import { corrosionTexture, frameTexture, keyGrime, lightGrain, logoWear, panelTexture, woodTexture } from './texture';
 import logoSvg from '../../design/logo.svg?raw';
 import { GRIND_BEAT_NAMES, crossX, crossY, grindBeat, grindHz, unpackBells, unpackPhaser } from '../engine/core/grind';
 import { BELL_ARCHETYPES, type BellArchetype, rollBells } from './bells-roll';
@@ -6066,7 +6066,6 @@ export class SynthView {
     this.page.style.setProperty('--logo-wear', `url(${logoWear()})`);
     this.page.style.setProperty('--wood-l', `url(${woodTexture('l')})`);
     this.page.style.setProperty('--wood-r', `url(${woodTexture('r')})`);
-    this.page.classList.toggle('wood-baked', woodBaked);
     this.page.style.setProperty('--key-grime', `url(${keyGrime()})`);
     const tabs = h('div', 'v2-tabs');
     for (const [t, ready] of [['OSC', true], ['LFO', true], ['RUIN', true], ['FX', true], ['PRESETS', true]] as const) {
