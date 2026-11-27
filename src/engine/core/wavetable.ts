@@ -16,15 +16,16 @@ export function mipHarmonics(m: number): number {
   const o = 1024 >> (m >> 1);
   return Math.min(TABLE_SIZE / 2 - 1, m & 1 ? Math.floor(o * 0.7071067811865476) : o);
 }
-/** How long mip level m's table is: at least 4 samples per harmonic (as the full table's 2 per), 64 .. 2048, a power
- * of two; so the levels with few harmonics take little room (a frame is 12544 samples instead of 21 x 2048). */
+/** How long mip level m's table is (owner's call, 27 Nov, measured against Serum): long enough that the images linear
+ * interpolation leaves sit under -90 dB, as Serum's (at 4 samples a harmonic the small high-note tables threw images
+ * at -50 dB); the long tables where there are many harmonics, the shorter ones only up high. */
+const MIP_SIZES = [2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048, 1024, 1024, 1024, 1024, 512, 512, 512, 512, 256, 256];
 export const MIP_SIZE: number[] = [];
 /** Where mip level m starts inside a frame, and how long a frame is. */
 export const MIP_OFFSET: number[] = [];
 export let FRAME_STRIDE = 0;
 for (let m = 0; m < MIP_LEVELS; m++) {
-  let n = 64;
-  while (n < 4 * mipHarmonics(m) && n < TABLE_SIZE) n *= 2;
+  const n = MIP_SIZES[m];
   MIP_SIZE.push(n);
   MIP_OFFSET.push(FRAME_STRIDE);
   FRAME_STRIDE += n;

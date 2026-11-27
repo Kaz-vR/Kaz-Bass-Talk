@@ -18,13 +18,13 @@ constexpr int mipHarmonics(int m) {
   // (floor(o x 0.7071...) without std::floor, so it stays constexpr: the same integer)
   return (m & 1) ? (int)((1024 >> (m >> 1)) * 0.7071067811865476) : std::min(TABLE_SIZE / 2 - 1, 1024 >> (m >> 1));
 }
-/** Each mip level's table length (4 samples a harmonic at least, 64 .. 2048) and place in a frame (as MIP_SIZE). */
+/** Each mip level's table length (images under -90 dB, as MIP_SIZES in wavetable.ts) and place in a frame. */
 struct MipLayout {
   int size[MIP_LEVELS], offset[MIP_LEVELS], stride;
   constexpr MipLayout() : size(), offset(), stride(0) {
+    constexpr int SIZES[MIP_LEVELS] = {2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048, 1024, 1024, 1024, 1024, 512, 512, 512, 512, 256, 256};
     for (int m = 0; m < MIP_LEVELS; m++) {
-      int n = 64;
-      while (n < 4 * mipHarmonics(m) && n < TABLE_SIZE) n *= 2;
+      const int n = SIZES[m];
       size[m] = n;
       offset[m] = stride;
       stride += n;
