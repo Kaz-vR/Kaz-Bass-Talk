@@ -74,7 +74,7 @@ old `wobble.off` or +1). Both engines.
 
 ### OTT BOXES and OTT OUT (owner's call, 27 Nov)
 
-RUIN has two OTTs, both Depth knobs on its strip next to the randomizer. **OTT BOXES** (`grind.ott_box`, default 0): every box in the chain (filter, drive, EQ, phaser) runs its own OTT right after its level, all set by this one knob; it is RUIN's OTT (the same `Ott` class, Xfer-fitted bands and times, no Lo cut split of its own: the chain only sees what is above RUIN's Lo cut), at the chain's oversampled rate, so the next box, the listening taps (solo / bypass / delta) and the meters hear it. **OTT OUT** is `grind.ott`, the post OTT after the chain. Both are LFO targets.
+RUIN has two OTTs, both Depth knobs on its strip next to the randomizer. **OTT BOXES** (`grind.ott_box`, default 0): every box in the chain (filter, drive, EQ, phaser) runs its own OTT right after its level, all set by this one knob; it is RUIN's OTT (the same `Ott` class, Xfer-fitted bands and times, no Lo cut split of its own: the chain only sees what is above RUIN's Lo cut), at the chain's oversampled rate, so the next box, the listening taps (solo / bypass / delta) and the meters hear it. **OTT DRIVES** (`grind.ott_drives`, default 0): the same, after the drive boxes only (a second OTT on each drive box, after OTT BOXES' when both are up). **OTT OUT** is `grind.ott`, the post OTT after the chain. Both are LFO targets.
 
 ### Pan targets (owner's call, 27 Nov)
 

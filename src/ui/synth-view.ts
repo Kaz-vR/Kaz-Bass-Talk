@@ -4248,6 +4248,7 @@ export class SynthView {
     const mix = md('grind.mix', 'Mix', { fmt: pct });
     const ott = md('grind.ott', 'OTT OUT', { fmt: pct });
     const ottBox = md('grind.ott_box', 'OTT BOXES', { fmt: pct });
+    const ottDrv = md('grind.ott_drives', 'OTT DRIVES', { fmt: pct });
     const out = md('grind.output', 'Output', { fmt: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB` });
     const lamps = h('span', 'gr-lamps gr-lamps-row', this.toggle('grind.key', 'KEY', 'small'), this.toggle('grind.noise_thru', 'NOISE THRU', 'small'));
     // CHAINS (owner's call: preset chains live in the strip): one of the recipes, exactly as it is (ROLL nudges them)
@@ -4267,7 +4268,7 @@ export class SynthView {
     chains.classList.add('sel-name');
     strip.append(h('div', 'ob-head', h('span', 'ob-bar'), h('span', 'c-title', 'RUIN'), h('div', 'sel gr-chains-sel', chains), rocker),
       h('div', 'gr-m-body', h('div', 'gr-m-row', roll, count), h('div', 'gr-m-row', h('span', 'gr-sub', 'WEIRD'), weird, recipeName), lamps),
-      h('div', 'ob-dials gr-knobs', ottBox, ott, lowcut, mix, out));
+      h('div', 'ob-dials gr-knobs', ottDrv, ottBox, ott, lowcut, mix, out));
 
     // ---- the chain: eight boxes in free order (owner's call); each holds one of the four filters or drives, or nothing
     const chain = h('div', 'gr-chain');

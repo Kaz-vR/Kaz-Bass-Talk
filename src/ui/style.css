@@ -1505,7 +1505,7 @@ html, body, .v2-wrap { background: #070708; }
 .v2 .gr-knobs { display: flex; gap: 6px; margin-left: auto; align-items: center; }
 .v2 .gr-knobs .k .k-label { margin-top: 1px; }
 .v2 .gr-knobs .k .k-label { white-space: nowrap; }
-.v2 .gr-master .gr-knobs .k:nth-child(-n+2) { margin: 0 8px; }
+.v2 .gr-master .gr-knobs .k:nth-child(-n+3) { margin: 0 8px; }
 .v2 .gr-strip .gr-rocker { margin-left: 4px; }
 /* the EQ: the selected ball's Freq / Gain / Q, then Scale */
 .v2 .eq-set { display: contents; }

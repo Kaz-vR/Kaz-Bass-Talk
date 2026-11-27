@@ -194,7 +194,7 @@ struct ParamIndex {
   int chorusMix, chorusDepth, phaserMix, phaserRate, reverbMix, fxLowcut[5], ottOn, ottDepth, ottLowcut;
   Eq eq[4];
   int eqScale, outGain, poly;
-  int grindOn, grindMix, grindLowcut, grindKey, grindOneShot, grindOneShotUp, grindNoiseThru, grindOtt, grindOttBox, grindOut;
+  int grindOn, grindMix, grindLowcut, grindKey, grindOneShot, grindOneShotUp, grindNoiseThru, grindOtt, grindOttBox, grindOttDrives, grindOut;
   int grindSlot[8];
   GrindStage grind[8];
 
@@ -283,7 +283,7 @@ struct ParamIndex {
     eqScale = ix("eq.scale");
     outGain = ix("output.gain"); poly = ix("voice.polyphony");
     grindOn = ix("grind.on"); grindMix = ix("grind.mix"); grindLowcut = ix("grind.lowcut"); grindKey = ix("grind.key");
-    grindOneShot = ix("grind.oneshot"); grindOneShotUp = ix("grind.oneshot_dir"); grindNoiseThru = ix("grind.noise_thru"); grindOtt = ix("grind.ott"); grindOttBox = ix("grind.ott_box"); grindOut = ix("grind.output");
+    grindOneShot = ix("grind.oneshot"); grindOneShotUp = ix("grind.oneshot_dir"); grindNoiseThru = ix("grind.noise_thru"); grindOtt = ix("grind.ott"); grindOttBox = ix("grind.ott_box"); grindOttDrives = ix("grind.ott_drives"); grindOut = ix("grind.output");
     for (int k = 0; k < 8; k++) grindSlot[k] = ix("grind.slot" + std::to_string(k + 1));
     for (int n = 0; n < 8; n++) {
       const std::string g = "grind" + std::to_string(n + 1) + ".";
