@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 #include "Dsp.h"
-#include "generated/AcidTable.h"
+#include "generated/WaveTables.h"
 
 namespace lt {
 
@@ -81,10 +81,12 @@ inline void synth(const std::vector<double>& a, int maxH, float* out, double sca
 
 
 // ---- The wave bank (as wavetable.ts): each new wave a small morph table, keyframes as one cycle in time.
-constexpr int BANK_COUNT = 26;
-constexpr int BANK_KEYS[BANK_COUNT] = {3, 3, 9, 5, 3, 3, 5, 5, 5, 5, 3, 3, 3, 3, 3, 3, 5, 3, ACID_FRAMES, 9, 9, 9, 9, 9, 9, 9};
-/** Frames per keyframe step: 4 on the small tables, 2 on the wavetables, 1 frame by frame (acid) (as bankFps). */
-constexpr int bankFps(int keys) { return keys >= 32 ? 1 : keys >= 8 ? 2 : FRAMES_PER_SEGMENT; }
+constexpr int BANK_COUNT = 27;
+/** Each bank wave's sampled table (an index into WAVE_TABLE_DATA: acid, ring, scream, gritty), -1 for a formula (as BANK_SAMPLED). */
+constexpr int BANK_SAMPLED[BANK_COUNT] = {-1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 2, -1, -1, -1, -1, -1, -1, 3};
+constexpr int BANK_KEYS[BANK_COUNT] = {3, 3, 9, 5, 3, 3, 5, WAVE_TABLE_FRAMES[1], 5, 5, 3, 3, 3, 3, 3, 3, 5, 3, WAVE_TABLE_FRAMES[0], WAVE_TABLE_FRAMES[2], 9, 9, 9, 9, 9, 9, WAVE_TABLE_FRAMES[3]};
+/** Frames per keyframe step of bank wave w: 1 on a sampled table, 2 on the wavetables, 4 on the rest (as bankFps). */
+constexpr int bankFps(int w) { return BANK_SAMPLED[w] >= 0 ? 1 : BANK_KEYS[w] >= 8 ? 2 : FRAMES_PER_SEGMENT; }
 
 namespace wt_detail {
 inline double jr(double x) { return std::floor(x + 0.5); }
@@ -111,13 +113,14 @@ inline double voice(double x, int v, double bw, double tilt) {
 }
 }  // namespace wt_detail
 
-/** ACID (as acidSample in wavetable.ts): Serum's Acid, its 40 frames taken from the owner's render. */
-inline double acidSample(int kf, double x) {
-  return ACID_TABLE[kf * TABLE_SIZE + ((int)std::floor(x * TABLE_SIZE) & TABLE_MASK)] / 32767.0;
+/** A sampled wave's frame kf at x (as sampledSample in wavetable.ts): Serum's own tables, from the owner's renders. */
+inline double sampledSample(int t, int kf, double x) {
+  return WAVE_TABLE_DATA[t][kf * TABLE_SIZE + ((int)std::floor(x * TABLE_SIZE) & TABLE_MASK)] / 32767.0;
 }
 
 inline double bankKey(int w, int kf, double x) {
   using namespace wt_detail;
+  if (BANK_SAMPLED[w] >= 0) return sampledSample(BANK_SAMPLED[w], kf, x);
   auto saw = [](double t) { return 2 * fr(t) - 1; };
   auto tri = [](double t) { return 1 - 4 * std::fabs(fr(t + 0.25) - 0.5); };
   switch (w) {
@@ -133,7 +136,6 @@ inline double bankKey(int w, int kf, double x) {
       for (int i = 0; i < 8; i++) y += std::pow(B[kf], i) * std::sin(2 * PI * ks[i] * x);
       return y;
     }
-    case 7: { static const double M[] = {2, 4, 7, 11, 17}; return (0.5 * saw(x) + 0.5 * S(x)) * S(M[kf] * x); }
     case 8: { static const double N[] = {48, 16, 8, 4, 2}; const double n = N[kf]; return jr((0.6 * saw(x + 0.5) + 0.6 * S(x)) * n) / n; }
     case 9: {
       static const double ks[9] = {1, 4, 8, 12, 16, 24, 32, 40, 48}, B[] = {0.15, 0.35, 0.55, 0.75, 1};
@@ -152,13 +154,6 @@ inline double bankKey(int w, int kf, double x) {
       static const double D[] = {1.5, 4, 10};
       const double d = D[kf];
       return std::tanh(d * additive(x, 40, [](int k) { return std::fabs(std::sin(PI * k * 0.2)) / k; })) / std::tanh(d);
-    }
-    case 18: return acidSample(kf, x);
-    case 19: {
-      static const double C[] = {4, 6, 8, 10, 12, 14, 16, 18, 20};
-      const double c = C[kf];
-      const double y = additive(x, 64, [&](int k) { const double a = (k - c) / 1.2, b = (k - 1.7 * c) / 1.6; return 0.3 / k + std::exp(-(a * a)) + 0.8 * std::exp(-(b * b)); });
-      return std::tanh(1.8 * y);
     }
     case 20: { static const int V[] = {3, 4, 3, 0, 1, 2, 1, 0, 3}; return std::tanh(3 * voice(x, V[kf], 0.7, 0)) / std::tanh(3.0); }
     case 21: { static const double G[] = {0.25, 0.6, 1, 1.6, 2.4, 3.4, 4.6, 6, 8}; return std::sin(0.5 * PI * G[kf] * tri(x)); }
@@ -179,7 +174,7 @@ struct BankLayout {
     int f = FRAME_COUNT;
     for (int w = 0; w < BANK_COUNT; w++) {
       frame0[w] = f;
-      frames[w] = (BANK_KEYS[w] - 1) * bankFps(BANK_KEYS[w]) + 1;
+      frames[w] = (BANK_KEYS[w] - 1) * bankFps(w) + 1;
       f += frames[w];
     }
     total = f;
@@ -213,7 +208,7 @@ inline void buildBank(std::vector<float>& data) {
     }
     std::vector<double> xr(TABLE_SIZE), xi(TABLE_SIZE);
     for (int f = 0; f < BANK_LAYOUT.frames[w]; f++) {
-      const int fps = bankFps(keys);
+      const int fps = bankFps(w);
       const int seg = std::min(keys - 2, (int)std::floor((double)f / fps));
       const double t = (double)f / fps - seg;
       for (int k = 0; k < TABLE_SIZE; k++) {
@@ -223,7 +218,7 @@ inline void buildBank(std::vector<float>& data) {
       bandLimit(xr, xi, MAX_HARMONIC, tmp.data(), 1);
       double peak = 0;
       for (int n = 0; n < TABLE_SIZE; n++) peak = std::fmax(peak, std::fabs((double)tmp[n]));
-      const double scale = peak > 0 ? 1 / peak : 1;
+      const double scale = BANK_SAMPLED[w] >= 0 || peak <= 0 ? 1 : 1 / peak;
       const int fi = BANK_LAYOUT.frame0[w] + f;
       for (int m = 0; m < MIP_LEVELS; m++) {
         const int maxH = std::min(MAX_HARMONIC, 1024 >> m);

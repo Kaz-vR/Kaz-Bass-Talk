@@ -6,7 +6,7 @@
 // in-between frames are real hybrid timbres rather than crossfades. Each frame
 // has one mip level per octave so that no harmonic ever exceeds Nyquist.
 
-import { ACID_B64, ACID_FRAMES } from './acid-table';
+import { WAVE_TABLES } from './wave-tables';
 
 export const TABLE_SIZE = 2048;
 export const TABLE_MASK = TABLE_SIZE - 1;
@@ -125,16 +125,17 @@ function voice(x: number, v: number, bw: number, tilt: number): number {
 }
 
 /**
- * ACID (owner's call: exactly Serum's Acid): its 40 frames, taken straight from the owner's render of it
- * (tools/extract-acid.py), Shape scanning the resonant peak from harmonic 4 to 29.
+ * The sampled waves (owner's call: exactly Serum's): acid, ring, scream and gritty are Serum's own tables, taken frame
+ * by frame from the owner's renders (tools/extract-waves.py, wave-tables.ts), Shape scanning their frames.
  */
-let acidData: Float32Array | null = null;
-function acidSample(kf: number, x: number): number {
-  if (!acidData) {
+const sampledData: (Float32Array | null)[] = WAVE_TABLES.map(() => null);
+function sampledSample(t: number, kf: number, x: number): number {
+  let d = sampledData[t];
+  if (!d) {
     // base64 -> int16 by hand (the audio worklet has no atob)
-    const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/', s = ACID_B64, lut = new Int8Array(128);
+    const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/', s = WAVE_TABLES[t].b64, lut = new Int8Array(128);
     for (let i = 0; i < 64; i++) lut[A.charCodeAt(i)] = i;
-    const bytes = new Uint8Array(ACID_FRAMES * TABLE_SIZE * 2);
+    const bytes = new Uint8Array(WAVE_TABLES[t].frames * TABLE_SIZE * 2);
     let o = 0;
     for (let i = 0; i + 3 < s.length && o < bytes.length; i += 4) {
       const n = (lut[s.charCodeAt(i)] << 18) | (lut[s.charCodeAt(i + 1)] << 12) | (lut[s.charCodeAt(i + 2)] << 6) | lut[s.charCodeAt(i + 3)];
@@ -142,30 +143,36 @@ function acidSample(kf: number, x: number): number {
       if (o < bytes.length) bytes[o++] = (n >> 8) & 255;
       if (o < bytes.length) bytes[o++] = n & 255;
     }
-    acidData = new Float32Array(ACID_FRAMES * TABLE_SIZE);
-    for (let i = 0; i < acidData.length; i++) {
+    d = new Float32Array(WAVE_TABLES[t].frames * TABLE_SIZE);
+    for (let i = 0; i < d.length; i++) {
       const v = bytes[2 * i] | (bytes[2 * i + 1] << 8);
-      acidData[i] = (v >= 32768 ? v - 65536 : v) / 32767;
+      d[i] = (v >= 32768 ? v - 65536 : v) / 32767;
     }
+    sampledData[t] = d;
   }
-  return acidData[kf * TABLE_SIZE + (Math.floor(x * TABLE_SIZE) & TABLE_MASK)];
+  return d[kf * TABLE_SIZE + (Math.floor(x * TABLE_SIZE) & TABLE_MASK)];
 }
+const sampledFrames = (name: string): number => WAVE_TABLES.find((q) => q.name === name)?.frames ?? 2;
 
 /** The bank's waves by name: how many keyframes, and keyframe kf's sample at x. Tables of 8 keyframes and more are
  * real wavetables, made to be scanned (owner's call): two frames per step instead of four. */
 export const BANK: { name: string; keys: number }[] = [
   { name: 'square', keys: 3 }, { name: 'double saw', keys: 3 }, { name: 'sync saw', keys: 9 }, { name: 'vowel', keys: 5 },
-  { name: 'choir', keys: 3 }, { name: 'talk', keys: 3 }, { name: 'bell', keys: 5 }, { name: 'ring', keys: 5 },
+  { name: 'choir', keys: 3 }, { name: 'talk', keys: 3 }, { name: 'bell', keys: 5 }, { name: 'ring', keys: sampledFrames('ring') },
   { name: 'digital', keys: 5 }, { name: 'glass', keys: 5 }, { name: 'bowed', keys: 3 }, { name: 'reed', keys: 3 },
   { name: 'breath', keys: 3 }, { name: 'tape saw', keys: 3 }, { name: 'cassette pulse', keys: 3 }, { name: 'lofi sample', keys: 3 },
-  { name: 'broken sine', keys: 5 }, { name: 'electric guitar', keys: 3 }, { name: 'acid', keys: ACID_FRAMES }, { name: 'scream', keys: 9 },
+  { name: 'broken sine', keys: 5 }, { name: 'electric guitar', keys: 3 }, { name: 'acid', keys: sampledFrames('acid') }, { name: 'scream', keys: sampledFrames('scream') },
   { name: 'growl', keys: 9 }, { name: 'fold', keys: 9 }, { name: 'harmonic', keys: 9 }, { name: 'crush', keys: 9 },
   { name: 'spectral', keys: 9 }, { name: 'formant scan', keys: 9 },
+  { name: 'gritty', keys: sampledFrames('gritty') },
 ];
-/** Frames per keyframe step: 4 on the small tables, 2 on the wavetables, 1 on a table taken frame by frame (acid). */
-export const bankFps = (keys: number): number => (keys >= 32 ? 1 : keys >= 8 ? 2 : FRAMES_PER_SEGMENT);
+/** Each bank wave's sampled table (an index into WAVE_TABLES), -1 when it is built from its formula. */
+export const BANK_SAMPLED = BANK.map((b) => WAVE_TABLES.findIndex((q) => q.name === b.name));
+/** Frames per keyframe step of bank wave w: 1 on a sampled table (its own frames), 2 on the wavetables, 4 on the rest. */
+export const bankFps = (w: number): number => (BANK_SAMPLED[w] >= 0 ? 1 : BANK[w].keys >= 8 ? 2 : FRAMES_PER_SEGMENT);
 
 export function bankKey(w: number, kf: number, x: number): number {
+  if (BANK_SAMPLED[w] >= 0) return sampledSample(BANK_SAMPLED[w], kf, x);
   const saw = (t: number) => 2 * fr(t) - 1;
   const tri = (t: number) => 1 - 4 * Math.abs(fr(t + 0.25) - 0.5);
   switch (w) {
@@ -176,7 +183,6 @@ export function bankKey(w: number, kf: number, x: number): number {
     case 4: return voice(x, [4, 3, 0][kf], 2.4, 0.5); // choir oo oh ah, soft and wide
     case 5: return voice(x, [3, 2, 0][kf], 0.8, 0.2); // talk o → i → a
     case 6: { const ks = [1, 5, 9, 14, 21, 28, 35, 44], b = [0.2, 0.4, 0.6, 0.8, 1][kf]; let y = 0; for (let i = 0; i < ks.length; i++) y += Math.pow(b, i) * Math.sin(2 * Math.PI * ks[i] * x); return y; } // bell, brighter and denser
-    case 7: return (0.5 * saw(x) + 0.5 * S(x)) * S([2, 4, 7, 11, 17][kf] * x); // ring, harsher up the Shape
     case 8: { const n = [48, 16, 8, 4, 2][kf]; return jr((0.6 * saw(x + 0.5) + 0.6 * S(x)) * n) / n; } // digital steps, down to two
     case 9: { const ks = [1, 4, 8, 12, 16, 24, 32, 40, 48], b = [0.15, 0.35, 0.55, 0.75, 1][kf]; let y = 0; for (let i = 0; i < ks.length; i++) y += Math.pow(b, i) * Math.sin(2 * Math.PI * ks[i] * x); return y; } // glass
     case 10: { const p = [1.6, 1.3, 1][kf]; return additive(x, 60, (k) => (1 + 0.8 * Math.exp(-(((k - 3) / 1.5) ** 2)) + 0.5 * Math.exp(-(((k - 8) / 3) ** 2))) / Math.pow(k, p)); } // bowed
@@ -189,12 +195,6 @@ export function bankKey(w: number, kf: number, x: number): number {
     case 17: { // electric guitar: a string plucked near the bridge through an amp, Shape = more gain
       const d = [1.5, 4, 10][kf];
       return Math.tanh(d * additive(x, 40, (k) => Math.abs(Math.sin(Math.PI * k * 0.2)) / k)) / Math.tanh(d);
-    }
-    case 18: return acidSample(kf, x); // acid: Serum's frames
-    case 19: { // scream: two narrow, close formants high up, Shape opening the mouth, pushed hard
-      const c = [4, 6, 8, 10, 12, 14, 16, 18, 20][kf];
-      const y = additive(x, 64, (k) => 0.3 / k + Math.exp(-(((k - c) / 1.2) ** 2)) + 0.8 * Math.exp(-(((k - 1.7 * c) / 1.6) ** 2)));
-      return Math.tanh(1.8 * y);
     }
     case 20: return Math.tanh(3 * voice(x, [3, 4, 3, 0, 1, 2, 1, 0, 3][kf], 0.7, 0)) / Math.tanh(3); // growl: a neuro yoi, o-u-o-a-e-i-e-a-o
     case 21: return Math.sin(0.5 * Math.PI * [0.25, 0.6, 1, 1.6, 2.4, 3.4, 4.6, 6, 8][kf] * tri(x)); // fold: clean to folded hard
@@ -213,10 +213,10 @@ export const BANK_FRAME0: number[] = [];
 export const BANK_FRAMES: number[] = [];
 {
   let f = FRAME_COUNT;
-  for (const b of BANK) {
+  for (let w = 0; w < BANK.length; w++) {
     BANK_FRAME0.push(f);
-    BANK_FRAMES.push((b.keys - 1) * bankFps(b.keys) + 1);
-    f += (b.keys - 1) * bankFps(b.keys) + 1;
+    BANK_FRAMES.push((BANK[w].keys - 1) * bankFps(w) + 1);
+    f += (BANK[w].keys - 1) * bankFps(w) + 1;
   }
 }
 export const TOTAL_FRAMES = BANK_FRAME0[BANK_FRAME0.length - 1] + BANK_FRAMES[BANK_FRAMES.length - 1];
@@ -250,7 +250,7 @@ function buildBank(data: Float32Array): void {
     }
     const xr = new Float64Array(TABLE_SIZE), xi = new Float64Array(TABLE_SIZE);
     for (let f = 0; f < BANK_FRAMES[w]; f++) {
-      const fps = bankFps(keys);
+      const fps = bankFps(w);
       const seg = Math.min(keys - 2, Math.floor(f / fps));
       const t = f / fps - seg;
       for (let k = 0; k < TABLE_SIZE; k++) {
@@ -261,7 +261,8 @@ function buildBank(data: Float32Array): void {
       bandLimit(xr, xi, MAX_HARMONIC, tmp, 1);
       let peak = 0;
       for (let n = 0; n < TABLE_SIZE; n++) peak = Math.max(peak, Math.abs(tmp[n]));
-      const scale = peak > 0 ? 1 / peak : 1;
+      // (a sampled table keeps Serum's levels between its frames)
+      const scale = BANK_SAMPLED[w] >= 0 || peak <= 0 ? 1 : 1 / peak;
       const fi = BANK_FRAME0[w] + f;
       for (let m = 0; m < MIP_LEVELS; m++) {
         const maxH = Math.min(MAX_HARMONIC, 1024 >> m);
