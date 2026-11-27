@@ -542,14 +542,16 @@ class OctaveDown {
 };
 
 constexpr int VERB_ROOM = 0, VERB_PLATE = 1, VERB_HALL = 2, VERB_CATHEDRAL = 3;
-struct VerbType { double size, diff, damp, mod, build, level; };
+// (as fx.ts: each line's decay for the lows (lo) and the top (hi) apart, fitted to VintageVerb)
+struct VerbType { double size, diff, lo, hi, mod, build, level; };
 constexpr VerbType VERB_TYPES[4] = {
-  {0.36, 0.62, 5200, 0.35, 0.55, 0.27}, {0.52, 0.78, 6800, 0.5, 0.25, 0.255}, {1.0, 0.7, 4400, 0.8, 0.7, 0.4}, {1.75, 0.72, 3300, 1.1, 1, 0.58}};
+  {0.36, 0.62, 1.36, 0.51, 0.35, 0.55, 0.16}, {0.52, 0.78, 1.14, 0.24, 0.5, 0.25, 0.191}, {1.0, 0.7, 1.46, 0.16, 0.8, 0.7, 0.28}, {1.75, 0.72, 1.36, 0.15, 1.1, 1, 0.447}};
 constexpr double VERB_LINES_MS[8] = {29.7, 37.1, 41.1, 43.7, 53.3, 59.9, 67.7, 73.1};
 constexpr double VERB_DIFF_MS[4] = {4.77, 3.59, 12.73, 9.3};
 constexpr double VERB_MOD_HZ[8] = {0.31, 0.47, 0.61, 0.83, 0.37, 0.53, 0.71, 1.07};
 constexpr double VERB_SIGN_L[8] = {1, -1, 1, 1, -1, 1, -1, -1};
-constexpr double VERB_SIGN_R[8] = {1, 1, -1, 1, 1, -1, -1, 1};
+constexpr double VERB_SIGN_R[8] = {1, 1, -1, -1, 1, 1, -1, -1};
+constexpr double VERB_EARLY = 0.5, VERB_BW_HZ = 10000;
 constexpr double VERB_MAX_PRE = 0.26;
 
 /** Vintage digital reverb (1970s colour): band-limited, diffused input, eight chorused lines (see fx.ts Reverb). */
@@ -560,7 +562,7 @@ class Reverb {
     const double maxScale = VERB_TYPES[VERB_CATHEDRAL].size;
     for (int i = 0; i < 4; i++) diff[i].assign((size_t)std::ceil((VERB_DIFF_MS[i] * maxScale * fs) / 1000) + 4, 0.f);
     for (int i = 0; i < 8; i++) lines[i].assign((size_t)std::ceil(((VERB_LINES_MS[i] * maxScale + 3) * fs) / 1000) + 4, 0.f);
-    bwCoef = 1 - std::exp((-2 * PI * 7500) / fs);
+    bwCoef = 1 - std::exp((-2 * PI * VERB_BW_HZ) / fs);
     for (int i = 0; i < 8; i++) modPh[i] = i / 8.0;
   }
   void reset() {
@@ -585,6 +587,7 @@ class Reverb {
     inLp2 += bwCoef * (inLp - inLp2);
     x = inLp2;
     const double g = diffG;
+    double early = 0;
     for (int i = 0; i < 4; i++) {
       auto& buf = diff[i];
       const int n = (int)buf.size();
@@ -595,9 +598,9 @@ class Reverb {
       buf[diffW[i]] = (float)v;
       x = d - g * v;
       diffW[i] = diffW[i] + 1 == n ? 0 : diffW[i] + 1;
+      if (i == 1) early = x;
     }
     double sum = 0;
-    const double dc = dampCoef;
     for (int i = 0; i < 8; i++) {
       auto& buf = lines[i];
       const int n = (int)buf.size();
@@ -610,8 +613,8 @@ class Reverb {
       const int j = (int)std::floor(r);
       const double f = r - j;
       const double y = buf[j] * (1 - f) + buf[j + 1 == n ? 0 : j + 1] * f;
-      damp[i] = y * (1 - dc) + damp[i] * dc;
-      const double v = damp[i] * gain[i];
+      damp[i] = gain[i] * y + absA[i] * damp[i];
+      const double v = damp[i];
       lineOut[i] = v;
       sum += v;
     }
@@ -627,6 +630,8 @@ class Reverb {
       l += VERB_SIGN_L[i] * v;
       rr += VERB_SIGN_R[i] * v;
     }
+    l += VERB_EARLY * early;
+    rr += VERB_EARLY * x;
     outL += bwCoef * (l - outL);
     outR += bwCoef * (rr - outR);
     out[0] = outL * level;
@@ -637,10 +642,12 @@ class Reverb {
     const VerbType& t = VERB_TYPES[std::max(0, std::min(3, (int)type))];
     for (int i = 0; i < 8; i++) {
       len[i] = (VERB_LINES_MS[i] * t.size * fs) / 1000;
-      gain[i] = std::pow(10.0, (-3 * len[i]) / (std::fmax(0.1, decay) * (1 + 0.055 * decay) * fs));
+      const double d = std::fmax(0.1, decay);
+      const double gdc = std::pow(10.0, (-3 * len[i]) / (t.lo * d * fs)), gny = std::pow(10.0, (-3 * len[i]) / (t.hi * d * fs));
+      absA[i] = (gdc - gny) / (gdc + gny);
+      gain[i] = gdc * (1 - absA[i]);
     }
     for (int i = 0; i < 4; i++) diffLen[i] = std::max(1, (int)jsRound((VERB_DIFF_MS[i] * std::sqrt(t.size) * fs) / 1000));
-    dampCoef = std::exp((-2 * PI * t.damp) / fs);
     modDepth = (t.mod * fs) / 1000;
     diffG = t.diff;
     build = t.build;
@@ -651,9 +658,9 @@ class Reverb {
   double fs;
   std::vector<float> pre, diff[4], lines[8];
   int preW = 0, diffW[4] = {}, lineW[8] = {}, diffLen[4] = {};
-  double damp[8] = {}, modPh[8] = {}, lineOut[8] = {}, len[8] = {}, gain[8] = {};
+  double damp[8] = {}, modPh[8] = {}, lineOut[8] = {}, len[8] = {}, gain[8] = {}, absA[8] = {};
   double inLp = 0, inLp2 = 0, outL = 0, outR = 0, lastType = -1, lastDecay = -1;
-  double dampCoef = 0, modDepth = 0, diffG = 0.7, build = 0.7, level = 0.4, bwCoef = 0;
+  double modDepth = 0, diffG = 0.7, build = 0.7, level = 0.4, bwCoef = 0;
 };
 
 class Tape {

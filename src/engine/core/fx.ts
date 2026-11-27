@@ -691,11 +691,14 @@ export class OctaveDown {
 export const VERB_ROOM = 0, VERB_PLATE = 1, VERB_HALL = 2, VERB_CATHEDRAL = 3;
 
 /** Per type: tank size (× the base lengths), input diffusion, tank damping (Hz), modulation depth (ms), early build-up, output level (the types level-matched). */
+// (owner's call, 27 Nov, measured against Valhalla VintageVerb's Room / Plate / Concert Hall / Cathedral in its
+// seventies colour, tools/reverb-ref.ts (levels kept as loud as before at Decay 2.5 s): each line's decay set apart for the lows and the top, lo / hi = the decay
+// time at DC and at Nyquist as a multiple of Decay, fitted to VintageVerb's per-octave decay times within ~20 %)
 const VERB_TYPES = [
-  { size: 0.36, diff: 0.62, damp: 5200, mod: 0.35, build: 0.55, level: 0.27 }, // room: small, quick, a little boxy
-  { size: 0.52, diff: 0.78, damp: 6800, mod: 0.5, build: 0.25, level: 0.255 }, // plate: dense from the first moment, the brightest
-  { size: 1.0, diff: 0.7, damp: 4400, mod: 0.8, build: 0.7, level: 0.4 }, // hall: big, smooth, chorused tail
-  { size: 1.75, diff: 0.72, damp: 3300, mod: 1.1, build: 1, level: 0.58 }, // cathedral: huge, slow to bloom, dark
+  { size: 0.36, diff: 0.62, lo: 1.36, hi: 0.51, mod: 0.35, build: 0.55, level: 0.16 }, // room: small, quick, a little boxy
+  { size: 0.52, diff: 0.78, lo: 1.14, hi: 0.24, mod: 0.5, build: 0.25, level: 0.191 }, // plate: dense from the first moment, the brightest
+  { size: 1.0, diff: 0.7, lo: 1.46, hi: 0.16, mod: 0.8, build: 0.7, level: 0.28 }, // hall: big, smooth, chorused tail
+  { size: 1.75, diff: 0.72, lo: 1.36, hi: 0.15, mod: 1.1, build: 1, level: 0.447 }, // cathedral: huge, slow to bloom, dark
 ];
 /** The tank's eight delay lines at hall size (ms): unrelated lengths, so no ringing modes line up. */
 const VERB_LINES_MS = [29.7, 37.1, 41.1, 43.7, 53.3, 59.9, 67.7, 73.1];
@@ -703,7 +706,12 @@ const VERB_DIFF_MS = [4.77, 3.59, 12.73, 9.3];
 const VERB_MOD_HZ = [0.31, 0.47, 0.61, 0.83, 0.37, 0.53, 0.71, 1.07];
 /** Output signs per line: left and right hear the tank differently, so the tail is wide. */
 const VERB_SIGN_L = [1, -1, 1, 1, -1, 1, -1, -1];
-const VERB_SIGN_R = [1, 1, -1, 1, 1, -1, -1, 1];
+const VERB_SIGN_R = [1, 1, -1, -1, 1, 1, -1, -1]; // (orthogonal to the left: the two sides uncorrelated, as VintageVerb's)
+/** The early sound, tapped from the diffusers straight to the outputs, so the space starts at once (VintageVerb's
+ * starts within 5 ms; the tank alone answered 11-53 ms late). */
+const VERB_EARLY = 0.5;
+/** The band limit of the 1970s converters, in and out. */
+const VERB_BW_HZ = 10000;
 const VERB_MAX_PRE = 0.26;
 
 /**
@@ -735,8 +743,9 @@ export class Reverb {
   private lastDecay = -1;
   private readonly len = new Float64Array(8);
   private readonly gain = new Float64Array(8);
+  /** Each line's absorption: a one-pole, b·y + a·state (its DC gain and Nyquist gain from the lows' and the top's decay). */
+  private readonly absA = new Float64Array(8);
   private readonly diffLen = new Int32Array(4);
-  private dampCoef = 0;
   private modDepth = 0;
   private diffG = 0.7;
   private build = 0.7;
@@ -750,7 +759,7 @@ export class Reverb {
     for (const ms of VERB_DIFF_MS) this.diff.push(new Float32Array(Math.ceil((ms * maxScale * fs) / 1000) + 4));
     for (const ms of VERB_LINES_MS) this.lines.push(new Float32Array(Math.ceil(((ms * maxScale + 3) * fs) / 1000) + 4));
     // 1970s colour: the input and output are band-limited (~7.5 kHz), as the early machines' converters were.
-    this.bwCoef = 1 - Math.exp((-2 * Math.PI * 7500) / fs);
+    this.bwCoef = 1 - Math.exp((-2 * Math.PI * VERB_BW_HZ) / fs);
     for (let i = 0; i < 8; i++) this.modPh[i] = i / 8;
   }
 
@@ -767,12 +776,13 @@ export class Reverb {
     const fs = this.fs;
     for (let i = 0; i < 8; i++) {
       this.len[i] = (VERB_LINES_MS[i] * t.size * fs) / 1000;
-      // RT60: each pass through a line loses its share of 60 dB.
-      // (the damping and the chorused reads lose a little on every pass too: long tails are stretched to match)
-      this.gain[i] = Math.pow(10, (-3 * this.len[i]) / (Math.max(0.1, decay) * (1 + 0.055 * decay) * fs));
+      // RT60: each pass through a line loses its share of 60 dB, the lows (decay x lo) and the top (decay x hi) apart
+      const d = Math.max(0.1, decay);
+      const gdc = Math.pow(10, (-3 * this.len[i]) / (t.lo * d * fs)), gny = Math.pow(10, (-3 * this.len[i]) / (t.hi * d * fs));
+      this.absA[i] = (gdc - gny) / (gdc + gny);
+      this.gain[i] = gdc * (1 - this.absA[i]);
     }
     for (let i = 0; i < 4; i++) this.diffLen[i] = Math.max(1, Math.round((VERB_DIFF_MS[i] * Math.sqrt(t.size) * fs) / 1000));
-    this.dampCoef = Math.exp((-2 * Math.PI * t.damp) / fs);
     this.modDepth = (t.mod * fs) / 1000;
     this.diffG = t.diff;
     this.build = t.build;
@@ -799,8 +809,9 @@ export class Reverb {
     this.inLp += this.bwCoef * (x - this.inLp);
     this.inLp2 += this.bwCoef * (this.inLp - this.inLp2);
     x = this.inLp2;
-    // input diffusion: four allpasses smear the attack into a cloud
+    // input diffusion: four allpasses smear the attack into a cloud (the second's output is the early sound)
     const g = this.diffG;
+    let early = 0;
     for (let i = 0; i < 4; i++) {
       const buf = this.diff[i];
       const n = buf.length;
@@ -811,10 +822,10 @@ export class Reverb {
       buf[this.diffW[i]] = v;
       x = d - g * v;
       this.diffW[i] = this.diffW[i] + 1 === n ? 0 : this.diffW[i] + 1;
+      if (i === 1) early = x;
     }
     // the tank: read each (chorused) line, damp it, mix through a Householder matrix, feed back
     let sum = 0;
-    const dc = this.dampCoef;
     for (let i = 0; i < 8; i++) {
       const buf = this.lines[i];
       const n = buf.length;
@@ -826,8 +837,8 @@ export class Reverb {
       while (r < 0) r += n;
       const j = Math.floor(r), f = r - j;
       const y = buf[j] * (1 - f) + buf[j + 1 === n ? 0 : j + 1] * f;
-      this.damp[i] = y * (1 - dc) + this.damp[i] * dc;
-      const v = this.damp[i] * this.gain[i];
+      this.damp[i] = this.gain[i] * y + this.absA[i] * this.damp[i];
+      const v = this.damp[i];
       this.lineOut[i] = v;
       sum += v;
     }
@@ -844,6 +855,8 @@ export class Reverb {
       l += VERB_SIGN_L[i] * v;
       rr += VERB_SIGN_R[i] * v;
     }
+    l += VERB_EARLY * early;
+    rr += VERB_EARLY * x;
     // output band-limit, same colour as the input
     this.outL += this.bwCoef * (l - this.outL);
     this.outR += this.bwCoef * (rr - this.outR);
