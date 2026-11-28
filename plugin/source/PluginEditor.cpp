@@ -48,9 +48,13 @@ LowTalkEditor::LowTalkEditor(LowTalkProcessor& p)
                              [this](const juce::String& url) { return getResource(url); })) {
   lastSent.fill(std::nanf(""));
   addAndMakeVisible(browser);
+  // The window is exactly the synth (owner's call, 28 Nov): 1358 x 750 at 100% (the 1200 px page and its two wooden
+  // cheeks, 79 px each), no borders; only the corner resizes it, keeping the proportions, from 50% to 200%; it opens at 100%.
+  constexpr int kW = 1358, kH = 750;
   setResizable(true, true);
-  setResizeLimits(900, 560, 2400, 1600);
-  setSize(1200, 800);
+  setResizeLimits(kW / 2, kH / 2, kW * 2, kH * 2);
+  if (auto* c = getConstrainer()) c->setFixedAspectRatio((double)kW / kH);
+  setSize(kW, kH);
   browser.goToURL(juce::WebBrowserComponent::getResourceProviderRoot());
   startTimerHz(30);
 }

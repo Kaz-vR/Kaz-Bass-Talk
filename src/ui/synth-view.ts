@@ -69,7 +69,7 @@ type Zone = 'src' | 'flt' | 'dirt' | 'mat';
 
 const DESIGN_WIDTH = 1200;
 /** The wooden side panels either side of the page (the owner's own images: L2 left, R2 right). */
-const WOOD = 67 + 36; // the panel and the dark gap between it and the boxes, as in the owner's reference
+const WOOD = 67 + 12; // the panel and the gap between it and the boxes (style.css: .wood-l at -79 px), so the synth is 1358 px wide
 const ZOOMS = [1, 1.25, 1.5];
 const ZOOM_KEY = 'lowtalk.zoom';
 const FS = 48000;
@@ -1144,7 +1144,10 @@ export class SynthView {
       // Fit the window like a plugin: never wider than it, never taller than it (the keyboard
       // under the page counts too), so the top can't slide out of view.
       const tall = window.innerHeight / Math.max(1, this.page.offsetHeight);
-      const s = Math.max(0.4, Math.min(this.zoom, root.clientWidth / (DESIGN_WIDTH + 2 * WOOD), tall));
+      // in the plugin (owner's call, 28 Nov): the window is the synth's own shape, so the synth fills it exactly at any
+      // size the corner gives (50-200%), no borders and no zoom button
+      const inPlugin = document.documentElement.classList.contains('in-plugin');
+      const s = inPlugin ? Math.min(root.clientWidth / (DESIGN_WIDTH + 2 * WOOD), tall) : Math.max(0.4, Math.min(this.zoom, root.clientWidth / (DESIGN_WIDTH + 2 * WOOD), tall));
       this.page.style.transform = `scale(${s})`;
       this.page.style.marginLeft = `${Math.max(0, (root.clientWidth - (DESIGN_WIDTH + 2 * WOOD) * s) / 2) + WOOD * s}px`;
       root.style.height = `${this.page.offsetHeight * s}px`;

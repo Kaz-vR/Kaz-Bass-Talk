@@ -76,3 +76,16 @@ Done (owner's calls): RUIN's SAT and PRE OTT (`grind.sat`, `grind.preott`), both
 - **Stamps:** each preset's check results carry an audio fingerprint and the judge hash (`src/quality/stamp.ts`, `tools/lib/codehash.ts`). While both match, results are kept without re-analysis, so code changes that don't change a sound don't trigger a full re-check.
 - **Performance:** a generation batch and a Sound Tree round respond fast enough to feel instant (target < 300 ms per round); the engine stays within the CPU budget.
 
+
+## User presets ship with every build (owner's rule, 28 Nov)
+
+The sounds the owner saves in the prototype live in its database (`presets/<name>`). **Before every push**, read that
+collection (ArtifactData list, `presets`, on the prototype) and write all of it into `data/user-sounds.json` (name,
+hint, patch as an object, oldest first): main.ts builds that file into ★ User, so the plugin downloaded from GitHub has
+every user preset. Never push without syncing it.
+
+## The plugin window (owner's call, 28 Nov)
+
+Exactly the synth, no borders: 1358 x 750 at 100% (the 1200 px page and its two 79 px wooden cheeks), opening at 100%,
+resized only by the corner with the proportions locked, 50% to 200% (`PluginEditor.cpp`); inside the plugin the page
+scales to fill the window exactly and the zoom button is hidden.
