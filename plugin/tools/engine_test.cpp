@@ -24,7 +24,7 @@ static std::vector<double> plainPatch(int poly) {
   set("voice.analog", 0);
   set("texture.level", 0);
   set("reverb.mix", 0);
-  set("delay.mix", 0);
+  set("shifter.mix", 0);  // (the delay is gone: the pitch shifter in its place)
   set("chorus.mix", 0);
   set("tape.wow", 0);
   set("amp_env.sustain", 1);
