@@ -1,6 +1,7 @@
 // Dev test for the plugin-only engine additions (not covered by the parity
 // check): MPE per-note bend / pressure.
 //   g++ -std=c++17 -O2 -I engine tools/engine_test.cpp -o engine_test && ./engine_test
+#include <memory>
 #include <cstdio>
 #include <vector>
 #include "Synth.h"
@@ -43,7 +44,8 @@ static double freqOf(const std::vector<float>& x) {
 int main() {
   const double fs = 48000;
   {
-    Synth s(fs);
+    auto sp = std::make_unique<Synth>(fs);  // (on the heap: the synth is ~1.8 MB, over Windows' 1 MB stack)
+    Synth& s = *sp;
     auto v = plainPatch(2);
     s.setParams(v.data(), true);
     s.noteOn(57, 0.8, 1);  // A3 on channel 2
@@ -62,7 +64,8 @@ int main() {
   {
     // Pressure brightens (opens the filter): more energy above the fundamental on a saw.
     auto bright = [&](double pressure) {
-      Synth s(fs);
+      auto sp = std::make_unique<Synth>(fs);  // (on the heap: the synth is ~1.8 MB, over Windows' 1 MB stack)
+      Synth& s = *sp;
       auto v = plainPatch(2);
       v[paramIndex("osc1.wave")] = WAVE_SAW;
       v[paramIndex("filter.cutoff")] = 300;
